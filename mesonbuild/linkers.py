@@ -48,7 +48,7 @@ class VisualStudioLinker(StaticLinker):
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return []
 
-    def thread_link_flags(self):
+    def thread_link_flags(self, env):
         return []
 
     def get_option_link_args(self, options):
@@ -100,7 +100,7 @@ class ArLinker(StaticLinker):
     def get_always_args(self):
         return []
 
-    def thread_link_flags(self):
+    def thread_link_flags(self, env):
         return []
 
     def get_option_link_args(self, options):

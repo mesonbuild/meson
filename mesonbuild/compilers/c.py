@@ -16,9 +16,11 @@ import subprocess, os.path, tempfile
 
 from .. import mlog
 from .. import coredata
-from ..mesonlib import EnvironmentException, version_compare, Popen_safe, listify
-from ..mesonlib import for_windows, for_darwin, for_cygwin
 from . import compilers
+from ..mesonlib import (
+    EnvironmentException, version_compare, Popen_safe, listify,
+    for_windows, for_darwin, for_cygwin, for_haiku,
+)
 
 from .compilers import (
     GCC_MINGW,
@@ -281,12 +283,12 @@ class CCompiler(Compiler):
             # Add compile flags needed by dependencies
             args += d.get_compile_args()
             if d.need_threads():
-                args += self.thread_flags()
+                args += self.thread_flags(env)
             if mode == 'link':
                 # Add link flags needed to find dependencies
                 args += d.get_link_args()
                 if d.need_threads():
-                    args += self.thread_link_flags()
+                    args += self.thread_link_flags(env)
         # Select a CRT if needed since we're linking
         if mode == 'link':
             args += self.get_linker_debug_crt_args()
@@ -781,10 +783,14 @@ class CCompiler(Compiler):
                         return [trial]
         return None
 
-    def thread_flags(self):
+    def thread_flags(self, env):
+        if for_haiku(self.is_cross, env):
+            return []
         return ['-pthread']
 
-    def thread_link_flags(self):
+    def thread_link_flags(self, env):
+        if for_haiku(self.is_cross, env):
+            return []
         return ['-pthread']
 
     def has_multi_arguments(self, args, env):
@@ -1005,10 +1011,10 @@ class VisualStudioCCompiler(CCompiler):
         return []
 
     # FIXME, no idea what these should be.
-    def thread_flags(self):
+    def thread_flags(self, env):
         return []
 
-    def thread_link_flags(self):
+    def thread_link_flags(self, env):
         return []
 
     def get_options(self):

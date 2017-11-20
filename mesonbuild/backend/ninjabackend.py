@@ -2430,7 +2430,7 @@ rule FORTRAN_DEP_HACK
         # pkg-config puts the thread flags itself via `Cflags:`
         for d in target.external_deps:
             if d.need_threads():
-                commands += linker.thread_link_flags()
+                commands += linker.thread_link_flags(self.environment)
         # Only non-static built targets need link args and link dependencies
         if not isinstance(target, build.StaticLibrary):
             commands += target.link_args
