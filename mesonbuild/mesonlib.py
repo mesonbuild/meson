@@ -22,12 +22,12 @@ import collections
 
 from glob import glob
 
-if sys.executable.endswith('meson.exe'):
+if os.path.basename(sys.executable) == 'meson.exe':
     # In Windows and using the MSI installed executable.
     meson_command = [sys.executable]
     python_command = [sys.executable, 'runpython']
 else:
-    meson_command = [sys.executable, os.path.join(os.path.split(__file__)[0], '..', 'meson.py')]
+    meson_command = [sys.executable, os.path.join(os.path.dirname(__file__), '..', 'meson.py')]
     python_command = [sys.executable]
 
 

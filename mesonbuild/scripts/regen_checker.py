@@ -14,6 +14,7 @@
 
 import sys, os
 import pickle, subprocess
+from mesonbuild.mesonlib import meson_command
 
 # This could also be used for XCode.
 
@@ -32,11 +33,11 @@ def need_regen(regeninfo, regen_timestamp):
     return False
 
 def regen(regeninfo, mesonscript, backend):
-    cmd = mesonlib.meson_command + ['--internal',
-                                    'regenerate',
-                                    regeninfo.build_dir,
-                                    regeninfo.source_dir,
-                                    '--backend=' + backend]
+    cmd = meson_command + ['--internal',
+                           'regenerate',
+                           regeninfo.build_dir,
+                           regeninfo.source_dir,
+                           '--backend=' + backend]
     subprocess.check_call(cmd)
 
 def run(args):

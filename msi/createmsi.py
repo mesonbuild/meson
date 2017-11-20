@@ -17,7 +17,6 @@
 import sys, os, subprocess, shutil, uuid
 from glob import glob
 import platform
-import shutil
 import xml.etree.ElementTree as ET
 
 sys.path.append(os.getcwd())

@@ -23,7 +23,7 @@ from .. import dependencies
 from .. import mlog
 from .. import compilers
 from ..compilers import CompilerArgs
-from ..mesonlib import MesonException, File
+from ..mesonlib import MesonException, File, python_command
 from ..environment import Environment
 
 def autodetect_vs_version(build):
@@ -396,7 +396,7 @@ class Vs2010Backend(backends.Backend):
         action = ET.SubElement(root, 'ItemDefinitionGroup')
         customstep = ET.SubElement(action, 'PostBuildEvent')
         cmd_raw = [target.command] + target.args
-        cmd = mesonlib.python_command +
+        cmd = python_command + \
             [os.path.join(self.environment.get_script_dir(), 'commandrunner.py'),
              self.environment.get_build_dir(),
              self.environment.get_source_dir(),

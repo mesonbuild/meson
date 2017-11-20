@@ -327,7 +327,7 @@ class Environment:
     def get_build_command(self, unbuffered=False):
         cmd = mesonlib.meson_command[:]
         if unbuffered and 'python' in cmd[0]:
-            cmd = [cmd[0],'-u'] + cmd[1:]
+            cmd.insert(1, '-u')
         return cmd
 
     def is_header(self, fname):
