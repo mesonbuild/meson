@@ -78,7 +78,14 @@ install:
   - cmd: if %compiler%==msvc2010 ( call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" %arch% )
   - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
   - cmd: if %compiler%==msvc2017 ( call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat" -arch=%arch% )
-  - cmd: if %compiler%==msys2-mingw (if %arch%==x86 (set "PATH=C:\msys64\mingw32\bin;%PATH%") else (set "PATH=C:\msys64\mingw64\bin;%PATH%"))
+  - ps: |
+        If($Env:compiler -eq 'msys2-mingw') {
+          If($Env:arch -eq 'x86') {
+            $env:Path = 'C:\msys64\mingw32\bin;' + $env:Path
+          } Else {
+            $env:Path = 'C:\msys64\mingw64\bin;' + $env:Path
+          }
+        }
   - cmd: if not %compiler%==cygwin ( set "PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%;" )
   - cmd: if %compiler%==cygwin ( set PYTHON=python3 ) else ( set PYTHON=python )
   - cmd: if %compiler%==cygwin ( set WRAPPER=ci\run-in-cygwin.bat )
