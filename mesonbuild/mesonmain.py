@@ -22,7 +22,7 @@ import platform
 from . import mlog, coredata
 from .mesonlib import MesonException
 from .wrap import WrapMode, wraptool
-
+from . import Colorize
 
 parser = argparse.ArgumentParser(prog='meson')
 
@@ -76,6 +76,14 @@ def wrapmodetype(string):
         msg = 'invalid argument {!r}, use one of {}'.format(string, msg)
         raise argparse.ArgumentTypeError(msg)
 
+def colorlizetype(string):
+    try:
+        return getattr(Colorize, string)
+    except AttributeError:
+        msg = ', '.join([t.name.lower() for t in Colorize])
+        msg = 'invalid argument {!r}, use one of {}'.format(string, msg)
+        raise argparse.ArgumentTypeError(msg)
+
 parser.add_argument('--cross-file', default=None,
                     help='File describing cross compilation environment.')
 parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
@@ -86,6 +94,9 @@ parser.add_argument('-v', '--version', action='version',
 parser.add_argument('--wrap-mode', default=WrapMode.default,
                     type=wrapmodetype, choices=WrapMode,
                     help='Special wrap mode to use')
+parser.add_argument('--color', default=Colorize.auto,
+                    type=colorlizetype, choices=Colorize,
+                    help='Colorize the output')
 parser.add_argument('directories', nargs='*')
 
 class MesonApp:
@@ -147,7 +158,7 @@ class MesonApp:
 
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_launcher, self.options, self.original_cmd_line_args)
-        mlog.initialize(env.get_log_dir())
+        mlog.initialize(env.get_log_dir(), self.options.color)
         try:
             self._generate(env)
         finally:
