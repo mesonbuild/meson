@@ -325,14 +325,10 @@ class Environment:
         return self.coredata
 
     def get_build_command(self, unbuffered=False):
-        # If running an executable created with cx_freeze,
-        # Python might not be installed so don't prefix
-        # the command with it.
-        if sys.executable.endswith('meson.exe'):
-            return [sys.executable]
-        if unbuffered:
-            [sys.executable, '-u', self.meson_script_launcher]
-        return [sys.executable, self.meson_script_launcher]
+        cmd = mesonlib.meson_command[:]
+        if unbuffered and 'python' in cmd[0]:
+            cmd.insert(1, '-u')
+        return cmd
 
     def is_header(self, fname):
         return is_header(fname)

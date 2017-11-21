@@ -23,12 +23,9 @@ from . import mlog, coredata
 from .mesonlib import MesonException
 from .wrap import WrapMode, wraptool
 
-
-parser = argparse.ArgumentParser(prog='meson')
-
 default_warning = '1'
 
-def add_builtin_argument(name, **kwargs):
+def add_builtin_argument(p, name, **kwargs):
     k = kwargs.get('dest', name.replace('-', '_'))
     c = coredata.get_builtin_option_choices(k)
     b = True if kwargs.get('action', None) in ['store_true', 'store_false'] else False
@@ -42,31 +39,45 @@ def add_builtin_argument(name, **kwargs):
         kwargs['default'] = default
     else:
         kwargs['default'] = argparse.SUPPRESS
-    parser.add_argument('--' + name, help=h, **kwargs)
+    p.add_argument('--' + name, help=h, **kwargs)
 
-add_builtin_argument('prefix')
-add_builtin_argument('libdir')
-add_builtin_argument('libexecdir')
-add_builtin_argument('bindir')
-add_builtin_argument('sbindir')
-add_builtin_argument('includedir')
-add_builtin_argument('datadir')
-add_builtin_argument('mandir')
-add_builtin_argument('infodir')
-add_builtin_argument('localedir')
-add_builtin_argument('sysconfdir')
-add_builtin_argument('localstatedir')
-add_builtin_argument('sharedstatedir')
-add_builtin_argument('backend')
-add_builtin_argument('buildtype')
-add_builtin_argument('strip', action='store_true')
-add_builtin_argument('unity')
-add_builtin_argument('werror', action='store_true')
-add_builtin_argument('layout')
-add_builtin_argument('default-library')
-add_builtin_argument('warnlevel', dest='warning_level')
-add_builtin_argument('stdsplit', action='store_false')
-add_builtin_argument('errorlogs', action='store_false')
+def create_parser():
+    p = argparse.ArgumentParser(prog='meson')
+    add_builtin_argument(p, 'prefix')
+    add_builtin_argument(p, 'libdir')
+    add_builtin_argument(p, 'libexecdir')
+    add_builtin_argument(p, 'bindir')
+    add_builtin_argument(p, 'sbindir')
+    add_builtin_argument(p, 'includedir')
+    add_builtin_argument(p, 'datadir')
+    add_builtin_argument(p, 'mandir')
+    add_builtin_argument(p, 'infodir')
+    add_builtin_argument(p, 'localedir')
+    add_builtin_argument(p, 'sysconfdir')
+    add_builtin_argument(p, 'localstatedir')
+    add_builtin_argument(p, 'sharedstatedir')
+    add_builtin_argument(p, 'backend')
+    add_builtin_argument(p, 'buildtype')
+    add_builtin_argument(p, 'strip', action='store_true')
+    add_builtin_argument(p, 'unity')
+    add_builtin_argument(p, 'werror', action='store_true')
+    add_builtin_argument(p, 'layout')
+    add_builtin_argument(p, 'default-library')
+    add_builtin_argument(p, 'warnlevel', dest='warning_level')
+    add_builtin_argument(p, 'stdsplit', action='store_false')
+    add_builtin_argument(p, 'errorlogs', action='store_false')
+    p.add_argument('--cross-file', default=None,
+                   help='File describing cross compilation environment.')
+    p.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
+                   help='Set the value of an option, can be used several times to set multiple options.')
+    p.add_argument('-v', '--version', action='version',
+                   version=coredata.version)
+    # See the mesonlib.WrapMode enum for documentation
+    p.add_argument('--wrap-mode', default=WrapMode.default,
+                   type=wrapmodetype, choices=WrapMode,
+                   help='Special wrap mode to use')
+    p.add_argument('directories', nargs='*')
+    return p
 
 def wrapmodetype(string):
     try:
@@ -75,18 +86,6 @@ def wrapmodetype(string):
         msg = ', '.join([t.name.lower() for t in WrapMode])
         msg = 'invalid argument {!r}, use one of {}'.format(string, msg)
         raise argparse.ArgumentTypeError(msg)
-
-parser.add_argument('--cross-file', default=None,
-                    help='File describing cross compilation environment.')
-parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
-                    help='Set the value of an option, can be used several times to set multiple options.')
-parser.add_argument('-v', '--version', action='version',
-                    version=coredata.version)
-# See the mesonlib.WrapMode enum for documentation
-parser.add_argument('--wrap-mode', default=WrapMode.default,
-                    type=wrapmodetype, choices=WrapMode,
-                    help='Special wrap mode to use')
-parser.add_argument('directories', nargs='*')
 
 class MesonApp:
 
@@ -155,7 +154,7 @@ class MesonApp:
 
     def _generate(self, env):
         mlog.debug('Build started at', datetime.datetime.now().isoformat())
-        mlog.debug('Python binary:', sys.executable)
+        mlog.debug('Main binary:', sys.executable)
         mlog.debug('Python system:', platform.system())
         mlog.log(mlog.bold('The Meson build system'))
         self.check_pkgconfig_envvar(env)
@@ -278,12 +277,13 @@ def run_script_command(args):
         raise MesonException('Unknown internal command {}.'.format(cmdname))
     return cmdfunc(cmdargs)
 
-def run(args, mainfile=None):
+def run(original_args, mainfile=None):
     if sys.version_info < (3, 4):
         print('Meson works correctly only with python 3.4+.')
         print('You have python %s.' % sys.version)
         print('Please update your environment')
         return 1
+    args = original_args[:]
     if len(args) > 0:
         # First check if we want to run a subcommand.
         cmd_name = args[0]
@@ -303,6 +303,12 @@ def run(args, mainfile=None):
             return mconf.run(remaining_args)
         elif cmd_name == 'wrap':
             return wraptool.run(remaining_args)
+        elif cmd_name == 'runpython':
+            import runpy
+            script_file = remaining_args[0]
+            sys.argv[1:] = remaining_args[1:]
+            runpy.run_path(script_file, run_name='__main__')
+            sys.exit(0)
 
     # No special command? Do the basic setup/reconf.
     if len(args) >= 2 and args[0] == '--internal':
@@ -318,6 +324,8 @@ def run(args, mainfile=None):
         handshake = True
     else:
         handshake = False
+
+    parser = create_parser()
 
     args = mesonlib.expand_arguments(args)
     options = parser.parse_args(args)
@@ -342,7 +350,7 @@ def run(args, mainfile=None):
     try:
         if mainfile is None:
             raise AssertionError('I iz broken. Sorry.')
-        app = MesonApp(dir1, dir2, mainfile, handshake, options, sys.argv)
+        app = MesonApp(dir1, dir2, mainfile, handshake, options, original_args)
     except Exception as e:
         # Log directory does not exist, so just print
         # to stdout.

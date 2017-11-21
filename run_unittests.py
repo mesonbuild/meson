@@ -34,13 +34,14 @@ import mesonbuild.mesonlib
 import mesonbuild.coredata
 from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
+from mesonbuild.mesonlib import python_command, meson_command
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import DependencyException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
 from run_tests import exe_suffix, get_fake_options, FakeEnvironment
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
-from run_tests import ensure_backend_detects_changes, run_configure_inprocess
+from run_tests import ensure_backend_detects_changes, run_configure, meson_exe
 from run_tests import should_run_linux_cross_tests
 
 
@@ -460,11 +461,12 @@ class BasePlatformTests(unittest.TestCase):
         # Get the backend
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
-        self.meson_args = [os.path.join(src_root, 'meson.py'), '--backend=' + self.backend.name]
-        self.meson_command = [sys.executable] + self.meson_args
-        self.mconf_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'configure']
-        self.mintro_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'introspect']
-        self.mtest_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'test', '-C', self.builddir]
+        self.meson_mainfile = os.path.join(src_root, 'meson.py')
+        self.meson_args = ['--backend=' + self.backend.name]
+        self.meson_command = meson_command + self.meson_args
+        self.mconf_command = meson_command + ['configure']
+        self.mintro_command = meson_command + ['introspect']
+        self.mtest_command = meson_command + ['test', '-C', self.builddir]
         # Backend-specific build commands
         self.build_command, self.clean_command, self.test_command, self.install_command, \
             self.uninstall_command = get_backend_commands(self.backend)
@@ -527,7 +529,7 @@ class BasePlatformTests(unittest.TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                out = run_configure_inprocess(self.meson_args + args + extra_args)[1]
+                out = run_configure(self.meson_mainfile, self.meson_args + args + extra_args)[1]
             except:
                 self._print_meson_log()
                 raise
@@ -1121,14 +1123,14 @@ class AllPlatformTests(BasePlatformTests):
             # exelist + some argument. This is meant to test that setting
             # something like `ccache gcc -pipe` or `distcc ccache gcc` works.
             wrapper = os.path.join(testdir, 'compiler wrapper.py')
-            wrappercc = [sys.executable, wrapper] + cc.get_exelist() + ['-DSOME_ARG']
+            wrappercc = python_command + [wrapper] + cc.get_exelist() + ['-DSOME_ARG']
             wrappercc_s = ''
             for w in wrappercc:
                 wrappercc_s += shlex.quote(w) + ' '
             os.environ[evar] = wrappercc_s
             wcc = getattr(env, 'detect_{}_compiler'.format(lang))(False)
             # Check static linker too
-            wrapperlinker = [sys.executable, wrapper] + linker.get_exelist() + linker.get_always_args()
+            wrapperlinker = python_command + [wrapper] + linker.get_exelist() + linker.get_always_args()
             wrapperlinker_s = ''
             for w in wrapperlinker:
                 wrapperlinker_s += shlex.quote(w) + ' '
@@ -1586,6 +1588,9 @@ class FailureTests(BasePlatformTests):
         Assert that running meson configure on the specified @contents raises
         a error message matching regex @match.
         '''
+        if meson_exe is not None:
+            # Because the exception happens in a different process.
+            raise unittest.SkipTest('Can not test assert raise tests with an external Meson command.')
         if langs is None:
             langs = []
         with open(self.mbuild, 'w') as f:
@@ -1717,12 +1722,12 @@ class WindowsTests(BasePlatformTests):
         os.environ['PATH'] += os.pathsep + testdir
         prog = ExternalProgram('test-script-ext')
         self.assertTrue(prog.found(), msg='test-script-ext not found in PATH')
-        self.assertPathEqual(prog.get_command()[0], sys.executable)
+        self.assertPathEqual(prog.get_command()[0], python_command[0])
         self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
         # Finding a script in PATH with extension works and adds the interpreter
         prog = ExternalProgram('test-script-ext.py')
         self.assertTrue(prog.found(), msg='test-script-ext.py not found in PATH')
-        self.assertPathEqual(prog.get_command()[0], sys.executable)
+        self.assertPathEqual(prog.get_command()[0], python_command[0])
         self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
 
     def test_ignore_libs(self):
@@ -2246,7 +2251,7 @@ class RewriterTests(unittest.TestCase):
         super().setUp()
         src_root = os.path.dirname(__file__)
         self.testroot = os.path.realpath(tempfile.mkdtemp())
-        self.rewrite_command = [sys.executable, os.path.join(src_root, 'mesonrewriter.py')]
+        self.rewrite_command = python_command + [os.path.join(src_root, 'mesonrewriter.py')]
         self.tmpdir = os.path.realpath(tempfile.mkdtemp())
         self.workdir = os.path.join(self.tmpdir, 'foo')
         self.test_dir = os.path.join(src_root, 'test cases/rewrite')

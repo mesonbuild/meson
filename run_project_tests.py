@@ -33,7 +33,7 @@ import time
 import multiprocessing
 import concurrent.futures as conc
 import re
-from run_unittests import get_fake_options, run_configure_inprocess
+from run_unittests import get_fake_options, run_configure
 
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
@@ -322,14 +322,31 @@ def run_test(skipped, testdir, extra_args, compiler, backend, flags, commands, s
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
+def pass_prefix_to_test(dirname):
+    if '40 prefix' in dirname:
+        return False
+    return True
+
+def pass_libdir_to_test(dirname):
+    if '8 install' in dirname:
+        return False
+    if '39 libdir' in dirname:
+        return False
+    return True
+
 def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail):
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
     test_args = parse_test_args(testdir)
     gen_start = time.time()
     # Configure in-process
-    gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
-        + flags + test_args + extra_args
-    (returncode, stdo, stde) = run_configure_inprocess(gen_command)
+    if pass_prefix_to_test(testdir):
+        gen_args = ['--prefix', '/usr']
+    else:
+        gen_args = []
+    if pass_libdir_to_test(testdir):
+        gen_args += ['--libdir', 'lib']
+    gen_args += [testdir, test_build_dir] + flags + test_args + extra_args
+    (returncode, stdo, stde) = run_configure(meson_command, gen_args)
     try:
         logfile = os.path.join(test_build_dir, 'meson-logs/meson-log.txt')
         with open(logfile, errors='ignore') as f:
@@ -603,7 +620,7 @@ def check_meson_commands_work():
     testdir = 'test cases/common/1 trivial'
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         print('Checking that configuring works...')
-        gen_cmd = [sys.executable, meson_command, testdir, build_dir] + backend_flags
+        gen_cmd = mesonlib.meson_command + [testdir, build_dir] + backend_flags
         pc, o, e = Popen_safe(gen_cmd)
         if pc.returncode != 0:
             raise RuntimeError('Failed to configure {!r}:\n{}\n{}'.format(testdir, e, o))

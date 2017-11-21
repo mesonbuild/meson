@@ -2524,7 +2524,7 @@ rule FORTRAN_DEP_HACK
         gcno_elem = NinjaBuildElement(self.all_outputs, 'meson-clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
         script_root = self.environment.get_script_dir()
         clean_script = os.path.join(script_root, 'delwithsuffix.py')
-        gcno_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcno'])
+        gcno_elem.add_item('COMMAND', mesonlib.python_command + [clean_script, '.', 'gcno'])
         gcno_elem.add_item('description', 'Deleting gcno files.')
         gcno_elem.write(outfile)
         # Alias that runs the target defined above
@@ -2533,7 +2533,7 @@ rule FORTRAN_DEP_HACK
         gcda_elem = NinjaBuildElement(self.all_outputs, 'meson-clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
         script_root = self.environment.get_script_dir()
         clean_script = os.path.join(script_root, 'delwithsuffix.py')
-        gcda_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcda'])
+        gcda_elem.add_item('COMMAND', mesonlib.python_command + [clean_script, '.', 'gcda'])
         gcda_elem.add_item('description', 'Deleting gcda files.')
         gcda_elem.write(outfile)
         # Alias that runs the target defined above
