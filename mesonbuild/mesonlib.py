@@ -22,13 +22,35 @@ import collections
 
 from glob import glob
 
+def detect_meson_py_location():
+    c = sys.argv[0]
+    c_fname = os.path.split(c)[1]
+    if c_fname == 'meson' or c_fname == 'meson.py':
+        # $ /foo/meson.py <args>
+        if os.path.isabs(c):
+            return c
+        # $ meson <args> (gets run from /usr/bin/meson)
+        in_path_exe = shutil.which(c_fname)
+        if in_path_exe:
+            return in_path_exe
+        # $ python3 ./meson.py <args>
+        if os.path.exists(c):
+            return os.path.join(os.getcwd(), c)
+
+    # The only thing remaining is to try to find the bundled executable and
+    # pray distro packagers have not moved it.
+    fname = os.path.join(os.path.dirname(__file__), '..', 'meson.py')
+    if not os.path.exists(fname):
+        raise RuntimeError('Could not determine how to run Meson. Please file a bug with details.')
+    return fname
+
 if os.path.basename(sys.executable) == 'meson.exe':
     # In Windows and using the MSI installed executable.
     meson_command = [sys.executable]
     python_command = [sys.executable, 'runpython']
 else:
-    meson_command = [sys.executable, os.path.join(os.path.dirname(__file__), '..', 'meson.py')]
     python_command = [sys.executable]
+    meson_command = python_command + [detect_meson_py_location()]
 
 
 # Put this in objects that should not get dumped to pickle files
