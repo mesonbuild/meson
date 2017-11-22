@@ -62,7 +62,7 @@ class QtBaseModule:
                     raise MesonException('{name} preprocessor is not for Qt {version}. Output:\n{stdo}\n{stderr}'.format(
                         name=compiler_name, version=self.qt_version, stdo=stdout, stderr=stderr))
                 mlog.log(' {}:'.format(compiler_name.lower()), mlog.green('YES'), '({path}, {version})'.format(
-                    path=self.moc.get_path(), version=compiler_ver.split()[-1]))
+                    path=compiler.get_path(), version=compiler_ver.split()[-1]))
             else:
                 mlog.log(' {}:'.format(compiler_name.lower()), mlog.red('NO'))
         self.tools_detected = True
@@ -137,7 +137,7 @@ class QtBaseModule:
             moc_output = moc_gen.process_files('Qt{} moc header'.format(self.qt_version), moc_headers, state)
             sources.append(moc_output)
         if len(moc_sources) > 0:
-            arguments = moc_extra_arguments + ['@INPUT@', '-o', '@OUTPUT@']
+            arguments = moc_extra_arguments + inc + ['@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': '@BASENAME@.moc',
                           'arguments': arguments}
             moc_gen = build.Generator([self.moc], moc_kwargs)
