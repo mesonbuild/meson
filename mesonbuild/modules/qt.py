@@ -43,13 +43,13 @@ class QtBaseModule:
         kwargs = {'required': 'true', 'modules': 'Core', 'silent': 'true', 'method': method}
         qt = _QT_DEPS_LUT[self.qt_version](env, kwargs)
         # Get all tools and then make sure that they are the right version
-        self.moc, self.uic, self.rcc = qt.compilers_detect()
+        self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect()
         # Moc, uic and rcc write their version strings to stderr.
         # Moc and rcc return a non-zero result when doing so.
         # What kind of an idiot thought that was a good idea?
-        for compiler, compiler_name in ((self.moc, "Moc"), (self.uic, "Uic"), (self.rcc, "Rcc")):
+        for compiler, compiler_name in ((self.moc, "Moc"), (self.uic, "Uic"), (self.rcc, "Rcc"), (self.lrelease, "lrelease")):
             if compiler.found():
-                stdout, stderr = Popen_safe(compiler.get_command() + ['-v'])[1:3]
+                stdout, stderr = Popen_safe(compiler.get_command() + ['-version'])[1:3]
                 stdout = stdout.strip()
                 stderr = stderr.strip()
                 if 'Qt {}'.format(self.qt_version) in stderr:
