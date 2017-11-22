@@ -193,6 +193,10 @@ class CoreData:
             # string is of type 'C:\' because 'C:' is not an absolute path.
             if len(prefix) == 3 and prefix[1] == ':':
                 pass
+            # If prefix is a single character, preserve it since it is
+            # the root directory.
+            elif len(prefix) == 1:
+                pass
             else:
                 prefix = prefix[:-1]
         return prefix
