@@ -144,3 +144,21 @@ class QtBaseModule:
             moc_output = moc_gen.process_files('Qt{} moc source'.format(self.qt_version), moc_sources, state)
             sources.append(moc_output)
         return ModuleReturnValue(sources, sources)
+
+    @permittedKwargs({'ts_files', 'install', 'install_dir', 'build_by_default', 'method'})
+    def compile_translations(self, state, args, kwargs):
+        ts_files, install_dir = extract_as_list(kwargs, 'ts_files', 'install_dir', pop=True)
+        self._detect_tools(state.environment, kwargs.get('method', 'auto'))
+        translations = []
+        for ts in ts_files:
+            cmd = [self.lrelease, '@INPUT@', '-qm', '@OUTPUT@']
+            lrelease_kwargs = {'output': '@BASENAME@.qm',
+                               'input': ts,
+                               'install': kwargs.get('install', False),
+                               'build_by_default': kwargs.get('build_by_default', False),
+                               'command': cmd}
+            if install_dir is not None:
+                lrelease_kwargs['install_dir'] = install_dir
+            lrelease_target = build.CustomTarget('qt{}-compile-{}'.format(self.qt_version, ts), state.subdir, state.subproject, lrelease_kwargs)
+            translations.append(lrelease_target)
+        return ModuleReturnValue(translations, translations)

@@ -59,6 +59,8 @@ foreach qt : ['qt4', 'qt5']
     # We need a console test application because some test environments
     # do not have an X server.
 
+    translations = qtmodule.compile_translations(ts_files : qt+'core_fr.ts', build_by_default : true)
+
     qtcore = dependency(qt, modules : 'Core', method : get_option('method'))
 
     qtcoreapp = executable(qt + 'core', 'q5core.cpp',
