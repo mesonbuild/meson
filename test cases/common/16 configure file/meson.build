@@ -120,3 +120,14 @@ configure_file(
   configuration : conf5
 )
 test('test5', executable('prog5', 'prog5.c'))
+
+# Test escaping
+conf6 = configuration_data()
+conf6.set('var1', 'foo')
+conf6.set('var2', 'bar')
+configure_file(
+  input : 'config6.h.in',
+  output : '@BASENAME@',
+  configuration : conf6
+)
+test('test6', executable('prog6', 'prog6.c'))

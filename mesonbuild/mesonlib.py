@@ -406,19 +406,28 @@ def do_replacement(regex, line, confdata):
     missing_variables = set()
 
     def variable_replace(match):
-        varname = match.group(1)
-        if varname in confdata:
-            (var, desc) = confdata.get(varname)
-            if isinstance(var, str):
-                pass
-            elif isinstance(var, int):
-                var = str(var)
-            else:
-                raise RuntimeError('Tried to replace a variable with something other than a string or int.')
+        # Pairs of escape characters before '@' or '\@'
+        if match.group(0).endswith('\\'):
+            num_escapes = match.end(0) - match.start(0)
+            return '\\' * (num_escapes // 2)
+        # Single escape character and '@'
+        elif match.group(0) == '\\@':
+            return '@'
+        # Template variable to be replaced
         else:
-            missing_variables.add(varname)
-            var = ''
-        return var
+            varname = match.group(1)
+            if varname in confdata:
+                (var, desc) = confdata.get(varname)
+                if isinstance(var, str):
+                    pass
+                elif isinstance(var, int):
+                    var = str(var)
+                else:
+                    raise RuntimeError('Tried to replace a variable with something other than a string or int.')
+            else:
+                missing_variables.add(varname)
+                var = ''
+            return var
     return re.sub(regex, variable_replace, line), missing_variables
 
 def do_mesondefine(line, confdata):
@@ -451,7 +460,7 @@ def do_conf_file(src, dst, confdata):
         raise MesonException('Could not read input file %s: %s' % (src, str(e)))
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     # Also allow escaping '@' with '\@'
-    regex = re.compile(r'(?<!\\)@([-a-zA-Z0-9_]+)@')
+    regex = re.compile(r'(?:\\\\)+(?=\\?@)|\\@|@([-a-zA-Z0-9_]+)@')
     result = []
     missing_variables = set()
     for line in data:
