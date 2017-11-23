@@ -12,13 +12,13 @@ This method takes the following keyword arguments:
 
 It returns an opaque object that should be passed to a main build target.
 
-## compile_translations
+## compile_translations (since v0.44.0)
 
 This method generates the necessary targets to build translation files with lrelease, it takes the following keyword arguments:
  - `ts_files`, the list of input translation files produced by Qt's lupdate tool.
- - `install` when true, this target is installed during the install step.
- - `install_dir` directory to install to
- - `build_by_default` when set to true, to have this target be built by default, that is, when invoking plain ninja; the default value is false.
+ - `install` when true, this target is installed during the install step (optional).
+ - `install_dir` directory to install to (optional).
+ - `build_by_default` when set to true, to have this target be built by default, that is, when invoking plain ninja; the default value is false (optional).
 
 A simple example would look like this:
 

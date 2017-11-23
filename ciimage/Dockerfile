@@ -12,4 +12,5 @@ RUN apt-get -y update && apt-get -y upgrade \
 && apt-get -y install fpga-icestorm arachne-pnr yosys \
 && apt-get -y install gtk-sharp2 gtk-sharp2-gapi libglib2.0-cil-dev \
 && apt-get -y install libwmf-dev \
+&& apt-get -y install qt4-linguist-tools qttools5-dev-tools \
 && python3 -m pip install hotdoc codecov
