@@ -452,13 +452,8 @@ class InterpreterBase:
         elif method_name == 'to_string':
             if not posargs:
                 return str(obj)
-            elif len(posargs) == 1 and isinstance(posargs[0], str):
-                f = 'd' if len(posargs[0].strip()) == 0 else posargs[0]
-                if re.match('^[bcdoxX]$', f) is None:
-                    raise InvalidCode('Invalid format for int to string conversion "%s"' % f)
-                return str(('{:' + f + '}').format(obj))
             else:
-                raise InterpreterException('int.to_string() must have either no arguments or exactly one string arguments that signify what format to use.')
+                raise InterpreterException('int.to_string() must have no arguments.')
         else:
             raise InterpreterException('Unknown method "%s" for an integer.' % method_name)
 
