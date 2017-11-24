@@ -74,3 +74,21 @@ multiline string	'''.strip() == '''multiline string''', 'Newlines badly stripped
 assert('"1.1.20"'.strip('"') == '1.1.20', '" badly stripped')
 assert('"1.1.20"'.strip('".') == '1.1.20', '". badly stripped')
 assert('"1.1.20"   '.strip('" ') == '1.1.20', '". badly stripped')
+
+bs_b = '''\b'''
+bs_bs_b = '''\\b'''
+nl = '''
+'''
+bs_n = '''\n'''
+bs_nl = '''\
+'''
+bs_bs_n = '''\\n'''
+
+assert('\b' == bs_b, 'Single backslash broken')
+assert('\\b' == bs_b, 'Double backslash broken')
+assert('\\\b' == bs_bs_b, 'Three backslash broken')
+assert('\\\\b' == bs_bs_b, 'Four backslash broken')
+assert('\n' == nl, 'Newline escape broken')
+assert('\\n' == bs_n, 'Double backslash broken before n')
+assert('\\\n' == bs_nl, 'Three backslash broken before n')
+assert('\\\\n' == bs_bs_n, 'Four backslash broken before n')

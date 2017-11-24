@@ -111,6 +111,7 @@ class Lexer:
         par_count = 0
         bracket_count = 0
         col = 0
+        newline_rx = re.compile(r'(?<!\\)((?:\\\\)*)\\n')
         while loc < len(self.code):
             matched = False
             value = None
@@ -139,10 +140,9 @@ class Lexer:
                     elif tid == 'dblquote':
                         raise ParseException('Double quotes are not supported. Use single quotes.', self.getline(line_start), lineno, col)
                     elif tid == 'string':
-                        value = match_text[1:-1]\
-                            .replace(r"\'", "'")\
-                            .replace(r" \\ ".strip(), r" \ ".strip())\
-                            .replace("\\n", "\n")
+                        value = match_text[1:-1].replace(r"\'", "'")
+                        value = newline_rx.sub(r'\1\n', value)
+                        value = value.replace(r" \\ ".strip(), r" \ ".strip())
                     elif tid == 'multiline_string':
                         tid = 'string'
                         value = match_text[3:-3]
