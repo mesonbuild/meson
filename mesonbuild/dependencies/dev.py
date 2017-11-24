@@ -32,7 +32,11 @@ class GTestDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('gtest', environment, 'cpp', kwargs)
         self.main = kwargs.get('main', False)
-        self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/googletest/src']
+        self.prefix = kwargs.get('prefix', None)
+        prefix = self.prefix if self.prefix is not None else '/usr'
+        self.src_dirs = [
+            os.path.join(prefix, 'src/gtest/src'),
+            os.path.join(prefix, 'src/googletest/googletest/src')]
         self.detect()
 
     def detect(self):
@@ -49,7 +53,7 @@ class GTestDependency(ExternalDependency):
             mlog.log('Dependency GTest found:', mlog.green('YES'), '(prebuilt)')
         elif self.detect_srcdir():
             self.is_found = True
-            self.compile_args = ['-I' + self.src_include_dir]
+            self.compile_args = ['-I' + incdir for incdir in self.src_include_dirs]
             self.link_args = []
             if self.main:
                 self.sources = [self.all_src, self.main_src]
@@ -68,7 +72,10 @@ class GTestDependency(ExternalDependency):
                     os.path.join(self.src_dir, 'gtest-all.cc'))
                 self.main_src = mesonlib.File.from_absolute_file(
                     os.path.join(self.src_dir, 'gtest_main.cc'))
-                self.src_include_dir = os.path.normpath(os.path.join(self.src_dir, '..'))
+                self.src_include_dirs = [os.path.normpath(os.path.join(self.src_dir, '..'))]
+                if self.prefix is not None:
+                    self.src_include_dirs.append(
+                        os.path.normpath(os.path.join(self.prefix, 'include')))
                 return True
         return False
 
