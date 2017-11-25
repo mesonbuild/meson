@@ -1973,6 +1973,8 @@ class LinuxlikeTests(BasePlatformTests):
             if v != 'none':
                 cmd_std = " -std={} ".format(v)
                 self.assertIn(cmd_std, cmd)
+                if type(compiler).__name__ == ClangCPPCompiler and '17' in cmd_std:
+                    continue
             try:
                 self.build()
             except:
