@@ -58,7 +58,7 @@ def determine_worker_count():
             num_workers = 1
     return num_workers
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(prog='meson test')
 parser.add_argument('--repeat', default=1, dest='repeat', type=int,
                     help='Number of times to run the tests.')
 parser.add_argument('--no-rebuild', default=False, action='store_true',
@@ -267,7 +267,13 @@ class TestHarness:
                 if is_windows():
                     subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
                 else:
-                    os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+                    try:
+                        os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+                    except ProcessLookupError:
+                        # Sometimes (e.g. with Wine) this happens.
+                        # There's nothing we can do (maybe the process
+                        # already died) so carry on.
+                        pass
                 (stdo, stde) = p.communicate()
             endtime = time.time()
             duration = endtime - starttime
@@ -619,6 +625,6 @@ def run(args):
             return th.doit()
         return th.run_special()
     except TestException as e:
-        print('Mesontest encountered an error:\n')
+        print('Meson test encountered an error:\n')
         print(e)
         return 1

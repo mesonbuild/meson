@@ -20,7 +20,7 @@ from . import destdir_join
 from ..mesonlib import is_windows, Popen_safe
 
 install_log_file = None
-use_selinux = True
+selinux_updates = []
 
 class DirMaker:
     def __init__(self):
@@ -84,27 +84,26 @@ def set_mode(path, mode):
             msg = '{!r}: Unable to set permissions {!r}: {}, ignoring...'
             print(msg.format(path, mode.perms_s, e.strerror))
 
-def restore_selinux_context(to_file):
+def restore_selinux_contexts():
     '''
-    Restores the SELinux context for @to_file
+    Restores the SELinux context for files in @selinux_updates
+
+    If $DESTDIR is set, do not warn if the call fails.
     '''
-    global use_selinux
-
-    if not use_selinux:
-        return
-
     try:
         subprocess.check_call(['selinuxenabled'])
-        try:
-            subprocess.check_call(['restorecon', '-F', to_file], stderr=subprocess.DEVNULL)
-        except subprocess.CalledProcessError as e:
-            use_selinux = False
-            msg = "{!r}: Failed to restore SELinux context, ignoring SELinux context for all remaining files..."
-            print(msg.format(to_file, e.returncode))
     except (FileNotFoundError, PermissionError, subprocess.CalledProcessError) as e:
         # If we don't have selinux or selinuxenabled returned 1, failure
         # is ignored quietly.
-        use_selinux = False
+        return
+
+    with subprocess.Popen(['restorecon', '-F', '-f-', '-0'],
+                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+        out, err = proc.communicate(input=b'\0'.join(os.fsencode(f) for f in selinux_updates) + b'\0')
+        if proc.returncode != 0 and not os.environ.get('DESTDIR'):
+            print('Failed to restore SELinux context of installed files...',
+                  'Standard output:', out.decode(),
+                  'Standard error:', err.decode(), sep='\n')
 
 def append_to_log(line):
     install_log_file.write(line)
@@ -126,7 +125,7 @@ def do_copyfile(from_file, to_file):
         os.unlink(to_file)
     shutil.copyfile(from_file, to_file)
     shutil.copystat(from_file, to_file)
-    restore_selinux_context(to_file)
+    selinux_updates.append(to_file)
     append_to_log(to_file)
 
 def do_copydir(data, src_prefix, src_dir, dst_dir, exclude):
@@ -192,6 +191,7 @@ def do_install(datafilename):
         install_headers(d)
         install_man(d)
         install_data(d)
+        restore_selinux_contexts()
         run_install_script(d)
 
 def install_subdirs(d):

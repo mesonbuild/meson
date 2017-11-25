@@ -53,7 +53,7 @@ To check if your projects are up to date you can issue the `status` command.
 
 In this case `zlib` has a newer release available. Updating it is straightforward:
 
-    $ wraptool.py update zlib
+    $ wraptool update zlib
     Updated zlib to branch 1.2.8 revision 4
 
 Wraptool can do other things besides these. Documentation for these can be found in the command line help, which can be accessed by `wraptool --help`.

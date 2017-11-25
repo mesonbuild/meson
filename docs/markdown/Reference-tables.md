@@ -55,6 +55,7 @@ These are provided by the `.system()` method call.
 | linux               | |
 | darwin              | Either OSX or iOS |
 | windows             | Any version of Windows |
+| cygwin              | The Cygwin environment for Windows |
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.

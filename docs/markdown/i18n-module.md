@@ -17,21 +17,17 @@ argument which is the name of the gettext module.
 
 * `args`: list of extra arguments to pass to `xgettext` when
   generating the pot file
-
 * `data_dirs`: (*Added 0.36.0*) list of directories to be set for
   `GETTEXTDATADIRS` env var (Requires gettext 0.19.8+), used for local
   its files
-
 * `languages`: list of languages that are to be generated. As of
   0.37.0 this is optional and the
   [LINGUAS](https://www.gnu.org/software/gettext/manual/html_node/po_002fLINGUAS.html)
   file is read.
-
 * `preset`: (*Added 0.37.0*) name of a preset list of arguments,
   current option is `'glib'`, see
   [source](https://github.com/mesonbuild/meson/blob/master/mesonbuild/modules/i18n.py)
   for for their value
-
 * `install`: (*Added 0.43.0*) if false, do not install the built translations.
 
 This function also defines targets for maintainers to use:

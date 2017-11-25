@@ -17,6 +17,7 @@ import subprocess, os.path, tempfile
 from .. import mlog
 from .. import coredata
 from ..mesonlib import EnvironmentException, version_compare, Popen_safe, listify
+from ..mesonlib import for_windows, for_darwin, for_cygwin
 
 from .compilers import (
     GCC_MINGW,
@@ -710,7 +711,45 @@ class CCompiler(Compiler):
                         return False
         raise RuntimeError('BUG: {!r} check failed unexpectedly'.format(n))
 
-    def find_library(self, libname, env, extra_dirs):
+    def get_library_naming(self, env, libtype):
+        '''
+        Get library prefixes and suffixes for the target platform ordered by
+        priority
+        '''
+        stlibext = ['a']
+        # We've always allowed libname to be both `foo` and `libfoo`,
+        # and now people depend on it
+        prefixes = ['lib', '']
+        # Library suffixes and prefixes
+        if for_darwin(env.is_cross_build(), env):
+            shlibext = ['dylib']
+        elif for_windows(env.is_cross_build(), env):
+            if self.id == 'msvc':
+                shlibext = ['lib']
+            else:
+                shlibext = ['dll', 'dll.a', 'lib']
+            # Yep, static libraries can also be foo.lib
+            stlibext += ['lib']
+        elif for_cygwin(env.is_cross_build(), env):
+            shlibext = ['dll', 'dll.a']
+            prefixes = ['cyg'] + prefixes
+        else:
+            # Linux/BSDs
+            shlibext = ['so']
+        # Search priority
+        if libtype in ('default', 'shared-static'):
+            suffixes = shlibext + stlibext
+        elif libtype == 'static-shared':
+            suffixes = stlibext + shlibext
+        elif libtype == 'shared':
+            suffixes = shlibext
+        elif libtype == 'static':
+            suffixes = stlibext
+        else:
+            raise AssertionError('BUG: unknown libtype {!r}'.format(libtype))
+        return prefixes, suffixes
+
+    def find_library(self, libname, env, extra_dirs, libtype='default'):
         # These libraries are either built-in or invalid
         if libname in self.ignore_libs:
             return []
@@ -720,21 +759,21 @@ class CCompiler(Compiler):
             extra_dirs = [extra_dirs]
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
-        if not extra_dirs:
+        if not extra_dirs and libtype == 'default':
             args = ['-l' + libname]
             if self.links(code, env, extra_args=args):
                 return args
-        # Not found? Try to find the library file itself.
+        # Not found or we want to use a specific libtype? Try to find the
+        # library file itself.
         extra_dirs += self.get_library_dirs()
-        suffixes = ['so', 'dylib', 'lib', 'dll', 'a']
+        prefixes, suffixes = self.get_library_naming(env, libtype)
+        # Triply-nested loop!
         for d in extra_dirs:
             for suffix in suffixes:
-                trial = os.path.join(d, 'lib' + libname + '.' + suffix)
-                if os.path.isfile(trial):
-                    return [trial]
-                trial2 = os.path.join(d, libname + '.' + suffix)
-                if os.path.isfile(trial2):
-                    return [trial2]
+                for prefix in prefixes:
+                    trial = os.path.join(d, prefix + libname + '.' + suffix)
+                    if os.path.isfile(trial):
+                        return [trial]
         return None
 
     def thread_flags(self):

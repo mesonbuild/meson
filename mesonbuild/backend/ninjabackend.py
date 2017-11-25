@@ -534,7 +534,7 @@ int dummy;
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', desc.format(target.name, cmd_type))
         elem.write(outfile)
-        self.processed_targets[target.name + target.type_suffix()] = True
+        self.processed_targets[target.get_id()] = True
 
     def generate_run_target(self, target, outfile):
         cmd = self.environment.get_build_command() + ['--internal', 'commandrunner']
@@ -552,7 +552,12 @@ int dummy;
                 arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
             else:
                 raise AssertionError('Unreachable code in generate_run_target: ' + str(i))
-        elem = NinjaBuildElement(self.all_outputs, 'meson-' + target.name, 'CUSTOM_COMMAND', [])
+        if target.subproject != '':
+            subproject_prefix = '{}@@'.format(target.subproject)
+        else:
+            subproject_prefix = ''
+        target_name = 'meson-{}{}'.format(subproject_prefix, target.name)
+        elem = NinjaBuildElement(self.all_outputs, target_name, 'CUSTOM_COMMAND', [])
         cmd += [self.environment.get_source_dir(),
                 self.environment.get_build_dir(),
                 target.subdir] + self.environment.get_build_command()
@@ -588,8 +593,8 @@ int dummy;
         elem.add_item('pool', 'console')
         elem.write(outfile)
         # Alias that runs the target defined above with the name the user specified
-        self.create_target_alias('meson-' + target.name, outfile)
-        self.processed_targets[target.name + target.type_suffix()] = True
+        self.create_target_alias(target_name, outfile)
+        self.processed_targets[target.get_id()] = True
 
     def generate_coverage_rules(self, outfile):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage', 'CUSTOM_COMMAND', 'PHONY')
@@ -2519,7 +2524,7 @@ rule FORTRAN_DEP_HACK
         gcno_elem = NinjaBuildElement(self.all_outputs, 'meson-clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
         script_root = self.environment.get_script_dir()
         clean_script = os.path.join(script_root, 'delwithsuffix.py')
-        gcno_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcno'])
+        gcno_elem.add_item('COMMAND', mesonlib.python_command + [clean_script, '.', 'gcno'])
         gcno_elem.add_item('description', 'Deleting gcno files.')
         gcno_elem.write(outfile)
         # Alias that runs the target defined above
@@ -2528,7 +2533,7 @@ rule FORTRAN_DEP_HACK
         gcda_elem = NinjaBuildElement(self.all_outputs, 'meson-clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
         script_root = self.environment.get_script_dir()
         clean_script = os.path.join(script_root, 'delwithsuffix.py')
-        gcda_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcda'])
+        gcda_elem.add_item('COMMAND', mesonlib.python_command + [clean_script, '.', 'gcda'])
         gcda_elem.add_item('description', 'Deleting gcda files.')
         gcda_elem.write(outfile)
         # Alias that runs the target defined above

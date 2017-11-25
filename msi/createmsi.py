@@ -82,9 +82,7 @@ class PackageGenerator:
         modules = [os.path.splitext(os.path.split(x)[1])[0] for x in glob(os.path.join('mesonbuild/modules/*'))]
         modules = ['mesonbuild.modules.' + x for x in modules if not x.startswith('_')]
         modulestr = ','.join(modules)
-        python = 'c:\\Python\python.exe'
-        if sys.executable:
-            python = sys.executable
+        python = shutil.which('python')
         cxfreeze = os.path.join(os.path.dirname(python), "Scripts", "cxfreeze")
         if not os.path.isfile(cxfreeze):
             print("ERROR: This script requires cx_freeze module")

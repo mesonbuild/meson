@@ -16,6 +16,7 @@
 # development purposes, such as testing, debugging, etc..
 
 import os
+import re
 import shlex
 import shutil
 
@@ -116,19 +117,20 @@ class LLVMDependency(ExternalDependency):
 
     # Ordered list of llvm-config binaries to try. Start with base, then try
     # newest back to oldest (3.5 is abitrary), and finally the devel version.
-    # Please note that llvm-config-5.0 is a development snapshot and it should
+    # Please note that llvm-config-6.0 is a development snapshot and it should
     # not be moved to the beginning of the list. The only difference between
-    # llvm-config-5.0 and llvm-config-devel is that the former is used by
+    # llvm-config-6.0 and llvm-config-devel is that the former is used by
     # Debian and the latter is used by FreeBSD.
     llvm_config_bins = [
         'llvm-config', # base
-        'llvm-config-4.0', 'llvm-config40', # latest stable release
-        'llvm-config-3.9', 'llvm-config39', # old stable releases
+        'llvm-config-5.0', 'llvm-config50', # latest stable release
+        'llvm-config-4.0', 'llvm-config40', # old stable releases
+        'llvm-config-3.9', 'llvm-config39',
         'llvm-config-3.8', 'llvm-config38',
         'llvm-config-3.7', 'llvm-config37',
         'llvm-config-3.6', 'llvm-config36',
         'llvm-config-3.5', 'llvm-config35',
-        'llvm-config-5.0', 'llvm-config-devel', # development snapshot
+        'llvm-config-6.0', 'llvm-config-devel', # development snapshot
     ]
     __cpp_blacklist = {'-DNDEBUG'}
 
@@ -136,8 +138,10 @@ class LLVMDependency(ExternalDependency):
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
         super().__init__('llvm-config', environment, 'cpp', kwargs)
-        self.modules = []
+        self.provided_modules = []
+        self.required_modules = set()
         self.llvmconfig = None
+        self.static = kwargs.get('static', False)
         self.__best_found = None
         # FIXME: Support multiple version requirements ala PkgConfigDependency
         req_version = kwargs.get('version', None)
@@ -169,31 +173,90 @@ class LLVMDependency(ExternalDependency):
         # for users who want the patch version.
         self.version = out.strip().rstrip('svn')
 
-        p, out = Popen_safe(
-            [self.llvmconfig, '--libs', '--ldflags'])[:2]
+        p, out, err = Popen_safe([self.llvmconfig, '--components'])
         if p.returncode != 0:
-            raise DependencyException('Could not generate libs for LLVM.')
-        self.link_args = strip_system_libdirs(environment, shlex.split(out))
-        p, out = Popen_safe([self.llvmconfig, '--cppflags'])[:2]
+            raise DependencyException('Could not generate modules for LLVM:\n' + err)
+        self.provided_modules = shlex.split(out)
+
+        modules = stringlistify(extract_as_list(kwargs, 'modules'))
+        self.check_components(modules)
+        opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
+        self.check_components(opt_modules, required=False)
+
+        p, out, err = Popen_safe([self.llvmconfig, '--cppflags'])
         if p.returncode != 0:
-            raise DependencyException('Could not generate includedir for LLVM.')
+            raise DependencyException('Could not generate includedir for LLVM:\n' + err)
         cargs = mesonlib.OrderedSet(shlex.split(out))
         self.compile_args = list(cargs.difference(self.__cpp_blacklist))
 
-        p, out = Popen_safe([self.llvmconfig, '--components'])[:2]
-        if p.returncode != 0:
-            raise DependencyException('Could not generate modules for LLVM.')
-        self.modules = shlex.split(out)
+        if version_compare(self.version, '>= 3.9'):
+            self._set_new_link_args()
+        else:
+            self._set_old_link_args()
+        self.link_args = strip_system_libdirs(environment, self.link_args)
 
-        modules = stringlistify(extract_as_list(kwargs, 'modules'))
-        for mod in sorted(set(modules)):
-            if mod not in self.modules:
-                mlog.log('LLVM module', mod, 'found:', mlog.red('NO'))
-                self.is_found = False
-                if self.required:
-                    raise DependencyException(
-                        'Could not find required LLVM Component: {}'.format(mod))
+    def _set_new_link_args(self):
+        """How to set linker args for LLVM versions >= 3.9"""
+        link_args = ['--link-static', '--system-libs'] if self.static else ['--link-shared']
+        p, out, err = Popen_safe(
+            [self.llvmconfig, '--libs', '--ldflags'] + link_args + list(self.required_modules))
+        if p.returncode != 0:
+            raise DependencyException('Could not generate libs for LLVM:\n' + err)
+        self.link_args = shlex.split(out)
+
+    def _set_old_link_args(self):
+        """Setting linker args for older versions of llvm.
+
+        Old versions of LLVM bring an extra level of insanity with them.
+        llvm-config will provide the correct arguments for static linking, but
+        not for shared-linnking, we have to figure those out ourselves, because
+        of course we do.
+        """
+        if self.static:
+            p, out, err = Popen_safe(
+                [self.llvmconfig, '--libs', '--ldflags', '--system-libs'] + list(self.required_modules))
+            if p.returncode != 0:
+                raise DependencyException('Could not generate libs for LLVM:\n' + err)
+            self.link_args = shlex.split(out)
+        else:
+            # llvm-config will provide arguments for static linking, so we get
+            # to figure out for ourselves what to link with. We'll do that by
+            # checking in the directory provided by --libdir for a library
+            # called libLLVM-<ver>.(so|dylib|dll)
+            p, out, err = Popen_safe([self.llvmconfig, '--libdir'])
+            if p.returncode != 0:
+                raise DependencyException('Could not generate libs for LLVM:\n' + err)
+            libdir = out.strip()
+
+            expected_name = 'libLLVM-{}'.format(self.version)
+            re_name = re.compile(r'{}.(so|dll|dylib)'.format(expected_name))
+
+            for file_ in os.listdir(libdir):
+                if re_name.match(file_):
+                    self.link_args = ['-L{}'.format(libdir),
+                                      '-l{}'.format(os.path.splitext(file_.lstrip('lib'))[0])]
+                    break
             else:
+                raise DependencyException(
+                    'Could not find a dynamically linkable library for LLVM.')
+
+    def check_components(self, modules, required=True):
+        """Check for llvm components (modules in meson terms).
+
+        The required option is whether the module is required, not whether LLVM
+        is required.
+        """
+        for mod in sorted(set(modules)):
+            if mod not in self.provided_modules:
+                mlog.log('LLVM module', mod, 'found:', mlog.red('NO'),
+                         '(optional)' if not required else '')
+                if required:
+                    self.is_found = False
+                    if self.required:
+                        raise DependencyException(
+                            'Could not find required LLVM Component: {}'.format(mod))
+            else:
+                self.required_modules.add(mod)
                 mlog.log('LLVM module', mod, 'found:', mlog.green('YES'))
 
     def check_llvmconfig(self, version_req):

@@ -12,7 +12,14 @@
 #error Token did not get defined
 #endif
 
+#define stringify(s) str(s)
+#define str(s) #s
+
 int main(int argc, char **argv) {
+#if !(SHOULD_BE_UNQUOTED_STRING == string)
+        printf("String token (unquoted) defined wrong.\n");
+        return 1;
+#endif
     if(strcmp(SHOULD_BE_STRING, "string") != 0) {
         printf("String token defined wrong.\n");
         return 1;

@@ -84,10 +84,10 @@ class QtBaseModule:
         except Exception:
             return []
 
-    @permittedKwargs({'moc_headers', 'moc_sources', 'include_directories', 'ui_files', 'qresources', 'method'})
+    @permittedKwargs({'moc_headers', 'moc_sources', 'moc_extra_arguments', 'include_directories', 'ui_files', 'qresources', 'method'})
     def preprocess(self, state, args, kwargs):
-        rcc_files, ui_files, moc_headers, moc_sources, sources, include_directories \
-            = extract_as_list(kwargs, 'qresources', 'ui_files', 'moc_headers', 'moc_sources', 'sources', 'include_directories', pop = True)
+        rcc_files, ui_files, moc_headers, moc_sources, moc_extra_arguments, sources, include_directories \
+            = extract_as_list(kwargs, 'qresources', 'ui_files', 'moc_headers', 'moc_sources', 'moc_extra_arguments', 'sources', 'include_directories', pop = True)
         sources += args[1:]
         method = kwargs.get('method', 'auto')
         self._detect_tools(state.environment, method)
@@ -101,17 +101,25 @@ class QtBaseModule:
             qrc_deps = []
             for i in rcc_files:
                 qrc_deps += self.parse_qrc(state, i)
+            # custom output name set? -> one output file, multiple otherwise
             if len(args) > 0:
                 name = args[0]
+                rcc_kwargs = {'input': rcc_files,
+                              'output': name + '.cpp',
+                              'command': [self.rcc, '-name', name, '-o', '@OUTPUT@', '@INPUT@'],
+                              'depend_files': qrc_deps}
+                res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
+                sources.append(res_target)
             else:
-                basename = os.path.split(rcc_files[0])[1]
-                name = 'qt' + str(self.qt_version) + '-' + basename.replace('.', '_')
-            rcc_kwargs = {'input': rcc_files,
-                          'output': name + '.cpp',
-                          'command': [self.rcc, '-o', '@OUTPUT@', '@INPUT@'],
-                          'depend_files': qrc_deps}
-            res_target = build.CustomTarget(name, state.subdir, rcc_kwargs)
-            sources.append(res_target)
+                for rcc_file in rcc_files:
+                    basename = os.path.split(rcc_file)[1]
+                    name = 'qt' + str(self.qt_version) + '-' + basename.replace('.', '_')
+                    rcc_kwargs = {'input': rcc_file,
+                                  'output': name + '.cpp',
+                                  'command': [self.rcc, '-name', '@BASENAME@', '-o', '@OUTPUT@', '@INPUT@'],
+                                  'depend_files': qrc_deps}
+                    res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
+                    sources.append(res_target)
         if len(ui_files) > 0:
             if not self.uic.found():
                 raise MesonException(err_msg.format('UIC', 'uic-qt' + self.qt_version))
@@ -122,14 +130,16 @@ class QtBaseModule:
             sources.append(ui_output)
         inc = get_include_args(include_dirs=include_directories)
         if len(moc_headers) > 0:
+            arguments = moc_extra_arguments + inc + ['@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
-                          'arguments': inc + ['@INPUT@', '-o', '@OUTPUT@']}
+                          'arguments': arguments}
             moc_gen = build.Generator([self.moc], moc_kwargs)
             moc_output = moc_gen.process_files('Qt{} moc header'.format(self.qt_version), moc_headers, state)
             sources.append(moc_output)
         if len(moc_sources) > 0:
+            arguments = moc_extra_arguments + ['@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': '@BASENAME@.moc',
-                          'arguments': ['@INPUT@', '-o', '@OUTPUT@']}
+                          'arguments': arguments}
             moc_gen = build.Generator([self.moc], moc_kwargs)
             moc_output = moc_gen.process_files('Qt{} moc source'.format(self.qt_version), moc_sources, state)
             sources.append(moc_output)

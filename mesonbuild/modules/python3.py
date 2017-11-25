@@ -52,7 +52,7 @@ class Python3Module(ExtensionModule):
 
     @noKwargs
     def find_python(self, state, args, kwargs):
-        py3 = dependencies.ExternalProgram('python3', sys.executable, silent=True)
+        py3 = dependencies.ExternalProgram('python3', mesonlib.python_command, silent=True)
         return ModuleReturnValue(py3, [py3])
 
     @noKwargs

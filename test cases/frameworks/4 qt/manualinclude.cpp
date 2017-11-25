@@ -6,6 +6,10 @@
 ManualInclude::ManualInclude() {
 }
 
+void ManualInclude::myslot(void) {
+	;
+}
+
 class MocClass : public QObject {
     Q_OBJECT
 };
@@ -13,6 +17,9 @@ class MocClass : public QObject {
 int main(int argc, char **argv) {
     ManualInclude mi;
     MocClass mc;
+    QObject::connect(&mi, SIGNAL(mysignal(void)),
+                     &mi, SLOT(myslot(void)));
+    emit mi.mysignal();
     return 0;
 }
 

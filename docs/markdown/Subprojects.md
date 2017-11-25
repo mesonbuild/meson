@@ -42,7 +42,7 @@ else
   l = sp.get_variable('l')
 endif
 exe = executable('prog', 'prog.c', include_directories : i, link_with : l,
-                 deps : dep, install : true)
+                 dependencies : dep, install : true)
 ```
 
 With this setup the system dependency is used when it is available, otherwise we fall back on the bundled version.

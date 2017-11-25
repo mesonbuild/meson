@@ -25,7 +25,7 @@ import argparse
 import sys, os
 import pathlib
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(prog='meson introspect')
 parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
                     help='List top level targets.')
 parser.add_argument('--installed', action='store_true', dest='list_installed', default=False,
@@ -104,6 +104,7 @@ def list_targets(coredata, builddata, installdata):
             t['install_filename'] = determine_installed_path(target, installdata)
         else:
             t['installed'] = False
+        t['build_by_default'] = target.build_by_default
         tlist.append(t)
     print(json.dumps(tlist))
 

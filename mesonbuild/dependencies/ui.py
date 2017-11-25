@@ -23,8 +23,9 @@ from collections import OrderedDict
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import MesonException, Popen_safe, version_compare, extract_as_list
-from ..environment import for_windows, detect_cpu
+from ..mesonlib import MesonException, Popen_safe, version_compare
+from ..mesonlib import extract_as_list, for_windows
+from ..environment import detect_cpu
 
 from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency, ExternalProgram

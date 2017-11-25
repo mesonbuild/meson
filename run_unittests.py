@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # Copyright 2016-2017 The Meson development team
 
@@ -33,13 +34,14 @@ import mesonbuild.mesonlib
 import mesonbuild.coredata
 from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
+from mesonbuild.mesonlib import python_command, meson_command
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import DependencyException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
 from run_tests import exe_suffix, get_fake_options, FakeEnvironment
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
-from run_tests import ensure_backend_detects_changes, run_configure_inprocess
+from run_tests import ensure_backend_detects_changes, run_configure, meson_exe
 from run_tests import should_run_linux_cross_tests
 
 
@@ -459,11 +461,12 @@ class BasePlatformTests(unittest.TestCase):
         # Get the backend
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
-        self.meson_args = [os.path.join(src_root, 'meson.py'), '--backend=' + self.backend.name]
-        self.meson_command = [sys.executable] + self.meson_args
-        self.mconf_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'configure']
-        self.mintro_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'introspect']
-        self.mtest_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'test', '-C', self.builddir]
+        self.meson_mainfile = os.path.join(src_root, 'meson.py')
+        self.meson_args = ['--backend=' + self.backend.name]
+        self.meson_command = meson_command + self.meson_args
+        self.mconf_command = meson_command + ['configure']
+        self.mintro_command = meson_command + ['introspect']
+        self.mtest_command = meson_command + ['test', '-C', self.builddir]
         # Backend-specific build commands
         self.build_command, self.clean_command, self.test_command, self.install_command, \
             self.uninstall_command = get_backend_commands(self.backend)
@@ -490,7 +493,10 @@ class BasePlatformTests(unittest.TestCase):
             print(f.read())
 
     def tearDown(self):
-        windows_proof_rmtree(self.builddir)
+        try:
+            windows_proof_rmtree(self.builddir)
+        except FileNotFoundError:
+            pass
         os.environ = self.orig_env
         super().tearDown()
 
@@ -523,7 +529,7 @@ class BasePlatformTests(unittest.TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                out = run_configure_inprocess(self.meson_args + args + extra_args)[1]
+                out = run_configure(self.meson_mainfile, self.meson_args + args + extra_args)[1]
             except:
                 self._print_meson_log()
                 raise
@@ -738,6 +744,49 @@ class AllPlatformTests(BasePlatformTests):
         # libdir must be inside prefix even when set via mesonconf
         self.init(testdir)
         self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt', False)
+
+    def test_prefix_dependent_defaults(self):
+        '''
+        Tests that configured directory paths are set to prefix dependent
+        defaults.
+        '''
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        expected = {
+            '/opt': {'prefix': '/opt',
+                     'bindir': 'bin', 'datadir': 'share', 'includedir': 'include',
+                     'infodir': 'share/info',
+                     'libexecdir': 'libexec', 'localedir': 'share/locale',
+                     'localstatedir': 'var', 'mandir': 'share/man',
+                     'sbindir': 'sbin', 'sharedstatedir': 'com',
+                     'sysconfdir': 'etc'},
+            '/usr': {'prefix': '/usr',
+                     'bindir': 'bin', 'datadir': 'share', 'includedir': 'include',
+                     'infodir': 'share/info',
+                     'libexecdir': 'libexec', 'localedir': 'share/locale',
+                     'localstatedir': '/var', 'mandir': 'share/man',
+                     'sbindir': 'sbin', 'sharedstatedir': '/var/lib',
+                     'sysconfdir': '/etc'},
+            '/usr/local': {'prefix': '/usr/local',
+                           'bindir': 'bin', 'datadir': 'share',
+                           'includedir': 'include', 'infodir': 'share/info',
+                           'libexecdir': 'libexec',
+                           'localedir': 'share/locale',
+                           'localstatedir': '/var/local', 'mandir': 'share/man',
+                           'sbindir': 'sbin', 'sharedstatedir': '/var/local/lib',
+                           'sysconfdir': 'etc'},
+            # N.B. We don't check 'libdir' as it's platform dependent, see
+            # default_libdir():
+        }
+        for prefix in expected:
+            args = ['--prefix', prefix]
+            self.init(testdir, args, default_args=False)
+            opts = self.introspect('--buildoptions')
+            for opt in opts:
+                name = opt['name']
+                value = opt['value']
+                if name in expected[prefix]:
+                    self.assertEqual(value, expected[prefix][name])
+            self.wipe()
 
     def test_static_library_overwrite(self):
         '''
@@ -1074,14 +1123,14 @@ class AllPlatformTests(BasePlatformTests):
             # exelist + some argument. This is meant to test that setting
             # something like `ccache gcc -pipe` or `distcc ccache gcc` works.
             wrapper = os.path.join(testdir, 'compiler wrapper.py')
-            wrappercc = [sys.executable, wrapper] + cc.get_exelist() + ['-DSOME_ARG']
+            wrappercc = python_command + [wrapper] + cc.get_exelist() + ['-DSOME_ARG']
             wrappercc_s = ''
             for w in wrappercc:
                 wrappercc_s += shlex.quote(w) + ' '
             os.environ[evar] = wrappercc_s
             wcc = getattr(env, 'detect_{}_compiler'.format(lang))(False)
             # Check static linker too
-            wrapperlinker = [sys.executable, wrapper] + linker.get_exelist() + linker.get_always_args()
+            wrapperlinker = python_command + [wrapper] + linker.get_exelist() + linker.get_always_args()
             wrapperlinker_s = ''
             for w in wrapperlinker:
                 wrapperlinker_s += shlex.quote(w) + ' '
@@ -1342,34 +1391,34 @@ int main(int argc, char **argv) {
             self.assertPathExists(os.path.join(testdir, i))
 
     def detect_prebuild_env(self):
+        env = Environment('', self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
+        cc = env.detect_c_compiler(False)
         if mesonbuild.mesonlib.is_windows():
             object_suffix = 'obj'
+            shared_suffix = 'dll'
+        elif mesonbuild.mesonlib.is_cygwin():
+            object_suffix = 'o'
+            shared_suffix = 'dll'
+        elif mesonbuild.mesonlib.is_osx():
+            object_suffix = 'o'
+            shared_suffix = 'dylib'
         else:
             object_suffix = 'o'
-        static_suffix = 'a'
-        shared_suffix = 'so'
-        if shutil.which('cl'):
-            compiler = 'cl'
-            static_suffix = 'lib'
-            shared_suffix = 'dll'
-        elif shutil.which('cc'):
-            compiler = 'cc'
-        elif shutil.which('gcc'):
-            compiler = 'gcc'
-        else:
-            raise RuntimeError("Could not find C compiler.")
-        return (compiler, object_suffix, static_suffix, shared_suffix)
+            shared_suffix = 'so'
+        return (cc, object_suffix, shared_suffix)
 
     def pbcompile(self, compiler, source, objectfile, extra_args=[]):
-        if compiler == 'cl':
-            cmd = [compiler, '/nologo', '/Fo' + objectfile, '/c', source] + extra_args
+        cmd = compiler.get_exelist()
+        if compiler.id == 'msvc':
+            cmd += ['/nologo', '/Fo' + objectfile, '/c', source] + extra_args
         else:
-            cmd = [compiler, '-c', source, '-o', objectfile] + extra_args
+            cmd += ['-c', source, '-o', objectfile] + extra_args
         subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
     def test_prebuilt_object(self):
-        (compiler, object_suffix, _, _) = self.detect_prebuild_env()
+        (compiler, object_suffix, _) = self.detect_prebuild_env()
         tdir = os.path.join(self.unit_test_dir, '14 prebuilt object')
         source = os.path.join(tdir, 'source.c')
         objectfile = os.path.join(tdir, 'prebuilt.' + object_suffix)
@@ -1381,21 +1430,27 @@ int main(int argc, char **argv) {
         finally:
             os.unlink(objectfile)
 
-    def test_prebuilt_static_lib(self):
-        (compiler, object_suffix, static_suffix, _) = self.detect_prebuild_env()
-        tdir = os.path.join(self.unit_test_dir, '15 prebuilt static')
-        source = os.path.join(tdir, 'libdir/best.c')
-        objectfile = os.path.join(tdir, 'libdir/best.' + object_suffix)
-        stlibfile = os.path.join(tdir, 'libdir/libbest.' + static_suffix)
-        if compiler == 'cl':
-            link_cmd = ['lib', '/NOLOGO', '/OUT:' + stlibfile, objectfile]
+    def build_static_lib(self, compiler, source, objectfile, outfile, extra_args=None):
+        if extra_args is None:
+            extra_args = []
+        if compiler.id == 'msvc':
+            link_cmd = ['lib', '/NOLOGO', '/OUT:' + outfile, objectfile]
         else:
-            link_cmd = ['ar', 'csr', stlibfile, objectfile]
-        self.pbcompile(compiler, source, objectfile)
+            link_cmd = ['ar', 'csr', outfile, objectfile]
+        self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
         try:
             subprocess.check_call(link_cmd)
         finally:
             os.unlink(objectfile)
+
+    def test_prebuilt_static_lib(self):
+        (cc, object_suffix, _) = self.detect_prebuild_env()
+        tdir = os.path.join(self.unit_test_dir, '15 prebuilt static')
+        source = os.path.join(tdir, 'libdir/best.c')
+        objectfile = os.path.join(tdir, 'libdir/best.' + object_suffix)
+        stlibfile = os.path.join(tdir, 'libdir/libbest.a')
+        self.build_static_lib(cc, source, objectfile, stlibfile)
+        # Run the test
         try:
             self.init(tdir)
             self.build()
@@ -1403,26 +1458,37 @@ int main(int argc, char **argv) {
         finally:
             os.unlink(stlibfile)
 
-    def test_prebuilt_shared_lib(self):
-        (compiler, object_suffix, _, shared_suffix) = self.detect_prebuild_env()
-        tdir = os.path.join(self.unit_test_dir, '16 prebuilt shared')
-        source = os.path.join(tdir, 'alexandria.c')
-        objectfile = os.path.join(tdir, 'alexandria.' + object_suffix)
-        if compiler == 'cl':
+    def build_shared_lib(self, compiler, source, objectfile, outfile, impfile, extra_args=None):
+        if extra_args is None:
             extra_args = []
-            shlibfile = os.path.join(tdir, 'alexandria.' + shared_suffix)
-            link_cmd = ['link', '/NOLOGO','/DLL', '/DEBUG', '/IMPLIB:' + os.path.join(tdir, 'alexandria.lib'), '/OUT:' + shlibfile, objectfile]
+        if compiler.id == 'msvc':
+            link_cmd = ['link', '/NOLOGO', '/DLL', '/DEBUG',
+                        '/IMPLIB:' + impfile, '/OUT:' + outfile, objectfile]
         else:
-            extra_args = ['-fPIC']
-            shlibfile = os.path.join(tdir, 'libalexandria.' + shared_suffix)
-            link_cmd = [compiler, '-shared', '-o', shlibfile, objectfile]
+            extra_args += ['-fPIC']
+            link_cmd = compiler.get_exelist() + ['-shared', '-o', outfile, objectfile]
             if not mesonbuild.mesonlib.is_osx():
-                link_cmd += ['-Wl,-soname=libalexandria.so']
+                link_cmd += ['-Wl,-soname=' + os.path.basename(outfile)]
         self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
         try:
             subprocess.check_call(link_cmd)
         finally:
             os.unlink(objectfile)
+
+    def test_prebuilt_shared_lib(self):
+        (cc, object_suffix, shared_suffix) = self.detect_prebuild_env()
+        tdir = os.path.join(self.unit_test_dir, '16 prebuilt shared')
+        source = os.path.join(tdir, 'alexandria.c')
+        objectfile = os.path.join(tdir, 'alexandria.' + object_suffix)
+        impfile = os.path.join(tdir, 'alexandria.lib')
+        if cc.id == 'msvc':
+            shlibfile = os.path.join(tdir, 'alexandria.' + shared_suffix)
+        elif is_cygwin():
+            shlibfile = os.path.join(tdir, 'cygalexandria.' + shared_suffix)
+        else:
+            shlibfile = os.path.join(tdir, 'libalexandria.' + shared_suffix)
+        self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
+        # Run the test
         try:
             self.init(tdir)
             self.build()
@@ -1435,6 +1501,68 @@ int main(int argc, char **argv) {
                 for fname in glob(os.path.join(tdir, 'alexandria.*')):
                     if os.path.splitext(fname)[1] not in ['.c', '.h']:
                         os.unlink(fname)
+
+    def test_pkgconfig_static(self):
+        '''
+        Test that the we only use static libraries when `static: true` is
+        passed to dependency() with pkg-config. Can't be an ordinary test
+        because we need to build libs and try to find them from meson.build
+        '''
+        if not shutil.which('pkg-config'):
+            raise unittest.SkipTest('pkg-config not found')
+        (cc, objext, shext) = self.detect_prebuild_env()
+        testdir = os.path.join(self.unit_test_dir, '17 pkgconfig static')
+        source = os.path.join(testdir, 'foo.c')
+        objectfile = os.path.join(testdir, 'foo.' + objext)
+        stlibfile = os.path.join(testdir, 'libfoo.a')
+        impfile = os.path.join(testdir, 'foo.lib')
+        if cc.id == 'msvc':
+            shlibfile = os.path.join(testdir, 'foo.' + shext)
+        elif is_cygwin():
+            shlibfile = os.path.join(testdir, 'cygfoo.' + shext)
+        else:
+            shlibfile = os.path.join(testdir, 'libfoo.' + shext)
+        # Build libs
+        self.build_static_lib(cc, source, objectfile, stlibfile, extra_args=['-DFOO_STATIC'])
+        self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
+        # Run test
+        os.environ['PKG_CONFIG_LIBDIR'] = self.builddir
+        try:
+            self.init(testdir)
+            self.build()
+            self.run_tests()
+        finally:
+            os.unlink(stlibfile)
+            os.unlink(shlibfile)
+            if mesonbuild.mesonlib.is_windows():
+                # Clean up all the garbage MSVC writes in the
+                # source tree.
+                for fname in glob(os.path.join(testdir, 'foo.*')):
+                    if os.path.splitext(fname)[1] not in ['.c', '.h', '.in']:
+                        os.unlink(fname)
+
+    def test_pkgconfig_gen_escaping(self):
+        if not shutil.which('pkg-config'):
+            raise unittest.SkipTest('pkg-config not found')
+        testdir = os.path.join(self.common_test_dir, '51 pkgconfig-gen')
+        prefix = '/usr/with spaces'
+        libdir = 'lib'
+        self.init(testdir, extra_args=['--prefix=' + prefix,
+                                       '--libdir=' + libdir])
+        # Find foo dependency
+        os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
+        env = FakeEnvironment()
+        kwargs = {'required': True, 'silent': True}
+        foo_dep = PkgConfigDependency('libfoo', env, kwargs)
+        # Ensure link_args are properly quoted
+        libdir = PurePath(prefix) / PurePath(libdir)
+        link_args = ['-L' + libdir.as_posix(), '-lfoo']
+        self.assertEqual(foo_dep.get_link_args(), link_args)
+        # Ensure include args are properly quoted
+        incdir = PurePath(prefix) / PurePath('include')
+        cargs = ['-I' + incdir.as_posix()]
+        self.assertEqual(foo_dep.get_compile_args(), cargs)
+
 
 class FailureTests(BasePlatformTests):
     '''
@@ -1460,6 +1588,9 @@ class FailureTests(BasePlatformTests):
         Assert that running meson configure on the specified @contents raises
         a error message matching regex @match.
         '''
+        if meson_exe is not None:
+            # Because the exception happens in a different process.
+            raise unittest.SkipTest('Can not test assert raise tests with an external Meson command.')
         if langs is None:
             langs = []
         with open(self.mbuild, 'w') as f:
@@ -1492,6 +1623,8 @@ class FailureTests(BasePlatformTests):
     def test_dependency(self):
         if not shutil.which('pkg-config'):
             raise unittest.SkipTest('pkg-config not found')
+        if subprocess.call(['pkg-config', '--exists', 'zlib']) != 0:
+            raise unittest.SkipTest('zlib not found with pkg-config')
         a = (("dependency('zlib', method : 'fail')", "'fail' is invalid"),
              ("dependency('zlib', static : '1')", "[Ss]tatic.*boolean"),
              ("dependency('zlib', version : 1)", "[Vv]ersion.*string or list"),
@@ -1589,12 +1722,12 @@ class WindowsTests(BasePlatformTests):
         os.environ['PATH'] += os.pathsep + testdir
         prog = ExternalProgram('test-script-ext')
         self.assertTrue(prog.found(), msg='test-script-ext not found in PATH')
-        self.assertPathEqual(prog.get_command()[0], sys.executable)
+        self.assertPathEqual(prog.get_command()[0], python_command[0])
         self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
         # Finding a script in PATH with extension works and adds the interpreter
         prog = ExternalProgram('test-script-ext.py')
         self.assertTrue(prog.found(), msg='test-script-ext.py not found in PATH')
-        self.assertPathEqual(prog.get_command()[0], sys.executable)
+        self.assertPathEqual(prog.get_command()[0], python_command[0])
         self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
 
     def test_ignore_libs(self):
@@ -1675,12 +1808,12 @@ class LinuxlikeTests(BasePlatformTests):
         env = FakeEnvironment()
         kwargs = {'required': True, 'silent': True}
         os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
-        simple_dep = PkgConfigDependency('libfoo', env, kwargs)
-        self.assertTrue(simple_dep.found())
-        self.assertEqual(simple_dep.get_version(), '1.0')
-        self.assertIn('-lfoo', simple_dep.get_link_args())
-        self.assertEqual(simple_dep.get_pkgconfig_variable('foo'), 'bar')
-        self.assertPathEqual(simple_dep.get_pkgconfig_variable('datadir'), '/usr/data')
+        foo_dep = PkgConfigDependency('libfoo', env, kwargs)
+        self.assertTrue(foo_dep.found())
+        self.assertEqual(foo_dep.get_version(), '1.0')
+        self.assertIn('-lfoo', foo_dep.get_link_args())
+        self.assertEqual(foo_dep.get_pkgconfig_variable('foo'), 'bar')
+        self.assertPathEqual(foo_dep.get_pkgconfig_variable('datadir'), '/usr/data')
 
     def test_vala_c_warnings(self):
         '''
@@ -2118,7 +2251,7 @@ class RewriterTests(unittest.TestCase):
         super().setUp()
         src_root = os.path.dirname(__file__)
         self.testroot = os.path.realpath(tempfile.mkdtemp())
-        self.rewrite_command = [sys.executable, os.path.join(src_root, 'mesonrewriter.py')]
+        self.rewrite_command = python_command + [os.path.join(src_root, 'mesonrewriter.py')]
         self.tmpdir = os.path.realpath(tempfile.mkdtemp())
         self.workdir = os.path.join(self.tmpdir, 'foo')
         self.test_dir = os.path.join(src_root, 'test cases/rewrite')

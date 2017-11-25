@@ -8,8 +8,14 @@ class ManualInclude : public QObject {
 
 public:
     ManualInclude();
+#if defined(MOC_EXTRA_FLAG)
+public slots:
+#endif
+    void myslot(void);
 
+#if defined(MOC_EXTRA_FLAG)
 signals:
+#endif
     int mysignal();
 };
 

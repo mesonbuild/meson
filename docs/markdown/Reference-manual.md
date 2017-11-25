@@ -95,10 +95,10 @@ the following:
 - `gdb` if `true`, the tests are also run under `gdb`
 - `timeout_multiplier` a number to multiply the test timeout with
 
-To use the test setup, run `mesontest --setup=*name*` inside the build dir.
+To use the test setup, run `meson test --setup=*name*` inside the build dir.
 
 Note that all these options are also available while running the
-`mesontest` script for running tests instead of `ninja test` or
+`meson test` script for running tests instead of `ninja test` or
 `msbuild RUN_TESTS.vcxproj`, etc depending on the backend.
 
 ### benchmark()
@@ -282,8 +282,8 @@ system) with the given name with `pkg-config` if possible and with
 [library-specific fallback detection logic](Dependencies.md)
 otherwise. This function supports the following keyword arguments:
 
-- `default_options` *(added 0.37.0)* an array of option values that
-  override those set in the project's `default_options` invocation
+- `default_options` *(added 0.37.0)* an array of default option values
+  that override those set in the subproject's `meson_options.txt`
   (like `default_options` in [`project()`](#project), they only have
   effect when Meson is run for the first time, and command line
   arguments override any default options in build files)
@@ -847,6 +847,14 @@ The keyword arguments for this are the same as for [`executable`](#executable) w
 
 This function prints its argument to stdout.
 
+### warning()
+
+``` meson
+    void warning(text)
+```
+
+This function prints its argument to stdout prefixed with WARNING:.
+
 ### project()
 
 ``` meson
@@ -1038,11 +1046,11 @@ example a subproject called `foo` must be located in
 `${MESON_SOURCE_ROOT}/subprojects/foo`. Supports the following keyword
 arguments:
 
- - `default_options`, *(added 0.37.0)* an array of default option
-   values that override those set in the project's `default_options`
-   invocation (like `default_options` in `project`, they only have
-   effect when Meson is run for the first time, and command line
-   arguments override any default options in build files)
+ - `default_options` *(added 0.37.0)* an array of default option values
+   that override those set in the subproject's `meson_options.txt`
+   (like `default_options` in `project`, they only have effect when
+   Meson is run for the first time, and command line arguments override
+   any default options in build files)
  - `version` keyword argument that works just like the one in
    `dependency`. It specifies what version the subproject should be,
    as an example `>=1.0.1`
@@ -1084,7 +1092,7 @@ arguments are the following.
   for the test
 
 Defined tests can be run in a backend-agnostic way by calling
-`mesontest` inside the build dir, or by using backend-specific
+`meson test` inside the build dir, or by using backend-specific
 commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.
 
 ### vcs_tag()
@@ -1547,6 +1555,11 @@ page](Configuration.md) It has three methods:
 - `get(varname, default_value)` returns the value of `varname`, if the
   value has not been set returns `default_value` if it is defined
   *(added 0.38.0)* and errors out if not
+
+- `get_unquoted(varname, default_value)` returns the value of `varname`
+  but without surrounding double quotes (`"`). If the value has not been
+  set returns `default_value` if it is defined and errors out if not.
+  Available since 0.43.0
 
 - `has(varname)`, returns `true` if the specified variable is set
 

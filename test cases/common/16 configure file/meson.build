@@ -70,6 +70,12 @@ dump.set('SHOULD_BE_UNDEFINED', false)
 dump.set('SHOULD_BE_ONE', 1)
 dump.set('SHOULD_BE_ZERO', 0, description : 'Absolutely zero')
 dump.set('SHOULD_BE_QUOTED_ONE', '"1"')
+
+dump.set_quoted('INTEGER_AS_STRING', '12')
+if dump.get_unquoted('INTEGER_AS_STRING').to_int() == 12
+  dump.set('SHOULD_BE_UNQUOTED_STRING', dump.get_unquoted('SHOULD_BE_STRING'))
+endif
+
 configure_file(output : 'config3.h',
   configuration : dump)
 
@@ -103,3 +109,14 @@ configs = [
 foreach c : configs
     test('@0@'.format(c), file_contains_py, args: [ c, test_string ])
 endforeach
+
+# Test variable is substituted only once
+conf5 = configuration_data()
+conf5.set('var', '@var2@')
+conf5.set('var2', 'error')
+configure_file(
+  input : 'config5.h.in',
+  output : '@BASENAME@',
+  configuration : conf5
+)
+test('test5', executable('prog5', 'prog5.c'))

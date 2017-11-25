@@ -177,6 +177,7 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
                              'set_quoted': self.set_quoted_method,
                              'has': self.has_method,
                              'get': self.get_method,
+                             'get_unquoted': self.get_unquoted_method,
                              'merge_from': self.merge_from_method,
                              })
 
@@ -231,6 +232,20 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
         if len(args) > 1:
             return args[1]
         raise InterpreterException('Entry %s not in configuration data.' % name)
+
+    def get_unquoted_method(self, args, kwargs):
+        if len(args) < 1 or len(args) > 2:
+            raise InterpreterException('Get method takes one or two arguments.')
+        name = args[0]
+        if name in self.held_object:
+            val = self.held_object.get(name)[0]
+        elif len(args) > 1:
+            val = args[1]
+        else:
+            raise InterpreterException('Entry %s not in configuration data.' % name)
+        if val[0] == '"' and val[-1] == '"':
+            return val[1:-1]
+        return val
 
     def get(self, name):
         return self.held_object.values[name]     # (val, desc)
@@ -606,9 +621,9 @@ class CustomTargetHolder(TargetHolder):
         raise InterpreterException('Cannot delete a member of a CustomTarget')
 
 class RunTargetHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, name, command, args, dependencies, subdir):
+    def __init__(self, name, command, args, dependencies, subdir, subproject):
         InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, build.RunTarget(name, command, args, dependencies, subdir))
+        ObjectHolder.__init__(self, build.RunTarget(name, command, args, dependencies, subdir, subproject))
 
     def __repr__(self):
         r = '<{} {}: {}>'
@@ -696,7 +711,8 @@ class CompilerHolder(InterpreterObject):
             if not isinstance(i, IncludeDirsHolder):
                 raise InterpreterException('Include directories argument must be an include_directories object.')
             for idir in i.held_object.get_incdirs():
-                idir = os.path.join(self.environment.get_source_dir(), idir)
+                idir = os.path.join(self.environment.get_source_dir(),
+                                    i.held_object.get_curdir(), idir)
                 args += self.compiler.get_include_args(idir, False)
         if not nobuiltins:
             opts = self.environment.coredata.compiler_options
@@ -1060,10 +1076,10 @@ class CompilerHolder(InterpreterObject):
         return []
 
 ModuleState = namedtuple('ModuleState', [
-    'build_to_src', 'subdir', 'current_lineno', 'environment', 'project_name',
-    'project_version', 'backend', 'compilers', 'targets', 'data', 'headers',
-    'man', 'global_args', 'project_args', 'build_machine', 'host_machine',
-    'target_machine'])
+    'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
+    'project_name', 'project_version', 'backend', 'compilers', 'targets',
+    'data', 'headers', 'man', 'global_args', 'project_args', 'build_machine',
+    'host_machine', 'target_machine'])
 
 class ModuleHolder(InterpreterObject, ObjectHolder):
     def __init__(self, modname, module, interpreter):
@@ -1085,6 +1101,7 @@ class ModuleHolder(InterpreterObject, ObjectHolder):
         state = ModuleState(
             build_to_src=os.path.relpath(self.interpreter.environment.get_source_dir(),
                                          self.interpreter.environment.get_build_dir()),
+            subproject=self.interpreter.subproject,
             subdir=self.interpreter.subdir,
             current_lineno=self.interpreter.current_lineno,
             environment=self.interpreter.environment,
@@ -1341,6 +1358,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'build_target': build_target_kwargs,
                     'configure_file': {'input', 'output', 'configuration', 'command', 'install_dir', 'capture', 'install'},
                     'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
+                    'dependency': {'default_options', 'fallback', 'language', 'method', 'modules', 'native', 'required', 'static', 'version'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'version'},
                     'executable': exe_kwargs,
                     'find_program': {'required', 'native'},
@@ -1389,6 +1407,8 @@ class Interpreter(InterpreterBase):
         self.subproject_stack = []
         self.default_project_options = default_project_options[:] # Passed from the outside, only used in subprojects.
         self.build_func_dict()
+        # build_def_files needs to be defined before parse_project is called
+        self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
         self.parse_project()
         self.builtin['build_machine'] = BuildMachine(self.coredata.compilers)
         if not self.build.environment.is_cross_build():
@@ -1404,7 +1424,6 @@ class Interpreter(InterpreterBase):
                 self.builtin['target_machine'] = CrossMachineInfo(cross_info.config['target_machine'])
             else:
                 self.builtin['target_machine'] = self.builtin['host_machine']
-        self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
 
     def build_func_dict(self):
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
@@ -1442,6 +1461,7 @@ class Interpreter(InterpreterBase):
                            'join_paths': self.func_join_paths,
                            'library': self.func_library,
                            'message': self.func_message,
+                           'warning': self.func_warning,
                            'option': self.func_option,
                            'project': self.func_project,
                            'run_target': self.func_run_target,
@@ -1638,6 +1658,9 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Program or command {!r} not found'
                                            'or not executable'.format(cmd))
             cmd = prog
+        cmd_path = os.path.relpath(cmd.get_path(), start=srcdir)
+        if not cmd_path.startswith('..') and cmd_path not in self.build_def_files:
+            self.build_def_files.append(cmd_path)
         expanded_args = []
         for a in listify(cargs):
             if isinstance(a, str):
@@ -1648,6 +1671,14 @@ external dependencies (including libraries) must go to "dependencies".''')
                 expanded_args.append(a.held_object.get_path())
             else:
                 raise InterpreterException('Arguments ' + m.format(a))
+        for a in expanded_args:
+            if not os.path.isabs(a):
+                a = os.path.join(builddir if in_builddir else srcdir, self.subdir, a)
+            if os.path.exists(a):
+                a = os.path.relpath(a, start=srcdir)
+                if not a.startswith('..'):
+                    if a not in self.build_def_files:
+                        self.build_def_files.append(a)
         return RunProcess(cmd, expanded_args, srcdir, builddir, self.subdir,
                           self.environment.get_build_command() + ['introspect'], in_builddir)
 
@@ -1857,8 +1888,7 @@ to directly access options of other subprojects.''')
     def func_add_languages(self, node, args, kwargs):
         return self.add_languages(args, kwargs.get('required', True))
 
-    @noKwargs
-    def func_message(self, node, args, kwargs):
+    def get_message_string_arg(self, node):
         # reduce arguments again to avoid flattening posargs
         (posargs, _) = self.reduce_arguments(node.args)
         if len(posargs) != 1:
@@ -1874,7 +1904,17 @@ to directly access options of other subprojects.''')
         else:
             raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
 
+        return argstr
+
+    @noKwargs
+    def func_message(self, node, args, kwargs):
+        argstr = self.get_message_string_arg(node)
         mlog.log(mlog.bold('Message:'), argstr)
+
+    @noKwargs
+    def func_warning(self, node, args, kwargs):
+        argstr = self.get_message_string_arg(node)
+        mlog.warning(argstr)
 
     @noKwargs
     def func_error(self, node, args, kwargs):
@@ -2091,6 +2131,7 @@ to directly access options of other subprojects.''')
                     break
         return identifier, cached_dep
 
+    @permittedKwargs(permitted_kwargs['dependency'])
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         name = args[0]
@@ -2292,7 +2333,7 @@ to directly access options of other subprojects.''')
         if len(args) != 1:
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
         name = args[0]
-        tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, kwargs), self)
+        tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs), self)
         self.add_target(name, tg.held_object)
         return tg
 
@@ -2335,7 +2376,7 @@ to directly access options of other subprojects.''')
             cleaned_deps.append(d)
         command = cleaned_args[0]
         cmd_args = cleaned_args[1:]
-        tg = RunTargetHolder(name, command, cmd_args, cleaned_deps, self.subdir)
+        tg = RunTargetHolder(name, command, cmd_args, cleaned_deps, self.subdir, self.subproject)
         self.add_target(name, tg.held_object)
         return tg
 
@@ -2799,6 +2840,16 @@ different subdirectory.
         super().run()
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
 
+    def evaluate_subproject_info(self, path_from_source_root, subproject_dirname):
+        depth = 0
+        subproj_name = ''
+        segs = path_from_source_root.split(os.path.sep)
+        while segs and segs[0] == subproject_dirname:
+            depth += 1
+            subproj_name = segs[1]
+            segs = segs[2:]
+        return (depth, subproj_name)
+
     # Check that the indicated file is within the same subproject
     # as we currently are. This is to stop people doing
     # nasty things like:
@@ -2820,17 +2871,16 @@ different subdirectory.
                 return
             norm = os.path.relpath(norm, self.environment.source_dir)
             assert(not os.path.isabs(norm))
-        segments = norm.split(os.path.sep)
-        num_sps = segments.count(self.subproject_dir)
+        (num_sps, sproj_name) = self.evaluate_subproject_info(norm, self.subproject_dir)
+        plain_filename = os.path.split(norm)[-1]
         if num_sps == 0:
             if self.subproject == '':
                 return
-            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % segments[-1])
+            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % plain_filename)
         if num_sps > 1:
-            raise InterpreterException('Sandbox violation: Tried to grab file %s from a nested subproject.' % segments[-1])
-        sproj_name = segments[segments.index(self.subproject_dir) + 1]
+            raise InterpreterException('Sandbox violation: Tried to grab file %s from a nested subproject.' % plain_filename)
         if sproj_name != self.subproject_directory_name:
-            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % segments[-1])
+            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % plain_filename)
 
     def source_strings_to_files(self, sources):
         results = []

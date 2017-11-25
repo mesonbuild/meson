@@ -219,46 +219,6 @@ def detect_system():
         return 'cygwin'
     return system
 
-
-def for_windows(is_cross, env):
-    """
-    Host machine is windows?
-
-    Note: 'host' is the machine on which compiled binaries will run
-    """
-    if not is_cross:
-        return mesonlib.is_windows()
-    elif env.cross_info.has_host():
-        return env.cross_info.config['host_machine']['system'] == 'windows'
-    return False
-
-
-def for_cygwin(is_cross, env):
-    """
-    Host machine is cygwin?
-
-    Note: 'host' is the machine on which compiled binaries will run
-    """
-    if not is_cross:
-        return mesonlib.is_cygwin()
-    elif env.cross_info.has_host():
-        return env.cross_info.config['host_machine']['system'] == 'cygwin'
-    return False
-
-
-def for_darwin(is_cross, env):
-    """
-    Host machine is Darwin (iOS/OS X)?
-
-    Note: 'host' is the machine on which compiled binaries will run
-    """
-    if not is_cross:
-        return mesonlib.is_osx()
-    elif env.cross_info.has_host():
-        return env.cross_info.config['host_machine']['system'] == 'darwin'
-    return False
-
-
 def search_version(text):
     # Usually of the type 4.1.4 but compiler output may contain
     # stuff like this:
@@ -349,10 +309,9 @@ class Environment:
     def is_cross_build(self):
         return self.cross_info is not None
 
-    def dump_coredata(self, mtime):
+    def dump_coredata(self):
         cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
         coredata.save(self.coredata, cdf)
-        os.utime(cdf, times=(mtime, mtime))
         return cdf
 
     def get_script_dir(self):
@@ -366,14 +325,10 @@ class Environment:
         return self.coredata
 
     def get_build_command(self, unbuffered=False):
-        # If running an executable created with cx_freeze,
-        # Python might not be installed so don't prefix
-        # the command with it.
-        if sys.executable.endswith('meson.exe'):
-            return [sys.executable]
-        if unbuffered:
-            [sys.executable, '-u', self.meson_script_launcher]
-        return [sys.executable, self.meson_script_launcher]
+        cmd = mesonlib.meson_command[:]
+        if unbuffered and 'python' in cmd[0]:
+            cmd.insert(1, '-u')
+        return cmd
 
     def is_header(self, fname):
         return is_header(fname)
@@ -551,9 +506,9 @@ class Environment:
                 cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
                 return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines)
             if 'clang' in out:
-                if 'Apple' in out or for_darwin(want_cross, self):
+                if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
                     cltype = CLANG_OSX
-                elif 'windows' in out or for_windows(want_cross, self):
+                elif 'windows' in out or mesonlib.for_windows(want_cross, self):
                     cltype = CLANG_WIN
                 else:
                     cltype = CLANG_STANDARD

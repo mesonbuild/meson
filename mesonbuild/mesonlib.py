@@ -22,6 +22,37 @@ import collections
 
 from glob import glob
 
+def detect_meson_py_location():
+    c = sys.argv[0]
+    c_fname = os.path.split(c)[1]
+    if c_fname == 'meson' or c_fname == 'meson.py':
+        # $ /foo/meson.py <args>
+        if os.path.isabs(c):
+            return c
+        # $ meson <args> (gets run from /usr/bin/meson)
+        in_path_exe = shutil.which(c_fname)
+        if in_path_exe:
+            return in_path_exe
+        # $ python3 ./meson.py <args>
+        if os.path.exists(c):
+            return os.path.join(os.getcwd(), c)
+
+    # The only thing remaining is to try to find the bundled executable and
+    # pray distro packagers have not moved it.
+    fname = os.path.join(os.path.dirname(__file__), '..', 'meson.py')
+    if not os.path.exists(fname):
+        raise RuntimeError('Could not determine how to run Meson. Please file a bug with details.')
+    return fname
+
+if os.path.basename(sys.executable) == 'meson.exe':
+    # In Windows and using the MSI installed executable.
+    meson_command = [sys.executable]
+    python_command = [sys.executable, 'runpython']
+else:
+    python_command = [sys.executable]
+    meson_command = python_command + [detect_meson_py_location()]
+
+
 # Put this in objects that should not get dumped to pickle files
 # by accident.
 import threading
@@ -219,6 +250,42 @@ def is_cygwin():
 def is_debianlike():
     return os.path.isfile('/etc/debian_version')
 
+def for_windows(is_cross, env):
+    """
+    Host machine is windows?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return is_windows()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'windows'
+    return False
+
+def for_cygwin(is_cross, env):
+    """
+    Host machine is cygwin?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return is_cygwin()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'cygwin'
+    return False
+
+def for_darwin(is_cross, env):
+    """
+    Host machine is Darwin (iOS/OS X)?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return is_osx()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'darwin'
+    return False
+
 def exe_exists(arglist):
     try:
         p = subprocess.Popen(arglist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -358,9 +425,9 @@ def get_library_dirs():
 
 
 def do_replacement(regex, line, confdata):
-    match = re.search(regex, line)
     missing_variables = set()
-    while match:
+
+    def variable_replace(match):
         varname = match.group(1)
         if varname in confdata:
             (var, desc) = confdata.get(varname)
@@ -373,9 +440,8 @@ def do_replacement(regex, line, confdata):
         else:
             missing_variables.add(varname)
             var = ''
-        line = line.replace('@' + varname + '@', var)
-        match = re.search(regex, line)
-    return line, missing_variables
+        return var
+    return re.sub(regex, variable_replace, line), missing_variables
 
 def do_mesondefine(line, confdata):
     arr = line.split()
@@ -407,7 +473,7 @@ def do_conf_file(src, dst, confdata):
         raise MesonException('Could not read input file %s: %s' % (src, str(e)))
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     # Also allow escaping '@' with '\@'
-    regex = re.compile(r'[^\\]?@([-a-zA-Z0-9_]+)@')
+    regex = re.compile(r'(?<!\\)@([-a-zA-Z0-9_]+)@')
     result = []
     missing_variables = set()
     for line in data:

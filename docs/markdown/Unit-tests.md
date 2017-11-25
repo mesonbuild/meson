@@ -95,7 +95,7 @@ Meson also supports running the tests under GDB. Just doing this:
 $ meson test --gdb testname
 ```
 
-Mesontest will launch `gdb` all set up to run the test. Just type `run` in the GDB command prompt to start the program.
+Meson will launch `gdb` all set up to run the test. Just type `run` in the GDB command prompt to start the program.
 
 The second use case is a test that segfaults only rarely. In this case you can invoke the following command:
 
@@ -103,8 +103,8 @@ The second use case is a test that segfaults only rarely. In this case you can i
 $ meson test --gdb --repeat=10000 testname
 ```
 
-This runs the test up to 10 000 times under GDB automatically. If the program crashes, GDB will halt and the user can debug the application. Note that testing timeouts are disabled in this case so mesontest will not kill `gdb` while the developer is still debugging it. The downside is that if the test binary freezes, the test runner will wait forever.
+This runs the test up to 10 000 times under GDB automatically. If the program crashes, GDB will halt and the user can debug the application. Note that testing timeouts are disabled in this case so `meson test` will not kill `gdb` while the developer is still debugging it. The downside is that if the test binary freezes, the test runner will wait forever.
 
-For further information see the command line help of Mesontest by running `mesontest -h`.
+For further information see the command line help of Meson by running `meson test -h`.
 
 **NOTE:** If `meson test` does not work for you, you likely have a old version of Meson. In that case you should call `mesontest` instead. If `mesontest` doesn't work either you have a very old version prior to 0.37.0 and should upgrade.

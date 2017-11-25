@@ -66,6 +66,11 @@ class BoostDependency(ExternalDependency):
         self.is_multithreading = threading == "multi"
 
         self.requested_modules = self.get_requested(kwargs)
+        invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in BOOST_LIBS]
+        if invalid_modules:
+            mlog.warning('Invalid Boost modules: ' + ', '.join(invalid_modules))
+            self.log_fail()
+            return
 
         self.boost_root = None
         self.boost_roots = []
@@ -198,8 +203,6 @@ class BoostDependency(ExternalDependency):
         for c in candidates:
             if not isinstance(c, str):
                 raise DependencyException('Boost module argument is not a string.')
-            if 'boost_' + c not in BOOST_LIBS:
-                raise DependencyException('Dependency {} not found. It is not a valid boost library.'.format(c))
         return candidates
 
     def validate_requested(self):
@@ -599,15 +602,18 @@ class Python3Dependency(ExternalDependency):
         self.name = 'python3'
         # We can only be sure that it is Python 3 at this point
         self.version = '3'
+        self.pkgdep = None
         if DependencyMethods.PKGCONFIG in self.methods:
             try:
-                pkgdep = PkgConfigDependency('python3', environment, kwargs)
-                if pkgdep.found():
-                    self.compile_args = pkgdep.get_compile_args()
-                    self.link_args = pkgdep.get_link_args()
-                    self.version = pkgdep.get_version()
+                self.pkgdep = PkgConfigDependency('python3', environment, kwargs)
+                if self.pkgdep.found():
+                    self.compile_args = self.pkgdep.get_compile_args()
+                    self.link_args = self.pkgdep.get_link_args()
+                    self.version = self.pkgdep.get_version()
                     self.is_found = True
                     return
+                else:
+                    self.pkgdep = None
             except Exception:
                 pass
         if not self.is_found:
@@ -670,6 +676,12 @@ class Python3Dependency(ExternalDependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.EXTRAFRAMEWORK]
         else:
             return [DependencyMethods.PKGCONFIG]
+
+    def get_pkgconfig_variable(self, variable_name):
+        if self.pkgdep:
+            return self.pkgdep.get_pkgconfig_variable(variable_name)
+        else:
+            return super().get_pkgconfig_variable(variable_name)
 
 
 class PcapDependency(ExternalDependency):
@@ -760,6 +772,44 @@ class CupsDependency(ExternalDependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.CUPSCONFIG, DependencyMethods.EXTRAFRAMEWORK]
         else:
             return [DependencyMethods.PKGCONFIG, DependencyMethods.CUPSCONFIG]
+
+
+class LibWmfDependency(ExternalDependency):
+    def __init__(self, environment, kwargs):
+        super().__init__('libwmf', environment, None, kwargs)
+        if DependencyMethods.PKGCONFIG in self.methods:
+            try:
+                kwargs['required'] = False
+                pcdep = PkgConfigDependency('libwmf', environment, kwargs)
+                if pcdep.found():
+                    self.type_name = 'pkgconfig'
+                    self.is_found = True
+                    self.compile_args = pcdep.get_compile_args()
+                    self.link_args = pcdep.get_link_args()
+                    self.version = pcdep.get_version()
+                    return
+            except Exception as e:
+                mlog.debug('LibWmf not found via pkgconfig. Trying next, error was:', str(e))
+        if DependencyMethods.LIBWMFCONFIG in self.methods:
+            libwmfconf = shutil.which('libwmf-config')
+            if libwmfconf:
+                stdo = Popen_safe(['libwmf-config', '--cflags'])[1]
+                self.compile_args = stdo.strip().split()
+                stdo = Popen_safe(['libwmf-config', '--libs'])[1]
+                self.link_args = stdo.strip().split()
+                stdo = Popen_safe(['libwmf-config', '--version'])[1]
+                self.version = stdo.strip()
+                self.is_found = True
+                mlog.log('Dependency', mlog.bold('libwmf'), 'found:',
+                         mlog.green('YES'), '(%s)' % libwmfconf)
+                return
+            mlog.debug('Could not find libwmf-config binary, trying next.')
+
+    def get_methods(self):
+        if mesonlib.is_osx():
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.LIBWMFCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+        else:
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.LIBWMFCONFIG]
 
 # Generated with boost_names.py
 BOOST_LIBS = [

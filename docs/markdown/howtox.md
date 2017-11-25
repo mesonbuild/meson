@@ -125,6 +125,12 @@ Install scan-build and configure your project. Then do this:
 $ ninja scan-build
 ```
 
+You can use the `SCAN_BUILD` environment variable to choose the scan-build executable.
+```console
+$ SCAN_BUILD=<your exe> ninja scan-build
+```
+
+
 ## Use profile guided optimization
 
 Using profile guided optimization with GCC is a two phase operation. First we set up the project with profile measurements enabled and compile it.
