@@ -2387,9 +2387,9 @@ rule FORTRAN_DEP_HACK
             commands += compilers.get_base_link_args(self.environment.coredata.base_options,
                                                      linker,
                                                      isinstance(target, build.SharedModule))
-        # Add -nostdlib if needed; can't be overriden
+        # Add -nostdlib if needed; can't be overridden
         commands += self.get_cross_stdlib_link_args(target, linker)
-        # Add things like /NOLOGO; usually can't be overriden
+        # Add things like /NOLOGO; usually can't be overridden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
         commands += linker.get_buildtype_linker_args(self.get_option_for_target('buildtype', target))

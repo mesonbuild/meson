@@ -451,7 +451,7 @@ class CompilerArgs(list):
         Returns whether the argument can be safely de-duped. This is dependent
         on three things:
 
-        a) Whether an argument can be 'overriden' by a later argument.  For
+        a) Whether an argument can be 'overridden' by a later argument.  For
            example, -DFOO defines FOO and -UFOO undefines FOO. In this case, we
            can safely remove the previous occurrence and add a new one. The same
            is true for include paths and library paths with -I and -L. For
@@ -605,7 +605,7 @@ class Compiler:
             self.exelist = exelist
         else:
             raise TypeError('Unknown argument to Compiler')
-        # In case it's been overriden by a child class already
+        # In case it's been overridden by a child class already
         if not hasattr(self, 'file_suffixes'):
             self.file_suffixes = lang_suffixes[self.language]
         if not hasattr(self, 'can_compile_suffixes'):

@@ -444,9 +444,9 @@ class Backend:
         copt_proxy = OptionOverrideProxy(target.option_overrides, self.environment.coredata.compiler_options)
         # First, the trivial ones that are impossible to override.
         #
-        # Add -nostdinc/-nostdinc++ if needed; can't be overriden
+        # Add -nostdinc/-nostdinc++ if needed; can't be overridden
         commands += self.get_cross_stdlib_args(target, compiler)
-        # Add things like /NOLOGO or -pipe; usually can't be overriden
+        # Add things like /NOLOGO or -pipe; usually can't be overridden
         commands += compiler.get_always_args()
         # Only add warning-flags by default if the buildtype enables it, and if
         # we weren't explicitly asked to not emit warnings (for Vala, f.ex)
