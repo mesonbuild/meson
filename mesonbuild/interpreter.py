@@ -1374,6 +1374,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'shared_library': shlib_kwargs,
                     'shared_module': shmod_kwargs,
                     'static_library': stlib_kwargs,
+                    'subdir': {'if_found'},
                     'subproject': {'version', 'default_options'},
                     'test': {'args', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
@@ -2477,7 +2478,7 @@ to directly access options of other subprojects.''')
         self.build.man.append(m)
         return m
 
-    @noKwargs
+    @permittedKwargs(permitted_kwargs['subdir'])
     def func_subdir(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         if '..' in args[0]:
@@ -2486,6 +2487,11 @@ to directly access options of other subprojects.''')
             raise InvalidArguments('Must not go into subprojects dir with subdir(), use subproject() instead.')
         if self.subdir == '' and args[0].startswith('meson-'):
             raise InvalidArguments('The "meson-" prefix is reserved and cannot be used for top-level subdir().')
+        for i in mesonlib.extract_as_list(kwargs, 'if_found'):
+            if not hasattr(i, 'found_method'):
+                raise InterpreterException('Object used in if_found does not have a found method.')
+            if not i.found_method([], {}):
+                return
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
         if os.path.isabs(subdir):
