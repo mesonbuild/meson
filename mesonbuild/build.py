@@ -1746,7 +1746,7 @@ class Jar(BuildTarget):
 
 class CustomTargetIndex:
 
-    """A special opaque object returned by indexing a CustomTaget. This object
+    """A special opaque object returned by indexing a CustomTarget. This object
     exists in meson, but acts as a proxy in the backends, making targets depend
     on the CustomTarget it's derived from, but only adding one source file to
     the sources.
