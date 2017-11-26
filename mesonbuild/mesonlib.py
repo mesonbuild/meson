@@ -32,6 +32,13 @@ def detect_meson_py_location():
         # $ meson <args> (gets run from /usr/bin/meson)
         in_path_exe = shutil.which(c_fname)
         if in_path_exe:
+            # Special case: when run like "./meson.py <opts>" and user has
+            # period in PATH, we need to expand it out, because, for example,
+            # "ninja test" will be run from a different directory.
+            if '.' in os.environ['PATH'].split(':'):
+                p, f = os.path.split(in_path_exe)
+                if p == '' or p == '.':
+                    return os.path.join(os.getcwd(), f)
             return in_path_exe
         # $ python3 ./meson.py <args>
         if os.path.exists(c):
@@ -51,7 +58,6 @@ if os.path.basename(sys.executable) == 'meson.exe':
 else:
     python_command = [sys.executable]
     meson_command = python_command + [detect_meson_py_location()]
-
 
 # Put this in objects that should not get dumped to pickle files
 # by accident.
