@@ -154,7 +154,7 @@ def detect_windows_arch(compilers):
         # Check if we're using and inside an MSVC toolchain environment
         if compiler.id == 'msvc' and 'VCINSTALLDIR' in os.environ:
             # 'Platform' is only set when the target arch is not 'x86'.
-            # It's 'x64' when targetting x86_64 and 'arm' when targetting ARM.
+            # It's 'x64' when targeting x86_64 and 'arm' when targeting ARM.
             platform = os.environ.get('Platform', 'x86').lower()
             if platform == 'x86':
                 return platform
