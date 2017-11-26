@@ -51,7 +51,7 @@ class Conf:
         with open(self.coredata_file, 'wb') as f:
             pickle.dump(self.coredata, f)
         # We don't write the build file because any changes to it
-        # are erased when Meson is executed the next time, i.e. whne
+        # are erased when Meson is executed the next time, i.e. when
         # Ninja is run.
 
     def print_aligned(self, arr):
