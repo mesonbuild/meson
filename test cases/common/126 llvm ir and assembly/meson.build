@@ -6,7 +6,7 @@ supported_cpus = ['arm', 'x86', 'x86_64']
 foreach lang : ['c', 'cpp']
   cc = meson.get_compiler(lang)
   cc_id = cc.get_id()
-  ## Build a trivial executale with mixed LLVM IR source
+  ## Build a trivial executable with mixed LLVM IR source
   if cc_id == 'clang'
     e = executable('square_ir_' + lang, 'square.ll', 'main.' + lang)
     test('test IR square' + lang, e)

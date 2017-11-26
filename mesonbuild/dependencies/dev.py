@@ -116,7 +116,7 @@ class LLVMDependency(ExternalDependency):
     """
 
     # Ordered list of llvm-config binaries to try. Start with base, then try
-    # newest back to oldest (3.5 is abitrary), and finally the devel version.
+    # newest back to oldest (3.5 is arbitrary), and finally the devel version.
     # Please note that llvm-config-6.0 is a development snapshot and it should
     # not be moved to the beginning of the list. The only difference between
     # llvm-config-6.0 and llvm-config-devel is that the former is used by
@@ -168,7 +168,7 @@ class LLVMDependency(ExternalDependency):
         mlog.log('Dependency LLVM found:', mlog.green('YES'))
         self.is_found = True
 
-        # Currently meson doesn't really atempt to handle pre-release versions,
+        # Currently meson doesn't really attempt to handle pre-release versions,
         # so strip the 'svn' off the end, since it will probably cuase problems
         # for users who want the patch version.
         self.version = out.strip().rstrip('svn')

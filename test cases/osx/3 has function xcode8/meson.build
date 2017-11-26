@@ -10,16 +10,16 @@ args_10_12 = ['-mmacosx-version-min=10.12'] + sdk_args
 # Test requires XCode 8 which has the MacOSX 10.12 SDK
 if cc.version().version_compare('>=8.0')
   if cc.has_function('clock_gettime', args : args_10_11, prefix : '#include <time.h>')
-    error('Should not have found clock_gettime via <time.h> when targetting Mac OS X 10.11')
+    error('Should not have found clock_gettime via <time.h> when targeting Mac OS X 10.11')
   endif
   if not cc.has_function('clock_gettime', args : args_10_12, prefix : '#include <time.h>')
-    error('Did NOT find clock_gettime via <time.h> when targetting Mac OS X 10.12')
+    error('Did NOT find clock_gettime via <time.h> when targeting Mac OS X 10.12')
   endif
   if not cc.has_function('clock_gettime', args : args_10_11)
-    error('Did NOT find clock_gettime w/o a prototype when targetting Mac OS X 10.11')
+    error('Did NOT find clock_gettime w/o a prototype when targeting Mac OS X 10.11')
   endif
   if not cc.has_function('clock_gettime', args : args_10_12)
-    error('Did NOT find clock_gettime w/o a prototype when targetting Mac OS X 10.12')
+    error('Did NOT find clock_gettime w/o a prototype when targeting Mac OS X 10.12')
   endif
 else
   message('Test needs XCode 8, skipping...')

@@ -1958,7 +1958,7 @@ class LinuxlikeTests(BasePlatformTests):
             # Verify that -I flags from the `args` kwarg are first
             # This is set in the '43 has function' test case
             self.assertEqual(cmd[1], '-I/tmp')
-            # Verify that -O3 set via the environment is overriden by -O0
+            # Verify that -O3 set via the environment is overridden by -O0
             Oargs = [arg for arg in cmd if arg.startswith('-O')]
             self.assertEqual(Oargs, [Oflag, '-O0'])
 
