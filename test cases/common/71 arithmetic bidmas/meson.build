@@ -1,7 +1,7 @@
 project('arithmetic bidmas', 'c')
 
 if 5 * 3 - 6 / 2 + 1 != 13
-  error('Arithemtic bidmas broken')
+  error('Arithmetic bidmas broken')
 endif
 if 5 * (3 - 6 / 2) + 1 != 1
   error('Arithmetic bidmas with brackets broken')
