@@ -2236,7 +2236,7 @@ rule FORTRAN_DEP_HACK
     # Fortran is a bit weird (again). When you link against a library, just compiling a source file
     # requires the mod files that are output when single files are built. To do this right we would need to
     # scan all inputs and write out explicit deps for each file. That is stoo slow and too much effort so
-    # instead just have an ordered dependendy on the library. This ensures all required mod files are created.
+    # instead just have an ordered dependency on the library. This ensures all required mod files are created.
     # The real deps are then detected via dep file generation from the compiler. This breaks on compilers that
     # produce incorrect dep files but such is life.
     def get_fortran_orderdeps(self, target, compiler):
