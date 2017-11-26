@@ -207,13 +207,15 @@ class QtBaseDependency(ExternalDependency):
             moc = ExternalProgram(os.path.join(self.bindir, 'moc'), silent=True)
             uic = ExternalProgram(os.path.join(self.bindir, 'uic'), silent=True)
             rcc = ExternalProgram(os.path.join(self.bindir, 'rcc'), silent=True)
+            lrelease = ExternalProgram(os.path.join(self.bindir, 'lrelease'), silent=True)
         else:
             # We don't accept unsuffixed 'moc', 'uic', and 'rcc' because they
             # are sometimes older, or newer versions.
             moc = ExternalProgram('moc-' + self.name, silent=True)
             uic = ExternalProgram('uic-' + self.name, silent=True)
             rcc = ExternalProgram('rcc-' + self.name, silent=True)
-        return moc, uic, rcc
+            lrelease = ExternalProgram('lrelease-' + self.name, silent=True)
+        return moc, uic, rcc, lrelease
 
     def _pkgconfig_detect(self, mods, kwargs):
         # We set the value of required to False so that we can try the
