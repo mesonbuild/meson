@@ -1019,7 +1019,7 @@ has one argument the others don't have:
 ### subdir()
 
 ``` meson
-    void subdir(dir_name)
+    void subdir(dir_name, ...)
 ```
 
 Enters the specified subdirectory and executes the `meson.build` file
@@ -1031,6 +1031,12 @@ current build file and in all subsequent build files executed with
 
 Note that this means that each `meson.build` file in a source tree can
 and must only be executed once.
+
+This function has one keyword argument.
+
+ - `if_found` takes one or several dependency objects and will only
+   recurse in the subdir if they all return `true` when queried with
+   `.found()`
 
 ### subproject()
 
