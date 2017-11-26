@@ -220,7 +220,7 @@ int dummy;
             outfile.write('# Suffix\n\n')
             self.generate_utils(outfile)
             self.generate_ending(outfile)
-        # Only ovewrite the old build file after the new one has been
+        # Only overwrite the old build file after the new one has been
         # fully created.
         os.replace(tempfilename, outfilename)
         self.generate_compdb()
