@@ -6,7 +6,7 @@ l = shared_library('runtime', 'runtime.c')
 # is a common approach for plugins that are only used
 # with dlopen. Any symbols are resolved dynamically
 # at runtime.  This requires extra help on Windows, so
-# should be avoided unless really neccessary.
+# should be avoided unless really necessary.
 m = shared_module('mymodule', 'module.c')
 e = executable('prog', 'prog.c', link_with : l, dependencies : dl)
 test('import test', e, args : m)
