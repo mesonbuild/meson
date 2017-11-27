@@ -534,7 +534,7 @@ def replace_if_different(dst, dst_tmp):
     # unnecessary rebuilds.
     different = True
     try:
-        with open(dst, 'r') as f1, open(dst_tmp, 'r') as f2:
+        with open(dst, 'rb') as f1, open(dst_tmp, 'rb') as f2:
             if f1.read() == f2.read():
                 different = False
     except FileNotFoundError:
