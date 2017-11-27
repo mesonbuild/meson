@@ -184,7 +184,7 @@ class Conf:
             coarr = []
             for k in okeys:
                 o = self.coredata.base_options[k]
-                coarr.append({'name': k, 'descr': o.description, 'value': o.value, 'choices': ''})
+                coarr.append({'name': k, 'descr': o.description, 'value': o.value, 'choices': o.choices})
             self.print_aligned(coarr)
         print('')
         print('Compiler arguments:')
