@@ -132,7 +132,7 @@ class UserStringArrayOption(UserOption):
 
     def validate(self, value, user_input):
         # User input is for options defined on the command line (via -D
-        # options). Users should put their input in as a comma separated
+        # options). Users can put their input in as a comma separated
         # string, but for defining options in meson_options.txt the format
         # should match that of a combo
         if not user_input:
@@ -144,7 +144,10 @@ class UserStringArrayOption(UserOption):
                 newvalue = value
         else:
             assert isinstance(value, str)
-            newvalue = [v.strip() for v in value.split(',')]
+            if value.startswith('['):
+                newvalue = ast.literal_eval(value)
+            else:
+                newvalue = [v.strip() for v in value.split(',')]
         if not isinstance(newvalue, list):
             raise MesonException('"{0}" should be a string array, but it is not'.format(str(newvalue)))
         for i in newvalue:
