@@ -429,9 +429,12 @@ class Vs2010Backend(backends.Backend):
         # Always use a wrapper because MSBuild eats random characters when
         # there are many arguments.
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+        extra_bdeps = target.get_transitive_build_target_deps()
+        extra_paths = self.determine_windows_extra_paths(target.command[0], extra_bdeps)
         exe_data = self.serialize_executable(target.command[0], cmd[1:],
                                              # All targets run from the target dir
                                              tdir_abs,
+                                             extra_paths=extra_paths,
                                              capture=ofilenames[0] if target.capture else None)
         wrapper_cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
         ET.SubElement(customstep, 'Command').text = ' '.join(self.quote_arguments(wrapper_cmd))
