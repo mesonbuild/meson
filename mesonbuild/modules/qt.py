@@ -49,7 +49,11 @@ class QtBaseModule:
         # What kind of an idiot thought that was a good idea?
         for compiler, compiler_name in ((self.moc, "Moc"), (self.uic, "Uic"), (self.rcc, "Rcc"), (self.lrelease, "lrelease")):
             if compiler.found():
-                stdout, stderr = Popen_safe(compiler.get_command() + ['-version'])[1:3]
+                # Workaround since there is no easy way to know which tool/version support which flag
+                for flag in ['-v', '-version']:
+                    p, stdout, stderr = Popen_safe(compiler.get_command() + [flag])[0:3]
+                    if p.returncode == 0:
+                        break
                 stdout = stdout.strip()
                 stderr = stderr.strip()
                 if 'Qt {}'.format(self.qt_version) in stderr:
