@@ -27,6 +27,8 @@ from .environment import detect_msys2_arch
 from .wrap import wraptool
 
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 class CommandLineParser:
     def __init__(self):
         self.commands = {}
