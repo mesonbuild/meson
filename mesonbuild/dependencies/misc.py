@@ -1,4 +1,4 @@
-﻿# Copyright 2013-2017 The Meson development team
+# Copyright 2013-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,8 +26,11 @@ from .. import mesonlib
 from ..mesonlib import Popen_safe, extract_as_list
 from ..environment import detect_cpu_family
 
-from .base import DependencyException, DependencyMethods
-from .base import ExternalDependency, ExternalProgram, ExtraFrameworkDependency, PkgConfigDependency
+from .base import (
+    DependencyException, DependencyMethods, ExternalDependency,
+    ExternalProgram, ExtraFrameworkDependency, PkgConfigDependency,
+    ConfigToolDependency,
+)
 
 # On windows 3 directory layouts are supported:
 # * The default layout (versioned) installed:
@@ -687,9 +690,9 @@ class Python3Dependency(ExternalDependency):
 class PcapDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('pcap', environment, None, kwargs)
+        kwargs['required'] = False
         if DependencyMethods.PKGCONFIG in self.methods:
             try:
-                kwargs['required'] = False
                 pcdep = PkgConfigDependency('pcap', environment, kwargs)
                 if pcdep.found():
                     self.type_name = 'pkgconfig'
@@ -700,25 +703,26 @@ class PcapDependency(ExternalDependency):
                     return
             except Exception as e:
                 mlog.debug('Pcap not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.PCAPCONFIG in self.methods:
-            pcapconf = shutil.which('pcap-config')
-            if pcapconf:
-                stdo = Popen_safe(['pcap-config', '--cflags'])[1]
-                self.compile_args = stdo.strip().split()
-                stdo = Popen_safe(['pcap-config', '--libs'])[1]
-                self.link_args = stdo.strip().split()
-                self.version = self.get_pcap_lib_version()
-                self.is_found = True
-                mlog.log('Dependency', mlog.bold('pcap'), 'found:',
-                         mlog.green('YES'), '(%s)' % pcapconf)
-                return
-            mlog.debug('Could not find pcap-config binary, trying next.')
+        if DependencyMethods.CONFIG_TOOL in self.methods:
+            try:
+                ctdep = ConfigToolDependency.factory(
+                    'pcap', environment, None, kwargs, ['pcap-config'], 'pcap-config')
+                if ctdep.found():
+                    self.config = ctdep.config
+                    self.type_name = 'config-tool'
+                    self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+                    self.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+                    self.version = self.get_pcap_lib_version()
+                    self.is_found = True
+                    return
+            except Exception as e:
+                mlog.debug('Pcap not found via pcap-config. Trying next, error was:', str(e))
 
     def get_methods(self):
         if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.PCAPCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
         else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.PCAPCONFIG]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
     def get_pcap_lib_version(self):
         return self.compiler.get_return_value('pcap_lib_version', 'string',
@@ -728,9 +732,9 @@ class PcapDependency(ExternalDependency):
 class CupsDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('cups', environment, None, kwargs)
+        kwargs['required'] = False
         if DependencyMethods.PKGCONFIG in self.methods:
             try:
-                kwargs['required'] = False
                 pcdep = PkgConfigDependency('cups', environment, kwargs)
                 if pcdep.found():
                     self.type_name = 'pkgconfig'
@@ -741,20 +745,20 @@ class CupsDependency(ExternalDependency):
                     return
             except Exception as e:
                 mlog.debug('cups not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.CUPSCONFIG in self.methods:
-            cupsconf = shutil.which('cups-config')
-            if cupsconf:
-                stdo = Popen_safe(['cups-config', '--cflags'])[1]
-                self.compile_args = stdo.strip().split()
-                stdo = Popen_safe(['cups-config', '--libs'])[1]
-                self.link_args = stdo.strip().split()
-                stdo = Popen_safe(['cups-config', '--version'])[1]
-                self.version = stdo.strip().split()
-                self.is_found = True
-                mlog.log('Dependency', mlog.bold('cups'), 'found:',
-                         mlog.green('YES'), '(%s)' % cupsconf)
-                return
-            mlog.debug('Could not find cups-config binary, trying next.')
+        if DependencyMethods.CONFIG_TOOL in self.methods:
+            try:
+                ctdep = ConfigToolDependency.factory(
+                    'cups', environment, None, kwargs, ['cups-config'], 'cups-config')
+                if ctdep.found():
+                    self.config = ctdep.config
+                    self.type_name = 'config-tool'
+                    self.version = ctdep.version
+                    self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+                    self.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+                    self.is_found = True
+                    return
+            except Exception as e:
+                mlog.debug('cups not found via cups-config. Trying next, error was:', str(e))
         if DependencyMethods.EXTRAFRAMEWORK in self.methods:
             if mesonlib.is_osx():
                 fwdep = ExtraFrameworkDependency('cups', False, None, self.env,
@@ -769,9 +773,9 @@ class CupsDependency(ExternalDependency):
 
     def get_methods(self):
         if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CUPSCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
         else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CUPSCONFIG]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
 
 class LibWmfDependency(ExternalDependency):
@@ -790,26 +794,27 @@ class LibWmfDependency(ExternalDependency):
                     return
             except Exception as e:
                 mlog.debug('LibWmf not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.LIBWMFCONFIG in self.methods:
-            libwmfconf = shutil.which('libwmf-config')
-            if libwmfconf:
-                stdo = Popen_safe(['libwmf-config', '--cflags'])[1]
-                self.compile_args = stdo.strip().split()
-                stdo = Popen_safe(['libwmf-config', '--libs'])[1]
-                self.link_args = stdo.strip().split()
-                stdo = Popen_safe(['libwmf-config', '--version'])[1]
-                self.version = stdo.strip()
-                self.is_found = True
-                mlog.log('Dependency', mlog.bold('libwmf'), 'found:',
-                         mlog.green('YES'), '(%s)' % libwmfconf)
-                return
-            mlog.debug('Could not find libwmf-config binary, trying next.')
+        if DependencyMethods.CONFIG_TOOL in self.methods:
+            try:
+                ctdep = ConfigToolDependency.factory(
+                    'libwmf', environment, None, kwargs, ['libwmf-config'], 'libwmf-config')
+                if ctdep.found():
+                    self.config = ctdep.config
+                    self.type_name = 'config-too'
+                    self.version = ctdep.version
+                    self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+                    self.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+                    self.is_found = True
+                    return
+            except Exception as e:
+                mlog.debug('cups not found via libwmf-config. Trying next, error was:', str(e))
 
     def get_methods(self):
         if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.LIBWMFCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
         else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.LIBWMFCONFIG]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
+
 
 # Generated with boost_names.py
 BOOST_LIBS = [

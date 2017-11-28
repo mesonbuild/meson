@@ -1661,7 +1661,7 @@ class FailureTests(BasePlatformTests):
             raise unittest.SkipTest('wx-config or wx-config-3.0 found')
         self.assertMesonRaises("dependency('wxwidgets')", self.dnf)
         self.assertMesonOutputs("dependency('wxwidgets', required : false)",
-                                "nor wx-config found")
+                                "No wx-config found;")
 
     def test_wx_dependency(self):
         if not shutil.which('wx-config-3.0') and not shutil.which('wx-config'):

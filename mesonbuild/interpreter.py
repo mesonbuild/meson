@@ -274,6 +274,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
                              'type_name': self.type_name_method,
                              'version': self.version_method,
                              'get_pkgconfig_variable': self.pkgconfig_method,
+                             'get_configtool_variable': self.configtool_method,
                              })
 
     def type_name_method(self, args, kwargs):
@@ -295,6 +296,15 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
         if not isinstance(varname, str):
             raise InterpreterException('Variable name must be a string.')
         return self.held_object.get_pkgconfig_variable(varname)
+
+    def configtool_method(self, args, kwargs):
+        args = listify(args)
+        if len(args) != 1:
+            raise InterpreterException('get_configtool_variable takes exactly one argument.')
+        varname = args[0]
+        if not isinstance(varname, str):
+            raise InterpreterException('Variable name must be a string.')
+        return self.held_object.get_configtool_variable(varname)
 
 class InternalDependencyHolder(InterpreterObject, ObjectHolder):
     def __init__(self, dep):
