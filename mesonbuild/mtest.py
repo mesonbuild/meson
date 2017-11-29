@@ -482,35 +482,41 @@ TIMEOUT: %4d
         numlen = len('%d' % len(tests))
         self.open_log_files()
         wrap = self.get_wrapper()
+        startdir = os.getcwd()
+        if self.options.wd:
+            os.chdir(self.options.wd)
 
-        for _ in range(self.options.repeat):
-            for i, test in enumerate(tests):
-                visible_name = self.get_pretty_suite(test)
+        try:
+            for _ in range(self.options.repeat):
+                for i, test in enumerate(tests):
+                    visible_name = self.get_pretty_suite(test)
 
-                if self.options.gdb:
-                    test.timeout = None
+                    if self.options.gdb:
+                        test.timeout = None
 
-                if not test.is_parallel or self.options.gdb:
-                    self.drain_futures(futures)
-                    futures = []
-                    res = self.run_single_test(wrap, test)
-                    self.print_stats(numlen, tests, visible_name, res, i)
-                else:
-                    if not executor:
-                        executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
-                    f = executor.submit(self.run_single_test, wrap, test)
-                    futures.append((f, numlen, tests, visible_name, i))
+                    if not test.is_parallel or self.options.gdb:
+                        self.drain_futures(futures)
+                        futures = []
+                        res = self.run_single_test(wrap, test)
+                        self.print_stats(numlen, tests, visible_name, res, i)
+                    else:
+                        if not executor:
+                            executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
+                        f = executor.submit(self.run_single_test, wrap, test)
+                        futures.append((f, numlen, tests, visible_name, i))
+                    if self.options.repeat > 1 and self.fail_count:
+                        break
                 if self.options.repeat > 1 and self.fail_count:
                     break
-            if self.options.repeat > 1 and self.fail_count:
-                break
 
-        self.drain_futures(futures)
-        self.print_summary()
-        self.print_collected_logs()
+            self.drain_futures(futures)
+            self.print_summary()
+            self.print_collected_logs()
 
-        if self.logfilename:
-            print('Full log written to %s' % self.logfilename)
+            if self.logfilename:
+                print('Full log written to %s' % self.logfilename)
+        finally:
+            os.chdir(startdir)
 
     def drain_futures(self, futures):
         for i in futures:
