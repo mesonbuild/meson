@@ -5,8 +5,22 @@ if build_machine.system() != 'windows'
 else
   # pkg-config files should not use paths with \
   prefix_parts = meson.source_root().split('\\')
-  prefix = '/'.join(prefix_parts)
+  # If the path is C:/foo/bar, convert it to /c/foo/bar so we can test if our
+  # automatic conversion to C:/foo/bar inside PkgConfigDependency is working.
+  if prefix_parts[0][1] == ':'
+    drive = prefix_parts[0][0]
+  else
+    drive = prefix_parts[0]
+  endif
+  new_parts = []
+  foreach part : prefix_parts
+    if part != prefix_parts[0]
+      new_parts += part
+    endif
+  endforeach
+  prefix = '/@0@/@1@'.format(drive, '/'.join(new_parts))
 endif
+message(prefix)
 
 # Escape spaces
 prefix_parts = prefix.split(' ')

@@ -22,6 +22,7 @@ import shlex
 import shutil
 import textwrap
 from enum import Enum
+from pathlib import PurePath
 
 from .. import mlog
 from .. import mesonlib
@@ -424,6 +425,20 @@ class PkgConfigDependency(ExternalDependency):
         self.link_args = []
         libpaths = []
         for lib in shlex.split(out):
+            # MSVC cannot handle MinGW-esque /c/foo paths, convert them to C:/foo.
+            # We cannot resolve other paths starting with / like /home/foo so leave
+            # them as-is so the user gets an error/warning from the compiler/linker.
+            if self.compiler.id == 'msvc':
+                # Library search path
+                if lib.startswith('-L/'):
+                    pargs = PurePath(lib[2:]).parts
+                    if len(pargs) > 1 and len(pargs[1]) == 1:
+                        lib = '-L{}:/{}'.format(pargs[1], '/'.join(pargs[2:]))
+                # Full path to library or .la file
+                elif lib.startswith('/'):
+                    pargs = PurePath(lib).parts
+                    if len(pargs) > 1 and len(pargs[1]) == 1:
+                        lib = '{}:/{}'.format(pargs[1], '/'.join(pargs[2:]))
             # If we want to use only static libraries, we have to look for the
             # file ourselves instead of depending on the compiler to find it
             # with -lfoo or foo.lib. However, we can only do this if we already
