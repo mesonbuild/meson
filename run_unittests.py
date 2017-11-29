@@ -40,7 +40,7 @@ from mesonbuild.environment import Environment
 from mesonbuild.dependencies import DependencyException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
-from run_tests import exe_suffix, get_fake_options, FakeEnvironment
+from run_tests import exe_suffix, get_fake_options
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
 from run_tests import ensure_backend_detects_changes, run_configure, meson_exe
 from run_tests import should_run_linux_cross_tests
@@ -1555,7 +1555,8 @@ int main(int argc, char **argv) {
                                        '--libdir=' + libdir])
         # Find foo dependency
         os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
-        env = FakeEnvironment()
+        env = Environment(testdir, self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
         kwargs = {'required': True, 'silent': True}
         foo_dep = PkgConfigDependency('libfoo', env, kwargs)
         # Ensure link_args are properly quoted
@@ -1856,7 +1857,8 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.common_test_dir, '51 pkgconfig-gen')
         self.init(testdir)
-        env = FakeEnvironment()
+        env = Environment(testdir, self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
         kwargs = {'required': True, 'silent': True}
         os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
         foo_dep = PkgConfigDependency('libfoo', env, kwargs)
