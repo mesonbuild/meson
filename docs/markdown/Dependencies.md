@@ -197,3 +197,32 @@ tools support. You can force one or another via the method keyword:
 ```meson
 wmf_dep = dependency('wmf', method : 'config-tool')
 ```
+
+## LLVM
+
+Meson has native support for LLVM going back to version LLVM version 3.5. 
+It supports a few additional features compared to other config-tool based
+dependencies.
+
+As of 0.44.0 Meson supports the `static` keyword argument for LLVM. Before this
+LLVM >= 3.9 would always dynamically link, while older versions would
+statically link, due to a quirk in `llvm-config`.
+
+### Modules, a.k.a. Components
+
+Meson wraps LLVM's concept of components in it's own modules concept.
+When you need specific components you add them as modules as meson will do the
+right thing:
+
+```meson
+llvm_dep = dependency('llvm', version : '>= 4.0', modules : ['amdgpu'])
+```
+
+As of 0.44.0 it can also take optional modules (these will affect the arguments
+generated for a static link):
+
+```meson
+llvm_dep = dependency(
+  'llvm', version : '>= 4.0', modules : ['amdgpu'], optional_modules : ['inteljitevents'],
+)
+```
