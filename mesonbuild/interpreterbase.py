@@ -449,6 +449,11 @@ class InterpreterBase:
                 return obj % 2 != 0
             else:
                 raise InterpreterException('int.is_odd() must have no arguments.')
+        elif method_name == 'to_string':
+            if not posargs:
+                return str(obj)
+            else:
+                raise InterpreterException('int.to_string() must have no arguments.')
         else:
             raise InterpreterException('Unknown method "%s" for an integer.' % method_name)
 

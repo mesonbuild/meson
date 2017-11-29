@@ -451,9 +451,9 @@ class CompilerArgs(list):
         Returns whether the argument can be safely de-duped. This is dependent
         on three things:
 
-        a) Whether an argument can be 'overriden' by a later argument.  For
+        a) Whether an argument can be 'overridden' by a later argument.  For
            example, -DFOO defines FOO and -UFOO undefines FOO. In this case, we
-           can safely remove the previous occurance and add a new one. The same
+           can safely remove the previous occurrence and add a new one. The same
            is true for include paths and library paths with -I and -L. For
            these we return `2`. See `dedup2_prefixes` and `dedup2_args`.
         b) Arguments that once specified cannot be undone, such as `-c` or
@@ -511,10 +511,10 @@ class CompilerArgs(list):
                     continue
                 i = self.index(each)
                 if group_start < 0:
-                    # First occurance of a library
+                    # First occurrence of a library
                     group_start = i
             if group_start >= 0:
-                # Last occurance of a library
+                # Last occurrence of a library
                 self.insert(i + 1, '-Wl,--end-group')
                 self.insert(group_start, '-Wl,--start-group')
         return self.compiler.unix_args_to_native(self)
@@ -548,15 +548,15 @@ class CompilerArgs(list):
             raise TypeError('can only concatenate list (not "{}") to list'.format(args))
         for arg in args:
             # If the argument can be de-duped, do it either by removing the
-            # previous occurance of it and adding a new one, or not adding the
-            # new occurance.
+            # previous occurrence of it and adding a new one, or not adding the
+            # new occurrence.
             dedup = self._can_dedup(arg)
             if dedup == 1:
                 # Argument already exists and adding a new instance is useless
                 if arg in self or arg in pre or arg in post:
                     continue
             if dedup == 2:
-                # Remove all previous occurances of the arg and add it anew
+                # Remove all previous occurrences of the arg and add it anew
                 if arg in self:
                     self.remove(arg)
                 if arg in pre:
@@ -605,7 +605,7 @@ class Compiler:
             self.exelist = exelist
         else:
             raise TypeError('Unknown argument to Compiler')
-        # In case it's been overriden by a child class already
+        # In case it's been overridden by a child class already
         if not hasattr(self, 'file_suffixes'):
             self.file_suffixes = lang_suffixes[self.language]
         if not hasattr(self, 'can_compile_suffixes'):

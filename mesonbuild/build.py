@@ -1137,7 +1137,7 @@ class GeneratedList:
 class Executable(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
-        # Unless overriden, executables have no suffix or prefix. Except on
+        # Unless overridden, executables have no suffix or prefix. Except on
         # Windows and with C#/Mono executables where the suffix is 'exe'
         if not hasattr(self, 'prefix'):
             self.prefix = ''
@@ -1746,7 +1746,7 @@ class Jar(BuildTarget):
 
 class CustomTargetIndex:
 
-    """A special opaque object returned by indexing a CustomTaget. This object
+    """A special opaque object returned by indexing a CustomTarget. This object
     exists in meson, but acts as a proxy in the backends, making targets depend
     on the CustomTarget it's derived from, but only adding one source file to
     the sources.

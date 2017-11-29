@@ -17,14 +17,16 @@
 
 import os
 import re
-import shlex
 import shutil
 
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import version_compare, Popen_safe, stringlistify, extract_as_list
-from .base import DependencyException, ExternalDependency, PkgConfigDependency
-from .base import strip_system_libdirs
+from .base import (
+    DependencyException, ExternalDependency, PkgConfigDependency,
+    strip_system_libdirs, ConfigToolDependency,
+)
+
 
 class GTestDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
@@ -109,19 +111,19 @@ class GMockDependency(ExternalDependency):
         self.is_found = False
 
 
-class LLVMDependency(ExternalDependency):
+class LLVMDependency(ConfigToolDependency):
     """
     LLVM uses a special tool, llvm-config, which has arguments for getting
     c args, cxx args, and ldargs as well as version.
     """
 
     # Ordered list of llvm-config binaries to try. Start with base, then try
-    # newest back to oldest (3.5 is abitrary), and finally the devel version.
+    # newest back to oldest (3.5 is arbitrary), and finally the devel version.
     # Please note that llvm-config-6.0 is a development snapshot and it should
     # not be moved to the beginning of the list. The only difference between
     # llvm-config-6.0 and llvm-config-devel is that the former is used by
     # Debian and the latter is used by FreeBSD.
-    llvm_config_bins = [
+    tools = [
         'llvm-config', # base
         'llvm-config-5.0', 'llvm-config50', # latest stable release
         'llvm-config-4.0', 'llvm-config40', # old stable releases
@@ -132,61 +134,31 @@ class LLVMDependency(ExternalDependency):
         'llvm-config-3.5', 'llvm-config35',
         'llvm-config-6.0', 'llvm-config-devel', # development snapshot
     ]
+    tool_name = 'llvm-config'
     __cpp_blacklist = {'-DNDEBUG'}
 
     def __init__(self, environment, kwargs):
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
-        super().__init__('llvm-config', environment, 'cpp', kwargs)
+        super().__init__('config-tool', environment, 'cpp', kwargs)
         self.provided_modules = []
         self.required_modules = set()
-        self.llvmconfig = None
+        if not self.is_found:
+            return
         self.static = kwargs.get('static', False)
-        self.__best_found = None
-        # FIXME: Support multiple version requirements ala PkgConfigDependency
-        req_version = kwargs.get('version', None)
-        self.check_llvmconfig(req_version)
-        if self.llvmconfig is None:
-            if self.__best_found is not None:
-                mlog.log('found {!r} but need:'.format(self.__best_found),
-                         req_version)
-            else:
-                mlog.log("No llvm-config found; can't detect dependency")
-            mlog.log('Dependency LLVM found:', mlog.red('NO'))
-            if self.required:
-                raise DependencyException('Dependency LLVM not found')
-            return
 
-        p, out, err = Popen_safe([self.llvmconfig, '--version'])
-        if p.returncode != 0:
-            mlog.debug('stdout: {}\nstderr: {}'.format(out, err))
-            if self.required:
-                raise DependencyException('Dependency LLVM not found')
-            mlog.log('Dependency LLVM found:', mlog.red('NO'))
-            return
-
-        mlog.log('Dependency LLVM found:', mlog.green('YES'))
-        self.is_found = True
-
-        # Currently meson doesn't really atempt to handle pre-release versions,
+        # Currently meson doesn't really attempt to handle pre-release versions,
         # so strip the 'svn' off the end, since it will probably cuase problems
         # for users who want the patch version.
-        self.version = out.strip().rstrip('svn')
+        self.version = self.version.rstrip('svn')
 
-        p, out, err = Popen_safe([self.llvmconfig, '--components'])
-        if p.returncode != 0:
-            raise DependencyException('Could not generate modules for LLVM:\n' + err)
-        self.provided_modules = shlex.split(out)
-
+        self.provided_modules = self.get_config_value(['--components'], 'modules')
         modules = stringlistify(extract_as_list(kwargs, 'modules'))
         self.check_components(modules)
         opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
         self.check_components(opt_modules, required=False)
 
-        p, out, err = Popen_safe([self.llvmconfig, '--cppflags'])
-        if p.returncode != 0:
-            raise DependencyException('Could not generate includedir for LLVM:\n' + err)
-        cargs = mesonlib.OrderedSet(shlex.split(out))
+        cargs = set(self.get_config_value(['--cppflags'], 'compile_args'))
         self.compile_args = list(cargs.difference(self.__cpp_blacklist))
 
         if version_compare(self.version, '>= 3.9'):
@@ -198,11 +170,9 @@ class LLVMDependency(ExternalDependency):
     def _set_new_link_args(self):
         """How to set linker args for LLVM versions >= 3.9"""
         link_args = ['--link-static', '--system-libs'] if self.static else ['--link-shared']
-        p, out, err = Popen_safe(
-            [self.llvmconfig, '--libs', '--ldflags'] + link_args + list(self.required_modules))
-        if p.returncode != 0:
-            raise DependencyException('Could not generate libs for LLVM:\n' + err)
-        self.link_args = shlex.split(out)
+        self.link_args = self.get_config_value(
+            ['--libs', '--ldflags'] + link_args + list(self.required_modules),
+            'link_args')
 
     def _set_old_link_args(self):
         """Setting linker args for older versions of llvm.
@@ -213,20 +183,15 @@ class LLVMDependency(ExternalDependency):
         of course we do.
         """
         if self.static:
-            p, out, err = Popen_safe(
-                [self.llvmconfig, '--libs', '--ldflags', '--system-libs'] + list(self.required_modules))
-            if p.returncode != 0:
-                raise DependencyException('Could not generate libs for LLVM:\n' + err)
-            self.link_args = shlex.split(out)
+            self.link_args = self.get_config_value(
+                ['--libs', '--ldflags', '--system-libs'] + list(self.required_modules),
+                'link_args')
         else:
             # llvm-config will provide arguments for static linking, so we get
             # to figure out for ourselves what to link with. We'll do that by
             # checking in the directory provided by --libdir for a library
             # called libLLVM-<ver>.(so|dylib|dll)
-            p, out, err = Popen_safe([self.llvmconfig, '--libdir'])
-            if p.returncode != 0:
-                raise DependencyException('Could not generate libs for LLVM:\n' + err)
-            libdir = out.strip()
+            libdir = self.get_config_value(['--libdir'], 'link_args')[0]
 
             expected_name = 'libLLVM-{}'.format(self.version)
             re_name = re.compile(r'{}.(so|dll|dylib)'.format(expected_name))
@@ -258,34 +223,6 @@ class LLVMDependency(ExternalDependency):
             else:
                 self.required_modules.add(mod)
                 mlog.log('LLVM module', mod, 'found:', mlog.green('YES'))
-
-    def check_llvmconfig(self, version_req):
-        """Try to find the highest version of llvm-config."""
-        for llvmconfig in self.llvm_config_bins:
-            try:
-                p, out = Popen_safe([llvmconfig, '--version'])[0:2]
-                out = out.strip()
-                if p.returncode != 0:
-                    continue
-                if version_req:
-                    if version_compare(out, version_req, strict=True):
-                        if self.__best_found and version_compare(
-                                out, '<={}'.format(self.__best_found), strict=True):
-                            continue
-                        self.__best_found = out
-                        self.llvmconfig = llvmconfig
-                else:
-                    # If no specific version is requested use the first version
-                    # found, since that should be the best.
-                    self.__best_found = out
-                    self.llvmconfig = llvmconfig
-                    break
-            except (FileNotFoundError, PermissionError):
-                pass
-        if self.__best_found:
-            mlog.log('Found llvm-config:',
-                     mlog.bold(shutil.which(self.llvmconfig)),
-                     '({})'.format(out.strip()))
 
     def need_threads(self):
         return True

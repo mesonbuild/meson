@@ -32,6 +32,13 @@ def detect_meson_py_location():
         # $ meson <args> (gets run from /usr/bin/meson)
         in_path_exe = shutil.which(c_fname)
         if in_path_exe:
+            # Special case: when run like "./meson.py <opts>" and user has
+            # period in PATH, we need to expand it out, because, for example,
+            # "ninja test" will be run from a different directory.
+            if '.' in os.environ['PATH'].split(':'):
+                p, f = os.path.split(in_path_exe)
+                if p == '' or p == '.':
+                    return os.path.join(os.getcwd(), f)
             return in_path_exe
         # $ python3 ./meson.py <args>
         if os.path.exists(c):
@@ -51,7 +58,6 @@ if os.path.basename(sys.executable) == 'meson.exe':
 else:
     python_command = [sys.executable]
     meson_command = python_command + [detect_meson_py_location()]
-
 
 # Put this in objects that should not get dumped to pickle files
 # by accident.
@@ -428,19 +434,28 @@ def do_replacement(regex, line, confdata):
     missing_variables = set()
 
     def variable_replace(match):
-        varname = match.group(1)
-        if varname in confdata:
-            (var, desc) = confdata.get(varname)
-            if isinstance(var, str):
-                pass
-            elif isinstance(var, int):
-                var = str(var)
-            else:
-                raise RuntimeError('Tried to replace a variable with something other than a string or int.')
+        # Pairs of escape characters before '@' or '\@'
+        if match.group(0).endswith('\\'):
+            num_escapes = match.end(0) - match.start(0)
+            return '\\' * (num_escapes // 2)
+        # Single escape character and '@'
+        elif match.group(0) == '\\@':
+            return '@'
+        # Template variable to be replaced
         else:
-            missing_variables.add(varname)
-            var = ''
-        return var
+            varname = match.group(1)
+            if varname in confdata:
+                (var, desc) = confdata.get(varname)
+                if isinstance(var, str):
+                    pass
+                elif isinstance(var, int):
+                    var = str(var)
+                else:
+                    raise RuntimeError('Tried to replace a variable with something other than a string or int.')
+            else:
+                missing_variables.add(varname)
+                var = ''
+            return var
     return re.sub(regex, variable_replace, line), missing_variables
 
 def do_mesondefine(line, confdata):
@@ -473,7 +488,7 @@ def do_conf_file(src, dst, confdata):
         raise MesonException('Could not read input file %s: %s' % (src, str(e)))
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     # Also allow escaping '@' with '\@'
-    regex = re.compile(r'(?<!\\)@([-a-zA-Z0-9_]+)@')
+    regex = re.compile(r'(?:\\\\)+(?=\\?@)|\\@|@([-a-zA-Z0-9_]+)@')
     result = []
     missing_variables = set()
     for line in data:
@@ -519,7 +534,7 @@ def replace_if_different(dst, dst_tmp):
     # unnecessary rebuilds.
     different = True
     try:
-        with open(dst, 'r') as f1, open(dst_tmp, 'r') as f2:
+        with open(dst, 'rb') as f1, open(dst_tmp, 'rb') as f2:
             if f1.read() == f2.read():
                 different = False
     except FileNotFoundError:

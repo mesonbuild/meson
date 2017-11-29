@@ -23,13 +23,16 @@ from collections import OrderedDict
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import MesonException, Popen_safe, version_compare
-from ..mesonlib import extract_as_list, for_windows
+from ..mesonlib import (
+    MesonException, Popen_safe, extract_as_list, for_windows,
+    version_compare_many
+)
 from ..environment import detect_cpu
 
 from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency, ExternalProgram
 from .base import ExtraFrameworkDependency, PkgConfigDependency
+from .base import ConfigToolDependency
 
 
 class GLDependency(ExternalDependency):
@@ -70,49 +73,48 @@ class GLDependency(ExternalDependency):
             return [DependencyMethods.PKGCONFIG]
 
 
-class GnuStepDependency(ExternalDependency):
+class GnuStepDependency(ConfigToolDependency):
+
+    tools = ['gnustep-config']
+    tool_name = 'gnustep-config'
+
     def __init__(self, environment, kwargs):
         super().__init__('gnustep', environment, 'objc', kwargs)
+        if not self.is_found:
+            return
         self.modules = kwargs.get('modules', [])
-        self.detect()
+        self.compile_args = self.filter_args(
+            self.get_config_value(['--objc-flags'], 'compile_args'))
+        self.link_args = self.weird_filter(self.get_config_value(
+            ['--gui-libs' if 'gui' in self.modules else '--base-libs'],
+            'link_args'))
 
-    def detect(self):
-        self.confprog = 'gnustep-config'
+    def find_config(self, versions=None):
+        tool = self.tools[0]
         try:
-            gp = Popen_safe([self.confprog, '--help'])[0]
+            p, out = Popen_safe([tool, '--help'])[:2]
         except (FileNotFoundError, PermissionError):
-            mlog.log('Dependency GnuStep found:', mlog.red('NO'), '(no gnustep-config)')
-            return
-        if gp.returncode != 0:
-            mlog.log('Dependency GnuStep found:', mlog.red('NO'))
-            return
-        if 'gui' in self.modules:
-            arg = '--gui-libs'
-        else:
-            arg = '--base-libs'
-        fp, flagtxt, flagerr = Popen_safe([self.confprog, '--objc-flags'])
-        if fp.returncode != 0:
-            raise DependencyException('Error getting objc-args: %s %s' % (flagtxt, flagerr))
-        args = flagtxt.split()
-        self.compile_args = self.filter_args(args)
-        fp, libtxt, liberr = Popen_safe([self.confprog, arg])
-        if fp.returncode != 0:
-            raise DependencyException('Error getting objc-lib args: %s %s' % (libtxt, liberr))
-        self.link_args = self.weird_filter(libtxt.split())
-        self.version = self.detect_version()
-        self.is_found = True
-        mlog.log('Dependency', mlog.bold('GnuStep'), 'found:',
-                 mlog.green('YES'), self.version)
+            return (None, None)
+        if p.returncode != 0:
+            return (None, None)
+        self.config = tool
+        found_version = self.detect_version()
+        if versions and not version_compare_many(found_version, versions)[0]:
+            return (None, found_version)
+
+        return (tool, found_version)
 
     def weird_filter(self, elems):
-        """When building packages, the output of the enclosing Make
-is sometimes mixed among the subprocess output. I have no idea
-why. As a hack filter out everything that is not a flag."""
+        """When building packages, the output of the enclosing Make is
+        sometimes mixed among the subprocess output. I have no idea why. As a
+        hack filter out everything that is not a flag.
+        """
         return [e for e in elems if e.startswith('-')]
 
     def filter_args(self, args):
-        """gnustep-config returns a bunch of garbage args such
-        as -O2 and so on. Drop everything that is not needed."""
+        """gnustep-config returns a bunch of garbage args such as -O2 and so
+        on. Drop everything that is not needed.
+        """
         result = []
         for f in args:
             if f.startswith('-D') \
@@ -124,8 +126,8 @@ why. As a hack filter out everything that is not a flag."""
         return result
 
     def detect_version(self):
-        gmake = self.get_variable('GNUMAKE')
-        makefile_dir = self.get_variable('GNUSTEP_MAKEFILES')
+        gmake = self.get_config_value(['--variable=GNUMAKE'], 'variable')[0]
+        makefile_dir = self.get_config_value(['--variable=GNUSTEP_MAKEFILES'], 'variable')[0]
         # This Makefile has the GNUStep version set
         base_make = os.path.join(makefile_dir, 'Additional', 'base.make')
         # Print the Makefile variable passed as the argument. For instance, if
@@ -144,13 +146,6 @@ why. As a hack filter out everything that is not a flag."""
             # Fallback to setting some 1.x version
             version = '1'
         return version
-
-    def get_variable(self, var):
-        p, o, e = Popen_safe([self.confprog, '--variable=' + var])
-        if p.returncode != 0 and self.required:
-            raise DependencyException('{!r} for variable {!r} failed to run'
-                                      ''.format(self.confprog, var))
-        return o.strip()
 
 
 class QtBaseDependency(ExternalDependency):
@@ -207,13 +202,15 @@ class QtBaseDependency(ExternalDependency):
             moc = ExternalProgram(os.path.join(self.bindir, 'moc'), silent=True)
             uic = ExternalProgram(os.path.join(self.bindir, 'uic'), silent=True)
             rcc = ExternalProgram(os.path.join(self.bindir, 'rcc'), silent=True)
+            lrelease = ExternalProgram(os.path.join(self.bindir, 'lrelease'), silent=True)
         else:
             # We don't accept unsuffixed 'moc', 'uic', and 'rcc' because they
             # are sometimes older, or newer versions.
             moc = ExternalProgram('moc-' + self.name, silent=True)
             uic = ExternalProgram('uic-' + self.name, silent=True)
             rcc = ExternalProgram('rcc-' + self.name, silent=True)
-        return moc, uic, rcc
+            lrelease = ExternalProgram('lrelease-' + self.name, silent=True)
+        return moc, uic, rcc, lrelease
 
     def _pkgconfig_detect(self, mods, kwargs):
         # We set the value of required to False so that we can try the
@@ -378,9 +375,9 @@ class Qt5Dependency(QtBaseDependency):
 class SDL2Dependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('sdl2', environment, None, kwargs)
+        kwargs['required'] = False
         if DependencyMethods.PKGCONFIG in self.methods:
             try:
-                kwargs['required'] = False
                 pcdep = PkgConfigDependency('sdl2', environment, kwargs)
                 if pcdep.found():
                     self.type_name = 'pkgconfig'
@@ -391,20 +388,20 @@ class SDL2Dependency(ExternalDependency):
                     return
             except Exception as e:
                 mlog.debug('SDL 2 not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.SDLCONFIG in self.methods:
-            sdlconf = shutil.which('sdl2-config')
-            if sdlconf:
-                stdo = Popen_safe(['sdl2-config', '--cflags'])[1]
-                self.compile_args = stdo.strip().split()
-                stdo = Popen_safe(['sdl2-config', '--libs'])[1]
-                self.link_args = stdo.strip().split()
-                stdo = Popen_safe(['sdl2-config', '--version'])[1]
-                self.version = stdo.strip()
-                self.is_found = True
-                mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.green('YES'),
-                         self.version, '(%s)' % sdlconf)
-                return
-            mlog.debug('Could not find sdl2-config binary, trying next.')
+        if DependencyMethods.CONFIG_TOOL in self.methods:
+            try:
+                ctdep = ConfigToolDependency.factory(
+                    'sdl2', environment, None, kwargs, ['sdl2-config'], 'sdl2-config')
+                if ctdep.found():
+                    self.type_name = 'config-tool'
+                    self.config = ctdep.config
+                    self.version = ctdep.version
+                    self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+                    self.links_args = ctdep.get_config_value(['--libs'], 'link_args')
+                    self.is_found = True
+                    return
+            except Exception as e:
+                mlog.debug('SDL 2 not found via sdl2-config. Trying next, error was:', str(e))
         if DependencyMethods.EXTRAFRAMEWORK in self.methods:
             if mesonlib.is_osx():
                 fwdep = ExtraFrameworkDependency('sdl2', False, None, self.env,
@@ -419,54 +416,25 @@ class SDL2Dependency(ExternalDependency):
 
     def get_methods(self):
         if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.SDLCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
         else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.SDLCONFIG]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
 
-class WxDependency(ExternalDependency):
-    wx_found = None
+class WxDependency(ConfigToolDependency):
+
+    tools = ['wx-config-3.0', 'wx-config']
+    tool_name = 'wx-config'
 
     def __init__(self, environment, kwargs):
-        super().__init__('wx', environment, None, kwargs)
-        self.version = 'none'
-        if WxDependency.wx_found is None:
-            self.check_wxconfig()
-        else:
-            self.wxc = WxDependency.wx_found
-        if not WxDependency.wx_found:
-            mlog.log("Neither wx-config-3.0 nor wx-config found; can't detect dependency")
+        super().__init__('WxWidgets', environment, None, kwargs)
+        if not self.is_found:
             return
-
-        # FIXME: This should print stdout and stderr using mlog.debug
-        p, out = Popen_safe([self.wxc, '--version'])[0:2]
-        if p.returncode != 0:
-            mlog.log('Dependency wxwidgets found:', mlog.red('NO'))
-        else:
-            self.version = out.strip()
-            # FIXME: Support multiple version reqs like PkgConfigDependency
-            version_req = kwargs.get('version', None)
-            if version_req is not None:
-                if not version_compare(self.version, version_req, strict=True):
-                    mlog.log('Wxwidgets version %s does not fullfill requirement %s' %
-                             (self.version, version_req))
-                    return
-            mlog.log('Dependency wxwidgets found:', mlog.green('YES'))
-            self.is_found = True
-            self.requested_modules = self.get_requested(kwargs)
-            # wx-config seems to have a cflags as well but since it requires C++,
-            # this should be good, at least for now.
-            p, out = Popen_safe([self.wxc, '--cxxflags'])[0:2]
-            # FIXME: this error should only be raised if required is true
-            if p.returncode != 0:
-                raise DependencyException('Could not generate cargs for wxwidgets.')
-            self.compile_args = out.split()
-
-            # FIXME: this error should only be raised if required is true
-            p, out = Popen_safe([self.wxc, '--libs'] + self.requested_modules)[0:2]
-            if p.returncode != 0:
-                raise DependencyException('Could not generate libs for wxwidgets.')
-            self.link_args = out.split()
+        self.requested_modules = self.get_requested(kwargs)
+        # wx-config seems to have a cflags as well but since it requires C++,
+        # this should be good, at least for now.
+        self.compile_args = self.get_config_value(['--cxxflags'], 'compile_args')
+        self.link_args = self.get_config_value(['--libs'], 'link_args')
 
     def get_requested(self, kwargs):
         if 'modules' not in kwargs:
@@ -477,20 +445,6 @@ class WxDependency(ExternalDependency):
                 raise DependencyException('wxwidgets module argument is not a string')
         return candidates
 
-    def check_wxconfig(self):
-        for wxc in ['wx-config-3.0', 'wx-config']:
-            try:
-                p, out = Popen_safe([wxc, '--version'])[0:2]
-                if p.returncode == 0:
-                    mlog.log('Found wx-config:', mlog.bold(shutil.which(wxc)),
-                             '(%s)' % out.strip())
-                    self.wxc = wxc
-                    WxDependency.wx_found = wxc
-                    return
-            except (FileNotFoundError, PermissionError):
-                pass
-        WxDependency.wxconfig_found = False
-        mlog.log('Found wx-config:', mlog.red('NO'))
 
 class VulkanDependency(ExternalDependency):
     def __init__(self, environment, kwargs):

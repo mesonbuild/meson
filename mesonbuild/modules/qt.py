@@ -43,13 +43,17 @@ class QtBaseModule:
         kwargs = {'required': 'true', 'modules': 'Core', 'silent': 'true', 'method': method}
         qt = _QT_DEPS_LUT[self.qt_version](env, kwargs)
         # Get all tools and then make sure that they are the right version
-        self.moc, self.uic, self.rcc = qt.compilers_detect()
+        self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect()
         # Moc, uic and rcc write their version strings to stderr.
         # Moc and rcc return a non-zero result when doing so.
         # What kind of an idiot thought that was a good idea?
-        for compiler, compiler_name in ((self.moc, "Moc"), (self.uic, "Uic"), (self.rcc, "Rcc")):
+        for compiler, compiler_name in ((self.moc, "Moc"), (self.uic, "Uic"), (self.rcc, "Rcc"), (self.lrelease, "lrelease")):
             if compiler.found():
-                stdout, stderr = Popen_safe(compiler.get_command() + ['-v'])[1:3]
+                # Workaround since there is no easy way to know which tool/version support which flag
+                for flag in ['-v', '-version']:
+                    p, stdout, stderr = Popen_safe(compiler.get_command() + [flag])[0:3]
+                    if p.returncode == 0:
+                        break
                 stdout = stdout.strip()
                 stderr = stderr.strip()
                 if 'Qt {}'.format(self.qt_version) in stderr:
@@ -62,7 +66,7 @@ class QtBaseModule:
                     raise MesonException('{name} preprocessor is not for Qt {version}. Output:\n{stdo}\n{stderr}'.format(
                         name=compiler_name, version=self.qt_version, stdo=stdout, stderr=stderr))
                 mlog.log(' {}:'.format(compiler_name.lower()), mlog.green('YES'), '({path}, {version})'.format(
-                    path=self.moc.get_path(), version=compiler_ver.split()[-1]))
+                    path=compiler.get_path(), version=compiler_ver.split()[-1]))
             else:
                 mlog.log(' {}:'.format(compiler_name.lower()), mlog.red('NO'))
         self.tools_detected = True
@@ -137,10 +141,28 @@ class QtBaseModule:
             moc_output = moc_gen.process_files('Qt{} moc header'.format(self.qt_version), moc_headers, state)
             sources.append(moc_output)
         if len(moc_sources) > 0:
-            arguments = moc_extra_arguments + ['@INPUT@', '-o', '@OUTPUT@']
+            arguments = moc_extra_arguments + inc + ['@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': '@BASENAME@.moc',
                           'arguments': arguments}
             moc_gen = build.Generator([self.moc], moc_kwargs)
             moc_output = moc_gen.process_files('Qt{} moc source'.format(self.qt_version), moc_sources, state)
             sources.append(moc_output)
         return ModuleReturnValue(sources, sources)
+
+    @permittedKwargs({'ts_files', 'install', 'install_dir', 'build_by_default', 'method'})
+    def compile_translations(self, state, args, kwargs):
+        ts_files, install_dir = extract_as_list(kwargs, 'ts_files', 'install_dir', pop=True)
+        self._detect_tools(state.environment, kwargs.get('method', 'auto'))
+        translations = []
+        for ts in ts_files:
+            cmd = [self.lrelease, '@INPUT@', '-qm', '@OUTPUT@']
+            lrelease_kwargs = {'output': '@BASENAME@.qm',
+                               'input': ts,
+                               'install': kwargs.get('install', False),
+                               'build_by_default': kwargs.get('build_by_default', False),
+                               'command': cmd}
+            if install_dir is not None:
+                lrelease_kwargs['install_dir'] = install_dir
+            lrelease_target = build.CustomTarget('qt{}-compile-{}'.format(self.qt_version, ts), state.subdir, state.subproject, lrelease_kwargs)
+            translations.append(lrelease_target)
+        return ModuleReturnValue(translations, translations)

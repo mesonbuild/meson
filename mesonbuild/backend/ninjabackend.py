@@ -220,7 +220,7 @@ int dummy;
             outfile.write('# Suffix\n\n')
             self.generate_utils(outfile)
             self.generate_ending(outfile)
-        # Only ovewrite the old build file after the new one has been
+        # Only overwrite the old build file after the new one has been
         # fully created.
         os.replace(tempfilename, outfilename)
         self.generate_compdb()
@@ -2236,7 +2236,7 @@ rule FORTRAN_DEP_HACK
     # Fortran is a bit weird (again). When you link against a library, just compiling a source file
     # requires the mod files that are output when single files are built. To do this right we would need to
     # scan all inputs and write out explicit deps for each file. That is stoo slow and too much effort so
-    # instead just have an ordered dependendy on the library. This ensures all required mod files are created.
+    # instead just have an ordered dependency on the library. This ensures all required mod files are created.
     # The real deps are then detected via dep file generation from the compiler. This breaks on compilers that
     # produce incorrect dep files but such is life.
     def get_fortran_orderdeps(self, target, compiler):
@@ -2387,9 +2387,9 @@ rule FORTRAN_DEP_HACK
             commands += compilers.get_base_link_args(self.environment.coredata.base_options,
                                                      linker,
                                                      isinstance(target, build.SharedModule))
-        # Add -nostdlib if needed; can't be overriden
+        # Add -nostdlib if needed; can't be overridden
         commands += self.get_cross_stdlib_link_args(target, linker)
-        # Add things like /NOLOGO; usually can't be overriden
+        # Add things like /NOLOGO; usually can't be overridden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
         commands += linker.get_buildtype_linker_args(self.get_option_for_target('buildtype', target))

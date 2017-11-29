@@ -178,32 +178,51 @@ the list of sources for the target. The `modules` keyword of
 `dependency` works just like it does with Boost. It tells which
 subparts of Qt the program uses.
 
-## Pcap
+## Dependencies using config tools
 
-The pcap library does not ship with pkg-config at the time or writing
-but instead it has its own `pcap-config` util. Meson will use it
-automatically:
+CUPS, LLVM, PCAP, WxWidgets, libwmf, and GnuStep either do not provide
+pkg-config modules or additionally can be detected via a config tool
+(cups-config, llvm-config, etc). Meson has native support for these tools, and
+then can be found like other dependencies:
 
 ```meson
 pcap_dep = dependency('pcap', version : '>=1.0')
-```
-
-## CUPS
-
-The cups library does not ship with pkg-config at the time or writing
-but instead it has its own `cups-config` util. Meson will use it
-automatically:
-
-```meson
 cups_dep = dependency('cups', version : '>=1.4')
+llvm_dep = dependency('llvm', version : '>=4.0')
 ```
 
-## LibWMF
-
-The libwmf library does not ship with pkg-config at the time or writing
-but instead it has its own `libwmf-config` util. Meson will use it
-automatically:
+Some of these tools (like wmf and cups) provide both pkg-config and config
+tools support. You can force one or another via the method keyword:
 
 ```meson
-libwmf_dep = dependency('libwmf', version : '>=0.2.8')
+wmf_dep = dependency('wmf', method : 'config-tool')
+```
+
+## LLVM
+
+Meson has native support for LLVM going back to version LLVM version 3.5. 
+It supports a few additional features compared to other config-tool based
+dependencies.
+
+As of 0.44.0 Meson supports the `static` keyword argument for LLVM. Before this
+LLVM >= 3.9 would always dynamically link, while older versions would
+statically link, due to a quirk in `llvm-config`.
+
+### Modules, a.k.a. Components
+
+Meson wraps LLVM's concept of components in it's own modules concept.
+When you need specific components you add them as modules as meson will do the
+right thing:
+
+```meson
+llvm_dep = dependency('llvm', version : '>= 4.0', modules : ['amdgpu'])
+```
+
+As of 0.44.0 it can also take optional modules (these will affect the arguments
+generated for a static link):
+
+```meson
+llvm_dep = dependency(
+  'llvm', version : '>= 4.0', modules : ['amdgpu'], optional_modules : ['inteljitevents'],
+)
 ```

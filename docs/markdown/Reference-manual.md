@@ -430,7 +430,7 @@ be passed to [shared and static libraries](#library).
   `project`'s `default_options` overriding the values of these options
   for this target only, since 0.40.0
 - `d_import_dirs` list of directories to look in for string imports used
-  in the D programmling language
+  in the D programming language
 - `d_unittest`, when set to true, the D modules are compiled in debug mode
 - `d_module_versions` list of module versions set when compiling D sources
 
@@ -855,6 +855,8 @@ This function prints its argument to stdout.
 
 This function prints its argument to stdout prefixed with WARNING:.
 
+*Added 0.44.0*
+
 ### project()
 
 ``` meson
@@ -1019,7 +1021,7 @@ has one argument the others don't have:
 ### subdir()
 
 ``` meson
-    void subdir(dir_name)
+    void subdir(dir_name, ...)
 ```
 
 Enters the specified subdirectory and executes the `meson.build` file
@@ -1031,6 +1033,12 @@ current build file and in all subsequent build files executed with
 
 Note that this means that each `meson.build` file in a source tree can
 and must only be executed once.
+
+This function has one keyword argument.
+
+ - `if_found` takes one or several dependency objects and will only
+   recurse in the subdir if they all return `true` when queried with
+   `.found()`
 
 ### subproject()
 
@@ -1607,6 +1615,10 @@ an external dependency with the following methods:
  - `get_pkgconfig_variable(varname)` (*Added 0.36.0*) will get the
    pkg-config variable specified, or, if invoked on a non pkg-config
    dependency, error out
+
+ - `get_configtool_variable(varname)` (*Added 0.44.0*) will get the 
+   command line argument from the config tool (with `--` prepended), or,
+   if invoked on a non config-tool dependency, error out.
 
  - `type_name()` which returns a string describing the type of the
    dependency, the most common values are `internal` for deps created
