@@ -855,6 +855,8 @@ This function prints its argument to stdout.
 
 This function prints its argument to stdout prefixed with WARNING:.
 
+*Added 0.44.0*
+
 ### project()
 
 ``` meson
