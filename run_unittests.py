@@ -1973,7 +1973,9 @@ class LinuxlikeTests(BasePlatformTests):
             if v != 'none':
                 cmd_std = " -std={} ".format(v)
                 self.assertIn(cmd_std, cmd)
-                if type(compiler).__name__ == 'ClangCPPCompiler' and '17' in cmd_std and compiler.version < 5:
+                if ( type(compiler).__name__ == 'ClangCPPCompiler' 
+                    and '17' in cmd_std 
+                    and mesonlib.version_compare(compiler.versioni, '<5.0.0')):
                     continue
             try:
                 self.build()
