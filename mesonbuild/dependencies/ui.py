@@ -218,7 +218,8 @@ class QtBaseDependency(ExternalDependency):
         kwargs['required'] = False
         modules = OrderedDict()
         for module in mods:
-            modules[module] = PkgConfigDependency(self.qtpkgname + module, self.env, kwargs)
+            modules[module] = PkgConfigDependency(self.qtpkgname + module, self.env,
+                                                  kwargs, language=self.language)
         for m in modules.values():
             if not m.found():
                 self.is_found = False
@@ -232,7 +233,8 @@ class QtBaseDependency(ExternalDependency):
             core = modules['Core']
         else:
             corekwargs = {'required': 'false', 'silent': 'true'}
-            core = PkgConfigDependency(self.qtpkgname + 'Core', self.env, corekwargs)
+            core = PkgConfigDependency(self.qtpkgname + 'Core', self.env, corekwargs,
+                                       language=self.language)
         # Used by self.compilers_detect()
         self.bindir = self.get_pkgconfig_host_bins(core)
         if not self.bindir:

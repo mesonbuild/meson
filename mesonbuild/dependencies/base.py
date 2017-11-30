@@ -157,9 +157,6 @@ class ExternalDependency(Dependency):
         self.name = type_name # default
         self.is_found = False
         self.language = language
-        if language and language not in self.env.coredata.compilers:
-            m = self.name.capitalize() + ' requires a {} compiler'
-            raise DependencyException(m.format(language.capitalize()))
         self.version_reqs = kwargs.get('version', None)
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
@@ -177,7 +174,20 @@ class ExternalDependency(Dependency):
             compilers = self.env.coredata.cross_compilers
         else:
             compilers = self.env.coredata.compilers
-        self.compiler = compilers.get(self.language or 'c', None)
+        # Set the compiler for this dependency if a language is specified,
+        # else try to pick something that looks usable.
+        if self.language:
+            if self.language not in compilers:
+                m = self.name.capitalize() + ' requires a {} compiler'
+                raise DependencyException(m.format(self.language.capitalize()))
+            self.compiler = compilers[self.language]
+        else:
+            # Try to find a compiler that this dependency can use for compiler
+            # checks. It's ok if we don't find one.
+            for lang in ('c', 'cpp', 'objc', 'objcpp', 'fortran', 'd'):
+                self.compiler = compilers.get(lang, None)
+                if self.compiler:
+                    break
 
     def get_compiler(self):
         return self.compiler
@@ -309,8 +319,8 @@ class PkgConfigDependency(ExternalDependency):
     # multiple times in the same Meson invocation.
     class_pkgbin = None
 
-    def __init__(self, name, environment, kwargs):
-        super().__init__('pkgconfig', environment, None, kwargs)
+    def __init__(self, name, environment, kwargs, language=None):
+        super().__init__('pkgconfig', environment, language, kwargs)
         self.name = name
         self.is_libtool = False
         # Store a copy of the pkg-config path on the object itself so it is
@@ -428,7 +438,7 @@ class PkgConfigDependency(ExternalDependency):
             # MSVC cannot handle MinGW-esque /c/foo paths, convert them to C:/foo.
             # We cannot resolve other paths starting with / like /home/foo so leave
             # them as-is so the user gets an error/warning from the compiler/linker.
-            if self.compiler.id == 'msvc':
+            if self.compiler and self.compiler.id == 'msvc':
                 # Library search path
                 if lib.startswith('-L/'):
                     pargs = PurePath(lib[2:]).parts
