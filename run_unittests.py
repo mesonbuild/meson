@@ -1975,7 +1975,7 @@ class LinuxlikeTests(BasePlatformTests):
                 self.assertIn(cmd_std, cmd)
                 if (type(compiler).__name__ == 'ClangCPPCompiler' and
                         '17' in cmd_std and
-                        version_compare(compiler.versioni, '<5.0.0')):
+                        version_compare(compiler.version, '<5.0.0')):
                     continue
             try:
                 self.build()
