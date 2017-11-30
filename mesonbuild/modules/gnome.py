@@ -220,9 +220,10 @@ class GnomeModule(ExtensionModule):
                input_file,
                '--generate-dependencies']
 
+        # Prefer generated files over source files
+        cmd += ['--sourcedir', state.subdir] # Current build dir
         for source_dir in source_dirs:
             cmd += ['--sourcedir', os.path.join(state.subdir, source_dir)]
-        cmd += ['--sourcedir', state.subdir] # Current dir
 
         pc, stdout, stderr = Popen_safe(cmd, cwd=state.environment.get_source_dir())
         if pc.returncode != 0:
@@ -240,25 +241,20 @@ class GnomeModule(ExtensionModule):
         #
         # If there are multiple generated resource files with the same basename
         # then this code will get confused.
-
         def exists_in_srcdir(f):
             return os.path.exists(os.path.join(state.environment.get_source_dir(), f))
-        missing_dep_files = [f for f in dep_files if not exists_in_srcdir(f)]
 
         depends = []
         subdirs = []
-        for missing in missing_dep_files:
-            found = False
-            missing_basename = os.path.basename(missing)
-
+        for resfile in dep_files[:]:
+            resbasename = os.path.basename(resfile)
             for dep in dependencies:
                 if hasattr(dep, 'held_object'):
                     dep = dep.held_object
                 if isinstance(dep, mesonlib.File):
-                    if dep.fname != missing_basename:
+                    if dep.fname != resbasename:
                         continue
-                    found = True
-                    dep_files.remove(missing)
+                    dep_files.remove(resfile)
                     dep_files.append(dep)
                     subdirs.append(dep.subdir)
                     break
@@ -266,12 +262,11 @@ class GnomeModule(ExtensionModule):
                     fname = None
                     outputs = {(o, os.path.basename(o)) for o in dep.get_outputs()}
                     for o, baseo in outputs:
-                        if baseo == missing_basename:
+                        if baseo == resbasename:
                             fname = o
                             break
                     if fname is not None:
-                        found = True
-                        dep_files.remove(missing)
+                        dep_files.remove(resfile)
                         dep_files.append(
                             mesonlib.File(
                                 is_built=True,
@@ -280,16 +275,13 @@ class GnomeModule(ExtensionModule):
                         depends.append(dep)
                         subdirs.append(dep.get_subdir())
                         break
-                else:
-                    raise RuntimeError('Unreachable code.')
-
-            if not found:
-                raise MesonException(
-                    'Resource "%s" listed in "%s" was not found. If this is a '
-                    'generated file, pass the target that generates it to '
-                    'gnome.compile_resources() using the "dependencies" '
-                    'keyword argument.' % (missing, input_file))
-
+            else:
+                if not exists_in_srcdir(resfile):
+                    raise MesonException(
+                        'Resource "%s" listed in "%s" was not found. If this is a '
+                        'generated file, pass the target that generates it to '
+                        'gnome.compile_resources() using the "dependencies" '
+                        'keyword argument.' % (resfile, input_file))
         return dep_files, depends, subdirs
 
     def _get_link_args(self, state, lib, depends=None, include_rpath=False,
