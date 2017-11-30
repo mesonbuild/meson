@@ -625,8 +625,10 @@ class Python3Dependency(ExternalDependency):
             elif mesonlib.is_osx() and DependencyMethods.EXTRAFRAMEWORK in self.methods:
                 # In OSX the Python 3 framework does not have a version
                 # number in its name.
-                fw = ExtraFrameworkDependency('python', False, None, self.env,
-                                              self.language, kwargs)
+                # There is a python in /System/Library/Frameworks, but that's
+                # python 2, Python 3 will always bin in /Library
+                fw = ExtraFrameworkDependency(
+                    'python', False, '/Library/Frameworks', self.env, self.language, kwargs)
                 if fw.found():
                     self.compile_args = fw.get_compile_args()
                     self.link_args = fw.get_link_args()
