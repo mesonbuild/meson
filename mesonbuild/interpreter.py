@@ -27,7 +27,7 @@ from .dependencies import InternalDependency, Dependency, DependencyException
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, permittedKwargs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
-from .interpreterbase import InterpreterObject, MutableInterpreterObject
+from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler
 from .modules import ModuleReturnValue
 
 import os, sys, shutil, uuid
@@ -2142,9 +2142,24 @@ to directly access options of other subprojects.''')
                     break
         return identifier, cached_dep
 
-    @permittedKwargs(permitted_kwargs['dependency'])
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
+        if 'required' in kwargs and 'options' in kwargs:
+            raise InterpreterException('Can only use "required" or "options", not both at the same time.')
+        required = kwargs.get('required', 'options' not in kwargs)
+        for oname in listify(kwargs.get('options', [])):
+            o = self.environment.coredata.user_options[oname]
+            if not isinstance(o, coredata.UserDolphinOption):
+                raise InterpreterException('Value of option must point to a Dolphin object.')
+            if o.value == 'disabled':
+                return Disabler()
+            if o.value == 'required':
+                required = True
+        # Dependency resolution does not need to know about disablers and
+        # all other stuff, so set this manually.
+        if 'options' in kwargs:
+            kwargs['required'] = required
+            del kwargs['options']
         name = args[0]
         if '<' in name or '>' in name or '=' in name:
             raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
@@ -2152,7 +2167,7 @@ to directly access options of other subprojects.''')
         identifier, cached_dep = self._find_cached_dep(name, kwargs)
 
         if cached_dep:
-            if kwargs.get('required', True) and not cached_dep.found():
+            if required and not cached_dep.found():
                 m = 'Dependency {!r} was already checked and was not found'
                 raise DependencyException(m.format(name))
             dep = cached_dep

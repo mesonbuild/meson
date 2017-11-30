@@ -84,9 +84,15 @@ def ComboParser(name, description, kwargs):
             raise OptionException('Combo choice elements must be strings.')
     return coredata.UserComboOption(name, description, choices, kwargs.get('value', choices[0]))
 
+def DolphinParser(name, description, kwargs):
+    if 'choices' in kwargs:
+        raise OptionException('Dolphin option must not have choices keyword.')
+    return coredata.UserDolphinOption(name, description, kwargs.get('value', 'required'))
+
 option_types = {'string': StringParser,
                 'boolean': BooleanParser,
                 'combo': ComboParser,
+                'dolphin': DolphinParser,
                 }
 
 class OptionInterpreter:
