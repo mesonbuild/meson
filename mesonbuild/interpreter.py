@@ -1213,7 +1213,11 @@ class MesonMain(InterpreterObject):
         return self.interpreter.backend.name
 
     def source_root_method(self, args, kwargs):
-        return self.interpreter.environment.source_dir
+        if self.interpreter.subproject == '':
+            return self.interpreter.environment.source_dir
+        return os.path.join(self.interpreter.environment.source_dir,
+                            self.interpreter.subproject_dir,
+                            self.interpreter.subproject)
 
     def build_root_method(self, args, kwargs):
         return self.interpreter.environment.build_dir
