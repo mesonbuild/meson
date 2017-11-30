@@ -404,7 +404,7 @@ class InterpreterBase:
         if isinstance(obj, int):
             return self.int_method_call(obj, method_name, args)
         if isinstance(obj, list):
-            return self.array_method_call(obj, method_name, self.reduce_arguments(args)[0])
+            return self.array_method_call(obj, method_name, *self.reduce_arguments(args))
         if isinstance(obj, mesonlib.File):
             raise InvalidArguments('File object "%s" is not callable.' % obj)
         if not isinstance(obj, InterpreterObject):
@@ -522,7 +522,7 @@ class InterpreterBase:
     def unknown_function_called(self, func_name):
             raise InvalidCode('Unknown function "%s".' % func_name)
 
-    def array_method_call(self, obj, method_name, args):
+    def array_method_call(self, obj, method_name, args, kwargs):
         if method_name == 'contains':
             return self.check_contains(obj, args)
         elif method_name == 'length':
@@ -545,6 +545,19 @@ class InterpreterBase:
                     raise InvalidArguments(m.format(index, len(obj)))
                 return fallback
             return obj[index]
+        elif method_name == 'found':
+            # Nothing to check, nothing found
+            if not obj:
+                return False
+            # Check all dependencies and verify that they were found. Can also
+            # be used for external programs, if someone wants to.
+            for each in mesonlib.flatten(obj):
+                if not hasattr(each, 'found_method'):
+                    m = 'Array element {!r} does not have a \'found\' method'
+                    raise InterpreterException(m.format(each))
+                if not each.found_method(args, kwargs):
+                    return False
+            return True
         m = 'Arrays do not have a method called {!r}.'
         raise InterpreterException(m.format(method_name))
 

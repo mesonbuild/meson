@@ -102,3 +102,14 @@ foreach d : ['sdl2', 'gnustep', 'wxwidgets', 'gl', 'python3', 'boost', 'gtest', 
     endif
   endif
 endforeach
+
+# An empty array means 'not found', for convenience
+assert([].found() == false, '[] should not have been found')
+# An array of found objects is found
+assert([dependency('zlib')].found() == true, '[zlib] should have been found')
+# An array of found objects and an empty array is found because arguments are flattened
+assert([dependency('zlib'), []].found() == true, '[zlib] should have been found')
+# An array of found and not-found objects is not found
+assert([dependency('zlib'), dependency('', required : false)].found() == false, '[zlib, \'\'] should not have been found')
+# An array of not-found objects is not found
+assert([dependency('no-way-this-exists', required : false)].found() == false, '[\'no-way-this-exists\'] should not have been found')
