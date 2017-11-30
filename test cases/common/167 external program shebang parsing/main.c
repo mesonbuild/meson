@@ -12,6 +12,9 @@
  #include <unistd.h>
 #endif
 
+/* Who cares about stack sizes in test programs anyway */
+#define LINE_LENGTH 4096
+
 static int
 intrp_copyfile (char * src, char * dest)
 {
@@ -24,27 +27,18 @@ intrp_copyfile (char * src, char * dest)
 #endif
 }
 
-static char*
-parser_get_line (FILE * f)
+static void
+parser_get_line (FILE * f, char line[LINE_LENGTH])
 {
-  ssize_t size;
-  size_t n = 0;
-  char *line = NULL;
-
-  size = getline (&line, &n, f);
-  if (size < 0) {
+  if (!fgets (line, LINE_LENGTH, f))
     fprintf (stderr, "%s\n", strerror (errno));
-    free (line);
-    return NULL;
-  }
-  return line;
 }
 
 int
 main (int argc, char * argv[])
 {
-  FILE *f;
-  char *line = NULL;
+  FILE *f = NULL;
+  char line[LINE_LENGTH];
 
   if (argc != 4) {
     fprintf (stderr, "Invalid number of arguments: %i\n", argc);
@@ -56,24 +50,23 @@ main (int argc, char * argv[])
     goto err;
   }
 
-  line = parser_get_line (f);
+  parser_get_line (f, line);
 
   if (!line || line[0] != '#' || line[1] != '!') {
     fprintf (stderr, "Invalid script\n");
     goto err;
   }
 
-  free (line);
-  line = parser_get_line (f);
+  parser_get_line (f, line);
 
   if (!line || strncmp (line, "copy", 4) != 0) {
-    fprintf (stderr, "Syntax error\n");
+    fprintf (stderr, "Syntax error: %s\n", line);
     goto err;
   }
 
   return intrp_copyfile (argv[2], argv[3]);
 
 err:
-  free (line);
+  fclose (f);
   return 1;
 }
