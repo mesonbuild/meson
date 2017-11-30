@@ -560,7 +560,11 @@ class ExternalProgram:
             with open(script) as f:
                 first_line = f.readline().strip()
             if first_line.startswith('#!'):
-                commands = first_line[2:].split('#')[0].strip().split()
+                # In a shebang, everything before the first space is assumed to
+                # be the command to run and everything after the first space is
+                # the single argument to pass to that command. So we must split
+                # exactly once.
+                commands = first_line[2:].split('#')[0].strip().split(maxsplit=1)
                 if mesonlib.is_windows():
                     # Windows does not have UNIX paths so remove them,
                     # but don't remove Windows paths
