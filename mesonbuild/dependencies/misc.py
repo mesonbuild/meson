@@ -237,17 +237,18 @@ class BoostDependency(ExternalDependency):
 
     def detect_lib_modules_win(self):
         arch = detect_cpu_family(self.env.coredata.compilers)
-        compiler_ts = self.env.detect_cpp_compiler(self.want_cross).get_toolset_version().split('.')
+        comp_ts_version = self.env.detect_cpp_compiler(self.want_cross).get_toolset_version()
+        compiler_ts = comp_ts_version.split('.')
         compiler = 'vc{}{}'.format(compiler_ts[0], compiler_ts[1])
         if not self.libdir:
-            # The libdirs in the distributed binaries
+            # The libdirs in the distributed binaries (from sf)
             if arch == 'x86':
-                gl = 'lib32*'
+                lib_sf = 'lib32-msvc-{}'.format(comp_ts_version)
             elif arch == 'x86_64':
-                gl = 'lib64*'
+                lib_sf = 'lib64-msvc-{}'.format(comp_ts_version)
             else:
                 # Does anyone do Boost cross-compiling to other archs on Windows?
-                gl = None
+                lib_sf = None
             if self.boost_root:
                 roots = [self.boost_root]
             else:
@@ -258,11 +259,10 @@ class BoostDependency(ExternalDependency):
                 if os.path.isdir(libdir):
                     self.libdir = libdir
                     break
-                if gl:
-                    tmp = glob.glob(os.path.join(root, gl))
-                    if len(tmp) > 0:
-                        # FIXME: Should pick the correct version
-                        self.libdir = tmp[0]
+                if lib_sf:
+                    full_path = os.path.join(root, lib_sf)
+                    if os.path.isdir(full_path):
+                        self.libdir = full_path
                         break
 
         if not self.libdir:
