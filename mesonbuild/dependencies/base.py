@@ -414,11 +414,12 @@ class PkgConfigDependency(ExternalDependency):
 
     def _convert_mingw_paths(self, args):
         '''
-        MSVC cannot handle MinGW-esque /c/foo paths, convert them to C:/foo.
-        We cannot resolve other paths starting with / like /home/foo so leave
-        them as-is so the user gets an error/warning from the compiler/linker.
+        Both MSVC and native Python on Windows cannot handle MinGW-esque /c/foo
+        paths so convert them to C:/foo. We cannot resolve other paths starting
+        with / like /home/foo so leave them as-is so that the user gets an
+        error/warning from the compiler/linker.
         '''
-        if not self.compiler or self.compiler.id != 'msvc':
+        if not mesonlib.is_windows():
             return args
         converted = []
         for arg in args:
