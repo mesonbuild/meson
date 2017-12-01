@@ -1061,16 +1061,17 @@ class AllPlatformTests(BasePlatformTests):
                 evalue = os.environ.pop(evar)
                 # Very rough/strict heuristics. Would never work for actual
                 # compiler detection, but should be ok for the tests.
-                if os.path.basename(evalue).startswith('g'):
+                ebase = os.path.basename(evalue)
+                if ebase.startswith('g') or ebase.endswith(('-gcc', '-g++')):
                     self.assertIsInstance(ecc, gnu)
                     self.assertIsInstance(elinker, ar)
-                elif 'clang' in os.path.basename(evalue):
+                elif 'clang' in ebase:
                     self.assertIsInstance(ecc, clang)
                     self.assertIsInstance(elinker, ar)
-                elif os.path.basename(evalue).startswith('ic'):
+                elif ebase.startswith('ic'):
                     self.assertIsInstance(ecc, intel)
                     self.assertIsInstance(elinker, ar)
-                elif os.path.basename(evalue).startswith('cl'):
+                elif ebase.startswith('cl'):
                     self.assertIsInstance(ecc, msvc)
                     self.assertIsInstance(elinker, lib)
                 else:
