@@ -240,7 +240,7 @@ class QtBaseDependency(ExternalDependency):
         self.bindir = self.get_pkgconfig_host_bins(core)
         if not self.bindir:
             # If exec_prefix is not defined, the pkg-config file is broken
-            prefix = core.get_pkgconfig_variable('exec_prefix')
+            prefix = core.get_pkgconfig_variable('exec_prefix', {})
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
 
@@ -360,7 +360,7 @@ class Qt4Dependency(QtBaseDependency):
         applications = ['moc', 'uic', 'rcc', 'lupdate', 'lrelease']
         for application in applications:
             try:
-                return os.path.dirname(core.get_pkgconfig_variable('%s_location' % application))
+                return os.path.dirname(core.get_pkgconfig_variable('%s_location' % application, {}))
             except MesonException:
                 pass
 
@@ -370,7 +370,7 @@ class Qt5Dependency(QtBaseDependency):
         QtBaseDependency.__init__(self, 'qt5', env, kwargs)
 
     def get_pkgconfig_host_bins(self, core):
-        return core.get_pkgconfig_variable('host_bins')
+        return core.get_pkgconfig_variable('host_bins', {})
 
 
 # There are three different ways of depending on SDL2:
