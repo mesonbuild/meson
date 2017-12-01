@@ -1398,6 +1398,7 @@ int main(int argc, char **argv) {
         env = Environment('', self.builddir, self.meson_command,
                           get_fake_options(self.prefix), [])
         cc = env.detect_c_compiler(False)
+        stlinker = env.detect_static_linker(cc)
         if mesonbuild.mesonlib.is_windows():
             object_suffix = 'obj'
             shared_suffix = 'dll'
@@ -1410,7 +1411,7 @@ int main(int argc, char **argv) {
         else:
             object_suffix = 'o'
             shared_suffix = 'so'
-        return (cc, object_suffix, shared_suffix)
+        return (cc, stlinker, object_suffix, shared_suffix)
 
     def pbcompile(self, compiler, source, objectfile, extra_args=[]):
         cmd = compiler.get_exelist()
@@ -1422,7 +1423,7 @@ int main(int argc, char **argv) {
 
 
     def test_prebuilt_object(self):
-        (compiler, object_suffix, _) = self.detect_prebuild_env()
+        (compiler, _, object_suffix, _) = self.detect_prebuild_env()
         tdir = os.path.join(self.unit_test_dir, '14 prebuilt object')
         source = os.path.join(tdir, 'source.c')
         objectfile = os.path.join(tdir, 'prebuilt.' + object_suffix)
@@ -1434,13 +1435,18 @@ int main(int argc, char **argv) {
         finally:
             os.unlink(objectfile)
 
-    def build_static_lib(self, compiler, source, objectfile, outfile, extra_args=None):
+    def build_static_lib(self, compiler, linker, source, objectfile, outfile, extra_args=None):
         if extra_args is None:
             extra_args = []
         if compiler.id == 'msvc':
             link_cmd = ['lib', '/NOLOGO', '/OUT:' + outfile, objectfile]
         else:
             link_cmd = ['ar', 'csr', outfile, objectfile]
+        link_cmd = linker.get_exelist()
+        link_cmd += linker.get_always_args()
+        link_cmd += linker.get_std_link_args()
+        link_cmd += linker.get_output_args(outfile)
+        link_cmd += [objectfile]
         self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
         try:
             subprocess.check_call(link_cmd)
@@ -1448,12 +1454,12 @@ int main(int argc, char **argv) {
             os.unlink(objectfile)
 
     def test_prebuilt_static_lib(self):
-        (cc, object_suffix, _) = self.detect_prebuild_env()
+        (cc, stlinker, object_suffix, _) = self.detect_prebuild_env()
         tdir = os.path.join(self.unit_test_dir, '15 prebuilt static')
         source = os.path.join(tdir, 'libdir/best.c')
         objectfile = os.path.join(tdir, 'libdir/best.' + object_suffix)
         stlibfile = os.path.join(tdir, 'libdir/libbest.a')
-        self.build_static_lib(cc, source, objectfile, stlibfile)
+        self.build_static_lib(cc, stlinker, source, objectfile, stlibfile)
         # Run the test
         try:
             self.init(tdir)
@@ -1480,7 +1486,7 @@ int main(int argc, char **argv) {
             os.unlink(objectfile)
 
     def test_prebuilt_shared_lib(self):
-        (cc, object_suffix, shared_suffix) = self.detect_prebuild_env()
+        (cc, _, object_suffix, shared_suffix) = self.detect_prebuild_env()
         tdir = os.path.join(self.unit_test_dir, '16 prebuilt shared')
         source = os.path.join(tdir, 'alexandria.c')
         objectfile = os.path.join(tdir, 'alexandria.' + object_suffix)
@@ -1514,7 +1520,7 @@ int main(int argc, char **argv) {
         '''
         if not shutil.which('pkg-config'):
             raise unittest.SkipTest('pkg-config not found')
-        (cc, objext, shext) = self.detect_prebuild_env()
+        (cc, stlinker, objext, shext) = self.detect_prebuild_env()
         testdir = os.path.join(self.unit_test_dir, '17 pkgconfig static')
         source = os.path.join(testdir, 'foo.c')
         objectfile = os.path.join(testdir, 'foo.' + objext)
@@ -1527,7 +1533,7 @@ int main(int argc, char **argv) {
         else:
             shlibfile = os.path.join(testdir, 'libfoo.' + shext)
         # Build libs
-        self.build_static_lib(cc, source, objectfile, stlibfile, extra_args=['-DFOO_STATIC'])
+        self.build_static_lib(cc, stlinker, source, objectfile, stlibfile, extra_args=['-DFOO_STATIC'])
         self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
         # Run test
         os.environ['PKG_CONFIG_LIBDIR'] = self.builddir
