@@ -319,6 +319,10 @@ otherwise. This function supports the following keyword arguments:
 The returned object also has methods that are documented in the
 [object methods section](#dependency-object) below.
 
+### disabler()
+
+Returns a [disabler object]((#disabler-object)). Added in 0.44.0.
+
 ### error()
 
 ``` meson
@@ -1627,6 +1631,15 @@ an external dependency with the following methods:
 
  - `version()` is the version number as a string, for example `1.2.8`
 
+### `disabler` object
+
+A disabler object is an object that behaves in much the same way as
+NaN numbers do in floating point math. That is when used in any
+statement (function call, logical op, etc) they will cause the
+statement evaluation to immediately short circuit to return a disabler
+object. A disabler object has one method:
+
+  - `found()`, always returns `false`
 
 ### `external program` object
 
