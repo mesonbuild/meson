@@ -84,9 +84,25 @@ def ComboParser(name, description, kwargs):
             raise OptionException('Combo choice elements must be strings.')
     return coredata.UserComboOption(name, description, choices, kwargs.get('value', choices[0]))
 
+@permitted_kwargs({'value', 'choices'})
+def string_array_parser(name, description, kwargs):
+    if 'choices' not in kwargs:
+        raise OptionException('Array option missing "choices" keyword.')
+    choices = kwargs['choices']
+    if not isinstance(choices, list):
+        raise OptionException('Array choices must be an array.')
+    for i in choices:
+        if not isinstance(i, str):
+            raise OptionException('Array choice elements must be strings.')
+    value = kwargs.get('value', choices)
+    if not isinstance(value, list):
+        raise OptionException('Array choices must be passed as an array.')
+    return coredata.UserStringArrayOption(name, description, value, choices=choices)
+
 option_types = {'string': StringParser,
                 'boolean': BooleanParser,
                 'combo': ComboParser,
+                'array': string_array_parser,
                 }
 
 class OptionInterpreter:

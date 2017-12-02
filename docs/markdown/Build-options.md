@@ -16,18 +16,37 @@ Here is a simple option file.
 option('someoption', type : 'string', value : 'optval', description : 'An option')
 option('other_one', type : 'boolean', value : false)
 option('combo_opt', type : 'combo', choices : ['one', 'two', 'three'], value : 'three')
+option('array_opt', type : 'array', choices : ['one', 'two', 'three'], value : ['one', 'two'])
 ```
 
-This demonstrates the three basic option types and their usage. String
-option is just a free form string and a boolean option is,
-unsurprisingly, true or false. The combo option can have any value
-from the strings listed in argument `choices`. If `value` is not set,
-it defaults to empty string for strings, `true` for booleans or the
-first element in a combo. You can specify `description`, which is a
-free form piece of text describing the option. It defaults to option
-name.
+All types allow a `description` value to be set describing the option, if no
+option is set then the name of the option will be used instead.
 
-These options are accessed in Meson code with the `get_option` function.
+### Strings
+
+The string type is a free form string. If the default value is not set then an
+empty string will be used as the default.
+
+### Booleans
+
+Booleans may have values of either `true` or `false`. If not default value is
+supplied then `true` will be used as the default.
+
+### Combos
+
+A combo allows any one of the values in the `choices` parameter to be selected.
+If no default value is set then the first value will be the default.
+
+### Arrays
+
+Arrays allow one or more of the values in the `choices` parameter to be selected.
+If the `value` parameter is unset then the values of `choices` will be used as
+the default.
+
+This type is new in version 0.44.0
+
+
+## Using build options
 
 ```meson
 optval = get_option('opt_name')

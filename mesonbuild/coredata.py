@@ -128,24 +128,37 @@ class UserComboOption(UserOption):
 class UserStringArrayOption(UserOption):
     def __init__(self, name, description, value, **kwargs):
         super().__init__(name, description, kwargs.get('choices', []))
-        self.set_value(value)
+        self.set_value(value, user_input=False)
 
-    def validate(self, value):
-        if isinstance(value, str):
-            if not value.startswith('['):
-                raise MesonException('Valuestring does not define an array: ' + value)
-            newvalue = ast.literal_eval(value)
+    def validate(self, value, user_input):
+        # User input is for options defined on the command line (via -D
+        # options). Users should put their input in as a comma separated
+        # string, but for defining options in meson_options.txt the format
+        # should match that of a combo
+        if not user_input:
+            if isinstance(value, str):
+                if not value.startswith('['):
+                    raise MesonException('Valuestring does not define an array: ' + value)
+                newvalue = ast.literal_eval(value)
+            else:
+                newvalue = value
         else:
-            newvalue = value
+            assert isinstance(value, str)
+            newvalue = [v.strip() for v in value.split(',')]
         if not isinstance(newvalue, list):
             raise MesonException('"{0}" should be a string array, but it is not'.format(str(newvalue)))
         for i in newvalue:
             if not isinstance(i, str):
                 raise MesonException('String array element "{0}" is not a string.'.format(str(newvalue)))
+        if self.choices:
+            bad = [x for x in newvalue if x not in self.choices]
+            if bad:
+                raise MesonException('Options "{}" are not in allowed choices: "{}"'.format(
+                    ', '.join(bad), ', '.join(self.choices)))
         return newvalue
 
-    def set_value(self, newvalue):
-        self.value = self.validate(newvalue)
+    def set_value(self, newvalue, user_input=True):
+        self.value = self.validate(newvalue, user_input)
 
     def validate_value(self, value):
         self.validate(value)
