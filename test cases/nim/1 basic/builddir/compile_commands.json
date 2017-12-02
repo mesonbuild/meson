@@ -1,0 +1,7 @@
+[
+  {
+    "directory": "/home/bartoc/Source/meson/test cases/nim/1 basic/builddir",
+    "command": "nim c --debugger:native --out:program ../prog.nim",
+    "file": "../prog.nim"
+  }
+]

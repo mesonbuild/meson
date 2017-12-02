@@ -345,6 +345,9 @@ int dummy;
         if 'swift' in target.compilers:
             self.generate_swift_target(target, outfile)
             return
+        if 'nim' in target.compilers:
+            self.generate_nim_target(target, outfile)
+            return
 
         # Now we handle the following languages:
         # ObjC++, ObjC, C++, C, D, Fortran, Vala
@@ -1091,6 +1094,24 @@ int dummy;
         element.write(outfile)
         return other_src[0], other_src[1], vala_c_src
 
+    def generate_nim_target(self, target, outfile):
+        nim = target.compilers['nim']
+        relsrc = []
+        for i in target.get_sources():
+            if not nim.can_compile(i):
+                raise InvalidArguments('Rust target %s contains a non-nim source file.' % target.get_basename())
+            relsrc.append(i.rel_to_builddir(self.build_to_src))
+        target_name = os.path.join(target.subdir, target.get_filename())
+        args = nim.get_always_args()
+        args += nim.get_buildtype_args(self.get_option_for_target('buildtype', target))
+
+        args += target.get_extra_args('nim')
+        args += nim.get_output_args(target.get_filename())
+        element = NinjaBuildElement(self.all_outputs, target_name, 'nim_COMPILER', relsrc)
+        element.add_item('ARGS', args)
+        element.write(outfile)
+
+
     def generate_rust_target(self, target, outfile):
         rustc = target.compilers['rust']
         # Rust compiler takes only the main file as input and
@@ -1483,6 +1504,16 @@ int dummy;
         outfile.write(depstyle)
         outfile.write('\n')
 
+    def generate_nim_compile_rules(self, compiler, outfile):
+        rule = 'rule %s_COMPILER\n' % compiler.get_language()
+        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
+        command = ' command = %s $ARGS $in\n' % invoc
+        description = ' description = Compiling Nim source $in.\n'
+        outfile.write(rule)
+        outfile.write(command)
+        outfile.write(description)
+        outfile.write('\n')
+
     def generate_swift_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
         full_exe = [ninja_quote(x) for x in self.environment.get_build_command()] + [
@@ -1561,6 +1592,10 @@ rule FORTRAN_DEP_HACK%s
             return
         if langname == 'rust':
             self.generate_rust_compile_rules(compiler, outfile, is_cross)
+            return
+        if langname == 'nim':
+            if not is_cross:
+                self.generate_nim_compile_rules(compiler, outfile)
             return
         if langname == 'swift':
             if not is_cross:

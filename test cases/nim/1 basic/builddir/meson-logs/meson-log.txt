@@ -1,0 +1,15 @@
+Build started at 2017-12-01T20:01:41.971394
+Main binary: /usr/bin/python3
+Python system: Linux
+The Meson build system
+Version: 0.44.0.dev1
+Source dir: /home/bartoc/Source/meson/test cases/nim/1 basic
+Build dir: /home/bartoc/Source/meson/test cases/nim/1 basic/builddir
+Build type: native build
+Project name: nim executable
+Native Nim compiler: nim (nim 0.17.3)
+Build machine cpu family: x86_64
+Build machine cpu: x86_64
+Adding test "nimtest".
+Build targets in project: 1
+Found ninja-1.8.2 at /usr/bin/ninja

@@ -500,7 +500,11 @@ def detect_tests_to_run():
         ('python3', 'python3', backend is not Backend.ninja),
         ('fpga', 'fpga', shutil.which('yosys') is None),
         ('frameworks', 'frameworks', False),
+<<<<<<< HEAD
         ('nasm', 'nasm', False),
+=======
+        ('nim', 'nim', backend is not Backend.ninja or not shutil.which('nim'),),
+>>>>>>> d5066ecb... initial nim support
     ]
     gathered_tests = [(name, gather_tests(Path('test cases', subdir)), skip) for name, subdir, skip in all_tests]
     return gathered_tests

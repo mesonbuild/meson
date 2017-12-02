@@ -81,6 +81,7 @@ __all__ = [
     'ValaCompiler',
     'VisualStudioCCompiler',
     'VisualStudioCPPCompiler',
+    'NimCompiler',
 ]
 
 # Bring symbols from each module into compilers sub-package namespace
@@ -162,3 +163,4 @@ from .objcpp import (
 from .rust import RustCompiler
 from .swift import SwiftCompiler
 from .vala import ValaCompiler
+from .nim import NimCompiler

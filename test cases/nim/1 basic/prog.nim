@@ -1,0 +1,1 @@
+echo "The nim compiler is working"

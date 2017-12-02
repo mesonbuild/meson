@@ -63,6 +63,7 @@ from .compilers import (
     ValaCompiler,
     VisualStudioCCompiler,
     VisualStudioCPPCompiler,
+    NimCompiler,
 )
 
 build_filename = 'meson.build'
@@ -818,6 +819,17 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 return RustCompiler(compiler, version, is_cross, exe_wrap)
 
         self._handle_exceptions(popen_exceptions, compilers)
+
+    def detect_nim_compiler(self):
+        exelist = ['nim']
+        try:
+            p, out = Popen_safe(exelist + ['--version'])[0:2]
+        except OSError:
+            raise EnvironmentException('Could not execute Nim compiler "%s"' % ' '.join(exelist))
+        version = search_version(out)
+        if 'Nim' in out:
+            return NimCompiler(exelist, version)
+        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_d_compiler(self, want_cross):
         is_cross = False

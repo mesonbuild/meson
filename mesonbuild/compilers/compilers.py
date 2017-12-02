@@ -44,6 +44,7 @@ lang_suffixes = {
     'cs': ('cs',),
     'swift': ('swift',),
     'java': ('java',),
+    'nim': ('nim',),
 }
 all_languages = lang_suffixes.keys()
 cpp_suffixes = lang_suffixes['cpp'] + ('h',)
@@ -205,6 +206,14 @@ rust_buildtype_args = {'plain': [],
                        'minsize': [],
                        'custom': [],
                        }
+
+nim_buildtype_args = {
+    'plain': [],
+    'debug': ['--debugger:native'],
+    'debugoptimized': ['--debugger:native', '-d:release'],
+    'release': ['-d:release',],
+    'minsize': ['-d:quick', '--opt:size']
+}
 
 d_gdc_buildtype_args = {'plain': [],
                         'debug': [],
