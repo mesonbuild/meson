@@ -1,0 +1,6 @@
+#include <stdio.h>
+
+int main() {
+    printf("foo is working.\n");
+    return 0;
+}

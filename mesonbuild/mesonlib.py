@@ -744,6 +744,8 @@ def substitute_values(command, values):
     _substitute_values_check_errors(command, values)
     # Substitution
     outcmd = []
+    rx_keys = [re.escape(key) for key in values if key not in ('@INPUT@', '@OUTPUT@')]
+    value_rx = re.compile('|'.join(rx_keys)) if rx_keys else None
     for vv in command:
         if not isinstance(vv, str):
             outcmd.append(vv)
@@ -770,12 +772,9 @@ def substitute_values(command, values):
         elif vv in values:
             outcmd.append(values[vv])
         # Substitute everything else with replacement
+        elif value_rx:
+            outcmd.append(value_rx.sub(lambda m: values[m.group(0)], vv))
         else:
-            for key, value in values.items():
-                if key in ('@INPUT@', '@OUTPUT@'):
-                    # Already done above
-                    continue
-                vv = vv.replace(key, value)
             outcmd.append(vv)
     return outcmd
 
