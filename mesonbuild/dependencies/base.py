@@ -130,7 +130,7 @@ class Dependency:
     def need_threads(self):
         return False
 
-    def get_pkgconfig_variable(self, variable_name):
+    def get_pkgconfig_variable(self, variable_name, kwargs):
         raise NotImplementedError('{!r} is not a pkgconfig dependency'.format(self.name))
 
     def get_configtool_variable(self, variable_name):
@@ -491,8 +491,20 @@ class PkgConfigDependency(ExternalDependency):
                 self.is_libtool = True
             self.link_args.append(lib)
 
-    def get_pkgconfig_variable(self, variable_name):
-        ret, out = self._call_pkgbin(['--variable=' + variable_name, self.name])
+    def get_pkgconfig_variable(self, variable_name, kwargs):
+        options = ['--variable=' + variable_name, self.name]
+
+        if 'define_variable' in kwargs:
+            definition = kwargs.get('define_variable', [])
+            if not isinstance(definition, list):
+                raise MesonException('define_variable takes a list')
+
+            if len(definition) != 2 or not all(isinstance(i, str) for i in definition):
+                raise MesonException('define_variable must be made up of 2 strings for VARIABLENAME and VARIABLEVALUE')
+
+            options = ['--define-variable=' + '='.join(definition)] + options
+
+        ret, out = self._call_pkgbin(options)
         variable = ''
         if ret != 0:
             if self.required:

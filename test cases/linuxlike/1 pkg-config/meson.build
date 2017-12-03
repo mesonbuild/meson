@@ -17,6 +17,8 @@ test('zlibtest', exe)
 zprefix = dep.get_pkgconfig_variable('prefix') # Always set but we can't be sure what the value is.
 # pkg-config returns empty string for not defined variables
 assert(dep.get_pkgconfig_variable('nonexisting') == '', 'Value of unknown variable is not empty.')
+# pkg-config is able to replace variables
+assert(dep.get_pkgconfig_variable('prefix', define_variable: ['prefix', '/tmp']) == '/tmp', 'prefix variable has not been replaced.')
 
 # Test that dependencies of dependencies work.
 dep2 = declare_dependency(dependencies : dep)

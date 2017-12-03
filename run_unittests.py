@@ -1891,8 +1891,8 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertTrue(foo_dep.found())
         self.assertEqual(foo_dep.get_version(), '1.0')
         self.assertIn('-lfoo', foo_dep.get_link_args())
-        self.assertEqual(foo_dep.get_pkgconfig_variable('foo'), 'bar')
-        self.assertPathEqual(foo_dep.get_pkgconfig_variable('datadir'), '/usr/data')
+        self.assertEqual(foo_dep.get_pkgconfig_variable('foo', {}), 'bar')
+        self.assertPathEqual(foo_dep.get_pkgconfig_variable('datadir', {}), '/usr/data')
 
     def test_vala_c_warnings(self):
         '''

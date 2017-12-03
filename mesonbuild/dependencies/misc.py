@@ -682,11 +682,11 @@ class Python3Dependency(ExternalDependency):
         else:
             return [DependencyMethods.PKGCONFIG]
 
-    def get_pkgconfig_variable(self, variable_name):
+    def get_pkgconfig_variable(self, variable_name, kwargs):
         if self.pkgdep:
-            return self.pkgdep.get_pkgconfig_variable(variable_name)
+            return self.pkgdep.get_pkgconfig_variable(variable_name, kwargs)
         else:
-            return super().get_pkgconfig_variable(variable_name)
+            return super().get_pkgconfig_variable(variable_name, kwargs)
 
 
 class PcapDependency(ExternalDependency):

@@ -295,7 +295,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
         varname = args[0]
         if not isinstance(varname, str):
             raise InterpreterException('Variable name must be a string.')
-        return self.held_object.get_pkgconfig_variable(varname)
+        return self.held_object.get_pkgconfig_variable(varname, kwargs)
 
     def configtool_method(self, args, kwargs):
         args = listify(args)
