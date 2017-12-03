@@ -58,7 +58,7 @@ def get_dynamic_section_entry(fname, entry):
         m = pattern.search(line)
         if m is not None:
             return m.group(1)
-    raise RuntimeError('Could not determine {}:\n\n'.format(entry) + raw_out)
+    return None # The file did not contain the specified entry.
 
 def get_soname(fname):
     return get_dynamic_section_entry(fname, 'soname')
@@ -1360,12 +1360,15 @@ int main(int argc, char **argv) {
         testdir = os.path.join(self.common_test_dir, '46 library chain')
         self.init(testdir)
         self.build()
-        for each in ('prog', 'subdir/liblib1.so', 'subdir/subdir2/liblib2.so',
-                     'subdir/subdir3/liblib3.so'):
+        for each in ('prog', 'subdir/liblib1.so', ):
             rpath = get_rpath(os.path.join(self.builddir, each))
             self.assertTrue(rpath)
             for path in rpath.split(':'):
                 self.assertTrue(path.startswith('$ORIGIN'), msg=(each, path))
+        # These two don't link to anything else, so they do not need an rpath entry.
+        for each in ('subdir/subdir2/liblib2.so', 'subdir/subdir3/liblib3.so'):
+            rpath = get_rpath(os.path.join(self.builddir, each))
+            self.assertTrue(rpath is None)
 
     def test_dash_d_dedup(self):
         testdir = os.path.join(self.unit_test_dir, '10 d dedup')

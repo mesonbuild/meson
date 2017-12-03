@@ -330,6 +330,8 @@ class Backend:
         link_deps = target.get_all_link_deps()
         result = []
         for ld in link_deps:
+            if ld is target:
+                continue
             prospective = self.get_target_dir(ld)
             if prospective not in result:
                 result.append(prospective)

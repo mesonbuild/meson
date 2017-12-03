@@ -817,6 +817,16 @@ class Compiler:
     def get_instruction_set_args(self, instruction_set):
         return None
 
+    def build_osx_rpath_args(self, build_dir, rpath_paths, build_rpath):
+        if not rpath_paths and not build_rpath:
+            return []
+        # On OSX, rpaths must be absolute.
+        abs_rpaths = [os.path.join(build_dir, p) for p in rpath_paths]
+        if build_rpath != '':
+            abs_rpaths.append(build_rpath)
+        args = ['-Wl,-rpath,' + rp for rp in abs_rpaths]
+        return args
+
     def build_unix_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         if not rpath_paths and not install_rpath and not build_rpath:
             return []
@@ -879,7 +889,11 @@ def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, i
     elif gcc_type == GCC_OSX:
         if is_shared_module:
             return []
-        return ['-install_name', os.path.join(path, 'lib' + shlib_name + '.dylib')]
+        install_name = prefix + shlib_name
+        if soversion is not None:
+            install_name += '.' + soversion
+        install_name += '.dylib'
+        return ['-install_name', os.path.join('@rpath', install_name)]
     else:
         raise RuntimeError('Not implemented yet.')
 
