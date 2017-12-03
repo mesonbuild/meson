@@ -2249,8 +2249,9 @@ class LinuxlikeTests(BasePlatformTests):
             raise unittest.SkipTest('gcovr not found')
         if not shutil.which('genhtml'):
             raise unittest.SkipTest('genhtml not found')
-        if 'clang' in os.environ.get('CC', '') and os.environ.get('TRAVIS_OS_NAME', '') == 'linux':
-            raise unittest.SkipTest('Gcovr has a bug and does not work with Clang in the CI environment.')
+        if 'clang' in os.environ.get('CC', ''):
+            # We need to use llvm-cov instead of gcovr with clang
+            raise unittest.SkipTest('Coverage does not work with clang right now, help wanted!')
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         self.init(testdir, ['-Db_coverage=true'])
         self.build()
