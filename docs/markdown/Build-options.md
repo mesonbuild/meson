@@ -30,7 +30,7 @@ then an empty string will be used as the default.
 
 ### Booleans
 
-Booleans may have values of either `true` or `false`. If not default
+Booleans may have values of either `true` or `false`. If no default
 value is supplied then `true` will be used as the default.
 
 ### Combos
