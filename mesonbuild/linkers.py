@@ -40,10 +40,10 @@ class VisualStudioLinker(StaticLinker):
         return []
 
     def get_always_args(self):
-        return VisualStudioLinker.always_args
+        return VisualStudioLinker.always_args[:]
 
     def get_linker_always_args(self):
-        return VisualStudioLinker.always_args
+        return VisualStudioLinker.always_args[:]
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return []

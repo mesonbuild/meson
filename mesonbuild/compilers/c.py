@@ -727,10 +727,12 @@ class CCompiler(Compiler):
         if for_darwin(env.is_cross_build(), env):
             shlibext = ['dylib']
         elif for_windows(env.is_cross_build(), env):
+            # FIXME: .lib files can be import or static so we should read the
+            # file, figure out which one it is, and reject the wrong kind.
             if self.id == 'msvc':
                 shlibext = ['lib']
             else:
-                shlibext = ['dll', 'dll.a', 'lib']
+                shlibext = ['dll.a', 'lib', 'dll']
             # Yep, static libraries can also be foo.lib
             stlibext += ['lib']
         elif for_cygwin(env.is_cross_build(), env):

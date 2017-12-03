@@ -22,6 +22,7 @@ import shlex
 import shutil
 import textwrap
 from enum import Enum
+from pathlib import PurePath
 
 from .. import mlog
 from .. import mesonlib
@@ -156,9 +157,6 @@ class ExternalDependency(Dependency):
         self.name = type_name # default
         self.is_found = False
         self.language = language
-        if language and language not in self.env.coredata.compilers:
-            m = self.name.capitalize() + ' requires a {} compiler'
-            raise DependencyException(m.format(language.capitalize()))
         self.version_reqs = kwargs.get('version', None)
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
@@ -176,7 +174,20 @@ class ExternalDependency(Dependency):
             compilers = self.env.coredata.cross_compilers
         else:
             compilers = self.env.coredata.compilers
-        self.compiler = compilers.get(self.language or 'c', None)
+        # Set the compiler for this dependency if a language is specified,
+        # else try to pick something that looks usable.
+        if self.language:
+            if self.language not in compilers:
+                m = self.name.capitalize() + ' requires a {} compiler'
+                raise DependencyException(m.format(self.language.capitalize()))
+            self.compiler = compilers[self.language]
+        else:
+            # Try to find a compiler that this dependency can use for compiler
+            # checks. It's ok if we don't find one.
+            for lang in ('c', 'cpp', 'objc', 'objcpp', 'fortran', 'd'):
+                self.compiler = compilers.get(lang, None)
+                if self.compiler:
+                    break
 
     def get_compiler(self):
         return self.compiler
@@ -308,8 +319,8 @@ class PkgConfigDependency(ExternalDependency):
     # multiple times in the same Meson invocation.
     class_pkgbin = None
 
-    def __init__(self, name, environment, kwargs):
-        super().__init__('pkgconfig', environment, None, kwargs)
+    def __init__(self, name, environment, kwargs, language=None):
+        super().__init__('pkgconfig', environment, language, kwargs)
         self.name = name
         self.is_libtool = False
         # Store a copy of the pkg-config path on the object itself so it is
@@ -401,12 +412,40 @@ class PkgConfigDependency(ExternalDependency):
         p, out = Popen_safe([self.pkgbin] + args, env=env)[0:2]
         return p.returncode, out.strip()
 
+    def _convert_mingw_paths(self, args):
+        '''
+        Both MSVC and native Python on Windows cannot handle MinGW-esque /c/foo
+        paths so convert them to C:/foo. We cannot resolve other paths starting
+        with / like /home/foo so leave them as-is so that the user gets an
+        error/warning from the compiler/linker.
+        '''
+        if not mesonlib.is_windows():
+            return args
+        converted = []
+        for arg in args:
+            pargs = []
+            # Library search path
+            if arg.startswith('-L/'):
+                pargs = PurePath(arg[2:]).parts
+                tmpl = '-L{}:/{}'
+            elif arg.startswith('-I/'):
+                pargs = PurePath(arg[2:]).parts
+                tmpl = '-I{}:/{}'
+            # Full path to library or .la file
+            elif arg.startswith('/'):
+                pargs = PurePath(arg).parts
+                tmpl = '{}:/{}'
+            if len(pargs) > 1 and len(pargs[1]) == 1:
+                arg = tmpl.format(pargs[1], '/'.join(pargs[2:]))
+            converted.append(arg)
+        return converted
+
     def _set_cargs(self):
         ret, out = self._call_pkgbin(['--cflags', self.name])
         if ret != 0:
             raise DependencyException('Could not generate cargs for %s:\n\n%s' %
                                       (self.name, out))
-        self.compile_args = shlex.split(out)
+        self.compile_args = self._convert_mingw_paths(shlex.split(out))
 
     def _set_libs(self):
         env = None
@@ -423,7 +462,7 @@ class PkgConfigDependency(ExternalDependency):
                                       (self.name, out))
         self.link_args = []
         libpaths = []
-        for lib in shlex.split(out):
+        for lib in self._convert_mingw_paths(shlex.split(out)):
             # If we want to use only static libraries, we have to look for the
             # file ourselves instead of depending on the compiler to find it
             # with -lfoo or foo.lib. However, we can only do this if we already

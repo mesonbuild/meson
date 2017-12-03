@@ -408,7 +408,7 @@ class MPIDependency(ExternalDependency):
 
         for pkg in pkgconfig_files:
             try:
-                pkgdep = PkgConfigDependency(pkg, environment, kwargs)
+                pkgdep = PkgConfigDependency(pkg, environment, kwargs, language=self.language)
                 if pkgdep.found():
                     self.compile_args = pkgdep.get_compile_args()
                     self.link_args = pkgdep.get_link_args()

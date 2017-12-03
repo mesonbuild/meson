@@ -155,15 +155,6 @@ def run_configure(meson_command, commandlist):
         return run_configure_external(meson_exe + commandlist)
     return run_configure_inprocess(meson_command, commandlist)
 
-class FakeEnvironment(object):
-    def __init__(self):
-        self.cross_info = None
-        self.coredata = lambda: None
-        self.coredata.compilers = {}
-
-    def is_cross_build(self):
-        return False
-
 def print_system_info():
     print(mlog.bold('System information.').get_text(mlog.colorize_console))
     print('Architecture:', platform.architecture())
