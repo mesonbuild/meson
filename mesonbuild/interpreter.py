@@ -27,7 +27,7 @@ from .dependencies import InternalDependency, Dependency, DependencyException
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, permittedKwargs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
-from .interpreterbase import InterpreterObject, MutableInterpreterObject
+from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler
 from .modules import ModuleReturnValue
 
 import os, sys, shutil, uuid
@@ -1451,6 +1451,7 @@ class Interpreter(InterpreterBase):
                            'custom_target': self.func_custom_target,
                            'declare_dependency': self.func_declare_dependency,
                            'dependency': self.func_dependency,
+                           'disabler': self.func_disabler,
                            'environment': self.func_environment,
                            'error': self.func_error,
                            'executable': self.func_executable,
@@ -2202,6 +2203,11 @@ to directly access options of other subprojects.''')
         if dep.found():
             self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)
+
+    @noKwargs
+    @noPosargs
+    def func_disabler(self, node, args, kwargs):
+        return Disabler()
 
     def get_subproject_infos(self, kwargs):
         fbinfo = kwargs['fallback']

@@ -26,6 +26,7 @@ index.md
 		Localisation.md
 		Build-options.md
 		Subprojects.md
+		Disabler.md
 		Modules.md
 			Gnome-module.md
 			i18n-module.md
