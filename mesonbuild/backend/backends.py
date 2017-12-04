@@ -346,6 +346,11 @@ class Backend:
         assert isinstance(source, mesonlib.File)
         build_dir = self.environment.get_build_dir()
         rel_src = source.rel_to_builddir(self.build_to_src)
+
+        if (not self.environment.is_source(rel_src) or
+           self.environment.is_header(rel_src)) and not is_unity:
+            return None
+
         # foo.vala files compile down to foo.c and then foo.c.o, not foo.vala.o
         if rel_src.endswith(('.vala', '.gs')):
             # See description in generate_vala_compile for this logic.
@@ -393,8 +398,9 @@ class Backend:
             return [objpath]
         for osrc in extobj.srclist:
             objname = self.object_filename_from_source(extobj.target, osrc, False)
-            objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
-            result.append(objpath)
+            if objname:
+                objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
+                result.append(objpath)
         return result
 
     def get_pch_include_args(self, compiler, target):
