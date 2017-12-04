@@ -110,7 +110,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
                                                            False)}
         if self.gcc_type == GCC_MINGW:
             opts.update({
-                'cpp_winlibs': coredata.UserStringArrayOption('cpp_winlibs', 'Standard Win libraries to link against',
+                'cpp_winlibs': coredata.UserArrayOption('cpp_winlibs', 'Standard Win libraries to link against',
                                                               gnu_winlibs), })
         return opts
 
@@ -188,9 +188,9 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
                                                    'C++ exception handling type.',
                                                    ['none', 'a', 's', 'sc'],
                                                    'sc'),
-                'cpp_winlibs': coredata.UserStringArrayOption('cpp_winlibs',
-                                                              'Windows libs to link against.',
-                                                              msvc_winlibs)
+                'cpp_winlibs': coredata.UserArrayOption('cpp_winlibs',
+                                                        'Windows libs to link against.',
+                                                        msvc_winlibs)
                 }
 
     def get_option_compile_args(self, options):

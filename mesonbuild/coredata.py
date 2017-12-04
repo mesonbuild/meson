@@ -125,8 +125,7 @@ class UserComboOption(UserOption):
             raise MesonException('Value %s not one of accepted values.' % value)
         return value
 
-
-class UserStringArrayOption(UserOption):
+class UserArrayOption(UserOption):
     def __init__(self, name, description, value, **kwargs):
         super().__init__(name, description, kwargs.get('choices', []))
         self.set_value(value, user_input=False)

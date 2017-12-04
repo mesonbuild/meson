@@ -99,7 +99,7 @@ def string_array_parser(name, description, kwargs):
         value = kwargs.get('value', [])
     if not isinstance(value, list):
         raise OptionException('Array choices must be passed as an array.')
-    return coredata.UserStringArrayOption(name, description, value, choices=choices)
+    return coredata.UserArrayOption(name, description, value, choices=choices)
 
 option_types = {'string': StringParser,
                 'boolean': BooleanParser,

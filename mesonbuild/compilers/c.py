@@ -839,8 +839,8 @@ class GnuCCompiler(GnuCompiler, CCompiler):
                                                   'none')}
         if self.gcc_type == GCC_MINGW:
             opts.update({
-                'c_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
-                                                            gnu_winlibs), })
+                'c_winlibs': coredata.UserArrayOption('c_winlibs', 'Standard Win libraries to link against',
+                                                      gnu_winlibs), })
         return opts
 
     def get_option_compile_args(self, options):
@@ -1012,9 +1012,9 @@ class VisualStudioCCompiler(CCompiler):
         return []
 
     def get_options(self):
-        return {'c_winlibs': coredata.UserStringArrayOption('c_winlibs',
-                                                            'Windows libs to link against.',
-                                                            msvc_winlibs)
+        return {'c_winlibs': coredata.UserArrayOption('c_winlibs',
+                                                      'Windows libs to link against.',
+                                                      msvc_winlibs)
                 }
 
     def get_option_link_args(self, options):
