@@ -35,7 +35,7 @@ import mesonbuild.mesonlib
 import mesonbuild.coredata
 from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
-from mesonbuild.mesonlib import python_command, meson_command
+from mesonbuild.mesonlib import python_command, meson_command, version_compare
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import DependencyException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
@@ -2046,6 +2046,8 @@ class LinuxlikeTests(BasePlatformTests):
         # Check that all the listed -std=xxx options for this compiler work
         # just fine when used
         for v in compiler.get_options()[lang_std].choices:
+            if compiler.get_id() == 'clang' and version_compare(compiler.version, '<5.0.0') and '17' in v:
+                continue
             std_opt = '{}={}'.format(lang_std, v)
             self.init(testdir, ['-D' + std_opt])
             cmd = self.get_compdb()[0]['command']

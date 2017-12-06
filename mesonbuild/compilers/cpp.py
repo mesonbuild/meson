@@ -76,8 +76,8 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
 
     def get_options(self):
         return {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                    ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++1z',
-                                                     'gnu++11', 'gnu++14', 'gnu++1z'],
+                                                    ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
+                                                     'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z'],
                                                     'none')}
 
     def get_option_compile_args(self, options):
@@ -102,8 +102,8 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
     def get_options(self):
         opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                    ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++1z',
-                                                     'gnu++03', 'gnu++11', 'gnu++14', 'gnu++1z'],
+                                                    ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
+                                                     'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z'],
                                                     'none'),
                 'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
                                                            'STL debug mode',
