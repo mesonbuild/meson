@@ -1287,13 +1287,15 @@ class AllPlatformTests(BasePlatformTests):
             raise unittest.SkipTest('Git not found')
 
         def git_init(project_dir):
-            subprocess.check_call(['git', 'init'], cwd=project_dir)
+            subprocess.check_call(['git', 'init'], cwd=project_dir, stdout=subprocess.DEVNULL)
             subprocess.check_call(['git', 'config',
                                    'user.name', 'Author Person'], cwd=project_dir)
             subprocess.check_call(['git', 'config',
                                    'user.email', 'teh_coderz@example.com'], cwd=project_dir)
-            subprocess.check_call(['git', 'add', 'meson.build', 'distexe.c'], cwd=project_dir)
-            subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir)
+            subprocess.check_call(['git', 'add', 'meson.build', 'distexe.c'], cwd=project_dir,
+                                    stdout=subprocess.DEVNULL)
+            subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir,
+                                    stdout=subprocess.DEVNULL)
 
         try:
             self.dist_impl(git_init)
