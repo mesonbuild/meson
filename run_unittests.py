@@ -35,7 +35,7 @@ import mesonbuild.mesonlib
 import mesonbuild.coredata
 from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
-from mesonbuild.mesonlib import python_command, meson_command
+from mesonbuild.mesonlib import python_command, meson_command, version_compare
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import DependencyException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
@@ -2054,6 +2054,10 @@ class LinuxlikeTests(BasePlatformTests):
             if v != 'none':
                 cmd_std = " -std={} ".format(v)
                 self.assertIn(cmd_std, cmd)
+                if (type(compiler).__name__ == 'ClangCPPCompiler' and
+                        '17' in cmd_std and
+                        version_compare(compiler.version, '<5.0.0')):
+                    continue
             try:
                 self.build()
             except:
