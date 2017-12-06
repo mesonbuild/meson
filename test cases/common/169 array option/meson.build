@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project('stringarray default options')
+project('array default options')
 
 assert(get_option('array') == ['foo', 'bar'], 'Default value for array is not equal to choices')

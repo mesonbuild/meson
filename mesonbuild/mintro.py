@@ -140,7 +140,7 @@ def add_keys(optlist, options):
             optdict['choices'] = opt.choices
             typestr = 'combo'
         elif isinstance(opt, coredata.UserArrayOption):
-            typestr = 'stringarray'
+            typestr = 'array'
         else:
             raise RuntimeError("Unknown option type")
         optdict['type'] = typestr

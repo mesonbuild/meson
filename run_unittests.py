@@ -1588,7 +1588,7 @@ int main(int argc, char **argv) {
         expected = {
             'name': 'list',
             'description': 'list',
-            'type': 'stringarray',
+            'type': 'array',
             'value': ['foo', 'bar'],
         }
         tdir = os.path.join(self.unit_test_dir, '18 array option')
@@ -1612,7 +1612,7 @@ int main(int argc, char **argv) {
         expected = {
             'name': 'list',
             'description': 'list',
-            'type': 'stringarray',
+            'type': 'array',
             'value': ['foo', 'bar'],
         }
         tdir = os.path.join(self.unit_test_dir, '18 array option')
