@@ -40,6 +40,9 @@ def run_command(source_dir, build_dir, subdir, meson_command, command, arguments
     except FileNotFoundError:
         print('Could not execute command "%s". File not found.' % command)
         sys.exit(1)
+    except PermissionError:
+        print('Could not execute command "%s". File not executable.' % command)
+        sys.exit(1)
 
 def run(args):
     if len(args) < 4:

@@ -275,10 +275,7 @@ def run_script_command(args):
         cmdfunc = abc.run
     else:
         raise MesonException('Unknown internal command {}.'.format(cmdname))
-    try:
-        return cmdfunc(cmdargs)
-    except PermissionError as err:
-        raise MesonException('Error executing "{}". {}'.format(cmdargs[-1], err))
+    return cmdfunc(cmdargs)
 
 def run(original_args, mainfile=None):
     if sys.version_info < (3, 4):
