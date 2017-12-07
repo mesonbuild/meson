@@ -45,7 +45,7 @@ def run_command(source_dir, build_dir, subdir, meson_command, command, arguments
     except OSError as err:
         print('Could not execute command "{}": {}'.format(command, err))
         sys.exit(1)
-    except SubprocessError as err:
+    except subprocess.SubprocessError as err:
         print('Could not execute command "{}": {}'.format(command, err))
         sys.exit(1)
 
