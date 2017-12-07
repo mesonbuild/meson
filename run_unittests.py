@@ -1766,6 +1766,22 @@ class FailureTests(BasePlatformTests):
         self.assertMesonRaises("dependency('boost')",
                                "(BOOST_ROOT.*absolute|{})".format(self.dnf))
 
+    def test_dependency_invalid_method(self):
+        code = '''zlib_dep = dependency('zlib', required : false)
+        zlib_dep.get_configtool_variable('foo')
+        '''
+        self.assertMesonRaises(code, "'zlib' is not a config-tool dependency")
+        code = '''zlib_dep = dependency('zlib', required : false)
+        dep = declare_dependency(dependencies : zlib_dep)
+        dep.get_pkgconfig_variable('foo')
+        '''
+        self.assertMesonRaises(code, "Method.*pkgconfig.*is invalid.*internal")
+        code = '''zlib_dep = dependency('zlib', required : false)
+        dep = declare_dependency(dependencies : zlib_dep)
+        dep.get_configtool_variable('foo')
+        '''
+        self.assertMesonRaises(code, "Method.*configtool.*is invalid.*internal")
+
 
 class WindowsTests(BasePlatformTests):
     '''

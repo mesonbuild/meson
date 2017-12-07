@@ -131,10 +131,10 @@ class Dependency:
         return False
 
     def get_pkgconfig_variable(self, variable_name, kwargs):
-        raise NotImplementedError('{!r} is not a pkgconfig dependency'.format(self.name))
+        raise DependencyException('{!r} is not a pkgconfig dependency'.format(self.name))
 
     def get_configtool_variable(self, variable_name):
-        raise NotImplementedError('{!r} is not a config-tool dependency'.format(self.name))
+        raise DependencyException('{!r} is not a config-tool dependency'.format(self.name))
 
 
 class InternalDependency(Dependency):
@@ -148,6 +148,14 @@ class InternalDependency(Dependency):
         self.libraries = libraries
         self.sources = sources
         self.ext_deps = ext_deps
+
+    def get_pkgconfig_variable(self, variable_name, kwargs):
+        raise DependencyException('Method "get_pkgconfig_variable()" is '
+                                  'invalid for an internal dependency')
+
+    def get_configtool_variable(self, variable_name):
+        raise DependencyException('Method "get_configtool_variable()" is '
+                                  'invalid for an internal dependency')
 
 
 class ExternalDependency(Dependency):
