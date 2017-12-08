@@ -31,10 +31,9 @@ def run_command(source_dir, build_dir, subdir, meson_command, command, arguments
     exe = shutil.which(command)
     if exe is not None:
         command_array = [exe] + arguments
-        return subprocess.Popen(command_array, env=child_env, cwd=cwd)
-    # No? Maybe it is a script in the source tree.
-    fullpath = os.path.join(source_dir, subdir, command)
-    command_array = [fullpath] + arguments
+    else:# No? Maybe it is a script in the source tree.
+        fullpath = os.path.join(source_dir, subdir, command)
+        command_array = [fullpath] + arguments
     try:
         return subprocess.Popen(command_array, env=child_env, cwd=cwd)
     except FileNotFoundError:
@@ -43,6 +42,13 @@ def run_command(source_dir, build_dir, subdir, meson_command, command, arguments
     except PermissionError:
         print('Could not execute command "%s". File not executable.' % command)
         sys.exit(1)
+    except OSError as err:
+        print('Could not execute command "{}": {}'.format(command, err))
+        sys.exit(1)
+    except subprocess.SubprocessError as err:
+        print('Could not execute command "{}": {}'.format(command, err))
+        sys.exit(1)
+
 
 def run(args):
     if len(args) < 4:
