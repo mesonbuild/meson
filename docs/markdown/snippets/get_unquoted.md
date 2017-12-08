@@ -1,4 +1,4 @@
-# `get_unquoted()` mehod for the `configuration` data object
+# `get_unquoted()` method for the `configuration` data object
 
-New convenience method that allow reusing a variable value
+New convenience method that allows reusing a variable value
 defined quoted. Useful in C for config.h strings for example.
