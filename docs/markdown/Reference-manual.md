@@ -767,11 +767,7 @@ installed with a `.gz` suffix.
 
 Installs the entire given subdirectory and its contents from the
 source tree to the location specified by the keyword argument
-`install_dir`. Note that due to implementation issues this command
-deletes the entire target dir before copying the files, so you should
-never use `install_subdir` to install into two overlapping directories
-(such as `foo` and `foo/bar`) because if you do the behavior is
-undefined.
+`install_dir`.
 
 The following keyword arguments are supported:
 
