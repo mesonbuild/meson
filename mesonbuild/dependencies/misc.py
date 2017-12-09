@@ -638,12 +638,35 @@ class Python3Dependency(ExternalDependency):
         else:
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
 
+    @staticmethod
+    def get_windows_python_arch():
+        pyplat = sysconfig.get_platform()
+        if pyplat == 'mingw':
+            pycc = sysconfig.get_config_var('CC')
+            if pycc.startswith('x86_64'):
+                return '64'
+            elif pycc.startswith(('i686', 'i386')):
+                return '32'
+            else:
+                mlog.log('MinGW Python built with unknown CC {!r}, please file'
+                         'a bug'.format(pycc))
+                return None
+        elif pyplat == 'win32':
+            return '32'
+        elif pyplat in ('win64', 'win-amd64'):
+            return '64'
+        mlog.log('Unknown Windows Python platform {!r}'.format(pyplat))
+        return None
+
     def _find_libpy3_windows(self, env):
         '''
         Find python3 libraries on Windows and also verify that the arch matches
         what we are building for.
         '''
-        pyarch = sysconfig.get_platform()
+        pyarch = self.get_windows_python_arch()
+        if pyarch is None:
+            self.is_found = False
+            return
         arch = detect_cpu_family(env.coredata.compilers)
         if arch == 'x86':
             arch = '32'
@@ -656,9 +679,9 @@ class Python3Dependency(ExternalDependency):
             self.is_found = False
             return
         # Pyarch ends in '32' or '64'
-        if arch != pyarch[-2:]:
-            mlog.log('Need', mlog.bold(self.name),
-                     'for {}-bit, but found {}-bit'.format(arch, pyarch[-2:]))
+        if arch != pyarch:
+            mlog.log('Need', mlog.bold(self.name), 'for {}-bit, but '
+                     'found {}-bit'.format(arch, pyarch))
             self.is_found = False
             return
         inc = sysconfig.get_path('include')
