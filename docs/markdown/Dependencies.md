@@ -55,7 +55,7 @@ These variables can also be redefined by passing the `define_variable`
 parameter, which might be useful in certain situations:
 
 ```meson
-zdep_prefix = zdep.get_pkgconfig_variable('prefix', define_variable: ['prefix', '/tmp'])
+zdep_prefix = zdep.get_pkgconfig_variable('libdir', define_variable: ['prefix', '/tmp'])
 ```
 
 The dependency detector works with all libraries that provide a
