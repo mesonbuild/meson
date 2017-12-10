@@ -2503,6 +2503,7 @@ to directly access options of other subprojects.''')
     @permittedKwargs(permitted_kwargs['subdir'])
     def func_subdir(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
+        mesonlib.check_direntry_issues(args)
         if '..' in args[0]:
             raise InvalidArguments('Subdir contains ..')
         if self.subdir == '' and args[0] == self.subproject_dir:
@@ -2912,6 +2913,7 @@ different subdirectory.
 
     def source_strings_to_files(self, sources):
         results = []
+        mesonlib.check_direntry_issues(sources)
         for s in sources:
             if isinstance(s, (mesonlib.File, GeneratedListHolder,
                               CustomTargetHolder, CustomTargetIndexHolder)):
