@@ -68,7 +68,7 @@ install:
   - ps: (new-object net.webclient).DownloadFile('http://nirbheek.in/files/binaries/ninja/win32/ninja.exe', 'C:\projects\meson\ninja.exe')
   # Use the x86 python only when building for x86 for the cpython tests.
   # For all other archs (including, say, arm), use the x64 python.
-  - cmd: if %arch%==x86 (set MESON_PYTHON_PATH=C:\python34) else (set MESON_PYTHON_PATH=C:\python34-x64)
+  - cmd: if %arch%==x86 (set MESON_PYTHON_PATH=C:\python35) else (set MESON_PYTHON_PATH=C:\python35-x64)
 
   # Set paths for BOOST dll files
   - cmd: if %compiler%==msvc2015 ( if %arch%==x86 ( set "PATH=%PATH%;C:\Libraries\boost_1_59_0\lib32-msvc-14.0" ) else ( set "PATH=%PATH%;C:\Libraries\boost_1_59_0\lib64-msvc-14.0" ) )
