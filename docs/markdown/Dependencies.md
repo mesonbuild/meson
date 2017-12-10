@@ -43,6 +43,21 @@ You can pass the `opt_dep` variable to target construction functions
 whether the actual dependency was found or not. Meson will ignore
 non-found dependencies.
 
+Meson also allows to get variables that are defined in the
+`pkg-config` file. This can be done by using the
+`get_pkgconfig_variable` function.
+
+```meson
+zdep_prefix = zdep.get_pkgconfig_variable('prefix')
+```
+
+These variables can also be redefined by passing the `define_variable`
+parameter, which might be useful in certain situations:
+
+```meson
+zdep_prefix = zdep.get_pkgconfig_variable('prefix', define_variable: ['prefix', '/tmp'])
+```
+
 The dependency detector works with all libraries that provide a
 `pkg-config` file. Unfortunately several packages don't provide
 pkg-config files. Meson has autodetection support for some of these,
