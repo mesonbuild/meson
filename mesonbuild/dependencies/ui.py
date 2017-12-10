@@ -47,6 +47,7 @@ class GLDependency(ExternalDependency):
                     self.compile_args = pcdep.get_compile_args()
                     self.link_args = pcdep.get_link_args()
                     self.version = pcdep.get_version()
+                    self.pcdep = pcdep
                     return
             except Exception:
                 pass
@@ -228,6 +229,7 @@ class QtBaseDependency(ExternalDependency):
             self.link_args += m.get_link_args()
         self.is_found = True
         self.version = m.version
+        self.pcdep = list(modules.values())
         # Try to detect moc, uic, rcc
         if 'Core' in modules:
             core = modules['Core']
@@ -235,6 +237,7 @@ class QtBaseDependency(ExternalDependency):
             corekwargs = {'required': 'false', 'silent': 'true'}
             core = PkgConfigDependency(self.qtpkgname + 'Core', self.env, corekwargs,
                                        language=self.language)
+            self.pcdep.append(core)
         # Used by self.compilers_detect()
         self.bindir = self.get_pkgconfig_host_bins(core)
         if not self.bindir:
@@ -387,6 +390,7 @@ class SDL2Dependency(ExternalDependency):
                     self.compile_args = pcdep.get_compile_args()
                     self.link_args = pcdep.get_link_args()
                     self.version = pcdep.get_version()
+                    self.pcdep = pcdep
                     return
             except Exception as e:
                 mlog.debug('SDL 2 not found via pkgconfig. Trying next, error was:', str(e))
@@ -461,6 +465,7 @@ class VulkanDependency(ExternalDependency):
                     self.compile_args = pcdep.get_compile_args()
                     self.link_args = pcdep.get_link_args()
                     self.version = pcdep.get_version()
+                    self.pcdep = pcdep
                     return
             except Exception:
                 pass
