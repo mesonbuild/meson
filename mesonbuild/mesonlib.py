@@ -19,6 +19,7 @@ import stat
 import time
 import platform, subprocess, operator, os, shutil, re
 import collections
+from mesonbuild import mlog
 
 from glob import glob
 
@@ -58,6 +59,34 @@ if os.path.basename(sys.executable) == 'meson.exe':
 else:
     python_command = [sys.executable]
     meson_command = python_command + [detect_meson_py_location()]
+
+def is_ascii_string(astring):
+    try:
+        if isinstance(astring, str):
+            astring.encode('ascii')
+        if isinstance(astring, bytes):
+            astring.decode('ascii')
+    except UnicodeDecodeError:
+        return False
+    return True
+
+def check_direntry_issues(direntry_array):
+    import locale
+    # Warn if the locale is not UTF-8. This can cause various unfixable issues
+    # such as os.stat not being able to decode filenames with unicode in them.
+    # There is no way to reset both the preferred encoding and the filesystem
+    # encoding, so we can just warn about it.
+    e = locale.getpreferredencoding()
+    if e.upper() != 'UTF-8' and not is_windows():
+        if not isinstance(direntry_array, list):
+            direntry_array = [direntry_array]
+        for de in direntry_array:
+            if is_ascii_string(de):
+                continue
+            mlog.warning('''You are using {!r} which is not a Unicode-compatible '
+locale but you are trying to access a file system entry called {!r} which is
+not pure ASCII. This may cause problems.
+'''.format(e, de), file=sys.stderr)
 
 # Put this in objects that should not get dumped to pickle files
 # by accident.
