@@ -292,6 +292,18 @@ def for_darwin(is_cross, env):
         return env.cross_info.config['host_machine']['system'] == 'darwin'
     return False
 
+def for_haiku(is_cross, env):
+    """
+    Host machine is Haiku?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return is_haiku()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'haiku'
+    return False
+
 def exe_exists(arglist):
     try:
         p = subprocess.Popen(arglist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

@@ -634,9 +634,20 @@ class ExternalProgram:
                     # Windows does not ship python3.exe, but we know the path to it
                     if len(commands) > 0 and commands[0] == 'python3':
                         commands = mesonlib.python_command + commands[1:]
+                elif mesonlib.is_haiku():
+                    # Haiku does not have /usr, but a lot of scripts assume that
+                    # /usr/bin/env always exists. Detect that case and run the
+                    # script with the interpreter after it.
+                    if commands[0] == '/usr/bin/env':
+                        commands = commands[1:]
+                    # We know what python3 is, we're running on it
+                    if len(commands) > 0 and commands[0] == 'python3':
+                        commands = mesonlib.python_command + commands[1:]
                 return commands + [script]
-        except Exception:
+        except Exception as e:
+            mlog.debug(e)
             pass
+        mlog.debug('Unusable script {!r}'.format(script))
         return False
 
     def _is_executable(self, path):
@@ -667,21 +678,17 @@ class ExternalProgram:
                         return [trial_ext]
         return False
 
-    def _search(self, name, search_dir):
+    def _search_windows_special_cases(self, name, command):
         '''
-        Search in the specified dir for the specified executable by name
-        and if not found search in PATH
+        Lots of weird Windows quirks:
+        1. PATH search for @name returns files with extensions from PATHEXT,
+           but only self.windows_exts are executable without an interpreter.
+        2. @name might be an absolute path to an executable, but without the
+           extension. This works inside MinGW so people use it a lot.
+        3. The script is specified without an extension, in which case we have
+           to manually search in PATH.
+        4. More special-casing for the shebang inside the script.
         '''
-        commands = self._search_dir(name, search_dir)
-        if commands:
-            return commands
-        # Do a standard search in PATH
-        command = shutil.which(name)
-        if not mesonlib.is_windows():
-            # On UNIX-like platforms, shutil.which() is enough to find
-            # all executables whether in PATH or with an absolute path
-            return [command]
-        # HERE BEGINS THE TERROR OF WINDOWS
         if command:
             # On Windows, even if the PATH search returned a full path, we can't be
             # sure that it can be run directly if it's not a native executable.
@@ -695,24 +702,40 @@ class ExternalProgram:
             commands = self._shebang_to_cmd(command)
             if commands:
                 return commands
-        else:
-            # Maybe the name is an absolute path to a native Windows
-            # executable, but without the extension. This is technically wrong,
-            # but many people do it because it works in the MinGW shell.
-            if os.path.isabs(name):
-                for ext in self.windows_exts:
-                    command = '{}.{}'.format(name, ext)
-                    if os.path.exists(command):
-                        return [command]
-            # On Windows, interpreted scripts must have an extension otherwise they
-            # cannot be found by a standard PATH search. So we do a custom search
-            # where we manually search for a script with a shebang in PATH.
-            search_dirs = os.environ.get('PATH', '').split(';')
-            for search_dir in search_dirs:
-                commands = self._search_dir(name, search_dir)
-                if commands:
-                    return commands
+            return [None]
+        # Maybe the name is an absolute path to a native Windows
+        # executable, but without the extension. This is technically wrong,
+        # but many people do it because it works in the MinGW shell.
+        if os.path.isabs(name):
+            for ext in self.windows_exts:
+                command = '{}.{}'.format(name, ext)
+                if os.path.exists(command):
+                    return [command]
+        # On Windows, interpreted scripts must have an extension otherwise they
+        # cannot be found by a standard PATH search. So we do a custom search
+        # where we manually search for a script with a shebang in PATH.
+        search_dirs = os.environ.get('PATH', '').split(';')
+        for search_dir in search_dirs:
+            commands = self._search_dir(name, search_dir)
+            if commands:
+                return commands
         return [None]
+
+    def _search(self, name, search_dir):
+        '''
+        Search in the specified dir for the specified executable by name
+        and if not found search in PATH
+        '''
+        commands = self._search_dir(name, search_dir)
+        if commands:
+            return commands
+        # Do a standard search in PATH
+        command = shutil.which(name)
+        if mesonlib.is_windows():
+            return self._search_windows_special_cases(name, command)
+        # On UNIX-like platforms, shutil.which() is enough to find
+        # all executables whether in PATH or with an absolute path
+        return [command]
 
     def found(self):
         return self.command[0] is not None
