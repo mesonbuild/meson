@@ -18,7 +18,7 @@ import pickle, os, uuid
 import sys
 from pathlib import PurePath
 from collections import OrderedDict
-from .mesonlib import MesonException, commonpath
+from .mesonlib import MesonException
 from .mesonlib import default_libdir, default_libexecdir, default_prefix
 import ast
 
@@ -274,7 +274,7 @@ class CoreData:
             # commonpath will always return a path in the native format, so we
             # must use pathlib.PurePath to do the same conversion before
             # comparing.
-            if commonpath([value, prefix]) != str(PurePath(prefix)):
+            if os.path.commonpath([value, prefix]) != str(PurePath(prefix)):
                 m = 'The value of the {!r} option is {!r} which must be a ' \
                     'subdir of the prefix {!r}.\nNote that if you pass a ' \
                     'relative path, it is assumed to be a subdir of prefix.'
