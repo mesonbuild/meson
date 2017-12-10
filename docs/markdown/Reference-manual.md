@@ -1618,7 +1618,9 @@ an external dependency with the following methods:
 
  - `get_pkgconfig_variable(varname)` (*Added 0.36.0*) will get the
    pkg-config variable specified, or, if invoked on a non pkg-config
-   dependency, error out
+   dependency, error out. (*Added 0.44.0*) You can also redefine a
+   variable by passing a list to the `define_variable` parameter
+   that can affect the retrieved variable: `['prefix', '/'])`.
 
  - `get_configtool_variable(varname)` (*Added 0.44.0*) will get the 
    command line argument from the config tool (with `--` prepended), or,
