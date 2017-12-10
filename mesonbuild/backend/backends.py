@@ -238,8 +238,14 @@ class Backend:
         return obj_list
 
     def serialize_executable(self, exe, cmd_args, workdir, env={},
-                             capture=None):
+                             extra_paths=None, capture=None):
         import hashlib
+        if extra_paths is None:
+            # The callee didn't check if we needed extra paths, so check it here
+            if mesonlib.is_windows() or mesonlib.is_cygwin():
+                extra_paths = self.determine_windows_extra_paths(exe, [])
+            else:
+                extra_paths = []
         # Can't just use exe.name here; it will likely be run more than once
         if isinstance(exe, (dependencies.ExternalProgram,
                             build.BuildTarget, build.CustomTarget)):
@@ -272,10 +278,6 @@ class Backend:
                 exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
             else:
                 exe_wrapper = None
-            if mesonlib.is_windows() or mesonlib.is_cygwin():
-                extra_paths = self.determine_windows_extra_paths(exe)
-            else:
-                extra_paths = []
             es = ExecutableSerialisation(basename, exe_cmd, cmd_args, env,
                                          is_cross_built, exe_wrapper, workdir,
                                          extra_paths, capture)
@@ -531,23 +533,27 @@ class Backend:
             args.append(d_arg)
         return args
 
-    def determine_windows_extra_paths(self, target):
+    def determine_windows_extra_paths(self, target, extra_bdeps):
         '''On Windows there is no such thing as an rpath.
         We must determine all locations of DLLs that this exe
         links to and return them so they can be used in unit
         tests.'''
-        if not isinstance(target, build.Executable):
-            return []
-        prospectives = target.get_transitive_link_deps()
         result = []
+        prospectives = []
+        if isinstance(target, build.Executable):
+            prospectives = target.get_transitive_link_deps()
+            # External deps
+            for deppath in self.rpaths_for_bundled_shared_libraries(target):
+                result.append(os.path.normpath(os.path.join(self.environment.get_build_dir(), deppath)))
+        for bdep in extra_bdeps:
+            prospectives += bdep.get_transitive_link_deps()
+        # Internal deps
         for ld in prospectives:
             if ld == '' or ld == '.':
                 continue
             dirseg = os.path.join(self.environment.get_build_dir(), self.get_target_dir(ld))
             if dirseg not in result:
                 result.append(dirseg)
-        for deppath in self.rpaths_for_bundled_shared_libraries(target):
-            result.append(os.path.normpath(os.path.join(self.environment.get_build_dir(), deppath)))
         return result
 
     def write_benchmark_file(self, datafile):
@@ -578,7 +584,7 @@ class Backend:
             else:
                 exe_wrapper = None
             if mesonlib.is_windows() or mesonlib.is_cygwin():
-                extra_paths = self.determine_windows_extra_paths(exe)
+                extra_paths = self.determine_windows_extra_paths(exe, [])
             else:
                 extra_paths = []
             cmd_args = []

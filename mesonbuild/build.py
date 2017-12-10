@@ -1549,6 +1549,24 @@ class CustomTarget(Target):
                 deps.append(c)
         return deps
 
+    def get_transitive_build_target_deps(self):
+        '''
+        Recursively fetch the build targets that this custom target depends on,
+        whether through `command:`, `depends:`, or `sources:` The recursion is
+        only performed on custom targets.
+        This is useful for setting PATH on Windows for finding required DLLs.
+        F.ex, if you have a python script that loads a C module that links to
+        other DLLs in your project.
+        '''
+        bdeps = set()
+        deps = self.get_target_dependencies()
+        for d in deps:
+            if isinstance(d, BuildTarget):
+                bdeps.add(d)
+            elif isinstance(d, CustomTarget):
+                bdeps.update(d.get_transitive_build_target_deps())
+        return bdeps
+
     def flatten_command(self, cmd):
         cmd = listify(cmd, unholder=True)
         final_cmd = []

@@ -504,22 +504,30 @@ int dummy;
             # Add a dependency on all the outputs of this target
             for output in d.get_outputs():
                 elem.add_dep(os.path.join(self.get_target_dir(d), output))
+        serialize = False
+        extra_paths = []
         # If the target requires capturing stdout, then use the serialized
         # executable wrapper to capture that output and save it to a file.
-        #
+        if target.capture:
+            serialize = True
         # If the command line requires a newline, also use the wrapper, as
         # ninja does not support them in its build rule syntax.
-        #
+        if any('\n' in c for c in cmd):
+            serialize = True
         # Windows doesn't have -rpath, so for EXEs that need DLLs built within
         # the project, we need to set PATH so the DLLs are found. We use
         # a serialized executable wrapper for that and check if the
         # CustomTarget command needs extra paths first.
-        if (target.capture or any('\n' in c for c in cmd) or
-                ((mesonlib.is_windows() or mesonlib.is_cygwin()) and
-                 self.determine_windows_extra_paths(target.command[0]))):
+        if mesonlib.is_windows() or mesonlib.is_cygwin():
+            extra_bdeps = target.get_transitive_build_target_deps()
+            extra_paths = self.determine_windows_extra_paths(target.command[0], extra_bdeps)
+            if extra_paths:
+                serialize = True
+        if serialize:
             exe_data = self.serialize_executable(target.command[0], cmd[1:],
                                                  # All targets are built from the build dir
                                                  self.environment.get_build_dir(),
+                                                 extra_paths=extra_paths,
                                                  capture=ofilenames[0] if target.capture else None)
             cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
             cmd_type = 'meson_exe.py custom'

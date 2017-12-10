@@ -21,6 +21,8 @@ import shlex
 import shutil
 import sysconfig
 
+from pathlib import Path
+
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import Popen_safe, extract_as_list
@@ -603,6 +605,7 @@ class Python3Dependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('python3', environment, None, kwargs)
         self.name = 'python3'
+        self.static = kwargs.get('static', False)
         # We can only be sure that it is Python 3 at this point
         self.version = '3'
         self.pkgdep = None
@@ -638,12 +641,55 @@ class Python3Dependency(ExternalDependency):
         else:
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
 
+    @staticmethod
+    def get_windows_python_arch():
+        pyplat = sysconfig.get_platform()
+        if pyplat == 'mingw':
+            pycc = sysconfig.get_config_var('CC')
+            if pycc.startswith('x86_64'):
+                return '64'
+            elif pycc.startswith(('i686', 'i386')):
+                return '32'
+            else:
+                mlog.log('MinGW Python built with unknown CC {!r}, please file'
+                         'a bug'.format(pycc))
+                return None
+        elif pyplat == 'win32':
+            return '32'
+        elif pyplat in ('win64', 'win-amd64'):
+            return '64'
+        mlog.log('Unknown Windows Python platform {!r}'.format(pyplat))
+        return None
+
+    def get_windows_link_args(self):
+        pyplat = sysconfig.get_platform()
+        if pyplat.startswith('win'):
+            vernum = sysconfig.get_config_var('py_version_nodot')
+            if self.static:
+                libname = 'libpython{}.a'.format(vernum)
+            else:
+                libname = 'python{}.lib'.format(vernum)
+            lib = Path(sysconfig.get_config_var('base')) / 'libs' / libname
+        elif pyplat == 'mingw':
+            if self.static:
+                libname = sysconfig.get_config_var('LIBRARY')
+            else:
+                libname = sysconfig.get_config_var('LDLIBRARY')
+            lib = Path(sysconfig.get_config_var('LIBDIR')) / libname
+        if not lib.exists():
+            mlog.log('Could not find Python3 library {!r}'.format(str(lib)))
+            return None
+        return [str(lib)]
+
     def _find_libpy3_windows(self, env):
         '''
         Find python3 libraries on Windows and also verify that the arch matches
         what we are building for.
         '''
-        pyarch = sysconfig.get_platform()
+        pyarch = self.get_windows_python_arch()
+        if pyarch is None:
+            self.is_found = False
+            return
         arch = detect_cpu_family(env.coredata.compilers)
         if arch == 'x86':
             arch = '32'
@@ -656,22 +702,24 @@ class Python3Dependency(ExternalDependency):
             self.is_found = False
             return
         # Pyarch ends in '32' or '64'
-        if arch != pyarch[-2:]:
-            mlog.log('Need', mlog.bold(self.name),
-                     'for {}-bit, but found {}-bit'.format(arch, pyarch[-2:]))
+        if arch != pyarch:
+            mlog.log('Need', mlog.bold(self.name), 'for {}-bit, but '
+                     'found {}-bit'.format(arch, pyarch))
             self.is_found = False
             return
+        # This can fail if the library is not found
+        largs = self.get_windows_link_args()
+        if largs is None:
+            self.is_found = False
+            return
+        self.link_args = largs
+        # Compile args
         inc = sysconfig.get_path('include')
         platinc = sysconfig.get_path('platinclude')
         self.compile_args = ['-I' + inc]
         if inc != platinc:
             self.compile_args.append('-I' + platinc)
-        # Nothing exposes this directly that I coulf find
-        basedir = sysconfig.get_config_var('base')
-        vernum = sysconfig.get_config_var('py_version_nodot')
-        self.link_args = ['-L{}/libs'.format(basedir),
-                          '-lpython{}'.format(vernum)]
-        self.version = sysconfig.get_config_var('py_version_short')
+        self.version = sysconfig.get_config_var('py_version')
         self.is_found = True
 
     def get_methods(self):
