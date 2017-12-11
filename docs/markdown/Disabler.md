@@ -45,7 +45,8 @@ object then
 
 ```meson
 d2 = some_func(d) # value of d2 will be disabler
-d3 = true or d2   # value of d3 will be disabler
+d3 = true or d2   # value of d3 will be true because of short-circuiting
+d4 = false or d2  # value of d4 will be disabler
 if d              # neither branch is evaluated
 ```
 

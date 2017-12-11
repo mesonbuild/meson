@@ -328,7 +328,7 @@ The returned object also has methods that are documented in the
 
 ### disabler()
 
-Returns a [disabler object]((#disabler-object)). Added in 0.44.0.
+Returns a [disabler object](#disabler-object). Added in 0.44.0.
 
 ### error()
 
