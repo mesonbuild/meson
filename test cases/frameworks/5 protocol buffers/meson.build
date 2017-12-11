@@ -18,3 +18,4 @@ e = executable('prog', 'main.cpp', generated,
 test('prototest', e)
 
 subdir('asubdir')
+subdir('withpath')
