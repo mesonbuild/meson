@@ -156,7 +156,9 @@ class CCompiler(Compiler):
         return ['-shared']
 
     def get_library_dirs(self):
-        stdo = Popen_safe(self.exelist + ['--print-search-dirs'])[1]
+        env = os.environ.copy()
+        env['LC_ALL'] = 'C'
+        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=env)[1]
         for line in stdo.split('\n'):
             if line.startswith('libraries:'):
                 libstr = line.split('=', 1)[1]
