@@ -196,6 +196,13 @@ When called, this method will compile the gschemas in the current
 directory. Note that this is not for installing schemas and is only
 useful when running the application locally for example during tests.
 
+* `build_by_default`: causes, when set to true, to have this target be
+  built by default, that is, when invoking plain `ninja`, the default
+  value is true for all built target types
+* `depend_files`: files ([`string`](#string-object),
+  [`files()`](#files), or [`configure_file()`](#configure_file)) of
+  schema source XML files that should trigger a re-compile if changed.
+
 ### gnome.gdbus_codegen()
 
 Compiles the given XML schema into gdbus source code. Takes two
