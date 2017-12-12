@@ -1095,6 +1095,9 @@ class Generator:
         for f in files:
             if isinstance(f, str):
                 f = File.from_source_file(state.environment.source_dir, state.subdir, f)
+            elif hasattr(f, 'held_object'):
+                output.add_generated_file(f, state.subdir)
+                continue
             elif not isinstance(f, File):
                 raise InvalidArguments('{} arguments must be strings or files not {!r}.'.format(name, f))
             output.add_file(f)
@@ -1108,6 +1111,7 @@ class GeneratedList:
         self.generator = generator
         self.name = self.generator.exe
         self.infilelist = []
+        self.generated = []
         self.outfilelist = []
         self.outmap = {}
         self.extra_depends = []
@@ -1118,6 +1122,16 @@ class GeneratedList:
         outfiles = self.generator.get_base_outnames(newfile.fname)
         self.outfilelist += outfiles
         self.outmap[newfile] = outfiles
+
+    def add_generated_file(self, newfile, subdir):
+        genlist = newfile.held_object
+        f = genlist.get_outputs_for(genlist.get_inputs()[0])[0]
+        fullf = File.from_built_file(subdir, f)
+        self.generated += [genlist]
+        self.infilelist.append(fullf)
+        outfiles = self.generator.get_base_outnames(f)
+        self.outfilelist += outfiles
+        self.outmap[fullf] = outfiles
 
     def get_inputs(self):
         return self.infilelist
