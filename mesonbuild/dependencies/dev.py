@@ -140,7 +140,7 @@ class LLVMDependency(ConfigToolDependency):
     def __init__(self, environment, kwargs):
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
-        super().__init__('config-tool', environment, 'cpp', kwargs)
+        super().__init__('LLVM', environment, 'cpp', kwargs)
         self.provided_modules = []
         self.required_modules = set()
         if not self.is_found:
