@@ -1,5 +1,17 @@
 project('pkgconfig-gen', 'c')
 
+# First check we have pkg-config >= 0.29
+
+pkgconfig = find_program('pkg-config', required: false)
+if not pkgconfig.found()
+  error('MESON_SKIP_TEST: pkg-config not found')
+endif
+
+v = run_command(pkgconfig, '--version').stdout().strip()
+if v.version_compare('<0.29')
+  error('MESON_SKIP_TEST: pkg-config version \'' + v + '\' too old')
+endif
+
 pkgg = import('pkgconfig')
 
 lib = shared_library('simple', 'simple.c')
@@ -18,19 +30,11 @@ pkgg.generate(
   libraries_private : [lib, '-lz'],
 )
 
-pkgconfig = find_program('pkg-config', required: false)
-if pkgconfig.found()
-  v = run_command(pkgconfig, '--version').stdout().strip()
-  if v.version_compare('>=0.29')
-    test('pkgconfig-validation', pkgconfig,
-      args: ['--validate', 'simple'],
-      env: ['PKG_CONFIG_PATH=' + meson.current_build_dir() + '/meson-private' ])
-  else
-    message('pkg-config version \'' + v + '\' too old, skipping validate test')
-  endif
-else
-  message('pkg-config not found, skipping validate test')
-endif
+pkgconfig_env = 'PKG_CONFIG_PATH=' + meson.current_build_dir() + '/meson-private'
+
+test('pkgconfig-validation', pkgconfig,
+  args: ['--validate', 'simple'],
+  env: [ pkgconfig_env ])
 
 # Test that name_prefix='' and name='libfoo' results in '-lfoo'
 lib2 = shared_library('libfoo', 'simple.c',
