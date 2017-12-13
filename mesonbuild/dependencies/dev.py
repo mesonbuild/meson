@@ -213,7 +213,7 @@ class LLVMDependency(ConfigToolDependency):
         """
         for mod in sorted(set(modules)):
             if mod not in self.provided_modules:
-                mlog.log('LLVM module', mod, 'found:', mlog.red('NO'),
+                mlog.log('LLVM module', mlog.bold(mod), 'found:', mlog.red('NO'),
                          '(optional)' if not required else '')
                 if required:
                     self.is_found = False
@@ -222,7 +222,7 @@ class LLVMDependency(ConfigToolDependency):
                             'Could not find required LLVM Component: {}'.format(mod))
             else:
                 self.required_modules.add(mod)
-                mlog.log('LLVM module', mod, 'found:', mlog.green('YES'))
+                mlog.log('LLVM module', mlog.bold(mod), 'found:', mlog.green('YES'))
 
     def need_threads(self):
         return True
