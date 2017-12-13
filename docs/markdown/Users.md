@@ -12,6 +12,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [casync](https://github.com/systemd/casync), Content-Addressable Data Synchronization Tool
  - [Emeus](https://github.com/ebassi/emeus), Constraint based layout manager for GTK+
  - [Frida](https://www.frida.re/), a dynamic binary instrumentation toolkit
+ - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop.
  - [GLib](https://git.gnome.org/browse/glib/), cross-platform C library used by GTK+ and GStreamer (not the default yet)
  - [Gnome Builder](https://git.gnome.org/browse/gnome-builder/), an IDE for the Gnome platform
  - [Gnome MPV](https://github.com/gnome-mpv/gnome-mpv), Gnome frontend to the mpv video player
