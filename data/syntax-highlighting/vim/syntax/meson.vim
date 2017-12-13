@@ -112,6 +112,7 @@ syn keyword mesonBuiltin
   \ target_machine
   \ test
   \ vcs_tag
+  \ warning
 
 if exists("meson_space_error_highlight")
   " trailing whitespace
