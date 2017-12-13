@@ -25,13 +25,16 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [GTK+](https://git.gnome.org/browse/gtk+/), the multi-platform toolkit used by GNOME
  - [GtkDApp](https://gitlab.com/csoriano/GtkDApp), an application template for developing Flatpak apps with Gtk+ and D
  - [HexChat](https://github.com/hexchat/hexchat), a cross-platform IRC client in C
+ - [IGT](https://cgit.freedesktop.org/xorg/app/intel-gpu-tools/), Linux kernel graphics driver test suite.
  - [Json-glib](https://git.gnome.org/browse/json-glib), GLib-based JSON manipulation library
  - [Ksh](https://github.com/att/ast), a Korn Shell
+ - [Libdrm](https://cgit.freedesktop.org/drm/libdrm/), a library for abstracting DRM kernel interfaces
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib/), a GLib wrapper for libgit2
  - [Libhttpseverywhere](https://github.com/grindhold/libhttpseverywhere), a library to enable httpseverywhere on any desktop app
  - [Lightdm-Webkit2-Greeter](https://github.com/Antergos/lightdm-webkit2-greeter)
  - [Kiwix libraries](https://github.com/kiwix/kiwix-lib)
+ - [Mesa](https://www.mesa3d.org/), An open source graphics driver project
  - [Nautilus](https://git.gnome.org/browse/nautilus/commit/?id=ed5652c89ac0654df2e82b54b00b27d51c825465) the Gnome file manager
  - [Orc](http://cgit.freedesktop.org/gstreamer/orc/), the Optimized Inner Loop Runtime Compiler (not the default yet)
  - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library (not the default yet)
