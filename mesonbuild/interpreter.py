@@ -1086,7 +1086,7 @@ class CompilerHolder(InterpreterObject):
         return []
 
 ModuleState = namedtuple('ModuleState', [
-    'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
+    'build_to_src', 'subproject', 'subproject_dir', 'subdir', 'current_lineno', 'environment',
     'project_name', 'project_version', 'backend', 'compilers', 'targets',
     'data', 'headers', 'man', 'global_args', 'project_args', 'build_machine',
     'host_machine', 'target_machine'])
@@ -1112,6 +1112,7 @@ class ModuleHolder(InterpreterObject, ObjectHolder):
             build_to_src=os.path.relpath(self.interpreter.environment.get_source_dir(),
                                          self.interpreter.environment.get_build_dir()),
             subproject=self.interpreter.subproject,
+            subproject_dir=self.interpreter.subproject_dir,
             subdir=self.interpreter.subdir,
             current_lineno=self.interpreter.current_lineno,
             environment=self.interpreter.environment,
@@ -1598,7 +1599,7 @@ class Interpreter(InterpreterBase):
         incs = extract_as_list(kwargs, 'include_directories', unholder=True)
         libs = extract_as_list(kwargs, 'link_with', unholder=True)
         sources = extract_as_list(kwargs, 'sources')
-        sources = listify(self.source_strings_to_files(sources), unholder=True)
+        sources = listify(mesonlib.source_strings_to_files(self.subproject_directory_name, self.subproject_dir, self.environment.source_dir, self.subdir, sources), unholder=True)
         deps = extract_as_list(kwargs, 'dependencies', unholder=True)
         compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
         link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
@@ -2488,14 +2489,14 @@ to directly access options of other subprojects.''')
 
     @permittedKwargs(permitted_kwargs['install_headers'])
     def func_install_headers(self, node, args, kwargs):
-        source_files = self.source_strings_to_files(args)
+        source_files = mesonlib.source_strings_to_files(self.subproject_directory_name, self.subproject_dir, self.environment.source_dir, self.subdir, args)
         h = Headers(source_files, kwargs)
         self.build.headers.append(h)
         return h
 
     @permittedKwargs(permitted_kwargs['install_man'])
     def func_install_man(self, node, args, kwargs):
-        fargs = self.source_strings_to_files(args)
+        fargs = mesonlib.source_strings_to_files(self.subproject_directory_name, self.subproject_dir, self.environment.source_dir, self.subdir, args)
         m = Man(fargs, kwargs)
         self.build.man.append(m)
         return m
@@ -2573,7 +2574,7 @@ to directly access options of other subprojects.''')
                 sources.append(s)
             else:
                 source_strings.append(s)
-        sources += self.source_strings_to_files(source_strings)
+        sources += mesonlib.source_strings_to_files(self.subproject_directory_name, self.subproject_dir, self.environment.source_dir, self.subdir, source_strings)
         install_dir = kwargs.get('install_dir', None)
         if not isinstance(install_dir, (str, type(None))):
             raise InvalidArguments('Keyword argument install_dir not a string.')
@@ -2868,63 +2869,6 @@ different subdirectory.
         super().run()
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
 
-    def evaluate_subproject_info(self, path_from_source_root, subproject_dirname):
-        depth = 0
-        subproj_name = ''
-        segs = path_from_source_root.split(os.path.sep)
-        while segs and segs[0] == subproject_dirname:
-            depth += 1
-            subproj_name = segs[1]
-            segs = segs[2:]
-        return (depth, subproj_name)
-
-    # Check that the indicated file is within the same subproject
-    # as we currently are. This is to stop people doing
-    # nasty things like:
-    #
-    # f = files('../../master_src/file.c')
-    #
-    # Note that this is validated only when the file
-    # object is generated. The result can be used in a different
-    # subproject than it is defined in (due to e.g. a
-    # declare_dependency).
-    def validate_within_subproject(self, subdir, fname):
-        norm = os.path.normpath(os.path.join(subdir, fname))
-        if os.path.isabs(norm):
-            if not norm.startswith(self.environment.source_dir):
-                # Grabbing files outside the source tree is ok.
-                # This is for vendor stuff like:
-                #
-                # /opt/vendorsdk/src/file_with_license_restrictions.c
-                return
-            norm = os.path.relpath(norm, self.environment.source_dir)
-            assert(not os.path.isabs(norm))
-        (num_sps, sproj_name) = self.evaluate_subproject_info(norm, self.subproject_dir)
-        plain_filename = os.path.split(norm)[-1]
-        if num_sps == 0:
-            if self.subproject == '':
-                return
-            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % plain_filename)
-        if num_sps > 1:
-            raise InterpreterException('Sandbox violation: Tried to grab file %s from a nested subproject.' % plain_filename)
-        if sproj_name != self.subproject_directory_name:
-            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % plain_filename)
-
-    def source_strings_to_files(self, sources):
-        results = []
-        for s in sources:
-            if isinstance(s, (mesonlib.File, GeneratedListHolder,
-                              CustomTargetHolder, CustomTargetIndexHolder)):
-                pass
-            elif isinstance(s, str):
-                self.validate_within_subproject(self.subdir, s)
-                s = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s)
-            else:
-                raise InterpreterException('Source item is {!r} instead of '
-                                           'string or File-type object'.format(s))
-            results.append(s)
-        return results
-
     def add_target(self, name, tobj):
         if name == '':
             raise InterpreterException('Target name must not be empty.')
@@ -2957,12 +2901,12 @@ different subdirectory.
             is_cross = False
         if 'sources' in kwargs:
             sources += listify(kwargs['sources'])
-        sources = self.source_strings_to_files(sources)
+        sources = mesonlib.source_strings_to_files(self.subproject_directory_name, self.subproject_dir, self.environment.source_dir, self.subdir, sources)
         objs = extract_as_list(kwargs, 'objects')
         kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
         if 'extra_files' in kwargs:
             ef = extract_as_list(kwargs, 'extra_files')
-            kwargs['extra_files'] = self.source_strings_to_files(ef)
+            kwargs['extra_files'] = mesonlib.source_strings_to_files(self.subproject_directory_name, self.subproject_dir, self.environment.source_dir, self.subdir, ef)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         if targetholder is ExecutableHolder:
             targetclass = build.Executable

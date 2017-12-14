@@ -55,6 +55,31 @@ def stringArgs(f):
         return f(self, node, args, kwargs)
     return wrapped
 
+class check_extensions:
+    def __init__(self, extensions_dict):
+        self.extensions_dict = extensions_dict
+
+    @staticmethod
+    def _get_attribute(attribute, object_list):
+        for object in object_list:
+            if hasattr(object, attribute):
+                return object.__getattribute__(attribute)
+        return None
+
+    def __call__(self, f):
+        @wraps(f)
+        def wrapped(s, node_or_state, args, kwargs):
+            subdir, lineno, build_env, subproject, subproject_dir = \
+                [self._get_attribute(attribute, [s, node_or_state]) for
+                    attribute in ['subdir', 'current_lineno', 'environment', 'subproject', 'subproject_dir']]
+            for key, item in kwargs.items():
+                if key in self.extensions_dict:
+                    extensions = self.extensions_dict[key]
+                    if extensions is not None:
+                        mesonlib.check_extension(item, self.extensions_dict[key], lineno, os.path.join(subdir, environment.build_filename))
+            return f(s, node_or_state, args, kwargs)
+        return wrapped
+
 class permittedKwargs:
 
     def __init__(self, permitted):
