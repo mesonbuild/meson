@@ -24,7 +24,8 @@ from . import ExtensionModule
 from ..interpreterbase import permittedKwargs
 
 class DepsHolder:
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.pub_libs = []
         self.pub_reqs = []
         self.priv_libs = []
@@ -62,6 +63,8 @@ class DepsHolder:
             if hasattr(obj, 'pcdep'):
                 pcdeps = mesonlib.listify(obj.pcdep)
                 processed_reqs += [i.name for i in pcdeps]
+            elif hasattr(obj, 'generated_pc'):
+                processed_reqs.append(obj.generated_pc)
             elif isinstance(obj, dependencies.PkgConfigDependency):
                 processed_reqs.append(obj.name)
             elif isinstance(obj, dependencies.ThreadDependency):
@@ -73,6 +76,8 @@ class DepsHolder:
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
                 if public:
+                    if not hasattr(obj, 'generated_pc'):
+                        obj.generated_pc = self.name
                     self.add_priv_libs(obj.get_dependencies())
                     self.add_priv_libs(obj.get_external_deps())
             elif isinstance(obj, str):
@@ -216,13 +221,6 @@ class PkgConfigModule(ExtensionModule):
         if len(args) > 0:
             raise mesonlib.MesonException('Pkgconfig_gen takes no positional arguments.')
 
-        deps = DepsHolder()
-        deps.add_pub_libs(kwargs.get('libraries', []))
-        deps.add_priv_libs(kwargs.get('libraries_private', []))
-        deps.add_pub_reqs(kwargs.get('requires', []))
-        deps.add_priv_reqs(kwargs.get('requires_private', []))
-        deps.add_cflags(kwargs.get('extra_cflags', []))
-
         subdirs = mesonlib.stringlistify(kwargs.get('subdirs', ['.']))
         version = kwargs.get('version', None)
         if not isinstance(version, str):
@@ -240,6 +238,13 @@ class PkgConfigModule(ExtensionModule):
         if not isinstance(url, str):
             raise mesonlib.MesonException('URL is not a string.')
         conflicts = mesonlib.stringlistify(kwargs.get('conflicts', []))
+
+        deps = DepsHolder(filebase)
+        deps.add_pub_libs(kwargs.get('libraries', []))
+        deps.add_priv_libs(kwargs.get('libraries_private', []))
+        deps.add_pub_reqs(kwargs.get('requires', []))
+        deps.add_priv_reqs(kwargs.get('requires_private', []))
+        deps.add_cflags(kwargs.get('extra_cflags', []))
 
         dversions = kwargs.get('d_module_versions', None)
         if dversions:
