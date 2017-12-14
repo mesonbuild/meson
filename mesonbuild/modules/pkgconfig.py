@@ -171,6 +171,7 @@ class PkgConfigModule(ExtensionModule):
                 msg = 'Library target {0!r} has {1!r} set. Compilers ' \
                       'may not find it from its \'-l{2}\' linker flag in the ' \
                       '{3!r} pkg-config file.'
+                Lflags = []
                 for l in libs:
                     if isinstance(l, str):
                         yield l
@@ -179,9 +180,12 @@ class PkgConfigModule(ExtensionModule):
                         if install_dir is False:
                             continue
                         if isinstance(install_dir, str):
-                            yield '-L${prefix}/%s ' % self._escape(self._make_relative(prefix, install_dir))
+                            Lflag = '-L${prefix}/%s ' % self._escape(self._make_relative(prefix, install_dir))
                         else:  # install_dir is True
-                            yield '-L${libdir}'
+                            Lflag = '-L${libdir}'
+                        if Lflag not in Lflags:
+                            Lflags.append(Lflag)
+                            yield Lflag
                         lname = self._get_lname(l, msg, pcfile)
                         # If using a custom suffix, the compiler may not be able to
                         # find the library
