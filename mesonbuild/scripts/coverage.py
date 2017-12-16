@@ -59,6 +59,7 @@ def coverage(source_root, build_root, log_dir):
         remove_dir_from_trace(lcov_exe, covinfo, '/usr/include/*')
         remove_dir_from_trace(lcov_exe, covinfo, '/usr/local/include/*')
         remove_dir_from_trace(lcov_exe, covinfo, '/usr/src/*')
+        remove_dir_from_trace(lcov_exe, covinfo, '/usr/lib/llvm-*/include/*')
         subprocess.check_call([genhtml_exe,
                                '--prefix', build_root,
                                '--output-directory', htmloutdir,
