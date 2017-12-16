@@ -67,6 +67,7 @@ __all__ = [
     'JavaCompiler',
     'LLVMDCompiler',
     'MonoCompiler',
+    'VisualStudioCsCompiler',
     'NAGFortranCompiler',
     'ObjCCompiler',
     'ObjCPPCompiler',
@@ -127,7 +128,7 @@ from .cpp import (
     IntelCPPCompiler,
     VisualStudioCPPCompiler,
 )
-from .cs import MonoCompiler
+from .cs import MonoCompiler, VisualStudioCsCompiler
 from .d import (
     DCompiler,
     DmdDCompiler,
