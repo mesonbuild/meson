@@ -2021,11 +2021,11 @@ to directly access options of other subprojects.''')
                         continue
                     else:
                         raise
-            if comp.full_version != None:
-                version_string= ' (%s %s "%s")' % (comp.id, comp.version, comp.full_version)
+            if comp.full_version is not None:
+                version_string = ' (%s %s "%s")' % (comp.id, comp.version, comp.full_version)
             else:
-                version_string= ' (%s %s)' % (comp.id, comp.version)
-            mlog.log('Native %s compiler: ' % comp.get_display_language(), mlog.bold(' '.join(comp.get_exelist())), version_string , sep='')
+                version_string = ' (%s %s)' % (comp.id, comp.version)
+            mlog.log('Native %s compiler: ' % comp.get_display_language(), mlog.bold(' '.join(comp.get_exelist())), version_string, sep='')
             if not comp.get_language() in self.coredata.external_args:
                 (preproc_args, compile_args, link_args) = environment.get_args_from_envvars(comp)
                 self.coredata.external_preprocess_args[comp.get_language()] = preproc_args

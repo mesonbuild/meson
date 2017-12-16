@@ -505,7 +505,7 @@ class Environment:
                 gtype = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
                 cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
-                return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version )
+                return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version)
             if 'clang' in out:
                 if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
                     cltype = CLANG_OSX
@@ -565,29 +565,29 @@ class Environment:
                         continue
                     gtype = self.get_gnu_compiler_type(defines)
                     version = self.get_gnu_version_from_defines(defines)
-                    return GnuFortranCompiler(compiler, version, gtype, is_cross, exe_wrap, defines)
+                    return GnuFortranCompiler(compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version)
 
                 if 'G95' in out:
-                    return G95FortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return G95FortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'Sun Fortran' in err:
                     version = search_version(err)
-                    return SunFortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return SunFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'ifort (IFORT)' in out:
-                    return IntelFortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return IntelFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'PathScale EKOPath(tm)' in err:
-                    return PathScaleFortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return PathScaleFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'PGI Compilers' in out:
-                    return PGIFortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return PGIFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'Open64 Compiler Suite' in err:
-                    return Open64FortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return Open64FortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'NAG Fortran' in err:
-                    return NAGFortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return NAGFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def get_scratch_dir(self):
