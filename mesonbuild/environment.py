@@ -496,6 +496,7 @@ class Environment:
                 popen_exceptions[' '.join(compiler + [arg])] = e
                 continue
             version = search_version(out)
+            full_version = out.split('\n', 1)[0]
             if 'Free Software Foundation' in out:
                 defines = self.get_gnu_compiler_defines(compiler)
                 if not defines:
@@ -504,7 +505,7 @@ class Environment:
                 gtype = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
                 cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
-                return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines)
+                return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version )
             if 'clang' in out:
                 if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
                     cltype = CLANG_OSX
@@ -513,7 +514,7 @@ class Environment:
                 else:
                     cltype = CLANG_STANDARD
                 cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
-                return cls(ccache + compiler, version, cltype, is_cross, exe_wrap)
+                return cls(ccache + compiler, version, cltype, is_cross, exe_wrap, full_version=full_version)
             if 'Microsoft' in out or 'Microsoft' in err:
                 # Latest versions of Visual Studio print version
                 # number to stderr but earlier ones print version
@@ -532,7 +533,7 @@ class Environment:
                 # TODO: add microsoft add check OSX
                 inteltype = ICC_STANDARD
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
-                return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap)
+                return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap, full_version=full_version)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, want_cross):

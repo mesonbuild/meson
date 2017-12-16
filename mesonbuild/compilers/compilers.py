@@ -598,7 +598,7 @@ class Compiler:
     # compiler or the C library. Currently only used for MSVC.
     ignore_libs = ()
 
-    def __init__(self, exelist, version):
+    def __init__(self, exelist, version, **kwargs):
         if isinstance(exelist, str):
             self.exelist = [exelist]
         elif isinstance(exelist, list):
@@ -612,6 +612,10 @@ class Compiler:
             self.can_compile_suffixes = set(self.file_suffixes)
         self.default_suffix = self.file_suffixes[0]
         self.version = version
+        if 'full_version' in kwargs:
+            self.full_version = kwargs['full_version']
+        else:
+            self.full_version = None
         self.base_options = []
 
     def __repr__(self):

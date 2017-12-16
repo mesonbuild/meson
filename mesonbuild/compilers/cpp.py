@@ -28,11 +28,11 @@ from .compilers import (
 )
 
 class CPPCompiler(CCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap):
+    def __init__(self, exelist, version, is_cross, exe_wrap, **kwargs):
         # If a child ObjCPP class has already set it, don't set it ourselves
         if not hasattr(self, 'language'):
             self.language = 'cpp'
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
 
     def get_display_language(self):
         return 'C++'
@@ -66,8 +66,8 @@ class CPPCompiler(CCompiler):
 
 
 class ClangCPPCompiler(ClangCompiler, CPPCompiler):
-    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
         ClangCompiler.__init__(self, cltype)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'1': default_warn_args,
@@ -92,8 +92,8 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
 
 
 class GnuCPPCompiler(GnuCompiler, CPPCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap, defines):
-        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap, defines, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
         GnuCompiler.__init__(self, gcc_type, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'1': default_warn_args,
@@ -133,8 +133,8 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
 
 class IntelCPPCompiler(IntelCompiler, CPPCompiler):
-    def __init__(self, exelist, version, icc_type, is_cross, exe_wrap):
-        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+    def __init__(self, exelist, version, icc_type, is_cross, exe_wrap, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
         IntelCompiler.__init__(self, icc_type)
         self.lang_header = 'c++-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark',
