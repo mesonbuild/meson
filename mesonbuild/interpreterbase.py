@@ -57,8 +57,9 @@ def stringArgs(f):
 
 class permittedKwargs:
 
-    def __init__(self, permitted):
+    def __init__(self, permitted, deprecated=None):
         self.permitted = permitted
+        self.deprecated = deprecated or {}
 
     def __call__(self, f):
         @wraps(f)
@@ -70,7 +71,15 @@ class permittedKwargs:
                 subdir = node_or_state.subdir
                 lineno = node_or_state.current_lineno
             for k in kwargs:
-                if k not in self.permitted:
+                if k in self.deprecated:
+                    fname = os.path.join(subdir, environment.build_filename)
+                    replacement = self.deprecated[k]
+                    if not replacement:
+                        replacement = 'Please remove the keyword argument'
+                    mlog.log(mlog.red('DEPRECATION:'), '''Passed deprecated keyword argument "%s" in %s line %d.
+%s.
+This will become a hard error in the future.''' % (k, fname, lineno, replacement))
+                elif k not in self.permitted:
                     fname = os.path.join(subdir, environment.build_filename)
                     mlog.warning('''Passed invalid keyword argument "%s" in %s line %d.
 This will become a hard error in the future.''' % (k, fname, lineno))
