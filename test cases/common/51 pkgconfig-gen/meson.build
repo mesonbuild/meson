@@ -12,11 +12,6 @@ if v.version_compare('<0.29')
   error('MESON_SKIP_TEST: pkg-config version \'' + v + '\' too old')
 endif
 
-envcmd = find_program('env', required: false)
-if not envcmd.found()
-  error('MESON_SKIP_TEST: env command not found')
-endif
-
 pkgg = import('pkgconfig')
 
 lib = shared_library('simple', 'simple.c')
@@ -35,11 +30,9 @@ pkgg.generate(
   libraries_private : [lib, '-lz'],
 )
 
-pkgconfig_env = 'PKG_CONFIG_PATH=' + meson.current_build_dir() + '/meson-private'
-
 test('pkgconfig-validation', pkgconfig,
   args: ['--validate', 'simple'],
-  env: [ pkgconfig_env ])
+  env: [ 'PKG_CONFIG_PATH=' + meson.current_build_dir() + '/meson-private' ])
 
 # Test that name_prefix='' and name='libfoo' results in '-lfoo'
 lib2 = shared_library('libfoo', 'simple.c',
@@ -86,33 +79,3 @@ pkgg.generate(libraries : [main_lib, exposed_lib, threads_dep , custom_dep],
   filebase : 'dependency-test',
   description : 'A dependency test.'
 )
-
-msg = 'Generated pc file doesn\'t have expected @0@: @1@'
-
-out = run_command(envcmd, '-', pkgconfig_env, pkgconfig, 'dependency-test', '--print-requires').stdout().strip().split()
-assert(out.contains('libexposed'), msg.format('requires', out))
-assert(out.length() == 1, msg.format('requires', out))
-
-out = run_command(envcmd, '-', pkgconfig_env, pkgconfig, 'dependency-test', '--print-requires-private').stdout().strip().split()
-assert(out.contains('libfoo'), msg.format('requires.private', out))
-assert(out.length() == 1, msg.format('requires.private', out))
-
-out = run_command(envcmd, '-', pkgconfig_env, pkgconfig, 'dependency-test', '--cflags-only-other').stdout().strip().split()
-assert(out.contains('-pthread'), msg.format('cflags', out))
-assert(out.contains('-DCUSTOM'), msg.format('cflags', out))
-assert(out.length() == 2, msg.format('cflags', out))
-
-out = run_command(envcmd, '-', pkgconfig_env, pkgconfig, 'dependency-test', '--libs-only-l', '--libs-only-other').stdout().strip().split()
-assert(out.contains('-pthread'), msg.format('libs', out))
-assert(out.contains('-lcustom'), msg.format('libs', out))
-assert(out.contains('-llibmain'), msg.format('libs', out))
-assert(out.length() == 4, msg.format('libs', out))
-
-out = run_command(envcmd, '-', pkgconfig_env, pkgconfig, 'dependency-test', '--libs-only-l', '--libs-only-other', '--static').stdout().strip().split()
-assert(out.contains('-pthread'), msg.format('libs.private', out))
-assert(out.contains('-lcustom'), msg.format('libs.private', out))
-assert(out.contains('-llibmain'), msg.format('libs.private', out))
-assert(out.contains('-llibinternal'), msg.format('libs.private', out))
-assert(out.contains('-lcustom2'), msg.format('libs.private', out))
-assert(out.contains('-lfoo'), msg.format('libs.private', out))
-assert(out.length() == 7, msg.format('libs.private', out))
