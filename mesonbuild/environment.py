@@ -556,6 +556,7 @@ class Environment:
                     continue
 
                 version = search_version(out)
+                full_version = out.split('\n', 1)[0]
 
                 if 'GNU Fortran' in out:
                     defines = self.get_gnu_compiler_defines(compiler)
