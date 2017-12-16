@@ -140,7 +140,7 @@ class LLVMDependency(ConfigToolDependency):
     def __init__(self, environment, kwargs):
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
-        super().__init__('config-tool', environment, 'cpp', kwargs)
+        super().__init__('LLVM', environment, 'cpp', kwargs)
         self.provided_modules = []
         self.required_modules = set()
         if not self.is_found:
@@ -213,7 +213,7 @@ class LLVMDependency(ConfigToolDependency):
         """
         for mod in sorted(set(modules)):
             if mod not in self.provided_modules:
-                mlog.log('LLVM module', mod, 'found:', mlog.red('NO'),
+                mlog.log('LLVM module', mlog.bold(mod), 'found:', mlog.red('NO'),
                          '(optional)' if not required else '')
                 if required:
                     self.is_found = False
@@ -222,7 +222,7 @@ class LLVMDependency(ConfigToolDependency):
                             'Could not find required LLVM Component: {}'.format(mod))
             else:
                 self.required_modules.add(mod)
-                mlog.log('LLVM module', mod, 'found:', mlog.green('YES'))
+                mlog.log('LLVM module', mlog.bold(mod), 'found:', mlog.green('YES'))
 
     def need_threads(self):
         return True

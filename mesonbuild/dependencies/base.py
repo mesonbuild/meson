@@ -284,17 +284,18 @@ class ConfigToolDependency(ExternalDependency):
         """Helper method to print messages about the tool."""
         if self.config is None:
             if version is not None:
-                mlog.log('found {} {!r} but need:'.format(self.tool_name, version),
-                         req_version)
+                mlog.log('Found', mlog.bold(self.tool_name), repr(version),
+                         mlog.red('NO'), '(needed', req_version, ')')
             else:
-                mlog.log("No {} found; can't detect dependency".format(self.tool_name))
-            mlog.log('Dependency {} found:'.format(self.name), mlog.red('NO'))
+                mlog.log('Found', mlog.bold(self.tool_name), repr(req_version),
+                         mlog.red('NO'))
+            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
             if self.required:
                 raise DependencyException('Dependency {} not found'.format(self.name))
             return False
         mlog.log('Found {}:'.format(self.tool_name), mlog.bold(shutil.which(self.config)),
                  '({})'.format(version))
-        mlog.log('Dependency {} found:'.format(self.name), mlog.green('YES'))
+        mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
         return True
 
     def get_config_value(self, args, stage):
