@@ -38,7 +38,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Pitivi](http://pitivi.org/), a nonlinear video editor
  - [Polari](https://git.gnome.org/browse/polari), an IRC client
  - [Sysprof](https://wiki.gnome.org/Apps/Sysprof), a profiling tool
- - [systemd](https://github.com/systemd/systemd/pull/5704), the init system (not the default yet)
+ - [systemd](https://github.com/systemd/systemd), the init system
  - [Xorg](https://cgit.freedesktop.org/xorg/xserver/) the X.org display server (not the default yet)
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
  - [Wayland and Weston](https://lists.freedesktop.org/archives/wayland-devel/2016-November/031984.html), a next generation display server (not merged yet)
