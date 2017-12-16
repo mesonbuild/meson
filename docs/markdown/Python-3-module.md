@@ -7,7 +7,7 @@ following methods.
 
 This is a cross platform way of finding the Python 3 executable, which
 may have a different name on different operating systems. Returns an
-external program object.
+[external program](Reference-manual.html#external-program-object) object.
 
 *Added 0.38.0*
 
