@@ -19,6 +19,13 @@ foreach lang : ['c', 'cpp']
   elif host_system == 'haiku'
     d = cc.get_define('__HAIKU__')
     assert(d == '1', '__HAIKU__ value is @0@ instead of 1'.format(d))
+  elif host_system == 'freebsd'
+    # the __FreeBSD__ define will be equal to the major version of the release
+    # (ex, in FreeBSD 11.x, __FreeBSD__ == 11). To make the test robust when
+    # being run on various versions of FreeBSD, just test that the define is
+    # set.
+    d = cc.get_define('__FreeBSD__')
+    assert(d != '', '__FreeBSD__ value is unset')
   else
     error('Please report a bug and help us improve support for this platform')
   endif
