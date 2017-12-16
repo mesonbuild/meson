@@ -42,9 +42,9 @@ d_feature_args = {'gcc':  {'unittest': '-funittest',
                   }
 
 class DCompiler(Compiler):
-    def __init__(self, exelist, version, is_cross):
+    def __init__(self, exelist, version, is_cross, **kwargs):
         self.language = 'd'
-        super().__init__(exelist, version)
+        super().__init__(exelist, version, **kwargs)
         self.id = 'unknown'
         self.is_cross = is_cross
 
@@ -224,8 +224,8 @@ class DCompiler(Compiler):
 
 
 class GnuDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross):
-        DCompiler.__init__(self, exelist, version, is_cross)
+    def __init__(self, exelist, version, is_cross, **kwargs):
+        DCompiler.__init__(self, exelist, version, is_cross, **kwargs)
         self.id = 'gcc'
         default_warn_args = ['-Wall', '-Wdeprecated']
         self.warn_args = {'1': default_warn_args,
@@ -267,8 +267,8 @@ class GnuDCompiler(DCompiler):
 
 
 class LLVMDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross):
-        DCompiler.__init__(self, exelist, version, is_cross)
+    def __init__(self, exelist, version, is_cross, **kwargs):
+        DCompiler.__init__(self, exelist, version, is_cross, **kwargs)
         self.id = 'llvm'
         self.base_options = ['b_coverage', 'b_colorout']
 
@@ -321,8 +321,8 @@ class LLVMDCompiler(DCompiler):
 
 
 class DmdDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross):
-        DCompiler.__init__(self, exelist, version, is_cross)
+    def __init__(self, exelist, version, is_cross, **kwargs):
+        DCompiler.__init__(self, exelist, version, is_cross, **kwargs)
         self.id = 'dmd'
         self.base_options = ['b_coverage', 'b_colorout']
 

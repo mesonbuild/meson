@@ -723,12 +723,13 @@ class Environment:
         except OSError:
             raise EnvironmentException('Could not execute D compiler "%s"' % ' '.join(exelist))
         version = search_version(out)
+        full_version = out.split('\n', 1)[0]
         if 'LLVM D compiler' in out:
-            return compilers.LLVMDCompiler(exelist, version, is_cross)
+            return compilers.LLVMDCompiler(exelist, version, is_cross, full_version=full_version)
         elif 'gdc' in out:
-            return compilers.GnuDCompiler(exelist, version, is_cross)
+            return compilers.GnuDCompiler(exelist, version, is_cross, full_version=full_version)
         elif 'Digital Mars' in out:
-            return compilers.DmdDCompiler(exelist, version, is_cross)
+            return compilers.DmdDCompiler(exelist, version, is_cross, full_version=full_version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_swift_compiler(self):
