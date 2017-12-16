@@ -666,8 +666,9 @@ class Environment:
         except OSError:
             raise EnvironmentException('Could not execute C# compiler "%s"' % ' '.join(exelist))
         version = search_version(out)
+        full_version = out.split('\n', 1)[0]
         if 'Mono' in out:
-            return MonoCompiler(exelist, version)
+            return MonoCompiler(exelist, version, full_version=full_version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_vala_compiler(self):
