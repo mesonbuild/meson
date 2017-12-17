@@ -6,9 +6,13 @@ render-subpages: false
 
 ## Overview
 
-Meson is an open source build system meant to be both extremely fast, and, even more importantly, as user friendly as possible.
+Meson is an open source build system meant to be both extremely fast,
+and, even more importantly, as user friendly as possible.
 
-The main design point of Meson is that every moment a developer spends writing or debugging build definitions is a second wasted. So is every second spent waiting for the build system to actually start compiling code.
+The main design point of Meson is that every moment a developer spends
+writing or debugging build definitions is a second wasted. So is every
+second spent waiting for the build system to actually start compiling
+code.
 
 ## Features
 
@@ -22,12 +26,18 @@ The main design point of Meson is that every moment a developer spends writing o
 
 ## Community
 
-There are two main methods of connecting with other Meson developers. The first one is the mailing list, which is hosted at [Google Groups](https://groups.google.com/forum/#!forum/mesonbuild).
+There are two main methods of connecting with other Meson
+developers. The first one is the mailing list, which is hosted at
+[Google Groups](https://groups.google.com/forum/#!forum/mesonbuild).
 
-The second way is via IRC. The channel to use is `#mesonbuild` at [Freenode](https://freenode.net/).
+The second way is via IRC. The channel to use is `#mesonbuild` at
+[Freenode](https://freenode.net/).
 
 ## Development
 
-All development on Meson is done on [GitHub project](https://github.com/mesonbuild/meson). For further info look into the `contributing.txt` file that comes with Meson's source checkout.
+All development on Meson is done on [GitHub
+project](https://github.com/mesonbuild/meson). Instruction on
+contributing can be found on the [contribution page](Contributing.md).
+
 
 You do not need to sign a CLA to contribute to Meson.
