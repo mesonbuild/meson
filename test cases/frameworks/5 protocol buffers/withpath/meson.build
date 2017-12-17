@@ -4,11 +4,12 @@
 
 gen = generator(protoc, \
   output    : ['@BASENAME@.pb.cc', '@BASENAME@.pb.h'],
-  preserve_path_from : meson.current_source_dir(),
   arguments : ['--proto_path=@CURRENT_SOURCE_DIR@', '--cpp_out=@BUILD_DIR@', '@INPUT@'])
 
 generated = gen.process('com/mesonbuild/simple.proto',
-  'com/mesonbuild/subsite/complex.proto')
+  'com/mesonbuild/subsite/complex.proto',
+  preserve_path_from : meson.current_source_dir(),
+  )
 e = executable('pathprog', 'pathprog.cpp', generated,
  dependencies : dep)
 test('pathprog', e)

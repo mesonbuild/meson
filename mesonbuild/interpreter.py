@@ -375,7 +375,18 @@ class GeneratorHolder(InterpreterObject, ObjectHolder):
 
     def process_method(self, args, kwargs):
         extras = mesonlib.stringlistify(kwargs.get('extra_args', []))
-        gl = self.held_object.process_files('Generator', args, self.interpreter, extra_args=extras)
+        if 'preserve_path_from' in kwargs:
+            preserve_path_from = kwargs['preserve_path_from']
+            if not isinstance(preserve_path_from, str):
+                raise InvalidArguments('Preserve_path_from must be a string.')
+            preserve_path_from = os.path.normpath(preserve_path_from)
+            if not os.path.isabs(preserve_path_from):
+                # This is a bit of a hack. Fix properly before merging.
+                raise InvalidArguments('Preserve_path_from must be an absolute path for now. Sorry.')
+        else:
+            preserve_path_from = None
+        gl = self.held_object.process_files('Generator', args, self.interpreter,
+                                            preserve_path_from, extra_args=extras)
         return GeneratedListHolder(gl)
 
 

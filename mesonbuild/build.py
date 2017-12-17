@@ -1072,16 +1072,6 @@ class Generator:
             if not isinstance(capture, bool):
                 raise InvalidArguments('Capture must be boolean.')
             self.capture = capture
-        if 'preserve_path_from' in kwargs:
-            self.preserve_path_from = kwargs['preserve_path_from']
-            if not isinstance(self.preserve_path_from, str):
-                raise InvalidArguments('Preserve_path_from must be a string.')
-            self.preserve_path_from = os.path.normpath(self.preserve_path_from)
-            if not os.path.isabs(self.preserve_path_from):
-                # This is a bit of a hack. Fix properly before merging.
-                raise InvalidArguments('Preserve_path_from must be an absolute path for now. Sorry.')
-        else:
-            self.preserve_path_from = None
 
     def get_base_outnames(self, inname):
         plainname = os.path.split(inname)[1]
@@ -1105,23 +1095,23 @@ class Generator:
         relpath = os.path.relpath(os.path.normpath(trial), os.path.normpath(parent))
         return not relpath.startswith('..') # For subdirs we can only go "down".
 
-    def process_files(self, name, files, state, extra_args=[]):
-        output = GeneratedList(self, extra_args=extra_args)
+    def process_files(self, name, files, state, preserve_path_from=None, extra_args=[]):
+        output = GeneratedList(self, preserve_path_from, extra_args=extra_args)
         for f in files:
             if isinstance(f, str):
                 f = File.from_source_file(state.environment.source_dir, state.subdir, f)
             elif not isinstance(f, File):
                 raise InvalidArguments('{} arguments must be strings or files not {!r}.'.format(name, f))
-            if self.preserve_path_from:
+            if preserve_path_from:
                 abs_f = f.absolute_path(state.environment.source_dir, state.environment.build_dir)
-                if not self.is_parent_path(self.preserve_path_from, abs_f):
+                if not self.is_parent_path(preserve_path_from, abs_f):
                     raise InvalidArguments('When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
             output.add_file(f, state)
         return output
 
 
 class GeneratedList:
-    def __init__(self, generator, extra_args=[]):
+    def __init__(self, generator, preserve_path_from=None, extra_args=[]):
         if hasattr(generator, 'held_object'):
             generator = generator.held_object
         self.generator = generator
@@ -1130,13 +1120,14 @@ class GeneratedList:
         self.outfilelist = []
         self.outmap = {}
         self.extra_depends = []
+        self.preserve_path_from = preserve_path_from
         self.extra_args = extra_args
 
     def add_preserved_path_segment(self, infile, outfiles, state):
         result = []
         in_abs = infile.absolute_path(state.environment.source_dir, state.environment.build_dir)
-        assert(os.path.isabs(self.generator.preserve_path_from))
-        rel = os.path.relpath(in_abs, self.generator.preserve_path_from)
+        assert(os.path.isabs(self.preserve_path_from))
+        rel = os.path.relpath(in_abs, self.preserve_path_from)
         path_segment = os.path.split(rel)[0]
         for of in outfiles:
             result.append(os.path.join(path_segment, of))
@@ -1145,7 +1136,7 @@ class GeneratedList:
     def add_file(self, newfile, state):
         self.infilelist.append(newfile)
         outfiles = self.generator.get_base_outnames(newfile.fname)
-        if self.generator.preserve_path_from:
+        if self.preserve_path_from:
             outfiles = self.add_preserved_path_segment(newfile, outfiles, state)
         self.outfilelist += outfiles
         self.outmap[newfile] = outfiles
