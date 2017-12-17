@@ -312,10 +312,19 @@ def parse_test_args(testdir):
         pass
     return args
 
+# Build directory name must be the same so CCache works over
+# consecutive invocations.
+def create_deterministic_builddir(src_dir):
+    import hashlib
+    rel_dirname = 'b ' + hashlib.sha256(src_dir.encode(errors='ignore')).hexdigest()[0:10]
+    os.mkdir(rel_dirname)
+    abs_pathname = os.path.join(os.getcwd(), rel_dirname)
+    return abs_pathname
+
 def run_test(skipped, testdir, extra_args, compiler, backend, flags, commands, should_fail):
     if skipped:
         return None
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
+    with AutoDeletedDir(create_deterministic_builddir(testdir)) as build_dir:
         with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=os.getcwd())) as install_dir:
             try:
                 return _run_test(testdir, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
