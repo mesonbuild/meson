@@ -375,7 +375,6 @@ _meson-introspect() {
   longopts=(
     targets
     installed
-    target-files
     buildsystem-files
     buildoptions
     tests
@@ -385,31 +384,7 @@ _meson-introspect() {
   )
 
   local cur prev
-  if _get_comp_words_by_ref cur prev &>/dev/null; then
-    case $prev in
-      --target-files)
-        for i in "${!COMP_WORDS[@]}"; do
-          opt="${COMP_WORDS[i]}"
-          dir="${COMP_WORDS[i+1]}"
-          case "$opt" in
-            -C)
-              break
-              ;;
-          esac
-          dir=.
-        done
-        tests_json=$(meson introspect "$dir" --targets)
-        if [ $? -eq 0 ]; then
-          tests=$(python3 -c 'import sys, json
-for target in json.load(sys.stdin):
-    print(target["id"])
-' <<< "$tests_json")
-          COMPREPLY=($(compgen -W '$tests' -- "$cur"))
-        fi
-        return
-        ;;
-    esac
-  else
+  if ! _get_comp_words_by_ref cur prev &>/dev/null; then
     cur="${COMP_WORDS[COMP_CWORD]}"
   fi
 

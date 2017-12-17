@@ -50,21 +50,6 @@ local -a meson_commands=(
 # TODO: implement build option completion
 (( $+functions[__meson_build_options] )) || __meson_build_options() {}
 
-(( $+functions[__meson_targets] )) || __meson_targets() {
-  local tests_json
-  # TODO: get builddir out of the cmdline and pass it here
-  if tests_json="$(_call_program meson meson introspect --targets)";
-  then
-    local -a tests_ids=$(_call_program python3 python3 -c 'import sys, json;
-for target in json.load(sys.stdin):
-    print(target["id"])
-' <<< "$tests_json")
-    _describe -t "tests" "Meson tests IDs" tests_ids
-  else
-    _message -r "current working directory is not a build directory"
-  fi
-}
-
 # `meson introspect` currently can provide that information in JSON.
 # We can:
 # 1) pipe its output to python3 -m json.tool | grep "$alovelyregex" | cut <...>
@@ -184,7 +169,6 @@ for target in json.load(sys.stdin):
   local -a specs=(
   '--targets[list top level targets]'
   '--installed[list all installed files and directories]'
-  '--target-files[list source files for a given target]:target:__meson_targets'
   '--buildsystem-files[list files that belong to the build system]'
   '--buildoptions[list all build options]'
   '--tests[list all unit tests]'
