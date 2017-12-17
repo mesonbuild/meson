@@ -394,6 +394,29 @@ class GeneratedListHolder(InterpreterObject, ObjectHolder):
     def add_file(self, a):
         self.held_object.add_file(a)
 
+
+class EnvVar(InterpreterObject):
+    def __init__(self, value, varname):
+        InterpreterObject.__init__(self)
+        self.varname = varname
+        self.value = value
+        self.methods.update({'is_set': self.is_set,
+                             'get': self.get,
+                             })
+
+    def is_set(self, args, kwargs):
+        return self.value
+
+    def get(self, args, kwargs):
+        if len(args) > 1:
+            raise InterpreterException('Get method takes one or zero arguments.')
+        if self.value:
+            return self.value
+        if len(args) == 1:
+            return args[0]
+        raise InterpreterException('Environment Variable %s not set.' % self.varname)
+
+
 class BuildMachine(InterpreterObject, ObjectHolder):
     def __init__(self, compilers):
         self.compilers = compilers
@@ -407,6 +430,7 @@ class BuildMachine(InterpreterObject, ObjectHolder):
                              'cpu_family': self.cpu_family_method,
                              'cpu': self.cpu_method,
                              'endian': self.endian_method,
+                             'env_var': self.env_var_method,
                              })
 
     def cpu_family_method(self, args, kwargs):
@@ -420,6 +444,12 @@ class BuildMachine(InterpreterObject, ObjectHolder):
 
     def endian_method(self, args, kwargs):
         return self.held_object.endian
+
+    def env_var_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('env_var method must have one and only one argument')
+        envvalue = os.getenv(args[0])
+        return EnvVar(envvalue, args[0])
 
 # This class will provide both host_machine and
 # target_machine
