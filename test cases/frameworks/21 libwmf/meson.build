@@ -1,5 +1,10 @@
 project('libwmf test', 'c')
 
+wm = find_program('libwmf-config', required : false)
+if not wm.found()
+  error('MESON_SKIP_TEST: libwmf-config not installed')
+endif
+
 libwmf_dep = dependency('libwmf', version : '>= 0.2.8')
 libwmf_ver = libwmf_dep.version()
 assert(libwmf_ver.split('.').length() > 1, 'libwmf version is "@0@"'.format(libwmf_ver))
