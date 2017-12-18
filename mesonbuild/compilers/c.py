@@ -97,7 +97,7 @@ class CCompiler(Compiler):
         return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
     def get_dependency_gen_args(self, outtarget, outfile):
-        return ['-MMD', '-MQ', outtarget, '-MF', outfile]
+        return ['-MD', '-MQ', outtarget, '-MF', outfile]
 
     def depfile_for_object(self, objfile):
         return objfile + '.' + self.get_depfile_suffix()
