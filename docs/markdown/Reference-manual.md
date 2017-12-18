@@ -1688,11 +1688,18 @@ This object is returned by [`generator()`](#generator) and contains a
 generator that is used to transform files from one type to another by
 an executable (e.g. `idl` files into source code and headers).
 
-* `process(list_of_files)` takes a list of files, causes them to be
-  processed and returns an object containing the result which can
+* `process(list_of_files, ...)` takes a list of files, causes them to
+  be processed and returns an object containing the result which can
   then, for example, be passed into a build target definition. The
   keyword argument `extra_args`, if specified, will be used to replace
-  an entry `@EXTRA_ARGS@` in the argument list.
+  an entry `@EXTRA_ARGS@` in the argument list. The keyword argument
+  `preserve_path_from`, if given, specifies that the output files need
+  to maintain their directory structure inside the target temporary
+  directory. The most common value for this is
+  `meson.current_source_dir()`. With this value when a file called
+  `subdir/one.input` is processed it generates a file `<target private
+  directory>/subdir/one.out` as opposed to `<target private
+  directory>/one.out`.
 
 ### `subproject` object
 
