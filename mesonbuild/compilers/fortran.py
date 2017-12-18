@@ -99,7 +99,7 @@ end program prog
     def get_dependency_gen_args(self, outtarget, outfile):
         # Disabled until this is fixed:
         # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=62162
-        # return ['-cpp', '-MMD', '-MQ', outtarget]
+        # return ['-cpp', '-MD', '-MQ', outtarget]
         return []
 
     def get_output_args(self, target):
