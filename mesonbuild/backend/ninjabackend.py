@@ -1787,8 +1787,11 @@ rule FORTRAN_DEP_HACK
                 continue
             self.generate_genlist_for_target(genlist, target, outfile)
 
-    def replace_paths(self, target, args):
-        source_target_dir = self.get_target_source_dir(target)
+    def replace_paths(self, target, args, override_subdir=None):
+        if override_subdir:
+            source_target_dir = os.path.join(self.build_to_src, override_subdir)
+        else:
+            source_target_dir = self.get_target_source_dir(target)
         relout = self.get_target_private_dir(target)
         args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
                 for x in args]
@@ -1799,6 +1802,7 @@ rule FORTRAN_DEP_HACK
 
     def generate_genlist_for_target(self, genlist, target, outfile):
         generator = genlist.get_generator()
+        subdir = genlist.subdir
         exe = generator.get_exe()
         exe_arr = self.exe_object_to_cmd_array(exe)
         infilelist = genlist.get_inputs()
@@ -1830,7 +1834,7 @@ rule FORTRAN_DEP_HACK
             if sole_output == '':
                 outfilelist = outfilelist[len(generator.outputs):]
             relout = self.get_target_private_dir(target)
-            args = self.replace_paths(target, args)
+            args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
             if generator.capture:
                 exe_data = self.serialize_executable(

@@ -14,7 +14,7 @@
 
 import copy, os, re
 from collections import OrderedDict
-import itertools
+import itertools, pathlib
 
 from . import environment
 from . import dependencies
@@ -1092,11 +1092,11 @@ class Generator:
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
     def is_parent_path(self, parent, trial):
-        relpath = os.path.relpath(os.path.normpath(trial), os.path.normpath(parent))
-        return not relpath.startswith('..') # For subdirs we can only go "down".
+        relpath = pathlib.PurePath(trial).relative_to(parent)
+        return relpath.parts[0] != '..' # For subdirs we can only go "down".
 
     def process_files(self, name, files, state, preserve_path_from=None, extra_args=[]):
-        output = GeneratedList(self, preserve_path_from, extra_args=extra_args)
+        output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args)
         for f in files:
             if isinstance(f, str):
                 f = File.from_source_file(state.environment.source_dir, state.subdir, f)
@@ -1111,11 +1111,12 @@ class Generator:
 
 
 class GeneratedList:
-    def __init__(self, generator, preserve_path_from=None, extra_args=[]):
+    def __init__(self, generator, subdir, preserve_path_from=None, extra_args=[]):
         if hasattr(generator, 'held_object'):
             generator = generator.held_object
         self.generator = generator
         self.name = self.generator.exe
+        self.subdir = subdir
         self.infilelist = []
         self.outfilelist = []
         self.outmap = {}

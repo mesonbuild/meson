@@ -10,7 +10,7 @@ endif
 
 gen = generator(protoc, \
   output    : ['@BASENAME@.pb.cc', '@BASENAME@.pb.h'],
-  arguments : ['--proto_path=@SOURCE_DIR@', '--cpp_out=@BUILD_DIR@', '@INPUT@'])
+  arguments : ['--proto_path=@CURRENT_SOURCE_DIR@', '--cpp_out=@BUILD_DIR@', '@INPUT@'])
 
 generated = gen.process('defs.proto')
 e = executable('prog', 'main.cpp', generated,
@@ -19,3 +19,4 @@ test('prototest', e)
 
 subdir('asubdir')
 subdir('withpath')
+subdir('sidedir')

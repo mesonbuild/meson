@@ -2,14 +2,12 @@
 # and must preserve their path segments in output files
 # because protoc will always put it in there.
 
-gen = generator(protoc, \
-  output    : ['@BASENAME@.pb.cc', '@BASENAME@.pb.h'],
-  arguments : ['--proto_path=@CURRENT_SOURCE_DIR@', '--cpp_out=@BUILD_DIR@', '@INPUT@'])
-
 generated = gen.process('com/mesonbuild/simple.proto',
   'com/mesonbuild/subsite/complex.proto',
   preserve_path_from : meson.current_source_dir(),
   )
+
 e = executable('pathprog', 'pathprog.cpp', generated,
- dependencies : dep)
+  override_options : ['unity=off'],
+  dependencies : dep)
 test('pathprog', e)
