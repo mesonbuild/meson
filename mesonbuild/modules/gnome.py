@@ -372,7 +372,7 @@ class GnomeModule(ExtensionModule):
                 continue
 
         if gir_has_extra_lib_arg() and use_gir_args:
-            fixed_ldflags = set()
+            fixed_ldflags = OrderedSet()
             for ldflag in ldflags:
                 if ldflag.startswith("-l"):
                     fixed_ldflags.add(ldflag.replace('-l', '--extra-library=', 1))
