@@ -147,7 +147,7 @@ class UserArrayOption(UserOption):
             if value.startswith('['):
                 newvalue = ast.literal_eval(value)
             else:
-                newvalue = [v.strip() for v in value.split(',')]
+                newvalue = [v.strip() for v in OrderedDict.fromkeys(value.split(','))]
         if not isinstance(newvalue, list):
             raise MesonException('"{0}" should be a string array, but it is not'.format(str(newvalue)))
         for i in newvalue:
