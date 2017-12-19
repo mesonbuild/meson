@@ -855,7 +855,10 @@ class Compiler:
                 paths = padding
             else:
                 paths = paths + ':' + padding
-        args = ['-Wl,-rpath,' + paths]
+        args = []
+        if mesonlib.is_dragonflybsd():
+            args.append('-Wl,-z,origin')
+        args.append('-Wl,-rpath,' + paths)
         if get_compiler_is_linuxlike(self):
             # Rpaths to use while linking must be absolute. These are not
             # written to the binary. Needed only with GNU ld:

@@ -285,6 +285,9 @@ def is_cygwin():
 def is_debianlike():
     return os.path.isfile('/etc/debian_version')
 
+def is_dragonflybsd():
+    return platform.system().lower() == 'dragonfly'
+
 def for_windows(is_cross, env):
     """
     Host machine is windows?
