@@ -58,6 +58,7 @@ These are provided by the `.system()` method call.
 | cygwin              | The Cygwin environment for Windows |
 | haiku               | |
 | freebsd             | FreeBSD and it's derivatives |
+| dragonfly           | DragonFly BSD |
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.
