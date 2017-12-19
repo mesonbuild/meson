@@ -19,6 +19,9 @@ foreach lang : ['c', 'cpp']
   elif host_system == 'haiku'
     d = cc.get_define('__HAIKU__')
     assert(d == '1', '__HAIKU__ value is @0@ instead of 1'.format(d))
+  elif host_system == 'dragonfly'
+    d = cc.get_define('__DragonFly__')
+    assert(d == '1', '__DragonFly__ value is @0@ instead of 1'.format(d))
   else
     error('Please report a bug and help us improve support for this platform')
   endif
