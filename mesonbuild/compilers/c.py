@@ -831,7 +831,7 @@ class ClangCCompiler(ClangCompiler, CCompiler):
 
 class GnuCCompiler(GnuCompiler, CCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
         GnuCompiler.__init__(self, gcc_type, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'1': default_warn_args,
@@ -870,7 +870,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
 class IntelCCompiler(IntelCompiler, CCompiler):
     def __init__(self, exelist, version, icc_type, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
         IntelCompiler.__init__(self, icc_type)
         self.lang_header = 'c-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark', '-Wpch-messages']
