@@ -34,8 +34,10 @@ import mesonbuild.environment
 import mesonbuild.mesonlib
 import mesonbuild.coredata
 from mesonbuild.interpreter import ObjectHolder
-from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
-from mesonbuild.mesonlib import python_command, meson_command, version_compare
+from mesonbuild.mesonlib import (
+    is_linux, is_windows, is_osx, is_cygwin, is_dragonflybsd,
+    windows_proof_rmtree, python_command, meson_command, version_compare,
+)
 from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
@@ -1386,12 +1388,24 @@ int main(int argc, char **argv) {
         for each in ('prog', 'subdir/liblib1.so', ):
             rpath = get_rpath(os.path.join(self.builddir, each))
             self.assertTrue(rpath)
-            for path in rpath.split(':'):
+            if is_dragonflybsd():
+                # DragonflyBSD will prepend /usr/lib/gccVERSION to the rpath,
+                # so ignore that.
+                self.assertTrue(rpath.startswith('/usr/lib/gcc'))
+                rpaths = rpath.split(':')[1:]
+            else:
+                rpaths = rpath.split(':')
+            for path in rpaths:
                 self.assertTrue(path.startswith('$ORIGIN'), msg=(each, path))
         # These two don't link to anything else, so they do not need an rpath entry.
         for each in ('subdir/subdir2/liblib2.so', 'subdir/subdir3/liblib3.so'):
             rpath = get_rpath(os.path.join(self.builddir, each))
-            self.assertTrue(rpath is None)
+            if is_dragonflybsd():
+                # The rpath should be equal to /usr/lib/gccVERSION
+                self.assertTrue(rpath.startswith('/usr/lib/gcc'))
+                self.assertEqual(len(rpath.split(':')), 1)
+            else:
+                self.assertTrue(rpath is None)
 
     def test_dash_d_dedup(self):
         testdir = os.path.join(self.unit_test_dir, '10 d dedup')

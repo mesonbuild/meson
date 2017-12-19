@@ -857,6 +857,11 @@ class Compiler:
                 paths = paths + ':' + padding
         args = []
         if mesonlib.is_dragonflybsd():
+            # This argument instructs the compiler to record the value of
+            # ORIGIN in the .dynamic section of the elf. On Linux this is done
+            # by default, but is not on dragonfly for some reason. Without this
+            # $ORIGIN in the runtime path will be undefined and any binaries
+            # linked against local libraries will fail to resolve them.
             args.append('-Wl,-z,origin')
         args.append('-Wl,-rpath,' + paths)
         if get_compiler_is_linuxlike(self):
