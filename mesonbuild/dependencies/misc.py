@@ -804,7 +804,7 @@ class CupsDependency(ExternalDependency):
                     self.type_name = 'config-tool'
                     self.version = ctdep.version
                     self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-                    self.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+                    self.link_args = ctdep.get_config_value(['--ldflags', '--libs'], 'link_args')
                     self.is_found = True
                     return
             except Exception as e:
