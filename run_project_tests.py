@@ -447,20 +447,28 @@ def have_objc_compiler():
         env = environment.Environment(None, build_dir, None, get_fake_options('/'), [])
         try:
             objc_comp = env.detect_objc_compiler(False)
-        except:
+        except mesonlib.MesonException:
             return False
         if not objc_comp:
             return False
         try:
             objc_comp.sanity_check(env.get_scratch_dir(), env)
+        except mesonlib.MesonException:
+            return False
+    return True
+
+def have_objcpp_compiler():
+    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
+        env = environment.Environment(None, build_dir, None, get_fake_options('/'), [])
+        try:
             objcpp_comp = env.detect_objcpp_compiler(False)
-        except:
+        except mesonlib.MesonException:
             return False
         if not objcpp_comp:
             return False
         try:
             objcpp_comp.sanity_check(env.get_scratch_dir(), env)
-        except:
+        except mesonlib.MesonException:
             return False
     return True
 
@@ -487,6 +495,7 @@ def detect_tests_to_run():
         ('rust', 'rust', backend is not Backend.ninja or not shutil.which('rustc')),
         ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
         ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or mesonlib.is_windows() or not have_objc_compiler()),
+        ('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or mesonlib.is_windows() or not have_objcpp_compiler()),
         ('fortran', 'fortran', backend is not Backend.ninja or not shutil.which('gfortran')),
         ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         ('python3', 'python3', backend is not Backend.ninja),
