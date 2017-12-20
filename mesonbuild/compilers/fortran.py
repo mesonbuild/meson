@@ -31,9 +31,9 @@ from .compilers import (
 )
 
 class FortranCompiler(Compiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
         self.language = 'fortran'
-        super().__init__(exelist, version)
+        super().__init__(exelist, version, **kwargs)
         self.is_cross = is_cross
         self.exe_wrapper = exe_wrapper
         # Not really correct but I don't have Fortran compilers to test with. Sorry.
@@ -149,8 +149,8 @@ end program prog
 
 
 class GnuFortranCompiler(FortranCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwargs)
         self.gcc_type = gcc_type
         self.defines = defines or {}
         self.id = 'gcc'
@@ -181,8 +181,8 @@ class GnuFortranCompiler(FortranCompiler):
 
 
 class G95FortranCompiler(FortranCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwags)
         self.id = 'g95'
 
     def get_module_outdir_args(self, path):
@@ -205,8 +205,8 @@ class G95FortranCompiler(FortranCompiler):
 
 
 class SunFortranCompiler(FortranCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwags)
         self.id = 'sun'
 
     def get_dependency_gen_args(self, outtarget, outfile):
@@ -228,9 +228,9 @@ class SunFortranCompiler(FortranCompiler):
 class IntelFortranCompiler(IntelCompiler, FortranCompiler):
     std_warn_args = ['-warn', 'all']
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
         self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp')
-        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         # FIXME: Add support for OS X and Windows in detect_fortran_compiler so
         # we are sent the type of compiler
         IntelCompiler.__init__(self, ICC_STANDARD)
@@ -246,8 +246,8 @@ class IntelFortranCompiler(IntelCompiler, FortranCompiler):
 class PathScaleFortranCompiler(FortranCompiler):
     std_warn_args = ['-fullwarn']
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwags)
         self.id = 'pathscale'
 
     def get_module_outdir_args(self, path):
@@ -259,8 +259,8 @@ class PathScaleFortranCompiler(FortranCompiler):
 class PGIFortranCompiler(FortranCompiler):
     std_warn_args = ['-Minform=inform']
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwags)
         self.id = 'pgi'
 
     def get_module_incdir_args(self):
@@ -279,8 +279,8 @@ class PGIFortranCompiler(FortranCompiler):
 class Open64FortranCompiler(FortranCompiler):
     std_warn_args = ['-fullwarn']
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwags)
         self.id = 'open64'
 
     def get_module_outdir_args(self, path):
@@ -293,8 +293,8 @@ class Open64FortranCompiler(FortranCompiler):
 class NAGFortranCompiler(FortranCompiler):
     std_warn_args = []
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwags)
         self.id = 'nagfor'
 
     def get_module_outdir_args(self, path):

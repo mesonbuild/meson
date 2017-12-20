@@ -496,6 +496,7 @@ class Environment:
                 popen_exceptions[' '.join(compiler + [arg])] = e
                 continue
             version = search_version(out)
+            full_version = out.split('\n', 1)[0]
             if 'Free Software Foundation' in out:
                 defines = self.get_gnu_compiler_defines(compiler)
                 if not defines:
@@ -504,7 +505,7 @@ class Environment:
                 gtype = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
                 cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
-                return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines)
+                return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version)
             if 'clang' in out:
                 if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
                     cltype = CLANG_OSX
@@ -513,7 +514,7 @@ class Environment:
                 else:
                     cltype = CLANG_STANDARD
                 cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
-                return cls(ccache + compiler, version, cltype, is_cross, exe_wrap)
+                return cls(ccache + compiler, version, cltype, is_cross, exe_wrap, full_version=full_version)
             if 'Microsoft' in out or 'Microsoft' in err:
                 # Latest versions of Visual Studio print version
                 # number to stderr but earlier ones print version
@@ -532,7 +533,7 @@ class Environment:
                 # TODO: add microsoft add check OSX
                 inteltype = ICC_STANDARD
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
-                return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap)
+                return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap, full_version=full_version)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, want_cross):
@@ -555,6 +556,7 @@ class Environment:
                     continue
 
                 version = search_version(out)
+                full_version = out.split('\n', 1)[0]
 
                 if 'GNU Fortran' in out:
                     defines = self.get_gnu_compiler_defines(compiler)
@@ -563,29 +565,29 @@ class Environment:
                         continue
                     gtype = self.get_gnu_compiler_type(defines)
                     version = self.get_gnu_version_from_defines(defines)
-                    return GnuFortranCompiler(compiler, version, gtype, is_cross, exe_wrap, defines)
+                    return GnuFortranCompiler(compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version)
 
                 if 'G95' in out:
-                    return G95FortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return G95FortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'Sun Fortran' in err:
                     version = search_version(err)
-                    return SunFortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return SunFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'ifort (IFORT)' in out:
-                    return IntelFortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return IntelFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'PathScale EKOPath(tm)' in err:
-                    return PathScaleFortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return PathScaleFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'PGI Compilers' in out:
-                    return PGIFortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return PGIFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'Open64 Compiler Suite' in err:
-                    return Open64FortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return Open64FortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'NAG Fortran' in err:
-                    return NAGFortranCompiler(compiler, version, is_cross, exe_wrap)
+                    return NAGFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def get_scratch_dir(self):
@@ -665,8 +667,9 @@ class Environment:
         except OSError:
             raise EnvironmentException('Could not execute C# compiler "%s"' % ' '.join(exelist))
         version = search_version(out)
+        full_version = out.split('\n', 1)[0]
         if 'Mono' in out:
-            return MonoCompiler(exelist, version)
+            return MonoCompiler(exelist, version, full_version=full_version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_vala_compiler(self):
@@ -721,12 +724,13 @@ class Environment:
         except OSError:
             raise EnvironmentException('Could not execute D compiler "%s"' % ' '.join(exelist))
         version = search_version(out)
+        full_version = out.split('\n', 1)[0]
         if 'LLVM D compiler' in out:
-            return compilers.LLVMDCompiler(exelist, version, is_cross)
+            return compilers.LLVMDCompiler(exelist, version, is_cross, full_version=full_version)
         elif 'gdc' in out:
-            return compilers.GnuDCompiler(exelist, version, is_cross)
+            return compilers.GnuDCompiler(exelist, version, is_cross, full_version=full_version)
         elif 'Digital Mars' in out:
-            return compilers.DmdDCompiler(exelist, version, is_cross)
+            return compilers.DmdDCompiler(exelist, version, is_cross, full_version=full_version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_swift_compiler(self):

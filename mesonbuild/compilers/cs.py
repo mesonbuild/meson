@@ -19,9 +19,9 @@ from ..mesonlib import EnvironmentException
 from .compilers import Compiler, mono_buildtype_args
 
 class MonoCompiler(Compiler):
-    def __init__(self, exelist, version):
+    def __init__(self, exelist, version, **kwargs):
         self.language = 'cs'
-        super().__init__(exelist, version)
+        super().__init__(exelist, version, **kwargs)
         self.id = 'mono'
         self.monorunner = 'mono'
 
