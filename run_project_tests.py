@@ -453,7 +453,7 @@ def have_objc_compiler():
             return False
         try:
             objc_comp.sanity_check(env.get_scratch_dir(), env)
-            objcpp_comp = env.detect_objc_compiler(False)
+            objcpp_comp = env.detect_objcpp_compiler(False)
         except:
             return False
         if not objcpp_comp:
