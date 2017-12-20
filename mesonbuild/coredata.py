@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from . import mlog
 import pickle, os, uuid
 import sys
 from pathlib import PurePath
@@ -148,6 +149,9 @@ class UserArrayOption(UserOption):
                 newvalue = ast.literal_eval(value)
             else:
                 newvalue = [v.strip() for v in value.split(',')]
+                if len(set(newvalue)) != len(newvalue):
+                    mlog.log(mlog.red('DEPRECATION:'), '''Duplicated values in an array type is deprecated.
+This will become a hard error in the future.''')
         if not isinstance(newvalue, list):
             raise MesonException('"{0}" should be a string array, but it is not'.format(str(newvalue)))
         for i in newvalue:
