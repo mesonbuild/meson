@@ -1798,6 +1798,7 @@ rule FORTRAN_DEP_HACK
         args = [x.replace("@CURRENT_SOURCE_DIR@", source_target_dir) for x in args]
         args = [x.replace("@SOURCE_ROOT@", self.build_to_src).replace("@BUILD_ROOT@", '.')
                 for x in args]
+        args = [x.replace('\\', '/') for x in args]
         return args
 
     def generate_genlist_for_target(self, genlist, target, outfile):

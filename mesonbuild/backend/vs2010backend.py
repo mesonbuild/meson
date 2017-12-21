@@ -103,7 +103,7 @@ class Vs2010Backend(backends.Backend):
                 exe = generator.get_exe()
                 infilelist = genlist.get_inputs()
                 outfilelist = genlist.get_outputs()
-                source_dir = os.path.join(self.environment.get_source_dir(), genlist.subdir)
+                source_dir = os.path.join(self.build_to_src, genlist.subdir)
                 exe_arr = self.exe_object_to_cmd_array(exe)
                 idgroup = ET.SubElement(parent_node, 'ItemGroup')
                 for i in range(len(infilelist)):
@@ -123,10 +123,11 @@ class Vs2010Backend(backends.Backend):
                     args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir())
                              .replace("@BUILD_DIR@", target_private_dir)
                             for x in args]
-                    args = [x.replace("@CURRENT_SOURCE_DIR@", source_target_dir) for x in args]
+                    args = [x.replace("@CURRENT_SOURCE_DIR@", source_dir) for x in args]
                     args = [x.replace("@SOURCE_ROOT@", self.environment.get_source_dir())
                              .replace("@BUILD_ROOT@", self.environment.get_build_dir())
                             for x in args]
+                    args = [x.replace('\\', '/') for x in args]
                     cmd = exe_arr + self.replace_extra_args(args, genlist)
                     if generator.capture:
                         exe_data = self.serialize_executable(
