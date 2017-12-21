@@ -881,15 +881,6 @@ def windows_proof_rmtree(f):
     # Try one last time and throw if it fails.
     shutil.rmtree(f)
 
-def unholder_array(entries):
-    result = []
-    entries = flatten(entries)
-    for e in entries:
-        if hasattr(e, 'held_object'):
-            e = e.held_object
-        result.append(e)
-    return result
-
 
 def detect_subprojects(spdir_name, current_dir='', result=None):
     if result is None:
