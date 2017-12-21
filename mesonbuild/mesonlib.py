@@ -288,6 +288,9 @@ def is_debianlike():
 def is_dragonflybsd():
     return platform.system().lower() == 'dragonfly'
 
+def is_freebsd():
+    return platform.system().lower() == 'freebsd'
+
 def for_windows(is_cross, env):
     """
     Host machine is windows?
