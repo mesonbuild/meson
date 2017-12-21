@@ -67,11 +67,16 @@ class WindowsModule(ExtensionModule):
             suffix = 'o'
         if not rescomp.found():
             raise MesonException('Could not find Windows resource compiler %s.' % ' '.join(rescomp.get_command()))
-        res_kwargs = {'output': '@BASENAME@.' + suffix,
-                      'arguments': res_args}
-        res_gen = build.Generator([rescomp], res_kwargs)
-        res_output = res_gen.process_files('Windows resource', args, state)
-        return ModuleReturnValue(res_output, [res_output])
+
+        res_kwargs = {
+            'output': '@BASENAME@.' + suffix,
+            'input': args,
+            'command': [rescomp] + res_args,
+        }
+
+        res_target = build.CustomTarget('Windows resource', state.subdir, state.subproject, res_kwargs)
+
+        return ModuleReturnValue(res_target, [res_target])
 
 def initialize():
     return WindowsModule()
