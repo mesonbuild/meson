@@ -23,7 +23,7 @@ from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreterbase import permittedKwargs
 
-class DepsHolder:
+class DependenciesHelper:
     def __init__(self, name):
         self.name = name
         self.pub_libs = []
@@ -239,7 +239,7 @@ class PkgConfigModule(ExtensionModule):
             raise mesonlib.MesonException('URL is not a string.')
         conflicts = mesonlib.stringlistify(kwargs.get('conflicts', []))
 
-        deps = DepsHolder(filebase)
+        deps = DependenciesHelper(filebase)
         deps.add_pub_libs(kwargs.get('libraries', []))
         deps.add_priv_libs(kwargs.get('libraries_private', []))
         deps.add_pub_reqs(kwargs.get('requires', []))
