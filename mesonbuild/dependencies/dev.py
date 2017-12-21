@@ -17,11 +17,10 @@
 
 import os
 import re
-import shutil
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import version_compare, Popen_safe, stringlistify, extract_as_list
+from ..mesonlib import version_compare, stringlistify, extract_as_list
 from .base import (
     DependencyException, ExternalDependency, PkgConfigDependency,
     strip_system_libdirs, ConfigToolDependency,
