@@ -789,6 +789,45 @@ class AllPlatformTests(BasePlatformTests):
                     self.assertEqual(value, expected[prefix][name])
             self.wipe()
 
+    def test_default_options_prefix_dependent_defaults(self):
+        '''
+        Tests that setting a prefix in default_options in project() sets prefix
+        dependent defaults for other options, and that those defaults can
+        be overridden in default_options or by the command line.
+        '''
+        testdir = os.path.join(self.common_test_dir, '173 default options prefix dependent defaults')
+        expected = {
+            '':
+            {'prefix':         '/usr',
+             'sysconfdir':     '/etc',
+             'localstatedir':  '/var',
+             'sharedstatedir': '/sharedstate'},
+            '--prefix=/usr':
+            {'prefix':         '/usr',
+             'sysconfdir':     '/etc',
+             'localstatedir':  '/var',
+             'sharedstatedir': '/sharedstate'},
+            '--sharedstatedir=/var/state':
+            {'prefix':         '/usr',
+             'sysconfdir':     '/etc',
+             'localstatedir':  '/var',
+             'sharedstatedir': '/var/state'},
+            '--sharedstatedir=/var/state --prefix=/usr --sysconfdir=sysconf':
+            {'prefix':         '/usr',
+             'sysconfdir':     'sysconf',
+             'localstatedir':  '/var',
+             'sharedstatedir': '/var/state'},
+        }
+        for args in expected:
+            self.init(testdir, args.split(), default_args=False)
+            opts = self.introspect('--buildoptions')
+            for opt in opts:
+                name = opt['name']
+                value = opt['value']
+                if name in expected[args]:
+                    self.assertEqual(value, expected[args][name])
+            self.wipe()
+
     def test_static_library_overwrite(self):
         '''
         Tests that static libraries are never appended to, always overwritten.
