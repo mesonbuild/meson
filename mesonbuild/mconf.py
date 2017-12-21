@@ -139,7 +139,7 @@ class Conf:
         print('\nCore options:\n')
         carr = []
         for key in ['buildtype', 'warning_level', 'werror', 'strip', 'unity', 'default_library',
-                    'default_link']:
+                    'default_link', 'static_paths']:
             carr.append({'name': key,
                          'descr': coredata.get_builtin_option_description(key),
                          'value': self.coredata.get_builtin_option(key),

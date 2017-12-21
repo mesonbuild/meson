@@ -509,7 +509,10 @@ class PkgConfigDependency(ExternalDependency):
     def _set_libs(self):
         env = None
         libcmd = [self.name, '--libs']
-        if self.static:
+        default_link = self.env.coredata.get_builtin_option('default_link')
+        static_paths = self.env.coredata.get_builtin_option('static_paths')
+        try_static = self.static or default_link == 'static'
+        if try_static:
             libcmd.append('--static')
             # Force pkg-config to output -L fields even if they are system
             # paths so we can do manual searching with cc.find_library() later.
@@ -527,22 +530,36 @@ class PkgConfigDependency(ExternalDependency):
             # file ourselves instead of depending on the compiler to find it
             # with -lfoo or foo.lib. However, we can only do this if we already
             # have some library paths gathered.
-            if self.static:
+            if try_static:
                 if lib.startswith('-L'):
                     libpaths.append(lib[2:])
                     continue
                 # FIXME: try to handle .la files in static mode too?
                 elif lib.startswith('-l'):
                     args = self.compiler.find_library(lib[2:], self.env, libpaths, libtype='static')
-                    if not args or len(args) < 1:
-                        if lib in static_libs_notfound:
-                            continue
+                    if args and not self.static:
+                        # A static lib exists but we are not forced to use it.
+                        # Check if it is found in an acceptable path, otherwise
+                        # keep -lfoo to use shared library.
+                        static_lib = args[0]
+                        for p in static_paths:
+                            if static_lib.startswith(p):
+                                lib = static_lib
+                                break
+                    elif args:
+                        # A static lib exists and we have to use it.
+                        lib = args[0]
+                    elif not self.static:
+                        # Didn't found static lib, but it was not required. It
+                        # can be dynamic linked.
+                        continue
+                    elif lib in static_libs_notfound:
+                        # We already warned about this missing static library
+                        continue
+                    else:
                         mlog.warning('Static library {!r} not found for dependency {!r}, may '
                                      'not be statically linked'.format(lib[2:], self.name))
                         static_libs_notfound.append(lib)
-                    else:
-                        # Replace -l arg with full path to static library
-                        lib = args[0]
             elif lib.endswith(".la"):
                 shared_libname = self.extract_libtool_shlib(lib)
                 shared_lib = os.path.join(os.path.dirname(lib), shared_libname)

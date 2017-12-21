@@ -2815,6 +2815,49 @@ endian = 'little'
             self.assertTrue(os.path.isfile(test_exe))
             subprocess.check_call(test_exe, env=myenv)
 
+    def test_default_static(self):
+        if not shutil.which('pkg-config'):
+            raise unittest.SkipTest('pkg-config not found')
+
+        pkg_dirs = []
+        lib_dirs = []
+
+        sdk_lib_path = os.path.join(self.installdir, 'lib')
+        lib_dirs.append(sdk_lib_path)
+        pkg_dirs.append(os.path.join(sdk_lib_path, 'pkgconfig'))
+        testdir = os.path.join(self.unit_test_dir, '21 default static', 'SDK')
+        self.init(testdir, ['--prefix=' + self.installdir, '--libdir=lib'], default_args=False)
+        self.install(use_destdir=False)
+
+        self.new_builddir()
+        platform_lib_path = os.path.join(self.installdir, 'lib')
+        platform_bin_path = os.path.join(self.installdir, 'bin')
+        lib_dirs.append(platform_lib_path)
+        pkg_dirs.append(os.path.join(platform_lib_path, 'pkgconfig'))
+        testdir = os.path.join(self.unit_test_dir, '21 default static', 'platform')
+        self.init(testdir, ['--prefix=' + self.installdir, '--libdir=lib'], default_args=False)
+        self.install(use_destdir=False)
+
+        os.environ['LIBRARY_PATH'] = os.pathsep.join(lib_dirs)
+        os.environ['PKG_CONFIG_LIBDIR'] = os.pathsep.join(pkg_dirs)
+
+        # Should static link libsdk and dynamic link libplatform
+        self.new_builddir()
+        testdir = os.path.join(self.unit_test_dir, '21 default static')
+        self.init(testdir, ['--default-link=static', '--static-paths=[\'%s\']' % sdk_lib_path])
+        self.install()
+
+        # Test should fail because it won't find libplatform.so
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.run_tests()
+
+        # Test should succeed because it will find libplatform.so and don't
+        # need libsdk.so
+        os.environ['LD_LIBRARY_PATH'] = platform_lib_path
+        if is_cygwin():
+            os.environ['PATH'] = platform_bin_path + os.pathsep + os.environ['PATH']
+        self.run_tests()
+
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
