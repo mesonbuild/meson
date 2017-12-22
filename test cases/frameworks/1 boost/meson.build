@@ -9,7 +9,7 @@ add_project_arguments(['-DBOOST_LOG_DYN_LINK'],
 # within one project. The need to be independent of each other.
 # Use one without a library dependency and one with it.
 
-linkdep = dependency('boost', modules : ['thread', 'system'])
+linkdep = dependency('boost', modules : ['thread', 'system', 'test'])
 staticdep = dependency('boost', modules : ['thread', 'system'], static : true)
 testdep = dependency('boost', modules : ['unit_test_framework'])
 nomoddep = dependency('boost')

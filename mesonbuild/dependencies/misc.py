@@ -71,11 +71,6 @@ class BoostDependency(ExternalDependency):
         self.is_multithreading = threading == "multi"
 
         self.requested_modules = self.get_requested(kwargs)
-        invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in BOOST_LIBS]
-        if invalid_modules:
-            mlog.warning('Invalid Boost modules: ' + ', '.join(invalid_modules))
-            self.log_fail()
-            return
 
         self.boost_root = None
         self.boost_roots = []
@@ -109,6 +104,24 @@ class BoostDependency(ExternalDependency):
                 self.incdir = self.detect_nix_incdir()
 
         if self.incdir is None:
+            self.log_fail()
+            return
+
+        invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in BOOST_LIBS]
+
+        # previous versions of meson allowed include dirs as modules
+        remove = []
+        for m in invalid_modules:
+            if m in os.listdir(os.path.join(self.incdir, 'boost')):
+                mlog.warning('Requested boost library', mlog.bold(m), 'that doesn\'t exist. '
+                             'This will be an error in the future')
+                remove.append(m)
+
+        self.requested_modules = [x for x in self.requested_modules if x not in remove]
+        invalid_modules = [x for x in invalid_modules if x not in remove]
+
+        if invalid_modules:
+            mlog.warning('Invalid Boost modules: ' + ', '.join(invalid_modules))
             self.log_fail()
             return
 
