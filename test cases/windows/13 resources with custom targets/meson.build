@@ -59,11 +59,12 @@ if meson.get_compiler('c').get_id() == 'gcc' and host_machine.system() == 'windo
   # We hope you never have to implement something like this.
 endif
 
-subdir('inc')
 subdir('res')
 
-exe = executable('prog', 'prog.c',
-  res,
-  gui_app : true)
+foreach id : [0, 1, 2]
+  exe = executable('prog_@0@'.format(id), 'prog.c',
+    res[id],
+    gui_app : true)
 
-test('winmain', exe)
+  test('winmain_@0@'.format(id), exe)
+endforeach

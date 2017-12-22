@@ -68,15 +68,41 @@ class WindowsModule(ExtensionModule):
         if not rescomp.found():
             raise MesonException('Could not find Windows resource compiler %s.' % ' '.join(rescomp.get_command()))
 
-        res_kwargs = {
-            'output': '@BASENAME@.' + suffix,
-            'input': args,
-            'command': [rescomp] + res_args,
-        }
+        res_targets = []
 
-        res_target = build.CustomTarget('Windows resource', state.subdir, state.subproject, res_kwargs)
+        def add_target(src):
+            if isinstance(src, list):
+                for subsrc in src:
+                    add_target(subsrc)
+                return
 
-        return ModuleReturnValue(res_target, [res_target])
+            if hasattr(src, 'held_object'):
+                src = src.held_object
+
+            res_kwargs = {
+                'output': '@BASENAME@.' + suffix,
+                'input': [src],
+                'command': [rescomp] + res_args,
+            }
+
+            if isinstance(src, (str, mesonlib.File)):
+                name = 'file {!r}'.format(str(src))
+            elif isinstance(src, build.CustomTarget):
+                if len(src.get_outputs()) > 1:
+                    raise MesonException('windows.compile_resources does not accept custom targets with more than 1 output.')
+
+                name = 'target {!r}'.format(src.get_id())
+            else:
+                raise MesonException('Unexpected source type {!r}. windows.compile_resources accepts only strings, files, custom targets, and lists thereof.'.format(src))
+
+            # Path separators are not allowed in target names
+            name = name.replace('/', '_').replace('\\', '_')
+
+            res_targets.append(build.CustomTarget('Windows resource for ' + name, state.subdir, state.subproject, res_kwargs))
+
+        add_target(args)
+
+        return ModuleReturnValue(res_targets, [res_targets])
 
 def initialize():
     return WindowsModule()
