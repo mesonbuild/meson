@@ -777,32 +777,38 @@ This will become a hard error in the future.''')
         args += self._unpack_args('--mkdbargs=', 'mkdb_args', kwargs)
         args += self._unpack_args('--html-assets=', 'html_assets', kwargs, state)
 
+        depends = []
         content_files = []
         for s in mesonlib.extract_as_list(kwargs, 'content_files'):
             if hasattr(s, 'held_object'):
                 s = s.held_object
             if isinstance(s, (build.CustomTarget, build.CustomTargetIndex)):
+                depends.append(s)
                 content_files.append(os.path.join(state.environment.get_build_dir(),
                                                   state.backend.get_target_dir(s),
                                                   s.get_outputs()[0]))
             elif isinstance(s, mesonlib.File):
                 content_files.append(s.rel_to_builddir(state.build_to_src))
             elif isinstance(s, build.GeneratedList):
+                depends.append(s)
                 for gen_src in s.get_outputs():
                     content_files.append(os.path.join(state.environment.get_source_dir(),
                                                       state.subdir,
                                                       gen_src))
-            else:
+            elif isinstance(s, str):
                 content_files.append(os.path.join(state.environment.get_source_dir(),
                                                   state.subdir,
                                                   s))
+            else:
+                raise MesonException(
+                    'Invalid object type: {!r}'.format(s.__class__.__name__))
         args += ['--content-files=' + '@@'.join(content_files)]
 
         args += self._unpack_args('--expand-content-files=', 'expand_content_files', kwargs, state)
         args += self._unpack_args('--ignore-headers=', 'ignore_headers', kwargs)
         args += self._unpack_args('--installdir=', 'install_dir', kwargs, state)
         args += self._get_build_args(kwargs, state)
-        res = [build.RunTarget(targetname, command[0], command[1:] + args, [], state.subdir, state.subproject)]
+        res = [build.RunTarget(targetname, command[0], command[1:] + args, depends, state.subdir, state.subproject)]
         if kwargs.get('install', True):
             res.append(build.RunScript(command, args))
         return ModuleReturnValue(None, res)
