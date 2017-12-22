@@ -250,6 +250,14 @@ class BoostDependency(ExternalDependency):
             return self.detect_lib_modules_win()
         return self.detect_lib_modules_nix()
 
+    def modname_from_filename(self, filename):
+        modname = os.path.basename(filename)
+        modname = modname.split('.', 1)[0]
+        modname = modname.split('-', 1)[0]
+        if modname.startswith('libboost'):
+            modname = modname[3:]
+        return modname
+
     def detect_lib_modules_win(self):
         arch = detect_cpu_family(self.env.coredata.compilers)
         comp_ts_version = self.env.detect_cpp_compiler(self.want_cross).get_toolset_version()
@@ -291,8 +299,7 @@ class BoostDependency(ExternalDependency):
                 libname = libname + '-gd'
             libname = libname + "-{}.lib".format(self.version.replace('.', '_'))
             if os.path.isfile(os.path.join(self.libdir, libname)):
-                modname = libname.split('-', 1)[0][3:]
-                self.lib_modules[modname] = libname
+                self.lib_modules[self.modname_from_filename(libname)] = libname
             else:
                 libname = "lib{}.lib".format(name)
                 if os.path.isfile(os.path.join(self.libdir, libname)):
@@ -309,22 +316,13 @@ class BoostDependency(ExternalDependency):
         globber2 = globber2 + '-{}'.format(self.version.replace('.', '_'))
         globber2_matches = glob.glob(os.path.join(self.libdir, globber2 + '.lib'))
         for entry in globber2_matches:
-            (_, fname) = os.path.split(entry)
-            modname = fname.split('-', 1)
-            if len(modname) > 1:
-                modname = modname[0]
-            else:
-                modname = modname.split('.', 1)[0]
-            if self.static:
-                modname = modname[3:]
-            self.lib_modules[modname] = fname
+            fname = os.path.basename(entry)
+            self.lib_modules[self.modname_from_filename(fname)] = fname
         if len(globber2_matches) == 0:
             for entry in glob.glob(os.path.join(self.libdir, globber1 + '.lib')):
-                (_, fname) = os.path.split(entry)
-                modname = fname.split('.', 1)[0]
                 if self.static:
-                    modname = modname[3:]
-                    self.lib_modules[modname] = fname
+                    fname = os.path.basename(entry)
+                    self.lib_modules[self.modname_from_filename(fname)] = fname
 
     def detect_lib_modules_nix(self):
         if self.static:
@@ -347,19 +345,21 @@ class BoostDependency(ExternalDependency):
                 if os.path.isfile(os.path.join(libdir, libname)):
                     self.lib_modules[name] = libname
             for entry in glob.glob(os.path.join(libdir, globber)):
-                lib = os.path.basename(entry)
-                name = lib.split('.')[0][3:]
                 # I'm not 100% sure what to do here. Some distros
                 # have modules such as thread only as -mt versions.
                 # On debian all packages are built threading=multi
                 # but not suffixed with -mt.
                 # FIXME: implement detect_lib_modules_{debian, redhat, ...}
+                # FIXME: this wouldn't work with -mt-gd either. -BDR
                 if self.is_multithreading and mesonlib.is_debianlike():
-                    self.lib_modules[name] = lib
+                    pass
                 elif self.is_multithreading and entry.endswith('-mt.{}'.format(libsuffix)):
-                    self.lib_modules[name] = lib
+                    pass
                 elif not entry.endswith('-mt.{}'.format(libsuffix)):
-                    self.lib_modules[name] = lib
+                    pass
+                else:
+                    continue
+                self.lib_modules[self.modname_from_filename(entry)] = os.path.basename(entry)
 
     def get_win_link_args(self):
         args = []
