@@ -17,7 +17,7 @@ import time, datetime
 import os.path
 from . import environment, interpreter, mesonlib
 from . import build
-from . import mconf, mintro, mtest, rewriter
+from . import mconf, mintro, mtest, rewriter, minit
 import platform
 from . import mlog, coredata
 from .mesonlib import MesonException
@@ -308,6 +308,8 @@ def run(original_args, mainfile=None):
                 sys.exit(1)
         elif cmd_name == 'wrap':
             return wraptool.run(remaining_args)
+        elif cmd_name == 'init':
+            return minit.run(remaining_args)
         elif cmd_name == 'runpython':
             import runpy
             script_file = remaining_args[0]
