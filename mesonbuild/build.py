@@ -1776,7 +1776,7 @@ class CustomTargetIndex:
 
     def __repr__(self):
         return '<CustomTargetIndex: {!r}[{}]>'.format(
-            self.target, self.target.output.index(self.output))
+            self.target, self.target.get_outputs().index(self.output))
 
     def get_outputs(self):
         return [self.output]
