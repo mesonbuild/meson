@@ -170,6 +170,24 @@ class LLVMDependency(ConfigToolDependency):
         else:
             self._set_old_link_args()
         self.link_args = strip_system_libdirs(environment, self.link_args)
+        self.link_args = self.__fix_bogus_link_args(self.link_args)
+
+    @staticmethod
+    def __fix_bogus_link_args(args):
+        """This function attempts to fix bogus link arguments that llvm-config
+        generates.
+
+        Currently it works around the following:
+            - FreeBSD: when statically linking -l/usr/lib/libexecinfo.so will
+              be generated, strip the -l in cases like this.
+        """
+        new_args = []
+        for arg in args:
+            if arg.startswith('-l') and arg.endswith('.so'):
+                new_args.append(arg.lstrip('-l'))
+            else:
+                new_args.append(arg)
+        return new_args
 
     def _set_new_link_args(self):
         """How to set linker args for LLVM versions >= 3.9"""
