@@ -28,7 +28,7 @@ default_warning = '1'
 def add_builtin_argument(p, name, **kwargs):
     k = kwargs.get('dest', name.replace('-', '_'))
     c = coredata.get_builtin_option_choices(k)
-    b = True if kwargs.get('action', None) in ['store_true', 'store_false'] else False
+    b = kwargs.get('action', None) in ['store_true', 'store_false']
     h = coredata.get_builtin_option_description(k)
     if not b:
         h = h.rstrip('.') + ' (default: %s).' % coredata.get_builtin_option_default(k)
