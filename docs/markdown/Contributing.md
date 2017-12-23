@@ -32,6 +32,37 @@ basis. Sometimes it may be easier to write the test than convince the
 maintainers that one is not needed. Exercise judgment and ask for help
 in problematic cases.
 
+The tests are split into two different parts: unit tests and full
+project tests. To run all tests, execute `./run_tests.py`. Unit tests
+can be run with `./run_unittests.py` and project tests with
+`./run_project_tests.py`.
+
+Each project test is a standalone project that can be compiled on its
+own. They are all in `test cases` subdirectory. The simplest way to
+run a single project test is to do something like `./meson.py test\
+cases/common/1\ trivial builddir`. The one exception to this is `test
+cases/unit` directory discussed below.
+
+The test cases in the `common` subdirectory are meant to be run always
+for all backends. They should only depend on C and C++, without any
+external dependencies such as libraries. Tests that require those are
+in the `test cases/frameworks` directory. If there is a need for an
+external program in the common directory, such as a code generator, it
+should be implemented as a Python script. The goal of test projects is
+also to provide sample projects that end users can use as a base for
+their own projects.
+
+All project tests follow the same pattern: they are compiled, tests
+are run and finally install is run. Passing means that building and
+tests succeed and installed files match the `installed_files.txt` file
+in the test's source root. Any tests that require more thorough
+analysis, such as checking that certain compiler arguments can be
+found in the command line or that the generated pkg-config files
+actually work should be done with a unit test.
+
+Projects needed by unit tests are in the `test cases/unit`
+subdirectory. They are not run as part of `./run_project_tests.py`.
+
 ## Documentation
 
 The `docs` directory contains the full documentation that will be used
