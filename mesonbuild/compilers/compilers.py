@@ -868,7 +868,7 @@ class Compiler:
             # This eats the next argument, which happens to be 'ldstdc++', causing link failures.
             # We can dodge this problem by not adding any rpath_paths if the argument is empty.
             if lpaths.strip() != '':
-                args += ['-Wl,-rpath-link,'+lpaths]
+                args += ['-Wl,-rpath-link,' + lpaths]
         return args
 
 
