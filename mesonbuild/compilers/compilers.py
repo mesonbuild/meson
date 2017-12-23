@@ -860,7 +860,12 @@ class Compiler:
             # Not needed on Windows or other platforms that don't use RPATH
             # https://github.com/mesonbuild/meson/issues/1897
             lpaths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
-            args += ['-Wl,-rpath-link,' + lpaths]
+
+            # clang expands '-Wl,rpath-link,' to ['-rpath-link'] instead of ['-rpath-link','']
+            # This eats the next argument, which happens to be 'ldstdc++', causing link failures.
+            # We can dodge this problem by not adding any rpath_paths if the argument is empty.
+            if lpaths.strip() != '':
+                args += ['-Wl,-rpath-link,'+lpaths]
         return args
 
 
