@@ -41,8 +41,16 @@ foreach lang : ['c', 'cpp']
     # found in the compiler's default search path, GCC inserts an extra comment
     # between the delimiter and the define which causes a parsing error.
     # https://github.com/mesonbuild/meson/issues/1726
-    ver = cc.get_define('ZLIB_VER_MAJOR', prefix : '#include <zlib.h>')
-    assert(ver == '1', 'ZLIB_VER_MAJOR value is "@0@" instead of "1"'.format(ver))
+    if host_machine.system() == 'netbsd'
+      # NetBSD's zlib doesn't is version 1.2.3 and doesn't have a
+      # ZLIB_VER_MAJOR, but it does have a ZLIB_VERSION (which is a string), so
+      # check the first non-quote character of that.
+      ver = cc.get_define('ZLIB_VERSION', prefix : '#include <zlib.h>')[1]
+      assert(ver == '1', 'ZLIB_VERSION (major) value is "@0@" instead of "1"'.format(ver))
+    else
+      ver = cc.get_define('ZLIB_VER_MAJOR', prefix : '#include <zlib.h>')
+      assert(ver == '1', 'ZLIB_VER_MAJOR value is "@0@" instead of "1"'.format(ver))
+    endif
   endif
 
   # Check that an undefined value is empty.
