@@ -17,6 +17,7 @@ import subprocess
 import shutil
 import tempfile
 from ..environment import detect_ninja
+from ..mesonlib import Popen_safe
 
 def scanbuild(exename, srcdir, blddir, privdir, logdir, args):
     with tempfile.TemporaryDirectory(dir=privdir) as scandir:
@@ -34,7 +35,30 @@ def run(args):
     privdir = os.path.join(blddir, 'meson-private')
     logdir = os.path.join(blddir, 'meson-logs/scanbuild')
     shutil.rmtree(logdir, ignore_errors=True)
-    exename = os.environ.get('SCANBUILD', 'scan-build')
+    tools = [
+        'scan-build',  # base
+        'scan-build-5.0', 'scan-build50',  # latest stable release
+        'scan-build-4.0', 'scan-build40',  # old stable releases
+        'scan-build-3.9', 'scan-build39',
+        'scan-build-3.8', 'scan-build38',
+        'scan-build-3.7', 'scan-build37',
+        'scan-build-3.6', 'scan-build36',
+        'scan-build-3.5', 'scan-build35',
+        'scan-build-6.0', 'scan-build-devel',  # development snapshot
+    ]
+    toolname = 'scan-build'
+    for tool in tools:
+        try:
+            p, out = Popen_safe([tool, '--help'])[:2]
+        except (FileNotFoundError, PermissionError):
+            continue
+        if p.returncode != 0:
+            continue
+        else:
+            toolname = tool
+            break
+
+    exename = os.environ.get('SCANBUILD', toolname)
     if not shutil.which(exename):
         print('Scan-build not installed.')
         return 1
