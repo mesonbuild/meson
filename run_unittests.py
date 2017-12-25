@@ -2269,11 +2269,18 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '11 build_rpath')
         self.init(testdir)
         self.build()
+        # C program RPATH
         build_rpath = get_rpath(os.path.join(self.builddir, 'prog'))
         self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar')
         self.install()
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/prog'))
         self.assertEqual(install_rpath, '/baz')
+        # C++ program RPATH
+        build_rpath = get_rpath(os.path.join(self.builddir, 'progcxx'))
+        self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar')
+        self.install()
+        install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/progcxx'))
+        self.assertEqual(install_rpath, 'baz')
 
     def test_pch_with_address_sanitizer(self):
         testdir = os.path.join(self.common_test_dir, '13 pch')
