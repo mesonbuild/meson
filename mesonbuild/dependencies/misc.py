@@ -321,7 +321,15 @@ class BoostDependency(ExternalDependency):
         else:
             libsuffix = 'so'
 
-        globber = 'libboost_*.{}'.format(libsuffix)
+        if mesonlib.is_debianlike():
+            # On debian all packages are built threading=multi
+            # but not suffixed with -mt.
+            globber = 'libboost_*.{}'.format(libsuffix)
+        elif self.is_multithreading:
+            globber = 'libboost_*-mt.{}'.format(libsuffix)
+        else:
+            globber = 'libboost_*.{}'.format(libsuffix)
+
         if self.libdir:
             libdirs = [self.libdir]
         elif self.boost_root is None:
@@ -338,15 +346,12 @@ class BoostDependency(ExternalDependency):
                 name = lib.split('.')[0][3:]
                 # I'm not 100% sure what to do here. Some distros
                 # have modules such as thread only as -mt versions.
-                # On debian all packages are built threading=multi
-                # but not suffixed with -mt.
                 # FIXME: implement detect_lib_modules_{debian, redhat, ...}
-                if self.is_multithreading and mesonlib.is_debianlike():
+                if self.is_multithreading:
                     self.lib_modules[name] = lib
-                elif self.is_multithreading and entry.endswith('-mt.{}'.format(libsuffix)):
-                    self.lib_modules[name] = lib
-                elif not entry.endswith('-mt.{}'.format(libsuffix)):
-                    self.lib_modules[name] = lib
+                else:
+                    if not entry.endswith('-mt.{}'.format(libsuffix)):
+                        self.lib_modules[name] = lib
 
     def get_win_link_args(self):
         args = []
