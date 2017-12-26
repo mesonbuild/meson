@@ -1813,9 +1813,18 @@ to directly access options of other subprojects.''')
             if coredata.is_builtin_option(key):
                 if self.subproject != '':
                     continue # Only the master project is allowed to set global options.
+                # If this was set on the command line, do not override.
                 if not self.environment.had_argument_for(key):
                     self.coredata.set_builtin_option(key, value)
-                # If this was set on the command line, do not override.
+                    # If we are setting the prefix, then other options which
+                    # have prefix-dependent defaults need their value updating,
+                    # if they haven't been explicitly set (i.e. have their
+                    # default value)
+                    if key == 'prefix':
+                        for option in coredata.builtin_dir_noprefix_options:
+                            if not (self.environment.had_argument_for(option) or
+                                    any([k.startswith(option + '=') for k in default_options])):
+                                self.coredata.set_builtin_option(option, coredata.get_builtin_option_default(option, value))
             else:
                 # Option values set with subproject() default_options override those
                 # set in project() default_options.
