@@ -1667,7 +1667,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             search_dir = os.path.join(srcdir, self.subdir)
             prog = ExternalProgram(cmd, silent=True, search_dir=search_dir)
             if not prog.found():
-                raise InterpreterException('Program or command {!r} not found'
+                raise InterpreterException('Program or command {!r} not found '
                                            'or not executable'.format(cmd))
             cmd = prog
         cmd_path = os.path.relpath(cmd.get_path(), start=srcdir)
