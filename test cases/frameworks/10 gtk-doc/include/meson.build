@@ -8,3 +8,9 @@ configure_file(input : 'foo-version.h.in',
   configuration : cdata,
   install : true,
   install_dir : get_option('includedir'))
+
+generate_enums_docbook = find_program('generate-enums-docbook.py')
+
+docbook = custom_target('enum-docbook',
+  output : 'bar.xml',
+  command : [generate_enums_docbook, '@OUTPUT@', 'BAR', 'BAR_TYPE', 'BAR_FOO'])
