@@ -359,7 +359,9 @@ class BoostDependency(ExternalDependency):
                     pass
                 else:
                     continue
-                self.lib_modules[self.modname_from_filename(entry)] = os.path.basename(entry)
+                modname = self.modname_from_filename(entry)
+                if modname not in self.lib_modules:
+                    self.lib_modules[modname] = entry
 
     def get_win_link_args(self):
         args = []
@@ -379,14 +381,7 @@ class BoostDependency(ExternalDependency):
         elif self.libdir:
             args.append('-L' + self.libdir)
         for lib in self.requested_modules:
-            # The compiler's library detector is the most reliable so use that first.
-            boost_lib = 'boost_' + lib
-            default_detect = self.compiler.find_library(boost_lib, self.env, [])
-            if default_detect is not None:
-                args += default_detect
-            elif boost_lib in self.lib_modules:
-                linkcmd = '-l' + boost_lib
-                args.append(linkcmd)
+            args += [self.lib_modules['boost_' + lib]]
         return args
 
     def get_sources(self):
