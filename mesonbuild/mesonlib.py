@@ -881,6 +881,31 @@ def windows_proof_rmtree(f):
     # Try one last time and throw if it fails.
     shutil.rmtree(f)
 
+
+def detect_subprojects(spdir_name, current_dir='', result=None):
+    if result is None:
+        result = {}
+    spdir = os.path.join(current_dir, spdir_name)
+    if not os.path.exists(spdir):
+        return result
+    for trial in glob(os.path.join(spdir, '*')):
+        basename = os.path.split(trial)[1]
+        if trial == 'packagecache':
+            continue
+        append_this = True
+        if os.path.isdir(trial):
+            detect_subprojects(spdir_name, trial, result)
+        elif trial.endswith('.wrap') and os.path.isfile(trial):
+            basename = os.path.splitext(basename)[0]
+        else:
+            append_this = False
+        if append_this:
+            if basename in result:
+                result[basename].append(trial)
+            else:
+                result[basename] = [trial]
+    return result
+
 class OrderedSet(collections.MutableSet):
     """A set that preserves the order in which items are added, by first
     insertion.

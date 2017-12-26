@@ -1,12 +1,20 @@
 # Using wraptool
 
-Wraptool is a helper tool that allows you to manage your source dependencies using the WrapDB database. It gives you all things you would expect, such as installing and updating dependencies. The wrap tool works on all platforms, the only limitation is that the wrap definition works on your target platform. If you find some Wraps that don't work, please file bugs or, even better, patches.
+Wraptool is a helper tool that allows you to manage your source
+dependencies using the WrapDB database. It gives you all things you
+would expect, such as installing and updating dependencies. The wrap
+tool works on all platforms, the only limitation is that the wrap
+definition works on your target platform. If you find some Wraps that
+don't work, please file bugs or, even better, patches.
 
-All code examples here assume that you are running the commands in your top level source directory. Lines that start with the `$` mark are commands to type.
+All code examples here assume that you are running the commands in
+your top level source directory. Lines that start with the `$` mark
+are commands to type.
 
 ## Simple querying
 
-The simplest operation to do is to query the list of packages available. To list them all issue the following command:
+The simplest operation to do is to query the list of packages
+available. To list them all issue the following command:
 
     $ wraptool list
     box2d
@@ -22,27 +30,35 @@ The simplest operation to do is to query the list of packages available. To list
     vorbis
     zlib
 
-Usually you want to search for a specific package. This can be done with the `search` command:
+Usually you want to search for a specific package. This can be done
+with the `search` command:
 
     $ wraptool search jpeg
     libjpeg
 
-To determine which versions of libjpeg are available to install, issue the `info` command:
+To determine which versions of libjpeg are available to install, issue
+the `info` command:
 
     $ wraptool info libjpeg
     Available versions of libjpeg:
       9a 2
 
-The first number is the upstream release version, in this case `9a`. The second number is the Wrap revision number. They don't relate to anything in particular, but larger numbers imply newer releases. You should always use the newest available release.
+The first number is the upstream release version, in this case
+`9a`. The second number is the Wrap revision number. They don't relate
+to anything in particular, but larger numbers imply newer
+releases. You should always use the newest available release.
 
 ## Installing dependencies
 
-Installing dependencies is just as straightforward. First just create the `subprojects` directory at the top of your source tree and issue the install command.
+Installing dependencies is just as straightforward. First just create
+the `subprojects` directory at the top of your source tree and issue
+the install command.
 
     $ wraptool install libjpeg
     Installed libjpeg branch 9a revision 2
 
-Now you can issue a `subproject('libjpeg')` in your `meson.build` file to use it.
+Now you can issue a `subproject('libjpeg')` in your `meson.build` file
+to use it.
 
 To check if your projects are up to date you can issue the `status` command.
 
@@ -51,9 +67,33 @@ To check if your projects are up to date you can issue the `status` command.
      libjpeg up to date. Branch 9a, revision 2.
      zlib not up to date. Have 1.2.8 2, but 1.2.8 4 is available.
 
-In this case `zlib` has a newer release available. Updating it is straightforward:
+In this case `zlib` has a newer release available. Updating it is
+straightforward:
 
     $ wraptool update zlib
     Updated zlib to branch 1.2.8 revision 4
 
-Wraptool can do other things besides these. Documentation for these can be found in the command line help, which can be accessed by `wraptool --help`.
+Wraptool can do other things besides these. Documentation for these
+can be found in the command line help, which can be accessed by
+`wraptool --help`.
+
+## Promoting dependencies
+
+Meson will only search for subprojects from the top level
+`subprojects` directory. If you have subprojects that themselves have
+subprojects, you must transfer them to the top level. This can be done
+by going to your source root and issuing a promotion command.
+
+    meson wrap promote projname
+
+This will cause Meson to go through your entire project tree, find an
+embedded subproject and copy it to the top level.
+
+If there are multiple embedded copies of a subproject, Meson will not
+try to guess which one you want. Instead it will print all the
+possibilities. You can then manually select which one to promote by
+writing it out fully.
+
+    meson wrap promote subprojects/s1/subprojects/projname
+
+This functionality was added in Meson release 0.45.0.

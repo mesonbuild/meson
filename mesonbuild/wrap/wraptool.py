@@ -21,6 +21,8 @@ from glob import glob
 
 from .wrap import API_ROOT, open_wrapdburl
 
+from .. import mesonlib
+
 help_templ = '''This program allows you to manage your Wrap dependencies
 using the online wrap database http://wrapdb.mesonbuild.com.
 
@@ -142,6 +144,36 @@ def info(name):
     for v in versions:
         print(' ', v['branch'], v['revision'])
 
+def do_promotion(from_path, spdir_name):
+    if os.path.isfile(from_path):
+        assert(from_path.endswith('.wrap'))
+        shutil.copy(from_path, spdir_name)
+    elif os.path.isdir(from_path):
+        sproj_name = os.path.split(from_path)[1]
+        outputdir = os.path.join(spdir_name, sproj_name)
+        if os.path.exists(outputdir):
+            sys.exit('Output dir %s already exists. Will not overwrite.' % outputdir)
+        shutil.copytree(from_path, outputdir, ignore=shutil.ignore_patterns('subprojects'))
+
+def promote(argument):
+    path_segment, subproject_name = os.path.split(argument)
+    spdir_name = 'subprojects'
+    sprojs = mesonlib.detect_subprojects(spdir_name)
+    if subproject_name not in sprojs:
+        sys.exit('Subproject %s not found in directory tree.' % subproject_name)
+    matches = sprojs[subproject_name]
+    if len(matches) == 1:
+        do_promotion(matches[0], spdir_name)
+        return
+    if path_segment == '':
+        print('There are many versions of %s in tree. Please specify which one to promote:\n' % subproject_name)
+        for s in matches:
+            print(s)
+        sys.exit(1)
+    system_native_path_argument = argument.replace('/', os.sep)
+    if system_native_path_argument in matches:
+        do_promotion(argument, spdir_name)
+
 def status():
     print('Subproject status')
     for w in glob('subprojects/*.wrap'):
@@ -189,6 +221,11 @@ def run(args):
             print('info requires exactly one argument.')
             return 1
         info(args[0])
+    elif command == 'promote':
+        if len(args) != 1:
+            print('promote requires exactly one argument.')
+            return 1
+        promote(args[0])
     elif command == 'status':
         status()
     else:

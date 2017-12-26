@@ -2224,6 +2224,7 @@ to directly access options of other subprojects.''')
                         # we won't actually read all the build files.
                         return fallback_dep
                 if not dep:
+                    self.print_nested_info(name)
                     assert(exception is not None)
                     raise exception
 
@@ -2236,6 +2237,28 @@ to directly access options of other subprojects.''')
     @noPosargs
     def func_disabler(self, node, args, kwargs):
         return Disabler()
+
+    def print_nested_info(self, dependency_name):
+        message_templ = '''\nDependency %s not found but it is available in a sub-subproject.
+To use it in the current project, promote it by going in the project source
+root and issuing %s.
+
+'''
+        sprojs = mesonlib.detect_subprojects('subprojects', self.source_root)
+        if dependency_name not in sprojs:
+            return
+        found = sprojs[dependency_name]
+        if len(found) > 1:
+            suffix = 'one of the following commands'
+        else:
+            suffix = 'the following command'
+        message = message_templ % (dependency_name, suffix)
+        cmds = []
+        command_templ = 'meson wrap promote '
+        for l in found:
+            cmds.append(command_templ + l[len(self.source_root)+1:])
+        final_message = message + '\n'.join(cmds)
+        print(final_message)
 
     def get_subproject_infos(self, kwargs):
         fbinfo = kwargs['fallback']
