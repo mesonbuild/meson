@@ -41,6 +41,11 @@ assert(somelibver.type_name() == 'internal', 'somelibver should be of type "inte
 somelib = dependency('somelib',
   version : '== 0.1',
   fallback : ['somelib', 'some_dep'])
+# Find an internal dependency again even if required = false
+somelib_reqfalse = dependency('somelib',
+  required: false,
+  fallback : ['somelib', 'some_dep'])
+assert(somelib_reqfalse.found(), 'somelib should have been found')
 # Find an internal dependency again with the same name and incompatible version
 somelibver = dependency('somelib',
   version : '>= 0.3',

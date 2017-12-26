@@ -2131,6 +2131,8 @@ to directly access options of other subprojects.''')
         # Check if we've already searched for and found this dep
         if identifier in self.coredata.deps:
             cached_dep = self.coredata.deps[identifier]
+            mlog.log('Cached dependency', mlog.bold(name),
+                     'found:', mlog.green('YES'))
         else:
             # Check if exactly the same dep with different version requirements
             # was found already.
@@ -2172,13 +2174,26 @@ to directly access options of other subprojects.''')
             # a higher level project, try to use it first.
             if 'fallback' in kwargs:
                 dirname, varname = self.get_subproject_infos(kwargs)
+                required = kwargs.get('required', True)
+                wanted = kwargs.get('version', 'undefined')
+                if not isinstance(required, bool):
+                    raise DependencyException('Keyword "required" must be a boolean.')
                 if dirname in self.subprojects:
-                    subproject = self.subprojects[dirname]
-                    try:
-                        # Never add fallback deps to self.coredata.deps
-                        return subproject.get_variable_method([varname], {})
-                    except KeyError:
-                        pass
+                    found = self.subprojects[dirname].held_object.project_version
+                    valid_version = wanted == 'undefined' or mesonlib.version_compare(found, wanted)
+                    if required and not valid_version:
+                        m = 'Version {} of {} already loaded, requested incompatible version {}'
+                        raise DependencyException(m.format(found, dirname, wanted))
+                    elif valid_version:
+                        mlog.log('Found a', mlog.green('(cached)'), 'subproject',
+                                 mlog.bold(os.path.join(self.subproject_dir, dirname)), 'for',
+                                 mlog.bold(name))
+                        subproject = self.subprojects[dirname]
+                        try:
+                            # Never add fallback deps to self.coredata.deps
+                            return subproject.get_variable_method([varname], {})
+                        except KeyError:
+                            pass
 
             # We need to actually search for this dep
             exception = None
