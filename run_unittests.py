@@ -36,7 +36,7 @@ import mesonbuild.coredata
 from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
 from mesonbuild.mesonlib import python_command, meson_command, version_compare
-from mesonbuild.environment import Environment
+from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
@@ -1707,6 +1707,19 @@ int main(int argc, char **argv) {
         self.init(workdir)
         self.build()
 
+    def test_templates(self):
+        ninja = detect_ninja()
+        if ninja is None:
+            raise unittest.SkipTest('This test currently requires ninja. Fix this once "meson build" works.')
+        for lang in ('c', 'cpp'):
+            for type in ('executable', 'library'):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    self._run(meson_command + ['init', '--language', lang, '--type', type],
+                              workdir=tmpdir)
+                    self._run(self.meson_command + ['--backend=ninja', 'builddir'],
+                              workdir=tmpdir)
+                    self._run(ninja,
+                              workdir=os.path.join(tmpdir, 'builddir'))
 
 class FailureTests(BasePlatformTests):
     '''

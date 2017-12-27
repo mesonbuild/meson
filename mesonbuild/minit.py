@@ -113,10 +113,10 @@ hello_c_template  = '''#include <stdio.h>
 
 int main(int argc, char **argv) {{
     if(argc != 1) {{
-        printf("%s takes not arguments.\\n", argv[0]);
+        printf("%s takes no arguments.\\n", argv[0]);
         return 1;
     }}
-    printf("This is project %s.\n", PROJECT_NAME);
+    printf("This is project %s.\\n", PROJECT_NAME);
     return 0;
 }}
 '''
@@ -138,7 +138,7 @@ hello_cpp_template  = '''#include <iostream>
 
 int main(int argc, char **argv) {{
     if(argc != 1) {{
-        printf("%s takes not arguments.\\n", argv[0]);
+        std::cout << argv[0] <<  "takes no arguments.\\n";
         return 1;
     }}
     std::cout << "This is project " << PROJECT_NAME << ".\\n";
@@ -209,7 +209,7 @@ lib_cpp_test_template = '''#include <{header_file}>
 
 int main(int argc, char **argv) {{
     if(argc != 1) {{
-        printf("%s takes no arguments.\\n", argv[0]);
+        std::cout << argv[0] << " takes no arguments.\\n";
         return 1;
     }}
     {namespace}::{class_name} c;

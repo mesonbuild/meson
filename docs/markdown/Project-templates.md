@@ -2,7 +2,7 @@
 short-description: Project templates
 ...
 
-# Project templates (available since 0.45.0)
+# Project templates
 
 To make it easier for new developers to start working, Meson ships a
 tool to generate the basic setup of different kinds of projects. This
@@ -26,3 +26,5 @@ $ ninja -C builddir
 
 The generator has many different projects and settings. They can all
 be listed by invoking the command `meson test --help`.
+
+This feature is available since Meson version 0.45.0.
