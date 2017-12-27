@@ -207,10 +207,20 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
     def get_options(self):
+        c_stds = ['none', 'c++11']
+        # Visual Studio 2015 Update 3 and later
+        if version_compare(self.version, '>=19.10.25017'):
+            c_stds += ['c++14', 'c++latest']
+        # Visual Studio 2017 and later
+        if version_compare(self.version, '>=19.11'):
+            c_stds += ['c++17']
         return {'cpp_eh': coredata.UserComboOption('cpp_eh',
                                                    'C++ exception handling type.',
                                                    ['none', 'a', 's', 'sc'],
                                                    'sc'),
+                'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                    c_stds,
+                                                    'none'),
                 'cpp_winlibs': coredata.UserArrayOption('cpp_winlibs',
                                                         'Windows libs to link against.',
                                                         msvc_winlibs)
@@ -221,6 +231,9 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         std = options['cpp_eh']
         if std.value != 'none':
             args.append('/EH' + std.value)
+        std = options['cpp_std']
+        if std.value not in ['none', 'c++11']:
+            args.append('/std:' + std.value)
         return args
 
     def get_option_link_args(self, options):

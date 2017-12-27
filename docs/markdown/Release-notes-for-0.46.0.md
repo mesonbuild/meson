@@ -21,3 +21,8 @@ Added the function `subdir_done()`. Its invocation exits the current script at
 the point of invocation. All previously invoked build targets and commands are
 build/executed. All following ones are ignored. If the current script was
 invoked via `subdir()` the parent script continues normally.
+
+## Added `cpp_std` option for the Visual Studio C++ compiler
+
+Allows the use of C++17 features and experimental not-yet-standardized
+features. Valid options are `c++11`, `c++14`, `c++17`, and `c++latest`.
