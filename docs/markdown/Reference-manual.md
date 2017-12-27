@@ -483,7 +483,7 @@ Keyword arguments are the following:
   then use the `.found()` method on the returned object to check
   whether it was found or not.
 
-- `native` defines how this executable should be searched. By default
+- `native` *(since 0.43)* defines how this executable should be searched. By default
   it is set to `false`, which causes Meson to first look for the
   executable in the cross file (when cross building) and if it is not
   defined there, then from the system. If set to `true`, the cross
