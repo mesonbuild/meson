@@ -871,6 +871,9 @@ class Compiler:
                 args += ['-Wl,-rpath-link,' + lpaths]
         return args
 
+    def thread_flags(self, env):
+        return []
+
 
 GCC_STANDARD = 0
 GCC_OSX = 1
