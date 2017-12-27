@@ -112,12 +112,37 @@ int main(int argc, char **argv) {{
         printf("%s takes not arguments.\\n", argv[0]);
         return 1;
     }}
-    printf("This is project %s.", PROJECT_NAME);
+    printf("This is project %s.\n", PROJECT_NAME);
     return 0;
 }}
 '''
 
 hello_c_meson_template = '''project('{project_name}', 'c',
+  version : '{version}',
+  default_options : ['warning_level=3'])
+
+exe = executable('{exe_name}', '{source_name}',
+  install : true)
+  
+test('basic', exe)
+'''
+
+hello_cpp_template  = '''#include <iostream>
+
+#define PROJECT_NAME "{project_name}"
+
+int main(int argc, char **argv) {{
+    if(argc != 1) {{
+        printf("%s takes not arguments.\\n", argv[0]);
+        return 1;
+    }}
+    std::cout << "This is project " << PROJECT_NAME << ".\\n";
+    return 0;
+}}
+'''
+
+hello_cpp_meson_template = '''project('{project_name}', 'cpp',
+  version : '{version}',
   default_options : ['warning_level=3'])
 
 exe = executable('{exe_name}', '{source_name}',
@@ -133,14 +158,15 @@ meson builddir
 ninja -C builddir
 '''
 
-def create_exe_c_sample(project_name):
+def create_exe_c_sample(project_name, project_version):
     lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
     uppercase_token = lowercase_token.upper()
     source_name = lowercase_token + '.c'
     open(source_name, 'w').write(hello_c_template.format(project_name=project_name))
     open('meson.build', 'w').write(hello_c_meson_template.format(project_name=project_name,
                                                                  exe_name=lowercase_token,
-                                                                 source_name=source_name))
+                                                                 source_name=source_name,
+                                                                 version=project_version))
 
 def create_lib_c_sample(project_name, version):
     lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
@@ -167,11 +193,29 @@ def create_lib_c_sample(project_name, version):
     open(test_c_name, 'w').write(lib_c_test_template.format(**kwargs))
     open('meson.build', 'w').write(lib_c_meson_template.format(**kwargs))
 
+def create_exe_cpp_sample(project_name, project_version):
+    lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
+    uppercase_token = lowercase_token.upper()
+    source_name = lowercase_token + '.cpp'
+    open(source_name, 'w').write(hello_cpp_template.format(project_name=project_name))
+    open('meson.build', 'w').write(hello_cpp_meson_template.format(project_name=project_name,
+                                                                 exe_name=lowercase_token,
+                                                                 source_name=source_name,
+                                                                 version=project_version))
+
 def create_sample(options):
-    if options.type == 'executable':
-        create_exe_c_sample(options.name)
-    elif options.type == 'library':
-        create_lib_c_sample(options.name, options.version)
+    if options.language == 'c':
+        if options.type == 'executable':
+            create_exe_c_sample(options.name, options.version)
+        elif options.type == 'library':
+            create_lib_c_sample(options.name, options.version)
+        else:
+            raise RuntimeError('Unreachable code')
+    elif options.language == 'cpp':
+        if options.type == 'executable':
+            create_exe_cpp_sample(options.name, options.version)
+        else:
+            raise RuntimeError('Unreachable code')
     else:
         raise RuntimeError('Unreachable code')
     print(info_message)
@@ -181,6 +225,7 @@ def run(args):
     parser.add_argument('--name', default = 'mesonsample')
     parser.add_argument('--type', default='executable',
                         choices=['executable', 'library'])
+    parser.add_argument('--language', default='c', choices=['c', 'cpp'])
     parser.add_argument('--version', default='1.0')
     options = parser.parse_args(args)
     if len(glob('*')) != 0:
