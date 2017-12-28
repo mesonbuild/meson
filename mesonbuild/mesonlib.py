@@ -24,25 +24,32 @@ from glob import glob
 
 def detect_meson_py_location():
     c = sys.argv[0]
-    c_fname = os.path.split(c)[1]
-    if c_fname == 'meson' or c_fname == 'meson.py':
-        # $ /foo/meson.py <args>
-        if os.path.isabs(c):
-            return c
-        # $ meson <args> (gets run from /usr/bin/meson)
+    c_dir, c_fname = os.path.split(c)
+
+    # get the absolute path to the <mesontool> folder
+    m_dir = None
+    if os.path.isabs(c):
+        # $ /foo/<mesontool>.py <args>
+        m_dir = c_dir
+    elif c_dir == '':
+        # $ <mesontool> <args> (gets run from /usr/bin/<mesontool>)
         in_path_exe = shutil.which(c_fname)
         if in_path_exe:
-            # Special case: when run like "./meson.py <opts>" and user has
-            # period in PATH, we need to expand it out, because, for example,
+            m_dir, c_fname = os.path.split(in_path_exe)
+            # Special case: when run like "./meson.py <opts>",
+            # we need to expand it out, because, for example,
             # "ninja test" will be run from a different directory.
-            if '.' in os.environ['PATH'].split(':'):
-                p, f = os.path.split(in_path_exe)
-                if p == '' or p == '.':
-                    return os.path.join(os.getcwd(), f)
-            return in_path_exe
-        # $ python3 ./meson.py <args>
-        if os.path.exists(c):
-            return os.path.join(os.getcwd(), c)
+            if m_dir == '.':
+                m_dir = os.getcwd()
+    else:
+        m_dir = os.path.abspath(c_dir)
+
+    # find meson in m_dir
+    if m_dir is not None:
+        for fname in ['meson', 'meson.py']:
+            m_path = os.path.join(m_dir, fname)
+            if os.path.exists(m_path):
+                return m_path
 
     # The only thing remaining is to try to find the bundled executable and
     # pray distro packagers have not moved it.
