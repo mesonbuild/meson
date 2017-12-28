@@ -29,17 +29,21 @@ def gh_get(url):
     jd = json.loads(r.read().decode('utf-8'))
     return jd
 
-def list_projects():
-    jd = gh_get('https://api.github.com/orgs/mesonbuild/repos')
+def list_projects(org):
+    try:
+        jd = gh_get('https://api.github.com/orgs/%s/repos' % org)
+    except urllib.error.HTTPError:
+        jd = gh_get('https://api.github.com/users/%s/repos' % org)
     entries = [entry['name'] for entry in jd]
     entries = [e for e in entries if e not in private_repos]
     entries.sort()
+    print('Meson Build projects of https://github.com/%s:\n' % org)
     for i in entries:
         print(i)
     return 0
 
-def unpack(sproj, branch, outdir):
-    subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/mesonbuild/%s.git' % sproj, outdir])
+def unpack(sproj, branch, outdir, org):
+    subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/%s/%s.git' % (org, sproj), outdir])
     usfile = os.path.join(outdir, 'upstream.wrap')
     assert(os.path.isfile(usfile))
     config = configparser.ConfigParser()
@@ -73,7 +77,7 @@ def unpack(sproj, branch, outdir):
     shutil.rmtree(os.path.join(outdir, '.git'))
     os.unlink(ofilename)
 
-def install(sproj):
+def install(sproj, org = 'mesonbuild'):
     sproj_dir = os.path.join('subprojects', sproj)
     if not os.path.isdir('subprojects'):
         print('Run this in your source root and make sure there is a subprojects directory in it.')
@@ -81,28 +85,45 @@ def install(sproj):
     if os.path.isdir(sproj_dir):
         print('Subproject is already there. To update, nuke the dir and reinstall.')
         return 1
-    blist = gh_get('https://api.github.com/repos/mesonbuild/%s/branches' % sproj)
+    blist = gh_get('https://api.github.com/repos/%s/%s/branches' % (org, sproj))
     blist = [b['name'] for b in blist]
     blist = [b for b in blist if b != 'master']
     blist.sort()
     branch = blist[-1]
     print('Using branch', branch)
-    return unpack(sproj, branch, sproj_dir)
+    return unpack(sproj, branch, sproj_dir, org)
 
 def run(args):
     if not args or args[0] == '-h' or args[0] == '--help':
-        print(sys.argv[0], 'list/install', 'package_name')
+        print('Usage:')
+        print('   ', sys.argv[0], 'list [user/oranisation]')
+        print('   ', sys.argv[0], 'install [user/]package_name')
         return 1
     command = args[0]
     args = args[1:]
+    org = 'mesonbuild' # default organisation to take wrap packages from
     if command == 'list':
-        list_projects()
+        if len(args) == 1:
+            org = args[0]
+        elif len(args) > 1:
+            print('List can have only one optional argument (github organisation).')
+            return 1
+        list_projects(org)
         return 0
     elif command == 'install':
         if len(args) != 1:
-            print('Install requires exactly one argument.')
+            print('Install requires exactly one argument (wrap package name).')
             return 1
-        return install(args[0])
+        chunks = args[0].split('/')
+        if len(chunks) == 1:
+            sproj = args[0]
+        elif len(chunks) == 2:
+            org, sproj = chunks
+        else:
+            print('Incorrect package name format.')
+            return 1
+
+        return install(sproj, org)
     else:
         print('Unknown command')
         return 1
