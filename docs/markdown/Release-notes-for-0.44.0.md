@@ -71,10 +71,12 @@ Added a new keyword argument to the `subdir` command. It is given a
 list of dependency objects and the function will only recurse in the
 subdirectory if they are all found. Typical usage goes like this.
 
-    d1 = dependency('foo') # This is found
-    d2 = dependency('bar') # This is not found
+```meson
+d1 = dependency('foo') # This is found
+d2 = dependency('bar') # This is not found
 
-    subdir('somedir', if_found : [d1, d2])
+subdir('somedir', if_found : [d1, d2])
+```
 
 In this case the subdirectory would not be entered since `d2` could
 not be found.
@@ -138,6 +140,8 @@ Meson now ships an internal version of Python in the MSI installer packages.
 This means that it can run Python scripts that are part of your build
 transparently. That is, if you do the following:
 
-    myprog = find_program('myscript.py')
+```meson
+myprog = find_program('myscript.py')
+```
 
 Then Meson will run the script with its internal Python version if necessary.
