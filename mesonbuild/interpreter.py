@@ -2140,8 +2140,8 @@ to directly access options of other subprojects.''')
         # Check if we've already searched for and found this dep
         if identifier in self.coredata.deps:
             cached_dep = self.coredata.deps[identifier]
-            mlog.log('Cached dependency', mlog.bold(name),
-                     'found:', mlog.green('YES'))
+            mlog.log('Dependency', mlog.bold(name),
+                     'found:', mlog.green('YES'), '(cached)')
         else:
             # Check if exactly the same dep with different version requirements
             # was found already.
@@ -2158,13 +2158,59 @@ to directly access options of other subprojects.''')
                     break
         return identifier, cached_dep
 
+    @staticmethod
+    def check_subproject_version(wanted, found):
+        if wanted == 'undefined':
+            return True
+        if found == 'undefined' or not mesonlib.version_compare(found, wanted):
+            return False
+        return True
+
+    def get_subproject_dep(self, name, dirname, varname, required):
+        try:
+            dep = self.subprojects[dirname].get_variable_method([varname], {})
+        except KeyError:
+            if required:
+                raise DependencyException('Could not find dependency {} in subproject {}'
+                                          ''.format(varname, dirname))
+            # If the dependency is not required, don't raise an exception
+            subproj_path = os.path.join(self.subproject_dir, dirname)
+            mlog.log('Dependency', mlog.bold(name), 'from subproject',
+                     mlog.bold(subproj_path), 'found:', mlog.red('NO'))
+            return None
+        if not isinstance(dep, DependencyHolder):
+            raise InvalidCode('Fetched variable {!r} in the subproject {!r} is '
+                              'not a dependency object.'.format(varname, dirname))
+        return dep
+
+    def _find_cached_fallback_dep(self, name, dirname, varname, wanted, required):
+        if dirname not in self.subprojects:
+            return False
+        dep = self.get_subproject_dep(name, dirname, varname, required)
+        if not dep:
+            return False
+        found = dep.version_method([], {})
+        if self.check_subproject_version(wanted, found):
+            subproj_path = os.path.join(self.subproject_dir, dirname)
+            mlog.log('Dependency', mlog.bold(name), 'from subproject',
+                     mlog.bold(subproj_path), 'found:', mlog.green('YES'), '(cached)')
+            return dep
+        if required:
+            raise DependencyException('Version {} of subproject dependency {} already '
+                                      'cached, requested incompatible version {} for '
+                                      'dep {}'.format(found, dirname, wanted, name))
+        return None
+
     @permittedKwargs(permitted_kwargs['dependency'])
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
+        required = kwargs.get('required', True)
+        if not isinstance(required, bool):
+            raise DependencyException('Keyword "required" must be a boolean.')
         name = args[0]
 
         if name == '':
-            if kwargs.get('required', True):
+            if required:
                 raise InvalidArguments('Dependency is both required and not-found')
             return DependencyHolder(Dependency('not-found', {}))
 
@@ -2174,7 +2220,7 @@ to directly access options of other subprojects.''')
         identifier, cached_dep = self._find_cached_dep(name, kwargs)
 
         if cached_dep:
-            if kwargs.get('required', True) and not cached_dep.found():
+            if required and not cached_dep.found():
                 m = 'Dependency {!r} was already checked and was not found'
                 raise DependencyException(m.format(name))
             dep = cached_dep
@@ -2183,26 +2229,10 @@ to directly access options of other subprojects.''')
             # a higher level project, try to use it first.
             if 'fallback' in kwargs:
                 dirname, varname = self.get_subproject_infos(kwargs)
-                required = kwargs.get('required', True)
                 wanted = kwargs.get('version', 'undefined')
-                if not isinstance(required, bool):
-                    raise DependencyException('Keyword "required" must be a boolean.')
-                if dirname in self.subprojects:
-                    found = self.subprojects[dirname].held_object.project_version
-                    valid_version = wanted == 'undefined' or mesonlib.version_compare(found, wanted)
-                    if required and not valid_version:
-                        m = 'Version {} of {} already loaded, requested incompatible version {}'
-                        raise DependencyException(m.format(found, dirname, wanted))
-                    elif valid_version:
-                        mlog.log('Found a', mlog.green('(cached)'), 'subproject',
-                                 mlog.bold(os.path.join(self.subproject_dir, dirname)), 'for',
-                                 mlog.bold(name))
-                        subproject = self.subprojects[dirname]
-                        try:
-                            # Never add fallback deps to self.coredata.deps
-                            return subproject.get_variable_method([varname], {})
-                        except KeyError:
-                            pass
+                dep = self._find_cached_fallback_dep(name, dirname, varname, wanted, required)
+                if dep:
+                    return dep
 
             # We need to actually search for this dep
             exception = None
@@ -2292,32 +2322,21 @@ root and issuing %s.
                      mlog.bold(os.path.join(self.subproject_dir, dirname)),
                      'for the dependency', mlog.bold(name))
             return None
-        try:
-            dep = self.subprojects[dirname].get_variable_method([varname], {})
-        except KeyError:
-            if kwargs.get('required', True):
-                m = 'Fallback variable {!r} in the subproject {!r} does not exist'
-                raise DependencyException(m.format(varname, dirname))
-            # If the dependency is not required, don't raise an exception
-            mlog.log('Also couldn\'t find the dependency', mlog.bold(name),
-                     'in the fallback subproject',
-                     mlog.bold(os.path.join(self.subproject_dir, dirname)))
+        dep = self.get_subproject_dep(name, dirname, varname, kwargs.get('required', True))
+        if not dep:
             return None
-        if not isinstance(dep, DependencyHolder):
-            raise InvalidCode('Fallback variable {!r} in the subproject {!r} is '
-                              'not a dependency object.'.format(varname, dirname))
+        subproj_path = os.path.join(self.subproject_dir, dirname)
         # Check if the version of the declared dependency matches what we want
         if 'version' in kwargs:
             wanted = kwargs['version']
             found = dep.version_method([], {})
-            if found == 'undefined' or not mesonlib.version_compare(found, wanted):
-                mlog.log('Subproject', mlog.bold(dirname), 'dependency',
+            if not self.check_subproject_version(wanted, found):
+                mlog.log('Subproject', mlog.bold(subproj_path), 'dependency',
                          mlog.bold(varname), 'version is', mlog.bold(found),
                          'but', mlog.bold(wanted), 'is required.')
                 return None
-        mlog.log('Found a', mlog.green('fallback'), 'subproject',
-                 mlog.bold(os.path.join(self.subproject_dir, dirname)), 'for',
-                 mlog.bold(name))
+        mlog.log('Dependency', mlog.bold(name), 'from subproject',
+                 mlog.bold(subproj_path), 'found:', mlog.green('YES'))
         return dep
 
     @permittedKwargs(permitted_kwargs['executable'])
