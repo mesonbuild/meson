@@ -547,6 +547,8 @@ int dummy;
     def generate_run_target(self, target, outfile):
         cmd = self.environment.get_build_command() + ['--internal', 'commandrunner']
         deps = self.unwrap_dep_list(target)
+        for t in target.get_dependencies():
+            t.build_by_default = True
         arg_strings = []
         for i in target.args:
             if isinstance(i, str):
@@ -555,6 +557,7 @@ int dummy;
                 relfname = self.get_target_filename(i)
                 arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
                 deps.append(relfname)
+                i.build_by_default = True
             elif isinstance(i, mesonlib.File):
                 relfname = i.rel_to_builddir(self.build_to_src)
                 arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
