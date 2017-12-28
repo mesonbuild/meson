@@ -727,12 +727,13 @@ class Vs2010Backend(backends.Backend):
         file_args = dict((lang, CompilerArgs(comp)) for lang, comp in target.compilers.items())
         file_defines = dict((lang, []) for lang in target.compilers)
         file_inc_dirs = dict((lang, []) for lang in target.compilers)
+
         # The order in which these compile args are added must match
         # generate_single_compile() and generate_basic_compiler_args()
         for l, comp in target.compilers.items():
             if l in file_args:
                 file_args[l] += compilers.get_base_compile_args(self.get_base_options_for_target(target), comp)
-                file_args[l] += comp.get_option_compile_args(self.environment.coredata.compiler_options)
+                file_args[l] += comp.get_option_compile_args(self.get_compiler_options_for_target(target))
         # Add compile args added using add_project_arguments()
         for l, args in self.build.projects_args.get(target.subproject, {}).items():
             if l in file_args:
