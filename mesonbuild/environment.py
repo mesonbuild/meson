@@ -606,6 +606,7 @@ class Environment:
                 p, out, err = Popen_safe(compiler + arg)
             except OSError as e:
                 popen_exceptions[' '.join(compiler + arg)] = e
+                continue
             version = search_version(out)
             if 'Free Software Foundation' in out:
                 defines = self.get_gnu_compiler_defines(compiler)
@@ -632,6 +633,7 @@ class Environment:
                 p, out, err = Popen_safe(compiler + arg)
             except OSError as e:
                 popen_exceptions[' '.join(compiler + arg)] = e
+                continue
             version = search_version(out)
             if 'Free Software Foundation' in out:
                 defines = self.get_gnu_compiler_defines(compiler)

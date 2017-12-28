@@ -37,7 +37,7 @@ from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
 from mesonbuild.mesonlib import python_command, meson_command, version_compare
 from mesonbuild.environment import Environment
-from mesonbuild.dependencies import DependencyException
+from mesonbuild.mesonlib import MesonException, EnvironmentException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
 from run_tests import exe_suffix, get_fake_options
@@ -1719,7 +1719,7 @@ class FailureTests(BasePlatformTests):
             f.write(contents)
         # Force tracebacks so we can detect them properly
         os.environ['MESON_FORCE_BACKTRACE'] = '1'
-        with self.assertRaisesRegex(DependencyException, match, msg=contents):
+        with self.assertRaisesRegex(MesonException, match, msg=contents):
             # Must run in-process or we'll get a generic CalledProcessError
             self.init(self.srcdir, extra_args=extra_args, inprocess=True)
 
@@ -1820,6 +1820,21 @@ class FailureTests(BasePlatformTests):
         dep.get_configtool_variable('foo')
         '''
         self.assertMesonRaises(code, "Method.*configtool.*is invalid.*internal")
+
+    def test_objc_cpp_detection(self):
+        '''
+        Test that when we can't detect objc or objcpp, we fail gracefully.
+        '''
+        env = Environment('', self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
+        try:
+            objc = env.detect_objc_compiler(False)
+            objcpp = env.detect_objcpp_compiler(False)
+        except EnvironmentException:
+            code = "add_languages('objc')\nadd_languages('objcpp')"
+            self.assertMesonRaises(code, "Unknown compiler")
+            return
+        raise unittest.SkipTest("objc and objcpp found, can't test detection failure")
 
 
 class WindowsTests(BasePlatformTests):
