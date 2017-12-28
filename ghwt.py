@@ -20,7 +20,7 @@
 # directly from GitHub in case wrapdb.mesonbuild.com is down.
 
 import urllib.request, json, sys, os, shutil, subprocess
-import configparser, hashlib
+import configparser, hashlib, zipfile
 
 private_repos = {'meson', 'wrapweb', 'meson-ci'}
 
@@ -44,38 +44,49 @@ def list_projects(org):
 
 def unpack(sproj, branch, outdir, org):
     subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/%s/%s.git' % (org, sproj), outdir])
-    usfile = os.path.join(outdir, 'upstream.wrap')
-    assert(os.path.isfile(usfile))
+    upstream_file = os.path.join(outdir, 'upstream.wrap')
+    upstream_content = open(upstream_file).read()
+    try:
+        revision_str = subprocess.check_output(['git', 'describe'], cwd=outdir).decode('utf-8')
+        revision_id = int(revision_str.split('-')[1])
+    except Exception:
+        # no revision
+        revision_id = None
     config = configparser.ConfigParser()
-    config.read(usfile)
-    us_url = config['wrap-file']['source_url']
-    us = urllib.request.urlopen(us_url).read()
-    h = hashlib.sha256()
-    h.update(us)
-    dig = h.hexdigest()
-    should = config['wrap-file']['source_hash']
-    if dig != should:
-        print('Incorrect hash on download.')
-        print(' expected:', dig)
-        print(' obtained:', should)
-        return 1
-    spdir = os.path.split(outdir)[0]
-    ofilename = os.path.join(spdir, config['wrap-file']['source_filename'])
-    with open(ofilename, 'wb') as ofile:
-        ofile.write(us)
-    if 'lead_directory_missing' in config['wrap-file']:
-        os.mkdir(outdir)
-        shutil.unpack_archive(ofilename, outdir)
-    else:
-        shutil.unpack_archive(ofilename, spdir)
-        extdir = os.path.join(spdir, config['wrap-file']['directory'])
-        assert(os.path.isdir(extdir))
-        shutil.move(os.path.join(outdir, '.git'), extdir)
-        subprocess.check_call(['git', 'reset', '--hard'], cwd=extdir)
-        shutil.rmtree(outdir)
-        shutil.move(extdir, outdir)
+    config.read(upstream_file)
+    wrap_def = config['wrap-file']
     shutil.rmtree(os.path.join(outdir, '.git'))
-    os.unlink(ofilename)
+    os.unlink(os.path.join(outdir, 'readme.txt'))
+    os.unlink(upstream_file)
+    try:
+        os.unlink(os.path.join(outdir, '.gitignore'))
+    except Exception:
+        pass
+    base_name = sproj + '-' + branch
+    if revision_id is not None:
+        base_name += '-' + str(revision_id)
+    base_name += '-wrap'
+    zip_name = base_name + '.zip'
+    wrap_name = sproj + '.wrap'
+    zip_file = os.path.join(outdir, '..', zip_name)
+    with zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED) as zip:
+        for root, dirs, files in os.walk(outdir):
+            for f in files:
+                abspath = os.path.join(root, f)
+                relpath = abspath[len(outdir) + 1:]
+                zip.write(abspath, os.path.join(wrap_def['directory'], relpath))
+
+    source_hash = hashlib.sha256(open(zip_file, 'rb').read()).hexdigest()
+    shutil.rmtree(outdir) # delete git branch checkout
+    # write .wrap file
+    wrap_file = os.path.normpath(os.path.join(outdir, '..', wrap_name))
+    with open(wrap_file, 'w') as wrap:
+        url = 'file://' + os.path.abspath(zip_file)
+        wrap.write(upstream_content.rstrip())
+        wrap.write('\n\n')
+        wrap.write('patch_url = %s\n' % url)
+        wrap.write('patch_filename = %s\n' % zip_name)
+        wrap.write('patch_hash = %s\n' % source_hash)
 
 def install(sproj, org = 'mesonbuild'):
     sproj_dir = os.path.join('subprojects', sproj)
