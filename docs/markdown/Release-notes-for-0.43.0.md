@@ -1,6 +1,6 @@
 ---
 title: Release 0.43
-short-description: Release notes for 0.43 (preliminary)
+short-description: Release notes for 0.43
 ...
 
 # Portability improvements to Boost Dependency
