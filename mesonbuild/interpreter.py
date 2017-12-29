@@ -1151,6 +1151,7 @@ class MesonMain(InterpreterObject):
                              'has_exe_wrapper': self.has_exe_wrapper_method,
                              'is_unity': self.is_unity_method,
                              'is_subproject': self.is_subproject_method,
+                             'superproject': self.superproject_method,
                              'current_source_dir': self.current_source_dir_method,
                              'current_build_dir': self.current_build_dir_method,
                              'source_root': self.source_root_method,
@@ -1261,6 +1262,14 @@ class MesonMain(InterpreterObject):
 
     def is_subproject_method(self, args, kwargs):
         return self.interpreter.is_subproject()
+
+    def superproject_method(self, args, kwargs):
+        if len(args) != 0:
+            raise InterpreterException('superproject() method does not take arguments')
+        if self.interpreter.is_subproject():
+            return self.interpreter.superproject
+        else:
+            raise InterpreterException('No superproject for top-level project')
 
     def install_dependency_manifest_method(self, args, kwargs):
         if len(args) != 1:
@@ -1394,7 +1403,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
 class Interpreter(InterpreterBase):
 
     def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects',
-                 default_project_options=[]):
+                 default_project_options=[], superproject=None):
         super().__init__(build.environment.get_source_dir(), subdir)
         self.an_unpicklable_object = mesonlib.an_unpicklable_object
         self.build = build
@@ -1402,6 +1411,7 @@ class Interpreter(InterpreterBase):
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.subproject = subproject
+        self.superproject = superproject
         # Subproject directory is usually the name of the subproject, but can
         # be different for dependencies provided by wrap files.
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
@@ -1729,8 +1739,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
+        superproj = self.superproject if self.is_subproject() else SubprojectHolder(self)
         subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
-                           mesonlib.stringlistify(kwargs.get('default_options', [])))
+                           mesonlib.stringlistify(kwargs.get('default_options', [])), superproj)
         subi.subprojects = self.subprojects
 
         subi.subproject_stack = self.subproject_stack + [dirname]
