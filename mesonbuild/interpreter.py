@@ -1603,20 +1603,29 @@ class Interpreter(InterpreterBase):
         compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
         link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
         final_deps = []
+        has_internal_deps = False
         for d in deps:
             try:
                 d = d.held_object
             except Exception:
                 pass
-            if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary, dependencies.InternalDependency)):
-                raise InterpreterException('Dependencies must be external deps')
+            if isinstance(d, dependencies.InternalDependency):
+                has_internal_deps = True
+            elif not isinstance(d, dependencies.Dependency):
+                raise InterpreterException('Dependencies must be dependency objects')
             final_deps.append(d)
         for l in libs:
             if isinstance(l, dependencies.Dependency):
                 raise InterpreterException('''Entries in "link_with" may only be self-built targets,
 external dependencies (including libraries) must go to "dependencies".''')
-        dep = dependencies.InternalDependency(version, incs, compile_args,
-                                              link_args, libs, sources, final_deps)
+        if len(incs) > 0 or len(sources) > 0 or len(libs) > 0 or has_internal_deps:
+            # build-time dependency
+            dep = dependencies.InternalDependency(version, incs, compile_args,
+                                                  link_args, libs, sources, final_deps)
+        else:
+            # external dependency
+            dep = dependencies.DeclaredExternalDependency(version, compile_args,
+                                                          link_args, final_deps)
         return DependencyHolder(dep)
 
     @noKwargs
