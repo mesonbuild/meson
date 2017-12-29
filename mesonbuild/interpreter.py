@@ -675,6 +675,15 @@ class SubprojectHolder(InterpreterObject, ObjectHolder):
             raise InterpreterException('Get_variable takes a string argument.')
         return self.held_object.variables[varname]
 
+class SuperprojectHolder(SubprojectHolder):
+
+    def __init__(self, interpreter):
+        SubprojectHolder.__init__(self, interpreter)
+        self.methods.update({'get_option': self.get_option_method})
+
+    def get_option_method(self, args, kwargs):
+        return self.held_object.func_get_option(None, args, kwargs)
+
 class CompilerHolder(InterpreterObject):
     def __init__(self, compiler, env):
         InterpreterObject.__init__(self)
@@ -1739,7 +1748,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
-        superproj = self.superproject if self.is_subproject() else SubprojectHolder(self)
+        superproj = self.superproject if self.is_subproject() else SuperprojectHolder(self)
         subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
                            mesonlib.stringlistify(kwargs.get('default_options', [])), superproj)
         subi.subprojects = self.subprojects
