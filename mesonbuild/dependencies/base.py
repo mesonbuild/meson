@@ -203,7 +203,7 @@ class ExternalDependency(Dependency):
 
 class DeclaredExternalDependency(Dependency):
     def __init__(self, version, compile_args, link_args, ext_deps):
-        super().__init__('external_declared', {})
+        super().__init__('declared_external', {})
         self.version = version
         self.is_found = True
         self.compile_args = compile_args
