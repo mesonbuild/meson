@@ -49,7 +49,7 @@ cpp_suffixes = lang_suffixes['cpp'] + ('h',)
 c_suffixes = lang_suffixes['c'] + ('h',)
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
-clike_langs = ('objcpp', 'objc', 'd', 'cpp', 'c', 'fortran',)
+clike_langs = ('d', 'objcpp', 'cpp', 'objc', 'c', 'fortran',)
 clike_suffixes = ()
 for _l in clike_langs:
     clike_suffixes += lang_suffixes[_l]
