@@ -26,7 +26,7 @@ from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, DependencyException
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, permittedKwargs, permittedMethodKwargs
-from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, InterpreterExit, InterpreterBadExit
+from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, InterpreterExit
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler
 from .modules import ModuleReturnValue
 
@@ -2611,10 +2611,8 @@ root and issuing %s.
     def func_exit(self, node, args, kwargs):
         if len(kwargs) > 0:
             raise InterpreterException('exit does not take named arguments')
-        if len(args) > 1:
-            raise InterpreterException('exit takes at most one arguments')
-        if len(args) == 1:
-            raise InterpreterBadExit(args[0])
+        if len(args) > 0:
+            raise InterpreterException('exit does not take any arguments')
         raise InterpreterExit()
 
     @stringArgs

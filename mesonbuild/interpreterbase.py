@@ -108,9 +108,6 @@ class InvalidArguments(InterpreterException):
 class InterpreterExit(InterpreterException):
     pass
 
-class InterpreterBadExit(InterpreterException):
-    pass
-
 class InterpreterObject:
     def __init__(self):
         self.methods = {}
@@ -211,12 +208,6 @@ class InterpreterBase:
                 self.evaluate_statement(cur)
             except InterpreterExit:
                 break
-            except InterpreterBadExit as e:
-                n = InterpreterException('Abort requested: {}'.format(e))
-                n.lineno = cur.lineno
-                n.colno = cur.colno
-                n.file = os.path.join(self.subdir, 'meson.build')
-                raise n
             except Exception as e:
                 if not(hasattr(e, 'lineno')):
                     e.lineno = cur.lineno
