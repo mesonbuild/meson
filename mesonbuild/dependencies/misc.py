@@ -80,6 +80,21 @@ from .base import (
 # Furthermore, the boost documentation for unix above uses examples from windows like
 #   "libboost_regex-vc71-mt-d-x86-1_34.lib", so apparently the abi tags may be more aimed at windows.
 #
+# Probably we should use the linker search path to decide which libraries to use.  This will
+# make it possible to find the macports boost libraries without setting BOOST_ROOT, and will
+# also mean that it would be possible to use user-installed boost libraries when official
+# packages are installed.
+#
+# We thus follow the following strategy:
+# 1. Look for libraries using compiler.find_library( )
+#   1.1 On Linux, just look for boost_<module>
+#   1.2 On other systems (e.g. Mac) look for boost_<module>-mt if multithreading.
+#   1.3 Otherwise look for boost_<module>
+# 2. Fall back to previous approach
+#   2.1. Search particular directories.
+#   2.2. Find boost libraries with unknown suffixes using file-name globbing.
+
+
 class BoostDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('boost', environment, 'cpp', kwargs)
@@ -343,6 +358,24 @@ class BoostDependency(ExternalDependency):
                     self.lib_modules[self.modname_from_filename(fname)] = [fname]
 
     def detect_lib_modules_nix(self):
+        all_found = True
+        for module in self.requested_modules:
+            args = None
+            libname = 'boost_'+module
+            if self.is_multithreading and not mesonlib.for_linux(self.want_cross, self.env):
+                # - Linux leaves off -mt but libraries are multithreading-aware.
+                # - Mac requires -mt for multithreading, so should not fall back to non-mt libraries.
+                libname = libname + '-mt'
+            args = self.compiler.find_library(libname, self.env, self.extra_lib_dirs())
+            if args is None:
+                mlog.debug('Couldn\'t find library "{}" for boost module "{}"'.format(module, libname))
+                all_found = False
+            else:
+                mlog.debug('Link args for boost module "{}" are {}'.format(module, args))
+                self.lib_modules['boost_' + module] = args
+        if all_found:
+            return
+
         if self.static:
             libsuffix = 'a'
         elif mesonlib.is_osx() and not self.want_cross:
