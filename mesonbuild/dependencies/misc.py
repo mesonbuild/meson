@@ -62,6 +62,24 @@ from .base import (
 # * http://www.boost.org/doc/libs/1_65_1/doc/html/stacktrace/configuration_and_build.html
 # * http://www.boost.org/doc/libs/1_65_1/libs/math/doc/html/math_toolkit/main_tr1.html
 
+# **On Unix**, official packaged versions of boost libraries follow the following schemes:
+#
+# Linux / Debian:   libboost_<module>.so.1.66.0 -> libboost_<module>.so
+# Linux / Red Hat:  libboost_<module>.so.1.66.0 -> libboost_<module>.so
+# Linux / OpenSuse: libboost_<module>.so.1.66.0 -> libboost_<module>.so
+# Mac   / homebrew: libboost_<module>.dylib + libboost_<module>-mt.dylib    (location = /usr/local/lib)
+# Mac   / macports: libboost_<module>.dylib + libboost_<module>-mt.dylib    (location = /opt/local/lib)
+#
+# Its not clear that any other abi tags (e.g. -gd) are used in official packages.
+#
+# On Linux systems, boost libs have multithreading support enabled, but without the -mt tag.
+#
+# Boost documentation recommends using complex abi tags like "-lboost_regex-gcc34-mt-d-1_36".
+# (See http://www.boost.org/doc/libs/1_66_0/more/getting_started/unix-variants.html#library-naming)
+# However, its not clear that any Unix distribution follows this scheme.
+# Furthermore, the boost documentation for unix above uses examples from windows like
+#   "libboost_regex-vc71-mt-d-x86-1_34.lib", so apparently the abi tags may be more aimed at windows.
+#
 class BoostDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('boost', environment, 'cpp', kwargs)
