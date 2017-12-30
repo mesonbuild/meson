@@ -1712,6 +1712,8 @@ int main(int argc, char **argv) {
         out = self.init(tdir)
         self.assertRegex(out, r'WARNING: Keyword argument "link_with" defined multiple times in file meson.build, line 4')
         self.assertRegex(out, r'WARNING: Keyword argument "link_with" defined multiple times in file sub' + re.escape(os.path.sep) + r'meson.build, line 3')
+        self.assertRegex(out, r'WARNING: a warning of some sort in file meson.build, line 6')
+        self.assertRegex(out, r'WARNING: subdir warning in file sub' + re.escape(os.path.sep) + r'meson.build, line 4')
 
 
 class FailureTests(BasePlatformTests):
