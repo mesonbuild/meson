@@ -25,7 +25,7 @@ from pathlib import Path
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import Popen_safe, extract_as_list
+from ..mesonlib import Popen_safe, extract_as_list, EnvironmentException
 from ..environment import detect_cpu_family
 
 from .base import (
@@ -264,19 +264,16 @@ class BoostDependency(ExternalDependency):
 
     def detect_version(self):
         try:
-            ifile = open(os.path.join(self.incdir, 'boost', 'version.hpp'))
-        except FileNotFoundError:
+            version = self.compiler.get_define('BOOST_LIB_VERSION', '#include <boost/version.hpp>', self.env, self.get_compile_args(), [])
+        except EnvironmentException:
             return
         except TypeError:
             return
-        with ifile:
-            for line in ifile:
-                if line.startswith("#define") and 'BOOST_LIB_VERSION' in line:
-                    ver = line.split()[-1]
-                    ver = ver[1:-1]
-                    self.version = ver.replace('_', '.')
-                    self.is_found = True
-                    return
+        # Remove quotes
+        version = version[1:-1]
+        # Fix version string
+        self.version = version.replace('_', '.')
+        self.is_found = True
 
     def detect_lib_modules(self):
         if mesonlib.is_windows():
