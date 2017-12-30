@@ -172,6 +172,7 @@ class MesonApp:
         elif self.options.backend == 'vs':
             from .backend import vs2010backend
             g = vs2010backend.autodetect_vs_version(b)
+            env.coredata.set_builtin_option('backend', g.name)
             mlog.log('Auto detected Visual Studio backend:', mlog.bold(g.name))
         elif self.options.backend == 'vs2010':
             from .backend import vs2010backend
