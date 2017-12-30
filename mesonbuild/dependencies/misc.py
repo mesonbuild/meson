@@ -52,7 +52,7 @@ from .base import (
 #   - boost_<module>.lib|.dll (shared)
 #   where compiler is vc141 for example.
 #
-# NOTE: -gb means runtime and build time debugging is on
+# NOTE: -gd means runtime and build time debugging is on
 #       -mt means threading=multi
 #
 # The `modules` argument accept library names. This is because every module that
