@@ -317,11 +317,11 @@ class BoostDependency(ExternalDependency):
                 libname = libname + '-gd'
             libname = libname + "-{}.lib".format(self.version.replace('.', '_'))
             if os.path.isfile(os.path.join(self.libdir, libname)):
-                self.lib_modules[self.modname_from_filename(libname)] = libname
+                self.lib_modules[self.modname_from_filename(libname)] = [libname]
             else:
                 libname = "lib{}.lib".format(name)
                 if os.path.isfile(os.path.join(self.libdir, libname)):
-                    self.lib_modules[name[3:]] = libname
+                    self.lib_modules[name[3:]] = [libname]
 
         # globber1 applies to a layout=system installation
         # globber2 applies to a layout=versioned installation
@@ -335,12 +335,12 @@ class BoostDependency(ExternalDependency):
         globber2_matches = glob.glob(os.path.join(self.libdir, globber2 + '.lib'))
         for entry in globber2_matches:
             fname = os.path.basename(entry)
-            self.lib_modules[self.modname_from_filename(fname)] = fname
+            self.lib_modules[self.modname_from_filename(fname)] = [fname]
         if len(globber2_matches) == 0:
             for entry in glob.glob(os.path.join(self.libdir, globber1 + '.lib')):
                 if self.static:
                     fname = os.path.basename(entry)
-                    self.lib_modules[self.modname_from_filename(fname)] = fname
+                    self.lib_modules[self.modname_from_filename(fname)] = [fname]
 
     def detect_lib_modules_nix(self):
         if self.static:
@@ -361,7 +361,7 @@ class BoostDependency(ExternalDependency):
             for name in self.need_static_link:
                 libname = 'lib{}.a'.format(name)
                 if os.path.isfile(os.path.join(libdir, libname)):
-                    self.lib_modules[name] = libname
+                    self.lib_modules[name] = [libname]
             for entry in glob.glob(os.path.join(libdir, globber)):
                 # I'm not 100% sure what to do here. Some distros
                 # have modules such as thread only as -mt versions.
@@ -379,7 +379,7 @@ class BoostDependency(ExternalDependency):
                     continue
                 modname = self.modname_from_filename(entry)
                 if modname not in self.lib_modules:
-                    self.lib_modules[modname] = entry
+                    self.lib_modules[modname] = [entry]
 
     def get_win_link_args(self):
         args = []
@@ -387,7 +387,7 @@ class BoostDependency(ExternalDependency):
         if self.libdir:
             args.append('-L' + self.libdir)
         for lib in self.requested_modules:
-            args.append(self.lib_modules['boost_' + lib])
+            args += self.lib_modules['boost_' + lib]
         return args
 
     def get_link_args(self):
@@ -399,7 +399,7 @@ class BoostDependency(ExternalDependency):
         elif self.libdir:
             args.append('-L' + self.libdir)
         for lib in self.requested_modules:
-            args += [self.lib_modules['boost_' + lib]]
+            args += self.lib_modules['boost_' + lib]
         return args
 
     def get_sources(self):
