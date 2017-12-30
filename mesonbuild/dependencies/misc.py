@@ -390,14 +390,20 @@ class BoostDependency(ExternalDependency):
             args += self.lib_modules['boost_' + lib]
         return args
 
+    def extra_lib_dirs(self):
+        dirs = []
+        if self.boost_root:
+            dirs= [ os.path.join(self.boost_root, 'lib')]
+        elif self.libdir:
+            dirs = [ self.libdir ]
+        return dirs
+
     def get_link_args(self):
         if mesonlib.is_windows():
             return self.get_win_link_args()
         args = []
-        if self.boost_root:
-            args.append('-L' + os.path.join(self.boost_root, 'lib'))
-        elif self.libdir:
-            args.append('-L' + self.libdir)
+        for dir in self.extra_lib_dirs():
+            args += ['-L' + dir]
         for lib in self.requested_modules:
             args += self.lib_modules['boost_' + lib]
         return args
