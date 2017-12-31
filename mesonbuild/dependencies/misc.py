@@ -143,7 +143,7 @@ class BoostDependency(ExternalDependency):
             else:
                 self.incdir = self.detect_nix_incdir()
 
-        if self.incdir is None:
+        if self.incdir is None and mesonlib.is_windows():
             self.log_fail()
             return
 
@@ -152,7 +152,7 @@ class BoostDependency(ExternalDependency):
         # previous versions of meson allowed include dirs as modules
         remove = []
         for m in invalid_modules:
-            if m in os.listdir(os.path.join(self.incdir, 'boost')):
+            if self.incdir and m in os.listdir(os.path.join(self.incdir, 'boost')):
                 mlog.warning('Requested boost library', mlog.bold(m), 'that doesn\'t exist. '
                              'This will be an error in the future')
                 remove.append(m)
@@ -177,6 +177,7 @@ class BoostDependency(ExternalDependency):
             self.log_success()
         else:
             self.log_fail()
+
 
     def log_fail(self):
         module_str = ', '.join(self.requested_modules)
@@ -212,10 +213,8 @@ class BoostDependency(ExternalDependency):
         return res
 
     def detect_nix_incdir(self):
-        for root in self.boost_roots:
-            incdir = os.path.join(root, 'include', 'boost')
-            if os.path.isdir(incdir):
-                return os.path.join(root, 'include')
+        if self.boost_root:
+            return os.path.join(self.boost_root, 'include')
         return None
 
     # FIXME: Should pick a version that matches the requested version
