@@ -1717,6 +1717,7 @@ int main(int argc, char **argv) {
             r'WARNING: subdir warning in file sub' + os.path.sep + r'meson.build, line 4',
             r'WARNING: Module unstable-simd has no backwards or forwards compatibility and might not exist in future releases in file meson.build, line 7',
             r"WARNING: The variable(s) 'MISSING' in the input file conf.in are not present in the given configuration data in file meson.build, line 10",
+            r'WARNING: Passed invalid keyword argument "invalid" in file meson.build, line 1'
         ]:
             self.assertRegex(out, re.escape(expected))
 
