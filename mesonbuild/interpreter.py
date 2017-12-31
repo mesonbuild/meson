@@ -1935,7 +1935,7 @@ to directly access options of other subprojects.''')
     @noKwargs
     def func_warning(self, node, args, kwargs):
         argstr = self.get_message_string_arg(node)
-        mlog.warning('%s in file %s, line %d' % (argstr, os.path.join(node.subdir, 'meson.build'), node.lineno))
+        mlog.warning(argstr, location=node)
 
     @noKwargs
     def func_error(self, node, args, kwargs):
