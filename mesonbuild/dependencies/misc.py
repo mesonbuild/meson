@@ -25,7 +25,6 @@ from pathlib import Path
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import Popen_safe, extract_as_list, EnvironmentException
 from ..environment import detect_cpu_family
 
 from .base import (
@@ -250,7 +249,7 @@ class BoostDependency(ExternalDependency):
         return args
 
     def get_requested(self, kwargs):
-        candidates = extract_as_list(kwargs, 'modules')
+        candidates = mesonlib.extract_as_list(kwargs, 'modules')
         for c in candidates:
             if not isinstance(c, str):
                 raise DependencyException('Boost module argument is not a string.')
@@ -265,7 +264,7 @@ class BoostDependency(ExternalDependency):
     def detect_version(self):
         try:
             version = self.compiler.get_define('BOOST_LIB_VERSION', '#include <boost/version.hpp>', self.env, self.get_compile_args(), [])
-        except EnvironmentException:
+        except mesonlib.EnvironmentException:
             return
         except TypeError:
             return
