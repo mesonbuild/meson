@@ -1574,7 +1574,7 @@ class Interpreter(InterpreterBase):
         modname = args[0]
         if modname.startswith('unstable-'):
             plainname = modname.split('-', 1)[1]
-            mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname)
+            mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases' % modname, location=node)
             modname = 'unstable_' + plainname
         if modname not in self.environment.coredata.modules:
             try:
@@ -2732,7 +2732,7 @@ root and issuing %s.
                     mlog.warning(
                         "The variable(s) %s in the input file %s are not "
                         "present in the given configuration data" % (
-                            var_list, inputfile))
+                            var_list, inputfile), location=node)
             else:
                 mesonlib.dump_conf_header(ofile_abs, conf.held_object)
             conf.mark_used()
