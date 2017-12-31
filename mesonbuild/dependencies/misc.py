@@ -93,6 +93,14 @@ from .base import (
 #   2.1. Search particular directories.
 #   2.2. Find boost libraries with unknown suffixes using file-name globbing.
 
+# TODO: Unix: Don't assume we know where the boost dir is, rely on -Idir and -Ldir being set.
+# TODO: Determine a suffix (e.g. "-mt" or "") and use it.
+# TODO: Get_win_link_args( ) and get_link_args( )
+# TODO: Genericize: 'args += ['-L' + dir] => args += self.compiler.get_linker_search_args(dir)
+# TODO: Allow user to specify suffix in BOOST_SUFFIX, or add specific options like BOOST_DEBUG for 'd' for debug.
+# TODO: fix cross:
+#          is_windows() -> for_windows(self.want_cross, self.env)
+#          is_osx() and self.want_cross -> for_darwin(self.want_cross, self.env)
 
 class BoostDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
