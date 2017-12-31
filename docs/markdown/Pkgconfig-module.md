@@ -23,9 +23,16 @@ keyword arguments.
 - `install_dir` the directory to install to, defaults to the value of
   option `libdir` followed by `/pkgconfig`
 - `libraries` a list of built libraries (usually results of
-  shared_library) that the user needs to link against
-- `libraries_private` list of strings to put in the
-  `Libraries.private` field
+  shared_library) that the user needs to link against. Arbitraty strings can
+  also be provided and they will be added into the `Libs` field. Since 0.45.0
+  dependencies of built libraries will be automatically added to `Libs.private`
+  field. If a dependency is provided by pkg-config then it will be added in
+  `Requires.private` instead. Other type of dependency objects can also be passed
+  and will result in their `link_args` and `compile_args` to be added to `Libs`
+  and `Cflags` fields.
+- `libraries_private` list of built libraries or strings to put in the
+  `Libs.private` field. Since 0.45.0 it can also contain dependency objects,
+  their `link_args` will be added to `Libs.private`.
 - `name` the name of this library
 - `subdirs` which subdirs of `include` should be added to the header
   search path, for example if you install headers into
