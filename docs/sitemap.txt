@@ -48,6 +48,7 @@ index.md
 		Creating-releases.md
 		Creating-OSX-packages.md
 		Creating-Linux-binaries.md
+		Project-templates.md
 	Reference-manual.md
 	Reference-tables.md
 	FAQ.md
