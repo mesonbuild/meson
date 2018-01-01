@@ -16,7 +16,7 @@ code.
 
 ## Features
 
-*   multiplatform support for Linux, OSX, Windows, GCC, Clang, Visual Studio and others
+*   multiplatform support for Linux, macOS, Windows, GCC, Clang, Visual Studio and others
 *   supported languages include C, C++, D, Fortran, Java, Rust
 *   build definitions in a very readable and user friendly non-Turing complete DSL
 *   cross compilation for many operating systems as well as bare metal
@@ -35,8 +35,8 @@ The second way is via IRC. The channel to use is `#mesonbuild` at
 
 ## Development
 
-All development on Meson is done on [GitHub
-project](https://github.com/mesonbuild/meson). Instruction on
+All development on Meson is done on the[GitHub
+project](https://github.com/mesonbuild/meson). Instructions for
 contributing can be found on the [contribution page](Contributing.md).
 
 
