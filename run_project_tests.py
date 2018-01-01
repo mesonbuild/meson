@@ -495,7 +495,11 @@ def detect_tests_to_run():
     if mesonlib.is_windows():
         # TODO: Set BOOST_ROOT in .appveyor.yml
         gathered_tests += [('framework', ['test cases/frameworks/1 boost'], 'BOOST_ROOT' not in os.environ)]
-    elif mesonlib.is_osx() or mesonlib.is_cygwin():
+    elif mesonlib.is_osx():
+        # Just do the BOOST test
+        gathered_tests += [('framework', ['test cases/frameworks/1 boost'], False)]
+    elif mesonlib.is_cygwin():
+        # Skip all the framework tests
         gathered_tests += [('framework', gather_tests('test cases/frameworks'), True)]
     else:
         gathered_tests += [('framework', gather_tests('test cases/frameworks'), False)]
