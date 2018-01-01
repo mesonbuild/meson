@@ -35,7 +35,7 @@ The second way is via IRC. The channel to use is `#mesonbuild` at
 
 ## Development
 
-All development on Meson is done on the[GitHub
+All development on Meson is done on the [GitHub
 project](https://github.com/mesonbuild/meson). Instructions for
 contributing can be found on the [contribution page](Contributing.md).
 
