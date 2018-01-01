@@ -63,6 +63,7 @@ def create_parser():
     add_builtin_argument(p, 'werror', action='store_true')
     add_builtin_argument(p, 'layout')
     add_builtin_argument(p, 'default-library')
+    add_builtin_argument(p, 'default-link')
     add_builtin_argument(p, 'warnlevel', dest='warning_level')
     add_builtin_argument(p, 'stdsplit', action='store_false')
     add_builtin_argument(p, 'errorlogs', action='store_false')

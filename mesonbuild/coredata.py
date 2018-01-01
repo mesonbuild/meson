@@ -423,6 +423,7 @@ builtin_options = {
     'warning_level':   [UserComboOption, 'Compiler warning level to use.', ['1', '2', '3'], '1'],
     'layout':          [UserComboOption, 'Build directory layout.', ['mirror', 'flat'], 'mirror'],
     'default_library': [UserComboOption, 'Default library type.', ['shared', 'static', 'both'], 'shared'],
+    'default_link':    [UserComboOption, 'Default link method when both are possible', ['shared', 'static'], 'shared'],
     'backend':         [UserComboOption, 'Backend to use.', backendlist, 'ninja'],
     'stdsplit':        [UserBooleanOption, 'Split stdout and stderr in test logs.', True],
     'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests.", True],
