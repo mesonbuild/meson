@@ -1418,7 +1418,7 @@ class Interpreter(InterpreterBase):
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects = {}
-        self.pools = {'console': 1}
+        self.pools = {'console': 1, 'link_pool': 1}
         self.subproject_stack = []
         self.default_project_options = default_project_options[:] # Passed from the outside, only used in subprojects.
         self.build_func_dict()
@@ -2030,8 +2030,8 @@ to directly access options of other subprojects.''')
 
         name = kwargs['name']
 
-        if name == 'console':
-            raise InterpreterException('"console" pool can\'t be redefined.')
+        if name == 'console' or name == 'link_pool':
+            raise InterpreterException("\"%s\" pool can't be redefined." % name)
 
         if 'depth' not in kwargs:
             raise InterpreterException('Missing pool depth value.')

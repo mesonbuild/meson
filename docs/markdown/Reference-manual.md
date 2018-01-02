@@ -882,6 +882,9 @@ building of a specific target.
 **Note:** A pool named 'console' is automatically configured and available.
           It is not possible to redefine it.
 
+**Note:** A pool named 'link_pool' is reserved and it is not possible to 
+          reference or redefine it.
+
 
 ### project()
 

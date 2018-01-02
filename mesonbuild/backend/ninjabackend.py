@@ -888,10 +888,11 @@ int dummy;
   depth = %d
 
 ''' % num_pools)
+        outfile.write('# Declared pools.\n\n')
         for p in self.interpreter.pools:
             pool_name = p.strip()
 
-            if pool_name == '' or pool_name == 'console':
+            if pool_name == '' or pool_name == 'console' or pool_name == 'link_pool':
                 continue
 
             outfile.write('''pool %s
