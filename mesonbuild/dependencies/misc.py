@@ -365,7 +365,7 @@ class BoostDependency(ExternalDependency):
         for module in self.requested_modules:
             args = None
             libname = 'boost_' + module
-            if self.is_multithreading and not mesonlib.for_linux(self.want_cross, self.env):
+            if self.is_multithreading and mesonlib.for_darwin(self.want_cross, self.env):
                 # - Linux leaves off -mt but libraries are multithreading-aware.
                 # - Mac requires -mt for multithreading, so should not fall back to non-mt libraries.
                 libname = libname + '-mt'
