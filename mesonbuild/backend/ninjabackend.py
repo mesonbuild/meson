@@ -719,6 +719,9 @@ int dummy;
                         strip_bin, self.environment.get_build_command() + ['introspect'])
         elem = NinjaBuildElement(self.all_outputs, 'meson-install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
+        for i in self.build.install_scripts:
+            for dep in i['deps']:
+                elem.add_dep(dep.name)
         elem.add_item('DESC', 'Installing files.')
         elem.add_item('COMMAND', self.environment.get_build_command() + ['--internal', 'install', install_data_file])
         elem.add_item('pool', 'console')

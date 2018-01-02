@@ -1923,12 +1923,13 @@ class Data:
                 raise MesonException('Size of rename argument is different from number of sources')
 
 class RunScript(dict):
-    def __init__(self, script, args):
+    def __init__(self, script, args, deps=[]):
         super().__init__()
         assert(isinstance(script, list))
         assert(isinstance(args, list))
         self['exe'] = script
         self['args'] = args
+        self['deps'] = deps
 
 class TestSetup:
     def __init__(self, *, exe_wrapper=None, gdb=None, timeout_multiplier=None, env=None):
