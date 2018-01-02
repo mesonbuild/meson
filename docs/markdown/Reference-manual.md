@@ -606,6 +606,11 @@ installed, and so on, use a [`custom_target`](#custom_target) instead.
 
 Obtains the value of the [project build option](Build-options.md) specified in the positional argument.
 
+Note that the value returned for built-in options that end in `dir` such as
+`bindir` and `libdir` is always a path relative to (and inside) the `prefix`.
+The only exceptions are: `sysconfdir`, `localstatedir`, and `sharedstatedir`
+which will return the value passed during configuration as-is.
+
 ### get_variable()
 
 ``` meson
