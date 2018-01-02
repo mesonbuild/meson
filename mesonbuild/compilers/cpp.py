@@ -660,7 +660,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
                              env, linker=linker, full_version=full_version)
         IntelGnuLikeCompiler.__init__(self)
         self.lang_header = 'c++-header'
-        default_warn_args = ['-Wall', '-w3', '-Wpch-messages']
+        default_warn_args = ['-Wall', '-w3', '-Wpch-messages', '-Wnon-virtual-dtor']
         self.warn_args = {'0': [],
                           '1': default_warn_args + ['-diag-disable:remark'],
                           '2': default_warn_args + ['-Wextra', '-diag-disable:remark'],
