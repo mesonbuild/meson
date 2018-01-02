@@ -64,16 +64,21 @@ def permitted_kwargs(permitted):
 
 optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
-@permitted_kwargs({'value'})
+@permitted_kwargs({'value', 'yield'})
 def StringParser(name, description, kwargs):
-    return coredata.UserStringOption(name, description,
-                                     kwargs.get('value', ''), kwargs.get('choices', []))
+    return coredata.UserStringOption(name,
+                                     description,
+                                     kwargs.get('value', ''),
+                                     kwargs.get('choices', []),
+                                     kwargs.get('yield', coredata.default_yielding))
 
-@permitted_kwargs({'value'})
+@permitted_kwargs({'value', 'yield'})
 def BooleanParser(name, description, kwargs):
-    return coredata.UserBooleanOption(name, description, kwargs.get('value', True))
+    return coredata.UserBooleanOption(name, description,
+                                      kwargs.get('value', True),
+                                      kwargs.get('yield', coredata.default_yielding))
 
-@permitted_kwargs({'value', 'choices'})
+@permitted_kwargs({'value', 'yiel', 'choices'})
 def ComboParser(name, description, kwargs):
     if 'choices' not in kwargs:
         raise OptionException('Combo option missing "choices" keyword.')
@@ -83,9 +88,14 @@ def ComboParser(name, description, kwargs):
     for i in choices:
         if not isinstance(i, str):
             raise OptionException('Combo choice elements must be strings.')
-    return coredata.UserComboOption(name, description, choices, kwargs.get('value', choices[0]))
+    return coredata.UserComboOption(name,
+                                    description,
+                                    choices,
+                                    kwargs.get('value', choices[0]),
+                                    kwargs.get('yield', coredata.default_yielding),)
 
-@permitted_kwargs({'value', 'min', 'max'})
+
+@permitted_kwargs({'value', 'min', 'max', 'yield'})
 def IntegerParser(name, description, kwargs):
     if 'value' not in kwargs:
         raise OptionException('Integer option must contain value argument.')
@@ -93,9 +103,10 @@ def IntegerParser(name, description, kwargs):
                                       description,
                                       kwargs.get('min', None),
                                       kwargs.get('max', None),
-                                      kwargs['value'])
+                                      kwargs['value'],
+                                      kwargs.get('yield', coredata.default_yielding))
 
-@permitted_kwargs({'value', 'choices'})
+@permitted_kwargs({'value', 'yield', 'choices'})
 def string_array_parser(name, description, kwargs):
     if 'choices' in kwargs:
         choices = kwargs['choices']
@@ -110,7 +121,11 @@ def string_array_parser(name, description, kwargs):
         value = kwargs.get('value', [])
     if not isinstance(value, list):
         raise OptionException('Array choices must be passed as an array.')
-    return coredata.UserArrayOption(name, description, value, choices=choices)
+    return coredata.UserArrayOption(name,
+                                    description,
+                                    value,
+                                    choices=choices,
+                                    yielding=kwargs.get('yield', coredata.default_yielding))
 
 option_types = {'string': StringParser,
                 'boolean': BooleanParser,

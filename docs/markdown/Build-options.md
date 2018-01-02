@@ -108,3 +108,21 @@ double quotes.
 **NOTE:** If you cannot call `meson configure` you likely have a old
   version of Meson. In that case you can call `mesonconf` instead, but
   that is deprecated in newer versions
+
+## Yielding to superproject option
+
+Suppose you have a master project and a subproject. In some cases it
+might be useful to have an option that has the same value in both of
+them. This can be achieved with the `yield` keyword. Suppose you have
+an option definition like this:
+
+```meson
+option('some_option', type : 'string', value : 'value', yield : true)
+```
+
+If you build this project on its own, this option behaves like
+usual. However if you build this project as a subproject of another
+project which also has an option called `some_option`, then calling
+`get_option` returns the value of the superproject. If the value of
+`yield` is `false`, `get_option` returns the value of the subproject's
+option.

@@ -1768,7 +1768,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_get_option(self, nodes, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Argument required for get_option.')
-        optname = args[0]
+        undecorated_optname = optname = args[0]
         if ':' in optname:
             raise InterpreterException('''Having a colon in option name is forbidden, projects are not allowed
 to directly access options of other subprojects.''')
@@ -1787,7 +1787,11 @@ to directly access options of other subprojects.''')
         if not coredata.is_builtin_option(optname) and self.is_subproject():
             optname = self.subproject + ':' + optname
         try:
-            return self.environment.coredata.user_options[optname].value
+            opt = self.environment.coredata.user_options[optname]
+            if opt.yielding and ':' in optname:
+                # If option not present in superproject, keep the original.
+                opt = self.environment.coredata.user_options.get(undecorated_optname, opt)
+            return opt.value
         except KeyError:
             pass
         if optname.endswith('_link_args'):
