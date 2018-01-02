@@ -885,6 +885,7 @@ building of a specific target.
 **Note:** A pool named 'link_pool' is reserved and it is not possible to 
           reference or redefine it.
 
+*Added 0.45.0*
 
 ### project()
 
