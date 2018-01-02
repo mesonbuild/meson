@@ -812,9 +812,10 @@ This will become a hard error in the future.''')
         args += self._unpack_args('--ignore-headers=', 'ignore_headers', kwargs)
         args += self._unpack_args('--installdir=', 'install_dir', kwargs, state)
         args += self._get_build_args(kwargs, state)
-        res = [build.RunTarget(targetname, command[0], command[1:] + args, depends, state.subdir, state.subproject)]
+        t = build.RunTarget(targetname, command[0], command[1:] + args, depends, state.subdir, state.subproject)
+        res = [t]
         if kwargs.get('install', True):
-            res.append(build.RunScript(command, args))
+            res.append(build.RunScript(command, args, [t]))
         return ModuleReturnValue(None, res)
 
     def _get_build_args(self, kwargs, state):
