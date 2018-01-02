@@ -25,7 +25,6 @@ from pathlib import Path
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import Popen_safe, extract_as_list
 from ..environment import detect_cpu_family
 
 from .base import (
@@ -52,7 +51,7 @@ from .base import (
 #   - boost_<module>.lib|.dll (shared)
 #   where compiler is vc141 for example.
 #
-# NOTE: -gb means runtime and build time debugging is on
+# NOTE: -gd means runtime and build time debugging is on
 #       -mt means threading=multi
 #
 # The `modules` argument accept library names. This is because every module that
@@ -61,6 +60,47 @@ from .base import (
 # * http://www.boost.org/doc/libs/1_65_1/libs/test/doc/html/boost_test/usage_variants.html
 # * http://www.boost.org/doc/libs/1_65_1/doc/html/stacktrace/configuration_and_build.html
 # * http://www.boost.org/doc/libs/1_65_1/libs/math/doc/html/math_toolkit/main_tr1.html
+
+# **On Unix**, official packaged versions of boost libraries follow the following schemes:
+#
+# Linux / Debian:   libboost_<module>.so.1.66.0 -> libboost_<module>.so
+# Linux / Red Hat:  libboost_<module>.so.1.66.0 -> libboost_<module>.so
+# Linux / OpenSuse: libboost_<module>.so.1.66.0 -> libboost_<module>.so
+# Mac   / homebrew: libboost_<module>.dylib + libboost_<module>-mt.dylib    (location = /usr/local/lib)
+# Mac   / macports: libboost_<module>.dylib + libboost_<module>-mt.dylib    (location = /opt/local/lib)
+#
+# Its not clear that any other abi tags (e.g. -gd) are used in official packages.
+#
+# On Linux systems, boost libs have multithreading support enabled, but without the -mt tag.
+#
+# Boost documentation recommends using complex abi tags like "-lboost_regex-gcc34-mt-d-1_36".
+# (See http://www.boost.org/doc/libs/1_66_0/more/getting_started/unix-variants.html#library-naming)
+# However, its not clear that any Unix distribution follows this scheme.
+# Furthermore, the boost documentation for unix above uses examples from windows like
+#   "libboost_regex-vc71-mt-d-x86-1_34.lib", so apparently the abi tags may be more aimed at windows.
+#
+# Probably we should use the linker search path to decide which libraries to use.  This will
+# make it possible to find the macports boost libraries without setting BOOST_ROOT, and will
+# also mean that it would be possible to use user-installed boost libraries when official
+# packages are installed.
+#
+# We thus follow the following strategy:
+# 1. Look for libraries using compiler.find_library( )
+#   1.1 On Linux, just look for boost_<module>
+#   1.2 On other systems (e.g. Mac) look for boost_<module>-mt if multithreading.
+#   1.3 Otherwise look for boost_<module>
+# 2. Fall back to previous approach
+#   2.1. Search particular directories.
+#   2.2. Find boost libraries with unknown suffixes using file-name globbing.
+
+# TODO: Unix: Don't assume we know where the boost dir is, rely on -Idir and -Ldir being set.
+# TODO: Determine a suffix (e.g. "-mt" or "") and use it.
+# TODO: Get_win_link_args( ) and get_link_args( )
+# TODO: Genericize: 'args += ['-L' + dir] => args += self.compiler.get_linker_search_args(dir)
+# TODO: Allow user to specify suffix in BOOST_SUFFIX, or add specific options like BOOST_DEBUG for 'd' for debug.
+# TODO: fix cross:
+#          is_windows() -> for_windows(self.want_cross, self.env)
+#          is_osx() and self.want_cross -> for_darwin(self.want_cross, self.env)
 
 class BoostDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
@@ -103,7 +143,7 @@ class BoostDependency(ExternalDependency):
             else:
                 self.incdir = self.detect_nix_incdir()
 
-        if self.incdir is None:
+        if self.incdir is None and mesonlib.is_windows():
             self.log_fail()
             return
 
@@ -112,7 +152,7 @@ class BoostDependency(ExternalDependency):
         # previous versions of meson allowed include dirs as modules
         remove = []
         for m in invalid_modules:
-            if m in os.listdir(os.path.join(self.incdir, 'boost')):
+            if m in BOOST_DIRS:
                 mlog.warning('Requested boost library', mlog.bold(m), 'that doesn\'t exist. '
                              'This will be an error in the future')
                 remove.append(m)
@@ -121,7 +161,7 @@ class BoostDependency(ExternalDependency):
         invalid_modules = [x for x in invalid_modules if x not in remove]
 
         if invalid_modules:
-            mlog.warning('Invalid Boost modules: ' + ', '.join(invalid_modules))
+            mlog.log(mlog.red('ERROR:'), 'Invalid Boost modules: ' + ', '.join(invalid_modules))
             self.log_fail()
             return
 
@@ -137,6 +177,7 @@ class BoostDependency(ExternalDependency):
             self.log_success()
         else:
             self.log_fail()
+
 
     def log_fail(self):
         module_str = ', '.join(self.requested_modules)
@@ -172,10 +213,8 @@ class BoostDependency(ExternalDependency):
         return res
 
     def detect_nix_incdir(self):
-        for root in self.boost_roots:
-            incdir = os.path.join(root, 'include', 'boost')
-            if os.path.isdir(incdir):
-                return os.path.join(root, 'include')
+        if self.boost_root:
+            return os.path.join(self.boost_root, 'include')
         return None
 
     # FIXME: Should pick a version that matches the requested version
@@ -217,7 +256,7 @@ class BoostDependency(ExternalDependency):
         return args
 
     def get_requested(self, kwargs):
-        candidates = extract_as_list(kwargs, 'modules')
+        candidates = mesonlib.extract_as_list(kwargs, 'modules')
         for c in candidates:
             if not isinstance(c, str):
                 raise DependencyException('Boost module argument is not a string.')
@@ -231,24 +270,29 @@ class BoostDependency(ExternalDependency):
 
     def detect_version(self):
         try:
-            ifile = open(os.path.join(self.incdir, 'boost', 'version.hpp'))
-        except FileNotFoundError:
+            version = self.compiler.get_define('BOOST_LIB_VERSION', '#include <boost/version.hpp>', self.env, self.get_compile_args(), [])
+        except mesonlib.EnvironmentException:
             return
         except TypeError:
             return
-        with ifile:
-            for line in ifile:
-                if line.startswith("#define") and 'BOOST_LIB_VERSION' in line:
-                    ver = line.split()[-1]
-                    ver = ver[1:-1]
-                    self.version = ver.replace('_', '.')
-                    self.is_found = True
-                    return
+        # Remove quotes
+        version = version[1:-1]
+        # Fix version string
+        self.version = version.replace('_', '.')
+        self.is_found = True
 
     def detect_lib_modules(self):
         if mesonlib.is_windows():
             return self.detect_lib_modules_win()
         return self.detect_lib_modules_nix()
+
+    def modname_from_filename(self, filename):
+        modname = os.path.basename(filename)
+        modname = modname.split('.', 1)[0]
+        modname = modname.split('-', 1)[0]
+        if modname.startswith('libboost'):
+            modname = modname[3:]
+        return modname
 
     def detect_lib_modules_win(self):
         arch = detect_cpu_family(self.env.coredata.compilers)
@@ -291,12 +335,11 @@ class BoostDependency(ExternalDependency):
                 libname = libname + '-gd'
             libname = libname + "-{}.lib".format(self.version.replace('.', '_'))
             if os.path.isfile(os.path.join(self.libdir, libname)):
-                modname = libname.split('-', 1)[0][3:]
-                self.lib_modules[modname] = libname
+                self.lib_modules[self.modname_from_filename(libname)] = [libname]
             else:
                 libname = "lib{}.lib".format(name)
                 if os.path.isfile(os.path.join(self.libdir, libname)):
-                    self.lib_modules[name[3:]] = libname
+                    self.lib_modules[name[3:]] = [libname]
 
         # globber1 applies to a layout=system installation
         # globber2 applies to a layout=versioned installation
@@ -309,24 +352,33 @@ class BoostDependency(ExternalDependency):
         globber2 = globber2 + '-{}'.format(self.version.replace('.', '_'))
         globber2_matches = glob.glob(os.path.join(self.libdir, globber2 + '.lib'))
         for entry in globber2_matches:
-            (_, fname) = os.path.split(entry)
-            modname = fname.split('-', 1)
-            if len(modname) > 1:
-                modname = modname[0]
-            else:
-                modname = modname.split('.', 1)[0]
-            if self.static:
-                modname = modname[3:]
-            self.lib_modules[modname] = fname
+            fname = os.path.basename(entry)
+            self.lib_modules[self.modname_from_filename(fname)] = [fname]
         if len(globber2_matches) == 0:
             for entry in glob.glob(os.path.join(self.libdir, globber1 + '.lib')):
-                (_, fname) = os.path.split(entry)
-                modname = fname.split('.', 1)[0]
                 if self.static:
-                    modname = modname[3:]
-                    self.lib_modules[modname] = fname
+                    fname = os.path.basename(entry)
+                    self.lib_modules[self.modname_from_filename(fname)] = [fname]
 
     def detect_lib_modules_nix(self):
+        all_found = True
+        for module in self.requested_modules:
+            args = None
+            libname = 'boost_' + module
+            if self.is_multithreading and not mesonlib.for_linux(self.want_cross, self.env):
+                # - Linux leaves off -mt but libraries are multithreading-aware.
+                # - Mac requires -mt for multithreading, so should not fall back to non-mt libraries.
+                libname = libname + '-mt'
+            args = self.compiler.find_library(libname, self.env, self.extra_lib_dirs())
+            if args is None:
+                mlog.debug('Couldn\'t find library "{}" for boost module "{}"'.format(module, libname))
+                all_found = False
+            else:
+                mlog.debug('Link args for boost module "{}" are {}'.format(module, args))
+                self.lib_modules['boost_' + module] = args
+        if all_found:
+            return
+
         if self.static:
             libsuffix = 'a'
         elif mesonlib.is_osx() and not self.want_cross:
@@ -345,21 +397,25 @@ class BoostDependency(ExternalDependency):
             for name in self.need_static_link:
                 libname = 'lib{}.a'.format(name)
                 if os.path.isfile(os.path.join(libdir, libname)):
-                    self.lib_modules[name] = libname
+                    self.lib_modules[name] = [libname]
             for entry in glob.glob(os.path.join(libdir, globber)):
-                lib = os.path.basename(entry)
-                name = lib.split('.')[0][3:]
                 # I'm not 100% sure what to do here. Some distros
                 # have modules such as thread only as -mt versions.
                 # On debian all packages are built threading=multi
                 # but not suffixed with -mt.
                 # FIXME: implement detect_lib_modules_{debian, redhat, ...}
+                # FIXME: this wouldn't work with -mt-gd either. -BDR
                 if self.is_multithreading and mesonlib.is_debianlike():
-                    self.lib_modules[name] = lib
+                    pass
                 elif self.is_multithreading and entry.endswith('-mt.{}'.format(libsuffix)):
-                    self.lib_modules[name] = lib
+                    pass
                 elif not entry.endswith('-mt.{}'.format(libsuffix)):
-                    self.lib_modules[name] = lib
+                    pass
+                else:
+                    continue
+                modname = self.modname_from_filename(entry)
+                if modname not in self.lib_modules:
+                    self.lib_modules[modname] = [entry]
 
     def get_win_link_args(self):
         args = []
@@ -367,26 +423,25 @@ class BoostDependency(ExternalDependency):
         if self.libdir:
             args.append('-L' + self.libdir)
         for lib in self.requested_modules:
-            args.append(self.lib_modules['boost_' + lib])
+            args += self.lib_modules['boost_' + lib]
         return args
+
+    def extra_lib_dirs(self):
+        dirs = []
+        if self.boost_root:
+            dirs = [os.path.join(self.boost_root, 'lib')]
+        elif self.libdir:
+            dirs = [self.libdir]
+        return dirs
 
     def get_link_args(self):
         if mesonlib.is_windows():
             return self.get_win_link_args()
         args = []
-        if self.boost_root:
-            args.append('-L' + os.path.join(self.boost_root, 'lib'))
-        elif self.libdir:
-            args.append('-L' + self.libdir)
+        for dir in self.extra_lib_dirs():
+            args += ['-L' + dir]
         for lib in self.requested_modules:
-            # The compiler's library detector is the most reliable so use that first.
-            boost_lib = 'boost_' + lib
-            default_detect = self.compiler.find_library(boost_lib, self.env, [])
-            if default_detect is not None:
-                args += default_detect
-            elif boost_lib in self.lib_modules:
-                linkcmd = '-l' + boost_lib
-                args.append(linkcmd)
+            args += self.lib_modules['boost_' + lib]
         return args
 
     def get_sources(self):
@@ -962,4 +1017,117 @@ BOOST_LIBS = [
     'boost_timer',
     'boost_type_erasure',
     'boost_wave'
+]
+
+BOOST_DIRS = [
+    'lambda',
+    'optional',
+    'convert',
+    'system',
+    'uuid',
+    'archive',
+    'align',
+    'timer',
+    'chrono',
+    'gil',
+    'logic',
+    'signals',
+    'predef',
+    'tr1',
+    'multi_index',
+    'property_map',
+    'multi_array',
+    'context',
+    'random',
+    'endian',
+    'circular_buffer',
+    'proto',
+    'assign',
+    'format',
+    'math',
+    'phoenix',
+    'graph',
+    'locale',
+    'mpl',
+    'pool',
+    'unordered',
+    'core',
+    'exception',
+    'ptr_container',
+    'flyweight',
+    'range',
+    'typeof',
+    'thread',
+    'move',
+    'spirit',
+    'dll',
+    'compute',
+    'serialization',
+    'ratio',
+    'msm',
+    'config',
+    'metaparse',
+    'coroutine2',
+    'qvm',
+    'program_options',
+    'concept',
+    'detail',
+    'hana',
+    'concept_check',
+    'compatibility',
+    'variant',
+    'type_erasure',
+    'mpi',
+    'test',
+    'fusion',
+    'log',
+    'sort',
+    'local_function',
+    'units',
+    'functional',
+    'preprocessor',
+    'integer',
+    'container',
+    'polygon',
+    'interprocess',
+    'numeric',
+    'iterator',
+    'wave',
+    'lexical_cast',
+    'multiprecision',
+    'utility',
+    'tti',
+    'asio',
+    'dynamic_bitset',
+    'algorithm',
+    'xpressive',
+    'bimap',
+    'signals2',
+    'type_traits',
+    'regex',
+    'statechart',
+    'parameter',
+    'icl',
+    'python',
+    'lockfree',
+    'intrusive',
+    'io',
+    'pending',
+    'geometry',
+    'tuple',
+    'iostreams',
+    'heap',
+    'atomic',
+    'filesystem',
+    'smart_ptr',
+    'function',
+    'fiber',
+    'type_index',
+    'accumulators',
+    'function_types',
+    'coroutine',
+    'vmd',
+    'date_time',
+    'property_tree',
+    'bind'
 ]

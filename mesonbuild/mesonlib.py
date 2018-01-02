@@ -309,6 +309,18 @@ def for_cygwin(is_cross, env):
         return env.cross_info.config['host_machine']['system'] == 'cygwin'
     return False
 
+def for_linux(is_cross, env):
+    """
+    Host machine is linux?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return is_linux()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'linux'
+    return False
+
 def for_darwin(is_cross, env):
     """
     Host machine is Darwin (iOS/OS X)?
