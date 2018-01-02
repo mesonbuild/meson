@@ -1,5 +1,4 @@
-
-# Copyright 2012-2017 The Meson development team
+# Copyright 2012-2018 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,12 +24,19 @@ import ast
 version = '0.45.0.dev1'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']
 
+default_yielding = False
+
 class UserOption:
-    def __init__(self, name, description, choices):
+    def __init__(self, name, description, choices, yielding):
         super().__init__()
         self.name = name
         self.choices = choices
         self.description = description
+        if yielding is None:
+            yielding = default_yielding
+        if not isinstance(yielding, bool):
+            raise MesonException('Value of "yielding" must be a boolean.')
+        self.yielding = yielding
 
     # Check that the input is a valid value and return the
     # "cleaned" or "native" version. For example the Boolean
@@ -39,8 +45,8 @@ class UserOption:
         raise RuntimeError('Derived option class did not override validate_value.')
 
 class UserStringOption(UserOption):
-    def __init__(self, name, description, value, choices=None):
-        super().__init__(name, description, choices)
+    def __init__(self, name, description, value, choices=None, yielding=None):
+        super().__init__(name, description, choices, yielding)
         self.set_value(value)
 
     def validate(self, value):
@@ -56,8 +62,8 @@ class UserStringOption(UserOption):
         return value
 
 class UserBooleanOption(UserOption):
-    def __init__(self, name, description, value):
-        super().__init__(name, description, [True, False])
+    def __init__(self, name, description, value, yielding=None):
+        super().__init__(name, description, [True, False], yielding)
         self.set_value(value)
 
     def tobool(self, thing):
@@ -79,8 +85,8 @@ class UserBooleanOption(UserOption):
         return self.tobool(value)
 
 class UserIntegerOption(UserOption):
-    def __init__(self, name, description, min_value, max_value, value):
-        super().__init__(name, description, None)
+    def __init__(self, name, description, min_value, max_value, value, yielding=None):
+        super().__init__(name, description, [True, False], yielding)
         self.min_value = min_value
         self.max_value = max_value
         self.set_value(value)
@@ -112,8 +118,8 @@ class UserIntegerOption(UserOption):
         return self.toint(value)
 
 class UserComboOption(UserOption):
-    def __init__(self, name, description, choices, value):
-        super().__init__(name, description, choices)
+    def __init__(self, name, description, choices, value, yielding=None):
+        super().__init__(name, description, choices, yielding)
         if not isinstance(self.choices, list):
             raise MesonException('Combo choices must be an array.')
         for i in self.choices:
@@ -134,7 +140,7 @@ class UserComboOption(UserOption):
 
 class UserArrayOption(UserOption):
     def __init__(self, name, description, value, **kwargs):
-        super().__init__(name, description, kwargs.get('choices', []))
+        super().__init__(name, description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
         self.set_value(value, user_input=False)
 
     def validate(self, value, user_input):

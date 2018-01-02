@@ -1,0 +1,2 @@
+option('unshared_option', type : 'string', value : 'three', yield : false)
+option('shared_option', type : 'string', value : 'four', yield : true)
