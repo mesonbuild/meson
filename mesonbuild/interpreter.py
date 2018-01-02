@@ -1470,6 +1470,7 @@ class Interpreter(InterpreterBase):
                            'disabler': self.func_disabler,
                            'environment': self.func_environment,
                            'error': self.func_error,
+                           'exception': self.func_exception,
                            'executable': self.func_executable,
                            'generator': self.func_generator,
                            'gettext': self.func_gettext,
@@ -1982,6 +1983,11 @@ to directly access options of other subprojects.''')
     def func_error(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         raise InterpreterException('Error encountered: ' + args[0])
+
+    @noKwargs
+    def func_exception(self, node, args, kwargs):
+        self.validate_arguments(args, 0, [])
+        raise Exception()
 
     def detect_compilers(self, lang, need_cross_compiler):
         cross_comp = None
