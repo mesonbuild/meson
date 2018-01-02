@@ -888,6 +888,17 @@ int dummy;
   depth = %d
 
 ''' % num_pools)
+        for p in self.interpreter.pools:
+            pool_name = p.strip()
+
+            if pool_name == '' or pool_name == 'console':
+                continue
+
+            outfile.write('''pool %s
+  depth = %d
+
+''' % (pool_name, self.interpreter.pools[pool_name]))
+
         if self.environment.is_cross_build():
             self.generate_static_link_rules(True, outfile)
         self.generate_static_link_rules(False, outfile)
@@ -1798,6 +1809,7 @@ rule FORTRAN_DEP_HACK
         return args
 
     def generate_genlist_for_target(self, genlist, target, outfile):
+        # @TODO: générer les pools pour des generator()
         generator = genlist.get_generator()
         exe = generator.get_exe()
         exe_arr = self.exe_object_to_cmd_array(exe)
@@ -1854,6 +1866,8 @@ rule FORTRAN_DEP_HACK
             if isinstance(exe, build.BuildTarget):
                 elem.add_dep(self.get_target_filename(exe))
             elem.add_item('COMMAND', cmd)
+            if generator.pool_name != '':
+                elem.add_item('pool', generator.pool_name)
             elem.write(outfile)
 
     def scan_fortran_module_outputs(self, target):
@@ -2232,6 +2246,8 @@ rule FORTRAN_DEP_HACK
             element.add_orderdep(i)
         element.add_item('DEPFILE', dep_file)
         element.add_item('ARGS', commands)
+        if target.pool_name != '':
+            element.add_item('pool', target.pool_name)
         element.write(outfile)
         return rel_obj
 
