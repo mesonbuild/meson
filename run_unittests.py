@@ -36,8 +36,8 @@ import mesonbuild.coredata
 from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
 from mesonbuild.mesonlib import python_command, meson_command, version_compare
-from mesonbuild.environment import Environment
-from mesonbuild.dependencies import DependencyException
+from mesonbuild.environment import Environment, detect_ninja
+from mesonbuild.mesonlib import MesonException, EnvironmentException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
 from run_tests import exe_suffix, get_fake_options
@@ -1707,6 +1707,28 @@ int main(int argc, char **argv) {
         self.init(workdir)
         self.build()
 
+    def test_warning_location(self):
+        tdir = os.path.join(self.unit_test_dir, '20 warning location')
+        out = self.init(tdir)
+        self.assertRegex(out, r'WARNING: Keyword argument "link_with" defined multiple times in file meson.build, line 4')
+        self.assertRegex(out, r'WARNING: Keyword argument "link_with" defined multiple times in file sub' + re.escape(os.path.sep) + r'meson.build, line 3')
+        self.assertRegex(out, r'WARNING: a warning of some sort in file meson.build, line 6')
+        self.assertRegex(out, r'WARNING: subdir warning in file sub' + re.escape(os.path.sep) + r'meson.build, line 4')
+
+    def test_templates(self):
+        ninja = detect_ninja()
+        if ninja is None:
+            raise unittest.SkipTest('This test currently requires ninja. Fix this once "meson build" works.')
+        for lang in ('c', 'cpp'):
+            for type in ('executable', 'library'):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    self._run(meson_command + ['init', '--language', lang, '--type', type],
+                              workdir=tmpdir)
+                    self._run(self.meson_command + ['--backend=ninja', 'builddir'],
+                              workdir=tmpdir)
+                    self._run(ninja,
+                              workdir=os.path.join(tmpdir, 'builddir'))
+
 
 class FailureTests(BasePlatformTests):
     '''
@@ -1744,7 +1766,7 @@ class FailureTests(BasePlatformTests):
             f.write(contents)
         # Force tracebacks so we can detect them properly
         os.environ['MESON_FORCE_BACKTRACE'] = '1'
-        with self.assertRaisesRegex(DependencyException, match, msg=contents):
+        with self.assertRaisesRegex(MesonException, match, msg=contents):
             # Must run in-process or we'll get a generic CalledProcessError
             self.init(self.srcdir, extra_args=extra_args, inprocess=True)
 
@@ -1864,6 +1886,21 @@ class FailureTests(BasePlatformTests):
         self.assertRegex(
             out,
             r'In subproject one: Unknown command line options: "one:two"')
+
+    def test_objc_cpp_detection(self):
+        '''
+        Test that when we can't detect objc or objcpp, we fail gracefully.
+        '''
+        env = Environment('', self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
+        try:
+            objc = env.detect_objc_compiler(False)
+            objcpp = env.detect_objcpp_compiler(False)
+        except EnvironmentException:
+            code = "add_languages('objc')\nadd_languages('objcpp')"
+            self.assertMesonRaises(code, "Unknown compiler")
+            return
+        raise unittest.SkipTest("objc and objcpp found, can't test detection failure")
 
 
 class WindowsTests(BasePlatformTests):
@@ -1994,6 +2031,36 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertIn('-lfoo', foo_dep.get_link_args())
         self.assertEqual(foo_dep.get_pkgconfig_variable('foo', {}), 'bar')
         self.assertPathEqual(foo_dep.get_pkgconfig_variable('datadir', {}), '/usr/data')
+
+    def test_pkgconfig_gen_deps(self):
+        '''
+        Test that generated pkg-config files correctly handle dependencies
+        '''
+
+        testdir = os.path.join(self.common_test_dir, '51 pkgconfig-gen')
+        self.init(testdir)
+
+        os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
+        cmd = ['pkg-config', 'dependency-test']
+
+        out = self._run(cmd + ['--print-requires']).strip().split()
+        self.assertEqual(sorted(out), sorted(['libexposed']))
+
+        out = self._run(cmd + ['--print-requires-private']).strip().split()
+        self.assertEqual(sorted(out), sorted(['libfoo']))
+
+        out = self._run(cmd + ['--cflags-only-other']).strip().split()
+        self.assertEqual(sorted(out), sorted(['-pthread', '-DCUSTOM']))
+
+        out = self._run(cmd + ['--libs-only-l', '--libs-only-other']).strip().split()
+        self.assertEqual(sorted(out), sorted(['-pthread', '-lcustom',
+                                              '-llibmain', '-llibexposed']))
+
+        out = self._run(cmd + ['--libs-only-l', '--libs-only-other', '--static']).strip().split()
+        self.assertEqual(sorted(out), sorted(['-pthread', '-lcustom',
+                                              '-llibmain', '-llibexposed',
+                                              '-llibinternal', '-lcustom2',
+                                              '-lfoo']))
 
     def test_vala_c_warnings(self):
         '''

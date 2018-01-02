@@ -429,6 +429,7 @@ class MPIDependency(ExternalDependency):
                     self.link_args = pkgdep.get_link_args()
                     self.version = pkgdep.get_version()
                     self.is_found = True
+                    self.pcdep = pkgdep
                     break
             except Exception:
                 pass
@@ -630,6 +631,7 @@ class Python3Dependency(ExternalDependency):
                     self.link_args = self.pkgdep.get_link_args()
                     self.version = self.pkgdep.get_version()
                     self.is_found = True
+                    self.pcdep = self.pkgdep
                     return
                 else:
                     self.pkgdep = None
@@ -763,6 +765,7 @@ class PcapDependency(ExternalDependency):
                     self.compile_args = pcdep.get_compile_args()
                     self.link_args = pcdep.get_link_args()
                     self.version = pcdep.get_version()
+                    self.pcdep = pcdep
                     return
             except Exception as e:
                 mlog.debug('Pcap not found via pkgconfig. Trying next, error was:', str(e))
@@ -805,6 +808,7 @@ class CupsDependency(ExternalDependency):
                     self.compile_args = pcdep.get_compile_args()
                     self.link_args = pcdep.get_link_args()
                     self.version = pcdep.get_version()
+                    self.pcdep = pcdep
                     return
             except Exception as e:
                 mlog.debug('cups not found via pkgconfig. Trying next, error was:', str(e))
@@ -854,6 +858,7 @@ class LibWmfDependency(ExternalDependency):
                     self.compile_args = pcdep.get_compile_args()
                     self.link_args = pcdep.get_link_args()
                     self.version = pcdep.get_version()
+                    self.pcdep = pcdep
                     return
             except Exception as e:
                 mlog.debug('LibWmf not found via pkgconfig. Trying next, error was:', str(e))

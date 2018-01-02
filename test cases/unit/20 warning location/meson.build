@@ -1,0 +1,6 @@
+project('duplicate kwarg', 'c')
+a = library('liba', 'a.c')
+b = library('libb', 'b.c')
+executable('main', 'main.c', link_with: a, link_with: b)
+subdir('sub')
+warning('a warning of some sort')

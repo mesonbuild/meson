@@ -17,7 +17,7 @@ import time, datetime
 import os.path
 from . import environment, interpreter, mesonlib
 from . import build
-from . import mconf, mintro, mtest, rewriter
+from . import mconf, mintro, mtest, rewriter, minit
 import platform
 from . import mlog, coredata
 from .mesonlib import MesonException
@@ -172,6 +172,7 @@ class MesonApp:
         elif self.options.backend == 'vs':
             from .backend import vs2010backend
             g = vs2010backend.autodetect_vs_version(b)
+            env.coredata.set_builtin_option('backend', g.name)
             mlog.log('Auto detected Visual Studio backend:', mlog.bold(g.name))
         elif self.options.backend == 'vs2010':
             from .backend import vs2010backend
@@ -307,6 +308,8 @@ def run(original_args, mainfile=None):
                 sys.exit(1)
         elif cmd_name == 'wrap':
             return wraptool.run(remaining_args)
+        elif cmd_name == 'init':
+            return minit.run(remaining_args)
         elif cmd_name == 'runpython':
             import runpy
             script_file = remaining_args[0]

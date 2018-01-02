@@ -29,10 +29,9 @@ from ..environment import Environment
 def autodetect_vs_version(build):
     vs_version = os.getenv('VisualStudioVersion', None)
     vs_install_dir = os.getenv('VSINSTALLDIR', None)
-    if not vs_version and not vs_install_dir:
-        raise MesonException('Could not detect Visual Studio: VisualStudioVersion and VSINSTALLDIR are unset!\n'
-                             'Are we inside a Visual Studio build environment? '
-                             'You can also try specifying the exact backend to use.')
+    if not vs_install_dir:
+        raise MesonException('Could not detect Visual Studio: Environment variable VSINSTALLDIR is not set!\n'
+                             'Are you running meson from the Visual Studio Developer Command Prompt?')
     # VisualStudioVersion is set since Visual Studio 12.0, but sometimes
     # vcvarsall.bat doesn't set it, so also use VSINSTALLDIR
     if vs_version == '14.0' or 'Visual Studio 14' in vs_install_dir:

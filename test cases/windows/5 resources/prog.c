@@ -9,6 +9,6 @@ WinMain(
     LPSTR lpszCmdLine,
     int nCmdShow) {
     HICON hIcon;
-    hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(MY_ICON));
     return hIcon ? 0 : 1;
 }
