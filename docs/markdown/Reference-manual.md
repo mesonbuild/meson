@@ -112,6 +112,24 @@ run. The behavior of this function is identical to `test` with the
 exception that there is no `is_parallel` keyword, because benchmarks
 are never run in parallel.
 
+### both_libraries()
+
+``` meson
+    buildtarget both_libraries(library_name, list_of_sources, ...)
+```
+
+Builds both a static and shared library with the given sources. Positional and
+keyword arguments are otherwise the same as for [`library`](#library). Source
+files will be compiled only once and object files will be reused to build both
+shared and static libraries, unless `b_staticpic` user option or `pic` argument
+are set to false in which case sources will be compiled twice.
+
+The returned [buildtarget](#build-target-object) always represents the shared
+library. In addition it supports the following extra methods:
+
+- `get_shared_lib()` returns the shared library build target
+- `get_static_lib()` returns the static library build target
+
 ### build_target()
 
 Creates a build target whose type can be set dynamically with the
@@ -885,10 +903,11 @@ dropped. That means that `join_paths('foo', '/bar')` returns `/bar`.
     buildtarget library(library_name, list_of_sources, ...)
 ```
 
-Builds a library that is either static or shared depending on the
-value of `default_library` user option. You should use this instead of
-[`shared_library`](#shared_library) or
-[`static_library`](#static_library) most of the time. This allows you
+Builds a library that is either static, shared or both depending on the value of
+`default_library` user option. You should use this instead of
+[`shared_library`](#shared_library),
+[`static_library`](#static_library) or
+[`both_libraries`](#both_libraries) most of the time. This allows you
 to toggle your entire project (including subprojects) from shared to
 static with only one option.
 
@@ -911,7 +930,8 @@ The keyword arguments for this are the same as for [`executable`](#executable) w
   libraries. Defaults to `dylib` for shared libraries and `rlib` for
   static libraries.
 
-`static_library` and `shared_library` also accept these keyword arguments.
+`static_library`, `shared_library` and `both_libraries` also accept these keyword
+arguments.
 
 ### message()
 
@@ -1670,7 +1690,8 @@ These are objects returned by the [functions listed above](#functions).
 ### `build target` object
 
 A build target is either an [executable](#executable),
-[shared](#shared_library), [static library](#static_library) or
+[shared library](#shared_library), [static library](#static_library),
+[both shared and static library](#both_libraries) or
 [shared module](#shared_module).
 
 - `extract_all_objects()` is same as `extract_objects` but returns all
