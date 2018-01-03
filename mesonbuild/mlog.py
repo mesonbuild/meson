@@ -103,6 +103,13 @@ def log(*args, **kwargs):
     force_print(*arr, **kwargs)
 
 def warning(*args, **kwargs):
+    from . import environment
+
+    if kwargs.get('location'):
+        location = kwargs['location']
+        del kwargs['location']
+        args += ('in file {}, line {}.'.format(os.path.join(location.subdir, environment.build_filename), location.lineno),)
+
     log(yellow('WARNING:'), *args, **kwargs)
 
 # Format a list for logging purposes as a string. It separates

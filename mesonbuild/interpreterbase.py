@@ -18,7 +18,7 @@
 from . import mparser, mesonlib, mlog
 from . import environment, dependencies
 
-import os, copy, re
+import os, copy, re, types
 from functools import wraps
 
 # Decorators for method calls.
@@ -63,17 +63,19 @@ class permittedKwargs:
     def __call__(self, f):
         @wraps(f)
         def wrapped(s, node_or_state, args, kwargs):
+            loc = types.SimpleNamespace()
             if hasattr(s, 'subdir'):
-                subdir = s.subdir
-                lineno = s.current_lineno
+                loc.subdir = s.subdir
+                loc.lineno = s.current_lineno
             elif hasattr(node_or_state, 'subdir'):
-                subdir = node_or_state.subdir
-                lineno = node_or_state.current_lineno
+                loc.subdir = node_or_state.subdir
+                loc.lineno = node_or_state.current_lineno
+            else:
+                loc = None
             for k in kwargs:
                 if k not in self.permitted:
-                    fname = os.path.join(subdir, environment.build_filename)
-                    mlog.warning('''Passed invalid keyword argument "%s" in %s line %d.
-This will become a hard error in the future.''' % (k, fname, lineno))
+                    mlog.warning('''Passed invalid keyword argument "{}"'''.format(k), location=loc)
+                    mlog.warning('This will become a hard error in the future.')
             return f(s, node_or_state, args, kwargs)
         return wrapped
 

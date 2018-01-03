@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, re
+import re
 from .mesonlib import MesonException
 from . import mlog
 
@@ -368,7 +368,8 @@ class ArgumentNode:
 
     def set_kwarg(self, name, value):
         if name in self.kwargs:
-            mlog.warning('Keyword argument "%s" defined multiple times in file %s, line %d. This will be an error in future Meson releases.' % (name, os.path.join(self.subdir, 'meson.build'), self.lineno))
+            mlog.warning('Keyword argument "{}" defined multiple times'.format(name), location=self)
+            mlog.warning('This will be an error in future Meson releases.')
         self.kwargs[name] = value
 
     def num_args(self):
