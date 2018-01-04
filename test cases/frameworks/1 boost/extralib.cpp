@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 500
+
 #include <iostream>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
