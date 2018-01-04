@@ -34,8 +34,8 @@
 
 %meson_test \
     %ninja_test -C %{_vpath_builddir} || \
-    { rc=$?; \
+    ( rc=$?; \
       echo "-----BEGIN TESTLOG-----"; \
       cat %{_vpath_builddir}/meson-logs/testlog.txt; \
       echo "-----END TESTLOG-----"; \
-      exit $rc; }
+      exit $rc; )
