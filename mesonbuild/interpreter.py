@@ -23,7 +23,7 @@ from .wrap import wrap, WrapMode
 from . import mesonlib
 from .mesonlib import FileMode, Popen_safe, listify, extract_as_list
 from .dependencies import ExternalProgram
-from .dependencies import InternalDependency, Dependency, DependencyException
+from .dependencies import InternalDependency, Dependency, DependencyException, NotFoundDependency
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, permittedKwargs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
@@ -2212,7 +2212,7 @@ to directly access options of other subprojects.''')
         if name == '':
             if required:
                 raise InvalidArguments('Dependency is both required and not-found')
-            return DependencyHolder(Dependency('not-found', {}))
+            return DependencyHolder(NotFoundDependency(self.environment))
 
         if '<' in name or '>' in name or '=' in name:
             raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
