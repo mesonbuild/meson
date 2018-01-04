@@ -10,10 +10,13 @@ echo Updating Cygwin and installing ninja and test prerequisites
 %CYGWIN_ROOT%\%SETUP% -qnNdO -R "%CYGWIN_ROOT%" -s "%CYGWIN_MIRROR%" -l "%CACHE%" -g -P ^
 gcc-objc++,^
 gcc-objc,^
+gobject-introspection,^
 libboost-devel,^
 libglib2.0-devel,^
+libgtk3-devel,^
 ninja,^
 python3-pip,^
+vala,^
 zlib-devel
 
 echo Install done
