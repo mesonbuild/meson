@@ -26,6 +26,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [GtkDApp](https://gitlab.com/csoriano/GtkDApp), an application template for developing Flatpak apps with Gtk+ and D
  - [HexChat](https://github.com/hexchat/hexchat), a cross-platform IRC client in C
  - [Json-glib](https://git.gnome.org/browse/json-glib), GLib-based JSON manipulation library
+ - [Ksh](https://github.com/att/ast), a Korn Shell
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib/), a GLib wrapper for libgit2
  - [Libhttpseverywhere](https://github.com/grindhold/libhttpseverywhere), a library to enable httpseverywhere on any desktop app
