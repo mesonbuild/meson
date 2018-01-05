@@ -211,9 +211,10 @@ class ExtractedObjects:
     '''
     Holds a list of sources for which the objects must be extracted
     '''
-    def __init__(self, target, srclist, is_unity):
+    def __init__(self, target, srclist, genlist, is_unity):
         self.target = target
         self.srclist = srclist
+        self.genlist = genlist
         if is_unity:
             self.check_unity_compatible()
 
@@ -625,13 +626,17 @@ class BuildTarget(Target):
             if not isinstance(src, str):
                 raise MesonException('Object extraction arguments must be strings.')
             src = File(False, self.subdir, src)
+            # FIXME: It could be a generated source
             if src not in self.sources:
                 raise MesonException('Tried to extract unknown source %s.' % src)
             obj_src.append(src)
-        return ExtractedObjects(self, obj_src, self.is_unity)
+        return ExtractedObjects(self, obj_src, [], self.is_unity)
 
     def extract_all_objects(self):
-        return ExtractedObjects(self, self.sources, self.is_unity)
+        # FIXME: We should add support for transitive extract_objects()
+        if self.objects:
+            raise MesonException('Cannot extract objects from a target that itself has extracted objects')
+        return ExtractedObjects(self, self.sources, self.generated, self.is_unity)
 
     def get_all_link_deps(self):
         return self.get_transitive_link_deps()
