@@ -201,6 +201,23 @@ class ExternalDependency(Dependency):
         return self.compiler
 
 
+class DeclaredExternalDependency(Dependency):
+    def __init__(self, version, compile_args, link_args, ext_deps):
+        super().__init__('declared_external', {})
+        self.version = version
+        self.is_found = True
+        self.compile_args = compile_args
+        self.link_args = link_args
+        self.ext_deps = ext_deps
+
+    def get_pkgconfig_variable(self, variable_name, kwargs):
+        raise DependencyException('Method "get_pkgconfig_variable()" is '
+                                  'invalid for a declared external dependency')
+
+    def get_configtool_variable(self, variable_name):
+        raise DependencyException('Method "get_configtool_variable()" is '
+                                  'invalid for a declared external dependency')
+
 class ConfigToolDependency(ExternalDependency):
 
     """Class representing dependencies found using a config tool."""

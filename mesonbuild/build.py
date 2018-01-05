@@ -831,12 +831,14 @@ This will become a hard error in a future Meson release.''')
                 for l in dep.libraries:
                     self.link(l)
                 # Those parts that are external.
-                extpart = dependencies.InternalDependency('undefined',
-                                                          [],
-                                                          dep.compile_args,
-                                                          dep.link_args,
-                                                          [], [], [])
+                extpart = dependencies.DeclaredExternalDependency('undefined',
+                                                                  dep.compile_args,
+                                                                  dep.link_args, [])
                 self.external_deps.append(extpart)
+                # Deps of deps.
+                self.add_deps(dep.ext_deps)
+            elif isinstance(dep, dependencies.DeclaredExternalDependency):
+                self.external_deps.append(dep)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)
             elif isinstance(dep, dependencies.ExternalDependency):
