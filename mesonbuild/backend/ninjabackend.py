@@ -42,8 +42,12 @@ def ninja_quote(text):
     for char in ('$', ' ', ':'):
         text = text.replace(char, '$' + char)
     if '\n' in text:
-        raise MesonException('Ninja does not support newlines in rules. '
-                             'Please report this error with a test case to the Meson bug tracker.')
+        errmsg = '''Ninja does not support newlines in rules. The content was:
+
+%s
+
+Please report this error with a test case to the Meson bug tracker.''' % text
+        raise MesonException(errmsg)
     return text
 
 
