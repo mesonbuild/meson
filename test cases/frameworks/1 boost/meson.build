@@ -31,3 +31,5 @@ test('Boost statictest', staticexe)
 test('Boost UTF test', unitexe)
 test('Boost nomod', nomodexe)
 test('Boost extralib test', extralibexe)
+
+subdir('partial_dep')
