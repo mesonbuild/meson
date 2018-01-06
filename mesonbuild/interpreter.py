@@ -275,6 +275,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
                              'version': self.version_method,
                              'get_pkgconfig_variable': self.pkgconfig_method,
                              'get_configtool_variable': self.configtool_method,
+                             'partial_dependency': self.partial_dependency_method,
                              })
 
     def type_name_method(self, args, kwargs):
@@ -306,12 +307,18 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
             raise InterpreterException('Variable name must be a string.')
         return self.held_object.get_configtool_variable(varname)
 
+    def partial_dependency_method(self, args, kwargs):
+        if args:
+            raise InterpreterException('partial_dependency takes no positional arguments')
+        return DependencyHolder(self.held_object.get_partial_dependency(**kwargs))
+
 class InternalDependencyHolder(InterpreterObject, ObjectHolder):
     def __init__(self, dep):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, dep)
         self.methods.update({'found': self.found_method,
                              'version': self.version_method,
+                             'partial_dependency': self.partial_dependency_method,
                              })
 
     def found_method(self, args, kwargs):
@@ -319,6 +326,11 @@ class InternalDependencyHolder(InterpreterObject, ObjectHolder):
 
     def version_method(self, args, kwargs):
         return self.held_object.get_version()
+
+    def partial_dependency_method(self, args, kwargs):
+        if args:
+            raise InterpreterException('get_partial_dependency takes no positional arguments')
+        return DependencyHolder(self.held_object.get_partial_dependency(**kwargs))
 
 class ExternalProgramHolder(InterpreterObject, ObjectHolder):
     def __init__(self, ep):
@@ -346,7 +358,9 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder):
     def __init__(self, el):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, el)
-        self.methods.update({'found': self.found_method})
+        self.methods.update({'found': self.found_method,
+                             'partial_dependency': self.partial_dependency_method,
+                             })
 
     def found(self):
         return self.held_object.found()
@@ -365,6 +379,11 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder):
 
     def get_exe_args(self):
         return self.held_object.get_exe_args()
+
+    def partial_dependency_method(self, args, kwargs):
+        if args:
+            raise InterpreterException('partial_dependency takes no positional arguments')
+        return DependencyHolder(self.held_object.get_partial_dependency(**kwargs))
 
 class GeneratorHolder(InterpreterObject, ObjectHolder):
     def __init__(self, interpreter, args, kwargs):

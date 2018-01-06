@@ -1,4 +1,4 @@
-# Copyright 2013-2017 The Meson development team
+# Copyright 2013-2018 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 # This file contains the detection logic for external dependencies.
 # Custom logic for several other packages are in separate files.
 
+import copy
 import os
 import re
 import stat
@@ -146,6 +147,23 @@ class Dependency:
     def get_configtool_variable(self, variable_name):
         raise DependencyException('{!r} is not a config-tool dependency'.format(self.name))
 
+    def get_partial_dependency(self, *, compile_args=False, link_args=False,
+                               links=False, includes=False, sources=False):
+        """Create a new dependency that contains part of the parent dependency.
+
+        The following options can be inherited:
+            links -- all link_with arguemnts
+            includes -- all include_directory and -I/-isystem calls
+            sources -- any source, header, or generated sources
+            compile_args -- any compile args
+            link_args -- any link args
+
+        Additionally the new dependency will have the version parameter of it's
+        parent (if any) and the requested values of any dependencies will be
+        added as well.
+        """
+        RuntimeError('Unreachable code in partial_dependency called')
+
 
 class InternalDependency(Dependency):
     def __init__(self, version, incdirs, compile_args, link_args, libraries, whole_libraries, sources, ext_deps):
@@ -167,6 +185,21 @@ class InternalDependency(Dependency):
     def get_configtool_variable(self, variable_name):
         raise DependencyException('Method "get_configtool_variable()" is '
                                   'invalid for an internal dependency')
+
+    def get_partial_dependency(self, *, compile_args=False, link_args=False,
+                               links=False, includes=False, sources=False):
+        compile_args = self.compile_args.copy() if compile_args else []
+        link_args = self.link_args.copy() if link_args else []
+        libraries = self.libraries.copy() if links else []
+        whole_libraries = self.whole_libraries.copy() if links else []
+        sources = self.sources.copy() if sources else []
+        includes = self.include_directories.copy() if includes else []
+        deps = [d.get_partial_dependency(
+            compile_args=compile_args, link_args=link_args, links=links,
+            includes=includes, sources=sources) for d in self.ext_deps]
+        return InternalDependency(
+            self.version, includes, compile_args, link_args, libraries,
+            whole_libraries, sources, deps)
 
 
 class ExternalDependency(Dependency):
@@ -210,6 +243,18 @@ class ExternalDependency(Dependency):
 
     def get_compiler(self):
         return self.compiler
+
+    def get_partial_dependency(self, *, compile_args=False, link_args=False,
+                               links=False, includes=False, sources=False):
+        new = copy.copy(self)
+        if not compile_args:
+            new.compile_args = []
+        if not link_args:
+            new.link_args = []
+        if not sources:
+            new.sources = []
+
+        return new
 
 
 class ConfigToolDependency(ExternalDependency):
@@ -886,6 +931,15 @@ class ExternalLibrary(ExternalDependency):
            (language == 'vala' and self.language != 'vala'):
             return []
         return self.link_args
+
+    def get_partial_dependency(self, *, compile_args=False, link_args=False,
+                               links=False, includes=False, sources=False):
+        # External library only has link_args, so ignore the rest of the
+        # interface.
+        new = copy.copy(self)
+        if not link_args:
+            new.link_args = []
+        return new
 
 
 class ExtraFrameworkDependency(ExternalDependency):

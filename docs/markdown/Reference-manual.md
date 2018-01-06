@@ -1827,6 +1827,32 @@ an external dependency with the following methods:
 
  - `version()` is the version number as a string, for example `1.2.8`
 
+ - `partial_dependency(compile_args : false, link_args : false, links : false,
+   includes : false, source : false)` (*added 0.46.0) returns a new dependency
+   object with the same name, version, found status, type name, and methods as
+   the object that called it. This new object will only inherit other
+   attributes from its parent as controlled by keyword arguments.
+
+   If the parent has any dependencies, those will be applied to the new
+   partial dependency with the same rules. So , given:
+
+   ```meson
+   dep1 = declare_dependency(compiler_args : '-Werror=foo', link_with : 'libfoo')
+   dep2 = declare_dependency(compiler_args : '-Werror=bar', dependencies : dep1)
+   dep3 = dep2.partial_dependency(compile_args : true)
+   ```
+
+   dep3 will add `['-Werror=foo', '-Werror=bar']` to the compiler args of
+   any target it is added to, but libfoo will not be added to the link_args.
+
+   The following arguments will add the following attributes:
+
+   - compile_args: any arguments passed to the compiler
+   - link_args: any arguments passed to the linker
+   - links: anything passed via link_with or link_whole
+   - includes: any include_directories
+   - sources: any compiled or static sources the dependency has
+
 ### `disabler` object
 
 A disabler object is an object that behaves in much the same way as
