@@ -861,7 +861,14 @@ class Vs2010Backend(backends.Backend):
             if not pch:
                 continue
             pch_node.text = 'Use'
-            pch_sources[lang] = [pch[0], pch[1], lang]
+            if compiler.id == 'msvc':
+                if len(pch) != 2:
+                    raise RuntimeError('MSVC requires one header and one source to produce precompiled headers.')
+                pch_sources[lang] = [pch[0], pch[1], lang]
+            else:
+                # I don't know whether its relevant but let's handle other compilers
+                # used with a vs backend
+                pch_sources[lang] = [pch[0], None, lang]
         if len(pch_sources) == 1:
             # If there is only 1 language with precompiled headers, we can use it for the entire project, which
             # is cleaner than specifying it for each source file.
@@ -1016,19 +1023,20 @@ class Vs2010Backend(backends.Backend):
                 self.add_include_dirs(lang, inc_cl, file_inc_dirs)
             for lang in pch_sources:
                 header, impl, suffix = pch_sources[lang]
-                relpath = os.path.join(proj_to_src_dir, impl)
-                inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
-                pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
-                pch.text = 'Create'
-                pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
-                pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % suffix
-                pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
-                # MSBuild searches for the header relative from the implementation, so we have to use
-                # just the file name instead of the relative path to the file.
-                pch_file.text = os.path.split(header)[1]
-                self.add_additional_options(lang, inc_cl, file_args)
-                self.add_preprocessor_defines(lang, inc_cl, file_defines)
-                self.add_include_dirs(lang, inc_cl, file_inc_dirs)
+                if impl:
+                    relpath = os.path.join(proj_to_src_dir, impl)
+                    inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                    pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
+                    pch.text = 'Create'
+                    pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
+                    pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % suffix
+                    pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
+                    # MSBuild searches for the header relative from the implementation, so we have to use
+                    # just the file name instead of the relative path to the file.
+                    pch_file.text = os.path.split(header)[1]
+                    self.add_additional_options(lang, inc_cl, file_args)
+                    self.add_preprocessor_defines(lang, inc_cl, file_defines)
+                    self.add_include_dirs(lang, inc_cl, file_inc_dirs)
 
         if self.has_objects(objects, additional_objects, gen_objs):
             inc_objs = ET.SubElement(root, 'ItemGroup')
