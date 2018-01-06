@@ -40,6 +40,7 @@ Commands:
  update - update the project to its newest available release
  info - show available versions of a project
  status - show installed and available versions of your projects
+ promote - bring a subsubproject up to the master project
 
 '''
 
