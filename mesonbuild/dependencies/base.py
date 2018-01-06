@@ -62,6 +62,9 @@ class DependencyMethods(Enum):
 
 class Dependency:
     def __init__(self, type_name, kwargs):
+        if type(self) == Dependency.__class__:
+            raise MesonException('The class Dependency() should not be directly instantiated')
+
         self.name = "null"
         self.version = 'none'
         self.language = None # None means C-like
@@ -199,6 +202,11 @@ class ExternalDependency(Dependency):
 
     def get_compiler(self):
         return self.compiler
+
+
+class NotFoundDependency(ExternalDependency):
+    def __init__(self, environment):
+        super().__init__('not-found', environment, None, {})
 
 
 class ConfigToolDependency(ExternalDependency):
