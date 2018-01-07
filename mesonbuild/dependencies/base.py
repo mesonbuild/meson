@@ -754,6 +754,17 @@ class ExternalProgram:
     def get_name(self):
         return self.name
 
+class NonExistingExternalProgram(ExternalProgram):
+
+    def __init__(self):
+        super().__init__(name = 'nonexistingprogram', silent = True)
+
+    def __repr__(self):
+        r = '<{} {!r} -> {!r}>'
+        return r.format(self.__class__.__name__, self.name, self.command)
+
+    def found(self):
+        return False
 
 class ExternalLibrary(ExternalDependency):
     def __init__(self, name, link_args, environment, language, silent=False):
