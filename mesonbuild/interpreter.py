@@ -1883,10 +1883,14 @@ to directly access options of other subprojects.''')
             raise InvalidCode('Second call to project().')
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
+            if not isinstance(spdirname, str):
+                raise InterpreterException('Subproject_dir must be a string')
             if os.path.isabs(spdirname):
                 raise InterpreterException('Subproject_dir must not be an absolute path.')
             if spdirname.startswith('.'):
                 raise InterpreterException('Subproject_dir must not begin with a period.')
+            if '..' in spdirname:
+                raise InterpreterException('Subproject_dir must not contain a ".." segment.')
             self.subproject_dir = spdirname
 
         if 'meson_version' in kwargs:
