@@ -17,4 +17,7 @@
 from mesonbuild.wrap import wraptool
 import sys
 
-sys.exit(wraptool.run(sys.argv[1:]))
+if __name__ == '__main__':
+    print('Warning: This executable is deprecated. Use "meson wrap" instead.',
+          file=sys.stderr)
+    sys.exit(wraptool.run(sys.argv[1:]))
