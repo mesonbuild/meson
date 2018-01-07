@@ -731,7 +731,7 @@ class Environment:
             return compilers.LLVMDCompiler(exelist, version, is_cross, full_version=full_version)
         elif 'gdc' in out:
             return compilers.GnuDCompiler(exelist, version, is_cross, full_version=full_version)
-        elif 'Digital Mars' in out:
+        elif 'The D Language Foundation' in out or 'Digital Mars' in out:
             return compilers.DmdDCompiler(exelist, version, is_cross, full_version=full_version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
