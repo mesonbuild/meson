@@ -31,6 +31,9 @@ message('TEST: ' + girsubproject.outdir())
 envdata = environment()
 envdata.append('GI_TYPELIB_PATH', girsubproject.outdir(), 'subprojects/mesongir', separator : ':')
 envdata.append('LD_LIBRARY_PATH', girsubproject.outdir(), 'subprojects/mesongir')
+if ['windows', 'cygwin'].contains(host_machine.system())
+  envdata.append('PATH', girsubproject.outdir(), 'subprojects/mesongir')
+endif
 
 test('gobject introspection/subproject/c', girexe)
 test('gobject introspection/subproject/py', find_program('prog.py'),

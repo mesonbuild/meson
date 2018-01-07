@@ -41,5 +41,8 @@ gir_paths = ':'.join([girlib.outdir(), dep1lib.outdir(), dep2lib.outdir()])
 envdata = environment()
 envdata.append('GI_TYPELIB_PATH', gir_paths, separator : ':')
 envdata.append('LD_LIBRARY_PATH', gir_paths)
+if ['windows', 'cygwin'].contains(host_machine.system())
+  envdata.append('PATH', gir_paths)
+endif
 test('gobject introspection/py', find_program('prog.py'),
      env : envdata)
