@@ -863,7 +863,7 @@ class Vs2010Backend(backends.Backend):
             pch_node.text = 'Use'
             if compiler.id == 'msvc':
                 if len(pch) != 2:
-                    raise RuntimeError('MSVC requires one header and one source to produce precompiled headers.')
+                    raise MesonException('MSVC requires one header and one source to produce precompiled headers.')
                 pch_sources[lang] = [pch[0], pch[1], lang]
             else:
                 # I don't know whether its relevant but let's handle other compilers
