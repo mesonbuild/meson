@@ -2119,7 +2119,7 @@ to directly access options of other subprojects.''')
         if required and (progobj is None or not progobj.found()):
             raise InvalidArguments('Program "%s" not found or not executable' % args[0])
         if progobj is None:
-            return ExternalProgramHolder(dependencies.ExternalProgram('nonexistingprogram'))
+            return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
         return progobj
 
     def func_find_library(self, node, args, kwargs):
