@@ -2258,7 +2258,7 @@ rule FORTRAN_DEP_HACK
 
     def generate_msvc_pch_command(self, target, compiler, pch):
         if len(pch) != 2:
-            raise RuntimeError('MSVC requires one header and one source to produce precompiled headers.')
+            raise MesonException('MSVC requires one header and one source to produce precompiled headers.')
         header = pch[0]
         source = pch[1]
         pchname = compiler.get_pch_name(header)
