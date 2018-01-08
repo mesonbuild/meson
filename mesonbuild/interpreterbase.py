@@ -105,7 +105,7 @@ class InvalidCode(InterpreterException):
 class InvalidArguments(InterpreterException):
     pass
 
-class InterpreterExit(InterpreterException):
+class ReturnFromSubdirRequest(BaseException):
     pass
 
 class InterpreterObject:
@@ -206,7 +206,7 @@ class InterpreterBase:
             try:
                 self.current_lineno = cur.lineno
                 self.evaluate_statement(cur)
-            except InterpreterExit:
+            except ReturnFromSubdirRequest:
                 break
             except Exception as e:
                 if not(hasattr(e, 'lineno')):

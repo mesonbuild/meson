@@ -3,7 +3,7 @@
 
 project('example exit', 'cpp')
 
-return_to_parent_dir()
+return_to_calling_dir()
 
 executable('main', 'main.cpp')
 error('Unreachable')
