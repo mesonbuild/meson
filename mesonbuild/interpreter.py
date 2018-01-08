@@ -1612,7 +1612,7 @@ class Interpreter(InterpreterBase):
                            'static_library': self.func_static_lib,
                            'test': self.func_test,
                            'vcs_tag': self.func_vcs_tag,
-                           'skip_rest': self.func_skip_rest,
+                           'return_to_parent_dir': self.func_return_to_parent_dir,
                            })
         if 'MESON_UNIT_TEST' in os.environ:
             self.funcs.update({'exception': self.func_exception})
@@ -2608,7 +2608,7 @@ root and issuing %s.
         return self.func_custom_target(node, [kwargs['output']], kwargs)
 
     @stringArgs
-    def func_skip_rest(self, node, args, kwargs):
+    def func_return_to_parent_dir(self, node, args, kwargs):
         if len(kwargs) > 0:
             raise InterpreterException('exit does not take named arguments')
         if len(args) > 0:
