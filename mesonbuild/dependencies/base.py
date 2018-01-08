@@ -255,6 +255,8 @@ class PkgConfigDependency(ExternalDependency):
             if self.required:
                 raise
             else:
+                self.compile_args = []
+                self.link_args = []
                 self.is_found = False
                 found_msg += [mlog.red('NO'), '; reason: {}'.format(str(e))]
 
