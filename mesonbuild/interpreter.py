@@ -1313,6 +1313,7 @@ lang_arg_kwargs = set([
 vala_kwargs = set(['vala_header', 'vala_gir', 'vala_vapi'])
 rust_kwargs = set(['rust_crate_type'])
 cs_kwargs = set(['resources', 'cs_args'])
+pool_kwargs = set(['pool'])
 
 buildtarget_kwargs = set([
     'build_by_default',
@@ -1345,7 +1346,8 @@ build_target_common_kwargs = (
     pch_kwargs |
     vala_kwargs |
     rust_kwargs |
-    cs_kwargs)
+    cs_kwargs |
+    pool_kwargs)
 
 exe_kwargs = (build_target_common_kwargs) | {'implib'}
 shlib_kwargs = (build_target_common_kwargs) | {'version', 'soversion'}
@@ -1367,18 +1369,19 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'benchmark': {'args', 'env', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'build_target': build_target_kwargs,
                     'configure_file': {'input', 'output', 'configuration', 'command', 'install_dir', 'capture', 'install'},
-                    'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
+                    'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default', 'pool'},
                     'dependency': {'default_options', 'fallback', 'language', 'method', 'modules', 'optional_modules', 'native', 'required', 'static', 'version'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'version'},
                     'executable': exe_kwargs,
                     'find_program': {'required', 'native'},
-                    'generator': {'arguments', 'output', 'depfile', 'capture'},
+                    'generator': {'arguments', 'output', 'depfile', 'capture', 'pool'},
                     'include_directories': {'is_system'},
                     'install_data': {'install_dir', 'install_mode', 'sources'},
                     'install_headers': {'install_dir', 'subdir'},
                     'install_man': {'install_dir'},
                     'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode'},
                     'jar': jar_kwargs,
+                    'pool': {'name', 'depth'},
                     'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
                     'run_target': {'command', 'depends'},
                     'shared_library': shlib_kwargs,
@@ -1415,6 +1418,7 @@ class Interpreter(InterpreterBase):
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects = {}
+        self.pools = {'console': 1, 'link_pool': 1}
         self.subproject_stack = []
         self.default_project_options = default_project_options[:] # Passed from the outside, only used in subprojects.
         self.build_func_dict()
@@ -1475,6 +1479,7 @@ class Interpreter(InterpreterBase):
                            'message': self.func_message,
                            'warning': self.func_warning,
                            'option': self.func_option,
+                           'pool': self.func_pool,
                            'project': self.func_project,
                            'run_target': self.func_run_target,
                            'run_command': self.func_run_command,
@@ -1851,6 +1856,11 @@ to directly access options of other subprojects.''')
                 newoptions = [defopt] + self.environment.cmd_line_options.projectoptions
                 self.environment.cmd_line_options.projectoptions = newoptions
 
+    @permittedKwargs(permitted_kwargs['pool'])
+    @stringArgs
+    def func_pool(self, node, args, kwargs):
+        return self.add_pool(args, kwargs)
+
     @stringArgs
     @permittedKwargs(permitted_kwargs['project'])
     def func_project(self, node, args, kwargs):
@@ -2015,6 +2025,29 @@ to directly access options of other subprojects.''')
         new_options.update(self.coredata.compiler_options)
         self.coredata.compiler_options = new_options
         return comp, cross_comp
+
+    def add_pool(self, args, kwargs):
+        if 'name' not in kwargs:
+            raise InterpreterException('Missing pool name.')
+        elif not isinstance(kwargs['name'], str):
+            raise InterpreterException('Pool name must be a string.')
+
+        name = kwargs['name']
+
+        if name == 'console' or name == 'link_pool':
+            raise InterpreterException("\"%s\" pool can't be redefined." % name)
+
+        if 'depth' not in kwargs:
+            raise InterpreterException('Missing pool depth value.')
+        elif not isinstance(kwargs['depth'], int):
+            raise InterpreterException('Pool depth must be an integer.')
+        elif kwargs['depth'] < 1:
+            raise InterpreterException('Pool depth must be >= 1.')
+
+        if name in self.pools:
+            raise InvalidCode('Tried to create pool "%s", but a pool of that name already exists.' % name)
+
+        self.pools[name] = kwargs['depth']
 
     def add_languages(self, args, required):
         success = True
@@ -2430,6 +2463,14 @@ root and issuing %s.
         if len(args) != 1:
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
         name = args[0]
+
+        pool_name = ''
+        if 'pool' in kwargs:
+            pool_name = kwargs['pool'].strip()
+
+        if pool_name != '' and pool_name not in self.pools:
+            raise InvalidCode('Pool "%s" has not been declared.' % pool_name)
+
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs), self)
         self.add_target(name, tg.held_object)
         return tg
@@ -2479,6 +2520,14 @@ root and issuing %s.
 
     @permittedKwargs(permitted_kwargs['generator'])
     def func_generator(self, node, args, kwargs):
+
+        pool_name = ''
+        if 'pool' in kwargs:
+            pool_name = kwargs['pool'].strip()
+
+        if pool_name != '' and pool_name not in self.pools:
+            raise InvalidCode('Pool "%s" has not been declared.' % pool_name)
+
         gen = GeneratorHolder(self, args, kwargs)
         self.generators.append(gen)
         return gen
@@ -3053,6 +3102,14 @@ different subdirectory.
         else:
             mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')
+
+        pool_name = ''
+        if 'pool' in kwargs:
+            pool_name = kwargs['pool'].strip()
+
+        if pool_name != '' and pool_name not in self.pools:
+            raise InvalidCode('Pool "%s" has not been declared.' % pool_name)
+
         target = targetclass(name, self.subdir, self.subproject, is_cross, sources, objs, self.environment, kwargs)
         if is_cross:
             self.add_cross_stdlib_info(target)

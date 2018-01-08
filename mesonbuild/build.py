@@ -61,6 +61,7 @@ known_basic_kwargs = {'install': True,
                       'native': True,
                       'build_by_default': True,
                       'override_options': True,
+                      'pool': True,
                       }
 
 # These contain kwargs supported by both static and shared libraries. These are
@@ -292,6 +293,7 @@ a hard error in the future.''' % name)
         self.install = False
         self.build_always = False
         self.option_overrides = {}
+        self.pool_name = ''
 
     def get_basename(self):
         return self.name
@@ -313,6 +315,10 @@ a hard error in the future.''' % name)
             self.build_by_default = kwargs['build_by_default']
             if not isinstance(self.build_by_default, bool):
                 raise InvalidArguments('build_by_default must be a boolean value.')
+        if 'pool' in kwargs:
+            self.pool_name = kwargs['pool']
+            if not isinstance(self.pool_name, str):
+                raise InvalidArguments('pool must be a string value.')
         self.option_overrides = self.parse_overrides(kwargs)
 
     def parse_overrides(self, kwargs):
@@ -1024,6 +1030,7 @@ class Generator:
         self.exe = exe
         self.depfile = None
         self.capture = False
+        self.pool_name = ''
         self.process_kwargs(kwargs)
 
     def __repr__(self):
@@ -1072,6 +1079,11 @@ class Generator:
             if not isinstance(capture, bool):
                 raise InvalidArguments('Capture must be boolean.')
             self.capture = capture
+        if 'pool' in kwargs:
+            pool_name = kwargs['pool']
+            if not isinstance(pool_name, str):
+                raise InvalidArguments('pool must be a string.')
+            self.pool_name = pool_name
 
     def get_base_outnames(self, inname):
         plainname = os.path.split(inname)[1]

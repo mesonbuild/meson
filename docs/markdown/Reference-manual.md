@@ -228,6 +228,8 @@ following.
 - `install` when true, this target is installed during the install step
 - `install_dir` directory to install to
 - `output` list of output files
+- `pool` *(added 0.45.0)* specifies that the files generation are tied
+  to a given pool limiting amount of concurrent files at the same time.
 
 The list of strings passed to the `command` keyword argument accept
 the following special string substitutions:
@@ -444,6 +446,9 @@ be passed to [shared and static libraries](#library).
   in the D programming language
 - `d_unittest`, when set to true, the D modules are compiled in debug mode
 - `d_module_versions` list of module versions set when compiling D sources
+- `pool` *(added 0.45.0)* specifies that the files compilation are tied
+  to a given pool limiting amount of concurrent files being compiled at the
+  same time.
 
 The list of `sources`, `objects`, and `dependencies` is always
 flattened, which means you can freely nest and add lists while
@@ -565,6 +570,8 @@ following:
 - `capture` when this argument is set to true, Meson captures `stdout`
   of the `executable` and writes it to the target file specified as
   `output`. Available since v0.43.0.
+- `pool` *(added 0.45.0)* specifies that the files generation are tied
+  to a given pool limiting amount of concurrent files at the same time.
 
 The returned object also has methods that are documented in the
 [object methods section](#generator-object) below.
@@ -865,6 +872,25 @@ This function prints its argument to stdout.
 This function prints its argument to stdout prefixed with WARNING:.
 
 *Added 0.44.0*
+
+### pool()
+
+``` meson
+    void pool(pool_name, depth)
+```
+
+The first argument to this function must be a string defining the name
+of a pool. It is followed by a positive integer representing the depth value.
+Once declared, a pool can be referenced to limit concurrent jobs used during
+building of a specific target.
+
+**Note:** A pool named 'console' is automatically configured and available.
+          It is not possible to redefine it.
+
+**Note:** A pool named 'link_pool' is reserved and it is not possible to 
+          reference or redefine it.
+
+*Added 0.45.0*
 
 ### project()
 
