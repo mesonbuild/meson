@@ -183,6 +183,14 @@ class CCompiler(Compiler):
     def get_default_include_dirs(self):
         return []
 
+    def gen_export_dynamic_link_args(self, env):
+        if for_windows(env.is_cross_build(), env):
+            return ['-Wl,--export-all-symbols']
+        elif for_darwin(env.is_cross_build(), env):
+            return []
+        else:
+            return ['-Wl,-export-dynamic']
+
     def gen_import_library_args(self, implibname):
         """
         The name of the outputted import library

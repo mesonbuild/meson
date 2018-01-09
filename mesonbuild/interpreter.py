@@ -1347,7 +1347,7 @@ build_target_common_kwargs = (
     rust_kwargs |
     cs_kwargs)
 
-exe_kwargs = (build_target_common_kwargs) | {'implib'}
+exe_kwargs = (build_target_common_kwargs) | {'implib', 'export_dynamic'}
 shlib_kwargs = (build_target_common_kwargs) | {'version', 'soversion'}
 shmod_kwargs = shlib_kwargs
 stlib_kwargs = shlib_kwargs

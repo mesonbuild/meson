@@ -8,6 +8,6 @@ l = shared_library('runtime', 'runtime.c')
 # at runtime.  This requires extra help on Windows, so
 # should be avoided unless really necessary.
 m = shared_module('mymodule', 'module.c')
-e = executable('prog', 'prog.c', link_with : l, dependencies : dl)
+e = executable('prog', 'prog.c',
+  link_with : l, export_dynamic : true, dependencies : dl)
 test('import test', e, args : m)
-

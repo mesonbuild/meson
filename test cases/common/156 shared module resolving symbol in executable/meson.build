@@ -9,13 +9,7 @@ project('shared module resolving symbol in executable', 'c')
 # See testcase 125 for an example of the more complex portability gymnastics
 # required if we do not know (at link-time) what provides the symbol.
 
-link_flags = []
-if host_machine.system() != 'windows'
-  # Needed to export dynamic symbols from the executable
-  link_flags += ['-rdynamic']
-endif
-
 dl = meson.get_compiler('c').find_library('dl', required: false)
-e = executable('prog', 'prog.c', dependencies: dl, implib: true, link_args: link_flags)
+e = executable('prog', 'prog.c', dependencies: dl, export_dynamic: true)
 m = shared_module('module', 'module.c', link_with: e)
 test('test', e, args: m.full_path())
