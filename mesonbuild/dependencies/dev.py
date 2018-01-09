@@ -17,11 +17,10 @@
 
 import os
 import re
-import shutil
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import version_compare, Popen_safe, stringlistify, extract_as_list
+from ..mesonlib import version_compare, stringlistify, extract_as_list
 from .base import (
     DependencyException, ExternalDependency, PkgConfigDependency,
     strip_system_libdirs, ConfigToolDependency,
@@ -171,9 +170,37 @@ class LLVMDependency(ConfigToolDependency):
         else:
             self._set_old_link_args()
         self.link_args = strip_system_libdirs(environment, self.link_args)
+        self.link_args = self.__fix_bogus_link_args(self.link_args)
+
+    @staticmethod
+    def __fix_bogus_link_args(args):
+        """This function attempts to fix bogus link arguments that llvm-config
+        generates.
+
+        Currently it works around the following:
+            - FreeBSD: when statically linking -l/usr/lib/libexecinfo.so will
+              be generated, strip the -l in cases like this.
+        """
+        new_args = []
+        for arg in args:
+            if arg.startswith('-l') and arg.endswith('.so'):
+                new_args.append(arg.lstrip('-l'))
+            else:
+                new_args.append(arg)
+        return new_args
 
     def _set_new_link_args(self):
         """How to set linker args for LLVM versions >= 3.9"""
+        if ((mesonlib.is_dragonflybsd() or mesonlib.is_freebsd()) and not
+                self.static and version_compare(self.version, '>= 4.0')):
+            # llvm-config on DragonFly BSD and FreeBSD for versions 4.0, 5.0,
+            # and 6.0 have an error when generating arguments for shared mode
+            # linking, even though libLLVM.so is installed, because for some
+            # reason the tool expects to find a .so for each static library.
+            # This works around that.
+            self.link_args = self.get_config_value(['--ldflags'], 'link_args')
+            self.link_args.append('-lLLVM')
+            return
         link_args = ['--link-static', '--system-libs'] if self.static else ['--link-shared']
         self.link_args = self.get_config_value(
             ['--libs', '--ldflags'] + link_args + list(self.required_modules),

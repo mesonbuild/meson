@@ -1,6 +1,9 @@
 project('vulkan test', 'c')
 
-vulkan_dep = dependency('vulkan')
+vulkan_dep = dependency('vulkan', required : false)
+if not vulkan_dep.found()
+  error('MESON_SKIP_TEST: vulkan not found.')
+endif
 
 e = executable('vulkanprog', 'vulkanprog.c', dependencies : vulkan_dep)
 

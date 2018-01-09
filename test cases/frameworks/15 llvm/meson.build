@@ -20,17 +20,19 @@ foreach static : [true, false]
     'llvm',
     modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
                'mcjit', 'nativecodegen'],
-    required : true,
+    required : false,
     static : static,
   )
-  name = static ? 'static' : 'dynamic'
-  executable(
-    'sum-@0@'.format(name),
-    'sum.c',
-    dependencies : [
-      llvm_dep, dep_tinfo,
-      dependency('zlib'),
-      meson.get_compiler('c').find_library('dl', required : false),
-    ]
-  )
+  if llvm_dep.found()
+    name = static ? 'static' : 'dynamic'
+    executable(
+      'sum-@0@'.format(name),
+      'sum.c',
+      dependencies : [
+        llvm_dep, dep_tinfo,
+        dependency('zlib'),
+        meson.get_compiler('c').find_library('dl', required : false),
+      ]
+    )
+  endif
 endforeach

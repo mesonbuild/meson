@@ -6,7 +6,10 @@ if build_machine.system() == 'windows' and cc.get_id() != 'msvc'
   error('MESON_SKIP_TEST: MPI not available on Windows without MSVC.')
 endif
 
-mpic = dependency('mpi', language : 'c')
+mpic = dependency('mpi', language : 'c', required : false)
+if not mpic.found()
+  error('MESON_SKIP_TEST: MPI not found, skipping.')
+endif
 exec = executable('exec',
   'main.c',
   dependencies : [mpic])
