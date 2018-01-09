@@ -74,7 +74,7 @@ class permittedKwargs:
                 loc = None
             for k in kwargs:
                 if k not in self.permitted:
-                    mlog.warning('''Passed invalid keyword argument "{}"'''.format(k), location=loc)
+                    mlog.warning('''Passed invalid keyword argument "{}".'''.format(k), location=loc)
                     mlog.warning('This will become a hard error in the future.')
             return f(s, node_or_state, args, kwargs)
         return wrapped

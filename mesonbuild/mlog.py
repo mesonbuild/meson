@@ -105,12 +105,15 @@ def log(*args, **kwargs):
 def warning(*args, **kwargs):
     from . import environment
 
+    args = (yellow('WARNING:'),) + args
+
     if kwargs.get('location'):
         location = kwargs['location']
         del kwargs['location']
-        args += ('in file {}, line {}.'.format(os.path.join(location.subdir, environment.build_filename), location.lineno),)
+        location = '{}:{}:'.format(os.path.join(location.subdir, environment.build_filename), location.lineno)
+        args = (location,) + args
 
-    log(yellow('WARNING:'), *args, **kwargs)
+    log(*args, **kwargs)
 
 # Format a list for logging purposes as a string. It separates
 # all but the last item with commas, and the last with 'and'.
