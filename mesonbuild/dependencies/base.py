@@ -400,11 +400,22 @@ class PkgConfigDependency(ExternalDependency):
                     m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
                     raise DependencyException(m.format(name, not_found, self.version))
                 return
-        found_msg += [mlog.green('YES'), self.version]
-        # Fetch cargs to be used while using this dependency
-        self._set_cargs()
-        # Fetch the libraries and library paths needed for using this
-        self._set_libs()
+
+        try:
+            # Fetch cargs to be used while using this dependency
+            self._set_cargs()
+            # Fetch the libraries and library paths needed for using this
+            self._set_libs()
+            found_msg += [mlog.green('YES'), self.version]
+        except DependencyException as e:
+            if self.required:
+                raise
+            else:
+                self.compile_args = []
+                self.link_args = []
+                self.is_found = False
+                found_msg += [mlog.red('NO'), '; reason: {}'.format(str(e))]
+
         # Print the found message only at the very end because fetching cflags
         # and libs can also fail if other needed pkg-config files aren't found.
         if not self.silent:
