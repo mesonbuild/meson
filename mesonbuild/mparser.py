@@ -368,7 +368,7 @@ class ArgumentNode:
 
     def set_kwarg(self, name, value):
         if name in self.kwargs:
-            mlog.warning('Keyword argument "{}" defined multiple times'.format(name), location=self)
+            mlog.warning('Keyword argument "{}" defined multiple times.'.format(name), location=self)
             mlog.warning('This will be an error in future Meson releases.')
         self.kwargs[name] = value
 

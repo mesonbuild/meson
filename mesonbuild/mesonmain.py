@@ -366,10 +366,11 @@ def run(original_args, mainfile=None):
         app.generate()
     except Exception as e:
         if isinstance(e, MesonException):
+            mlog.log()
             if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
-                mlog.log(mlog.red('\nMeson encountered an error in file %s, line %d, column %d:' % (e.file, e.lineno, e.colno)))
+                mlog.log('%s:%d:%d:' % (e.file, e.lineno, e.colno), mlog.red('ERROR: '), end='')
             else:
-                mlog.log(mlog.red('\nMeson encountered an error:'))
+                mlog.log(mlog.red('ERROR: '), end='')
             # Error message
             mlog.log(e)
             # Path to log file
