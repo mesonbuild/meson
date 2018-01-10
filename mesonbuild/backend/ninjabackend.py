@@ -495,7 +495,7 @@ int dummy;
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
         deps = self.unwrap_dep_list(target)
         deps += self.get_custom_target_depend_files(target)
-        desc = 'Generating {0} with a {1} command.'
+        desc = 'Generating custom target {!r} with {}'
         if target.build_always:
             deps.append('PHONY')
         if target.depfile is None:
@@ -510,11 +510,22 @@ int dummy;
                 elem.add_dep(os.path.join(self.get_target_dir(d), output))
         serialize = False
         extra_paths = []
+        exe = target.command[0]
+        # Get the command's basename for printing when the target is run
+        if isinstance(exe, (dependencies.ExternalProgram,
+                            build.BuildTarget, build.CustomTarget)):
+            basename = exe.name
+        else:
+            basename = os.path.basename(exe)
         # If the target requires capturing stdout, then use the serialized
         # executable wrapper to capture that output and save it to a file.
-        if target.capture:
+        if target.capture or target.envvars: 
             serialize = True
-        # If the command line requires a newline, also use the wrapper, as
+        # If the target requires environment variables set, we need the wrapper
+        # to set those vars for us.
+        if target.envvars:
+            serialize = True
+        # If the command line requires a newline, also use the wrapper as
         # ninja does not support them in its build rule syntax.
         if any('\n' in c for c in cmd):
             serialize = True
@@ -524,27 +535,30 @@ int dummy;
         # CustomTarget command needs extra paths first.
         if mesonlib.is_windows() or mesonlib.is_cygwin():
             extra_bdeps = target.get_transitive_build_target_deps()
-            extra_paths = self.determine_windows_extra_paths(target.command[0], extra_bdeps)
+            extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps)
             if extra_paths:
                 serialize = True
         if serialize:
-            exe_data = self.serialize_executable(target.command[0], cmd[1:],
+            exe_data = self.serialize_executable(exe, cmd[1:],
                                                  # All targets are built from the build dir
                                                  self.environment.get_build_dir(),
                                                  extra_paths=extra_paths,
+                                                 env=target.envvars,
                                                  capture=ofilenames[0] if target.capture else None)
+            cmd_str = '{!r} using the meson_exe.py wrapper'.format(basename)
             cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
-            cmd_type = 'meson_exe.py custom'
         else:
-            cmd_type = 'custom'
+            cmd_str = '{!r}'.format(basename)
         if target.depfile is not None:
             rel_dfile = os.path.join(self.get_target_dir(target), target.depfile)
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)
             elem.add_item('DEPFILE', rel_dfile)
+        if target.ninja_pool is not None:
+            elem.add_item('pool', target.ninja_pool)
         cmd = self.replace_paths(target, cmd)
         elem.add_item('COMMAND', cmd)
-        elem.add_item('description', desc.format(target.name, cmd_type))
+        elem.add_item('description', desc.format(target.name, cmd_str))
         elem.write(outfile)
         self.processed_targets[target.get_id()] = True
 

@@ -433,6 +433,7 @@ class Vs2010Backend(backends.Backend):
         exe_data = self.serialize_executable(target.command[0], cmd[1:],
                                              # All targets run from the target dir
                                              tdir_abs,
+                                             env=target.envvars,
                                              extra_paths=extra_paths,
                                              capture=ofilenames[0] if target.capture else None)
         wrapper_cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
