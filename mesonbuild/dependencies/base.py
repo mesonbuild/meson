@@ -61,15 +61,8 @@ class DependencyMethods(Enum):
 
 
 class Dependency:
-    def __init__(self, type_name, kwargs):
-        self.name = "null"
-        self.version = 'none'
-        self.language = None # None means C-like
-        self.is_found = False
-        self.type_name = type_name
-        self.compile_args = []
-        self.link_args = []
-        self.sources = []
+    @classmethod
+    def _process_method_kw(cls, kwargs):
         method = kwargs.get('method', 'auto')
         if method not in [e.value for e in DependencyMethods]:
             raise DependencyException('method {!r} is invalid'.format(method))
@@ -88,14 +81,27 @@ class Dependency:
         # Set the detection method. If the method is set to auto, use any available method.
         # If method is set to a specific string, allow only that detection method.
         if method == DependencyMethods.AUTO:
-            self.methods = self.get_methods()
-        elif method in self.get_methods():
-            self.methods = [method]
+            methods = cls.get_methods()
+        elif method in cls.get_methods():
+            methods = [method]
         else:
             raise DependencyException(
                 'Unsupported detection method: {}, allowed methods are {}'.format(
                     method.value,
-                    mlog.format_list([x.value for x in [DependencyMethods.AUTO] + self.get_methods()])))
+                    mlog.format_list([x.value for x in [DependencyMethods.AUTO] + cls.get_methods()])))
+
+        return methods
+
+    def __init__(self, type_name, kwargs):
+        self.name = "null"
+        self.version = 'none'
+        self.language = None # None means C-like
+        self.is_found = False
+        self.type_name = type_name
+        self.compile_args = []
+        self.link_args = []
+        self.sources = []
+        self.methods = self._process_method_kw(kwargs)
 
     def __repr__(self):
         s = '<{0} {1}: {2}>'
@@ -890,7 +896,12 @@ def find_external_dependency(name, env, kwargs):
     if lname in packages:
         if lname not in _packages_accept_language and 'language' in kwargs:
             raise DependencyException('%s dependency does not accept "language" keyword argument' % (lname, ))
-        dep = packages[lname](env, kwargs)
+        # Create the dependency object using a factory class method, if one
+        # exists, otherwise it is just constructed directly.
+        if getattr(packages[lname], '_factory', None):
+            dep = packages[lname]._factory(env, kwargs)
+        else:
+            dep = packages[lname](env, kwargs)
         if required and not dep.found():
             raise DependencyException('Dependency "%s" not found' % name)
         return dep
