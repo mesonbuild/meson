@@ -409,6 +409,8 @@ class Environment:
         # Detect GCC type (Apple, MinGW, Cygwin, Unix)
         if '__APPLE__' in defines:
             return GCC_OSX
+        elif '_AIX' in defines: # Like OSX, AIX uses traditional Unix (non-gnu) ld
+            return GCC_OSX
         elif '__MINGW32__' in defines or '__MINGW64__' in defines:
             return GCC_MINGW
         elif '__CYGWIN__' in defines:
@@ -781,7 +783,7 @@ class Environment:
                 return VisualStudioLinker(linker)
             if p.returncode == 0:
                 return ArLinker(linker)
-            if p.returncode == 1 and err.startswith('usage'): # OSX
+            if p.returncode == 1 and err.lower().startswith('usage'): # OSX or AIX
                 return ArLinker(linker)
         self._handle_exceptions(popen_exceptions, linkers, 'linker')
         raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linkers))
