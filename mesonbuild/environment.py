@@ -191,6 +191,8 @@ def detect_cpu_family(compilers):
                 # Ignore compilers that do not support has_builtin_define.
                 pass
         return 'x86_64'
+    if platform.processor() == 'powerpc': # AIX returns a garbled platform.machine()
+        return 'powerpc'
     # Add fixes here as bugs are reported.
     return trial
 
@@ -210,6 +212,8 @@ def detect_cpu(compilers):
             except mesonlib.MesonException:
                 pass
         return 'x86_64'
+    if platform.processor() == 'powerpc': # AIX returns a garbled platform.machine()
+        return 'powerpc'
     # Add fixes here as bugs are reported.
     return trial
 
