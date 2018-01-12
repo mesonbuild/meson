@@ -9,12 +9,10 @@ For detail, see `comment-dwim'."
         )
     (comment-dwim arg)))
 
-;;(setq mymeson-keywords-regex (regex-opt '("if", "endif", "foreach", "endforeach")))
-
 ;; keywords for syntax coloring
 (setq meson-keywords
       `(
-        ( ,(regexp-opt '("if" "endif" "for" "foreach") 'word) . font-lock-keyword-face)
+        ( ,(regexp-opt '("elif" "if" "else" "endif" "foreach" "endforeach") 'word) . font-lock-keyword-face)
         )
       )
 
@@ -23,17 +21,17 @@ For detail, see `comment-dwim'."
 (setq meson-syntax-table
       (let ((synTable (make-syntax-table)))
 
-        ;; bash style comment: “# …” 
+        ;; bash style comment: “# …”
         (modify-syntax-entry ?# "< b" synTable)
         (modify-syntax-entry ?\n "> b" synTable)
 
         synTable))
 
 ;; define the major mode.
-(define-derived-mode meson-mode fundamental-mode
+(define-derived-mode meson-mode prog-mode
   "meson-mode is a major mode for editing Meson build definition files."
   :syntax-table meson-syntax-table
-  
+
   (setq font-lock-defaults '(meson-keywords))
   (setq mode-name "meson")
 
@@ -41,3 +39,4 @@ For detail, see `comment-dwim'."
   (define-key meson-mode-map [remap comment-dwim] 'meson-comment-dwim)
 )
 
+(add-to-list 'auto-mode-alist '("meson.build" . meson-mode))
