@@ -278,6 +278,7 @@ class Environment:
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
         self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77', 'ifort']
+        self.default_rust = ['rustc']
         self.default_static_linker = ['ar']
         self.vs_static_linker = ['lib']
         self.gcc_static_linker = ['gcc-ar']
@@ -688,16 +689,24 @@ class Environment:
             return ValaCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_rust_compiler(self):
-        exelist = ['rustc']
-        try:
-            p, out = Popen_safe(exelist + ['--version'])[0:2]
-        except OSError:
-            raise EnvironmentException('Could not execute Rust compiler "%s"' % ' '.join(exelist))
-        version = search_version(out)
-        if 'rustc' in out:
-            return RustCompiler(exelist, version)
-        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+    def detect_rust_compiler(self, want_cross):
+        popen_exceptions = {}
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('rust', 'RUSTC', want_cross)
+        for compiler in compilers:
+            if isinstance(compiler, str):
+                compiler = [compiler]
+            try:
+                p, out = Popen_safe(compiler + ['--version'])[0:2]
+            except OSError as e:
+                popen_exceptions[compiler] = e
+                continue
+
+            version = search_version(out)
+
+            if 'rustc' in out:
+                return RustCompiler(compiler, version, is_cross, exe_wrap)
+
+        self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_d_compiler(self, want_cross):
         is_cross = False

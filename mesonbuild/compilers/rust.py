@@ -19,9 +19,11 @@ from ..mesonlib import EnvironmentException, Popen_safe
 from .compilers import Compiler, rust_buildtype_args
 
 class RustCompiler(Compiler):
-    def __init__(self, exelist, version):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         self.language = 'rust'
         super().__init__(exelist, version)
+        self.is_cross = is_cross
+        self.exe_wrapper = exe_wrapper
         self.id = 'rustc'
 
     def needs_static_linker(self):
@@ -41,7 +43,16 @@ class RustCompiler(Compiler):
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Rust compiler %s can not compile programs.' % self.name_string())
-        if subprocess.call(output_name) != 0:
+        if self.is_cross:
+            if self.exe_wrapper is None:
+                # Can't check if the binaries run so we have to assume they do
+                return
+            cmdlist = self.exe_wrapper + [output_name]
+        else:
+            cmdlist = [output_name]
+        pe = subprocess.Popen(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        pe.wait()
+        if pe.returncode != 0:
             raise EnvironmentException('Executables created by Rust compiler %s are not runnable.' % self.name_string())
 
     def get_dependency_gen_args(self, outfile):

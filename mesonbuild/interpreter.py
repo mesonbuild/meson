@@ -1992,9 +1992,9 @@ to directly access options of other subprojects.''')
             if need_cross_compiler:
                 cross_comp = self.environment.detect_d_compiler(True)
         elif lang == 'rust':
-            comp = self.environment.detect_rust_compiler()
+            comp = self.environment.detect_rust_compiler(False)
             if need_cross_compiler:
-                cross_comp = comp  # FIXME, not correct.
+                cross_comp = self.environment.detect_rust_compiler(True)
         elif lang == 'fortran':
             comp = self.environment.detect_fortran_compiler(False)
             if need_cross_compiler:

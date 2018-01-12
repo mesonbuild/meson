@@ -1291,7 +1291,11 @@ int dummy;
             # installations
             for rpath_arg in rpath_args:
                 args += ['-C', 'link-arg=' + rpath_arg + ':' + os.path.join(rustc.get_sysroot(), 'lib')]
-        element = NinjaBuildElement(self.all_outputs, target_name, 'rust_COMPILER', relsrc)
+        crstr = ''
+        if target.is_cross:
+            crstr = '_CROSS'
+        compiler_name = 'rust%s_COMPILER' % crstr
+        element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, relsrc)
         if len(orderdeps) > 0:
             element.add_orderdep(orderdeps)
         element.add_item('ARGS', args)
@@ -1579,8 +1583,11 @@ int dummy;
         outfile.write(restat)
         outfile.write('\n')
 
-    def generate_rust_compile_rules(self, compiler, outfile):
-        rule = 'rule %s_COMPILER\n' % compiler.get_language()
+    def generate_rust_compile_rules(self, compiler, outfile, is_cross):
+        crstr = ''
+        if is_cross:
+            crstr = '_CROSS'
+        rule = 'rule %s%s_COMPILER\n' % (compiler.get_language(), crstr)
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
         command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Rust source $in.\n'
@@ -1671,8 +1678,7 @@ rule FORTRAN_DEP_HACK
                 self.generate_vala_compile_rules(compiler, outfile)
             return
         if langname == 'rust':
-            if not is_cross:
-                self.generate_rust_compile_rules(compiler, outfile)
+            self.generate_rust_compile_rules(compiler, outfile, is_cross)
             return
         if langname == 'swift':
             if not is_cross:
