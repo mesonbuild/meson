@@ -79,13 +79,16 @@ class DependenciesHelper:
                     if not hasattr(obj, 'generated_pc'):
                         obj.generated_pc = self.name
                     self.add_priv_libs(obj.get_dependencies())
-                    self.add_priv_libs(obj.get_external_deps())
+                    self.add_priv_libs(self.strip_unfound(obj.get_external_deps()))
             elif isinstance(obj, str):
                 processed_libs.append(obj)
             else:
                 raise mesonlib.MesonException('library argument not a string, library or dependency object.')
 
         return processed_libs, processed_reqs, processed_cflags
+
+    def strip_unfound(self, deps):
+        return [x for x in deps if not hasattr(x, 'found') or x.found()]
 
     def remove_dups(self):
         self.pub_libs = list(set(self.pub_libs))

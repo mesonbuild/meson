@@ -436,6 +436,7 @@ class BasePlatformTests(unittest.TestCase):
         # In case the directory is inside a symlinked directory, find the real
         # path otherwise we might not find the srcdir from inside the builddir.
         self.builddir = os.path.realpath(tempfile.mkdtemp())
+        self.privatedir = os.path.join(self.builddir, 'meson-private')
         self.logdir = os.path.join(self.builddir, 'meson-logs')
         self.prefix = '/usr'
         self.libdir = os.path.join(self.prefix, 'lib')
@@ -2084,6 +2085,12 @@ class LinuxlikeTests(BasePlatformTests):
                                               '-llibmain', '-llibexposed',
                                               '-llibinternal', '-lcustom2',
                                               '-lfoo']))
+
+    def test_pkg_unfound(self):
+        testdir = os.path.join(self.unit_test_dir, '22 unfound pkgconfig')
+        self.init(testdir)
+        pcfile = open(os.path.join(self.privatedir, 'somename.pc')).read()
+        self.assertFalse('blub_blob_blib' in pcfile)
 
     def test_vala_c_warnings(self):
         '''
