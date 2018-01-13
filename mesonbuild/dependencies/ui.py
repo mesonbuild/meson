@@ -449,20 +449,6 @@ class VulkanDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('vulkan', environment, None, kwargs)
 
-        if DependencyMethods.PKGCONFIG in self.methods:
-            try:
-                pcdep = PkgConfigDependency('vulkan', environment, kwargs)
-                if pcdep.found():
-                    self.type_name = 'pkgconfig'
-                    self.is_found = True
-                    self.compile_args = pcdep.get_compile_args()
-                    self.link_args = pcdep.get_link_args()
-                    self.version = pcdep.get_version()
-                    self.pcdep = pcdep
-                    return
-            except Exception:
-                pass
-
         if DependencyMethods.SYSTEM in self.methods:
             try:
                 self.vulkan_sdk = os.environ['VULKAN_SDK']
@@ -518,6 +504,18 @@ class VulkanDependency(ExternalDependency):
                     for lib in libs:
                         self.link_args.append(lib)
                     return
+
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        if DependencyMethods.PKGCONFIG in cls._process_method_kw(kwargs):
+            try:
+                pcdep = PkgConfigDependency('vulkan', environment, kwargs)
+                if pcdep.found():
+                    return pcdep
+            except Exception:
+                pass
+
+        return VulkanDependency(environment, kwargs)
 
     @staticmethod
     def get_methods():
