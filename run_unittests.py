@@ -1702,7 +1702,7 @@ int main(int argc, char **argv) {
         self.build()
 
     def test_warning_location(self):
-        tdir = os.path.join(self.unit_test_dir, '20 warning location')
+        tdir = os.path.join(self.unit_test_dir, '21 warning location')
         out = self.init(tdir)
         for expected in [
             r'WARNING: Keyword argument "link_with" defined multiple times in file meson.build, line 4',
