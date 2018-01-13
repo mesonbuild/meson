@@ -16,6 +16,7 @@
 # Custom logic for several other packages are in separate files.
 
 import os
+import re
 import sys
 import stat
 import shlex
@@ -532,6 +533,14 @@ class PkgConfigDependency(ExternalDependency):
                                           (self.type_string, self.name))
         else:
             variable = out.strip()
+
+            # pkg-config doesn't distinguish between empty and non-existent variables
+            # use the variable list to check for variable existence
+            if not variable:
+                ret, out = self._call_pkgbin(['--print-variables', self.name])
+                if not re.search(r'^' + variable_name + r'$', out, re.MULTILINE):
+                    mlog.warning("pkgconfig variable '%s' not defined for dependency %s." % (variable_name, self.name))
+
         mlog.debug('Got pkgconfig variable %s : %s' % (variable_name, variable))
         return variable
 
