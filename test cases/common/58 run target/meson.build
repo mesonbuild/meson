@@ -1,8 +1,5 @@
 project('run target', 'c')
 
-# deprecated format, fix once we remove support for it.
-run_target('mycommand','scripts/script.sh')
-
 # Make it possible to run built programs.
 # In cross builds exe_wrapper should be added if it exists.
 
