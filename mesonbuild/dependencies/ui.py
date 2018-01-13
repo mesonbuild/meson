@@ -380,45 +380,37 @@ class Qt5Dependency(QtBaseDependency):
 class SDL2Dependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('sdl2', environment, None, kwargs)
-        kwargs['required'] = False
-        if DependencyMethods.PKGCONFIG in self.methods:
+
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        if DependencyMethods.PKGCONFIG in methods:
             try:
                 pcdep = PkgConfigDependency('sdl2', environment, kwargs)
                 if pcdep.found():
-                    self.type_name = 'pkgconfig'
-                    self.is_found = True
-                    self.compile_args = pcdep.get_compile_args()
-                    self.link_args = pcdep.get_link_args()
-                    self.version = pcdep.get_version()
-                    self.pcdep = pcdep
-                    return
+                    return pcdep
             except Exception as e:
                 mlog.debug('SDL 2 not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.CONFIG_TOOL in self.methods:
+        if DependencyMethods.CONFIG_TOOL in methods:
             try:
                 ctdep = ConfigToolDependency.factory(
                     'sdl2', environment, None, kwargs, ['sdl2-config'], 'sdl2-config')
                 if ctdep.found():
-                    self.type_name = 'config-tool'
-                    self.config = ctdep.config
-                    self.version = ctdep.version
-                    self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-                    self.links_args = ctdep.get_config_value(['--libs'], 'link_args')
-                    self.is_found = True
-                    return
+                    ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+                    ctdep.links_args = ctdep.get_config_value(['--libs'], 'link_args')
+                    return ctdep
             except Exception as e:
                 mlog.debug('SDL 2 not found via sdl2-config. Trying next, error was:', str(e))
-        if DependencyMethods.EXTRAFRAMEWORK in self.methods:
+        if DependencyMethods.EXTRAFRAMEWORK in methods:
             if mesonlib.is_osx():
-                fwdep = ExtraFrameworkDependency('sdl2', False, None, self.env,
-                                                 self.language, kwargs)
+                fwdep = ExtraFrameworkDependency('sdl2', False, None, environment,
+                                                 kwargs.get('language', None), kwargs)
                 if fwdep.found():
-                    self.is_found = True
-                    self.compile_args = fwdep.get_compile_args()
-                    self.link_args = fwdep.get_link_args()
-                    self.version = '2'  # FIXME
-                    return
+                    fwdep.version = '2'  # FIXME
+                    return fwdep
             mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.red('NO'))
+
+        return SDL2Dependency(environment, kwargs)
 
     @staticmethod
     def get_methods():
