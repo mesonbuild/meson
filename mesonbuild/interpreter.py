@@ -1,4 +1,4 @@
-# Copyright 2012-2017 The Meson development team
+# Copyright 2012-2018 The Meson development team
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -35,8 +35,6 @@ import re, shlex
 from collections import namedtuple
 
 import importlib
-
-run_depr_printed = False
 
 def stringifyUserArguments(args):
     if isinstance(args, list):
@@ -2127,7 +2125,7 @@ to directly access options of other subprojects.''')
         return progobj
 
     def func_find_library(self, node, args, kwargs):
-        mlog.log(mlog.red('DEPRECATION:'), 'find_library() is removed, use the corresponding method in compiler object instead.')
+        raise InvalidCode('find_library() is removed, use the corresponding method in a compiler object instead.')
 
     def _find_cached_dep(self, name, kwargs):
         # Check if we want this as a cross-dep or a native-dep
@@ -2436,15 +2434,8 @@ root and issuing %s.
 
     @permittedKwargs(permitted_kwargs['run_target'])
     def func_run_target(self, node, args, kwargs):
-        global run_depr_printed
         if len(args) > 1:
-            if not run_depr_printed:
-                mlog.log(mlog.red('DEPRECATION'), 'positional version of run_target is deprecated, use the keyword version instead.')
-                run_depr_printed = True
-            if 'command' in kwargs:
-                raise InterpreterException('Can not have command both in positional and keyword arguments.')
-            all_args = args[1:]
-            deps = []
+            raise InvalidCode('Run_target takes only one positional argument: the target name.')
         elif len(args) == 1:
             if 'command' not in kwargs:
                 raise InterpreterException('Missing "command" keyword argument')
