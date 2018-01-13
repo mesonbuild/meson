@@ -14,6 +14,7 @@
 
 import sys, os
 import subprocess
+import shlex
 import shutil
 import argparse
 from ..mesonlib import MesonException, Popen_safe
@@ -45,10 +46,13 @@ parser.add_argument('--namespace', dest='namespace', default='')
 parser.add_argument('--mode', dest='mode', default='')
 parser.add_argument('--installdir', dest='install_dir')
 
-def gtkdoc_run_check(cmd, cwd):
+def gtkdoc_run_check(cmd, cwd, library_path=None):
+    env = dict(os.environ)
+    if library_path:
+        env['LD_LIBRARY_PATH'] = library_path
     # Put stderr into stdout since we want to print it out anyway.
     # This preserves the order of messages.
-    p, out = Popen_safe(cmd, cwd=cwd, stderr=subprocess.STDOUT)[0:2]
+    p, out = Popen_safe(cmd, cwd=cwd, env=env, stderr=subprocess.STDOUT)[0:2]
     if p.returncode != 0:
         err_msg = ["{!r} failed with status {:d}".format(cmd[0], p.returncode)]
         if out:
@@ -115,7 +119,15 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                                                               '--ldflags=' + ldflags,
                                                               '--ld=' + ld]
 
-        gtkdoc_run_check(scanobjs_cmd, abs_out)
+        library_paths = []
+        for ldflag in shlex.split(ldflags):
+            if ldflag.startswith('-Wl,-rpath,'):
+                library_paths.append(ldflag[11:])
+        if 'LD_LIBRARY_PATH' in os.environ:
+            library_paths.append(os.environ['LD_LIBRARY_PATH'])
+        library_path = ':'.join(library_paths)
+
+        gtkdoc_run_check(scanobjs_cmd, abs_out, library_path)
 
     # Make docbook files
     if mode == 'auto':

@@ -372,7 +372,7 @@ class GnomeModule(ExtensionModule):
                 continue
 
         if gir_has_extra_lib_arg() and use_gir_args:
-            fixed_ldflags = set()
+            fixed_ldflags = OrderedSet()
             for ldflag in ldflags:
                 if ldflag.startswith("-l"):
                     fixed_ldflags.add(ldflag.replace('-l', '--extra-library=', 1))
@@ -565,6 +565,7 @@ class GnomeModule(ExtensionModule):
         ldflags += list(dep_ldflags)
         scan_command += ['--cflags-begin']
         scan_command += cflags
+        scan_command += state.environment.coredata.external_args[lang]
         scan_command += ['--cflags-end']
         # need to put our output directory first as we need to use the
         # generated libraries instead of any possibly installed system/prefix
@@ -595,6 +596,11 @@ class GnomeModule(ExtensionModule):
                 d = os.path.join(state.environment.get_build_dir(), d)
                 scan_command.append('-L' + d)
             scan_command += ['--library', libname]
+
+        for link_arg in state.environment.coredata.external_link_args[lang]:
+            if link_arg.startswith('-L'):
+                scan_command.append(link_arg)
+
         scankwargs = {'output': girfile,
                       'command': scan_command,
                       'depends': depends}
@@ -823,6 +829,8 @@ This will become a hard error in the future.''')
                 raise MesonException(
                     'Gir include dirs should be include_directories().')
         cflags.update(get_include_args(inc_dirs))
+        cflags.update(state.environment.coredata.external_args['c'])
+        ldflags.update(state.environment.coredata.external_link_args['c'])
         if cflags:
             args += ['--cflags=%s' % ' '.join(cflags)]
         if ldflags:
