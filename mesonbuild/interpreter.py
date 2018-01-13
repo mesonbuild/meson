@@ -375,7 +375,18 @@ class GeneratorHolder(InterpreterObject, ObjectHolder):
 
     def process_method(self, args, kwargs):
         extras = mesonlib.stringlistify(kwargs.get('extra_args', []))
-        gl = self.held_object.process_files('Generator', args, self.interpreter, extra_args=extras)
+        if 'preserve_path_from' in kwargs:
+            preserve_path_from = kwargs['preserve_path_from']
+            if not isinstance(preserve_path_from, str):
+                raise InvalidArguments('Preserve_path_from must be a string.')
+            preserve_path_from = os.path.normpath(preserve_path_from)
+            if not os.path.isabs(preserve_path_from):
+                # This is a bit of a hack. Fix properly before merging.
+                raise InvalidArguments('Preserve_path_from must be an absolute path for now. Sorry.')
+        else:
+            preserve_path_from = None
+        gl = self.held_object.process_files('Generator', args, self.interpreter,
+                                            preserve_path_from, extra_args=extras)
         return GeneratedListHolder(gl)
 
 
@@ -1372,7 +1383,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'version'},
                     'executable': exe_kwargs,
                     'find_program': {'required', 'native'},
-                    'generator': {'arguments', 'output', 'depfile', 'capture'},
+                    'generator': {'arguments', 'output', 'depfile', 'capture', 'preserve_path_from'},
                     'include_directories': {'is_system'},
                     'install_data': {'install_dir', 'install_mode', 'sources'},
                     'install_headers': {'install_dir', 'subdir'},

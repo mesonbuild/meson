@@ -14,7 +14,7 @@
 
 import copy, os, re
 from collections import OrderedDict
-import itertools
+import itertools, pathlib
 
 from . import environment
 from . import dependencies
@@ -1077,7 +1077,8 @@ class Generator:
     def get_base_outnames(self, inname):
         plainname = os.path.split(inname)[1]
         basename = os.path.splitext(plainname)[0]
-        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
+        bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
+        return bases
 
     def get_dep_outname(self, inname):
         if self.depfile is None:
@@ -1091,32 +1092,54 @@ class Generator:
         basename = os.path.splitext(plainname)[0]
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
-    def process_files(self, name, files, state, extra_args=[]):
-        output = GeneratedList(self, extra_args=extra_args)
+    def is_parent_path(self, parent, trial):
+        relpath = pathlib.PurePath(trial).relative_to(parent)
+        return relpath.parts[0] != '..' # For subdirs we can only go "down".
+
+    def process_files(self, name, files, state, preserve_path_from=None, extra_args=[]):
+        output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args)
         for f in files:
             if isinstance(f, str):
                 f = File.from_source_file(state.environment.source_dir, state.subdir, f)
             elif not isinstance(f, File):
                 raise InvalidArguments('{} arguments must be strings or files not {!r}.'.format(name, f))
-            output.add_file(f)
+            if preserve_path_from:
+                abs_f = f.absolute_path(state.environment.source_dir, state.environment.build_dir)
+                if not self.is_parent_path(preserve_path_from, abs_f):
+                    raise InvalidArguments('When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
+            output.add_file(f, state)
         return output
 
 
 class GeneratedList:
-    def __init__(self, generator, extra_args=[]):
+    def __init__(self, generator, subdir, preserve_path_from=None, extra_args=[]):
         if hasattr(generator, 'held_object'):
             generator = generator.held_object
         self.generator = generator
         self.name = self.generator.exe
+        self.subdir = subdir
         self.infilelist = []
         self.outfilelist = []
         self.outmap = {}
         self.extra_depends = []
+        self.preserve_path_from = preserve_path_from
         self.extra_args = extra_args
 
-    def add_file(self, newfile):
+    def add_preserved_path_segment(self, infile, outfiles, state):
+        result = []
+        in_abs = infile.absolute_path(state.environment.source_dir, state.environment.build_dir)
+        assert(os.path.isabs(self.preserve_path_from))
+        rel = os.path.relpath(in_abs, self.preserve_path_from)
+        path_segment = os.path.split(rel)[0]
+        for of in outfiles:
+            result.append(os.path.join(path_segment, of))
+        return result
+
+    def add_file(self, newfile, state):
         self.infilelist.append(newfile)
         outfiles = self.generator.get_base_outnames(newfile.fname)
+        if self.preserve_path_from:
+            outfiles = self.add_preserved_path_segment(newfile, outfiles, state)
         self.outfilelist += outfiles
         self.outmap[newfile] = outfiles
 
