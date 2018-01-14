@@ -852,45 +852,36 @@ class PcapDependency(ExternalDependency):
 class CupsDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('cups', environment, None, kwargs)
-        kwargs['required'] = False
-        if DependencyMethods.PKGCONFIG in self.methods:
+
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        if DependencyMethods.PKGCONFIG in methods:
             try:
                 pcdep = PkgConfigDependency('cups', environment, kwargs)
                 if pcdep.found():
-                    self.type_name = 'pkgconfig'
-                    self.is_found = True
-                    self.compile_args = pcdep.get_compile_args()
-                    self.link_args = pcdep.get_link_args()
-                    self.version = pcdep.get_version()
-                    self.pcdep = pcdep
-                    return
+                    return pcdep
             except Exception as e:
                 mlog.debug('cups not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.CONFIG_TOOL in self.methods:
+        if DependencyMethods.CONFIG_TOOL in methods:
             try:
                 ctdep = ConfigToolDependency.factory(
                     'cups', environment, None, kwargs, ['cups-config'], 'cups-config')
                 if ctdep.found():
-                    self.config = ctdep.config
-                    self.type_name = 'config-tool'
-                    self.version = ctdep.version
-                    self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-                    self.link_args = ctdep.get_config_value(['--ldflags', '--libs'], 'link_args')
-                    self.is_found = True
-                    return
+                    ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+                    ctdep.link_args = ctdep.get_config_value(['--ldflags', '--libs'], 'link_args')
+                    return ctdep
             except Exception as e:
                 mlog.debug('cups not found via cups-config. Trying next, error was:', str(e))
-        if DependencyMethods.EXTRAFRAMEWORK in self.methods:
+        if DependencyMethods.EXTRAFRAMEWORK in methods:
             if mesonlib.is_osx():
-                fwdep = ExtraFrameworkDependency('cups', False, None, self.env,
-                                                 self.language, kwargs)
+                fwdep = ExtraFrameworkDependency('cups', False, None, environment,
+                                                 kwargs.get('language', None), kwargs)
                 if fwdep.found():
-                    self.is_found = True
-                    self.compile_args = fwdep.get_compile_args()
-                    self.link_args = fwdep.get_link_args()
-                    self.version = fwdep.get_version()
-                    return
-            mlog.log('Dependency', mlog.bold('cups'), 'found:', mlog.red('NO'))
+                    return fwdep
+        mlog.log('Dependency', mlog.bold('cups'), 'found:', mlog.red('NO'))
+
+        return CupsDependency(environment, kwargs)
 
     @staticmethod
     def get_methods():

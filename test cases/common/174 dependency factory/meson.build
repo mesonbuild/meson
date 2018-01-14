@@ -29,3 +29,13 @@ dep = dependency('pcap', method: 'config-tool', required: false)
 if dep.found() and dep.type_name() == 'configtool'
   dep.get_configtool_variable('prefix')
 endif
+
+dep = dependency('cups', method: 'pkg-config', required: false)
+if dep.found() and dep.type_name() == 'pkgconfig'
+  dep.get_pkgconfig_variable('prefix')
+endif
+
+dep = dependency('cups', method: 'config-tool', required: false)
+if dep.found() and dep.type_name() == 'configtool'
+  dep.get_configtool_variable('prefix')
+endif
