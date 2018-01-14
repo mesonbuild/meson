@@ -67,7 +67,8 @@ class GLDependency(ExternalDependency):
                 self.version = '1'
                 return
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         if mesonlib.is_osx() or mesonlib.is_windows():
             return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
         else:
@@ -337,7 +338,8 @@ class QtBaseDependency(ExternalDependency):
         else:
             return qvars['QT_INSTALL_BINS']
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         return [DependencyMethods.PKGCONFIG, DependencyMethods.QMAKE]
 
     def get_exe_args(self, compiler):
@@ -420,7 +422,8 @@ class SDL2Dependency(ExternalDependency):
                     return
             mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.red('NO'))
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         if mesonlib.is_osx():
             return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
         else:
@@ -526,5 +529,6 @@ class VulkanDependency(ExternalDependency):
                         self.link_args.append(lib)
                     return
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]

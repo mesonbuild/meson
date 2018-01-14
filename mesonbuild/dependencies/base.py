@@ -115,7 +115,8 @@ class Dependency:
         As an example, gtest-all.cc when using GTest."""
         return self.sources
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         return [DependencyMethods.AUTO]
 
     def get_name(self):
@@ -308,7 +309,8 @@ class ConfigToolDependency(ExternalDependency):
             return []
         return shlex.split(out)
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         return [DependencyMethods.AUTO, DependencyMethods.CONFIG_TOOL]
 
     def get_configtool_variable(self, variable_name):
@@ -535,7 +537,8 @@ class PkgConfigDependency(ExternalDependency):
         mlog.debug('Got pkgconfig variable %s : %s' % (variable_name, variable))
         return variable
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         return [DependencyMethods.PKGCONFIG]
 
     def check_pkgconfig(self):

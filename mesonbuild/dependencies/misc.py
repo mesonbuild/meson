@@ -792,7 +792,8 @@ class Python3Dependency(ExternalDependency):
         self.version = sysconfig.get_config_var('py_version')
         self.is_found = True
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         if mesonlib.is_windows():
             return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSCONFIG]
         elif mesonlib.is_osx():
@@ -839,7 +840,8 @@ class PcapDependency(ExternalDependency):
             except Exception as e:
                 mlog.debug('Pcap not found via pcap-config. Trying next, error was:', str(e))
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         if mesonlib.is_osx():
             return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
         else:
@@ -893,7 +895,8 @@ class CupsDependency(ExternalDependency):
                     return
             mlog.log('Dependency', mlog.bold('cups'), 'found:', mlog.red('NO'))
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         if mesonlib.is_osx():
             return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
         else:
@@ -932,7 +935,8 @@ class LibWmfDependency(ExternalDependency):
             except Exception as e:
                 mlog.debug('cups not found via libwmf-config. Trying next, error was:', str(e))
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         if mesonlib.is_osx():
             return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
         else:
