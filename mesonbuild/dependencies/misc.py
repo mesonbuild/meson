@@ -923,7 +923,7 @@ class LibWmfDependency(ExternalDependency):
                     'libwmf', environment, None, kwargs, ['libwmf-config'], 'libwmf-config')
                 if ctdep.found():
                     self.config = ctdep.config
-                    self.type_name = 'config-too'
+                    self.type_name = 'config-tool'
                     self.version = ctdep.version
                     self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
                     self.link_args = ctdep.get_config_value(['--libs'], 'link_args')

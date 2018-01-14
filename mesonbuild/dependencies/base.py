@@ -75,7 +75,7 @@ class Dependency:
             raise DependencyException('method {!r} is invalid'.format(method))
         method = DependencyMethods(method)
 
-        # This sets per-too config methods which are deprecated to to the new
+        # This sets per-tool config methods which are deprecated to to the new
         # generic CONFIG_TOOL value.
         if method in [DependencyMethods.SDLCONFIG, DependencyMethods.CUPSCONFIG,
                       DependencyMethods.PCAPCONFIG, DependencyMethods.LIBWMFCONFIG]:
