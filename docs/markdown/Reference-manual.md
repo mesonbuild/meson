@@ -1081,6 +1081,11 @@ arguments:
  - `version` keyword argument that works just like the one in
    `dependency`. It specifies what version the subproject should be,
    as an example `>=1.0.1`
+ - `variable` *(added 0.45.0)* a name that specifies a variable whose
+   value should be returned from the subproject. A similar result can be
+   achieved by first getting the subproject object an then invoking its
+   `get_variable` method. Should a list of variable names be specified
+   here, the subproject method shall return a list of values.
 
 Note that you can use the returned [subproject
 object](#subproject-object) to access any variable in the
