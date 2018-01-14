@@ -894,34 +894,30 @@ class CupsDependency(ExternalDependency):
 class LibWmfDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('libwmf', environment, None, kwargs)
-        if DependencyMethods.PKGCONFIG in self.methods:
+
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        if DependencyMethods.PKGCONFIG in methods:
             try:
                 kwargs['required'] = False
                 pcdep = PkgConfigDependency('libwmf', environment, kwargs)
                 if pcdep.found():
-                    self.type_name = 'pkgconfig'
-                    self.is_found = True
-                    self.compile_args = pcdep.get_compile_args()
-                    self.link_args = pcdep.get_link_args()
-                    self.version = pcdep.get_version()
-                    self.pcdep = pcdep
-                    return
+                    return pcdep
             except Exception as e:
                 mlog.debug('LibWmf not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.CONFIG_TOOL in self.methods:
+        if DependencyMethods.CONFIG_TOOL in methods:
             try:
                 ctdep = ConfigToolDependency.factory(
                     'libwmf', environment, None, kwargs, ['libwmf-config'], 'libwmf-config')
                 if ctdep.found():
-                    self.config = ctdep.config
-                    self.type_name = 'config-tool'
-                    self.version = ctdep.version
-                    self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-                    self.link_args = ctdep.get_config_value(['--libs'], 'link_args')
-                    self.is_found = True
-                    return
+                    ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+                    ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+                    return ctdep
             except Exception as e:
                 mlog.debug('cups not found via libwmf-config. Trying next, error was:', str(e))
+
+        return LibWmfDependency(environment, kwargs)
 
     @staticmethod
     def get_methods():
