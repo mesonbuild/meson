@@ -236,13 +236,16 @@ class ConfigToolDependency(ExternalDependency):
         # instantiated and returned. The reduce function (method) is also
         # attached, since python's pickle module won't be able to do anything
         # with this dynamically generated class otherwise.
-        def reduce(_):
-            return (cls.factory,
-                    (name, environment, language, kwargs, tools, tool_name))
+        def reduce(self):
+            return (cls._unpickle, (), self.__dict__)
         sub = type('{}Dependency'.format(name.capitalize()), (cls, ),
                    {'tools': tools, 'tool_name': tool_name, '__reduce__': reduce})
 
         return sub(name, environment, language, kwargs)
+
+    @classmethod
+    def _unpickle(cls):
+        return cls.__new__(cls)
 
     def find_config(self, versions=None):
         """Helper method that searchs for config tool binaries in PATH and
