@@ -2,7 +2,9 @@
 short-description: Disabling options
 ...
 
-# Disabling parts of the build (available since 0.44.0)
+# Disabling parts of the build
+
+*This feature is available since version 0.44.0.*
 
 The following is a common fragment found in many projects:
 
