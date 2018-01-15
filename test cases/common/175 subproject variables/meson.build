@@ -1,0 +1,5 @@
+project('subproj dep', 'c')
+dep = subproject('subproj', variable : 'depvar')
+depcopy = subproject('subproj-copy', variable : 'depvar')
+exe = executable('testbin', 'testbin.c', dependencies : [dep, depcopy])
+test('subdirdeptest', exe)

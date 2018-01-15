@@ -1396,7 +1396,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'shared_module': shmod_kwargs,
                     'static_library': stlib_kwargs,
                     'subdir': {'if_found'},
-                    'subproject': {'version', 'default_options'},
+                    'subproject': {'version', 'default_options', 'variable'},
                     'test': {'args', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
                     }
@@ -1727,38 +1727,42 @@ external dependencies (including libraries) must go to "dependencies".''')
             fullstack = self.subproject_stack + [dirname]
             incpath = ' => '.join(fullstack)
             raise InvalidCode('Recursive include of subprojects: %s.' % incpath)
-        if dirname in self.subprojects:
-            return self.subprojects[dirname]
-        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
-        r = wrap.Resolver(subproject_dir_abs, self.coredata.wrap_mode)
-        try:
-            resolved = r.resolve(dirname)
-        except RuntimeError as e:
-            msg = 'Subproject directory {!r} does not exist and cannot be downloaded:\n{}'
-            raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname), e))
-        subdir = os.path.join(self.subproject_dir, resolved)
-        os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
-        self.global_args_frozen = True
-        mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
-        subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
-                           mesonlib.stringlistify(kwargs.get('default_options', [])))
-        subi.subprojects = self.subprojects
+        if dirname not in self.subprojects:
+            subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
+            r = wrap.Resolver(subproject_dir_abs, self.coredata.wrap_mode)
+            try:
+                resolved = r.resolve(dirname)
+            except RuntimeError as e:
+                msg = 'Subproject directory {!r} does not exist and cannot be downloaded:\n{}'
+                raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname), e))
+            subdir = os.path.join(self.subproject_dir, resolved)
+            os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
+            self.global_args_frozen = True
+            mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
+            subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
+                               mesonlib.stringlistify(kwargs.get('default_options', [])))
+            subi.subprojects = self.subprojects
 
-        subi.subproject_stack = self.subproject_stack + [dirname]
-        current_active = self.active_projectname
-        subi.run()
-        if 'version' in kwargs:
-            pv = subi.project_version
-            wanted = kwargs['version']
-            if pv == 'undefined' or not mesonlib.version_compare(pv, wanted):
-                raise InterpreterException('Subproject %s version is %s but %s required.' % (dirname, pv, wanted))
-        self.active_projectname = current_active
-        mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
-        self.build.subprojects[dirname] = subi.project_version
-        self.subprojects.update(subi.subprojects)
-        self.subprojects[dirname] = SubprojectHolder(subi)
-        self.build_def_files += subi.build_def_files
-        return self.subprojects[dirname]
+            subi.subproject_stack = self.subproject_stack + [dirname]
+            current_active = self.active_projectname
+            subi.run()
+            if 'version' in kwargs:
+                pv = subi.project_version
+                wanted = kwargs['version']
+                if pv == 'undefined' or not mesonlib.version_compare(pv, wanted):
+                    raise InterpreterException('Subproject %s version is %s but %s required.' % (dirname, pv, wanted))
+            self.active_projectname = current_active
+            mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
+            self.build.subprojects[dirname] = subi.project_version
+            self.subprojects.update(subi.subprojects)
+            self.subprojects[dirname] = SubprojectHolder(subi)
+            self.build_def_files += subi.build_def_files
+        if 'variable' not in kwargs:
+            return self.subprojects[dirname]
+        retval = []
+        for var in listify(kwargs['variable']):
+            retval += [self.subprojects[dirname].get_variable_method([var], {})]
+        return retval[0] if len(retval) == 1 else retval
 
     @stringArgs
     @noKwargs
