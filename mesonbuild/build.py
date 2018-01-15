@@ -22,7 +22,7 @@ from . import mlog
 from .mesonlib import File, MesonException, listify, extract_as_list
 from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
-from .mesonlib import for_windows, for_darwin, for_cygwin
+from .mesonlib import for_windows, for_darwin, for_cygwin, for_android
 from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
 
 known_basic_kwargs = {'install': True,
@@ -1393,6 +1393,11 @@ class SharedLibrary(BuildTarget):
             else:
                 # libfoo.dylib
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        elif for_android(is_cross, env):
+            prefix = 'lib'
+            suffix = 'so'
+            # Android doesn't support shared_library versioning
+            self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         else:
             prefix = 'lib'
             suffix = 'so'
@@ -1414,25 +1419,32 @@ class SharedLibrary(BuildTarget):
 
     def process_kwargs(self, kwargs, environment):
         super().process_kwargs(kwargs, environment)
-        # Shared library version
-        if 'version' in kwargs:
-            self.ltversion = kwargs['version']
-            if not isinstance(self.ltversion, str):
-                raise InvalidArguments('Shared library version needs to be a string, not ' + type(self.ltversion).__name__)
-            if not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', self.ltversion):
-                raise InvalidArguments('Invalid Shared library version "{0}". Must be of the form X.Y.Z where all three are numbers. Y and Z are optional.'.format(self.ltversion))
-        # Try to extract/deduce the soversion
-        if 'soversion' in kwargs:
-            self.soversion = kwargs['soversion']
-            if isinstance(self.soversion, int):
-                self.soversion = str(self.soversion)
-            if not isinstance(self.soversion, str):
-                raise InvalidArguments('Shared library soversion is not a string or integer.')
-        elif self.ltversion:
-            # library version is defined, get the soversion from that
-            # We replicate what Autotools does here and take the first
-            # number of the version by default.
-            self.soversion = self.ltversion.split('.')[0]
+
+        if not for_android(self.is_cross, self.environment):
+            supports_versioning = True
+        else:
+            supports_versioning = False
+
+        if supports_versioning:
+            # Shared library version
+            if 'version' in kwargs:
+                self.ltversion = kwargs['version']
+                if not isinstance(self.ltversion, str):
+                    raise InvalidArguments('Shared library version needs to be a string, not ' + type(self.ltversion).__name__)
+                if not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', self.ltversion):
+                    raise InvalidArguments('Invalid Shared library version "{0}". Must be of the form X.Y.Z where all three are numbers. Y and Z are optional.'.format(self.ltversion))
+            # Try to extract/deduce the soversion
+            if 'soversion' in kwargs:
+                self.soversion = kwargs['soversion']
+                if isinstance(self.soversion, int):
+                    self.soversion = str(self.soversion)
+                if not isinstance(self.soversion, str):
+                    raise InvalidArguments('Shared library soversion is not a string or integer.')
+            elif self.ltversion:
+                # library version is defined, get the soversion from that
+                # We replicate what Autotools does here and take the first
+                # number of the version by default.
+                self.soversion = self.ltversion.split('.')[0]
         # Visual Studio module-definitions file
         if 'vs_module_defs' in kwargs:
             path = kwargs['vs_module_defs']

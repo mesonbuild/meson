@@ -282,6 +282,9 @@ def is_osx():
 def is_linux():
     return platform.system().lower() == 'linux'
 
+def is_android():
+    return platform.system().lower() == 'android'
+
 def is_haiku():
     return platform.system().lower() == 'haiku'
 
@@ -348,6 +351,18 @@ def for_darwin(is_cross, env):
         return is_osx()
     elif env.cross_info.has_host():
         return env.cross_info.config['host_machine']['system'] == 'darwin'
+    return False
+
+def for_android(is_cross, env):
+    """
+    Host machine is Android?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return is_android()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'android'
     return False
 
 def for_haiku(is_cross, env):
