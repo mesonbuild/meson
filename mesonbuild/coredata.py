@@ -19,7 +19,7 @@ import sys
 from pathlib import PurePath
 from collections import OrderedDict
 from .mesonlib import MesonException
-from .mesonlib import default_libdir, default_libexecdir, default_prefix
+from .mesonlib import default_directories
 import ast
 
 version = '0.45.0.dev1'
@@ -392,19 +392,19 @@ builtin_options = {
     'buildtype':  [UserComboOption, 'Build type to use.', ['plain', 'debug', 'debugoptimized', 'release', 'minsize'], 'debug'],
     'strip':      [UserBooleanOption, 'Strip targets on install.', False],
     'unity':      [UserComboOption, 'Unity build.', ['on', 'off', 'subprojects'], 'off'],
-    'prefix':     [UserStringOption, 'Installation prefix.', default_prefix()],
-    'libdir':     [UserStringOption, 'Library directory.', default_libdir()],
-    'libexecdir': [UserStringOption, 'Library executable directory.', default_libexecdir()],
-    'bindir':     [UserStringOption, 'Executable directory.', 'bin'],
-    'sbindir':    [UserStringOption, 'System executable directory.', 'sbin'],
-    'includedir': [UserStringOption, 'Header file directory.', 'include'],
-    'datadir':    [UserStringOption, 'Data file directory.', 'share'],
-    'mandir':     [UserStringOption, 'Manual page directory.', 'share/man'],
-    'infodir':    [UserStringOption, 'Info page directory.', 'share/info'],
-    'localedir':  [UserStringOption, 'Locale data directory.', 'share/locale'],
-    'sysconfdir':      [UserStringOption, 'Sysconf data directory.', 'etc'],
-    'localstatedir':   [UserStringOption, 'Localstate data directory.', 'var'],
-    'sharedstatedir':  [UserStringOption, 'Architecture-independent data directory.', 'com'],
+    'prefix':     [UserStringOption, 'Installation prefix.', default_directories['prefix']],
+    'libdir':     [UserStringOption, 'Library directory.', default_directories['libdir']],
+    'libexecdir': [UserStringOption, 'Library executable directory.', default_directories['libexecdir']],
+    'bindir':     [UserStringOption, 'Executable directory.', default_directories['bindir']],
+    'sbindir':    [UserStringOption, 'System executable directory.', default_directories['sbindir']],
+    'includedir': [UserStringOption, 'Header file directory.', default_directories['includedir']],
+    'datadir':    [UserStringOption, 'Data file directory.', default_directories['datadir']],
+    'mandir':     [UserStringOption, 'Manual page directory.', default_directories['mandir']],
+    'infodir':    [UserStringOption, 'Info page directory.', default_directories['infodir']],
+    'localedir':  [UserStringOption, 'Locale data directory.', default_directories['localedir']],
+    'sysconfdir':      [UserStringOption, 'Sysconf data directory.', default_directories['sysconfdir']],
+    'localstatedir':   [UserStringOption, 'Localstate data directory.', default_directories['localstatedir']],
+    'sharedstatedir':  [UserStringOption, 'Architecture-independent data directory.', default_directories['sharedstatedir']],
     'werror':          [UserBooleanOption, 'Treat warnings as errors.', False],
     'warning_level':   [UserComboOption, 'Compiler warning level to use.', ['1', '2', '3'], '1'],
     'layout':          [UserComboOption, 'Build directory layout.', ['mirror', 'flat'], 'mirror'],

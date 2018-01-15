@@ -76,26 +76,4 @@ coding.
 Using Meson as a distro packager
 --
 
-Distro packagers usually want total control on the build flags
-used. Meson supports this use case natively. The commands needed to
-build and install Meson projects are the following.
-
-```console
-$ cd /path/to/source/root
-$ CFLAGS=... CXXFLAGS=... LDFLAGS=.. meson --prefix /usr --buildtype=plain builddir
-$ ninja -v -C builddir
-$ ninja -C builddir test
-$ DESTDIR=/path/to/staging/root ninja -C builddir install
-```
-
-The command line switch `--buildtype=plain` tells Meson not to add its
-own flags to the command line. This gives the packager total control
-on used flags.
-
-This is very similar to other build systems. The only difference is
-that the `DESTDIR` variable is passed as an environment variable
-rather than as an argument to `ninja install`.
-
-As distro builds happen always from scratch, we recommend you to
-enable [unity builds](Unity-builds.md) whenever possible on your
-packages because they are faster and produce better code.
+See [the distributors page](Distributors.md) for more information.

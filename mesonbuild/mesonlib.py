@@ -449,7 +449,8 @@ def version_compare_many(vstr1, conditions):
             found.append(req)
     return not_found == [], not_found, found
 
-def default_libdir():
+
+def _default_libdir():
     if is_debianlike():
         try:
             pc = subprocess.Popen(['dpkg-architecture', '-qDEB_HOST_MULTIARCH'],
@@ -465,14 +466,8 @@ def default_libdir():
         return 'lib64'
     return 'lib'
 
-def default_libexecdir():
-    # There is no way to auto-detect this, so it must be set at build time
-    return 'libexec'
 
-def default_prefix():
-    return 'c:/' if is_windows() else '/usr/local'
-
-def get_library_dirs():
+def _default_library_dirs():
     if is_windows():
         return ['C:/mingw/lib'] # Fixme
     if is_osx():
@@ -498,6 +493,33 @@ def get_library_dirs():
         unixdirs.append('/lib64')
     unixdirs += glob('/lib/' + plat + '*')
     return unixdirs
+
+
+# These are mostly documented in builtin_options in coredata.py
+default_directories = {
+    'prefix': 'c:/' if is_windows() else '/usr/local',
+    'bindir': 'bin',
+    'sbindir': 'sbin',
+    'libdir': _default_libdir(),
+    'libexecdir': 'libexec',
+    'datadir': 'share',
+    'includedir': 'include',
+    'mandir': 'share/man',
+    'infodir': 'share/info',
+    'localedir': 'share/locale',
+    'sysconfdir': 'etc',
+    'localstatedir': 'var',
+    'sharedstatedir': 'com',
+    'librarydirs': _default_library_dirs(),
+}
+
+
+try:
+    # Allow distros to insert a file that sets its own directories
+    from .distro_directories import default_directories as overrides
+    default_directories.update(overrides)
+except ImportError:
+    pass
 
 
 def do_replacement(regex, line, confdata):
