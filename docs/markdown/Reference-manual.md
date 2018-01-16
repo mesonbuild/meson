@@ -1725,7 +1725,9 @@ opaque object representing it.
 
 - `get_variable(name)` fetches the specified variable from inside the
   subproject. This is useful to, for instance, get a [declared
-  dependency](#declare_dependency) from the subproject.
+  dependency](#declare_dependency) from the subproject. Multiple variable
+  names can be given to fetch several variables at a time, in which case
+  the returned type will be a list of variable values.
 
 ### `run result` object
 

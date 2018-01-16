@@ -677,12 +677,12 @@ class SubprojectHolder(InterpreterObject, ObjectHolder):
                              })
 
     def get_variable_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Get_variable takes one argument.')
-        varname = args[0]
-        if not isinstance(varname, str):
-            raise InterpreterException('Get_variable takes a string argument.')
-        return self.held_object.variables[varname]
+        retval = []
+        for varname in args:
+            if not isinstance(varname, str):
+                raise InterpreterException('Get_variable takes string argument(s).')
+            retval += [self.held_object.variables[varname]]
+        return retval[0] if len(retval) == 1 else retval
 
 class CompilerHolder(InterpreterObject):
     def __init__(self, compiler, env):
