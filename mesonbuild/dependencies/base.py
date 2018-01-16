@@ -212,6 +212,7 @@ class ConfigToolDependency(ExternalDependency):
     def __init__(self, name, environment, language, kwargs):
         super().__init__('config-tool', environment, language, kwargs)
         self.name = name
+        self.native = kwargs.get('native', False)
         self.tools = listify(kwargs.get('tools', self.tools))
 
         req_version = kwargs.get('version', None)
@@ -260,8 +261,20 @@ class ConfigToolDependency(ExternalDependency):
         if not isinstance(versions, list) and versions is not None:
             versions = listify(versions)
 
+        if self.env.is_cross_build() and not self.native:
+            cross_file = self.env.cross_info.config['binaries']
+            try:
+                tools = [cross_file[self.tool_name]]
+            except KeyError:
+                mlog.warning('No entry for {0} specified in your cross file. '
+                             'Falling back to searching PATH. This may find a '
+                             'native version of {0}!'.format(self.tool_name))
+                tools = self.tools
+        else:
+            tools = self.tools
+
         best_match = (None, None)
-        for tool in self.tools:
+        for tool in tools:
             try:
                 p, out = Popen_safe([tool, '--version'])[:2]
             except (FileNotFoundError, PermissionError):
