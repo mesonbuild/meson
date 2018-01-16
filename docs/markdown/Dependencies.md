@@ -144,6 +144,13 @@ pass `gtest` or `gmock` to `dependency` and it will do everything for
 you. If you want to use GMock, it is recommended to use GTest as well,
 as getting it to work standalone is tricky.
 
+You can set the `main` keyword argument to `true` to use the `main()`
+function provided by GTest:
+```
+gtest_dep = dependency('gtest', main : true, required : false)
+e = executable('testprog', 'test.cc', dependencies : gtest_dep)
+test('gtest test', e)
+```
 ## MPI
 
 MPI is supported for C, C++ and Fortran. Because dependencies are
