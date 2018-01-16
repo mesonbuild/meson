@@ -235,9 +235,18 @@ files and the second specifies the XML file name.
 * `object_manager`: *(Added 0.40.0)* if true generates object manager code
 * `annotations`: *(Added 0.43.0)* list of lists of 3 strings for the annotation for `'ELEMENT', 'KEY', 'VALUE'`
 * `docbook`: *(Added 0.43.0)* prefix to generate `'PREFIX'-NAME.xml` docbooks
+* `build_by_default`: causes, when set to true, to have this target be
+  built by default, that is, when invoking plain `ninja`, the default
+  value is true for all built target types
+* `install_dir`: (*Added 0.46.0*) location to install the header or
+  bundle depending on previous options
+* `install_header`: (*Added 0.46.0*) if true, install the header file
 
-Returns an opaque object containing the source files. Add it to a top
-level target's source list.
+If gdbus-codegen version is greater than 2.55.2 it will return at
+most three targets, one for the souce code, one for the header and
+another one for the files generated with docbook. Otherwise, it
+returns an opaque object containing the source files. Add it to a
+top level target's source list.
 
 Example:
 
