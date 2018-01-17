@@ -910,7 +910,8 @@ Project supports the following keyword arguments.
     'GPL3']`. Note that the text is informal and is only written to
     the dependency manifest. Meson does not do any license validation,
     you are responsible for verifying that you abide by all licensing
-    terms.
+    terms. You can access the value in your Meson build files with
+    `meson.project_license()`.
 
   - `meson_version` takes a string describing which Meson version the
     project requires. Usually something like `>0.28.0`.
@@ -1246,6 +1247,8 @@ the following methods.
   constructing paths manually with `meson.source_root()`.
 
 - `project_version()` returns the version string specified in `project` function call.
+
+- `project_license()` returns the array of licenses specified in `project` function call.
 
 - `project_name()` returns the project name specified in the `project` function call.
 
