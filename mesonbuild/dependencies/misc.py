@@ -175,7 +175,7 @@ class BoostDependency(ExternalDependency):
             mlog.debug('Boost library directory is', mlog.bold(self.libdir))
             for m in self.requested_modules:
                 if 'boost_' + m not in self.lib_modules:
-                    mlog.log(mlog.red('ERROR:'), 'Requested Boost library {!r} not found'.format(m))
+                    mlog.debug('Requested Boost library {!r} not found'.format(m))
                     self.log_fail()
                     self.is_found = False
                     return
