@@ -173,7 +173,12 @@ class BoostDependency(ExternalDependency):
         if self.is_found:
             self.detect_lib_modules()
             mlog.debug('Boost library directory is', mlog.bold(self.libdir))
-            self.validate_requested()
+            for m in self.requested_modules:
+                if 'boost_' + m not in self.lib_modules:
+                    mlog.debug('Requested Boost library {!r} not found'.format(m))
+                    self.log_fail()
+                    self.is_found = False
+                    return
             self.log_success()
         else:
             self.log_fail()
@@ -261,12 +266,6 @@ class BoostDependency(ExternalDependency):
             if not isinstance(c, str):
                 raise DependencyException('Boost module argument is not a string.')
         return candidates
-
-    def validate_requested(self):
-        for m in self.requested_modules:
-            if 'boost_' + m not in self.lib_modules:
-                msg = 'Requested Boost library {!r} not found'
-                raise DependencyException(msg.format(m))
 
     def detect_version(self):
         try:
