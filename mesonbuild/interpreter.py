@@ -683,6 +683,8 @@ class SubprojectHolder(InterpreterObject, ObjectHolder):
         varname = args[0]
         if not isinstance(varname, str):
             raise InterpreterException('Get_variable takes a string argument.')
+        if varname not in self.held_object.variables:
+            raise InvalidArguments('Requested variable "{0}" not found.'.format(varname))
         return self.held_object.variables[varname]
 
 class CompilerHolder(InterpreterObject):
@@ -1579,6 +1581,8 @@ class Interpreter(InterpreterBase):
                     self.build.cross_stdlibs[l] = subproj.get_variable_method([depname], {})
                 except KeyError:
                     pass
+                except InvalidArguments:
+                    pass
 
     @stringArgs
     @noKwargs
@@ -2198,10 +2202,10 @@ to directly access options of other subprojects.''')
     def get_subproject_dep(self, name, dirname, varname, required):
         try:
             dep = self.subprojects[dirname].get_variable_method([varname], {})
-        except KeyError:
+        except InvalidArguments as e:
             if required:
-                raise DependencyException('Could not find dependency {} in subproject {}'
-                                          ''.format(varname, dirname))
+                raise DependencyException('Could not find dependency {} in subproject {}; {}'
+                                          ''.format(varname, dirname, str(e)))
             # If the dependency is not required, don't raise an exception
             subproj_path = os.path.join(self.subproject_dir, dirname)
             mlog.log('Dependency', mlog.bold(name), 'from subproject',
