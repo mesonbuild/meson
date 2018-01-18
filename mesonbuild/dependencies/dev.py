@@ -146,16 +146,6 @@ class LLVMDependency(ConfigToolDependency):
             return
         self.static = kwargs.get('static', False)
 
-        # Currently meson doesn't really attempt to handle pre-release versions,
-        # so strip the 'svn' off the end, since it will probably cuase problems
-        # for users who want the patch version.
-        #
-        # If LLVM is built from svn then "svn" will be appended to the version
-        # string, if it's built from a git mirror then "git-<very short sha>"
-        # will be appended instead.
-        self.version = self.version.rstrip('svn')
-        self.version = self.version.split('git')[0]
-
         self.provided_modules = self.get_config_value(['--components'], 'modules')
         modules = stringlistify(extract_as_list(kwargs, 'modules'))
         self.check_components(modules)
