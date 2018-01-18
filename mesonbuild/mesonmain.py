@@ -296,8 +296,6 @@ def run(original_args, mainfile=None):
             # FALLTHROUGH like it's 1972.
         elif cmd_name == 'introspect':
             return mintro.run(remaining_args)
-        elif cmd_name == 'test':
-            return mtest.run(remaining_args)
         elif cmd_name == 'rewrite':
             return rewriter.run(remaining_args)
         elif cmd_name == 'configure':
