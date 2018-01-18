@@ -851,8 +851,9 @@ int dummy;
                                    sd.source_subdir,
                                    sd.installable_subdir).rstrip('/')
             dst_dir = os.path.join(self.environment.get_prefix(),
-                                   sd.install_dir,
-                                   os.path.basename(src_dir))
+                                   sd.install_dir)
+            if not sd.elide_directory:
+                dst_dir = os.path.join(dst_dir, os.path.basename(src_dir))
             d.install_subdirs.append([src_dir, dst_dir, sd.install_mode,
                                       sd.exclude])
 
