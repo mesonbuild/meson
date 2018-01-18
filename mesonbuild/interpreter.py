@@ -2339,10 +2339,10 @@ root and issuing %s.
             raise
         # If the subproject execution failed in a non-fatal way, don't raise an
         # exception; let the caller handle things.
-        except:
+        except Exception as e:
             mlog.log('Also couldn\'t find a fallback subproject in',
                      mlog.bold(os.path.join(self.subproject_dir, dirname)),
-                     'for the dependency', mlog.bold(name))
+                     'for the dependency', mlog.bold(name), '\nReason:', str(e))
             return None
         dep = self.get_subproject_dep(name, dirname, varname, kwargs.get('required', True))
         if not dep:
