@@ -2264,10 +2264,10 @@ to directly access options of other subprojects.''')
             raise
         # If the subproject execution failed in a non-fatal way, don't raise an
         # exception; let the caller handle things.
-        except:
+        except Exception as e:
             mlog.log('Also couldn\'t find a fallback subproject in',
                      mlog.bold(os.path.join(self.subproject_dir, dirname)),
-                     'for the dependency', mlog.bold(name))
+                     'for the dependency', mlog.bold(name), '\nReason:', str(e))
             return None
         try:
             dep = self.subprojects[dirname].get_variable_method([varname], {})
