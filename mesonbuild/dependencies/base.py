@@ -17,7 +17,6 @@
 
 import os
 import re
-import sys
 import stat
 import shlex
 import shutil
@@ -208,6 +207,7 @@ class ConfigToolDependency(ExternalDependency):
 
     tools = None
     tool_name = None
+    __strip_version = re.compile(r'^[0-9.]*')
 
     def __init__(self, name, environment, language, kwargs):
         super().__init__('config-tool', environment, language, kwargs)
@@ -222,6 +222,15 @@ class ConfigToolDependency(ExternalDependency):
             self.config = None
             return
         self.version = version
+
+    def _sanitize_version(self, version):
+        """Remove any non-numeric, non-point version suffixes."""
+        m = self.__strip_version.match(version)
+        if m:
+            # Ensure that there isn't a trailing '.', such as an input like
+            # `1.2.3.git-1234`
+            return m.group(0).rstrip('.')
+        return version
 
     @classmethod
     def factory(cls, name, environment, language, kwargs, tools, tool_name):
@@ -260,7 +269,7 @@ class ConfigToolDependency(ExternalDependency):
             if p.returncode != 0:
                 continue
 
-            out = out.strip()
+            out = self._sanitize_version(out.strip())
             # Some tools, like pcap-config don't supply a version, but also
             # dont fail with --version, in that case just assume that there is
             # only one verison and return it.
