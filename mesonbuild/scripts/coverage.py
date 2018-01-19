@@ -14,7 +14,7 @@
 
 from mesonbuild import environment
 
-import sys, os, subprocess
+import sys, os, subprocess, pathlib
 
 def remove_dir_from_trace(lcov_command, covfile, dirname):
     tmpfile = covfile + '.tmp'
@@ -68,6 +68,15 @@ def coverage(source_root, build_root, log_dir):
                                '--show-details',
                                '--branch-coverage',
                                covinfo])
+    if gcovr_exe:
+        print('')
+        print('XML coverage report can be found at',
+              pathlib.Path(log_dir, 'coverage.xml').as_uri())
+        print('Text coverage report can be found at',
+              pathlib.Path(log_dir, 'coverage.txt').as_uri())
+    if lcov_exe and genhtml_exe:
+        print('Html coverage report can be found at',
+              pathlib.Path(htmloutdir, 'index.html').as_uri())
     return 0
 
 def run(args):
