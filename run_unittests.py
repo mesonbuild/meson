@@ -433,15 +433,8 @@ class BasePlatformTests(unittest.TestCase):
         src_root = os.path.dirname(__file__)
         src_root = os.path.join(os.getcwd(), src_root)
         self.src_root = src_root
-        # In case the directory is inside a symlinked directory, find the real
-        # path otherwise we might not find the srcdir from inside the builddir.
-        self.builddir = os.path.realpath(tempfile.mkdtemp())
-        self.privatedir = os.path.join(self.builddir, 'meson-private')
-        self.logdir = os.path.join(self.builddir, 'meson-logs')
         self.prefix = '/usr'
         self.libdir = os.path.join(self.prefix, 'lib')
-        self.installdir = os.path.join(self.builddir, 'install')
-        self.distdir = os.path.join(self.builddir, 'meson-dist')
         # Get the backend
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
@@ -450,7 +443,6 @@ class BasePlatformTests(unittest.TestCase):
         self.meson_command = meson_command + self.meson_args
         self.mconf_command = meson_command + ['configure']
         self.mintro_command = meson_command + ['introspect']
-        self.mtest_command = meson_command + ['test', '-C', self.builddir]
         self.wrap_command = meson_command + ['wrap']
         # Backend-specific build commands
         self.build_command, self.clean_command, self.test_command, self.install_command, \
@@ -469,6 +461,20 @@ class BasePlatformTests(unittest.TestCase):
             # XCode backend is untested with unit tests, help welcome!
             self.no_rebuild_stdout = 'UNKNOWN BACKEND {!r}'.format(self.backend.name)
 
+        self.builddirs = []
+        self.new_builddir()
+
+    def new_builddir(self):
+        # In case the directory is inside a symlinked directory, find the real
+        # path otherwise we might not find the srcdir from inside the builddir.
+        self.builddir = os.path.realpath(tempfile.mkdtemp())
+        self.privatedir = os.path.join(self.builddir, 'meson-private')
+        self.logdir = os.path.join(self.builddir, 'meson-logs')
+        self.installdir = os.path.join(self.builddir, 'install')
+        self.distdir = os.path.join(self.builddir, 'meson-dist')
+        self.mtest_command = meson_command + ['test', '-C', self.builddir]
+        self.builddirs.append(self.builddir)
+
     def _print_meson_log(self):
         log = os.path.join(self.logdir, 'meson-log.txt')
         if not os.path.isfile(log):
@@ -478,10 +484,11 @@ class BasePlatformTests(unittest.TestCase):
             print(f.read())
 
     def tearDown(self):
-        try:
-            windows_proof_rmtree(self.builddir)
-        except FileNotFoundError:
-            pass
+        for path in self.builddirs:
+            try:
+                windows_proof_rmtree(path)
+            except FileNotFoundError:
+                pass
         os.environ = self.orig_env
         super().tearDown()
 
