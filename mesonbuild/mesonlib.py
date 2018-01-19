@@ -599,7 +599,6 @@ def dump_conf_header(ofilename, cdata):
                 ofile.write('#define %s %s\n\n' % (k, v))
             else:
                 raise MesonException('Unknown data type in configuration file entry: ' + k)
-    shutil.copymode(ofilename, ofilename_tmp)
     replace_if_different(ofilename, ofilename_tmp)
 
 def replace_if_different(dst, dst_tmp):
