@@ -968,7 +968,7 @@ class CrossBuildInfo:
     def get_properties(self):
         return self.config['properties']
 
-    # Wehn compiling a cross compiler we use the native compiler for everything.
+    # When compiling a cross compiler we use the native compiler for everything.
     # But not when cross compiling a cross compiler.
     def need_cross_compiler(self):
         return 'host_machine' in self.config
