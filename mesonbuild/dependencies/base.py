@@ -271,8 +271,8 @@ class ConfigToolDependency(ExternalDependency):
 
             out = self._sanitize_version(out.strip())
             # Some tools, like pcap-config don't supply a version, but also
-            # dont fail with --version, in that case just assume that there is
-            # only one verison and return it.
+            # don't fail with --version, in that case just assume that there is
+            # only one version and return it.
             if not out:
                 return (tool, 'none')
             if versions:

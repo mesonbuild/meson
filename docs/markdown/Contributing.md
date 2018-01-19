@@ -20,7 +20,7 @@ test run before they are even considered for submission.
 
 ## Tests
 
-All new features must come with automatic tests that throughly prove
+All new features must come with automatic tests that thoroughly prove
 that the feature is working as expected. Similarly bug fixes must come
 with a unit test that demonstrates the bug, proves that it has been
 fixed and prevents the feature from breaking in the future.
