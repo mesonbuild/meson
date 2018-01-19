@@ -2067,11 +2067,17 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         Test that generated pkg-config files correctly handle dependencies
         '''
-
         testdir = os.path.join(self.common_test_dir, '51 pkgconfig-gen')
         self.init(testdir)
+        privatedir1 = self.privatedir
 
-        os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
+        self.new_builddir()
+        os.environ['PKG_CONFIG_LIBDIR'] = privatedir1
+        testdir = os.path.join(self.common_test_dir, '51 pkgconfig-gen', 'dependencies')
+        self.init(testdir)
+        privatedir2 = self.privatedir
+
+        os.environ['PKG_CONFIG_LIBDIR'] = os.pathsep.join([privatedir1, privatedir2])
         cmd = ['pkg-config', 'dependency-test']
 
         out = self._run(cmd + ['--print-requires']).strip().split()
