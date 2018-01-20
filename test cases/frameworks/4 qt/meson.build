@@ -92,5 +92,8 @@ foreach qt : ['qt4', 'qt5']
     plugin = library(qt + 'plugin', 'plugin/plugin.cpp', pluginpreprocess,
           include_directories : plugin_includes,
           dependencies : qtcore)
+    if qt == 'qt5'
+      subdir('subfolder')
+    endif
   endif
 endforeach
