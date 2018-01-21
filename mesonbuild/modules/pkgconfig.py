@@ -66,29 +66,28 @@ class DependenciesHelper:
             elif hasattr(obj, 'generated_pc'):
                 processed_reqs.append(obj.generated_pc)
             elif isinstance(obj, dependencies.PkgConfigDependency):
-                processed_reqs.append(obj.name)
+                if obj.found():
+                    processed_reqs.append(obj.name)
             elif isinstance(obj, dependencies.ThreadDependency):
                 processed_libs += obj.get_compiler().thread_link_flags(obj.env)
                 processed_cflags += obj.get_compiler().thread_flags(obj.env)
             elif isinstance(obj, dependencies.Dependency):
-                processed_libs += obj.get_link_args()
-                processed_cflags += obj.get_compile_args()
+                if obj.found():
+                    processed_libs += obj.get_link_args()
+                    processed_cflags += obj.get_compile_args()
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
                 if public:
                     if not hasattr(obj, 'generated_pc'):
                         obj.generated_pc = self.name
                     self.add_priv_libs(obj.get_dependencies())
-                    self.add_priv_libs(self.strip_unfound(obj.get_external_deps()))
+                    self.add_priv_libs(obj.get_external_deps())
             elif isinstance(obj, str):
                 processed_libs.append(obj)
             else:
                 raise mesonlib.MesonException('library argument not a string, library or dependency object.')
 
         return processed_libs, processed_reqs, processed_cflags
-
-    def strip_unfound(self, deps):
-        return [x for x in deps if not hasattr(x, 'found') or x.found()]
 
     def remove_dups(self):
         self.pub_libs = list(set(self.pub_libs))
