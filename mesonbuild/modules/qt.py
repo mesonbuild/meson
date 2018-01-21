@@ -83,7 +83,7 @@ class QtBaseModule:
                     mlog.warning("malformed rcc file: ", os.path.join(state.subdir, fname))
                     break
                 else:
-                    result.append(os.path.join(state.subdir, relative_part, child.text))
+                    result.append(os.path.join(relative_part, child.text))
             return result
         except Exception:
             return []
