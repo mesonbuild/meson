@@ -61,7 +61,7 @@ Log out and back in and now your build environment is ready to use.
 ## Adding other tools
 
 Old distros might have too old versions of some tools. For Meson this
-could nclude Python 3 and Ninja. If this is the case you need to
+could include Python 3 and Ninja. If this is the case you need to
 download, build and install new versions into `~/devroot` in the usual
 way.
 
