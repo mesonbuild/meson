@@ -191,6 +191,8 @@ def detect_cpu_family(compilers):
                 # Ignore compilers that do not support has_builtin_define.
                 pass
         return 'x86_64'
+    if platform.processor() == 'powerpc': # AIX returns a garbled platform.machine()
+        return 'powerpc'
     # Add fixes here as bugs are reported.
     return trial
 
@@ -210,6 +212,8 @@ def detect_cpu(compilers):
             except mesonlib.MesonException:
                 pass
         return 'x86_64'
+    if platform.processor() == 'powerpc': # AIX returns a garbled platform.machine()
+        return 'powerpc'
     # Add fixes here as bugs are reported.
     return trial
 
@@ -408,6 +412,8 @@ class Environment:
     def get_gnu_compiler_type(defines):
         # Detect GCC type (Apple, MinGW, Cygwin, Unix)
         if '__APPLE__' in defines:
+            return GCC_OSX
+        elif '_AIX' in defines: # Like OSX, AIX uses traditional Unix (non-gnu) ld
             return GCC_OSX
         elif '__MINGW32__' in defines or '__MINGW64__' in defines:
             return GCC_MINGW
@@ -781,7 +787,7 @@ class Environment:
                 return VisualStudioLinker(linker)
             if p.returncode == 0:
                 return ArLinker(linker)
-            if p.returncode == 1 and err.startswith('usage'): # OSX
+            if p.returncode == 1 and err.lower().startswith('usage'): # OSX or AIX
                 return ArLinker(linker)
         self._handle_exceptions(popen_exceptions, linkers, 'linker')
         raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linkers))
