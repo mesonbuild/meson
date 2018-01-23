@@ -147,22 +147,7 @@ class BoostDependency(ExternalDependency):
             self.log_fail()
             return
 
-        invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in BOOST_LIBS]
-
-        # previous versions of meson allowed include dirs as modules
-        remove = []
-        for m in invalid_modules:
-            if m in BOOST_DIRS:
-                mlog.warning('Requested boost library', mlog.bold(m), 'that doesn\'t exist. '
-                             'This will be an error in the future')
-                remove.append(m)
-
-        self.requested_modules = [x for x in self.requested_modules if x not in remove]
-        invalid_modules = [x for x in invalid_modules if x not in remove]
-
-        if invalid_modules:
-            mlog.log(mlog.red('ERROR:'), 'Invalid Boost modules: ' + ', '.join(invalid_modules))
-            self.log_fail()
+        if self.check_invalid_modules():
             return
 
         mlog.debug('Boost library root dir is', mlog.bold(self.boost_root))
@@ -183,6 +168,26 @@ class BoostDependency(ExternalDependency):
         else:
             self.log_fail()
 
+    def check_invalid_modules(self):
+        invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in BOOST_LIBS]
+
+        # previous versions of meson allowed include dirs as modules
+        remove = []
+        for m in invalid_modules:
+            if m in BOOST_DIRS:
+                mlog.warning('Requested boost library', mlog.bold(m), 'that doesn\'t exist. '
+                             'This will be an error in the future')
+                remove.append(m)
+
+        self.requested_modules = [x for x in self.requested_modules if x not in remove]
+        invalid_modules = [x for x in invalid_modules if x not in remove]
+
+        if invalid_modules:
+            mlog.log(mlog.red('ERROR:'), 'Invalid Boost modules: ' + ', '.join(invalid_modules))
+            self.log_fail()
+            return True
+        else:
+            return False
 
     def log_fail(self):
         module_str = ', '.join(self.requested_modules)
