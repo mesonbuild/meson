@@ -364,15 +364,19 @@ class BoostDependency(ExternalDependency):
                     fname = os.path.basename(entry)
                     self.lib_modules[self.modname_from_filename(fname)] = [fname]
 
+    def abi_tag(self):
+        if mesonlib.for_windows(self.want_cross, self.env):
+            return None
+        if self.is_multithreading and mesonlib.for_darwin(self.want_cross, self.env):
+            return '-mt'
+        else:
+            return ''
+
     def detect_lib_modules_nix(self):
         all_found = True
         for module in self.requested_modules:
-            args = None
-            libname = 'boost_' + module
-            if self.is_multithreading and mesonlib.for_darwin(self.want_cross, self.env):
-                # - Linux leaves off -mt but libraries are multithreading-aware.
-                # - Mac requires -mt for multithreading, so should not fall back to non-mt libraries.
-                libname = libname + '-mt'
+            libname = 'boost_' + module + self.abi_tag()
+
             args = self.compiler.find_library(libname, self.env, self.extra_lib_dirs())
             if args is None:
                 mlog.debug('Couldn\'t find library "{}" for boost module "{}"'.format(module, libname))
