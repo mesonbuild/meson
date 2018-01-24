@@ -804,6 +804,13 @@ class CCompiler(Compiler):
         return ['-pthread']
 
     def has_multi_arguments(self, args, env):
+        for arg in args:
+            if arg.startswith('-Wl,'):
+                mlog.warning('''{} looks like a linker argument, but has_argument
+and other similar methods only support checking compiler arguments.
+Using them to check linker arguments are never supported, and results
+are likely to be wrong regardless of the compiler you are using.
+'''.format(arg))
         return self.compiles('int i;\n', env, extra_args=args)
 
 

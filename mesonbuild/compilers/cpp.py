@@ -14,6 +14,7 @@
 
 import os.path
 
+from .. import mlog
 from .. import coredata
 from ..mesonlib import version_compare
 
@@ -174,6 +175,13 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
         return []
 
     def has_multi_arguments(self, args, env):
+        for arg in args:
+            if arg.startswith('-Wl,'):
+                mlog.warning('''{} looks like a linker argument, but has_argument
+and other similar methods only support checking compiler arguments.
+Using them to check linker arguments are never supported, and results
+are likely to be wrong regardless of the compiler you are using.
+'''.format(arg))
         return super().has_multi_arguments(args + ['-diag-error', '10006'], env)
 
 
