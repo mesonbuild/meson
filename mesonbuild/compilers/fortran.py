@@ -162,7 +162,7 @@ class GnuFortranCompiler(FortranCompiler):
         if define in self.defines:
             return self.defines[define]
 
-    def get_always_args(self):
+    def get_always_args(self, environment):
         return ['-pipe']
 
     def get_coverage_args(self):
@@ -188,7 +188,7 @@ class G95FortranCompiler(FortranCompiler):
     def get_module_outdir_args(self, path):
         return ['-fmod=' + path]
 
-    def get_always_args(self):
+    def get_always_args(self, environment):
         return ['-pipe']
 
     def get_no_warn_args(self):
@@ -212,7 +212,7 @@ class SunFortranCompiler(FortranCompiler):
     def get_dependency_gen_args(self, outtarget, outfile):
         return ['-fpp']
 
-    def get_always_args(self):
+    def get_always_args(self, environment):
         return []
 
     def get_warn_args(self, level):

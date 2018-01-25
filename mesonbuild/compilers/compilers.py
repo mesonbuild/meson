@@ -651,7 +651,7 @@ class Compiler:
     def has_builtin_define(self, *args, **kwargs):
         raise EnvironmentException('%s does not support has_builtin_define.' % self.id)
 
-    def get_always_args(self):
+    def get_always_args(self, environment):
         return []
 
     def get_linker_always_args(self):
@@ -748,7 +748,7 @@ class Compiler:
         return os.path.join(dirname, 'output.' + suffix)
 
     @contextlib.contextmanager
-    def compile(self, code, extra_args=None, mode='link'):
+    def compile(self, code, environment, extra_args=None, mode='link'):
         if extra_args is None:
             extra_args = []
         try:
@@ -766,7 +766,7 @@ class Compiler:
                 commands = CompilerArgs(self)
                 commands.append(srcname)
                 commands += extra_args
-                commands += self.get_always_args()
+                commands += self.get_always_args(environment)
                 if mode == 'compile':
                     commands += self.get_compile_only_args()
                 # Preprocess mode outputs to stdout, so no output args
@@ -932,12 +932,12 @@ def get_compiler_uses_gnuld(c):
         return True
     return False
 
-def get_largefile_args(compiler):
+def get_largefile_args(compiler, environment):
     '''
     Enable transparent large-file-support for 32-bit UNIX systems
     '''
     if get_compiler_is_linuxlike(compiler):
-        # Enable large-file support unconditionally on all platforms other
+        # Enable large-file support on all platforms other
         # than macOS and Windows. macOS is now 64-bit-only so it doesn't
         # need anything special, and Windows doesn't have automatic LFS.
         # You must use the 64-bit counterparts explicitly.
@@ -947,10 +947,23 @@ def get_largefile_args(compiler):
         # https://code.google.com/p/android/issues/detail?id=64613
         #
         # If this breaks your code, fix it! It's been 20+ years!
-        return ['-D_FILE_OFFSET_BITS=64']
-        # We don't enable -D_LARGEFILE64_SOURCE since that enables
-        # transitionary features and must be enabled by programs that use
-        # those features explicitly.
+        request_64bit_file_offsets = True
+
+        # Considering the Android toolchain/Bionic issues referenced above,
+        # then setting a property of support_64bit_file_offsets = False in your
+        # cross-file will avoid building with -D_FILE_OFFSET_BITS=64
+        #
+        if compiler.is_cross and environment:
+            if 'properties' in environment.cross_info.config:
+                props = environment.cross_info.config['properties']
+                if 'support_64bit_file_offsets' in props:
+                    request_64bit_file_offsets = props['support_64bit_file_offsets']
+
+        if request_64bit_file_offsets:
+            return ['-D_FILE_OFFSET_BITS=64']
+            # We don't enable -D_LARGEFILE64_SOURCE since that enables
+            # transitionary features and must be enabled by programs that use
+            # those features explicitly.
     return []
 
 # TODO: The result from calling compiler should be cached. So that calling this
