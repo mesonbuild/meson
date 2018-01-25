@@ -56,6 +56,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'install_subdir': self.func_do_nothing,
                            'configuration_data': self.func_do_nothing,
                            'configure_file': self.func_do_nothing,
+                           'write_file': self.func_do_nothing,
                            'find_program': self.func_do_nothing,
                            'include_directories': self.func_do_nothing,
                            'add_global_arguments': self.func_do_nothing,

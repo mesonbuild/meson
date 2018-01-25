@@ -549,6 +549,11 @@ def do_mesondefine(line, confdata):
     else:
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
+def write_textfile(dst, text):
+    dst_tmp = dst + '~'
+    with open(dst_tmp, 'w', encoding='utf-8') as f:
+        f.write(text)
+    replace_if_different(dst, dst_tmp)
 
 def do_conf_file(src, dst, confdata):
     try:

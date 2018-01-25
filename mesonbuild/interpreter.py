@@ -1376,6 +1376,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'benchmark': {'args', 'env', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'build_target': build_target_kwargs,
                     'configure_file': {'input', 'output', 'configuration', 'command', 'install_dir', 'capture', 'install'},
+                    'write_file': {'output', 'text', 'install_dir', 'install'},
                     'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
                     'dependency': {'default_options', 'fallback', 'language', 'main', 'method', 'modules', 'optional_modules', 'native', 'required', 'static', 'version'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'version'},
@@ -1457,6 +1458,7 @@ class Interpreter(InterpreterBase):
                            'build_target': self.func_build_target,
                            'configuration_data': self.func_configuration_data,
                            'configure_file': self.func_configure_file,
+                           'write_file': self.func_write_file,
                            'custom_target': self.func_custom_target,
                            'declare_dependency': self.func_declare_dependency,
                            'dependency': self.func_dependency,
@@ -2695,6 +2697,42 @@ root and issuing %s.
         idir = InstallDir(self.subdir, subdir, install_dir, install_mode, exclude)
         self.build.install_dirs.append(idir)
         return idir
+
+    @permittedKwargs(permitted_kwargs['write_file'])
+    def func_write_file(self, node, args, kwargs):
+        if len(args) > 0:
+            raise InterpreterException("write_file takes only keyword arguments.")
+        if 'output' not in kwargs:
+            raise InterpreterException('Required keyword argument "output" not defined.')
+        if 'text' not in kwargs:
+            raise InterpreterException('Required keyword argument "text" not defined.')
+
+        # Validate text
+        text = kwargs['text']
+        if not isinstance(text, str):
+            raise InterpreterException('Text must be a string')
+        if text[-1] != '\n':
+            text += '\n'
+
+        # Validate output
+        output = kwargs['output']
+        if not isinstance(output, str):
+            raise InterpreterException('Output file name must be a string')
+        if os.path.split(output)[0] != '':
+            raise InterpreterException('Output file name must not contain a subdirectory.')
+        (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
+        ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
+
+        mlog.log('Writing file', ofile_abs)
+        mesonlib.write_textfile(ofile_abs, text)
+
+        # Install file if requested
+        ibool= kwargs.get('install', None)
+        idir = kwargs.get('install_dir', None)
+        if isinstance(ibool, bool) and ibool and isinstance(idir, str):
+            cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
+            self.build.data.append(build.Data([cfile], idir))
+        return mesonlib.File.from_built_file(self.subdir, output)
 
     @permittedKwargs(permitted_kwargs['configure_file'])
     def func_configure_file(self, node, args, kwargs):
