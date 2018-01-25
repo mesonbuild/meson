@@ -2727,7 +2727,7 @@ root and issuing %s.
         mesonlib.write_textfile(ofile_abs, text)
 
         # Install file if requested
-        ibool= kwargs.get('install', None)
+        ibool = kwargs.get('install', None)
         idir = kwargs.get('install_dir', None)
         if isinstance(ibool, bool) and ibool and isinstance(idir, str):
             cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
