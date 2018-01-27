@@ -31,7 +31,7 @@ import argparse
 import xml.etree.ElementTree as ET
 import time
 import multiprocessing
-import concurrent.futures as conc
+from concurrent.futures import ProcessPoolExecutor
 import re
 from run_unittests import get_fake_options, run_configure
 
@@ -58,50 +58,6 @@ class TestResult:
         self.conftime = conftime
         self.buildtime = buildtime
         self.testtime = testtime
-
-class DummyFuture(conc.Future):
-    '''
-    Dummy Future implementation that executes the provided function when you
-    ask for the result. Used on platforms where sem_open() is not available:
-    MSYS2, OpenBSD, etc: https://bugs.python.org/issue3770
-    '''
-    def set_function(self, fn, *args, **kwargs):
-        self.fn = fn
-        self.fn_args = args
-        self.fn_kwargs = kwargs
-
-    def result(self, **kwargs):
-        try:
-            result = self.fn(*self.fn_args, **self.fn_kwargs)
-        except BaseException as e:
-            self.set_exception(e)
-        else:
-            self.set_result(result)
-        return super().result(**kwargs)
-
-
-class DummyExecutor(conc.Executor):
-    '''
-    Dummy single-thread 'concurrent' executor for use on platforms where
-    sem_open is not available: https://bugs.python.org/issue3770
-    '''
-
-    def __init__(self):
-        from threading import Lock
-        self._shutdown = False
-        self._shutdownLock = Lock()
-
-    def submit(self, fn, *args, **kwargs):
-        with self._shutdownLock:
-            if self._shutdown:
-                raise RuntimeError('Cannot schedule new futures after shutdown')
-            f = DummyFuture()
-            f.set_function(fn, *args, **kwargs)
-            return f
-
-    def shutdown(self, wait=True):
-        with self._shutdownLock:
-            self._shutdown = True
 
 
 class AutoDeletedDir:
@@ -548,11 +504,7 @@ def _run_tests(all_tests, log_name_base, extra_args):
     # Remove this once the following issue has been resolved:
     # https://github.com/mesonbuild/meson/pull/2082
     num_workers *= 2
-    try:
-        executor = conc.ProcessPoolExecutor(max_workers=num_workers)
-    except ImportError:
-        print('Platform doesn\'t ProcessPoolExecutor, falling back to single-threaded testing\n')
-        executor = DummyExecutor()
+    executor = ProcessPoolExecutor(max_workers=num_workers)
 
     for name, test_cases, skipped in all_tests:
         current_suite = ET.SubElement(junit_root, 'testsuite', {'name': name, 'tests': str(len(test_cases))})
