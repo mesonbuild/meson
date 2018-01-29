@@ -2681,7 +2681,7 @@ root and issuing %s.
                     raise InvalidArguments('Exclude argument not a string.')
                 elif os.path.isabs(f):
                     raise InvalidArguments('Exclude argument cannot be absolute.')
-            exclude_files = {os.path.join(subdir, f) for f in exclude}
+            exclude_files = set(exclude)
         else:
             exclude_files = set()
         if 'exclude_directories' in kwargs:
@@ -2691,7 +2691,7 @@ root and issuing %s.
                     raise InvalidArguments('Exclude argument not a string.')
                 elif os.path.isabs(d):
                     raise InvalidArguments('Exclude argument cannot be absolute.')
-            exclude_directories = {os.path.join(subdir, f) for f in exclude}
+            exclude_directories = set(exclude)
         else:
             exclude_directories = set()
         exclude = (exclude_files, exclude_directories)

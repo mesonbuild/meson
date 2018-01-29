@@ -128,20 +128,42 @@ def do_copyfile(from_file, to_file):
     selinux_updates.append(to_file)
     append_to_log(to_file)
 
-def do_copydir(data, src_prefix, src_dir, dst_dir, exclude):
+def do_copydir(data, src_dir, dst_dir, exclude):
     '''
-    Copies the directory @src_prefix (full path) into @dst_dir
+    Copies the contents of directory @src_dir into @dst_dir.
 
-    @src_dir is simply the parent directory of @src_prefix
+    For directory
+        /foo/
+          bar/
+            excluded
+            foobar
+          file
+    do_copydir(..., '/foo', '/dst/dir', {'bar/excluded'}) creates
+        /dst/
+          dir/
+            bar/
+              foobar
+            file
+
+    Args:
+        src_dir: str, absolute path to the source directory
+        dst_dir: str, absolute path to the destination directory
+        exclude: (set(str), set(str)), tuple of (exclude_files, exclude_dirs),
+                 each element of the set is a path relative to src_dir.
     '''
+    if not os.path.isabs(src_dir):
+        raise ValueError('src_dir must be absolute, got %s' % src_dir)
+    if not os.path.isabs(dst_dir):
+        raise ValueError('dst_dir must be absolute, got %s' % dst_dir)
     if exclude is not None:
         exclude_files, exclude_dirs = exclude
     else:
         exclude_files = exclude_dirs = set()
-    for root, dirs, files in os.walk(src_prefix):
+    for root, dirs, files in os.walk(src_dir):
+        assert os.path.isabs(root)
         for d in dirs[:]:
-            abs_src = os.path.join(src_dir, root, d)
-            filepart = abs_src[len(src_dir) + 1:]
+            abs_src = os.path.join(root, d)
+            filepart = os.path.relpath(abs_src, start=src_dir)
             abs_dst = os.path.join(dst_dir, filepart)
             # Remove these so they aren't visited by os.walk at all.
             if filepart in exclude_dirs:
@@ -155,8 +177,8 @@ def do_copydir(data, src_prefix, src_dir, dst_dir, exclude):
             data.dirmaker.makedirs(abs_dst)
             shutil.copystat(abs_src, abs_dst)
         for f in files:
-            abs_src = os.path.join(src_dir, root, f)
-            filepart = abs_src[len(src_dir) + 1:]
+            abs_src = os.path.join(root, f)
+            filepart = os.path.relpath(abs_src, start=src_dir)
             if filepart in exclude_files:
                 continue
             abs_dst = os.path.join(dst_dir, filepart)
@@ -195,16 +217,12 @@ def do_install(datafilename):
         run_install_script(d)
 
 def install_subdirs(d):
-    for (src_dir, inst_dir, dst_dir, mode, exclude) in d.install_subdirs:
-        if src_dir.endswith('/') or src_dir.endswith('\\'):
-            src_dir = src_dir[:-1]
-        src_prefix = os.path.join(src_dir, inst_dir)
-        print('Installing subdir %s to %s' % (src_prefix, dst_dir))
+    for (src_dir, dst_dir, mode, exclude) in d.install_subdirs:
+        print('Installing subdir %s to %s' % (src_dir, dst_dir))
         dst_dir = get_destdir_path(d, dst_dir)
         d.dirmaker.makedirs(dst_dir, exist_ok=True)
-        do_copydir(d, src_prefix, src_dir, dst_dir, exclude)
-        dst_prefix = os.path.join(dst_dir, inst_dir)
-        set_mode(dst_prefix, mode)
+        do_copydir(d, src_dir, dst_dir, exclude)
+        set_mode(dst_dir, mode)
 
 def install_data(d):
     for i in d.data:
@@ -332,7 +350,7 @@ def install_targets(d):
                 do_copyfile(pdb_filename, pdb_outname)
         elif os.path.isdir(fname):
             fname = os.path.join(d.build_dir, fname.rstrip('/'))
-            do_copydir(d, fname, os.path.dirname(fname), outdir, None)
+            do_copydir(d, fname, os.path.join(outdir, os.path.basename(fname)), None)
         else:
             raise RuntimeError('Unknown file type for {!r}'.format(fname))
         printed_symlink_error = False
