@@ -429,7 +429,7 @@ class BoostDependency(ExternalDependency):
         args = []
         # TODO: should this check self.libdir?
         if self.libdir:
-            args.append('-L' + self.libdir)
+            args += self.compiler.get_linker_search_args(self.libdir)
         for lib in self.requested_modules:
             args += self.lib_modules['boost_' + lib]
         return args
@@ -447,7 +447,7 @@ class BoostDependency(ExternalDependency):
             return self.get_win_link_args()
         args = []
         for dir in self.extra_lib_dirs():
-            args += ['-L' + dir]
+            args += self.compiler.get_linker_search_args(self.libdir)
         for lib in self.requested_modules:
             args += self.lib_modules['boost_' + lib]
         return args
