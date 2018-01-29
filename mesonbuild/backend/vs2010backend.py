@@ -1185,8 +1185,17 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         test_command = self.environment.get_build_command() + ['test', '--no-rebuild']
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             test_command += ['--no-stdsplit']
-        if self.environment.coredata.get_builtin_option('errorlogs'):
+        out = self.environment.coredata.get_builtin_option('output')
+        if out == 'on-error':
             test_command += ['--print-errorlogs']
+        elif out == 'always':
+            test_command += ['--verbose']
+        suite = self.environment.coredata.get_builtin_option('suite')
+        if suite:
+            test_command += ['--suite=%s' % suite]
+        setup = self.environment.coredata.get_builtin_option('setup')
+        if setup:
+            test_command += ['--setup=%s' % setup]
         cmd_templ = '''setlocal
 "%s"
 if %%errorlevel%% neq 0 goto :cmEnd
