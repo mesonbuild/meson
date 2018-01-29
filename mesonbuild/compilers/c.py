@@ -172,10 +172,10 @@ class CCompiler(Compiler):
         return ' '.join(self.exelist)
 
     def get_pch_use_args(self, pch_dir, header):
-        return ['-include', os.path.split(header)[-1]]
+        return ['-include', os.path.basename(header)]
 
     def get_pch_name(self, header_name):
-        return os.path.split(header_name)[-1] + '.' + self.get_pch_suffix()
+        return os.path.basename(header_name) + '.' + self.get_pch_suffix()
 
     def get_linker_search_args(self, dirname):
         return ['-L' + dirname]
@@ -875,7 +875,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         return ['-shared']
 
     def get_pch_use_args(self, pch_dir, header):
-        return ['-fpch-preprocess', '-include', os.path.split(header)[-1]]
+        return ['-fpch-preprocess', '-include', os.path.basename(header)]
 
 
 class IntelCCompiler(IntelCompiler, CCompiler):
@@ -954,13 +954,13 @@ class VisualStudioCCompiler(CCompiler):
         return 'pch'
 
     def get_pch_name(self, header):
-        chopped = os.path.split(header)[-1].split('.')[:-1]
+        chopped = os.path.basename(header).split('.')[:-1]
         chopped.append(self.get_pch_suffix())
         pchname = '.'.join(chopped)
         return pchname
 
     def get_pch_use_args(self, pch_dir, header):
-        base = os.path.split(header)[-1]
+        base = os.path.basename(header)
         pchname = self.get_pch_name(header)
         return ['/FI' + base, '/Yu' + base, '/Fp' + os.path.join(pch_dir, pchname)]
 
@@ -1087,7 +1087,7 @@ class VisualStudioCCompiler(CCompiler):
         mlog.debug('Running VS compile:')
         mlog.debug('Command line: ', ' '.join(commands))
         mlog.debug('Code:\n', code)
-        p, stdo, stde = Popen_safe(commands, cwd=os.path.split(srcname)[0])
+        p, stdo, stde = Popen_safe(commands, cwd=os.path.dirname(srcname))
         if p.returncode != 0:
             return False
         return not(warning_text in stde or warning_text in stdo)

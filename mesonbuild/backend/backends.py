@@ -322,7 +322,7 @@ class Backend:
                         continue
                     if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so']:
                         continue
-                    absdir = os.path.split(libpath)[0]
+                    absdir = os.path.dirname(libpath)
                     rel_to_src = absdir[len(self.environment.get_source_dir()) + 1:]
                     assert(not os.path.isabs(rel_to_src))
                     paths.append(os.path.join(self.build_to_src, rel_to_src))

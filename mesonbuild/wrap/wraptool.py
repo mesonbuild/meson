@@ -150,7 +150,7 @@ def do_promotion(from_path, spdir_name):
         assert(from_path.endswith('.wrap'))
         shutil.copy(from_path, spdir_name)
     elif os.path.isdir(from_path):
-        sproj_name = os.path.split(from_path)[1]
+        sproj_name = os.path.basename(from_path)
         outputdir = os.path.join(spdir_name, sproj_name)
         if os.path.exists(outputdir):
             sys.exit('Output dir %s already exists. Will not overwrite.' % outputdir)
@@ -178,7 +178,7 @@ def promote(argument):
 def status():
     print('Subproject status')
     for w in glob('subprojects/*.wrap'):
-        name = os.path.split(w)[1][:-5]
+        name = os.path.basename(w)[:-5]
         try:
             (latest_branch, latest_revision) = get_latest_version(name)
         except Exception:

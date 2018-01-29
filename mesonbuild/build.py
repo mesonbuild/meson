@@ -1065,7 +1065,7 @@ class Generator:
             depfile = kwargs['depfile']
             if not isinstance(depfile, str):
                 raise InvalidArguments('Depfile must be a string.')
-            if os.path.split(depfile)[1] != depfile:
+            if os.path.basename(depfile) != depfile:
                 raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
             self.depfile = depfile
         if 'capture' in kwargs:
@@ -1075,7 +1075,7 @@ class Generator:
             self.capture = capture
 
     def get_base_outnames(self, inname):
-        plainname = os.path.split(inname)[1]
+        plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
         bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
         return bases
@@ -1083,12 +1083,12 @@ class Generator:
     def get_dep_outname(self, inname):
         if self.depfile is None:
             raise InvalidArguments('Tried to get dep name for rule that does not have dependency file defined.')
-        plainname = os.path.split(inname)[1]
+        plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
         return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
 
     def get_arglist(self, inname):
-        plainname = os.path.split(inname)[1]
+        plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
@@ -1130,7 +1130,7 @@ class GeneratedList:
         in_abs = infile.absolute_path(state.environment.source_dir, state.environment.build_dir)
         assert(os.path.isabs(self.preserve_path_from))
         rel = os.path.relpath(in_abs, self.preserve_path_from)
-        path_segment = os.path.split(rel)[0]
+        path_segment = os.path.dirname(rel)
         for of in outfiles:
             result.append(os.path.join(path_segment, of))
         return result
@@ -1659,7 +1659,7 @@ class CustomTarget(Target):
             depfile = kwargs['depfile']
             if not isinstance(depfile, str):
                 raise InvalidArguments('Depfile must be a string.')
-            if os.path.split(depfile)[1] != depfile:
+            if os.path.basename(depfile) != depfile:
                 raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
             self.depfile = depfile
         self.command = self.flatten_command(kwargs['command'])

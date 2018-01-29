@@ -129,7 +129,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         return []
 
     def get_pch_use_args(self, pch_dir, header):
-        return ['-fpch-preprocess', '-include', os.path.split(header)[-1]]
+        return ['-fpch-preprocess', '-include', os.path.basename(header)]
 
 
 class IntelCPPCompiler(IntelCompiler, CPPCompiler):

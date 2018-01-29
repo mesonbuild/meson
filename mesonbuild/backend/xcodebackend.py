@@ -311,7 +311,7 @@ class XCodeBackend(backends.Backend):
         for fname, idval in self.filemap.items():
             fullpath = os.path.join(self.environment.get_source_dir(), fname)
             xcodetype = self.get_xcodetype(fname)
-            name = os.path.split(fname)[-1]
+            name = os.path.basename(fname)
             path = fname
             self.ofile.write(src_templ % (idval, fullpath, xcodetype, name, path))
         target_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; path = %s; refType = %d; sourceTree = BUILT_PRODUCTS_DIR; };\n'

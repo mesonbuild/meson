@@ -73,7 +73,7 @@ class QtBaseModule:
 
     def parse_qrc(self, state, fname):
         abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
-        relative_part = os.path.split(fname)[0]
+        relative_part = os.path.dirname(fname)
         try:
             tree = ET.parse(abspath)
             root = tree.getroot()
@@ -116,7 +116,7 @@ class QtBaseModule:
                 sources.append(res_target)
             else:
                 for rcc_file in rcc_files:
-                    basename = os.path.split(rcc_file)[1]
+                    basename = os.path.basename(rcc_file)
                     name = 'qt' + str(self.qt_version) + '-' + basename.replace('.', '_')
                     rcc_kwargs = {'input': rcc_file,
                                   'output': name + '.cpp',

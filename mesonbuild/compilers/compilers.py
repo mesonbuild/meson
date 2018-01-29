@@ -1040,7 +1040,7 @@ class GnuCompiler:
         return 'gch'
 
     def split_shlib_to_parts(self, fname):
-        return os.path.split(fname)[0], fname
+        return os.path.dirname(fname), fname
 
     def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
@@ -1188,10 +1188,10 @@ class IntelCompiler:
                 self.lang_header, '-include', header, '-x', 'none']
 
     def get_pch_name(self, header_name):
-        return os.path.split(header_name)[-1] + '.' + self.get_pch_suffix()
+        return os.path.basename(header_name) + '.' + self.get_pch_suffix()
 
     def split_shlib_to_parts(self, fname):
-        return os.path.split(fname)[0], fname
+        return os.path.dirname(fname), fname
 
     def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         if self.icc_type == ICC_STANDARD:
