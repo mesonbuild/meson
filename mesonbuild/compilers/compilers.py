@@ -111,7 +111,7 @@ gnulike_buildtype_args = {'plain': [],
                           'debug': ['-O0', '-g'],
                           'debugoptimized': ['-O2', '-g'],
                           'release': ['-O3'],
-                          'minsize': ['-Os', '-g']}
+                          'minsize': ['-Os']}
 
 msvc_buildtype_args = {'plain': [],
                        'debug': ["/MDd", "/ZI", "/Ob0", "/Od", "/RTC1"],
