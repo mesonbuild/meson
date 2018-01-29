@@ -91,7 +91,7 @@ end program prog
         return gnulike_buildtype_linker_args[buildtype]
 
     def split_shlib_to_parts(self, fname):
-        return os.path.split(fname)[0], fname
+        return os.path.dirname(fname), fname
 
     def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)

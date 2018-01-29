@@ -594,7 +594,7 @@ class Environment:
         return self.scratch_dir
 
     def get_depfixer(self):
-        path = os.path.split(__file__)[0]
+        path = os.path.dirname(__file__)
         return os.path.join(path, 'depfixer.py')
 
     def detect_objc_compiler(self, want_cross):

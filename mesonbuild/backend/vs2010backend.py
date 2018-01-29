@@ -1034,7 +1034,7 @@ class Vs2010Backend(backends.Backend):
                     pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
                     # MSBuild searches for the header relative from the implementation, so we have to use
                     # just the file name instead of the relative path to the file.
-                    pch_file.text = os.path.split(header)[1]
+                    pch_file.text = os.path.basename(header)
                     self.add_additional_options(lang, inc_cl, file_args)
                     self.add_preprocessor_defines(lang, inc_cl, file_defines)
                     self.add_include_dirs(lang, inc_cl, file_inc_dirs)

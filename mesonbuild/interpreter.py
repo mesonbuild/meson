@@ -2739,7 +2739,7 @@ root and issuing %s.
             values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
             outputs = mesonlib.substitute_values([output], values)
             output = outputs[0]
-        if os.path.split(output)[0] != '':
+        if os.path.dirname(output) != '':
             raise InterpreterException('Output file name must not contain a subdirectory.')
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
@@ -2977,7 +2977,7 @@ different subdirectory.
             norm = os.path.relpath(norm, self.environment.source_dir)
             assert(not os.path.isabs(norm))
         (num_sps, sproj_name) = self.evaluate_subproject_info(norm, self.subproject_dir)
-        plain_filename = os.path.split(norm)[-1]
+        plain_filename = os.path.basename(norm)
         if num_sps == 0:
             if self.subproject == '':
                 return

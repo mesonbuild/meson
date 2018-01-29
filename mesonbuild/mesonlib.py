@@ -857,7 +857,7 @@ def get_filenames_templates_dict(inputs, outputs):
             values['@INPUT{}@'.format(ii)] = vv
         if len(inputs) == 1:
             # Just one value, substitute @PLAINNAME@ and @BASENAME@
-            values['@PLAINNAME@'] = plain = os.path.split(inputs[0])[1]
+            values['@PLAINNAME@'] = plain = os.path.basename(inputs[0])
             values['@BASENAME@'] = os.path.splitext(plain)[0]
     if outputs:
         # Gather values derived from the outputs, similar to above.
@@ -865,7 +865,7 @@ def get_filenames_templates_dict(inputs, outputs):
         for (ii, vv) in enumerate(outputs):
             values['@OUTPUT{}@'.format(ii)] = vv
         # Outdir should be the same for all outputs
-        values['@OUTDIR@'] = os.path.split(outputs[0])[0]
+        values['@OUTDIR@'] = os.path.dirname(outputs[0])
         # Many external programs fail on empty arguments.
         if values['@OUTDIR@'] == '':
             values['@OUTDIR@'] = '.'
@@ -895,7 +895,7 @@ def detect_subprojects(spdir_name, current_dir='', result=None):
     if not os.path.exists(spdir):
         return result
     for trial in glob(os.path.join(spdir, '*')):
-        basename = os.path.split(trial)[1]
+        basename = os.path.basename(trial)
         if trial == 'packagecache':
             continue
         append_this = True

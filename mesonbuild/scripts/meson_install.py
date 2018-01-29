@@ -164,10 +164,10 @@ def do_copydir(data, src_prefix, src_dir, dst_dir, exclude):
                 print('Tried to copy file %s but a directory of that name already exists.' % abs_dst)
             if os.path.exists(abs_dst):
                 os.unlink(abs_dst)
-            parent_dir = os.path.split(abs_dst)[0]
+            parent_dir = os.path.dirname(abs_dst)
             if not os.path.isdir(parent_dir):
                 os.mkdir(parent_dir)
-                shutil.copystat(os.path.split(abs_src)[0], parent_dir)
+                shutil.copystat(os.path.dirname(abs_src), parent_dir)
             shutil.copy2(abs_src, abs_dst, follow_symlinks=False)
             append_to_log(abs_dst)
 
@@ -211,7 +211,7 @@ def install_data(d):
         fullfilename = i[0]
         outfilename = get_destdir_path(d, i[1])
         mode = i[2]
-        outdir = os.path.split(outfilename)[0]
+        outdir = os.path.dirname(outfilename)
         d.dirmaker.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s' % (fullfilename, outdir))
         do_copyfile(fullfilename, outfilename)
@@ -221,7 +221,7 @@ def install_man(d):
     for m in d.man:
         full_source_filename = m[0]
         outfilename = get_destdir_path(d, m[1])
-        outdir = os.path.split(outfilename)[0]
+        outdir = os.path.dirname(outfilename)
         d.dirmaker.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s' % (full_source_filename, outdir))
         if outfilename.endswith('.gz') and not full_source_filename.endswith('.gz'):
@@ -238,7 +238,7 @@ def install_man(d):
 def install_headers(d):
     for t in d.headers:
         fullfilename = t[0]
-        fname = os.path.split(fullfilename)[1]
+        fname = os.path.basename(fullfilename)
         outdir = get_destdir_path(d, t[1])
         outfilename = os.path.join(outdir, fname)
         print('Installing %s to %s' % (fname, outdir))
@@ -304,7 +304,7 @@ def install_targets(d):
     for t in d.targets:
         fname = check_for_stampfile(t[0])
         outdir = get_destdir_path(d, t[1])
-        outname = os.path.join(outdir, os.path.split(fname)[-1])
+        outname = os.path.join(outdir, os.path.basename(fname))
         aliases = t[2]
         should_strip = t[3]
         install_rpath = t[4]
@@ -316,7 +316,7 @@ def install_targets(d):
             do_copyfile(fname, outname)
             if should_strip and d.strip_bin is not None:
                 if fname.endswith('.jar'):
-                    print('Not stripping jar target:', os.path.split(fname)[1])
+                    print('Not stripping jar target:', os.path.basename(fname))
                     continue
                 print('Stripping target {!r}'.format(fname))
                 ps, stdo, stde = Popen_safe(d.strip_bin + [outname])
@@ -366,7 +366,7 @@ def run(args):
         print('Installer script for Meson. Do not run on your own, mmm\'kay?')
         print('meson_install.py [install info file]')
     datafilename = args[0]
-    private_dir = os.path.split(datafilename)[0]
+    private_dir = os.path.dirname(datafilename)
     log_dir = os.path.join(private_dir, '../meson-logs')
     with open(os.path.join(log_dir, 'install-log.txt'), 'w') as lf:
         install_log_file = lf

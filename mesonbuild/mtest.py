@@ -438,7 +438,7 @@ TIMEOUT: %4d
         logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
 
         if self.options.wrapper:
-            namebase = os.path.split(self.get_wrapper()[0])[1]
+            namebase = os.path.basename(self.get_wrapper()[0])
         elif self.options.setup:
             namebase = self.options.setup
 

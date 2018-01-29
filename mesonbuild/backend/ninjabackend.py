@@ -823,7 +823,7 @@ int dummy;
                 if subdir is None:
                     subdir = os.path.join(manroot, 'man' + num)
                 srcabs = f.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
-                dstabs = os.path.join(subdir, os.path.split(f.fname)[1] + '.gz')
+                dstabs = os.path.join(subdir, os.path.basename(f.fname) + '.gz')
                 i = [srcabs, dstabs]
                 d.man.append(i)
 
@@ -836,7 +836,7 @@ int dummy;
             subdir = de.install_dir
             for f in de.sources:
                 assert(isinstance(f, mesonlib.File))
-                plain_f = os.path.split(f.fname)[1]
+                plain_f = os.path.basename(f.fname)
                 dstabs = os.path.join(subdir, plain_f)
                 i = [f.absolute_path(srcdir, builddir), dstabs, de.install_mode]
                 d.data.append(i)
@@ -1278,7 +1278,7 @@ int dummy;
                 # Target names really should not have slashes in them, but
                 # unfortunately we did not check for that and some downstream projects
                 # now have them. Once slashes are forbidden, remove this bit.
-                target_slashname_workaround_dir = os.path.join(os.path.split(target.name)[0],
+                target_slashname_workaround_dir = os.path.join(os.path.dirname(target.name),
                                                                self.get_target_dir(target))
             else:
                 target_slashname_workaround_dir = self.get_target_dir(target)
@@ -1401,7 +1401,7 @@ int dummy;
         objects = [] # Relative to swift invocation dir
         rel_objects = [] # Relative to build.ninja
         for i in abssrc + abs_generated:
-            base = os.path.split(i)[1]
+            base = os.path.basename(i)
             oname = os.path.splitext(base)[0] + '.o'
             objects.append(oname)
             rel_objects.append(os.path.join(self.get_target_private_dir(target), oname))
@@ -1928,7 +1928,7 @@ rule FORTRAN_DEP_HACK
                     # Check if a source uses a module it exports itself.
                     # Potential bug if multiple targets have a file with
                     # the same name.
-                    if mod_source_file.fname == os.path.split(src)[1]:
+                    if mod_source_file.fname == os.path.basename(src):
                         continue
                     mod_name = compiler.module_name_to_filename(
                         usematch.group(1))
@@ -2271,7 +2271,7 @@ rule FORTRAN_DEP_HACK
 
         commands = []
         commands += self.generate_basic_compiler_args(target, compiler)
-        just_name = os.path.split(header)[1]
+        just_name = os.path.basename(header)
         (objname, pch_args) = compiler.gen_pch_args(just_name, source, dst)
         commands += pch_args
         commands += self.get_compile_debugfile_args(compiler, target, objname)
@@ -2281,7 +2281,7 @@ rule FORTRAN_DEP_HACK
     def generate_gcc_pch_command(self, target, compiler, pch):
         commands = self._generate_single_compile(target, compiler)
         dst = os.path.join(self.get_target_private_dir(target),
-                           os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
+                           os.path.basename(pch) + '.' + compiler.get_pch_suffix())
         dep = dst + '.' + compiler.get_depfile_suffix()
         return commands, dep, dst, []  # Gcc does not create an object file during pch generation.
 
@@ -2476,7 +2476,7 @@ rule FORTRAN_DEP_HACK
             # unfortunately we did not check for that and some downstream projects
             # now have them. Once slashes are forbidden, remove this bit.
             target_slashname_workaround_dir = os.path.join(
-                os.path.split(target.name)[0],
+                os.path.dirname(target.name),
                 self.get_target_dir(target))
         else:
             target_slashname_workaround_dir = self.get_target_dir(target)
