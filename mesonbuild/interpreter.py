@@ -3006,6 +3006,8 @@ different subdirectory.
     def add_target(self, name, tobj):
         if name == '':
             raise InterpreterException('Target name must not be empty.')
+        if name.strip() == '':
+            raise InterpreterException('Target name must not consist only of whitespace.')
         if name.startswith('meson-'):
             raise InvalidArguments("Target names starting with 'meson-' are reserved "
                                    "for Meson's internal use. Please rename.")
