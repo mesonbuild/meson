@@ -364,6 +364,10 @@ class BoostDependency(ExternalDependency):
                     fname = os.path.basename(entry)
                     self.lib_modules[self.modname_from_filename(fname)] = [fname]
 
+    # - Linux  leaves off -mt but libraries are multithreading-aware.
+    # - Cygwin leaves off -mt but libraries are multithreading-aware.
+    # - Mac requires -mt for multithreading, so should not fall back
+    #   to non-mt libraries.
     def abi_tag(self):
         if mesonlib.for_windows(self.want_cross, self.env):
             return None
