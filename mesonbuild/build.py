@@ -1637,6 +1637,10 @@ class CustomTarget(Target):
         for i in self.outputs:
             if not(isinstance(i, str)):
                 raise InvalidArguments('Output argument not a string.')
+            if i == '':
+                raise InvalidArguments('Output must not be empty.')
+            if i.strip() == '':
+                raise InvalidArguments('Output must not consist only of whitespace.')
             if '/' in i:
                 raise InvalidArguments('Output must not contain a path segment.')
             if '@INPUT@' in i or '@INPUT0@' in i:
