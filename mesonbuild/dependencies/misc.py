@@ -63,9 +63,12 @@ from .base import (
 
 # **On Unix**, official packaged versions of boost libraries follow the following schemes:
 #
-# Linux / Debian:   libboost_<module>.so.1.66.0 -> libboost_<module>.so
-# Linux / Red Hat:  libboost_<module>.so.1.66.0 -> libboost_<module>.so
-# Linux / OpenSuse: libboost_<module>.so.1.66.0 -> libboost_<module>.so
+# Linux / Debian:   libboost_<module>.so -> libboost_<module>.so.1.66.0
+# Linux / Red Hat:  libboost_<module>.so -> libboost_<module>.so.1.66.0
+# Linux / OpenSuse: libboost_<module>.so -> libboost_<module>.so.1.66.0
+# Win   / Cygwin:   libboost_<module>.dll.a                                 (location = /usr/lib)
+#                   libboost_<module>.a
+#                   cygboost_<module>_1_64.dll                              (location = /usr/bin)
 # Mac   / homebrew: libboost_<module>.dylib + libboost_<module>-mt.dylib    (location = /usr/local/lib)
 # Mac   / macports: libboost_<module>.dylib + libboost_<module>-mt.dylib    (location = /opt/local/lib)
 #
