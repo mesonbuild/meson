@@ -265,9 +265,6 @@ class TestHarness:
             except KeyboardInterrupt:
                 mlog.warning("CTRL-C detected while running %s" % (test.name))
                 kill_test = True
-            except:
-                mlog.warning("Unknown error while running %s" % (test.name))
-                kill_test = True
 
             if kill_test or timed_out:
                 # Python does not provide multiplatform support for
