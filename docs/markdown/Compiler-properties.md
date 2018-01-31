@@ -173,7 +173,7 @@ Does a structure contain a member?
 ==
 
 Some platforms have different standard structures. Here's how one
-would check if a struct called `mystruct` from header `myheader.h</hh>
+would check if a struct called `mystruct` from header `myheader.h`
 contains a member called `some_member`.
 
 ```meson
