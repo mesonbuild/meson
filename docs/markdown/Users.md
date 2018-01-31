@@ -40,6 +40,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style meson example project
  - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library (not the default yet)
  - [Parzip](https://github.com/jpakkane/parzip), a multithreaded reimplementation of Zip
+ - [PipeWire](https://pipewire.org/), a framework for video and audio for containerized applications
  - [Pitivi](http://pitivi.org/), a nonlinear video editor
  - [Polari](https://git.gnome.org/browse/polari), an IRC client
  - [Sysprof](https://wiki.gnome.org/Apps/Sysprof), a profiling tool
