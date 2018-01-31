@@ -38,8 +38,12 @@ else:
     execute_wrapper = ''
     rmfile_prefix = 'rm -f {} &&'
 
-def ninja_quote(text):
-    for char in ('$', ' ', ':'):
+def ninja_quote(text, is_build_line=False):
+    if is_build_line:
+        qcs = ('$', ' ', ':')
+    else:
+        qcs = ('$', ' ')
+    for char in qcs:
         text = text.replace(char, '$' + char)
     if '\n' in text:
         raise MesonException('Ninja does not support newlines in rules. '
@@ -83,13 +87,13 @@ class NinjaBuildElement:
 
     def write(self, outfile):
         self.check_outputs()
-        line = 'build %s: %s %s' % (' '.join([ninja_quote(i) for i in self.outfilenames]),
+        line = 'build %s: %s %s' % (' '.join([ninja_quote(i, True) for i in self.outfilenames]),
                                     self.rule,
-                                    ' '.join([ninja_quote(i) for i in self.infilenames]))
+                                    ' '.join([ninja_quote(i, True) for i in self.infilenames]))
         if len(self.deps) > 0:
-            line += ' | ' + ' '.join([ninja_quote(x) for x in self.deps])
+            line += ' | ' + ' '.join([ninja_quote(x, True) for x in self.deps])
         if len(self.orderdeps) > 0:
-            line += ' || ' + ' '.join([ninja_quote(x) for x in self.orderdeps])
+            line += ' || ' + ' '.join([ninja_quote(x, True) for x in self.orderdeps])
         line += '\n'
         # This is the only way I could find to make this work on all
         # platforms including Windows command shell. Slash is a dir separator
