@@ -63,9 +63,12 @@ from .base import (
 
 # **On Unix**, official packaged versions of boost libraries follow the following schemes:
 #
-# Linux / Debian:   libboost_<module>.so.1.66.0 -> libboost_<module>.so
-# Linux / Red Hat:  libboost_<module>.so.1.66.0 -> libboost_<module>.so
-# Linux / OpenSuse: libboost_<module>.so.1.66.0 -> libboost_<module>.so
+# Linux / Debian:   libboost_<module>.so -> libboost_<module>.so.1.66.0
+# Linux / Red Hat:  libboost_<module>.so -> libboost_<module>.so.1.66.0
+# Linux / OpenSuse: libboost_<module>.so -> libboost_<module>.so.1.66.0
+# Win   / Cygwin:   libboost_<module>.dll.a                                 (location = /usr/lib)
+#                   libboost_<module>.a
+#                   cygboost_<module>_1_64.dll                              (location = /usr/bin)
 # Mac   / homebrew: libboost_<module>.dylib + libboost_<module>-mt.dylib    (location = /usr/local/lib)
 # Mac   / macports: libboost_<module>.dylib + libboost_<module>-mt.dylib    (location = /opt/local/lib)
 #
@@ -147,22 +150,7 @@ class BoostDependency(ExternalDependency):
             self.log_fail()
             return
 
-        invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in BOOST_LIBS]
-
-        # previous versions of meson allowed include dirs as modules
-        remove = []
-        for m in invalid_modules:
-            if m in BOOST_DIRS:
-                mlog.warning('Requested boost library', mlog.bold(m), 'that doesn\'t exist. '
-                             'This will be an error in the future')
-                remove.append(m)
-
-        self.requested_modules = [x for x in self.requested_modules if x not in remove]
-        invalid_modules = [x for x in invalid_modules if x not in remove]
-
-        if invalid_modules:
-            mlog.log(mlog.red('ERROR:'), 'Invalid Boost modules: ' + ', '.join(invalid_modules))
-            self.log_fail()
+        if self.check_invalid_modules():
             return
 
         mlog.debug('Boost library root dir is', mlog.bold(self.boost_root))
@@ -183,6 +171,26 @@ class BoostDependency(ExternalDependency):
         else:
             self.log_fail()
 
+    def check_invalid_modules(self):
+        invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in BOOST_LIBS]
+
+        # previous versions of meson allowed include dirs as modules
+        remove = []
+        for m in invalid_modules:
+            if m in BOOST_DIRS:
+                mlog.warning('Requested boost library', mlog.bold(m), 'that doesn\'t exist. '
+                             'This will be an error in the future')
+                remove.append(m)
+
+        self.requested_modules = [x for x in self.requested_modules if x not in remove]
+        invalid_modules = [x for x in invalid_modules if x not in remove]
+
+        if invalid_modules:
+            mlog.log(mlog.red('ERROR:'), 'Invalid Boost modules: ' + ', '.join(invalid_modules))
+            self.log_fail()
+            return True
+        else:
+            return False
 
     def log_fail(self):
         module_str = ', '.join(self.requested_modules)
@@ -359,15 +367,23 @@ class BoostDependency(ExternalDependency):
                     fname = os.path.basename(entry)
                     self.lib_modules[self.modname_from_filename(fname)] = [fname]
 
+    # - Linux  leaves off -mt but libraries are multithreading-aware.
+    # - Cygwin leaves off -mt but libraries are multithreading-aware.
+    # - Mac requires -mt for multithreading, so should not fall back
+    #   to non-mt libraries.
+    def abi_tag(self):
+        if mesonlib.for_windows(self.want_cross, self.env):
+            return None
+        if self.is_multithreading and mesonlib.for_darwin(self.want_cross, self.env):
+            return '-mt'
+        else:
+            return ''
+
     def detect_lib_modules_nix(self):
         all_found = True
         for module in self.requested_modules:
-            args = None
-            libname = 'boost_' + module
-            if self.is_multithreading and mesonlib.for_darwin(self.want_cross, self.env):
-                # - Linux leaves off -mt but libraries are multithreading-aware.
-                # - Mac requires -mt for multithreading, so should not fall back to non-mt libraries.
-                libname = libname + '-mt'
+            libname = 'boost_' + module + self.abi_tag()
+
             args = self.compiler.find_library(libname, self.env, self.extra_lib_dirs())
             if args is None:
                 mlog.debug('Couldn\'t find library "{}" for boost module "{}"'.format(module, libname))
@@ -416,29 +432,17 @@ class BoostDependency(ExternalDependency):
                 if modname not in self.lib_modules:
                     self.lib_modules[modname] = [entry]
 
-    def get_win_link_args(self):
-        args = []
-        # TODO: should this check self.libdir?
-        if self.libdir:
-            args.append('-L' + self.libdir)
-        for lib in self.requested_modules:
-            args += self.lib_modules['boost_' + lib]
-        return args
-
     def extra_lib_dirs(self):
-        dirs = []
-        if self.boost_root:
-            dirs = [os.path.join(self.boost_root, 'lib')]
-        elif self.libdir:
-            dirs = [self.libdir]
-        return dirs
+        if self.libdir:
+            return [self.libdir]
+        elif self.boost_root:
+            return [os.path.join(self.boost_root, 'lib')]
+        return []
 
     def get_link_args(self):
-        if mesonlib.is_windows():
-            return self.get_win_link_args()
         args = []
         for dir in self.extra_lib_dirs():
-            args += ['-L' + dir]
+            args += self.compiler.get_linker_search_args(self.libdir)
         for lib in self.requested_modules:
             args += self.lib_modules['boost_' + lib]
         return args
