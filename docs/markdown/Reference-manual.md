@@ -435,7 +435,7 @@ be passed to [shared and static libraries](#library).
 - `install_dir` override install directory for this file. The value is
   relative to the `prefix` specified. F.ex, if you want to install
   plugins into a subdir, you'd use something like this: `install_dir :
-  get_option('libdir') + '/projectname-1.0'`.
+  join_paths(get_option('libdir'), 'projectname-1.0'`).
 - `install_rpath` a string to set the target's rpath to after install
   (but *not* before that)
 - `objects` list of prebuilt object files (usually for third party
@@ -615,8 +615,13 @@ Obtains the value of the [project build option](Build-options.md) specified in t
 
 Note that the value returned for built-in options that end in `dir` such as
 `bindir` and `libdir` is always a path relative to (and inside) the `prefix`.
+
 The only exceptions are: `sysconfdir`, `localstatedir`, and `sharedstatedir`
-which will return the value passed during configuration as-is.
+which will return the value passed during configuration as-is, which may be
+absolute, or relative to `prefix`.  [`install_dir` arguments](Installing.md)
+handles that as expected, but if you need the absolute path to one of these
+e.g. to use in a define etc., you should use `join_paths(get_option('prefix'),
+get_option('localstatedir')))`
 
 ### get_variable()
 
