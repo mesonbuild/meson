@@ -241,8 +241,8 @@ class TestHarness:
                 stdout = subprocess.PIPE
                 stderr = subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT
 
-                if not is_windows():
-                    setsid = os.setsid
+            if not is_windows():
+                setsid = os.setsid
 
             p = subprocess.Popen(cmd,
                                  stdout=stdout,
@@ -251,6 +251,7 @@ class TestHarness:
                                  cwd=test.workdir,
                                  preexec_fn=setsid)
             timed_out = False
+            kill_test = False
             if test.timeout is None:
                 timeout = None
             else:
@@ -261,6 +262,11 @@ class TestHarness:
                 if self.options.verbose:
                     print("%s time out (After %d seconds)" % (test.name, timeout))
                 timed_out = True
+            except KeyboardInterrupt:
+                mlog.warning("CTRL-C detected while running %s" % (test.name))
+                kill_test = True
+
+            if kill_test or timed_out:
                 # Python does not provide multiplatform support for
                 # killing a process and all its children so we need
                 # to roll our own.
