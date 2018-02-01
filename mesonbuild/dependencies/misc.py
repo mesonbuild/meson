@@ -301,6 +301,46 @@ class BoostDependency(ExternalDependency):
             modname = modname[3:]
         return modname
 
+    def compiler_tag(self):
+        tag = None
+        if mesonlib.for_windows(self.want_cross, self.env):
+            comp_ts_version = self.env.detect_cpp_compiler(self.want_cross).get_toolset_version()
+            compiler_ts = comp_ts_version.split('.')
+            # FIXME - what about other compilers?
+            tag = 'vc{}{}'.format(compiler_ts[0], compiler_ts[1])
+
+            tag = '-' + tag
+        return tag
+
+    def threading_tag(self):
+        if not self.is_multithreading:
+            return ''
+
+        if mesonlib.for_darwin(self.want_cross, self.env):
+            # - Mac:      requires -mt for multithreading, so should not fall back to non-mt libraries.
+            return '-mt'
+        elif mesonlib.for_windows(self.want_cross, self.env):
+            # - Windows:  requires -mt for multithreading, so should not fall back to non-mt libraries.
+            return '-mt'
+        else:
+            # - Linux:    leaves off -mt but libraries are multithreading-aware.
+            # - Cygwin:   leaves off -mt but libraries are multithreading-aware.
+            return ''
+
+    def version_tag(self):
+        return self.version.replace('.', '_')
+
+    # FIXME - how to handle different distributions, e.g. for Mac? Currently we handle homebrew and macports, but not fink.
+    def abi_tag(self):
+        if mesonlib.for_windows(self.want_cross, self.env):
+            tag = self.compiler_tag() + self.threading_tag()
+            if self.is_debug:
+                tag = tag + '-gd'
+            tag = tag + self.version_tag()
+        else:
+            tag = self.threading_tag()
+        return tag
+
     def detect_lib_modules_win(self):
         arch = detect_cpu_family(self.env.coredata.compilers)
         comp_ts_version = self.env.detect_cpp_compiler(self.want_cross).get_toolset_version()
@@ -366,18 +406,6 @@ class BoostDependency(ExternalDependency):
                 if self.static:
                     fname = os.path.basename(entry)
                     self.lib_modules[self.modname_from_filename(fname)] = [fname]
-
-    # - Linux  leaves off -mt but libraries are multithreading-aware.
-    # - Cygwin leaves off -mt but libraries are multithreading-aware.
-    # - Mac requires -mt for multithreading, so should not fall back
-    #   to non-mt libraries.
-    def abi_tag(self):
-        if mesonlib.for_windows(self.want_cross, self.env):
-            return None
-        if self.is_multithreading and mesonlib.for_darwin(self.want_cross, self.env):
-            return '-mt'
-        else:
-            return ''
 
     def detect_lib_modules_nix(self):
         all_found = True
