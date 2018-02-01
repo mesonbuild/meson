@@ -151,6 +151,7 @@ class BoostDependency(ExternalDependency):
             return
 
         if self.check_invalid_modules():
+            self.log_fail()
             return
 
         mlog.debug('Boost library root dir is', mlog.bold(self.boost_root))
@@ -187,7 +188,6 @@ class BoostDependency(ExternalDependency):
 
         if invalid_modules:
             mlog.log(mlog.red('ERROR:'), 'Invalid Boost modules: ' + ', '.join(invalid_modules))
-            self.log_fail()
             return True
         else:
             return False
