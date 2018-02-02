@@ -4,34 +4,28 @@ short-description: Videos about Meson
 
 # Videos
 
-## An overview of meson
+ - [The Meson Build System, 4+ years of work to become an overnight
+   success](https://www.youtube.com/watch?v=gHdTzdXkhRY), Linux.conf.au 2018
 
-(from Linux.conf.au 2015 -- Auckland, New Zealand)
+ - [Meson and the changing Linux build
+   landscape](https://media.ccc.de/v/ASG2017-111-meson_and_the_changing_linux_build_landscape),
+   All Systems Go 2017
 
-<div class="video-container">
-<iframe width="854" height="480" style="border:0;" src="https://www.youtube.com/embed/KPi0AuVpxLI" allowfullscreen></iframe>
-</div>
+ - [Meson, compiling the world with
+   Python](https://www.youtube.com/watch?v=sEO4DC8hm34), Europython
+   2017
 
-## Talks about design, goals behind Meson's multiplatform dependency system was held
+ - [Builds, dependencies and deployment in a modern multiplatform
+   world](https://www.youtube.com/embed/CTJtKtQ8R5k), Linux.conf.au
+   2016
 
-(From Linux.conf.au 2016 -- Geelong, Australia)
+ - [New world, new tools](https://www.youtube.com/embed/0-gx1qU2pPo),
+   Libre Application Summit 2016
 
-<div class="video-container">
-<iframe width="854" height="480" style="border:0;" src="https://www.youtube.com/embed/CTJtKtQ8R5k" allowfullscreen></iframe>
-</div>
+ - [Making build systems not
+   suck](https://www.youtube.com/embed/KPi0AuVpxLI), Linux.conf.au
+   2015, Auckland, New Zealand
 
-## Features and benefits of Meson's multiplatform support for building and dependencies]
-
-(Libre Application Summit 2016 talk _New world, new tools_ explored further)
-
-<div class="video-container">
-<iframe width="854" height="480" style="border:0;" src="https://www.youtube.com/embed/0-gx1qU2pPo" allowfullscreen></iframe>
-</div>
-
-## The first ever public presentation on Meson
-
-(lightning talk at FOSDEM 2014)
-
-<video width="854" height="480" controls>
-  <source src=http://mirror.onet.pl/pub/mirrors/video.fosdem.org/2014/H2215_Ferrer/Sunday/Introducing_the_Meson_build_system.webm>
-</video>
+ - [Lightning talk at FOSDEM
+   2014](http://mirror.onet.pl/pub/mirrors/video.fosdem.org/2014/H2215_Ferrer/Sunday/Introducing_the_Meson_build_system.webm),
+   The first ever public presentation on Meson
