@@ -10,6 +10,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
  - [Budgie Desktop](https://github.com/budgie-desktop/budgie-desktop), a desktop environment built on GNOME technologies
  - [casync](https://github.com/systemd/casync), Content-Addressable Data Synchronization Tool
+ - [Dpdk](http://dpdk.org/ml/archives/dev/2018-January/089724.html), Data plane development kit, a set of libraries and drivers for fast packet processing
  - [Emeus](https://github.com/ebassi/emeus), Constraint based layout manager for GTK+
  - [Frida](https://www.frida.re/), a dynamic binary instrumentation toolkit
  - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop.
