@@ -56,3 +56,9 @@ assert(3 >= 3, 'Gte broken')
 
 assert(true.to_int() == 1,'bool to_int() broken')
 assert(false.to_int() == 0,'bool to_int() broken')
+
+hex_255 = 0xff
+hex2_255 = 0XFF
+
+assert(hex_255 == 255, 'Hex parsing is broken.')
+assert(hex2_255 == 255, 'Uppercase hex parsing is broken.')

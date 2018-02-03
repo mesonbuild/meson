@@ -71,6 +71,7 @@ class Lexer:
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
             ('id', re.compile('[_a-zA-Z][_0-9a-zA-Z]*')),
+            ('hexnumber', re.compile('0[xX][0-9a-fA-F]+')),
             ('number', re.compile(r'\d+')),
             ('eol_cont', re.compile(r'\\\n')),
             ('eol', re.compile(r'\n')),
@@ -152,6 +153,9 @@ class Lexer:
                             line_start = mo.end() - len(lines[-1])
                     elif tid == 'number':
                         value = int(match_text)
+                    elif tid == 'hexnumber':
+                        tid = 'number'
+                        value = int(match_text, base=16)
                     elif tid == 'eol' or tid == 'eol_cont':
                         lineno += 1
                         line_start = loc
