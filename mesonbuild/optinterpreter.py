@@ -85,6 +85,16 @@ def ComboParser(name, description, kwargs):
             raise OptionException('Combo choice elements must be strings.')
     return coredata.UserComboOption(name, description, choices, kwargs.get('value', choices[0]))
 
+@permitted_kwargs({'value', 'min', 'max'})
+def IntegerParser(name, description, kwargs):
+    if 'value' not in kwargs:
+        raise OptionException('Integer option must contain value argument.')
+    return coredata.UserIntegerOption(name,
+                                      description,
+                                      kwargs.get('min', None),
+                                      kwargs.get('max', None),
+                                      kwargs['value'])
+
 @permitted_kwargs({'value', 'choices'})
 def string_array_parser(name, description, kwargs):
     if 'choices' in kwargs:
@@ -105,6 +115,7 @@ def string_array_parser(name, description, kwargs):
 option_types = {'string': StringParser,
                 'boolean': BooleanParser,
                 'combo': ComboParser,
+                'integer': IntegerParser,
                 'array': string_array_parser,
                 }
 

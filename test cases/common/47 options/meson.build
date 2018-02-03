@@ -25,3 +25,7 @@ endif
 if get_option('includedir') != 'include'
   error('Incorrect value in builtin option.')
 endif
+
+if get_option('integer_opt') != 3
+  error('Incorrect value in integer option.')
+endif

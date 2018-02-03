@@ -80,10 +80,16 @@ class UserBooleanOption(UserOption):
 
 class UserIntegerOption(UserOption):
     def __init__(self, name, description, min_value, max_value, value):
-        super().__init__(name, description, [True, False])
+        super().__init__(name, description, None)
         self.min_value = min_value
         self.max_value = max_value
         self.set_value(value)
+        c = []
+        if min_value is not None:
+            c.append('>=' + str(min_value))
+        if max_value is not None:
+            c.append('<=' + str(max_value))
+        self.choices = ', '.join(c)
 
     def set_value(self, newvalue):
         if isinstance(newvalue, str):

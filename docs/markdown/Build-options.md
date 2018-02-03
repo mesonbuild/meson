@@ -16,6 +16,7 @@ Here is a simple option file.
 option('someoption', type : 'string', value : 'optval', description : 'An option')
 option('other_one', type : 'boolean', value : false)
 option('combo_opt', type : 'combo', choices : ['one', 'two', 'three'], value : 'three')
+option('integer_opt', type : 'integer', min : 0, max : 5, value : 3)
 option('free_array_opt', type : 'array', value : ['one', 'two'])
 option('array_opt', type : 'array', choices : ['one', 'two', 'three'], value : ['one', 'two'])
 ```
@@ -38,6 +39,12 @@ value is supplied then `true` will be used as the default.
 A combo allows any one of the values in the `choices` parameter to be
 selected.  If no default value is set then the first value will be the
 default.
+
+## Integers
+
+An integer option contains a single integer with optional upper and
+lower values that are specified with the `min` and `max` keyword
+arguments. Available since Meson version 0.45.0.
 
 ### Arrays
 

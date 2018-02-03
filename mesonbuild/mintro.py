@@ -139,6 +139,8 @@ def add_keys(optlist, options):
         elif isinstance(opt, coredata.UserComboOption):
             optdict['choices'] = opt.choices
             typestr = 'combo'
+        elif isinstance(opt, coredata.UserIntegerOption):
+            typestr = 'integer'
         elif isinstance(opt, coredata.UserArrayOption):
             typestr = 'array'
         else:
