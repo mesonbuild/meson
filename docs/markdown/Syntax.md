@@ -58,6 +58,12 @@ y = 3 * 4
 d = 5 % 3 # Yields 2.
 ```
 
+Hexadecimal literals are supported since version 0.45.0:
+
+```meson
+int_255 = 0xFF
+```
+
 Strings can be converted to a number like this:
 
 ```meson
