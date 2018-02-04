@@ -507,14 +507,14 @@ class DataHolder(InterpreterObject, ObjectHolder):
         return self.held_object.install_dir
 
 class InstallDir(InterpreterObject):
-    def __init__(self, src_subdir, inst_subdir, install_dir, install_mode, exclude, elide_directory):
+    def __init__(self, src_subdir, inst_subdir, install_dir, install_mode, exclude, strip_directory):
         InterpreterObject.__init__(self)
         self.source_subdir = src_subdir
         self.installable_subdir = inst_subdir
         self.install_dir = install_dir
         self.install_mode = install_mode
         self.exclude = exclude
-        self.elide_directory = elide_directory
+        self.strip_directory = strip_directory
 
 class Man(InterpreterObject):
 
@@ -1391,7 +1391,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'install_data': {'install_dir', 'install_mode', 'sources'},
                     'install_headers': {'install_dir', 'subdir'},
                     'install_man': {'install_dir'},
-                    'install_subdir': {'elide_directory', 'exclude_files', 'exclude_directories', 'install_dir', 'install_mode'},
+                    'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'},
                     'jar': jar_kwargs,
                     'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
                     'run_target': {'command', 'depends'},
@@ -2675,12 +2675,12 @@ root and issuing %s.
         install_dir = kwargs['install_dir']
         if not isinstance(install_dir, str):
             raise InvalidArguments('Keyword argument install_dir not a string.')
-        if 'elide_directory' in kwargs:
-            if not isinstance(kwargs['elide_directory'], bool):
-                raise InterpreterException('"elide_directory" keyword must be a boolean.')
-            elide_directory = kwargs['elide_directory']
+        if 'strip_directory' in kwargs:
+            if not isinstance(kwargs['strip_directory'], bool):
+                raise InterpreterException('"strip_directory" keyword must be a boolean.')
+            strip_directory = kwargs['strip_directory']
         else:
-            elide_directory = False
+            strip_directory = False
         if 'exclude_files' in kwargs:
             exclude = extract_as_list(kwargs, 'exclude_files')
             for f in exclude:
@@ -2703,7 +2703,7 @@ root and issuing %s.
             exclude_directories = set()
         exclude = (exclude_files, exclude_directories)
         install_mode = self._get_kwarg_install_mode(kwargs)
-        idir = InstallDir(self.subdir, subdir, install_dir, install_mode, exclude, elide_directory)
+        idir = InstallDir(self.subdir, subdir, install_dir, install_mode, exclude, strip_directory)
         self.build.install_dirs.append(idir)
         return idir
 

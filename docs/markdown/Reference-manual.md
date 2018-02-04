@@ -772,7 +772,7 @@ installed with a `.gz` suffix.
 ### install_subdir()
 
 ``` meson
-    void install_subdir(subdir_name, install_dir : ..., exclude_files : ..., exclude_directories : ..., elide_directory : ...)
+    void install_subdir(subdir_name, install_dir : ..., exclude_files : ..., exclude_directories : ..., strip_directory : ...)
 ```
 
 Installs the entire given subdirectory and its contents from the
@@ -786,7 +786,7 @@ The following keyword arguments are supported:
 - `exclude_directories`: a list of directory names that should not be installed.
   Names are interpreted as paths relative to the `subdir_name` location.
 - `install_dir`: the location to place the installed subdirectory.
-- `elide_directory`: install directory contents. `elide_directory=false` by default.
+- `strip_directory`: install directory contents. `strip_directory=false` by default.
   Since 0.45.0
 
 For a given directory `foo`:
@@ -796,7 +796,7 @@ foo/
     file1
   file2
 ```
-`install_subdir('foo', install_dir : 'share', elide_directory : false)` creates
+`install_subdir('foo', install_dir : 'share', strip_directory : false)` creates
 ```
 share/
   foo/
@@ -805,7 +805,7 @@ share/
     file2
 ```
 
-`install_subdir('foo', install_dir : 'share', elide_directory : true)` creates
+`install_subdir('foo', install_dir : 'share', strip_directory : true)` creates
 ```
 share/
   bar/

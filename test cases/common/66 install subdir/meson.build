@@ -12,6 +12,6 @@ subdir('subdir')
 install_subdir('sub1', install_dir : 'share', install_mode : ['rwxr-x--t', 'root'])
 install_subdir('sub/sub1', install_dir : 'share')
 
-# elide_directory
-install_subdir('sub_elided', install_dir : 'share', elide_directory : true)
-install_subdir('nested_elided/sub', install_dir : 'share', elide_directory : true)
+# strip_directory
+install_subdir('sub_elided', install_dir : 'share', strip_directory : true)
+install_subdir('nested_elided/sub', install_dir : 'share', strip_directory : true)
