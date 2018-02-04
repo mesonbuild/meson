@@ -814,7 +814,7 @@ share/
   file2
 ```
 
-`install_subdir('foo/bar', install_dir : 'share', stripe_directory : false)` creates
+`install_subdir('foo/bar', install_dir : 'share', strip_directory : false)` creates
 ```
 share/
   bar/
