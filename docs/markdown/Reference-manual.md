@@ -945,13 +945,16 @@ respectively.
 ### run_target
 
 ``` meson
-    buildtarget run_target(target_name, ...)
+runtarget run_target(target_name, ...)
 ```
 
 This function creates a new top-level target that runs a specified
 command with the specified arguments. Like all top-level targets, this
 integrates with the selected backend. For instance, with Ninja you can
-run it as `ninja target_name`.
+run it as `ninja target_name`. Note that a run target produces no
+output as far as Meson is concerned. It is only meant for tasks such
+as running a code formatter or flashing an external device's firmware
+with a built file.
 
 The script is run from an *unspecified* directory, and Meson will set
 three environment variables `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT`
