@@ -787,6 +787,7 @@ The following keyword arguments are supported:
   Names are interpreted as paths relative to the `subdir_name` location.
 - `install_dir`: the location to place the installed subdirectory.
 - `strip_directory`: install directory contents. `strip_directory=false` by default.
+  If `strip_directory=false` only last component of source path is used.
   Since 0.45.0
 
 For a given directory `foo`:
@@ -811,6 +812,13 @@ share/
   bar/
     file1
   file2
+```
+
+`install_subdir('foo/bar', install_dir : 'share', stripe_directory : false)` creates
+```
+share/
+  bar/
+    file1
 ```
 
 ### is_variable()
