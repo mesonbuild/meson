@@ -791,14 +791,14 @@ The following keyword arguments are supported:
   Since 0.45.0
 
 For a given directory `foo`:
-```
+```text
 foo/
   bar/
     file1
   file2
 ```
 `install_subdir('foo', install_dir : 'share', strip_directory : false)` creates
-```
+```text
 share/
   foo/
     bar/
@@ -807,7 +807,7 @@ share/
 ```
 
 `install_subdir('foo', install_dir : 'share', strip_directory : true)` creates
-```
+```text
 share/
   bar/
     file1
@@ -815,14 +815,14 @@ share/
 ```
 
 `install_subdir('foo/bar', install_dir : 'share', strip_directory : false)` creates
-```
+```text
 share/
   bar/
     file1
 ```
 
 `install_subdir('foo/bar', install_dir : 'share', strip_directory : true)` creates
-```
+```text
 share/
   file1
 ```
