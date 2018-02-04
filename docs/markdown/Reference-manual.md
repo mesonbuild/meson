@@ -821,6 +821,12 @@ share/
     file1
 ```
 
+`install_subdir('foo/bar', install_dir : 'share', strip_directory : true)` creates
+```
+share/
+  file1
+```
+
 ### is_variable()
 
 ``` meson
