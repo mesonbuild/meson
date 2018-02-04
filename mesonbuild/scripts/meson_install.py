@@ -218,11 +218,11 @@ def do_install(datafilename):
 
 def install_subdirs(d):
     for (src_dir, dst_dir, mode, exclude) in d.install_subdirs:
-        print('Installing subdir %s to %s' % (src_dir, dst_dir))
-        dst_dir = get_destdir_path(d, dst_dir)
-        d.dirmaker.makedirs(dst_dir, exist_ok=True)
-        do_copydir(d, src_dir, dst_dir, exclude)
-        set_mode(dst_dir, mode)
+        full_dst_dir = get_destdir_path(d, dst_dir)
+        print('Installing subdir %s to %s' % (src_dir, full_dst_dir))
+        d.dirmaker.makedirs(full_dst_dir, exist_ok=True)
+        do_copydir(d, src_dir, full_dst_dir, exclude)
+        set_mode(full_dst_dir, mode)
 
 def install_data(d):
     for i in d.data:
