@@ -772,7 +772,7 @@ installed with a `.gz` suffix.
 ### install_subdir()
 
 ``` meson
-    void install_subdir(subdir_name, install_dir : ..., exclude_files : ..., exclude_directories : ...)
+    void install_subdir(subdir_name, install_dir : ..., exclude_files : ..., exclude_directories : ..., strip_directory : ...)
 ```
 
 Installs the entire given subdirectory and its contents from the
@@ -786,6 +786,46 @@ The following keyword arguments are supported:
 - `exclude_directories`: a list of directory names that should not be installed.
   Names are interpreted as paths relative to the `subdir_name` location.
 - `install_dir`: the location to place the installed subdirectory.
+- `strip_directory`: install directory contents. `strip_directory=false` by default.
+  If `strip_directory=false` only last component of source path is used.
+  Since 0.45.0
+
+For a given directory `foo`:
+```text
+foo/
+  bar/
+    file1
+  file2
+```
+`install_subdir('foo', install_dir : 'share', strip_directory : false)` creates
+```text
+share/
+  foo/
+    bar/
+      file1
+    file2
+```
+
+`install_subdir('foo', install_dir : 'share', strip_directory : true)` creates
+```text
+share/
+  bar/
+    file1
+  file2
+```
+
+`install_subdir('foo/bar', install_dir : 'share', strip_directory : false)` creates
+```text
+share/
+  bar/
+    file1
+```
+
+`install_subdir('foo/bar', install_dir : 'share', strip_directory : true)` creates
+```text
+share/
+  file1
+```
 
 ### is_variable()
 
