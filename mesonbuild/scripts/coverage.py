@@ -16,11 +16,6 @@ from mesonbuild import environment
 
 import sys, os, subprocess, pathlib
 
-def remove_dir_from_trace(lcov_command, covfile, dirname):
-    tmpfile = covfile + '.tmp'
-    subprocess.check_call([lcov_command, '--remove', covfile, dirname, '-o', tmpfile])
-    os.replace(tmpfile, covfile)
-
 def coverage(source_root, build_root, log_dir):
     (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
     if gcovr_exe:
@@ -38,6 +33,7 @@ def coverage(source_root, build_root, log_dir):
         covinfo = os.path.join(log_dir, 'coverage.info')
         initial_tracefile = covinfo + '.initial'
         run_tracefile = covinfo + '.run'
+        raw_tracefile = covinfo + '.raw'
         subprocess.check_call([lcov_exe,
                                '--directory', build_root,
                                '--capture',
@@ -55,11 +51,12 @@ def coverage(source_root, build_root, log_dir):
         subprocess.check_call([lcov_exe,
                                '-a', initial_tracefile,
                                '-a', run_tracefile,
-                               '-o', covinfo])
-        remove_dir_from_trace(lcov_exe, covinfo, '/usr/include/*')
-        remove_dir_from_trace(lcov_exe, covinfo, '/usr/local/include/*')
-        remove_dir_from_trace(lcov_exe, covinfo, '/usr/src/*')
-        remove_dir_from_trace(lcov_exe, covinfo, '/usr/lib/llvm-*/include/*')
+                               '-o', raw_tracefile])
+        # Remove all directories outside the source_root from the covinfo
+        subprocess.check_call([lcov_exe,
+                               '--extract', raw_tracefile,
+                               os.path.join(source_root, '*'),
+                               '--output-file', covinfo])
         subprocess.check_call([genhtml_exe,
                                '--prefix', build_root,
                                '--output-directory', htmloutdir,
