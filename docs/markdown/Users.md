@@ -50,6 +50,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Xorg](https://cgit.freedesktop.org/xorg/xserver/) the X.org display server (not the default yet)
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
  - [Wayland and Weston](https://lists.freedesktop.org/archives/wayland-devel/2016-November/031984.html), a next generation display server (not merged yet)
+ - [wlroots](https://github.com/swaywm/wlroots), a modular Wayland compositor library
  - [ZStandard](https://github.com/facebook/zstd/commit/4dca56ed832c6a88108a2484a8f8ff63d8d76d91) a compression algorithm developed at Facebook (not used by default)
 
 Note that a more up-to-date list of GNOME projects that use Meson can be found [here](https://wiki.gnome.org/Initiatives/GnomeGoals/MesonPorting).
