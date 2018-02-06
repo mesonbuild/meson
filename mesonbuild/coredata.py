@@ -359,6 +359,14 @@ def get_builtin_option_description(optname):
     else:
         raise RuntimeError('Tried to get the description for an unknown builtin option \'%s\'.' % optname)
 
+def get_builtin_option_action(optname):
+    default = builtin_options[optname][2]
+    if default is True:
+        return 'store_false'
+    elif default is False:
+        return 'store_true'
+    return None
+
 def get_builtin_option_default(optname, prefix='', noneIfSuppress=False):
     if is_builtin_option(optname):
         o = builtin_options[optname]

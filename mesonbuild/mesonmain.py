@@ -28,10 +28,12 @@ default_warning = '1'
 def add_builtin_argument(p, name, **kwargs):
     k = kwargs.get('dest', name.replace('-', '_'))
     c = coredata.get_builtin_option_choices(k)
-    b = kwargs.get('action', None) in ['store_true', 'store_false']
+    b = coredata.get_builtin_option_action(k)
     h = coredata.get_builtin_option_description(k)
     if not b:
         h = h.rstrip('.') + ' (default: %s).' % coredata.get_builtin_option_default(k)
+    else:
+        kwargs['action'] = b
     if c and not b:
         kwargs['choices'] = c
     default = coredata.get_builtin_option_default(k, noneIfSuppress=True)
@@ -58,14 +60,14 @@ def create_parser():
     add_builtin_argument(p, 'sharedstatedir')
     add_builtin_argument(p, 'backend')
     add_builtin_argument(p, 'buildtype')
-    add_builtin_argument(p, 'strip', action='store_true')
+    add_builtin_argument(p, 'strip')
     add_builtin_argument(p, 'unity')
-    add_builtin_argument(p, 'werror', action='store_true')
+    add_builtin_argument(p, 'werror')
     add_builtin_argument(p, 'layout')
     add_builtin_argument(p, 'default-library')
     add_builtin_argument(p, 'warnlevel', dest='warning_level')
-    add_builtin_argument(p, 'stdsplit', action='store_false')
-    add_builtin_argument(p, 'errorlogs', action='store_false')
+    add_builtin_argument(p, 'stdsplit')
+    add_builtin_argument(p, 'errorlogs')
     p.add_argument('--cross-file', default=None,
                    help='File describing cross compilation environment.')
     p.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
