@@ -26,7 +26,7 @@ from .wrap import WrapMode, wraptool
 default_warning = '1'
 
 def add_builtin_argument(p, name, **kwargs):
-    k = kwargs.get('dest', name.replace('-', '_'))
+    k = coredata.get_builtin_option_destination(name)
     c = coredata.get_builtin_option_choices(k)
     b = coredata.get_builtin_option_action(k)
     h = coredata.get_builtin_option_description(k)
@@ -65,7 +65,7 @@ def create_parser():
     add_builtin_argument(p, 'werror')
     add_builtin_argument(p, 'layout')
     add_builtin_argument(p, 'default-library')
-    add_builtin_argument(p, 'warnlevel', dest='warning_level')
+    add_builtin_argument(p, 'warnlevel')
     add_builtin_argument(p, 'stdsplit')
     add_builtin_argument(p, 'errorlogs')
     p.add_argument('--cross-file', default=None,
