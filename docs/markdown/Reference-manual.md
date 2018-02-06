@@ -1682,6 +1682,8 @@ an external dependency with the following methods:
    dependency, error out. (*Added 0.44.0*) You can also redefine a
    variable by passing a list to the `define_variable` parameter
    that can affect the retrieved variable: `['prefix', '/'])`.
+   (*Added 0.45.0*) A warning is issued if the variable is not defined,
+   unless a `default` parameter is specified.
 
  - `get_configtool_variable(varname)` (*Added 0.44.0*) will get the 
    command line argument from the config tool (with `--` prepended), or,
