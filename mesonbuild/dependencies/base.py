@@ -261,7 +261,11 @@ class ConfigToolDependency(ExternalDependency):
         if not isinstance(versions, list) and versions is not None:
             versions = listify(versions)
 
-        if self.env.is_cross_build() and not self.native:
+        override = getattr(
+            self.env.cmd_line_options, 'c_' + self.tool_name.replace('-', '_'), None)
+        if override and not self.env.is_cross_build():
+            tools = [override]
+        elif self.env.is_cross_build() and not self.native:
             cross_file = self.env.cross_info.config['binaries']
             try:
                 tools = [cross_file[self.tool_name]]

@@ -427,6 +427,13 @@ builtin_options = {
     'stdsplit':        [UserBooleanOption, 'Split stdout and stderr in test logs.', True],
     'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests.", True],
 }
+# FIXME: this ins't DRY at all, but importing the dependencies module creates a
+# circular import, and can't even be solved by something ugly like import
+# inside a function
+for t in ['gnustep-config', 'sdl2-config', 'wx-config', 'llvm-config',
+          'pcap-config', 'cups-config', 'libwmf-config']:
+    t = t.replace('-', '_')
+    builtin_options['c_{}'.format(t)] = [UserStringOption, 'Override default search paths for native tool {}.'.format(t), '']
 
 # Special prefix-dependent defaults for installation directories that reside in
 # a path outside of the prefix in FHS and common usage.
