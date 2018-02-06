@@ -52,6 +52,7 @@ index.md
 		Project-templates.md
 	Reference-manual.md
 	Reference-tables.md
+	Style-Guide.md
 	FAQ.md
 	Reproducible-builds.md
 	howtox.md
