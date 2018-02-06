@@ -25,7 +25,8 @@ from .wrap import WrapMode, wraptool
 
 default_warning = '1'
 
-def add_builtin_argument(p, name, **kwargs):
+def add_builtin_argument(p, name):
+    kwargs = {}
     k = coredata.get_builtin_option_destination(name)
     c = coredata.get_builtin_option_choices(k)
     b = coredata.get_builtin_option_action(k)
@@ -43,29 +44,8 @@ def add_builtin_argument(p, name, **kwargs):
 
 def create_parser():
     p = argparse.ArgumentParser(prog='meson')
-    add_builtin_argument(p, 'prefix')
-    add_builtin_argument(p, 'libdir')
-    add_builtin_argument(p, 'libexecdir')
-    add_builtin_argument(p, 'bindir')
-    add_builtin_argument(p, 'sbindir')
-    add_builtin_argument(p, 'includedir')
-    add_builtin_argument(p, 'datadir')
-    add_builtin_argument(p, 'mandir')
-    add_builtin_argument(p, 'infodir')
-    add_builtin_argument(p, 'localedir')
-    add_builtin_argument(p, 'sysconfdir')
-    add_builtin_argument(p, 'localstatedir')
-    add_builtin_argument(p, 'sharedstatedir')
-    add_builtin_argument(p, 'backend')
-    add_builtin_argument(p, 'buildtype')
-    add_builtin_argument(p, 'strip')
-    add_builtin_argument(p, 'unity')
-    add_builtin_argument(p, 'werror')
-    add_builtin_argument(p, 'layout')
-    add_builtin_argument(p, 'default-library')
-    add_builtin_argument(p, 'warnlevel')
-    add_builtin_argument(p, 'stdsplit')
-    add_builtin_argument(p, 'errorlogs')
+    for n in coredata.builtin_options:
+        add_builtin_argument(p, n)
     p.add_argument('--cross-file', default=None,
                    help='File describing cross compilation environment.')
     p.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
