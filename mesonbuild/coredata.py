@@ -379,6 +379,12 @@ def get_builtin_option_action(optname):
         return 'store_true'
     return None
 
+def get_builtin_option_destination(optname):
+    optname = optname.replace('-', '_')
+    if optname == 'warnlevel':
+        return 'warning_level'
+    return optname
+
 def get_builtin_option_default(optname, prefix='', noneIfSuppress=False):
     if is_builtin_option(optname):
         o = builtin_options[optname]
