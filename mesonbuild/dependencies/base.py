@@ -561,7 +561,10 @@ class PkgConfigDependency(ExternalDependency):
             if not variable:
                 ret, out = self._call_pkgbin(['--print-variables', self.name])
                 if not re.search(r'^' + variable_name + r'$', out, re.MULTILINE):
-                    mlog.warning("pkgconfig variable '%s' not defined for dependency %s." % (variable_name, self.name))
+                    if 'default' in kwargs:
+                        variable = kwargs['default']
+                    else:
+                        mlog.warning("pkgconfig variable '%s' not defined for dependency %s." % (variable_name, self.name))
 
         mlog.debug('Got pkgconfig variable %s : %s' % (variable_name, variable))
         return variable

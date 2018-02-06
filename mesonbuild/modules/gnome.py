@@ -362,7 +362,7 @@ class GnomeModule(ExtensionModule):
                     ldflags.update([lib])
 
                 if isinstance(dep, PkgConfigDependency):
-                    girdir = dep.get_pkgconfig_variable("girdir", {})
+                    girdir = dep.get_pkgconfig_variable("girdir", {'default': ''})
                     if girdir:
                         gi_includes.update([girdir])
             elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
@@ -553,7 +553,7 @@ class GnomeModule(ExtensionModule):
                         if subdir not in typelib_includes:
                             typelib_includes.append(subdir)
             elif isinstance(dep, PkgConfigDependency):
-                girdir = dep.get_pkgconfig_variable("girdir", {})
+                girdir = dep.get_pkgconfig_variable("girdir", {'default': ''})
                 if girdir and girdir not in typelib_includes:
                     typelib_includes.append(girdir)
         # ldflags will be misinterpreted by gir scanner (showing
