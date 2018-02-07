@@ -328,7 +328,7 @@ class BoostDependency(ExternalDependency):
             return ''
 
     def version_tag(self):
-        return self.version.replace('.', '_')
+        return '-' + self.version.replace('.', '_')
 
     # FIXME - how to handle different distributions, e.g. for Mac? Currently we handle homebrew and macports, but not fink.
     def abi_tag(self):
