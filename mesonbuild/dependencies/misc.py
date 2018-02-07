@@ -381,6 +381,9 @@ class BoostDependency(ExternalDependency):
             if self.is_debug:
                 libname = libname + '-gd'
             libname = libname + "-{}.lib".format(self.version.replace('.', '_'))
+            mlog.log("original libname: '{}'".format(libname))
+            libname = 'lib' + name + self.abi_tag() + '.lib'
+            mlog.log("abi-tag  libname: '{}'".format(libname))
             if os.path.isfile(os.path.join(self.libdir, libname)):
                 self.lib_modules[self.modname_from_filename(libname)] = [libname]
             else:
@@ -397,6 +400,9 @@ class BoostDependency(ExternalDependency):
         if self.is_debug:
             globber2 = globber2 + '-gd'
         globber2 = globber2 + '-{}'.format(self.version.replace('.', '_'))
+        mlog.log("original globber2: '{}'".format(globber2))
+        globber2 = globber1 + self.abi_tag()
+        mlog.log("abi-tag  globber2: '{}'".format(globber2))
         globber2_matches = glob.glob(os.path.join(self.libdir, globber2 + '.lib'))
         for entry in globber2_matches:
             fname = os.path.basename(entry)
