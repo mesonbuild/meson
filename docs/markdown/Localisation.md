@@ -33,8 +33,8 @@ File that lists all the source files that gettext should scan in order to find s
 Localization specific meson file. It imports and uses the `i18n` module. If not defined before it needs to define the `GETTEXT_PACKAGE` global.
 ```meson
 i18n = import('i18n')
-# define GETTEXT_PACKAGE global
-add_global_arguments('-DGETTEXT_PACKAGE="intltest"', language:'c')
+# define GETTEXT_PACKAGE
+add_project_arguments('-DGETTEXT_PACKAGE="intltest"', language:'c')
 i18n.gettext(meson.project_name(),
     args: '--directory=' + meson.source_root()
 )
