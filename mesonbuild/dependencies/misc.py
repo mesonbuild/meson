@@ -44,6 +44,10 @@ from .base import (
 #   - $BOOST_ROOT/boost/*.hpp
 #   - $BOOST_ROOT/lib<arch>-<compiler>/*.lib where arch=32/64 and compiler=msvc-14.1
 #
+# Note that we should also try to support:
+# mingw-w64 / Windows : libboost_<module>-mt.a            (location = <prefix>/mingw64/lib/)
+#                       libboost_<module>-mt.dll.a
+#
 # Library names supported:
 #   - libboost_<module>-<compiler>-mt-gd-x_x.lib (static)
 #   - boost_<module>-<compiler>-mt-gd-x_x.lib|.dll (shared)
