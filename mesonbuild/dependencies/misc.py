@@ -293,9 +293,15 @@ class BoostDependency(ExternalDependency):
         self.is_found = True
 
     def detect_lib_modules(self):
+        # Try to find modules using compiler.find_library( )
+        if self.find_libraries_with_abi_tags(self.abi_tags()):
+            return
+
+        # Fall back to the old method
         if mesonlib.for_windows(self.want_cross, self.env):
             return self.detect_lib_modules_win()
-        return self.detect_lib_modules_nix()
+        else:
+            return self.detect_lib_modules_nix()
 
     def modname_from_filename(self, filename):
         modname = os.path.basename(filename)
@@ -339,14 +345,15 @@ class BoostDependency(ExternalDependency):
     def debug_tag(self):
         return '-gd' if self.is_debug else ''
 
+    def versioned_abi_tag(self):
+        return self.compiler_tag() + self.threading_tag() + self.debug_tag() + self.version_tag()
+
     # FIXME - how to handle different distributions, e.g. for Mac? Currently we handle homebrew and macports, but not fink.
-    def abi_tag(self):
+    def abi_tags(self):
         if mesonlib.for_windows(self.want_cross, self.env):
-            # PROBLEM: mingw just uses self.threading_tag() 
-            tag = self.compiler_tag() + self.threading_tag() + self.debug_tag() + self.version_tag()
+            return [self.versioned_abi_tag(), self.threading_tag()]
         else:
-            tag = self.threading_tag()
-        return tag
+            return [self.threading_tag()]
 
     def sourceforge_dir(self):
         if self.env.detect_cpp_compiler(self.want_cross).get_id() != 'msvc':
@@ -360,6 +367,33 @@ class BoostDependency(ExternalDependency):
         else:
             # Does anyone do Boost cross-compiling to other archs on Windows?
             return None
+
+
+    def find_libraries_with_abi_tag(self, tag):
+
+        # All modules should have the same tag
+        self.lib_modules = {}
+
+        all_found = True
+
+        for module in self.requested_modules:
+            libname = 'boost_' + module + tag
+
+            args = self.compiler.find_library(libname, self.env, self.extra_lib_dirs())
+            if args is None:
+                mlog.debug("Couldn\'t find library '{}' for boost module '{}'  (ABI tag = '{}')".format(libname, module, tag))
+                all_found = False
+            else:
+                mlog.debug('Link args for boost module "{}" are {}'.format(module, args))
+                self.lib_modules['boost_' + module] = args
+
+        return all_found
+
+    def find_libraries_with_abi_tags(self, tags):
+        for tag in tags:
+            if self.find_libraries_with_abi_tag(tag):
+                return True
+        return False
 
     def detect_lib_modules_win(self):
         if not self.libdir:
@@ -387,7 +421,7 @@ class BoostDependency(ExternalDependency):
 
         for name in self.need_static_link:
             # FIXME - why are we only looking for *.lib? Mingw provides *.dll.a and *.a
-            libname = 'lib' + name + self.abi_tag() + '.lib'
+            libname = 'lib' + name + self.versioned_abi_tag() + '.lib'
             if os.path.isfile(os.path.join(self.libdir, libname)):
                 self.lib_modules[self.modname_from_filename(libname)] = [libname]
             else:
@@ -398,7 +432,7 @@ class BoostDependency(ExternalDependency):
         # globber1 applies to a layout=system installation
         # globber2 applies to a layout=versioned installation
         globber1 = 'libboost_*' if self.static else 'boost_*'
-        globber2 = globber1 + self.abi_tag()
+        globber2 = globber1 + self.versioned_abi_tag()
         # FIXME - why are we only looking for *.lib? Mingw provides *.dll.a and *.a
         globber2_matches = glob.glob(os.path.join(self.libdir, globber2 + '.lib'))
         for entry in globber2_matches:
@@ -412,20 +446,6 @@ class BoostDependency(ExternalDependency):
                     self.lib_modules[self.modname_from_filename(fname)] = [fname]
 
     def detect_lib_modules_nix(self):
-        all_found = True
-        for module in self.requested_modules:
-            libname = 'boost_' + module + self.abi_tag()
-
-            args = self.compiler.find_library(libname, self.env, self.extra_lib_dirs())
-            if args is None:
-                mlog.debug('Couldn\'t find library "{}" for boost module "{}"'.format(module, libname))
-                all_found = False
-            else:
-                mlog.debug('Link args for boost module "{}" are {}'.format(module, args))
-                self.lib_modules['boost_' + module] = args
-        if all_found:
-            return
-
         if self.static:
             libsuffix = 'a'
         elif mesonlib.for_darwin(self.want_cross, self.env):
