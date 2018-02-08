@@ -106,6 +106,7 @@ class BoostDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('boost', environment, 'cpp', kwargs)
         self.need_static_link = ['boost_exception', 'boost_test_exec_monitor']
+        # FIXME: is this the right way to find the build type?
         self.is_debug = environment.cmd_line_options.buildtype.startswith('debug')
         threading = kwargs.get("threading", "multi")
         self.is_multithreading = threading == "multi"
