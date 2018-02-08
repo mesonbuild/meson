@@ -146,19 +146,16 @@ class BoostDependency(ExternalDependency):
         mlog.debug('Boost library root dir is', mlog.bold(self.boost_root))
         mlog.debug('Boost include directory is', mlog.bold(self.incdir))
 
-        # This checks if we can find BOOST headers.
-        self.detect_version()
+        # 1. check if we can find BOOST headers.
+        self.detect_headers_and_version()
 
-        self.lib_modules = {}
+        # 2. check if we can find BOOST libraries.
         if self.is_found:
             self.detect_lib_modules()
             mlog.debug('Boost library directory is', mlog.bold(self.libdir))
-            for m in self.requested_modules:
-                if 'boost_' + m not in self.lib_modules:
-                    mlog.debug('Requested Boost library {!r} not found'.format(m))
-                    self.log_fail()
-                    self.is_found = False
-                    return
+
+        # 3. Report success or failure
+        if self.is_found:
             self.log_success()
         else:
             self.log_fail()
@@ -266,7 +263,7 @@ class BoostDependency(ExternalDependency):
                 raise DependencyException('Boost module argument is not a string.')
         return candidates
 
-    def detect_version(self):
+    def detect_headers_and_version(self):
         try:
             version = self.compiler.get_define('BOOST_LIB_VERSION', '#include <boost/version.hpp>', self.env, self.get_compile_args(), [])
         except mesonlib.EnvironmentException:
@@ -280,15 +277,23 @@ class BoostDependency(ExternalDependency):
         self.is_found = True
 
     def detect_lib_modules(self):
-        # Try to find modules using compiler.find_library( )
-        if self.find_libraries_with_abi_tags(self.abi_tags()):
-            return
+        self.lib_modules = {}
 
-        # Fall back to the old method
-        if mesonlib.for_windows(self.want_cross, self.env):
-            return self.detect_lib_modules_win()
+        # 1. Try to find modules using compiler.find_library( )
+        if self.find_libraries_with_abi_tags(self.abi_tags()):
+            pass
+        # 2. Fall back to the old method
         else:
-            return self.detect_lib_modules_nix()
+            if mesonlib.for_windows(self.want_cross, self.env):
+                self.detect_lib_modules_win()
+            else:
+                self.detect_lib_modules_nix()
+
+        # 3. Check if we can find the modules
+        for m in self.requested_modules:
+            if 'boost_' + m not in self.lib_modules:
+                mlog.debug('Requested Boost library {!r} not found'.format(m))
+                self.is_found = False
 
     def modname_from_filename(self, filename):
         modname = os.path.basename(filename)
