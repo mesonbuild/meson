@@ -133,10 +133,6 @@ class BoostDependency(ExternalDependency):
             else:
                 self.boost_roots = self.detect_nix_roots()
 
-        if self.boost_root is None and not self.boost_roots:
-            self.log_fail()
-            return
-
         if self.incdir is None:
             if mesonlib.for_windows(self.want_cross, self.env):
                 self.incdir = self.detect_win_incdir()
@@ -360,7 +356,6 @@ class BoostDependency(ExternalDependency):
         else:
             # Does anyone do Boost cross-compiling to other archs on Windows?
             return None
-
 
     def find_libraries_with_abi_tag(self, tag):
 
