@@ -1029,12 +1029,12 @@ int dummy;
         args += self.build.get_project_args(compiler, target.subproject)
         args += target.get_java_args()
         args += compiler.get_output_args(self.get_target_private_dir(target))
-        sourcepath = ''
+        curdir = target.get_subdir()
+        sourcepath = os.path.join(self.build_to_src, curdir) + os.pathsep
         for i in target.include_dirs:
             for idir in i.get_incdirs():
                 sourcepath += os.path.join(self.build_to_src, i.curdir, idir) + os.pathsep
-        if sourcepath != '':
-            args += ['-sourcepath', sourcepath]
+        args += ['-sourcepath', sourcepath]
         rel_src = src.rel_to_builddir(self.build_to_src)
         plain_class_path = src.fname[:-4] + 'class'
         rel_obj = os.path.join(self.get_target_private_dir(target), plain_class_path)
