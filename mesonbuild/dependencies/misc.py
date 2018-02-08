@@ -307,13 +307,15 @@ class BoostDependency(ExternalDependency):
 
     def compiler_tag(self):
         tag = None
+        compiler = self.env.detect_cpp_compiler(self.want_cross)
         if mesonlib.for_windows(self.want_cross, self.env):
-            comp_ts_version = self.env.detect_cpp_compiler(self.want_cross).get_toolset_version()
-            compiler_ts = comp_ts_version.split('.')
-            # FIXME - what about other compilers?
-            tag = 'vc{}{}'.format(compiler_ts[0], compiler_ts[1])
-
-            tag = '-' + tag
+            if compiler.get_id() == 'msvc':
+                comp_ts_version = compiler.get_toolset_version()
+                compiler_ts = comp_ts_version.split('.')
+                # FIXME - what about other compilers?
+                tag = '-vc{}{}'.format(compiler_ts[0], compiler_ts[1])
+            else:
+                tag = ''
         return tag
 
     def threading_tag(self):
