@@ -44,6 +44,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [PipeWire](https://pipewire.org/), a framework for video and audio for containerized applications
  - [Pitivi](http://pitivi.org/), a nonlinear video editor
  - [Polari](https://git.gnome.org/browse/polari), an IRC client
+ - [SSHFS](https://github.com/libfuse/sshfs), allows you to mount a remote filesystem using SFTP
  - [Sysprof](https://wiki.gnome.org/Apps/Sysprof), a profiling tool
  - [systemd](https://github.com/systemd/systemd), the init system
  - [Taisei Project](https://taisei-project.org/), an open-source Touhou Project clone and fangame
