@@ -463,7 +463,7 @@ class BoostDependency(ExternalDependency):
     def get_link_args(self):
         args = []
         for dir in self.extra_lib_dirs():
-            args += self.compiler.get_linker_search_args(self.libdir)
+            args += self.compiler.get_linker_search_args(dir)
         for lib in self.requested_modules:
             args += self.lib_modules['boost_' + lib]
         return args
