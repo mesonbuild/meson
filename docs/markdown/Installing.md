@@ -26,7 +26,7 @@ Other install commands are the following.
 ```meson
 install_headers('header.h', subdir : 'projname') # -> include/projname/header.h
 install_man('foo.1') # -> share/man/man1/foo.1.gz
-install_data('datafile.cat', install_dir : join_paths(get_option('datadir'), 'progname')) # -> share/progname/datafile.dat
+install_data('datafile.dat', install_dir : join_paths(get_option('datadir'), 'progname')) # -> share/progname/datafile.dat
 ```
 
 Sometimes you want to copy an entire subtree directly. For this use case there is the `install_subdir` command, which can be used like this.
