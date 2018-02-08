@@ -139,10 +139,6 @@ class BoostDependency(ExternalDependency):
             else:
                 self.incdir = self.detect_nix_incdir()
 
-        if self.incdir is None and mesonlib.for_windows(self.want_cross, self.env):
-            self.log_fail()
-            return
-
         if self.check_invalid_modules():
             self.log_fail()
             return
@@ -150,8 +146,10 @@ class BoostDependency(ExternalDependency):
         mlog.debug('Boost library root dir is', mlog.bold(self.boost_root))
         mlog.debug('Boost include directory is', mlog.bold(self.incdir))
 
-        self.lib_modules = {}
+        # This checks if we can find BOOST headers.
         self.detect_version()
+
+        self.lib_modules = {}
         if self.is_found:
             self.detect_lib_modules()
             mlog.debug('Boost library directory is', mlog.bold(self.libdir))
