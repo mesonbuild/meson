@@ -375,15 +375,8 @@ class BoostDependency(ExternalDependency):
             return
 
         for name in self.need_static_link:
-            libname = "lib{}".format(name) + '-' + compiler
-            if self.is_multithreading:
-                libname = libname + '-mt'
-            if self.is_debug:
-                libname = libname + '-gd'
-            libname = libname + "-{}.lib".format(self.version.replace('.', '_'))
-            mlog.log("original libname: '{}'".format(libname))
+            # FIXME - why are we only looking for *.lib? Mingw provides *.dll.a and *.a
             libname = 'lib' + name + self.abi_tag() + '.lib'
-            mlog.log("abi-tag  libname: '{}'".format(libname))
             if os.path.isfile(os.path.join(self.libdir, libname)):
                 self.lib_modules[self.modname_from_filename(libname)] = [libname]
             else:
@@ -394,20 +387,14 @@ class BoostDependency(ExternalDependency):
         # globber1 applies to a layout=system installation
         # globber2 applies to a layout=versioned installation
         globber1 = 'libboost_*' if self.static else 'boost_*'
-        globber2 = globber1 + '-' + compiler
-        if self.is_multithreading:
-            globber2 = globber2 + '-mt'
-        if self.is_debug:
-            globber2 = globber2 + '-gd'
-        globber2 = globber2 + '-{}'.format(self.version.replace('.', '_'))
-        mlog.log("original globber2: '{}'".format(globber2))
         globber2 = globber1 + self.abi_tag()
-        mlog.log("abi-tag  globber2: '{}'".format(globber2))
+        # FIXME - why are we only looking for *.lib? Mingw provides *.dll.a and *.a
         globber2_matches = glob.glob(os.path.join(self.libdir, globber2 + '.lib'))
         for entry in globber2_matches:
             fname = os.path.basename(entry)
             self.lib_modules[self.modname_from_filename(fname)] = [fname]
         if len(globber2_matches) == 0:
+            # FIXME - why are we only looking for *.lib? Mingw provides *.dll.a and *.a
             for entry in glob.glob(os.path.join(self.libdir, globber1 + '.lib')):
                 if self.static:
                     fname = os.path.basename(entry)
