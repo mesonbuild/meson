@@ -131,7 +131,7 @@ class BoostDependency(ExternalDependency):
             self.libdir = os.environ['BOOST_LIBRARYDIR']
 
         if self.boost_root is None:
-            if mesonlib.is_windows():
+            if mesonlib.for_windows(self.want_cross, self.env):
                 self.boost_roots = self.detect_win_roots()
             else:
                 self.boost_roots = self.detect_nix_roots()
@@ -141,12 +141,12 @@ class BoostDependency(ExternalDependency):
             return
 
         if self.incdir is None:
-            if mesonlib.is_windows():
+            if mesonlib.for_windows(self.want_cross, self.env):
                 self.incdir = self.detect_win_incdir()
             else:
                 self.incdir = self.detect_nix_incdir()
 
-        if self.incdir is None and mesonlib.is_windows():
+        if self.incdir is None and mesonlib.for_windows(self.want_cross, self.env):
             self.log_fail()
             return
 
@@ -289,7 +289,7 @@ class BoostDependency(ExternalDependency):
         self.is_found = True
 
     def detect_lib_modules(self):
-        if mesonlib.is_windows():
+        if mesonlib.for_windows(self.want_cross, self.env):
             return self.detect_lib_modules_win()
         return self.detect_lib_modules_nix()
 
@@ -417,7 +417,7 @@ class BoostDependency(ExternalDependency):
 
         if self.static:
             libsuffix = 'a'
-        elif mesonlib.is_osx() and not self.want_cross:
+        elif mesonlib.for_darwin(self.want_cross, self.env):
             libsuffix = 'dylib'
         else:
             libsuffix = 'so'
