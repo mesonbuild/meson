@@ -348,20 +348,24 @@ class BoostDependency(ExternalDependency):
             tag = self.threading_tag()
         return tag
 
-    def detect_lib_modules_win(self):
-        arch = detect_cpu_family(self.env.coredata.compilers)
+    def sourceforge_dir(self):
+        if self.env.detect_cpp_compiler(self.want_cross).get_id() != 'msvc':
+            return None
         comp_ts_version = self.env.detect_cpp_compiler(self.want_cross).get_toolset_version()
-        compiler_ts = comp_ts_version.split('.')
-        compiler = 'vc{}{}'.format(compiler_ts[0], compiler_ts[1])
+        arch = detect_cpu_family(self.env.coredata.compilers)
+        if arch == 'x86':
+            return 'lib32-msvc-{}'.format(comp_ts_version)
+        elif arch == 'x86_64':
+            return 'lib64-msvc-{}'.format(comp_ts_version)
+        else:
+            # Does anyone do Boost cross-compiling to other archs on Windows?
+            return None
+
+    def detect_lib_modules_win(self):
         if not self.libdir:
             # The libdirs in the distributed binaries (from sf)
-            if arch == 'x86':
-                lib_sf = 'lib32-msvc-{}'.format(comp_ts_version)
-            elif arch == 'x86_64':
-                lib_sf = 'lib64-msvc-{}'.format(comp_ts_version)
-            else:
-                # Does anyone do Boost cross-compiling to other archs on Windows?
-                lib_sf = None
+            lib_sf = self.sourceforge_dir()
+
             if self.boost_root:
                 roots = [self.boost_root]
             else:
