@@ -330,13 +330,14 @@ class BoostDependency(ExternalDependency):
     def version_tag(self):
         return '-' + self.version.replace('.', '_')
 
+    def debug_tag(self):
+        return '-gd' if self.is_debug else ''
+
     # FIXME - how to handle different distributions, e.g. for Mac? Currently we handle homebrew and macports, but not fink.
     def abi_tag(self):
         if mesonlib.for_windows(self.want_cross, self.env):
-            tag = self.compiler_tag() + self.threading_tag()
-            if self.is_debug:
-                tag = tag + '-gd'
-            tag = tag + self.version_tag()
+            # PROBLEM: mingw just uses self.threading_tag() 
+            tag = self.compiler_tag() + self.threading_tag() + self.debug_tag() + self.version_tag()
         else:
             tag = self.threading_tag()
         return tag
