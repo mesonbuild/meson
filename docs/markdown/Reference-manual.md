@@ -416,7 +416,7 @@ be passed to [shared and static libraries](#library).
   dynamically exported, allowing modules built using the
   [`shared_module`](#shared_module) function to refer to functions,
   variables and other symbols defined in the executable itself. Implies
-  the `implib` argument.  Since 0.44.0
+  the `implib` argument.  Since 0.45.0
 - `implib` when set to true, an import library is generated for the
   executable (the name of the import library is based on *exe_name*).
   Alternatively, when set to a string, that gives the base name for
