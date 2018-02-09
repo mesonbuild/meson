@@ -1938,6 +1938,7 @@ class FailureTests(BasePlatformTests):
         Test exit status on python exception
         '''
         tdir = os.path.join(self.unit_test_dir, '21 exit status')
+        os.environ['MESON_UNIT_TEST'] = '1'
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.init(tdir, inprocess=False)
         self.assertEqual(cm.exception.returncode, 2)

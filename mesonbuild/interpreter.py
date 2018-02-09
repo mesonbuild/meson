@@ -1470,7 +1470,6 @@ class Interpreter(InterpreterBase):
                            'disabler': self.func_disabler,
                            'environment': self.func_environment,
                            'error': self.func_error,
-                           'exception': self.func_exception,
                            'executable': self.func_executable,
                            'generator': self.func_generator,
                            'gettext': self.func_gettext,
@@ -1504,6 +1503,8 @@ class Interpreter(InterpreterBase):
                            'test': self.func_test,
                            'vcs_tag': self.func_vcs_tag,
                            })
+        if 'MESON_UNIT_TEST' in os.environ:
+            self.funcs.update({'exception': self.func_exception})
 
     def holderify(self, item):
         if isinstance(item, list):
