@@ -695,10 +695,11 @@ class Environment:
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
+            arg = ['--version']
             try:
-                p, out = Popen_safe(compiler + ['--version'])[0:2]
+                p, out = Popen_safe(compiler + arg)[0:2]
             except OSError as e:
-                popen_exceptions[compiler] = e
+                popen_exceptions[' '.join(compiler + arg)] = e
                 continue
 
             version = search_version(out)
