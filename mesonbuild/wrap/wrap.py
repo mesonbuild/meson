@@ -164,17 +164,20 @@ class Resolver:
         if not ret:
             return False
         # Submodule has not been added, add it
-        if out.startswith(b'-'):
+        if out.startswith(b'+'):
+            mlog.warning('submodule {} might be out of date'.format(dirname))
+            return True
+        elif out.startswith(b'U'):
+            raise RuntimeError('submodule {} has merge conflicts'.format(dirname))
+        elif out.startswith(b'-'):
             if subprocess.call(['git', '-C', self.subdir_root, 'submodule', 'update', '--init', dirname]) != 0:
                 return False
         # Submodule was added already, but it wasn't populated. Do a checkout.
         elif out.startswith(b' '):
             if subprocess.call(['git', 'checkout', '.'], cwd=dirname):
                 return True
-        else:
-            m = 'Unknown git submodule output: {!r}'
-            raise AssertionError(m.format(out))
-        return True
+        m = 'Unknown git submodule output: {!r}'
+        raise RuntimeError(m.format(out))
 
     def get_git(self, p):
         checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
