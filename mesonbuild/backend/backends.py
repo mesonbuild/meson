@@ -323,9 +323,12 @@ class Backend:
                     if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so']:
                         continue
                     absdir = os.path.dirname(libpath)
-                    rel_to_src = absdir[len(self.environment.get_source_dir()) + 1:]
-                    assert(not os.path.isabs(rel_to_src))
-                    paths.append(os.path.join(self.build_to_src, rel_to_src))
+                    if absdir.startswith(self.environment.get_source_dir()):
+                        rel_to_src = absdir[len(self.environment.get_source_dir()) + 1:]
+                        assert not os.path.isabs(rel_to_src), 'rel_to_src: {} is absolute'.format(rel_to_src)
+                        paths.append(os.path.join(self.build_to_src, rel_to_src))
+                    else:
+                        paths.append(absdir)
         return paths
 
     def determine_rpath_dirs(self, target):
