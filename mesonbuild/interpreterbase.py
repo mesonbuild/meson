@@ -267,9 +267,8 @@ class InterpreterBase:
 
     def validate_comparison_types(self, val1, val2):
         if type(val1) != type(val2):
-            mlog.warning('''Trying to compare values of different types ({}, {}).
-The result of this is undefined and will become a hard error
-in a future Meson release.'''.format(type(val1).__name__, type(val2).__name__))
+            return False
+        return True
 
     def evaluate_comparison(self, node):
         val1 = self.evaluate_statement(node.left)
@@ -278,11 +277,23 @@ in a future Meson release.'''.format(type(val1).__name__, type(val2).__name__))
         val2 = self.evaluate_statement(node.right)
         if is_disabler(val2):
             return val2
-        self.validate_comparison_types(val1, val2)
+        valid = self.validate_comparison_types(val1, val2)
+        # Ordering comparisons of different types isn't allowed since PR #1810
+        # (0.41.0).  Since PR #2884 we also warn about equality comparisons of
+        # different types, which will one day become an error.
+        if not valid and (node.ctype == '==' or node.ctype == '!='):
+            mlog.warning('''Trying to compare values of different types ({}, {}) using {}.
+The result of this is undefined and will become a hard error
+in a future Meson release.'''.format(type(val1).__name__, type(val2).__name__, node.ctype))
         if node.ctype == '==':
             return val1 == val2
         elif node.ctype == '!=':
             return val1 != val2
+        elif not valid:
+            raise InterpreterException(
+                'Values of different types ({}, {}) cannot be compared using {}.'.format(type(val1).__name__,
+                                                                                         type(val2).__name__,
+                                                                                         node.ctype))
         elif not self.is_elementary_type(val1):
             raise InterpreterException('{} can only be compared for equality.'.format(node.left.value))
         elif not self.is_elementary_type(val2):
