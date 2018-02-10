@@ -29,7 +29,7 @@ endif
 let s:cpo_save = &cpo
 setlocal cpo&vim
 
-" https://github.com/mesonbuild/meson/wiki/Syntax
+" http://mesonbuild.com/Syntax.html
 syn keyword mesonConditional	elif else if endif
 syn keyword mesonRepeat	foreach endforeach
 syn keyword mesonOperator	and not or
@@ -55,7 +55,7 @@ syn match   mesonEscape	"\\N{\a\+\%(\s\a\+\)*}" contained
 syn match   mesonEscape	"\\$"
 
 " Meson only supports integer numbers
-" https://github.com/mesonbuild/meson/wiki/Syntax#numbers
+" http://mesonbuild.com/Syntax.html#numbers
 syn match   mesonNumber	"\<\d\+\>"
 
 " booleans
