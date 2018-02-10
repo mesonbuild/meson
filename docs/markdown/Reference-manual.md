@@ -1585,7 +1585,7 @@ The following methods are defined for all [arrays](Syntax.md#arrays):
 - `length()`, the size of the array
 
 You can also iterate over arrays with the [`foreach`
-statement](https://github.com/mesonbuild/meson/wiki/Syntax#foreach-statements).
+statement](Syntax.md#foreach-statements).
 
 ## Returned objects
 

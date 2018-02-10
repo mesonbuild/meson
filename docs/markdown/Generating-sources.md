@@ -4,7 +4,7 @@ short-description: Generation of source files before compilation
 
 # Generating sources
 
-  Sometimes source files need to be preprocessed before they are passed to the actual compiler. As an example you might want build an IDL compiler and then run some files through that to generate actual source files. In Meson this is done with [`generator()`](https://github.com/mesonbuild/meson/wiki/Reference-manual#generator) or [`custom_target()`](https://github.com/mesonbuild/meson/wiki/Reference-manual#custom_target).
+  Sometimes source files need to be preprocessed before they are passed to the actual compiler. As an example you might want build an IDL compiler and then run some files through that to generate actual source files. In Meson this is done with [`generator()`](Reference-manual.md#generator) or [`custom_target()`](Reference-manual.md#custom_target).
 
 ## Using custom_target()
 
@@ -45,7 +45,7 @@ Generators are similar to custom targets, except that we define a *generator*, w
 
 Note that generators should only be used for outputs that will only be used as inputs for a build target or a custom target. When you use the processed output of a generator in multiple targets, the generator will be run multiple times to create outputs for each target. Each output will be created in a target-private directory `@BUILD_DIR@`.
 
-If you want to generate files for general purposes such as for generating headers to be used by several sources, or data that will be installed, and so on, use a [`custom_target()`](https://github.com/mesonbuild/meson/wiki/Reference-manual#custom_target) instead.
+If you want to generate files for general purposes such as for generating headers to be used by several sources, or data that will be installed, and so on, use a [`custom_target()`](Reference-manual.md#custom_target) instead.
 
 
 ```meson
