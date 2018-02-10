@@ -137,8 +137,11 @@ gnulike_buildtype_linker_args = {'plain': [],
 msvc_buildtype_linker_args = {'plain': [],
                               'debug': [],
                               'debugoptimized': [],
-                              'release': [],
-                              'minsize': ['/INCREMENTAL:NO'],
+                              # The otherwise implicit REF and ICF linker
+                              # optimisations are disabled by /DEBUG.
+                              # REF implies ICF.
+                              'release': ['/OPT:REF'],
+                              'minsize': ['/INCREMENTAL:NO', '/OPT:REF'],
                               }
 
 java_buildtype_args = {'plain': [],
