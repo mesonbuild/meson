@@ -283,8 +283,8 @@ class InterpreterBase:
         # different types, which will one day become an error.
         if not valid and (node.ctype == '==' or node.ctype == '!='):
             mlog.warning('''Trying to compare values of different types ({}, {}) using {}.
-The result of this is undefined and will become a hard error
-in a future Meson release.'''.format(type(val1).__name__, type(val2).__name__, node.ctype))
+The result of this is undefined and will become a hard error in a future Meson release.'''
+                         .format(type(val1).__name__, type(val2).__name__, node.ctype), location=node)
         if node.ctype == '==':
             return val1 == val2
         elif node.ctype == '!=':
