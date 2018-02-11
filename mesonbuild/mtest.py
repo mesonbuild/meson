@@ -228,10 +228,10 @@ class TestHarness:
 
             # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
             # (i.e., the test or the environment don't explicitly set it), set
-            # it ourselves. We do this unconditionally because it is extremely
-            # useful to have in tests.
+            # it ourselves. We do this unconditionally for regular tests
+            # because it is extremely useful to have.
             # Setting MALLOC_PERTURB_="0" will completely disable this feature.
-            if 'MALLOC_PERTURB_' not in child_env or not child_env['MALLOC_PERTURB_']:
+            if ('MALLOC_PERTURB_' not in child_env or not child_env['MALLOC_PERTURB_']) and not self.options.benchmark:
                 child_env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
 
             setsid = None
