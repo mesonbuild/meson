@@ -61,21 +61,14 @@ class DependencyMethods(Enum):
 
 
 class Dependency:
-    def __init__(self, type_name, kwargs):
-        self.name = "null"
-        self.version = 'none'
-        self.language = None # None means C-like
-        self.is_found = False
-        self.type_name = type_name
-        self.compile_args = []
-        self.link_args = []
-        self.sources = []
+    @classmethod
+    def _process_method_kw(cls, kwargs):
         method = kwargs.get('method', 'auto')
         if method not in [e.value for e in DependencyMethods]:
             raise DependencyException('method {!r} is invalid'.format(method))
         method = DependencyMethods(method)
 
-        # This sets per-too config methods which are deprecated to to the new
+        # This sets per-tool config methods which are deprecated to to the new
         # generic CONFIG_TOOL value.
         if method in [DependencyMethods.SDLCONFIG, DependencyMethods.CUPSCONFIG,
                       DependencyMethods.PCAPCONFIG, DependencyMethods.LIBWMFCONFIG]:
@@ -88,14 +81,27 @@ class Dependency:
         # Set the detection method. If the method is set to auto, use any available method.
         # If method is set to a specific string, allow only that detection method.
         if method == DependencyMethods.AUTO:
-            self.methods = self.get_methods()
-        elif method in self.get_methods():
-            self.methods = [method]
+            methods = cls.get_methods()
+        elif method in cls.get_methods():
+            methods = [method]
         else:
             raise DependencyException(
                 'Unsupported detection method: {}, allowed methods are {}'.format(
                     method.value,
-                    mlog.format_list([x.value for x in [DependencyMethods.AUTO] + self.get_methods()])))
+                    mlog.format_list([x.value for x in [DependencyMethods.AUTO] + cls.get_methods()])))
+
+        return methods
+
+    def __init__(self, type_name, kwargs):
+        self.name = "null"
+        self.version = 'none'
+        self.language = None # None means C-like
+        self.is_found = False
+        self.type_name = type_name
+        self.compile_args = []
+        self.link_args = []
+        self.sources = []
+        self.methods = self._process_method_kw(kwargs)
 
     def __repr__(self):
         s = '<{0} {1}: {2}>'
@@ -115,7 +121,8 @@ class Dependency:
         As an example, gtest-all.cc when using GTest."""
         return self.sources
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         return [DependencyMethods.AUTO]
 
     def get_name(self):
@@ -246,13 +253,16 @@ class ConfigToolDependency(ExternalDependency):
         # instantiated and returned. The reduce function (method) is also
         # attached, since python's pickle module won't be able to do anything
         # with this dynamically generated class otherwise.
-        def reduce(_):
-            return (cls.factory,
-                    (name, environment, language, kwargs, tools, tool_name))
+        def reduce(self):
+            return (cls._unpickle, (), self.__dict__)
         sub = type('{}Dependency'.format(name.capitalize()), (cls, ),
                    {'tools': tools, 'tool_name': tool_name, '__reduce__': reduce})
 
         return sub(name, environment, language, kwargs)
+
+    @classmethod
+    def _unpickle(cls):
+        return cls.__new__(cls)
 
     def find_config(self, versions=None):
         """Helper method that searchs for config tool binaries in PATH and
@@ -331,7 +341,8 @@ class ConfigToolDependency(ExternalDependency):
             return []
         return shlex.split(out)
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         return [DependencyMethods.AUTO, DependencyMethods.CONFIG_TOOL]
 
     def get_configtool_variable(self, variable_name):
@@ -569,7 +580,8 @@ class PkgConfigDependency(ExternalDependency):
         mlog.debug('Got pkgconfig variable %s : %s' % (variable_name, variable))
         return variable
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         return [DependencyMethods.PKGCONFIG]
 
     def check_pkgconfig(self):
@@ -918,7 +930,12 @@ def find_external_dependency(name, env, kwargs):
     if lname in packages:
         if lname not in _packages_accept_language and 'language' in kwargs:
             raise DependencyException('%s dependency does not accept "language" keyword argument' % (lname, ))
-        dep = packages[lname](env, kwargs)
+        # Create the dependency object using a factory class method, if one
+        # exists, otherwise it is just constructed directly.
+        if getattr(packages[lname], '_factory', None):
+            dep = packages[lname]._factory(env, kwargs)
+        else:
+            dep = packages[lname](env, kwargs)
         if required and not dep.found():
             raise DependencyException('Dependency "%s" not found' % name)
         return dep

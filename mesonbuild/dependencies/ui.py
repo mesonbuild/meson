@@ -38,19 +38,6 @@ from .base import ConfigToolDependency
 class GLDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('gl', environment, None, kwargs)
-        if DependencyMethods.PKGCONFIG in self.methods:
-            try:
-                pcdep = PkgConfigDependency('gl', environment, kwargs)
-                if pcdep.found():
-                    self.type_name = 'pkgconfig'
-                    self.is_found = True
-                    self.compile_args = pcdep.get_compile_args()
-                    self.link_args = pcdep.get_link_args()
-                    self.version = pcdep.get_version()
-                    self.pcdep = pcdep
-                    return
-            except Exception:
-                pass
         if DependencyMethods.SYSTEM in self.methods:
             if mesonlib.is_osx():
                 self.is_found = True
@@ -67,7 +54,19 @@ class GLDependency(ExternalDependency):
                 self.version = '1'
                 return
 
-    def get_methods(self):
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        if DependencyMethods.PKGCONFIG in cls._process_method_kw(kwargs):
+            try:
+                pcdep = PkgConfigDependency('gl', environment, kwargs)
+                if pcdep.found():
+                    return pcdep
+            except Exception:
+                pass
+        return GLDependency(environment, kwargs)
+
+    @staticmethod
+    def get_methods():
         if mesonlib.is_osx() or mesonlib.is_windows():
             return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
         else:
@@ -337,7 +336,8 @@ class QtBaseDependency(ExternalDependency):
         else:
             return qvars['QT_INSTALL_BINS']
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         return [DependencyMethods.PKGCONFIG, DependencyMethods.QMAKE]
 
     def get_exe_args(self, compiler):
@@ -380,47 +380,40 @@ class Qt5Dependency(QtBaseDependency):
 class SDL2Dependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('sdl2', environment, None, kwargs)
-        kwargs['required'] = False
-        if DependencyMethods.PKGCONFIG in self.methods:
+
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        if DependencyMethods.PKGCONFIG in methods:
             try:
                 pcdep = PkgConfigDependency('sdl2', environment, kwargs)
                 if pcdep.found():
-                    self.type_name = 'pkgconfig'
-                    self.is_found = True
-                    self.compile_args = pcdep.get_compile_args()
-                    self.link_args = pcdep.get_link_args()
-                    self.version = pcdep.get_version()
-                    self.pcdep = pcdep
-                    return
+                    return pcdep
             except Exception as e:
                 mlog.debug('SDL 2 not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.CONFIG_TOOL in self.methods:
+        if DependencyMethods.CONFIG_TOOL in methods:
             try:
                 ctdep = ConfigToolDependency.factory(
                     'sdl2', environment, None, kwargs, ['sdl2-config'], 'sdl2-config')
                 if ctdep.found():
-                    self.type_name = 'config-tool'
-                    self.config = ctdep.config
-                    self.version = ctdep.version
-                    self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-                    self.links_args = ctdep.get_config_value(['--libs'], 'link_args')
-                    self.is_found = True
-                    return
+                    ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+                    ctdep.links_args = ctdep.get_config_value(['--libs'], 'link_args')
+                    return ctdep
             except Exception as e:
                 mlog.debug('SDL 2 not found via sdl2-config. Trying next, error was:', str(e))
-        if DependencyMethods.EXTRAFRAMEWORK in self.methods:
+        if DependencyMethods.EXTRAFRAMEWORK in methods:
             if mesonlib.is_osx():
-                fwdep = ExtraFrameworkDependency('sdl2', False, None, self.env,
-                                                 self.language, kwargs)
+                fwdep = ExtraFrameworkDependency('sdl2', False, None, environment,
+                                                 kwargs.get('language', None), kwargs)
                 if fwdep.found():
-                    self.is_found = True
-                    self.compile_args = fwdep.get_compile_args()
-                    self.link_args = fwdep.get_link_args()
-                    self.version = '2'  # FIXME
-                    return
+                    fwdep.version = '2'  # FIXME
+                    return fwdep
             mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.red('NO'))
 
-    def get_methods(self):
+        return SDL2Dependency(environment, kwargs)
+
+    @staticmethod
+    def get_methods():
         if mesonlib.is_osx():
             return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
         else:
@@ -455,20 +448,6 @@ class WxDependency(ConfigToolDependency):
 class VulkanDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('vulkan', environment, None, kwargs)
-
-        if DependencyMethods.PKGCONFIG in self.methods:
-            try:
-                pcdep = PkgConfigDependency('vulkan', environment, kwargs)
-                if pcdep.found():
-                    self.type_name = 'pkgconfig'
-                    self.is_found = True
-                    self.compile_args = pcdep.get_compile_args()
-                    self.link_args = pcdep.get_link_args()
-                    self.version = pcdep.get_version()
-                    self.pcdep = pcdep
-                    return
-            except Exception:
-                pass
 
         if DependencyMethods.SYSTEM in self.methods:
             try:
@@ -526,5 +505,18 @@ class VulkanDependency(ExternalDependency):
                         self.link_args.append(lib)
                     return
 
-    def get_methods(self):
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        if DependencyMethods.PKGCONFIG in cls._process_method_kw(kwargs):
+            try:
+                pcdep = PkgConfigDependency('vulkan', environment, kwargs)
+                if pcdep.found():
+                    return pcdep
+            except Exception:
+                pass
+
+        return VulkanDependency(environment, kwargs)
+
+    @staticmethod
+    def get_methods():
         return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
