@@ -17,7 +17,7 @@ assert(d.found() == true, 'optional module stopped llvm from being found.')
 dep_tinfo = dependency('tinfo', required : false)
 if not dep_tinfo.found()
   cpp = meson.get_compiler('cpp')
-  dep_tinfo = cpp.find_library('tinfo')
+  dep_tinfo = cpp.find_library('tinfo', required: false)
 endif
 
 foreach static : [true, false]
