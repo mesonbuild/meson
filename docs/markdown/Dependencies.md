@@ -89,12 +89,16 @@ to build dependencies manually when they are not.
 To make this work, the dependency must have Meson build definitions
 and it must declare its own dependency like this:
 
+```meson
     foo_dep = declare_dependency(...)
+```
 
 Then any project that wants to use it can write out the following
 declaration in their main `meson.build` file.
 
+```meson
     foo_dep = dependency('foo', fallback : ['foo', 'foo_dep'])
+```
 
 What this declaration means is that first Meson tries to look up the
 dependency from the system (such as by using pkg-config). If it is not
