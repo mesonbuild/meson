@@ -154,6 +154,30 @@ class OptionInterpreter:
                 continue
             self.cmd_line_options[key] = value
 
+    def get_bad_options(self):
+        subproj_len = len(self.subproject)
+        if subproj_len > 0:
+            subproj_len += 1
+        retval = []
+        # The options need to be sorted (e.g. here) to get consistent
+        # error messages (on all platforms) which is required by some test
+        # cases that check (also) the order of these options.
+        for option in sorted(self.cmd_line_options):
+            if option in list(self.options) + forbidden_option_names:
+                continue
+            if any(option[subproj_len:].startswith(p) for p in forbidden_prefixes):
+                continue
+            retval += [option]
+        return retval
+
+    def check_for_bad_options(self):
+        bad = self.get_bad_options()
+        if bad:
+            sub = 'In subproject {}: '.format(self.subproject) if self.subproject else ''
+            mlog.warning(
+                '{}Unknown command line options: "{}"\n'
+                'This will become a hard error in a future Meson release.'.format(sub, ', '.join(bad)))
+
     def process(self, option_file):
         try:
             with open(option_file, 'r', encoding='utf8') as f:
@@ -173,14 +197,7 @@ class OptionInterpreter:
                 e.colno = cur.colno
                 e.file = os.path.join('meson_options.txt')
                 raise e
-        bad = [o for o in sorted(self.cmd_line_options) if not
-               (o in list(self.options) + forbidden_option_names or
-                any(o.startswith(p) for p in forbidden_prefixes))]
-        if bad:
-            sub = 'In subproject {}: '.format(self.subproject) if self.subproject else ''
-            mlog.warning(
-                '{}Unknown command line options: "{}"\n'
-                'This will become a hard error in a future Meson release.'.format(sub, ', '.join(bad)))
+        self.check_for_bad_options()
 
     def reduce_single(self, arg):
         if isinstance(arg, str):
