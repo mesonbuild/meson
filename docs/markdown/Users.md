@@ -33,6 +33,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Ksh](https://github.com/att/ast), a Korn Shell
  - [Libdrm](https://cgit.freedesktop.org/drm/libdrm/), a library for abstracting DRM kernel interfaces
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
+ - [libfuse](https://github.com/libfuse/libfuse), The reference implementation of the Linux FUSE (Filesystem in Userspace)
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib/), a GLib wrapper for libgit2
  - [Libhttpseverywhere](https://github.com/grindhold/libhttpseverywhere), a library to enable httpseverywhere on any desktop app
  - [Libosmscout](https://github.com/Framstag/libosmscout), a C++ library for offline map rendering, routing and location  
