@@ -6,6 +6,8 @@
 #include<stdio.h>
 #include<stdlib.h>
 
+extern int yyparse();
+
 int main(int argc, char **argv) {
     /*
     int input;
