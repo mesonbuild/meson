@@ -16,7 +16,7 @@ Here is a simple option file.
 option('someoption', type : 'string', value : 'optval', description : 'An option')
 option('other_one', type : 'boolean', value : false)
 option('combo_opt', type : 'combo', choices : ['one', 'two', 'three'], value : 'three')
-option('integer_opt', type : 'integer', min : 0, max : 5, value : 3)
+option('integer_opt', type : 'integer', min : 0, max : 5, value : 3) # Since 0.45.0
 option('free_array_opt', type : 'array', value : ['one', 'two'])
 option('array_opt', type : 'array', choices : ['one', 'two', 'three'], value : ['one', 'two'])
 ```
@@ -44,7 +44,9 @@ default.
 
 An integer option contains a single integer with optional upper and
 lower values that are specified with the `min` and `max` keyword
-arguments. Available since Meson version 0.45.0.
+arguments.
+
+This type is available since Meson version 0.45.0.
 
 ### Arrays
 
@@ -56,7 +58,7 @@ empty. The `value` parameter specifies the default value of the option
 and if it is unset then the values of `choices` will be used as the
 default.
 
-This type is new in version 0.44.0
+This type is available since version 0.44.0
 
 
 ## Using build options
