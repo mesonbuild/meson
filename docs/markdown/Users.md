@@ -36,7 +36,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Ksh](https://github.com/att/ast), a Korn Shell
  - [Libdrm](https://cgit.freedesktop.org/drm/libdrm/), a library for abstracting DRM kernel interfaces
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
- - [libfuse](https://github.com/libfuse/libfuse), the reference implementation of the Linux FUSE (Filesystem in Userspace)
+ - [libfuse](https://github.com/libfuse/libfuse), the reference implementation of the Linux FUSE (Filesystem in Userspace) interface
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib/), a GLib wrapper for libgit2
  - [Libhttpseverywhere](https://github.com/grindhold/libhttpseverywhere), a library to enable httpseverywhere on any desktop app
  - [Libosmscout](https://github.com/Framstag/libosmscout), a C++ library for offline map rendering, routing and location  
@@ -46,7 +46,7 @@ lookup based on OpenStreetMap data
  - [Kiwix libraries](https://github.com/kiwix/kiwix-lib)
  - [Mesa](https://www.mesa3d.org/), An open source graphics driver project
  - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via Wifi-Display specification aka Miracast
- - [Nautilus](https://git.gnome.org/browse/nautilus/commit/?id=ed5652c89ac0654df2e82b54b00b27d51c825465) the Gnome file manager
+ - [Nautilus](https://git.gnome.org/browse/nautilus/commit/?id=ed5652c89ac0654df2e82b54b00b27d51c825465), the Gnome file manager
  - [Orc](http://cgit.freedesktop.org/gstreamer/orc/), the Optimized Inner Loop Runtime Compiler (not the default yet)
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style meson example project
  - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library (not the default yet)
@@ -59,10 +59,10 @@ lookup based on OpenStreetMap data
  - [Sysprof](https://wiki.gnome.org/Apps/Sysprof), a profiling tool
  - [systemd](https://github.com/systemd/systemd), the init system
  - [Taisei Project](https://taisei-project.org/), an open-source Touhou Project clone and fangame
- - [Xorg](https://cgit.freedesktop.org/xorg/xserver/) the X.org display server (not the default yet)
+ - [Xorg](https://cgit.freedesktop.org/xorg/xserver/), the X.org display server (not the default yet)
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
  - [Wayland and Weston](https://lists.freedesktop.org/archives/wayland-devel/2016-November/031984.html), a next generation display server (not merged yet)
  - [wlroots](https://github.com/swaywm/wlroots), a modular Wayland compositor library
- - [ZStandard](https://github.com/facebook/zstd/commit/4dca56ed832c6a88108a2484a8f8ff63d8d76d91) a compression algorithm developed at Facebook (not used by default)
+ - [ZStandard](https://github.com/facebook/zstd/commit/4dca56ed832c6a88108a2484a8f8ff63d8d76d91), a compression algorithm developed at Facebook (not used by default)
 
 Note that a more up-to-date list of GNOME projects that use Meson can be found [here](https://wiki.gnome.org/Initiatives/GnomeGoals/MesonPorting).
