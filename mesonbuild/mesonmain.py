@@ -147,10 +147,7 @@ class MesonApp:
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_launcher, self.options, self.original_cmd_line_args)
         mlog.initialize(env.get_log_dir())
-        try:
-            self._generate(env)
-        finally:
-            mlog.shutdown()
+        self._generate(env)
 
     def _generate(self, env):
         mlog.debug('Build started at', datetime.datetime.now().isoformat())
@@ -374,6 +371,7 @@ def run(original_args, mainfile=None):
             # Error message
             mlog.log(e)
             # Path to log file
+            mlog.shutdown()
             logfile = os.path.join(app.build_dir, environment.Environment.log_dir, mlog.log_fname)
             mlog.log("\nA full log can be found at", mlog.bold(logfile))
             if os.environ.get('MESON_FORCE_BACKTRACE'):
@@ -383,4 +381,7 @@ def run(original_args, mainfile=None):
                 raise
             traceback.print_exc()
         return 1
+    finally:
+        mlog.shutdown()
+
     return 0
