@@ -18,7 +18,7 @@ becomes a transparent part of the project. The basic idiom goes
 something like this.
 
 ```meson
-dep = dependency('foo', fallback : [subproject_name, variable_name]
+dep = dependency('foo', fallback : [subproject_name, variable_name])
 ```
 
 As an example, suppose we have a simple project that provides a shared
@@ -40,7 +40,7 @@ this.
 
 ```meson
 project('master', 'c')
-dep = dependency('simple', fallback : ['simple', 'simple_dep']
+dep = dependency('simple', fallback : ['simple', 'simple_dep'])
 exe = executable('prog', 'prog.c',
                  dependencies : dep, install : true)
 ```
