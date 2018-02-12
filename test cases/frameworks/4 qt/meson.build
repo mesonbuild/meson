@@ -21,6 +21,14 @@ foreach qt : ['qt4', 'qt5']
     error('Invalid qt dep incorrectly found!')
   endif
 
+  # This test should be skipped if qt5 isn't found
+  if qt == 'qt5'
+    dep = dependency(qt, modules : ['Core'], required : false, method : get_option('method'))
+    if not dep.found()
+      error('MESON_SKIP_TEST qt5 not found.')
+    endif
+  endif
+
   # Ensure that the "no-Core-module-specified" code branch is hit
   nocoredep = dependency(qt, modules : ['Gui'], required : qt == 'qt5', method : get_option('method'))
 
