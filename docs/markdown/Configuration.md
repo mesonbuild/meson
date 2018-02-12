@@ -58,7 +58,7 @@ Note that if you want to define a C string, you need to do the quoting
 yourself like this:
 
 ```meson
-conf.set('TOKEN', '"value"')
+conf_data.set('TOKEN', '"value"')
 ```
 
 Since this is such a common operation, Meson provides a convenience
@@ -66,7 +66,7 @@ method:
 
 ```meson
 plain_var = 'value'
-conf.set_quoted('TOKEN', plain_var) # becomes #define TOKEN "value"
+conf_data.set_quoted('TOKEN', plain_var) # becomes #define TOKEN "value"
 ```
 
 Often you have a boolean value in Meson but need to define the C/C++
@@ -74,12 +74,12 @@ token as 0 or 1. Meson provides a convenience function for this use
 case.
 
 ```meson
-conf.set10(token, boolean_value)
+conf_data.set10(token, boolean_value)
 # The line above is equivalent to this:
 if boolean_value
-  conf.set(token, 1)
+  conf_data.set(token, 1)
 else
-  conf.set(token, 0)
+  conf_data.set(token, 0)
 endif
 ```
 
@@ -90,19 +90,19 @@ file all the entries in the configuration data object. The
 replacements are the same as when generating `#mesondefine` entries:
 
 ```meson
-cdata.set('FOO', '"string"') => #define FOO "string"
-cdata.set('FOO', 'a_token')  => #define FOO a_token
-cdata.set('FOO', true)       => #define FOO
-cdata.set('FOO', false)      => #undef FOO
-cdata.set('FOO', 1)          => #define FOO 1
-cdata.set('FOO', 0)          => #define FOO 0
+conf_data.set('FOO', '"string"') => #define FOO "string"
+conf_data.set('FOO', 'a_token')  => #define FOO a_token
+conf_data.set('FOO', true)       => #define FOO
+conf_data.set('FOO', false)      => #undef FOO
+conf_data.set('FOO', 1)          => #define FOO 1
+conf_data.set('FOO', 0)          => #define FOO 0
 ```
 
 In this mode, you can also specify a comment which will be placed
 before the value so that your generated files are self-documenting.
 
 ```meson
-cdata.set('BAR', true, description : 'Set BAR if it is available')
+conf_data.set('BAR', true, description : 'Set BAR if it is available')
 ```
 
 Will produce:
@@ -129,9 +129,11 @@ subprojects.
 At the top level we generate the file:
 
 ```meson
+conf_data = configuration_data()
+# Set data
 configure_file(input : 'projconfig.h.in',
   output : 'projconfig.h',
-  configuration : cdata_object)
+  configuration : conf_data)
 ```
 
 Immediately afterwards we generate the include object.
