@@ -1670,7 +1670,14 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Program or command {!r} not found '
                                            'or not executable'.format(cmd))
             cmd = prog
-        cmd_path = os.path.relpath(cmd.get_path(), start=srcdir)
+        try:
+            cmd_path = os.path.relpath(cmd.get_path(), start=srcdir)
+        except ValueError:
+            # On Windows a relative path can't be evaluated for
+            # paths on two different drives (i.e. c:\foo and f:\bar).
+            # The only thing left to is is to use the original absolute
+            # path.
+            cmd_path = cmd.get_path()
         if not cmd_path.startswith('..') and cmd_path not in self.build_def_files:
             self.build_def_files.append(cmd_path)
         expanded_args = []
