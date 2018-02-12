@@ -46,7 +46,7 @@ lookup based on OpenStreetMap data
  - [Kiwix libraries](https://github.com/kiwix/kiwix-lib)
  - [Mesa](https://www.mesa3d.org/), An open source graphics driver project
  - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via Wifi-Display specification aka Miracast
-  - [Nautilus](https://git.gnome.org/browse/nautilus/commit/?id=ed5652c89ac0654df2e82b54b00b27d51c825465) the Gnome file manager
+ - [Nautilus](https://git.gnome.org/browse/nautilus/commit/?id=ed5652c89ac0654df2e82b54b00b27d51c825465) the Gnome file manager
  - [Orc](http://cgit.freedesktop.org/gstreamer/orc/), the Optimized Inner Loop Runtime Compiler (not the default yet)
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style meson example project
  - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library (not the default yet)
