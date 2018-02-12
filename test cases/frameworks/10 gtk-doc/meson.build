@@ -13,8 +13,15 @@ inc = include_directories('include')
 
 subdir('include')
 
-# We have to disable this test until this bug fix has landed to
-# distros https://bugzilla.gnome.org/show_bug.cgi?id=753145
-error('MESON_SKIP_TEST can not enable gtk-doc test until upstream fixes have landed.')
+# disable this test unless a bug fix for spaces in pathnames is present
+# https://bugzilla.gnome.org/show_bug.cgi?id=753145
+result = run_command(gtkdoc, ['--version'])
+gtkdoc_ver = result.stdout().strip()
+if gtkdoc_ver == ''
+  gtkdoc_ver = result.stderr().strip()
+endif
+if gtkdoc_ver.version_compare('<1.26')
+  error('MESON_SKIP_TEST gtk-doc test requires gtkdoc >= 1.26.')
+endif
 
 subdir('doc')
