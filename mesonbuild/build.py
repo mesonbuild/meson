@@ -365,9 +365,9 @@ class BuildTarget(Target):
         # 1. Pre-existing objects provided by the user with the `objects:` kwarg
         # 2. Compiled objects created by and extracted from another target
         self.process_objectlist(objects)
-        self.process_compilers()
         self.process_kwargs(kwargs, environment)
         self.check_unknown_kwargs(kwargs)
+        self.process_compilers()
         if not any([self.sources, self.generated, self.objects, self.link_whole]):
             raise InvalidArguments('Build target %s has no sources.' % name)
         self.process_compilers_late()
@@ -500,6 +500,13 @@ class BuildTarget(Target):
                 # which is what we need.
                 if not is_object(s):
                     sources.append(s)
+        for d in self.external_deps:
+            if hasattr(d, 'held_object'):
+                d = d.held_object
+            for s in d.sources:
+                if isinstance(s, (str, File)):
+                    sources.append(s)
+
         # Sources that were used to create our extracted objects
         for o in self.objects:
             if not isinstance(o, ExtractedObjects):
@@ -690,8 +697,7 @@ just like those detected with the dependency() function.''')
                     raise InvalidArguments('Arguments to d_import_dirs must be include_directories.')
             dfeatures['import_dirs'] = dfeature_import_dirs
         if dfeatures:
-            if 'd' in self.compilers:
-                self.d_features = dfeatures
+            self.d_features = dfeatures
 
         self.link_args = extract_as_list(kwargs, 'link_args')
         for i in self.link_args:
