@@ -10,7 +10,9 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
  - [Budgie Desktop](https://github.com/budgie-desktop/budgie-desktop), a desktop environment built on GNOME technologies
  - [casync](https://github.com/systemd/casync), Content-Addressable Data Synchronization Tool
+ - [dbus-broker](https://github.com/bus1/dbus-broker), Linux D-Bus Message Broker
  - [Dpdk](http://dpdk.org/ml/archives/dev/2018-January/089724.html), Data plane development kit, a set of libraries and drivers for fast packet processing
+ - [DXVK](https://github.com/doitsujin/dxvk), a Vulkan-based Direct3D 11 implementation for Linux using Wine
  - [Emeus](https://github.com/ebassi/emeus), Constraint based layout manager for GTK+
  - [Frida](https://www.frida.re/), a dynamic binary instrumentation toolkit
  - [fwupd](https://github.com/hughsie/fwupd), a simple daemon to allow session software to update firmware
@@ -26,6 +28,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [GStreamer](https://cgit.freedesktop.org/gstreamer/gstreamer/), multimedia framework (not the default yet)
  - [GTK+](https://git.gnome.org/browse/gtk+/), the multi-platform toolkit used by GNOME
  - [GtkDApp](https://gitlab.com/csoriano/GtkDApp), an application template for developing Flatpak apps with Gtk+ and D
+ - [Hardcode-Tray](https://github.com/bil-elmoussaoui/Hardcode-Tray), fixes hardcoded tray icons in Linux
  - [HexChat](https://github.com/hexchat/hexchat), a cross-platform IRC client in C
  - [IGT](https://cgit.freedesktop.org/xorg/app/intel-gpu-tools/), Linux kernel graphics driver test suite.
  - [JsonCpp](https://github.com/open-source-parsers/jsoncpp), a C++ library for interacting with JSON
@@ -33,6 +36,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Ksh](https://github.com/att/ast), a Korn Shell
  - [Libdrm](https://cgit.freedesktop.org/drm/libdrm/), a library for abstracting DRM kernel interfaces
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
+ - [libfuse](https://github.com/libfuse/libfuse), the reference implementation of the Linux FUSE (Filesystem in Userspace)
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib/), a GLib wrapper for libgit2
  - [Libhttpseverywhere](https://github.com/grindhold/libhttpseverywhere), a library to enable httpseverywhere on any desktop app
  - [Libosmscout](https://github.com/Framstag/libosmscout), a C++ library for offline map rendering, routing and location  
@@ -41,7 +45,8 @@ lookup based on OpenStreetMap data
  - [Lightdm-Webkit2-Greeter](https://github.com/Antergos/lightdm-webkit2-greeter)
  - [Kiwix libraries](https://github.com/kiwix/kiwix-lib)
  - [Mesa](https://www.mesa3d.org/), An open source graphics driver project
- - [Nautilus](https://git.gnome.org/browse/nautilus/commit/?id=ed5652c89ac0654df2e82b54b00b27d51c825465) the Gnome file manager
+ - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via Wifi-Display specification aka Miracast
+  - [Nautilus](https://git.gnome.org/browse/nautilus/commit/?id=ed5652c89ac0654df2e82b54b00b27d51c825465) the Gnome file manager
  - [Orc](http://cgit.freedesktop.org/gstreamer/orc/), the Optimized Inner Loop Runtime Compiler (not the default yet)
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style meson example project
  - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library (not the default yet)
