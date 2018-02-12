@@ -32,10 +32,10 @@ arguments explicitly specified are used during compile tests.
 **Note:** You must pass always arguments individually `arg1, arg2,
   ...` rather than as a string `'arg1 arg2', ...`
 
-**Note:** This added global argument will be used for all compiles for
-  both cross compilation and native.  If you want a global argument
-  to apply to just the cross compiler, you must set that in the cross
-  compile definition file under [properties]
+**Note:** Any argument provided here applies to both native and cross
+  compilation.  See the \[properties\] entry in 
+  [cross compile](Cross-compilation.md) for how to set specific flags
+  for the cross compiler.
 
 ### add_global_link_arguments()
 
@@ -43,7 +43,12 @@ arguments explicitly specified are used during compile tests.
     void add_global_link_arguments(*arg1*, *arg2*, ...)
 ```
 
-Like `add_global_arguments` but the arguments are passed to the linker.
+Like `add_global_arguments` but the arguments are passed to the linker. 
+
+**Note:** Any argument provided here applies to both native and cross
+  compilation.  See the \[properties\] entry in 
+  [cross compile](Cross-compilation.md) for how to set specific flags
+  for the cross compiler.
 
 ### add_languages()
 
@@ -75,7 +80,8 @@ otherwise.
 
 This function behaves in the same way as `add_global_arguments` except
 that the arguments are only used for the current project, they won't
-be used in any other subproject.
+be used in any other subproject.  Any argument added here **does** apply
+to both native and cross compilations.
 
 ### add_project_link_arguments()
 
@@ -83,7 +89,8 @@ be used in any other subproject.
   void add_project_link_arguments(*arg1*, *arg2*, ...)
 ```
 
-Like `add_project_arguments` but the arguments are passed to the linker.
+Like `add_project_arguments` but the arguments are passed to the linker. 
+Any argument added here **does** apply to both native and cross links.
 
 ### add_test_setup()
 
