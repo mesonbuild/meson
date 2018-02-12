@@ -445,8 +445,8 @@ def skippable(suite, test):
     if not suite.endswith('frameworks'):
         return True
 
-    # gtk-doc test is always skipped pending upstream fixes for spaces in
-    # filenames landing in distros
+    # gtk-doc test may be skipped, pending upstream fixes for spaces in
+    # filenames landing in the distro used for CI
     if test.endswith('10 gtk-doc'):
         return True
 
