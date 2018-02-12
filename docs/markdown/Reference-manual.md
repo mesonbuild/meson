@@ -32,6 +32,11 @@ arguments explicitly specified are used during compile tests.
 **Note:** You must pass always arguments individually `arg1, arg2,
   ...` rather than as a string `'arg1 arg2', ...`
 
+**Note:** This added global argument will be used for all compiles for
+  both cross compilation and native.  If you want a global argument
+  to apply to just the cross compiler, you must set that in the cross
+  compile definition file under [properties]
+
 ### add_global_link_arguments()
 
 ``` meson
