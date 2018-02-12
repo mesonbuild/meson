@@ -1,4 +1,4 @@
-usr/bin/intlprog
+usr/bin/intlprog?exe
 usr/share/locale/de/LC_MESSAGES/intltest.mo
 usr/share/locale/fi/LC_MESSAGES/intltest.mo
 usr/share/applications/test.desktop
