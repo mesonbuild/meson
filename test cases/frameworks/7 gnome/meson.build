@@ -1,5 +1,16 @@
 project('gobject-introspection', 'c')
 
+glib = dependency('glib-2.0', required: false)
+if not glib.found()
+  error('MESON_SKIP_TEST glib not found.')
+endif
+
+python3 = import('python3')
+py3 = python3.find_python()
+if run_command(py3, '-c', 'import gi;').returncode() != 0
+    error('MESON_SKIP_TEST python3-gi not found')
+endif
+
 cc = meson.get_compiler('c')
 
 add_global_arguments('-DMESON_TEST', language : 'c')
