@@ -1,5 +1,10 @@
 project('llvmtest', ['c', 'cpp'], default_options : ['c_std=c99'])
 
+d = dependency('llvm', required : false)
+if not d.found()
+  error('MESON_SKIP_TEST llvm not found.')
+endif
+
 d = dependency('llvm', modules : 'not-found', required : false)
 assert(d.found() == false, 'not-found llvm module found')
 
