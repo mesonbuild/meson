@@ -46,6 +46,25 @@ file called `foobar.h`, which you can then include in your sources.
 Returns an array containing: `[c_source, header_file]` or
 `[gresource_bundle]`
 
+Example:
+
+```meson
+gnome = import('gnome')
+
+asresources = gnome.compile_resources(
+    'as-resources', 'data/asresources.gresource.xml',
+    source_dir: 'data',
+    c_name: 'as'
+)
+
+executable(
+    meson.project_name(),
+    asresources,
+    dependencies: my_deps,
+    install: true
+)
+```
+
 ### gnome.generate_gir()
 
 Generates GObject introspection data. Takes one positional argument,
