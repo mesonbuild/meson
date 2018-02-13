@@ -10,6 +10,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
  - [Budgie Desktop](https://github.com/budgie-desktop/budgie-desktop), a desktop environment built on GNOME technologies
  - [casync](https://github.com/systemd/casync), Content-Addressable Data Synchronization Tool
+ - [cinnamon-desktop](https://github.com/linuxmint/cinnamon-desktop), the cinnamon desktop library
  - [dbus-broker](https://github.com/bus1/dbus-broker), Linux D-Bus Message Broker
  - [Dpdk](http://dpdk.org/ml/archives/dev/2018-January/089724.html), Data plane development kit, a set of libraries and drivers for fast packet processing
  - [DXVK](https://github.com/doitsujin/dxvk), a Vulkan-based Direct3D 11 implementation for Linux using Wine
@@ -47,6 +48,8 @@ lookup based on OpenStreetMap data
  - [Mesa](https://www.mesa3d.org/), An open source graphics driver project
  - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via Wifi-Display specification aka Miracast
  - [Nautilus](https://git.gnome.org/browse/nautilus/commit/?id=ed5652c89ac0654df2e82b54b00b27d51c825465), the Gnome file manager
+ - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
+ - [Pithos](https://github.com/pithos/pithos), a Pandora Radio client
  - [Orc](http://cgit.freedesktop.org/gstreamer/orc/), the Optimized Inner Loop Runtime Compiler (not the default yet)
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style meson example project
  - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library (not the default yet)
@@ -58,7 +61,9 @@ lookup based on OpenStreetMap data
  - [SSHFS](https://github.com/libfuse/sshfs), allows you to mount a remote filesystem using SFTP
  - [Sysprof](https://wiki.gnome.org/Apps/Sysprof), a profiling tool
  - [systemd](https://github.com/systemd/systemd), the init system
+ - [szl](https://github.com/dimkr/szl), a lightweight, embeddable scripting language
  - [Taisei Project](https://taisei-project.org/), an open-source Touhou Project clone and fangame
+ - [xi-gtk](https://github.com/eyelash/xi-gtk), a GTK+ front-end for the Xi editor
  - [Xorg](https://cgit.freedesktop.org/xorg/xserver/), the X.org display server (not the default yet)
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
  - [Wayland and Weston](https://lists.freedesktop.org/archives/wayland-devel/2016-November/031984.html), a next generation display server (not merged yet)
