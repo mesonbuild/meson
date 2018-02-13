@@ -49,12 +49,12 @@ lookup based on OpenStreetMap data
  - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via Wifi-Display specification aka Miracast
  - [Nautilus](https://git.gnome.org/browse/nautilus/commit/?id=ed5652c89ac0654df2e82b54b00b27d51c825465), the Gnome file manager
  - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
- - [Pithos](https://github.com/pithos/pithos), a Pandora Radio client
  - [Orc](http://cgit.freedesktop.org/gstreamer/orc/), the Optimized Inner Loop Runtime Compiler (not the default yet)
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style meson example project
  - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library (not the default yet)
  - [Parzip](https://github.com/jpakkane/parzip), a multithreaded reimplementation of Zip
  - [PipeWire](https://pipewire.org/), a framework for video and audio for containerized applications
+ - [Pithos](https://github.com/pithos/pithos), a Pandora Radio client
  - [Pitivi](http://pitivi.org/), a nonlinear video editor
  - [Polari](https://git.gnome.org/browse/polari), an IRC client
  - [radare2](https://github.com/radare/radare2), unix-like reverse engineering framework and commandline tools (not the default)
