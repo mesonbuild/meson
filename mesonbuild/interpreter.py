@@ -1711,7 +1711,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         for a in expanded_args:
             if not os.path.isabs(a):
                 a = os.path.join(builddir if in_builddir else srcdir, self.subdir, a)
-            if os.path.exists(a):
+            if os.path.isfile(a):
                 a = os.path.relpath(a, start=srcdir)
                 if not a.startswith('..'):
                     if a not in self.build_def_files:
