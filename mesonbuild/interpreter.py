@@ -1717,8 +1717,16 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self.do_subproject(dirname, kwargs)
 
     def do_subproject(self, dirname, kwargs):
-        if '/' in dirname or '\\' in dirname:
-            raise InterpreterException('Subproject name must not contain a path separator.')
+        if dirname == '':
+            raise InterpreterException('Subproject dir name must not be empty.')
+        if dirname[0] == '.':
+            raise InterpreterException('Subproject dir name must not start with a period.')
+        if '..' in dirname:
+            raise InterpreterException('Subproject name must not contain a ".." path segment.')
+        if os.path.isabs(dirname):
+            raise InterpreterException('Subproject name must not be an absolute path.')
+        if '\\' in dirname or '/' in dirname:
+            mlog.warning('Subproject name has a path separator. This may cause unexpected behaviour.')
         if dirname in self.subproject_stack:
             fullstack = self.subproject_stack + [dirname]
             incpath = ' => '.join(fullstack)
