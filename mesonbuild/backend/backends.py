@@ -410,16 +410,10 @@ class Backend:
         args = []
         pchpath = self.get_target_private_dir(target)
         includeargs = compiler.get_include_args(pchpath, False)
-        for lang in ['c', 'cpp']:
-            p = target.get_pch(lang)
-            if not p:
-                continue
-            if compiler.can_compile(p[-1]):
-                header = p[0]
-                args += compiler.get_pch_use_args(pchpath, header)
-        if len(args) > 0:
-            args = includeargs + args
-        return args
+        p = target.get_pch(compiler.get_language())
+        if p:
+            args += compiler.get_pch_use_args(pchpath, p[0])
+        return includeargs + args
 
     @staticmethod
     def escape_extra_args(compiler, args):
