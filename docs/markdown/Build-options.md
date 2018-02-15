@@ -107,6 +107,13 @@ $ meson configure "-Doption=['a,b', 'c,d']"
 The inner values must always be single quotes and the outer ones
 double quotes.
 
+To change values in subprojects prepend the name of the subproject and
+a colon:
+
+```console
+$ meson configure -Dsubproject:option=newvalue
+```
+
 **NOTE:** If you cannot call `meson configure` you likely have a old
   version of Meson. In that case you can call `mesonconf` instead, but
   that is deprecated in newer versions
