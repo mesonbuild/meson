@@ -1,4 +1,4 @@
-# Unstable SIMD module
+# Unstable IceStorm module
 
 This module provides is available since version 0.45.0.
 
