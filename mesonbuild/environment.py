@@ -346,6 +346,7 @@ class Environment:
         self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77', 'ifort']
         self.default_rust = ['rustc']
         self.default_static_linker = ['ar']
+        self.default_nim = ['nim']
         self.vs_static_linker = ['lib']
         self.gcc_static_linker = ['gcc-ar']
         self.clang_static_linker = ['llvm-ar']
@@ -823,11 +824,11 @@ This is probably wrong, it should always point to the native compiler.''' % evar
     def detect_nim_compiler(self):
         exelist = ['nim']
         try:
-            p, out = Popen_safe(exelist + ['--version'])[0:2]
+            p, out, err = Popen_safe(exelist + ['--version'])
         except OSError:
             raise EnvironmentException('Could not execute Nim compiler "%s"' % ' '.join(exelist))
-        version = search_version(out)
-        if 'Nim' in out:
+        version = search_version(err)
+        if 'Nim' in err:
             return NimCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
