@@ -107,7 +107,7 @@ def warning(*args, **kwargs):
 
     args = (yellow('WARNING:'),) + args
 
-    if kwargs.get('location'):
+    if 'location' in kwargs:
         location = kwargs['location']
         del kwargs['location']
         location = '{}:{}:'.format(os.path.join(location.subdir, environment.build_filename), location.lineno)
