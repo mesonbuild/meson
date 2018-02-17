@@ -1960,7 +1960,7 @@ to directly access options of other subprojects.''')
     @noKwargs
     def func_error(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
-        raise InterpreterException('Error encountered: ' + args[0])
+        raise InterpreterException('Problem encountered: ' + args[0])
 
     def detect_compilers(self, lang, need_cross_compiler):
         cross_comp = None
