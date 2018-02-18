@@ -39,3 +39,12 @@ subdir('sh_func2_dep_func1')
 subdir('exe3')
 # Test that both func1 and func2 are accessible from shared library
 test('prog3', exe3)
+
+# Test 4: link_whole can be used in transitive declare_dependency()
+func1_trans_dep = declare_dependency(dependencies : func1_dep)
+# Use transitive dependency to link func1 into shared library
+subdir('sh_func2_transdep_func1')
+# Link exe4 with shared library
+subdir('exe4')
+# Test that both func1 and func2 are accessible from shared library
+test('prog4', exe4)
