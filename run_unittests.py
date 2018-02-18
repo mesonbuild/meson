@@ -1949,6 +1949,55 @@ recommended as it can lead to undefined behaviour on some platforms''')
         exe = os.path.join(self.builddir, 'main')
         self.assertEqual(b'NDEBUG=0', subprocess.check_output(exe).strip())
 
+    def test_guessed_linker_dependencies(self):
+        '''
+        Test that meson adds dependencies for libraries based on the final
+        linker command line.
+        '''
+        # build library
+        testdirbase = os.path.join(self.unit_test_dir, '26 guessed linker dependencies')
+        testdirlib = os.path.join(testdirbase, 'lib')
+        extra_args = None
+        env = Environment(testdirlib, self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
+        if env.detect_c_compiler(False).get_id() != 'msvc':
+            # static libraries are not linkable with -l with msvc because meson installs them
+            # as .a files which unix_args_to_native will not know as it expects libraries to use
+            # .lib as extension. For a DLL the import library is installed as .lib. Thus for msvc
+            # this tests needs to use shared libraries to test the path resolving logic in the
+            # dependency generation code path.
+            extra_args = ['--default-library', 'static']
+        self.init(testdirlib, extra_args=extra_args)
+        self.build()
+        self.install()
+        libbuilddir = self.builddir
+        installdir = self.installdir
+        libdir = os.path.join(self.installdir, self.prefix.lstrip('/').lstrip('\\'), 'lib')
+
+        # build user of library
+        self.new_builddir()
+        # replace is needed because meson mangles platform pathes passed via LDFLAGS
+        os.environ["LDFLAGS"] = '-L{}'.format(libdir.replace('\\', '/'))
+        self.init(os.path.join(testdirbase, 'exe'))
+        del os.environ["LDFLAGS"]
+        self.build()
+        self.assertBuildIsNoop()
+
+        # rebuild library
+        exebuilddir = self.builddir
+        self.installdir = installdir
+        self.builddir = libbuilddir
+        # Microsoft's compiler is quite smart about touching import libs on changes,
+        # so ensure that there is actually a change in symbols.
+        self.setconf('-Dmore_exports=true')
+        self.build()
+        self.install()
+        # no ensure_backend_detects_changes needed because self.setconf did that already
+
+        # assert user of library will be rebuild
+        self.builddir = exebuilddir
+        self.assertRebuiltTarget('app')
+
 
 class FailureTests(BasePlatformTests):
     '''
