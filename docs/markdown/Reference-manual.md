@@ -267,6 +267,8 @@ keyword arguments.
   - `include_directories`, the directories to add to header search path
   - `link_args`, link arguments to use
   - `link_with`, libraries to link against
+  - `link_whole`, libraries to link fully, same as [`executable`](#executable)
+    Since 0.46.0
   - `sources`, sources to add to targets (or generated header files
     that should be built before sources including them are built)
   - `version`, the version of this dependency, such as `1.2.3`
