@@ -33,6 +33,7 @@ from .modules import ModuleReturnValue
 import os, sys, shutil, uuid
 import re, shlex
 from collections import namedtuple
+from pathlib import PurePath
 
 import importlib
 
@@ -1981,7 +1982,7 @@ to directly access options of other subprojects.''')
     @noKwargs
     def func_error(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
-        raise InterpreterException('Error encountered: ' + args[0])
+        raise InterpreterException('Problem encountered: ' + args[0])
 
     def detect_compilers(self, lang, need_cross_compiler):
         cross_comp = None
@@ -2358,10 +2359,10 @@ root and issuing %s.
             raise
         # If the subproject execution failed in a non-fatal way, don't raise an
         # exception; let the caller handle things.
-        except:
+        except Exception as e:
             mlog.log('Also couldn\'t find a fallback subproject in',
                      mlog.bold(os.path.join(self.subproject_dir, dirname)),
-                     'for the dependency', mlog.bold(name))
+                     'for the dependency', mlog.bold(name), '\nReason:', str(e))
             return None
         dep = self.get_subproject_dep(name, dirname, varname, kwargs.get('required', True))
         if not dep:
@@ -2982,11 +2983,16 @@ different subdirectory.
     def evaluate_subproject_info(self, path_from_source_root, subproject_dirname):
         depth = 0
         subproj_name = ''
-        segs = path_from_source_root.split(os.path.sep)
-        while segs and segs[0] == subproject_dirname:
-            depth += 1
-            subproj_name = segs[1]
-            segs = segs[2:]
+        segs = PurePath(path_from_source_root).parts
+        segs_spd = PurePath(subproject_dirname).parts
+        while segs and segs[0] == segs_spd[0]:
+            if len(segs_spd) == 1:
+                subproj_name = segs[1]
+                segs = segs[2:]
+                depth += 1
+            else:
+                segs_spd = segs_spd[1:]
+                segs = segs[1:]
         return (depth, subproj_name)
 
     # Check that the indicated file is within the same subproject
