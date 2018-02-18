@@ -2827,6 +2827,27 @@ endian = 'little'
             self.assertTrue(os.path.isfile(test_exe))
             subprocess.check_call(test_exe, env=myenv)
 
+    @unittest.skipIf(shutil.which('pkg-config') is None, 'Pkg-config not found.')
+    def test_pkgconfig_internal_libraries(self):
+        '''
+        '''
+        with tempfile.TemporaryDirectory() as tempdirname:
+            # build library
+            testdirbase = os.path.join(self.unit_test_dir, '28 pkgconfig use libraries')
+            testdirlib = os.path.join(testdirbase, 'lib')
+            self.init(testdirlib, extra_args=['--prefix=' + tempdirname,
+                                              '--libdir=lib',
+                                              '--default-library=static'], default_args=False)
+            self.build()
+            self.install(use_destdir=False)
+
+            # build user of library
+            pkg_dir = os.path.join(tempdirname, 'lib/pkgconfig')
+            os.environ['PKG_CONFIG_PATH'] = pkg_dir
+            self.new_builddir()
+            self.init(os.path.join(testdirbase, 'app'))
+            self.build()
+
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
