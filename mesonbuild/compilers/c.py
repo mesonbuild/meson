@@ -726,7 +726,7 @@ class CCompiler(Compiler):
                         return False
         raise RuntimeError('BUG: {!r} check failed unexpectedly'.format(n))
 
-    def get_library_naming(self, env, libtype):
+    def get_library_naming(self, env, libtype, strict=False):
         '''
         Get library prefixes and suffixes for the target platform ordered by
         priority
@@ -734,7 +734,10 @@ class CCompiler(Compiler):
         stlibext = ['a']
         # We've always allowed libname to be both `foo` and `libfoo`,
         # and now people depend on it
-        prefixes = ['lib', '']
+        if strict and self.id != 'msvc': # lib prefix is not usually used with msvc
+            prefixes = ['lib']
+        else:
+            prefixes = ['lib', '']
         # Library suffixes and prefixes
         if for_darwin(env.is_cross_build(), env):
             shlibext = ['dylib']

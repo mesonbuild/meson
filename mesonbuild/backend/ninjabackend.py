@@ -2456,6 +2456,74 @@ rule FORTRAN_DEP_HACK
         target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
         return linker.get_link_whole_for(target_args) if len(target_args) else []
 
+    def guess_library_absolute_path(self, libname, search_dirs, prefixes, suffixes):
+        for directory in search_dirs:
+            for suffix in suffixes:
+                for prefix in prefixes:
+                    trial = os.path.join(directory, prefix + libname + '.' + suffix)
+                    if os.path.isfile(trial):
+                        return trial
+
+    def guess_external_link_dependencies(self, linker, target, commands, internal):
+        # Ideally the linker would generate dependency information that could be used.
+        # But that has 2 problems:
+        # * currently ld can not create dependency information in a way that ninja can use:
+        #   https://sourceware.org/bugzilla/show_bug.cgi?id=22843
+        # * Meson optimizes libraries from the same build using the symbol extractor.
+        #   Just letting ninja use ld generated dependencies would undo this optimization.
+        search_dirs = []
+        libs = []
+        absolute_libs = []
+
+        build_dir = self.environment.get_build_dir()
+        # the following loop sometimes consumes two items from command in one pass
+        it = iter(commands)
+        for item in it:
+            if item in internal and not item.startswith('-'):
+                continue
+
+            if item.startswith('-L'):
+                if len(item) > 2:
+                    path = item[2:]
+                else:
+                    try:
+                        path = next(it)
+                    except StopIteration:
+                        mlog.warning("Generated linker command has -L argument without following path")
+                        break
+                if not os.path.isabs(path):
+                    path = os.path.join(build_dir, path)
+                search_dirs.append(path)
+            elif item.startswith('-l'):
+                if len(item) > 2:
+                    libs.append(item[2:])
+                else:
+                    try:
+                        libs.append(next(it))
+                    except StopIteration:
+                        mlog.warning("Generated linker command has '-l' argument without following library name")
+                        break
+            elif os.path.isabs(item) and self.environment.is_library(item) and os.path.isfile(item):
+                absolute_libs.append(item)
+
+        guessed_dependencies = []
+        # TODO The get_library_naming requirement currently excludes link targets that use d or fortran as their main linker
+        if hasattr(linker, 'get_library_naming'):
+            search_dirs += linker.get_library_dirs()
+            prefixes_static, suffixes_static = linker.get_library_naming(self.environment, 'static', strict=True)
+            prefixes_shared, suffixes_shared = linker.get_library_naming(self.environment, 'shared', strict=True)
+            for libname in libs:
+                # be conservative and record most likely shared and static resolution, because we don't know exactly
+                # which one the linker will prefer
+                static_resolution = self.guess_library_absolute_path(libname, search_dirs, prefixes_static, suffixes_static)
+                shared_resolution = self.guess_library_absolute_path(libname, search_dirs, prefixes_shared, suffixes_shared)
+                if static_resolution:
+                    guessed_dependencies.append(os.path.realpath(static_resolution))
+                if shared_resolution:
+                    guessed_dependencies.append(os.path.realpath(shared_resolution))
+
+        return guessed_dependencies + absolute_libs
+
     def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[]):
         if isinstance(target, build.StaticLibrary):
             linker_base = 'STATIC'
@@ -2522,7 +2590,8 @@ rule FORTRAN_DEP_HACK
             dependencies = []
         else:
             dependencies = target.get_dependencies()
-        commands += self.build_target_link_arguments(linker, dependencies)
+        internal = self.build_target_link_arguments(linker, dependencies)
+        commands += internal
         # For 'automagic' deps: Boost and GTest. Also dependency('threads').
         # pkg-config puts the thread flags itself via `Cflags:`
         for d in target.external_deps:
@@ -2546,6 +2615,10 @@ rule FORTRAN_DEP_HACK
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
+
+        dep_targets = []
+        dep_targets.extend(self.guess_external_link_dependencies(linker, target, commands, internal))
+
         # Set runtime-paths so we can run executables without needing to set
         # LD_LIBRARY_PATH, etc in the environment. Doesn't work on Windows.
         if has_path_sep(target.name):
@@ -2569,7 +2642,7 @@ rule FORTRAN_DEP_HACK
         # Convert from GCC-style link argument naming to the naming used by the
         # current compiler.
         commands = commands.to_native()
-        dep_targets = [self.get_dependency_filename(t) for t in dependencies]
+        dep_targets.extend([self.get_dependency_filename(t) for t in dependencies])
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
