@@ -1390,7 +1390,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'configure_file': {'input', 'output', 'configuration', 'command', 'install_dir', 'capture', 'install'},
                     'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
                     'dependency': {'default_options', 'fallback', 'language', 'main', 'method', 'modules', 'optional_modules', 'native', 'required', 'static', 'version'},
-                    'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'version'},
+                    'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'link_whole', 'version'},
                     'executable': exe_kwargs,
                     'find_program': {'required', 'native'},
                     'generator': {'arguments', 'output', 'depfile', 'capture', 'preserve_path_from'},
@@ -1622,6 +1622,7 @@ class Interpreter(InterpreterBase):
             raise InterpreterException('Version must be a string.')
         incs = extract_as_list(kwargs, 'include_directories', unholder=True)
         libs = extract_as_list(kwargs, 'link_with', unholder=True)
+        libs_whole = extract_as_list(kwargs, 'link_whole', unholder=True)
         sources = extract_as_list(kwargs, 'sources')
         sources = listify(self.source_strings_to_files(sources), unholder=True)
         deps = extract_as_list(kwargs, 'dependencies', unholder=True)
@@ -1641,7 +1642,7 @@ class Interpreter(InterpreterBase):
                 raise InterpreterException('''Entries in "link_with" may only be self-built targets,
 external dependencies (including libraries) must go to "dependencies".''')
         dep = dependencies.InternalDependency(version, incs, compile_args,
-                                              link_args, libs, sources, final_deps)
+                                              link_args, libs, libs_whole, sources, final_deps)
         return DependencyHolder(dep)
 
     @noKwargs
