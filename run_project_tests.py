@@ -321,9 +321,12 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
         mesonlog = no_meson_log_msg
     gen_time = time.time() - gen_start
     if should_fail == 'meson':
-        if returncode != 0:
+        if returncode == 1:
             return TestResult('', BuildStep.configure, stdo, stde, mesonlog, gen_time)
-        return TestResult('Test that should have failed succeeded', BuildStep.configure, stdo, stde, mesonlog, gen_time)
+        elif returncode != 0:
+            return TestResult('Test exited with unexpected status {}'.format(returncode), BuildStep.configure, stdo, stde, mesonlog, gen_time)
+        else:
+            return TestResult('Test that should have failed succeeded', BuildStep.configure, stdo, stde, mesonlog, gen_time)
     if returncode != 0:
         return TestResult('Generating the build system failed.', BuildStep.configure, stdo, stde, mesonlog, gen_time)
     # Touch the meson.build file to force a regenerate so we can test that

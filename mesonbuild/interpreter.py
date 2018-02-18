@@ -1504,6 +1504,8 @@ class Interpreter(InterpreterBase):
                            'test': self.func_test,
                            'vcs_tag': self.func_vcs_tag,
                            })
+        if 'MESON_UNIT_TEST' in os.environ:
+            self.funcs.update({'exception': self.func_exception})
 
     def holderify(self, item):
         if isinstance(item, list):
@@ -1983,6 +1985,11 @@ to directly access options of other subprojects.''')
     def func_error(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         raise InterpreterException('Problem encountered: ' + args[0])
+
+    @noKwargs
+    def func_exception(self, node, args, kwargs):
+        self.validate_arguments(args, 0, [])
+        raise Exception()
 
     def detect_compilers(self, lang, need_cross_compiler):
         cross_comp = None

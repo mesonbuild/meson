@@ -1933,6 +1933,17 @@ class FailureTests(BasePlatformTests):
         self.assertRegex(out, r'Also couldn\'t find a fallback subproject in '
                          '.*subprojects.*failingsubproj.*for the dependency.*somedep')
 
+    def test_exception_exit_status(self):
+        '''
+        Test exit status on python exception
+        '''
+        tdir = os.path.join(self.unit_test_dir, '21 exit status')
+        os.environ['MESON_UNIT_TEST'] = '1'
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(tdir, inprocess=False)
+        self.assertEqual(cm.exception.returncode, 2)
+        self.wipe()
+
 
 class WindowsTests(BasePlatformTests):
     '''
