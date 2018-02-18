@@ -18,6 +18,10 @@ conventions of the target platform. All positional and keyword
 arguments are the same as for
 [shared_module](Reference-manual.md#shared_module).
 
+`extension_module` does not add any dependencies to the library so user may
+need to add `dependencies : dependency('python3')`, see
+[Python3 dependency](Dependencies.md#Python3).
+
 *Added 0.38.0*
 
 ## language_version

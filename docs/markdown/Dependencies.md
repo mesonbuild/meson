@@ -252,3 +252,15 @@ llvm_dep = dependency(
   'llvm', version : '>= 4.0', modules : ['amdgpu'], optional_modules : ['inteljitevents'],
 )
 ```
+
+## Python3
+
+Python3 is handled specially by meson:
+1. Meson tries to use `pkg-config`.
+1. If `pkg-config` fails meson uses fallback:
+    - On Windows fallback is current `python3` interpreter.
+    - On OSX fallback is framework dependency from `/Library/Frameworks`.
+
+Note that `python3` found by this dependency might differ from the one used in
+`python3` module because modules uses current interpreter but dependency tries
+`pkg-config` first.
