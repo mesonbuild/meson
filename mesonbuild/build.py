@@ -658,10 +658,6 @@ just like those detected with the dependency() function.''')
             self.link(linktarget)
         lwhole = extract_as_list(kwargs, 'link_whole')
         for linktarget in lwhole:
-            # Sorry for this hack. Keyword targets are kept in holders
-            # in kwargs. Unpack here without looking at the exact type.
-            if hasattr(linktarget, "held_object"):
-                linktarget = linktarget.held_object
             self.link_whole(linktarget)
 
         c_pchlist, cpp_pchlist, clist, cpplist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist \
