@@ -312,7 +312,7 @@ class Backend:
     def rpaths_for_bundled_shared_libraries(self, target):
         paths = []
         for dep in target.external_deps:
-            if isinstance(dep, dependencies.ExternalLibrary):
+            if isinstance(dep, (dependencies.ExternalLibrary, dependencies.PkgConfigDependency)):
                 la = dep.link_args
                 if len(la) == 1 and os.path.isabs(la[0]):
                     # The only link argument is an absolute path to a library file.
