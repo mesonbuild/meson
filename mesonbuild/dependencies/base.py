@@ -16,6 +16,7 @@
 # Custom logic for several other packages are in separate files.
 
 import os
+import re
 import sys
 import stat
 import shlex
