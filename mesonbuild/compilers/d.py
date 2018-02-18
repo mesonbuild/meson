@@ -81,7 +81,7 @@ class DCompiler(Compiler):
         return objfile + '.' + self.get_depfile_suffix()
 
     def get_depfile_suffix(self):
-        return 'dep'
+        return 'deps'
 
     def get_pic_args(self):
         return ['-fPIC']
@@ -233,13 +233,20 @@ class GnuDCompiler(DCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
         self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic']
 
+        self._has_color_support = version_compare(self.version, '>=4.9')
+        # dependencies were implemented before, but broken - support was fixed in GCC 7.1+
+        # (and some backported versions)
+        self._has_deps_support = version_compare(self.version, '>=7.1')
+
     def get_colorout_args(self, colortype):
-        if version_compare(self.version, '>=4.9.0'):
+        if self._has_color_support:
             return gnu_color_args[colortype][:]
         return []
 
     def get_dependency_gen_args(self, outtarget, outfile):
-        return ['-fmake-deps=' + outfile]
+        if not self._has_deps_support:
+            return []
+        return ['-MD', '-MQ', outtarget, '-MF', outfile]
 
     def get_output_args(self, target):
         return ['-o', target]
