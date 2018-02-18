@@ -55,7 +55,6 @@ for _l in clike_langs:
     clike_suffixes += lang_suffixes[_l]
 clike_suffixes += ('h', 'll', 's')
 
-# XXX: Use this in is_library()?
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
 # All these are only for C-like languages; see `clike_langs` above.
@@ -102,6 +101,10 @@ def is_object(fname):
 def is_library(fname):
     if hasattr(fname, 'fname'):
         fname = fname.fname
+
+    if soregex.match(fname):
+        return True
+
     suffix = fname.split('.')[-1]
     return suffix in lib_suffixes
 
