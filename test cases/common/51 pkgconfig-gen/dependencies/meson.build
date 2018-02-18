@@ -5,7 +5,7 @@ pkgg = import('pkgconfig')
 # libmain internally use libinternal and expose libexpose in its API
 exposed_lib = shared_library('libexposed', 'exposed.c')
 internal_lib = shared_library('libinternal', 'internal.c')
-main_lib = static_library('libmain', link_with : [exposed_lib, internal_lib])
+main_lib = both_libraries('libmain', link_with : [exposed_lib, internal_lib])
 
 pkgg.generate(exposed_lib)
 
