@@ -30,3 +30,12 @@ subdir('sh_only_link_whole')
 subdir('exe2')
 # Test that both func1 and func2 are accessible from shared library
 test('prog2', exe2)
+
+# Test 3: link_whole can be used in declare_dependency()
+func1_dep = declare_dependency(link_whole : [st_func1])
+# Use dependency to link func1 into shared library
+subdir('sh_func2_dep_func1')
+# Link exe3 with shared library
+subdir('exe3')
+# Test that both func1 and func2 are accessible from shared library
+test('prog3', exe3)
