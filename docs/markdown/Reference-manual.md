@@ -1738,7 +1738,7 @@ tests. It has the following methods.
 
 - `set(varname, value)` sets environment variable in the first
   argument to the value in the second argument, e.g.
-  `env.set('FOO', 'BAR') sets envvar`FOO`to value`BAR\`
+  `env.set('FOO', 'BAR')` sets envvar `FOO` to value `BAR`
 
 ### `external library` object
 
