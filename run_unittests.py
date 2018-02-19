@@ -33,6 +33,7 @@ import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
 import mesonbuild.coredata
+import mesonbuild.modules.gnome
 from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
 from mesonbuild.mesonlib import python_command, meson_command, version_compare
@@ -530,7 +531,10 @@ class BasePlatformTests(unittest.TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                out = run_configure(self.meson_mainfile, self.meson_args + args + extra_args)[1]
+                (returncode, out, _) = run_configure(self.meson_mainfile, self.meson_args + args + extra_args)
+                if returncode != 0:
+                    self._print_meson_log()
+                    raise RuntimeError('Configure failed')
             except:
                 self._print_meson_log()
                 raise
@@ -2445,6 +2449,21 @@ endian = 'little'
         self.init(testdir)
         self.build()
         self.builddir = oldbuilddir
+
+    def test_old_gnome_module_codepaths(self):
+        '''
+        A lot of code in the GNOME module is conditional on the version of the
+        glib tools that are installed, and breakages in the old code can slip
+        by once the CI has a newer glib version. So we force the GNOME module
+        to pretend that it's running on an ancient glib so the fallback code is
+        also tested.
+        '''
+        testdir = os.path.join(self.framework_test_dir, '7 gnome')
+        os.environ['MESON_UNIT_TEST_PRETEND_GLIB_OLD'] = "1"
+        mesonbuild.modules.gnome.native_glib_version = '2.20'
+        self.init(testdir, inprocess=True)
+        self.build()
+        mesonbuild.modules.gnome.native_glib_version = None
 
 
 class LinuxArmCrossCompileTests(BasePlatformTests):

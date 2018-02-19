@@ -29,7 +29,7 @@ gnome.compile_resources('simple-resources',
 )
 test('simple resource test (gresource)', find_program('resources.py'))
 
-if glib.version() >= '2.52.0'
+if not pretend_glib_old and glib.version() >= '2.52.0'
   # This test cannot pass if GLib version is older than 9.99.9.
   # Meson will raise an error if the user tries to use the 'dependencies'
   # argument and the version of GLib is too old for generated resource
