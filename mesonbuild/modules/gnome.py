@@ -15,13 +15,11 @@
 '''This module provides helper functions for Gnome/GLib related
 functionality such as gobject-introspection, gresources and gtk-doc'''
 
-from .. import build
 import os
 import copy
 import subprocess
-from . import ModuleReturnValue
-from ..mesonlib import MesonException, OrderedSet, Popen_safe, extract_as_list
-from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
+
+from .. import build
 from .. import mlog
 from .. import mesonlib
 from .. import compilers
@@ -29,6 +27,9 @@ from .. import interpreter
 from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
 from . import find_program, get_include_args
 from . import ExtensionModule
+from . import ModuleReturnValue
+from ..mesonlib import MesonException, OrderedSet, Popen_safe, extract_as_list
+from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreterbase import noKwargs, permittedKwargs
 
 # gresource compilation is broken due to the way
@@ -233,17 +234,6 @@ class GnomeModule(ExtensionModule):
 
         dep_files = stdout.split('\n')[:-1]
 
-        # In generate-dependencies mode, glib-compile-resources doesn't raise
-        # an error for missing resources but instead prints whatever filename
-        # was listed in the input file.  That's good because it means we can
-        # handle resource files that get generated as part of the build, as
-        # follows.
-        #
-        # If there are multiple generated resource files with the same basename
-        # then this code will get confused.
-        def exists_in_srcdir(f):
-            return os.path.exists(os.path.join(state.environment.get_source_dir(), f))
-
         depends = []
         subdirs = []
         for resfile in dep_files[:]:
@@ -267,21 +257,29 @@ class GnomeModule(ExtensionModule):
                             break
                     if fname is not None:
                         dep_files.remove(resfile)
-                        dep_files.append(
-                            mesonlib.File(
-                                is_built=True,
-                                subdir=dep.get_subdir(),
-                                fname=fname))
                         depends.append(dep)
                         subdirs.append(dep.get_subdir())
                         break
             else:
-                if not exists_in_srcdir(resfile):
+                # In generate-dependencies mode, glib-compile-resources doesn't raise
+                # an error for missing resources but instead prints whatever filename
+                # was listed in the input file.  That's good because it means we can
+                # handle resource files that get generated as part of the build, as
+                # follows.
+                #
+                # If there are multiple generated resource files with the same basename
+                # then this code will get confused.
+                try:
+                    f = mesonlib.File.from_source_file(state.environment.get_source_dir(),
+                                                       ".", resfile)
+                except MesonException:
                     raise MesonException(
                         'Resource "%s" listed in "%s" was not found. If this is a '
                         'generated file, pass the target that generates it to '
                         'gnome.compile_resources() using the "dependencies" '
                         'keyword argument.' % (resfile, input_file))
+                dep_files.remove(resfile)
+                dep_files.append(f)
         return dep_files, depends, subdirs
 
     def _get_link_args(self, state, lib, depends=None, include_rpath=False,
