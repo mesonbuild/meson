@@ -165,17 +165,21 @@ class Resolver:
             return False
         # Submodule has not been added, add it
         if out.startswith(b'+'):
-            mlog.warning('submodule {} might be out of date'.format(dirname))
+            mlog.warning('git submodule {} might be out of date'.format(dirname))
             return True
         elif out.startswith(b'U'):
             raise RuntimeError('submodule {} has merge conflicts'.format(dirname))
+        # Submodule exists, but is deinitialized or wasn't initialized
         elif out.startswith(b'-'):
-            if subprocess.call(['git', '-C', self.subdir_root, 'submodule', 'update', '--init', dirname]) != 0:
-                return False
-        # Submodule was added already, but it wasn't populated. Do a checkout.
-        elif out.startswith(b' '):
-            if subprocess.call(['git', 'checkout', '.'], cwd=dirname):
+            if subprocess.call(['git', '-C', self.subdir_root, 'submodule', 'update', '--init', dirname]) == 0:
                 return True
+            raise RuntimeError('Failed to git submodule init {!r}'.format(dirname))
+        # Submodule looks fine, but maybe it wasn't populated properly. Do a checkout.
+        elif out.startswith(b' '):
+            subprocess.call(['git', 'checkout', '.'], cwd=dirname)
+            # Even if checkout failed, try building it anyway and let the user
+            # handle any problems manually.
+            return True
         m = 'Unknown git submodule output: {!r}'
         raise RuntimeError(m.format(out))
 
