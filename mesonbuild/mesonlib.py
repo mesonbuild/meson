@@ -55,12 +55,18 @@ def detect_meson_py_location():
     # a) meson is not installed
     # b) meson is installed to a non-standard location
     # c) the script that invoked mesonlib is not the one of meson tools (e.g. run_unittests.py)
-    # The only thing remaining is to try to find the bundled executable and
-    # pray distro packagers have not moved it.
     fname = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'meson.py'))
-    if not os.path.exists(fname):
-        raise RuntimeError('Could not determine how to run Meson. Please file a bug with details.')
-    return fname
+    if os.path.exists(fname):
+        return fname
+    # If meson is still not found, we might be imported by out-of-source tests
+    # https://github.com/mesonbuild/meson/issues/3015
+    exe = shutil.which('meson')
+    if exe is None:
+        exe = shutil.which('meson.py')
+    if exe is not None:
+        return exe
+    # Give up.
+    raise RuntimeError('Could not determine how to run Meson. Please file a bug with details.')
 
 if os.path.basename(sys.executable) == 'meson.exe':
     # In Windows and using the MSI installed executable.
