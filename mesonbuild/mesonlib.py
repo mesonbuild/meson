@@ -876,6 +876,8 @@ def windows_proof_rmtree(f):
         try:
             shutil.rmtree(f)
             return
+        except FileNotFoundError:
+            return
         except (OSError, PermissionError):
             time.sleep(d)
     # Try one last time and throw if it fails.
