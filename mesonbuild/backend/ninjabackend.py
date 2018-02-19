@@ -1084,7 +1084,7 @@ int dummy;
         the build directory.
         """
         result = OrderedSet()
-        for dep in target.link_targets + target.link_whole_targets:
+        for dep in itertools.chain(target.link_targets, target.link_whole_targets):
             for i in dep.sources:
                 if hasattr(i, 'fname'):
                     i = i.fname
