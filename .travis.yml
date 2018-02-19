@@ -1,4 +1,5 @@
 sudo: false
+osx_image: xcode9.2
 
 branches:
   only:
@@ -22,16 +23,12 @@ language:
 services:
   - docker
 
-matrix:
-  exclude:
-  # On OS X gcc is just a wrapper around clang, so don't waste time testing that
-  - os: osx
-    compiler: gcc
-
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew uninstall python mercurial; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python@2 python@3 mercurial qt; fi
+  # Test against a real gcc too
+  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$CC" == "gcc" ]]; then brew install gcc; gcc --version; ld --version; fi
   # Use a Ninja with QuLogic's patch: https://github.com/ninja-build/ninja/issues/1219
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mkdir -p $HOME/tools; curl -L http://nirbheek.in/files/binaries/ninja/macos/ninja -o $HOME/tools/ninja; chmod +x $HOME/tools/ninja; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:artful; fi
