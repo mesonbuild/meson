@@ -14,6 +14,7 @@
 
 import os, pickle, re, shlex, subprocess, sys
 from collections import OrderedDict
+from pathlib import PurePath
 
 from . import backends
 from .. import modules
@@ -1139,16 +1140,31 @@ int dummy;
         valac_outputs = []
         # All sources that are passed to valac on the commandline
         all_files = list(vapi_src.keys())
+        # Passed as --basedir
+        srcbasedir = os.path.join(self.build_to_src, target.get_subdir())
         for (vala_file, gensrc) in vala_src.items():
             all_files.append(vala_file)
             # Figure out where the Vala compiler will write the compiled C file
+            #
             # If the Vala file is in a subdir of the build dir (in our case
-            # because it was generated/built by something else), the subdir path
-            # components will be preserved in the output path. But if the Vala
-            # file is outside the build directory, the path components will be
-            # stripped and just the basename will be used.
+            # because it was generated/built by something else), and is also
+            # a subdir of --basedir (because the builddir is in the source
+            # tree, and the target subdir is the source root), the subdir
+            # components from the source root till the private builddir will be
+            # duplicated inside the private builddir. Otherwise, just the
+            # basename will be used.
+            #
+            # If the Vala file is outside the build directory, the paths from
+            # the --basedir till the subdir will be duplicated inside the
+            # private builddir.
             if isinstance(gensrc, (build.CustomTarget, build.GeneratedList)) or gensrc.is_built:
                 vala_c_file = os.path.splitext(os.path.basename(vala_file))[0] + '.c'
+                # Check if the vala file is in a subdir of --basedir
+                abs_srcbasedir = os.path.join(self.environment.get_source_dir(), target.get_subdir())
+                abs_vala_file = os.path.join(self.environment.get_build_dir(), vala_file)
+                if PurePath(os.path.commonpath((abs_srcbasedir, abs_vala_file))) == PurePath(abs_srcbasedir):
+                    vala_c_subdir = PurePath(abs_vala_file).parent.relative_to(abs_srcbasedir)
+                    vala_c_file = os.path.join(vala_c_subdir, vala_c_file)
             else:
                 path_to_target = os.path.join(self.build_to_src, target.get_subdir())
                 if vala_file.startswith(path_to_target):
@@ -1166,7 +1182,7 @@ int dummy;
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
         args += ['--directory', c_out_dir]
-        args += ['--basedir', os.path.join(self.build_to_src, target.get_subdir())]
+        args += ['--basedir', srcbasedir]
         if not isinstance(target, build.Executable):
             # Library name
             args += ['--library', target.name]

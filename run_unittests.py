@@ -2428,6 +2428,24 @@ endian = 'little'
                 self.init(testdir, ['--cross-file=' + name], inprocess=True)
                 self.wipe()
 
+    def test_vala_generated_source_buildir_inside_source_tree(self):
+        '''
+        Test that valac outputs generated C files in the expected location when
+        the builddir is a subdir of the source tree.
+        '''
+        testdir = os.path.join(self.vala_test_dir, '8 generated sources')
+        newdir = os.path.join(self.builddir, 'srctree')
+        shutil.copytree(testdir, newdir)
+        testdir = newdir
+        # New builddir
+        builddir = os.path.join(testdir, 'subdir/_build')
+        os.makedirs(builddir, exist_ok=True)
+        oldbuilddir = self.builddir
+        self.builddir = builddir
+        self.init(testdir)
+        self.build()
+        self.builddir = oldbuilddir
+
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
