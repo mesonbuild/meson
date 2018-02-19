@@ -9,6 +9,19 @@ if cc.get_id() == 'intel'
   add_global_arguments('-wd2282', language : 'c')
 endif
 
+py3 = import('python3').find_python()
+pycode = '''import os, sys
+if "MESON_UNIT_TEST_PRETEND_GLIB_OLD" in os.environ:
+  sys.exit(0)
+sys.exit(1)
+'''
+
+pretend_glib_old = false
+res = run_command(py3, '-c', pycode)
+if res.returncode() == 0
+  pretend_glib_old = true
+endif
+
 gnome = import('gnome')
 gio = dependency('gio-2.0')
 giounix = dependency('gio-unix-2.0')
