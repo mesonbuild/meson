@@ -464,16 +464,20 @@ class BasePlatformTests(unittest.TestCase):
         self.builddirs = []
         self.new_builddir()
 
-    def new_builddir(self):
-        # In case the directory is inside a symlinked directory, find the real
-        # path otherwise we might not find the srcdir from inside the builddir.
-        self.builddir = os.path.realpath(tempfile.mkdtemp())
+    def change_builddir(self, newdir):
+        self.builddir = newdir
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         self.logdir = os.path.join(self.builddir, 'meson-logs')
         self.installdir = os.path.join(self.builddir, 'install')
         self.distdir = os.path.join(self.builddir, 'meson-dist')
         self.mtest_command = meson_command + ['test', '-C', self.builddir]
         self.builddirs.append(self.builddir)
+
+    def new_builddir(self):
+        # In case the directory is inside a symlinked directory, find the real
+        # path otherwise we might not find the srcdir from inside the builddir.
+        newdir = os.path.realpath(tempfile.mkdtemp())
+        self.change_builddir(newdir)
 
     def _print_meson_log(self):
         log = os.path.join(self.logdir, 'meson-log.txt')
@@ -2577,6 +2581,22 @@ endian = 'little'
             with mock.patch('mesonbuild.coredata.os.path.expanduser', lambda x: x.replace('~', d)):
                 self.init(testdir, ['--cross-file=' + name], inprocess=True)
                 self.wipe()
+
+    def test_vala_generated_source_buildir_inside_source_tree(self):
+        '''
+        Test that valac outputs generated C files in the expected location when
+        the builddir is a subdir of the source tree.
+        '''
+        testdir = os.path.join(self.vala_test_dir, '8 generated sources')
+        newdir = os.path.join(self.builddir, 'srctree')
+        shutil.copytree(testdir, newdir)
+        testdir = newdir
+        # New builddir
+        builddir = os.path.join(testdir, 'subdir/_build')
+        os.makedirs(builddir, exist_ok=True)
+        self.change_builddir(builddir)
+        self.init(testdir)
+        self.build()
 
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
