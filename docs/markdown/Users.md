@@ -4,7 +4,7 @@ title: Users
 
 # List of projects using Meson
 
-If you have a project that uses Meson that you want to add to this list, let us know and we'll add it.
+If you have a project that uses Meson that you want to add to this list, please [file a pull-request](https://github.com/mesonbuild/meson/edit/master/docs/markdown/Users.md) for it. All the software on this list is tested for regressions before release, so it's highly recommended that projects add themselves here.
 
  - [AQEMU](https://github.com/tobimensch/aqemu), a Qt GUI for QEMU virtual machines, since version 0.9.3
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
