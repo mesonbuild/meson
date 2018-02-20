@@ -525,10 +525,9 @@ class PkgConfigDependency(ExternalDependency):
             if self.static:
                 if lib.startswith('-L'):
                     libpaths.append(lib[2:])
-                    print(lib)
                     continue
                 # FIXME: try to handle .la files in static mode too?
-                elif lib.startswith('-l') and libpaths:
+                elif lib.startswith('-l'):
                     args = self.compiler.find_library(lib[2:], self.env, libpaths, libtype='static')
                     if not args or len(args) < 1:
                         if lib in static_libs_notfound:
@@ -536,12 +535,6 @@ class PkgConfigDependency(ExternalDependency):
                         mlog.warning('Static library {!r} not found for dependency {!r}, may '
                                      'not be statically linked'.format(lib[2:], self.name))
                         static_libs_notfound.append(lib)
-                        # Preserve the -l arg since we couldn't resolve it to
-                        # a static library. Also need all previous -L args now.
-                        for p in libpaths:
-                            lp = '-L' + p
-                            if lp not in self.link_args:
-                                self.link_args.append(lp)
                     else:
                         # Replace -l arg with full path to static library
                         lib = args[0]
@@ -558,6 +551,11 @@ class PkgConfigDependency(ExternalDependency):
                 lib = shared_lib
                 self.is_libtool = True
             self.link_args.append(lib)
+        # Add all -Lbar args if we have -lfoo args in link_args
+        if static_libs_notfound:
+            # Order of -L flags doesn't matter with ld, but it might with other
+            # linkers such as MSVC, so prepend them.
+            self.link_args = ['-L' + lp for lp in libpaths] + self.link_args
 
     def get_pkgconfig_variable(self, variable_name, kwargs):
         options = ['--variable=' + variable_name, self.name]
