@@ -516,6 +516,7 @@ class PkgConfigDependency(ExternalDependency):
                                       (self.name, out))
         self.link_args = []
         libpaths = []
+        static_libs_notfound = []
         for lib in self._convert_mingw_paths(shlex.split(out)):
             # If we want to use only static libraries, we have to look for the
             # file ourselves instead of depending on the compiler to find it
@@ -524,13 +525,26 @@ class PkgConfigDependency(ExternalDependency):
             if self.static:
                 if lib.startswith('-L'):
                     libpaths.append(lib[2:])
+                    print(lib)
                     continue
+                # FIXME: try to handle .la files in static mode too?
                 elif lib.startswith('-l') and libpaths:
                     args = self.compiler.find_library(lib[2:], self.env, libpaths, libtype='static')
                     if not args or len(args) < 1:
-                        raise DependencyException('Static library not found for {!r}'
-                                                  ''.format(lib[2:]))
-                    lib = args[0]
+                        if lib in static_libs_notfound:
+                            continue
+                        mlog.warning('Static library {!r} not found for dependency {!r}, may '
+                                     'not be statically linked'.format(lib[2:], self.name))
+                        static_libs_notfound.append(lib)
+                        # Preserve the -l arg since we couldn't resolve it to
+                        # a static library. Also need all previous -L args now.
+                        for p in libpaths:
+                            lp = '-L' + p
+                            if lp not in self.link_args:
+                                self.link_args.append(lp)
+                    else:
+                        # Replace -l arg with full path to static library
+                        lib = args[0]
             elif lib.endswith(".la"):
                 shared_libname = self.extract_libtool_shlib(lib)
                 shared_lib = os.path.join(os.path.dirname(lib), shared_libname)
