@@ -44,7 +44,6 @@ If you have a project that uses Meson that you want to add to this list, please 
 lookup based on OpenStreetMap data
  - [Libva](https://github.com/intel/libva), an implementation for the VA (VIdeo Acceleration) API
  - [Libzim](https://github.com/openzim/libzim), the reference implementation for the ZIM file format
- - [Lightdm-Webkit2-Greeter](https://github.com/Antergos/lightdm-webkit2-greeter)
  - [Kiwix libraries](https://github.com/kiwix/kiwix-lib)
  - [Mesa](https://cgit.freedesktop.org/mesa/mesa/), An open source graphics driver project
  - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via Wifi-Display specification aka Miracast
