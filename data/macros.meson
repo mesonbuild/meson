@@ -39,3 +39,5 @@
       cat %{_vpath_builddir}/meson-logs/testlog.txt; \
       echo "-----END TESTLOG-----"; \
       exit $rc; )
+
+%meson_gnome  %meson -i '-DG_DISABLE_CAST_CHECKS'
