@@ -143,7 +143,8 @@ class Lexer:
                     elif tid == 'string':
                         # Handle here and not on the regexp to give a better error message.
                         if match_text.find("\n") != -1:
-                            raise ParseException("Use ''' (three single quotes) for multiline strings.", self.getline(line_start), lineno, col)
+                            mlog.warning("""Newline character in a string detected, use ''' (three single quotes) for multiline strings instead.
+This will become a hard error in a future Meson release.""", self.getline(line_start), lineno, col)
                         value = match_text[1:-1].replace(r"\'", "'")
                         value = newline_rx.sub(r'\1\n', value)
                         value = value.replace(r" \\ ".strip(), r" \ ".strip())
