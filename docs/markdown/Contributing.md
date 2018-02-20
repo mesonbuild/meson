@@ -63,6 +63,21 @@ actually work should be done with a unit test.
 Projects needed by unit tests are in the `test cases/unit`
 subdirectory. They are not run as part of `./run_project_tests.py`.
 
+### Skipping integration tests
+
+Meson uses several continuous integration testing systems that have slightly
+different interface. To promote consistent naming policy, use:
+
+- `[skip ci]` in the commit title if you want to disable all integration tests
+- `[skip appveyor]` in the commit title if you want to disable Windows-only tests
+
+Continuous integration systems currently used:
+
+- [Travis-CI](https://docs.travis-ci.com/user/customizing-the-build/#Skipping-a-build)
+  allows `[skip ci]` anywhere in the commit messages.
+- [AppVeyor](https://www.appveyor.com/docs/how-to/filtering-commits/#skip-directive-in-commit-message)
+  requires `[skip ci]` or `[skip appveyor]` in the commit title.
+
 ## Documentation
 
 The `docs` directory contains the full documentation that will be used
@@ -75,6 +90,11 @@ All new functionality needs to have a mention in the release
 notes. These features should be written in standalone files in the
 `docs/markdown/snippets` directory. The release manager will combine
 them into one page when doing the release.
+
+[Integration tests should be disabled](#skipping-integration-tests) for
+documentation-only commits by putting `[skip ci]` into commit title.
+Reviewers should ask contributors to put `[skip ci]` into the title because
+tests are run again after merge for `master`.
 
 ## Python Coding style
 
