@@ -1563,9 +1563,13 @@ int main(int argc, char **argv) {
 
     def test_pkgconfig_static(self):
         '''
-        Test that the we only use static libraries when `static: true` is
+        Test that the we prefer static libraries when `static: true` is
         passed to dependency() with pkg-config. Can't be an ordinary test
         because we need to build libs and try to find them from meson.build
+
+        Also test that it's not a hard error to have unsatisfiable library deps
+        since system libraries -lm will never be found statically.
+        https://github.com/mesonbuild/meson/issues/2785
         '''
         if not shutil.which('pkg-config'):
             raise unittest.SkipTest('pkg-config not found')

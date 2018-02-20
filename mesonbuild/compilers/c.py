@@ -780,9 +780,12 @@ class CCompiler(Compiler):
             args = ['-l' + libname]
             if self.links(code, env, extra_args=args):
                 return args
+        # Ensure that we won't modify the list that was passed to us
+        extra_dirs = extra_dirs[:]
+        # Search in the system libraries too
+        extra_dirs += self.get_library_dirs()
         # Not found or we want to use a specific libtype? Try to find the
         # library file itself.
-        extra_dirs += self.get_library_dirs()
         prefixes, suffixes = self.get_library_naming(env, libtype)
         # Triply-nested loop!
         for d in extra_dirs:

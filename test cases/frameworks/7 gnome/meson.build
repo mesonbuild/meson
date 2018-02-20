@@ -17,6 +17,9 @@ gobj = dependency('gobject-2.0')
 gir = dependency('gobject-introspection-1.0')
 gmod = dependency('gmodule-2.0')
 
+# Test that static deps don't error out when static libraries aren't found
+glib_static = dependency('glib-2.0', static : true)
+
 subdir('resources-data')
 subdir('resources')
 subdir('gir')

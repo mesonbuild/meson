@@ -7,4 +7,5 @@ Name: libfoo
 Description: A foo library.
 Version: 1.0
 Libs: -L${libdir} -lfoo
+Libs.private: -lm
 Cflags: -I${includedir}
