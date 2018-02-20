@@ -1220,7 +1220,17 @@ the following methods.
   current backend: `ninja`, `vs2010`, `vs2015`, `vs2017`, or `xcode`.
 
 - `build_root()` returns a string with the absolute path to the build
-  root directory.
+  root directory. Note: this function will return the build root of
+  the parent project if called from a subproject, which is usually
+  not what you want. Try using `current_build_dir()`.
+
+- `source_root()` returns a string with the absolute path to the
+  source root directory. Note: you should use the `files()` function
+  to refer to files in the root source directory instead of
+  constructing paths manually with `meson.source_root()`. This
+  function will return the source root of the parent project if called
+  from a subproject, which is usually not what you want. Try using
+  `current_source_dir()`.
 
 - `current_build_dir()` returns a string with the absolute path to the
   current build directory.
@@ -1283,11 +1293,6 @@ the following methods.
   that the value may contain many parts, i.e. it may be `python3
   /path/to/meson.py introspect`. The user is responsible for splitting
   the string to an array if needed.
-
-- `source_root()` returns a string with the absolute path to the
-  source root directory. Note: you should use the `files()` function
-  to refer to files in the root source directory instead of
-  constructing paths manually with `meson.source_root()`.
 
 - `project_version()` returns the version string specified in `project` function call.
 
