@@ -1,9 +1,9 @@
 %__meson %{_bindir}/meson
 %__meson_wrap_mode nodownload
 
-%meson \
-    export CFLAGS="${CFLAGS:-%__global_cflags}"       \
-    export CXXFLAGS="${CXXFLAGS:-%__global_cxxflags}" \
+%meson(i:) \
+    export CFLAGS="${CFLAGS:-%__global_cflags %{-f*}}"       \
+    export CXXFLAGS="${CXXFLAGS:-%__global_cxxflags %{-f*}}" \
     export FFLAGS="${FFLAGS:-%__global_fflags}"       \
     export FCFLAGS="${FCFLAGS:-%__global_fcflags}"    \
     export LDFLAGS="${LDFLAGS:-%__global_ldflags}"    \
