@@ -222,17 +222,17 @@ class CoreData:
         (after resolving variables and ~), return that absolute path. Next,
         check if the file is relative to the current source dir. If the path
         still isn't resolved do the following:
-            Linux + BSD:
+            Windows:
+                - Error
+            *:
                 - $XDG_DATA_HOME/meson/cross (or ~/.local/share/meson/cross if
                   undefined)
                 - $XDG_DATA_DIRS/meson/cross (or
                   /usr/local/share/meson/cross:/usr/share/meson/cross if undefined)
                 - Error
-            *:
-                - Error
-        BSD follows the Linux path and will honor XDG_* if set. This simplifies
-        the implementation somewhat, especially since most BSD users wont set
-        those environment variables.
+
+        Non-Windows follows the Linux path and will honor XDG_* if set. This
+        simplifies the implementation somewhat.
         """
         if filename is None:
             return None
@@ -242,7 +242,7 @@ class CoreData:
         path_to_try = os.path.abspath(filename)
         if os.path.exists(path_to_try):
             return path_to_try
-        if sys.platform == 'linux' or 'bsd' in sys.platform.lower():
+        if sys.platform != 'win32':
             paths = [
                 os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')),
             ] + os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share').split(':')
