@@ -72,3 +72,14 @@ gen2 = generator(someprog,
 ```
 
 In this case you can not use the plain `@OUTPUT@` variable, as it would be ambiguous. This program only needs to know the output directory, it will generate the file names by itself.
+
+To make passing different additional arguments to the generator program at each use possible, you can use the `@EXTRA_ARGS@` string in the `arguments` list. Note that this placeholder can only be present as a whole string, and not as a substring. The main reason is that it represents a list of strings, which may be empty, or contain multiple elements; and in either case, interpolating it into the middle of a single string would be troublesome. If there are no extra arguments passed in from a `process()` invocation, the placeholder is entirely omitted from the actual list of arguments, so an empty string won't be passed to the generator program because of this. If there are multiple elements in `extra_args`, they are inserted into to the actual argument list as separate elements.
+
+```meson
+gen3 = generator(genprog,
+                 output : '@BASENAME@.cc',
+                 arguments : ['@INPUT@', '@EXTRA_ARGS@', '@OUTPUT@'])
+gen3_src1 = gen3.process('input1.y)
+gen3_src2 = gen3.process('input2.y', extra_args: '--foo')
+gen3_src3 = gen3.process('input3.y', extra_args: ['--foo', '--bar'])
+```
