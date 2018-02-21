@@ -35,7 +35,7 @@ import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import (
-    is_linux, is_windows, is_osx, is_cygwin, is_dragonflybsd,
+    is_windows, is_osx, is_cygwin, is_dragonflybsd,
     windows_proof_rmtree, python_command, meson_command, version_compare,
 )
 from mesonbuild.environment import Environment, detect_ninja
@@ -49,6 +49,9 @@ from run_tests import should_run_linux_cross_tests
 
 
 def get_dynamic_section_entry(fname, entry):
+    if is_cygwin() or is_osx():
+            raise unittest.SkipTest('Test only applicable to ELF platforms')
+
     try:
         raw_out = subprocess.check_output(['readelf', '-d', fname],
                                           universal_newlines=True)
@@ -526,6 +529,8 @@ class BasePlatformTests(unittest.TestCase):
         if inprocess:
             try:
                 (returncode, out, err) = run_configure(self.meson_mainfile, self.meson_args + args + extra_args)
+                if 'MESON_SKIP_TEST' in out:
+                    raise unittest.SkipTest('Project requested skipping.')
                 if returncode != 0:
                     self._print_meson_log()
                     print('Stdout:\n')
@@ -2135,6 +2140,9 @@ class LinuxlikeTests(BasePlatformTests):
         is true and not when it is false. This can't be an ordinary test case
         because we need to inspect the compiler database.
         '''
+        if is_cygwin() or is_osx():
+            raise unittest.SkipTest('PIC not relevant')
+
         testdir = os.path.join(self.common_test_dir, '3 static')
         self.init(testdir)
         compdb = self.get_compdb()
@@ -2214,6 +2222,8 @@ class LinuxlikeTests(BasePlatformTests):
         database.
         https://github.com/mesonbuild/meson/issues/864
         '''
+        if not shutil.which('valac'):
+            raise unittest.SkipTest('valac not installed.')
         testdir = os.path.join(self.vala_test_dir, '5 target glib')
         self.init(testdir)
         compdb = self.get_compdb()
@@ -2283,6 +2293,9 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertTrue(msg in mesonlog or msg2 in mesonlog)
 
     def _test_soname_impl(self, libpath, install):
+        if is_cygwin() or is_osx:
+            raise unittest.SkipTest('Test only applicable to ELF and linuxlike sonames')
+
         testdir = os.path.join(self.unit_test_dir, '1 soname')
         self.init(testdir)
         self.build()
@@ -2356,7 +2369,9 @@ class LinuxlikeTests(BasePlatformTests):
         # Check that all the listed -std=xxx options for this compiler work
         # just fine when used
         for v in compiler.get_options()[lang_std].choices:
-            if compiler.get_id() == 'clang' and version_compare(compiler.version, '<5.0.0') and '17' in v:
+            if (compiler.get_id() == 'clang' and '17' in v and
+                (version_compare(compiler.version, '<5.0.0') or
+                 (compiler.clang_type == mesonbuild.compilers.CLANG_OSX and version_compare(compiler.version, '<9.2')))):
                 continue
             std_opt = '{}={}'.format(lang_std, v)
             self.init(testdir, ['-D' + std_opt])
@@ -2489,6 +2504,9 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertNotIn('-Werror', c03_comp)
 
     def test_run_installed(self):
+        if is_cygwin() or is_osx():
+            raise unittest.SkipTest('LD_LIBRARY_PATH and RPATH not applicable')
+
         testdir = os.path.join(self.unit_test_dir, '7 run installed')
         self.init(testdir)
         self.build()
@@ -2558,6 +2576,8 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertTrue(gobject_found)
 
     def test_build_rpath(self):
+        if is_cygwin():
+            raise unittest.SkipTest('Windows PE/COFF binaries do not use RPATH')
         testdir = os.path.join(self.unit_test_dir, '11 build_rpath')
         self.init(testdir)
         self.build()
@@ -2575,6 +2595,9 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(install_rpath, 'baz')
 
     def test_pch_with_address_sanitizer(self):
+        if is_cygwin():
+            raise unittest.SkipTest('asan not available on Cygwin')
+
         testdir = os.path.join(self.common_test_dir, '13 pch')
         self.init(testdir, ['-Db_sanitize=address'])
         self.build()
@@ -2627,6 +2650,9 @@ endian = 'little'
         Test that valac outputs generated C files in the expected location when
         the builddir is a subdir of the source tree.
         '''
+        if not shutil.which('valac'):
+            raise unittest.SkipTest('valac not installed.')
+
         testdir = os.path.join(self.vala_test_dir, '8 generated sources')
         newdir = os.path.join(self.builddir, 'srctree')
         shutil.copytree(testdir, newdir)
@@ -2750,7 +2776,7 @@ def unset_envs():
 if __name__ == '__main__':
     unset_envs()
     cases = ['InternalTests', 'AllPlatformTests', 'FailureTests']
-    if is_linux():
+    if not is_windows():
         cases += ['LinuxlikeTests']
         if should_run_linux_cross_tests():
             cases += ['LinuxArmCrossCompileTests']
