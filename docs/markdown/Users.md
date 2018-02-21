@@ -19,11 +19,13 @@ If you have a project that uses Meson that you want to add to this list, please 
  - [fwupd](https://github.com/hughsie/fwupd), a simple daemon to allow session software to update firmware
  - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop.
  - [GLib](https://gitlab.gnome.org/GNOME/glib), cross-platform C library used by GTK+ and GStreamer (not the default yet)
+ - [Gnome Boxes](https://gitlab.gnome.org/GNOME/gnome-boxes), a Gnome hypervisor
  - [Gnome Builder](https://gitlab.gnome.org/GNOME/gnome-builder), an IDE for the Gnome platform
  - [Gnome MPV](https://github.com/gnome-mpv/gnome-mpv), Gnome frontend to the mpv video player
  - [Gnome Recipes](https://gitlab.gnome.org/GNOME/recipes), application for cooking recipes
  - [Gnome Software](https://gitlab.gnome.org/GNOME/gnome-software), an app store for Gnome
  - [Gnome Twitch](https://github.com/vinszent/gnome-twitch), an app for viewing Twitch streams on Gnome desktop
+ - [Gnome Usage](https://gitlab.gnome.org/GNOME/gnome-usage), a Gnome application for visualizing system resources
  - [Graphene](https://ebassi.github.io/graphene/), a thin type library for graphics
  - [Grilo](https://git.gnome.org/browse/grilo) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins), the Grilo multimedia framework
  - [GStreamer](https://cgit.freedesktop.org/gstreamer/gstreamer/), multimedia framework (not the default yet)
