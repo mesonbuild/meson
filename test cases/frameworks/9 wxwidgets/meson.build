@@ -7,4 +7,9 @@ if wxd.found()
   wp = executable('wxprog', 'wxprog.cpp', dependencies : wxd)
 
   test('wxtest', wp)
+
+  # WxWidgets framework is available, we can use required here
+  wx_stc = dependency('wxwidgets', version : '>=3.0.0', modules : ['std', 'stc'])
+  stc_exe = executable('wxstc', 'wxstc.cpp', dependencies : wx_stc)
+  test('wxstctest', stc_exe)
 endif
