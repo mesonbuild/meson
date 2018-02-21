@@ -1276,6 +1276,10 @@ int dummy;
         linkdirs = OrderedDict()
         for d in target.link_targets:
             linkdirs[d.subdir] = True
+            # specify `extern CRATE_NAME=OUTPUT_FILE` for each Rust
+            # dependency, so that collisions with libraries in rustc's
+            # sysroot don't cause ambiguity
+            args += ['--extern', '{}={}'.format(d.name, os.path.join(d.subdir, d.filename))]
         for d in linkdirs.keys():
             if d == '':
                 d = '.'
