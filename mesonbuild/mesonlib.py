@@ -541,8 +541,13 @@ def has_path_sep(name, sep='/\\'):
             return True
     return False
 
-def do_replacement(regex, line, confdata):
+def do_replacement(regex, line, format, confdata):
     missing_variables = set()
+    start_tag = '@'
+    backslash_tag = '\\@'
+    if format == 'cmake':
+        start_tag = '${'
+        backslash_tag = '\\${'
 
     def variable_replace(match):
         # Pairs of escape characters before '@' or '\@'
@@ -550,8 +555,8 @@ def do_replacement(regex, line, confdata):
             num_escapes = match.end(0) - match.start(0)
             return '\\' * (num_escapes // 2)
         # Single escape character and '@'
-        elif match.group(0) == '\\@':
-            return '@'
+        elif match.group(0) == backslash_tag:
+            return start_tag
         # Template variable to be replaced
         else:
             varname = match.group(1)
@@ -591,7 +596,7 @@ def do_mesondefine(line, confdata):
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
 
-def do_conf_file(src, dst, confdata):
+def do_conf_file(src, dst, confdata, format):
     try:
         with open(src, encoding='utf-8') as f:
             data = f.readlines()
@@ -599,14 +604,24 @@ def do_conf_file(src, dst, confdata):
         raise MesonException('Could not read input file %s: %s' % (src, str(e)))
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     # Also allow escaping '@' with '\@'
-    regex = re.compile(r'(?:\\\\)+(?=\\?@)|\\@|@([-a-zA-Z0-9_]+)@')
+    if format in ['meson', 'cmake@']:
+        regex = re.compile(r'(?:\\\\)+(?=\\?@)|\\@|@([-a-zA-Z0-9_]+)@')
+    elif format == 'cmake':
+        regex = re.compile(r'(?:\\\\)+(?=\\?\$)|\\\${|\${([-a-zA-Z0-9_]+)}')
+    else:
+        raise MesonException('Format "{}" not handled'.format(format))
+
+    search_token = '#mesondefine'
+    if format != 'meson':
+        search_token = '#cmakedefine'
+
     result = []
     missing_variables = set()
     for line in data:
-        if line.startswith('#mesondefine'):
+        if line.startswith(search_token):
             line = do_mesondefine(line, confdata)
         else:
-            line, missing = do_replacement(regex, line, confdata)
+            line, missing = do_replacement(regex, line, format, confdata)
             missing_variables.update(missing)
         result.append(line)
     dst_tmp = dst + '~'
