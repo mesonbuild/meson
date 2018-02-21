@@ -137,3 +137,15 @@ cfile = configure_file(input : 'config.h.in',
   output : 'do_not_get_installed.h',
   install_dir : '',
   configuration : conf)
+
+# Test escaping with cmake format
+conf7 = configuration_data()
+conf7.set('var1', 'foo')
+conf7.set('var2', 'bar')
+configure_file(
+  input : 'config7.h.in',
+  output : '@BASENAME@',
+  format : 'cmake',
+  configuration : conf7
+)
+test('test7', executable('prog7', 'prog7.c'))

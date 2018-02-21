@@ -1463,7 +1463,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env'},
                     'benchmark': {'args', 'env', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'build_target': known_build_target_kwargs,
-                    'configure_file': {'input', 'output', 'configuration', 'command', 'install_dir', 'capture', 'install'},
+                    'configure_file': {'input', 'output', 'configuration', 'command', 'install_dir', 'capture', 'install', 'format'},
                     'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
                     'dependency': {'default_options', 'fallback', 'language', 'main', 'method', 'modules', 'optional_modules', 'native', 'required', 'static', 'version'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'link_whole', 'version'},
@@ -2882,6 +2882,16 @@ root and issuing %s.
             if 'command' not in kwargs:
                 raise InterpreterException('"capture" keyword requires "command" keyword.')
 
+        if 'format' in kwargs:
+            format = kwargs['format']
+            if not isinstance(format, str):
+                raise InterpreterException('"format" keyword must be a string.')
+        else:
+            format = 'meson'
+
+        if format not in ('meson', 'cmake', 'cmake@'):
+            raise InterpreterException('"format" possible values are "meson", "cmake" or "cmake@".')
+
         # Validate input
         inputfile = None
         ifile_abs = None
@@ -2921,7 +2931,7 @@ root and issuing %s.
             if inputfile is not None:
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
                 missing_variables = mesonlib.do_conf_file(ifile_abs, ofile_abs,
-                                                          conf.held_object)
+                                                          conf.held_object, format)
                 if missing_variables:
                     var_list = ", ".join(map(repr, sorted(missing_variables)))
                     mlog.warning(

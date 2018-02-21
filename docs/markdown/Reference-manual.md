@@ -186,7 +186,12 @@ These are all the supported keyword arguments:
   `output`. Available since v0.41.0.
 - `command` as explained above, if specified, Meson does not create
   the file itself but rather runs the specified command, which allows
-  you to do fully custom file generation
+  you to do fully custom file generation.
+- `format` *(added 0.46.0)* the format of defines. It defaults to `meson`, and so substitutes
+`#mesondefine` statements and variables surrounded by `@` characters, you can also use `cmake`
+to replace `#cmakedefine` statements and variables with the `${variable}` syntax. Finally you can use
+`cmake@` in which case substitutions will apply on `#cmakedefine` statements and variables with
+the `@variable@` syntax.
 - `input` the input file name. If it's not specified in configuration
   mode, all the variables in the `configuration:` object (see above)
   are written to the `output:` file.
