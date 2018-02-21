@@ -498,7 +498,7 @@ class Environment:
                 continue
             version = search_version(out)
             full_version = out.split('\n', 1)[0]
-            if 'Free Software Foundation' or ('e2k' and 'lcc') in out:
+            if 'Free Software Foundation' in out or ('e2k' in out and 'lcc' in out):
                 defines = self.get_gnu_compiler_defines(compiler)
                 if not defines:
                     popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
@@ -611,7 +611,7 @@ class Environment:
                 popen_exceptions[' '.join(compiler + arg)] = e
                 continue
             version = search_version(out)
-            if 'Free Software Foundation' or ('e2k' and 'lcc') in out:
+            if 'Free Software Foundation' in out or ('e2k' in out and 'lcc' in out):
                 defines = self.get_gnu_compiler_defines(compiler)
                 if not defines:
                     popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
@@ -638,7 +638,7 @@ class Environment:
                 popen_exceptions[' '.join(compiler + arg)] = e
                 continue
             version = search_version(out)
-            if 'Free Software Foundation' or ('e2k' and 'lcc') in out:
+            if 'Free Software Foundation' in out or ('e2k' in out and 'lcc' in out):
                 defines = self.get_gnu_compiler_defines(compiler)
                 if not defines:
                     popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
