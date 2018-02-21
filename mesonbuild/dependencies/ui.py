@@ -23,7 +23,7 @@ from collections import OrderedDict
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
-    MesonException, Popen_safe, extract_as_list, for_windows,
+    MesonException, Popen_safe, extract_as_list, for_windows, for_cygwin,
     version_compare_many
 )
 from ..environment import detect_cpu
@@ -285,6 +285,10 @@ class QtBaseDependency(ExternalDependency):
         incdir = qvars['QT_INSTALL_HEADERS']
         self.compile_args.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
+        if for_cygwin(self.env.is_cross_build(), self.env):
+            shlibext = '.dll.a'
+        else:
+            shlibext = '.so'
         # Used by self.compilers_detect()
         self.bindir = self.get_qmake_host_bins(qvars)
         self.is_found = True
@@ -306,7 +310,7 @@ class QtBaseDependency(ExternalDependency):
                         self.is_found = False
                         break
             else:
-                libfile = os.path.join(libdir, 'lib{}{}.so'.format(self.qtpkgname, module))
+                libfile = os.path.join(libdir, 'lib{}{}{}'.format(self.qtpkgname, module, shlibext))
                 if not os.path.isfile(libfile):
                     self.is_found = False
                     break
