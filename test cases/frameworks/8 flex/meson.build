@@ -4,8 +4,16 @@ project('flex and bison', 'c')
 # may output headers that are necessary to build
 # the sources of a different generator.
 
-flex = find_program('flex')
-bison = find_program('bison')
+flex = find_program('flex', required: false)
+bison = find_program('bison', required: false)
+
+if not flex.found()
+  error('MESON_SKIP_TEST flex not found.')
+endif
+
+if not bison.found()
+  error('MESON_SKIP_TEST bison not found.')
+endif
 
 lgen = generator(flex,
 output : '@PLAINNAME@.yy.c',
@@ -23,4 +31,3 @@ e = executable('pgen', 'prog.c',
 lfiles, pfiles)
 
 test('parsertest', e)
-

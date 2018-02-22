@@ -1,5 +1,10 @@
 project('gtkdoctest', 'c', version : '1.0.0')
 
+gtkdoc = find_program('gtkdoc-scan', required: false)
+if not gtkdoc.found()
+  error('MESON_SKIP_TEST gtkdoc not found.')
+endif
+
 gnome = import('gnome')
 
 assert(gnome.gtkdoc_html_dir('foobar') == 'share/gtk-doc/html/foobar', 'Gtkdoc install dir is incorrect.')

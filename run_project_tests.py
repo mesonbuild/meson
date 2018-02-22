@@ -77,7 +77,8 @@ class AutoDeletedDir:
 
 failing_logs = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
-do_debug = not {'MESON_PRINT_TEST_OUTPUT', 'TRAVIS', 'APPVEYOR'}.isdisjoint(os.environ)
+under_ci = not {'TRAVIS', 'APPVEYOR'}.isdisjoint(os.environ)
+do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
 system_compiler = None
@@ -437,6 +438,33 @@ def have_java():
         return True
     return False
 
+def skippable(suite, test):
+    if not under_ci:
+        return True
+
+    if not suite.endswith('frameworks'):
+        return True
+
+    # gtk-doc test is always skipped pending upstream fixes for spaces in
+    # filenames landing in distros
+    if test.endswith('10 gtk-doc'):
+        return True
+
+    # No frameworks test should be skipped on linux CI, as we expect all
+    # prerequisites to be installed
+    if mesonlib.is_linux():
+        return False
+
+    # Boost test should only be skipped for windows CI build matrix entries
+    # which don't define BOOST_ROOT
+    if test.endswith('1 boost'):
+        if mesonlib.is_windows():
+            return 'BOOST_ROOT' not in os.environ
+        return False
+
+    # Other framework tests are allowed to be skipped on other platforms
+    return True
+
 def detect_tests_to_run():
     # Name, subdirectory, skip condition.
     all_tests = [
@@ -460,20 +488,9 @@ def detect_tests_to_run():
         ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         ('python3', 'python3', backend is not Backend.ninja),
         ('fpga', 'fpga', shutil.which('yosys') is None),
+        ('frameworks', 'frameworks', False),
     ]
     gathered_tests = [(name, gather_tests('test cases/' + subdir), skip) for name, subdir, skip in all_tests]
-    if mesonlib.is_windows():
-        # TODO: Set BOOST_ROOT in .appveyor.yml
-        gathered_tests += [('framework', ['test cases/frameworks/1 boost'], 'BOOST_ROOT' not in os.environ)]
-    elif mesonlib.is_osx():
-        if os.path.exists('/usr/local/include/boost'):
-            # Just do the BOOST test
-            gathered_tests += [('framework', ['test cases/frameworks/1 boost'], False)]
-    elif mesonlib.is_cygwin():
-        # Just do the BOOST test
-        gathered_tests += [('framework', ['test cases/frameworks/1 boost'], False)]
-    else:
-        gathered_tests += [('framework', gather_tests('test cases/frameworks'), False)]
     return gathered_tests
 
 def run_tests(all_tests, log_name_base, extra_args):
@@ -532,7 +549,7 @@ def _run_tests(all_tests, log_name_base, extra_args):
         for (testname, t, result) in futures:
             sys.stdout.flush()
             result = result.result()
-            if result is None or 'MESON_SKIP_TEST' in result.stdo:
+            if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(name, t))):
                 print(yellow('Skipping:'), t)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name': testname,
                                                                          'classname': name})

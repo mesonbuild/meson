@@ -1,5 +1,10 @@
 project('llvmtest', ['c', 'cpp'], default_options : ['c_std=c99'])
 
+d = dependency('llvm', required : false)
+if not d.found()
+  error('MESON_SKIP_TEST llvm not found.')
+endif
+
 d = dependency('llvm', modules : 'not-found', required : false)
 assert(d.found() == false, 'not-found llvm module found')
 
@@ -12,7 +17,7 @@ assert(d.found() == true, 'optional module stopped llvm from being found.')
 dep_tinfo = dependency('tinfo', required : false)
 if not dep_tinfo.found()
   cpp = meson.get_compiler('cpp')
-  dep_tinfo = cpp.find_library('tinfo')
+  dep_tinfo = cpp.find_library('tinfo', required: false)
 endif
 
 foreach static : [true, false]
