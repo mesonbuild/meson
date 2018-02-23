@@ -96,7 +96,7 @@ class DependenciesHelper:
         self.priv_reqs = list(set(self.priv_reqs))
         self.cflags = list(set(self.cflags))
 
-        # Remove from pivate libs/reqs if they are in public already
+        # Remove from private libs/reqs if they are in public already
         self.priv_libs = [i for i in self.priv_libs if i not in self.pub_libs]
         self.priv_reqs = [i for i in self.priv_reqs if i not in self.pub_reqs]
 
