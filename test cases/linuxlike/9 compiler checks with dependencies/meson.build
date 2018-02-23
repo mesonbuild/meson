@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   return ptr == 0;
 }
 '''
-  assert (cc.has_function('deflate', prefix : '#include<zlib.h>', dependencies : zlib, name : 'Test for function in zlib'), 'has_function test failed.')
+  assert (cc.has_function('deflate', prefix : '#include<zlib.h>', dependencies : zlib), 'has_function test failed.')
   assert (cc.links(linkcode, dependencies : zlib, name : 'Test link against zlib'), 'Linking test failed against zlib.')
 endif
 
