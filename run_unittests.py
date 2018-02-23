@@ -1735,6 +1735,16 @@ int main(int argc, char **argv) {
         ]:
             self.assertRegex(out, re.escape(expected))
 
+    def test_permitted_method_kwargs(self):
+        tdir = os.path.join(self.unit_test_dir, '23 non-permitted kwargs')
+        out = self.init(tdir)
+        for expected in [
+            r'WARNING: Passed invalid keyword argument "prefixxx".',
+            r'WARNING: Passed invalid keyword argument "argsxx".',
+            r'WARNING: Passed invalid keyword argument "invalidxx".',
+        ]:
+            self.assertRegex(out, re.escape(expected))
+
     def test_templates(self):
         ninja = detect_ninja()
         if ninja is None:

@@ -80,6 +80,22 @@ class permittedKwargs:
         return wrapped
 
 
+class permittedMethodKwargs:
+
+    def __init__(self, permitted):
+        self.permitted = permitted
+
+    def __call__(self, f):
+        @wraps(f)
+        def wrapped(obj, args, kwargs):
+            for k in kwargs:
+                if k not in self.permitted:
+                    mlog.warning('''Passed invalid keyword argument "{}".'''.format(k))
+                    mlog.warning('This will become a hard error in the future.')
+            return f(obj, args, kwargs)
+        return wrapped
+
+
 class InterpreterException(mesonlib.MesonException):
     pass
 
