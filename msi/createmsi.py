@@ -50,10 +50,14 @@ class PackageGenerator:
         self.staging_dirs = ['dist', 'dist2']
         if self.bytesize == 64:
             self.progfile_dir = 'ProgramFiles64Folder'
-            self.redist_path = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Redist\\MSVC\\14.11.25325\\MergeModules\\Microsoft_VC141_CRT_x64.msm'
+            redist_glob = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Redist\\MSVC\\*\\MergeModules\\Microsoft_VC141_CRT_x64.msm'
         else:
             self.progfile_dir = 'ProgramFilesFolder'
-            self.redist_path = 'C:\\Program Files\\Microsoft Visual Studio\\2017\\Community\\VC\\Redist\\MSVC\\14.11.25325\\MergeModules\\Microsoft_VC141_CRT_x86.msm'
+            redist_glob = 'C:\\Program Files\\Microsoft Visual Studio\\2017\\Community\\VC\\Redist\\MSVC\\*\\MergeModules\\Microsoft_VC141_CRT_x86.msm'
+        trials = glob(redist_glob)
+        if len(trials) != 1:
+            sys.exit('There are more than one potential redist dirs.')
+        self.redist_path = trials[0]
         self.component_num = 0
         self.feature_properties = {
             self.staging_dirs[0]: {
@@ -253,6 +257,7 @@ class PackageGenerator:
 if __name__ == '__main__':
     if not os.path.exists('meson.py'):
         sys.exit(print('Run me in the top level source dir.'))
+    subprocess.check_call(['pip', 'install', '--upgrade', 'cx_freeze'])
 
     p = PackageGenerator()
     p.build_dist()
