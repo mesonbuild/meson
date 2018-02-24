@@ -14,8 +14,10 @@
 
 """Code that creates simple startup projects."""
 
-import sys, argparse, re
+import os, sys, argparse, re, shutil
 from glob import glob
+from mesonbuild import mesonlib
+from mesonbuild.environment import detect_ninja
 
 lib_h_template = '''#pragma once
 #if defined _WIN32 || defined __CYGWIN__
@@ -356,15 +358,123 @@ def create_sample(options):
         raise RuntimeError('Unreachable code')
     print(info_message)
 
+def autodetect_options(options, sample=False):
+    if not options.name:
+        options.name = os.path.basename(os.getcwd())
+        if not re.match('[a-zA-Z_][a-zA-Z0-9]*', options.name) and sample:
+            print('Name of current directory "{}" is not usable as a sample project name.\n'
+                  'Specify a project name with --name.'.format(options.name))
+            sys.exit(1)
+        print('Using "{}" (name of current directory) as project name.'
+              .format(options.name))
+    if not options.executable:
+        options.executable = options.name
+        print('Using "{}" (project name) as name of executable to build.'
+              .format(options.executable))
+    if sample:
+        # The rest of the autodetection is not applicable to generating sample projects.
+        return
+    if not options.srcfiles:
+        srcfiles = []
+        for f in os.listdir():
+            if f.endswith('.cc') or f.endswith('.cpp') or f.endswith('.c'):
+                srcfiles.append(f)
+        if not srcfiles:
+            print("No recognizable source files found.\n"
+                  "Run me in an empty directory to create a sample project.")
+            sys.exit(1)
+        options.srcfiles = srcfiles
+        print("Detected source files: " + ' '.join(srcfiles))
+    if not options.language:
+        for f in options.srcfiles:
+            if f.endswith('.cc') or f.endswith('.cpp'):
+                options.language = 'cpp'
+                break
+            if f.endswith('.c'):
+                options.language = 'c'
+                break
+        if not options.language:
+            print("Can't autodetect language, please specify it with -l.")
+            sys.exit(1)
+        print("Detected language: " + options.language)
+
+meson_executable_template = '''project('{project_name}', '{language}',
+  version : '{version}',
+  default_options : [{default_options}])
+
+executable('{executable}',
+           {sourcespec},{depspec}
+           install : true)
+'''
+
+def create_meson_build(options):
+    if options.type != 'executable':
+        print('\nGenerating a meson.build file from existing sources is\n'
+              'supported only for project type "executable".\n'
+              'Run me in an empty directory to create a sample project.')
+        sys.exit(1)
+    default_options = ['warning_level=3']
+    if options.language == 'cpp':
+        # This shows how to set this very common option.
+        default_options += ['cpp_std=c++14']
+    # If we get a meson.build autoformatter one day, this code could
+    # be simplified quite a bit.
+    formatted_default_options = ', '.join("'{}'".format(x) for x in default_options)
+    sourcespec = ',\n           '.join("'{}'".format(x) for x in options.srcfiles)
+    depspec = ''
+    if options.deps:
+        depspec = '\n           dependencies : [\n              '
+        depspec += ',\n              '.join("dependency('{}')".format(x)
+                                            for x in options.deps.split(','))
+        depspec += '],'
+    content = meson_executable_template.format(project_name=options.name,
+                                               language=options.language,
+                                               version=options.version,
+                                               executable=options.executable,
+                                               sourcespec=sourcespec,
+                                               depspec=depspec,
+                                               default_options=formatted_default_options)
+    open('meson.build', 'w').write(content)
+    print('Generated meson.build file:\n\n' + content)
+
 def run(args):
     parser = argparse.ArgumentParser(prog='meson')
-    parser.add_argument('--name', default = 'mesonsample')
+    parser.add_argument("srcfiles", metavar="sourcefile", nargs="*",
+                        help="source files. default: all recognized files in current directory")
+    parser.add_argument("-n", "--name", help="project name. default: name of current directory")
+    parser.add_argument("-e", "--executable", help="executable name. default: project name")
+    parser.add_argument("-d", "--deps", help="dependencies, comma-separated")
+    parser.add_argument("-l", "--language", choices=['c', 'cpp'],
+                        help="project language. default: autodetected based on source files")
+    parser.add_argument("-b", "--build", help="build after generation", action='store_true')
+    parser.add_argument("--builddir", help="directory for build", default='build')
+    parser.add_argument("-f", "--force", action="store_true",
+                        help="force overwrite of existing files and directories.")
     parser.add_argument('--type', default='executable',
                         choices=['executable', 'library'])
-    parser.add_argument('--language', default='c', choices=['c', 'cpp'])
-    parser.add_argument('--version', default='1.0')
+    parser.add_argument('--version', default='0.1')
     options = parser.parse_args(args)
-    if len(glob('*')) != 0:
-        sys.exit('This command must be run in an empty directory.')
-    create_sample(options)
+    if len(glob('*')) == 0:
+        autodetect_options(options, sample=True)
+        if not options.language:
+            print('Defaulting to generating a C language project.')
+            options.language = 'c'
+        create_sample(options)
+    else:
+        autodetect_options(options)
+        if os.path.isfile('meson.build') and not options.force:
+            print('meson.build already exists. Use --force to overwrite.')
+            sys.exit(1)
+        create_meson_build(options)
+    if options.build:
+        if os.path.isdir(options.builddir) and options.force:
+            print('Build directory already exists, deleting it.')
+            shutil.rmtree(options.builddir)
+        print('Building...')
+        err = os.system('{} "{}"'.format(' '.join(mesonlib.meson_command), options.builddir))
+        if err:
+            sys.exit(1)
+        err = os.system('{} -C "{}"'.format(detect_ninja(), options.builddir))
+        if err:
+            sys.exit(1)
     return 0
