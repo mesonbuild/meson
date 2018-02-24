@@ -331,6 +331,8 @@ class Resolver:
                 mlog.log('Using', mlog.bold(patch_filename), 'from cache.')
             else:
                 purl = p.get('patch_url')
+                if purl == "local":
+                    purl = 'file://' + os.path.join(self.subdir_root, patch_filename)
                 mlog.log('Downloading patch from', mlog.bold(purl))
                 phash, tmpfile = self.get_data(purl)
                 expected = p.get('patch_hash')
