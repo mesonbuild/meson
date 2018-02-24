@@ -44,10 +44,30 @@ class DependenciesHelper:
         self.priv_reqs += reqs
 
     def add_pub_reqs(self, reqs):
-        self.pub_reqs += mesonlib.stringlistify(reqs)
+        self.pub_reqs += self._process_reqs(reqs)
 
     def add_priv_reqs(self, reqs):
-        self.priv_reqs += mesonlib.stringlistify(reqs)
+        self.priv_reqs += self._process_reqs(reqs)
+
+    def _process_reqs(self, reqs):
+        '''Returns string names of requirements'''
+        processed_reqs = []
+        for obj in mesonlib.listify(reqs, unholder=True):
+            if hasattr(obj, 'generated_pc'):
+                processed_reqs.append(obj.generated_pc)
+            elif hasattr(obj, 'pcdep'):
+                pcdeps = mesonlib.listify(obj.pcdep)
+                processed_reqs += [i.name for i in pcdeps]
+            elif isinstance(obj, dependencies.PkgConfigDependency):
+                if obj.found():
+                    processed_reqs.append(obj.name)
+            elif isinstance(obj, str):
+                processed_reqs.append(obj)
+            else:
+                raise mesonlib.MesonException('requires argument not a string, '
+                                              'library with pkgconfig-generated file '
+                                              'or pkgconfig-dependency object.')
+        return processed_reqs
 
     def add_cflags(self, cflags):
         self.cflags += mesonlib.stringlistify(cflags)

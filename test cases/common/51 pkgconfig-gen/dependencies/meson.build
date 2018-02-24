@@ -36,3 +36,17 @@ pkgg.generate(libraries : [main_lib, exposed_lib, threads_dep , custom_dep],
   filebase : 'dependency-test',
   description : 'A dependency test.'
 )
+
+pkgg.generate(
+  name : 'requires-test',
+  version : '1.0',
+  description : 'Dependency Requires field test.',
+  requires : [exposed_lib, pc_dep, 'libhello'],
+)
+
+pkgg.generate(
+  name : 'requires-private-test',
+  version : '1.0',
+  description : 'Dependency Requires.private field test.',
+  requires_private : [exposed_lib, pc_dep, 'libhello', notfound_dep],
+)
