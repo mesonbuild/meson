@@ -1775,6 +1775,9 @@ int main(int argc, char **argv) {
                               workdir=tmpdir)
                     self._run(ninja,
                               workdir=os.path.join(tmpdir, 'builddir'))
+            with tempfile.TemporaryDirectory() as tmpdir:
+                open(os.path.join(tmpdir, 'foo.' + lang), 'w').write('int main() {}')
+                self._run(meson_command + ['init', '-b'], workdir=tmpdir)
 
     # The test uses mocking and thus requires that
     # the current process is the one to run the Meson steps.
