@@ -53,13 +53,11 @@ class DependenciesHelper:
         self.cflags += mesonlib.stringlistify(cflags)
 
     def _process_libs(self, libs, public):
-        libs = mesonlib.listify(libs)
+        libs = mesonlib.listify(libs, unholder=True)
         processed_libs = []
         processed_reqs = []
         processed_cflags = []
         for obj in libs:
-            if hasattr(obj, 'held_object'):
-                obj = obj.held_object
             if hasattr(obj, 'pcdep'):
                 pcdeps = mesonlib.listify(obj.pcdep)
                 processed_reqs += [i.name for i in pcdeps]
