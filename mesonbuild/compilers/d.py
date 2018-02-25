@@ -93,7 +93,7 @@ class DCompiler(Compiler):
         # FIXME: Make this work for Windows, MacOS and cross-compiling
         return get_gcc_soname_args(GCC_STANDARD, prefix, shlib_name, suffix, path, soversion, is_shared_module)
 
-    def get_feature_args(self, kwargs):
+    def get_feature_args(self, kwargs, build_to_src):
         res = []
         if 'unittest' in kwargs:
             unittest = kwargs.pop('unittest')
@@ -122,8 +122,16 @@ class DCompiler(Compiler):
             import_dir_arg = d_feature_args[self.id]['import_dir']
             if not import_dir_arg:
                 raise EnvironmentException('D compiler %s does not support the "string import directories" feature.' % self.name_string())
-            for d in import_dirs:
-                res.append('{0}{1}'.format(import_dir_arg, d))
+            for idir_obj in import_dirs:
+                basedir = idir_obj.get_curdir()
+                for idir in idir_obj.get_incdirs():
+                     # Avoid superfluous '/.' at the end of paths when d is '.'
+                    if idir not in ('', '.'):
+                        expdir = os.path.join(basedir, idir)
+                    else:
+                        expdir = basedir
+                    srctreedir = os.path.join(build_to_src, expdir)
+                    res.append('{0}{1}'.format(import_dir_arg, srctreedir))
 
         if kwargs:
             raise EnvironmentException('Unknown D compiler feature(s) selected: %s' % ', '.join(kwargs.keys()))
