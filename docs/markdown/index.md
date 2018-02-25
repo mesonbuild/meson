@@ -33,19 +33,15 @@ developers. The first one is the mailing list, which is hosted at
 The second way is via IRC. The channel to use is `#mesonbuild` at
 [Freenode](https://freenode.net/).
 
-### Projects using Meson
+### [Projects using Meson](http://mesonbuild.com/Users.html)
 
 Many projects out there are using Meson and their communities are also
 a great resource for learning about what (and what not too!) do when
-trying to convert to using Meson. Some example projects are;
+trying to convert to using Meson. 
 
-*   [Meson itself!](https://github.com/mesonbuild/meson#running)
-*   [freedesktop.org](https://www.freedesktop.org/wiki/) related projects include;
-   - [Mesa](https://www.mesa3d.org/meson.html)
-   - [gstreamer](http://blog.nirbheek.in/2016/05/gstreamer-and-meson-new-hope.html)
-   - [Wayland](https://www.phoronix.com/scan.php?page=news_item&px=Wayland-Meson-Build-Sys-Patches)
- * [Gnome](https://wiki.gnome.org/Initiatives/GnomeGoals/MesonPorting) and friends (GTK, etc)
-
+[A short list of Meson users can be found here](http://mesonbuild.com/Users.html)
+but there are many more. We would love to hear about your success
+stories too and how things could be improved too!
 
 ## Development
 
