@@ -29,6 +29,12 @@ class CsCompiler(Compiler):
     def get_display_language(self):
         return 'C sharp'
 
+    def get_always_args(self):
+        return ['/nologo']
+
+    def get_linker_always_args(self):
+        return ['/nologo']
+
     def get_output_args(self, fname):
         return ['-out:' + fname]
 
@@ -93,7 +99,7 @@ class CsCompiler(Compiler):
     }
 }
 ''')
-        pc = subprocess.Popen(self.exelist + [src], cwd=work_dir)
+        pc = subprocess.Popen(self.exelist + self.get_always_args() + [src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Mono compiler %s can not compile programs.' % self.name_string())
