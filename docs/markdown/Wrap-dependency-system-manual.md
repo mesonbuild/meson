@@ -74,7 +74,31 @@ for the dependency in total isolation. This is a lot better than doing
 it inside your own source tree, especially if it contains hundreds of
 thousands of lines of code. Once you have a working build definition,
 just zip up the Meson build files (and others you have changed) and
-put them somewhere where you can download them.
+put them somewhere where you can download them, or keep them local
+(see below).
+
+## Project-local patch files
+In some cases, it makes sense to keep patches that are specific to a
+project with that project. One of the ways you can do that is with a
+"local" patch file. This allows you to keep your patches next to the
+wrap file itself. A wrap file with an additional local patch would
+look like this.
+
+```ini
+[wrap-file]
+directory = libfoobar-1.0
+
+source_url = https://upstream.example.com/foobar-1.0.tar.gz
+source_filename = foobar-1.0.tar.gz
+source_hash = 5ebeea0dfb75d090ea0e7ff84799b2a7a1550db3fe61eb5f6f61c2e971e57663
+
+patch_url = local
+patch_filename = libfoobar-meson.tar.gz
+patch_hash = 8c9d00702d5fe4a6bf25a36b821a332f6b2dfd117c66fe818b88b23d604635e9
+```
+
+In this case, meson will look for a file named `libfoobar-meson.tar.gz`
+in the same directory in which you would find the `.wrap` file above.
 
 ## Branching subprojects directly from git
 
