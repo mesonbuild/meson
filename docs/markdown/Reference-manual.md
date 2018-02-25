@@ -214,6 +214,9 @@ the `@variable@` syntax.
   was specified. It defaults to `c`, in which case preprocessor directives
   will be prefixed with `#`, you can also use `nasm`, in which case the
   prefix will be `%`.
+- `encoding` *(added v0.47.0)* set the file encoding for the input and output file,
+  defaults to utf-8. The supported encodings are those of python3, see
+  [standard-encodings](https://docs.python.org/3/library/codecs.html#standard-encodings).
 
 ### custom_target()
 

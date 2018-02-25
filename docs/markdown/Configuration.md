@@ -113,6 +113,14 @@ Will produce:
 #define BAR
 ```
 
+## Dealing with file encodings
+
+The default meson file encoding to configure files is utf-8. If you need to
+configure a file that is not utf-8 encoded the encoding keyword will allow
+you to specify which file encoding to use. It is however strongly advised to
+convert your non utf-8 file to utf-8 whenever possible. Supported file
+encodings are those of python3, see [standard-encodings](https://docs.python.org/3/library/codecs.html#standard-encodings).
+
 # A full example
 
 Generating and using a configuration file requires the following steps:
