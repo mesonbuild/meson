@@ -1,7 +1,21 @@
 project('D Features', 'd')
 
-# directory for data
+# ONLY FOR BACKWARDS COMPATIBILITY.
+# DO NOT DO THIS ON NEW CODE.
+# USE include_directories() INSTEAD OF BUILDING
+# STRINGS TO PATHS MANUALLY!
 data_dir = join_paths(meson.current_source_dir(), 'data')
+
+e_plain_bcompat = executable('dapp_menu_bcompat',
+    'app.d',
+    d_import_dirs: [data_dir]
+)
+test('dapp_menu_t_fail_bcompat', e_plain_bcompat, should_fail: true)
+test('dapp_menu_t_bcompat', e_plain_bcompat, args: ['menu'])
+
+# directory for data
+# This is the correct way to do this.
+data_dir = include_directories('data')
 
 e_plain = executable('dapp_menu',
     'app.d',
@@ -9,6 +23,7 @@ e_plain = executable('dapp_menu',
 )
 test('dapp_menu_t_fail', e_plain, should_fail: true)
 test('dapp_menu_t', e_plain, args: ['menu'])
+
 
 # test feature versions and string imports
 e_versions = executable('dapp_versions',

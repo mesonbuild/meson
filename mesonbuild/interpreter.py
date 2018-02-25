@@ -37,6 +37,7 @@ from pathlib import PurePath
 
 import importlib
 
+
 def stringifyUserArguments(args):
     if isinstance(args, list):
         return '[%s]' % ', '.join([stringifyUserArguments(x) for x in args])
@@ -247,7 +248,7 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
         return val
 
     def get(self, name):
-        return self.held_object.values[name]     # (val, desc)
+        return self.held_object.values[name] # (val, desc)
 
     def keys(self):
         return self.held_object.values.keys()
@@ -816,7 +817,8 @@ class CompilerHolder(InterpreterObject):
         '''
         if not hasattr(self.compiler, 'get_feature_args'):
             raise InterpreterException('This {} compiler has no feature arguments.'.format(self.compiler.get_display_language()))
-        return self.compiler.get_feature_args({'unittest': 'true'})
+        build_to_src = os.path.relpath(self.environment.get_source_dir(), self.environment.get_build_dir())
+        return self.compiler.get_feature_args({'unittest': 'true'}, build_to_src)
 
     def has_member_method(self, args, kwargs):
         if len(args) != 2:
@@ -1308,6 +1310,7 @@ class MesonMain(InterpreterObject):
             if len(args) == 2:
                 return args[1]
             raise InterpreterException('Unknown cross property: %s.' % propname)
+
 
 pch_kwargs = set(['c_pch', 'cpp_pch'])
 
@@ -2847,12 +2850,17 @@ root and issuing %s.
     @permittedKwargs(permitted_kwargs['include_directories'])
     @stringArgs
     def func_include_directories(self, node, args, kwargs):
+        return self.build_incdir_object(args, kwargs.get('is_system', False))
+
+    def build_incdir_object(self, incdir_strings, is_system=False):
+        if not isinstance(is_system, bool):
+            raise InvalidArguments('Is_system must be boolean.')
         src_root = self.environment.get_source_dir()
         build_root = self.environment.get_build_dir()
         absbase_src = os.path.join(src_root, self.subdir)
         absbase_build = os.path.join(build_root, self.subdir)
 
-        for a in args:
+        for a in incdir_strings:
             if a.startswith(src_root):
                 raise InvalidArguments('''Tried to form an absolute path to a source dir. You should not do that but use
 relative paths instead.
@@ -2875,10 +2883,7 @@ different subdirectory.
             absdir_build = os.path.join(absbase_build, a)
             if not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
                 raise InvalidArguments('Include dir %s does not exist.' % a)
-        is_system = kwargs.get('is_system', False)
-        if not isinstance(is_system, bool):
-            raise InvalidArguments('Is_system must be boolean.')
-        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, args, is_system))
+        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, incdir_strings, is_system))
         return i
 
     @permittedKwargs(permitted_kwargs['add_test_setup'])
@@ -3106,6 +3111,7 @@ different subdirectory.
         else:
             mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')
+        self.kwarg_strings_to_includedirs(kwargs)
         target = targetclass(name, self.subdir, self.subproject, is_cross, sources, objs, self.environment, kwargs)
         if is_cross:
             self.add_cross_stdlib_info(target)
@@ -3113,6 +3119,23 @@ different subdirectory.
         self.add_target(name, l.held_object)
         self.project_args_frozen = True
         return l
+
+    def kwarg_strings_to_includedirs(self, kwargs):
+        if 'd_import_dirs' in kwargs:
+            items = mesonlib.extract_as_list(kwargs, 'd_import_dirs')
+            cleaned_items = []
+            for i in items:
+                if isinstance(i, str):
+                    # BW compatibility. This was permitted so we must support it
+                    # for a few releases so people can transition to "correct"
+                    # path declarations.
+                    if i.startswith(self.environment.get_source_dir()):
+                        mlog.warning('''Building a path to the source dir is not supported. Use a relative path instead.
+This will become a hard error in the future.''')
+                        i = os.path.relpath(i, os.path.join(self.environment.get_source_dir(), self.subdir))
+                        i = self.build_incdir_object([i])
+                cleaned_items.append(i)
+            kwargs['d_import_dirs'] = cleaned_items
 
     def get_used_languages(self, target):
         result = {}
@@ -3152,6 +3175,7 @@ different subdirectory.
             if idx >= len(arg_strings):
                 raise InterpreterException('Format placeholder @{}@ out of range.'.format(idx))
             return arg_strings[idx]
+
         return re.sub(r'@(\d+)@', arg_replace, templ)
 
     # Only permit object extraction from the same subproject
