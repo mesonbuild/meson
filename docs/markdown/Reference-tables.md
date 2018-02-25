@@ -63,3 +63,21 @@ These are provided by the `.system()` method call.
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.
+
+
+## Language arguments parameter names
+
+These are the parameter names for passing language specific arguments to your build target.
+
+| Language      | Parameter name |
+| -----         | -----
+| C             | c_args |
+| C++           | cpp_args |
+| C#            | cs_args |
+| D             | d_args |
+| Fortran       | fortran_args |
+| Java          | java_args |
+| Objective C   | objc_args |
+| Objective C++ | objcpp_args |
+| Rust          | rust_args |
+| Vala          | vala_args |
