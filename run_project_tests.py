@@ -465,6 +465,28 @@ def skippable(suite, test):
     # Other framework tests are allowed to be skipped on other platforms
     return True
 
+def skip_csharp(backend):
+    if backend is not Backend.ninja:
+        return True
+    if not shutil.which('resgen'):
+        return True
+    if shutil.which('mcs'):
+        return False
+    if shutil.which('csc'):
+        # Only support VS2017 for now. Earlier versions fail
+        # under CI in mysterious ways.
+        try:
+            stdo = subprocess.check_output(['csc', '/version'])
+        except subprocess.CalledProcessError:
+            return True
+        # Having incrementing version numbers would be too easy.
+        # Microsoft reset the versioning back to 1.0 (from 4.x)
+        # when they got the Roslyn based compiler. Thus there
+        # is NO WAY to reliably do version number comparisons.
+        # Only support the version that ships with VS2017.
+        return not stdo.startswith(b'2.')
+    return True
+
 def detect_tests_to_run():
     # Name, subdirectory, skip condition.
     all_tests = [
@@ -478,7 +500,7 @@ def detect_tests_to_run():
         ('platform-linux', 'linuxlike', mesonlib.is_osx() or mesonlib.is_windows()),
 
         ('java', 'java', backend is not Backend.ninja or mesonlib.is_osx() or not have_java()),
-        ('C#', 'csharp', backend is not Backend.ninja or not shutil.which('mcs')),
+        ('C#', 'csharp', skip_csharp(backend)),
         ('vala', 'vala', backend is not Backend.ninja or not shutil.which('valac')),
         ('rust', 'rust', backend is not Backend.ninja or not shutil.which('rustc')),
         ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),

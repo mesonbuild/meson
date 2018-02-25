@@ -54,6 +54,7 @@ from .compilers import (
     IntelFortranCompiler,
     JavaCompiler,
     MonoCompiler,
+    VisualStudioCsCompiler,
     NAGFortranCompiler,
     Open64FortranCompiler,
     PathScaleFortranCompiler,
@@ -275,6 +276,10 @@ class Environment:
         else:
             self.default_c = ['cc', 'gcc', 'clang']
             self.default_cpp = ['c++', 'g++', 'clang++']
+        if mesonlib.is_windows():
+            self.default_cs = ['csc', 'mcs']
+        else:
+            self.default_cs = ['mcs', 'csc']
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
         self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77', 'ifort']
@@ -419,7 +424,7 @@ class Environment:
     def _get_compilers(self, lang, evar, want_cross):
         '''
         The list of compilers is detected in the exact same way for
-        C, C++, ObjC, ObjC++, Fortran so consolidate it here.
+        C, C++, ObjC, ObjC++, Fortran, CS so consolidate it here.
         '''
         if self.is_cross_build() and want_cross:
             compilers = mesonlib.stringlistify(self.cross_info.config['binaries'][lang])
@@ -664,16 +669,24 @@ class Environment:
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_cs_compiler(self):
-        exelist = ['mcs']
-        try:
-            p, out, err = Popen_safe(exelist + ['--version'])
-        except OSError:
-            raise EnvironmentException('Could not execute C# compiler "%s"' % ' '.join(exelist))
-        version = search_version(out)
-        full_version = out.split('\n', 1)[0]
-        if 'Mono' in out:
-            return MonoCompiler(exelist, version, full_version=full_version)
-        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('cs', 'CSC', False)
+        popen_exceptions = {}
+        for comp in compilers:
+            if not isinstance(comp, list):
+                comp = [comp]
+            try:
+                p, out, err = Popen_safe(comp + ['--version'])
+            except OSError as e:
+                popen_exceptions[' '.join(comp + ['--version'])] = e
+                continue
+
+            version = search_version(out)
+            if 'Mono' in out:
+                return MonoCompiler(comp, version)
+            elif "Visual C#" in out:
+                return VisualStudioCsCompiler(comp, version)
+
+        self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_vala_compiler(self):
         if 'VALAC' in os.environ:
