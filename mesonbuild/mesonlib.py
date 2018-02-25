@@ -623,9 +623,9 @@ def do_mesondefine(line, confdata):
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
 
-def do_conf_file(src, dst, confdata, format):
+def do_conf_file(src, dst, confdata, format, encoding='utf-8'):
     try:
-        with open(src, encoding='utf-8') as f:
+        with open(src, encoding=encoding) as f:
             data = f.readlines()
     except Exception as e:
         raise MesonException('Could not read input file %s: %s' % (src, str(e)))
@@ -652,8 +652,11 @@ def do_conf_file(src, dst, confdata, format):
             missing_variables.update(missing)
         result.append(line)
     dst_tmp = dst + '~'
-    with open(dst_tmp, 'w', encoding='utf-8') as f:
-        f.writelines(result)
+    try:
+        with open(dst_tmp, 'w', encoding=encoding) as f:
+            f.writelines(result)
+    except Exception as e:
+        raise MesonException('Could not write output file %s: %s' % (dst, str(e)))
     shutil.copymode(src, dst_tmp)
     replace_if_different(dst, dst_tmp)
     return missing_variables

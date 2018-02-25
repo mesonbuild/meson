@@ -174,3 +174,13 @@ ret = run_command(check_file, inf, outf)
 if ret.returncode() != 0
   error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
 endif
+
+# Test non isolatin1 encoded input file which fails to decode with utf-8
+conf8 = configuration_data()
+conf8.set('var', 'foo')
+configure_file(
+  input : 'config8.h.in',
+  output : '@BASENAME@',
+  encoding : 'koi8-r',
+  configuration : conf8
+)
