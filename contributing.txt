@@ -1,4 +1,0 @@
-Contributing to the Meson build system
-
-Contribution instructions can be found [on the
-website](http://mesonbuild.com/Contributing.html).
