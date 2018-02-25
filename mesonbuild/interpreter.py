@@ -1679,10 +1679,17 @@ external dependencies (including libraries) must go to "dependencies".''')
         cargs = args[1:]
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
-        m = 'must be a string, or the output of find_program(), files(), or ' \
-            'configure_file(); not {!r}'
+        m = 'must be a string, or the output of find_program(), files() '\
+            'or configure_file(), or a compiler object; not {!r}'
         if isinstance(cmd, ExternalProgramHolder):
             cmd = cmd.held_object
+        elif isinstance(cmd, CompilerHolder):
+            cmd = cmd.compiler.get_exelist()[0]
+            prog = ExternalProgram(cmd, silent=True)
+            if not prog.found():
+                raise InterpreterException('Program {!r} not found '
+                                           'or not executable'.format(cmd))
+            cmd = prog
         else:
             if isinstance(cmd, mesonlib.File):
                 cmd = cmd.absolute_path(srcdir, builddir)

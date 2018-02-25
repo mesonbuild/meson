@@ -1850,6 +1850,14 @@ int main(int argc, char **argv) {
                 self.init(testdir, ['--cross-file=' + name], inprocess=True)
                 self.wipe()
 
+    def test_compiler_run_command(self):
+        '''
+        The test checks that the compiler object can be passed to
+        run_command().
+        '''
+        testdir = os.path.join(self.unit_test_dir, '23 compiler run_command')
+        self.init(testdir)
+
 
 class FailureTests(BasePlatformTests):
     '''
