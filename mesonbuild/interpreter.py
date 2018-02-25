@@ -1724,7 +1724,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env'},
                     'benchmark': {'args', 'env', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'build_target': known_build_target_kwargs,
-                    'configure_file': {'input', 'output', 'configuration', 'command', 'copy', 'install_dir', 'install_mode', 'capture', 'install', 'format', 'output_format'},
+                    'configure_file': {'input', 'output', 'configuration', 'command', 'copy', 'install_dir', 'install_mode', 'capture', 'install', 'format', 'output_format', 'encoding'},
                     'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'install_mode', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
                     'dependency': {'default_options', 'fallback', 'language', 'main', 'method', 'modules', 'optional_modules', 'native', 'required', 'static', 'version', 'private_headers'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'link_whole', 'version'},
@@ -3332,8 +3332,10 @@ root and issuing %s.
             mlog.log('Configuring', mlog.bold(output), 'using configuration')
             if inputfile is not None:
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
+                file_encoding = kwargs.setdefault('encoding', 'utf-8')
                 missing_variables = mesonlib.do_conf_file(ifile_abs, ofile_abs,
-                                                          conf.held_object, fmt)
+                                                          conf.held_object, fmt,
+                                                          file_encoding)
                 if missing_variables:
                     var_list = ", ".join(map(repr, sorted(missing_variables)))
                     mlog.warning(
@@ -3360,7 +3362,8 @@ root and issuing %s.
                                            (res.stdout, res.stderr))
             if 'capture' in kwargs and kwargs['capture']:
                 dst_tmp = ofile_abs + '~'
-                with open(dst_tmp, 'w', encoding='utf-8') as f:
+                file_encoding = kwargs.setdefault('encoding', 'utf-8')
+                with open(dst_tmp, 'w', encoding=file_encoding) as f:
                     f.writelines(res.stdout)
                 if ifile_abs:
                     shutil.copymode(ifile_abs, dst_tmp)
