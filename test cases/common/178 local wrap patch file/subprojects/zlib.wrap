@@ -1,0 +1,10 @@
+[wrap-file]
+directory = zlib-1.2.8
+
+source_url = http://zlib.net/fossils/zlib-1.2.8.tar.gz
+source_filename = zlib-1.2.8.tar.gz
+source_hash = 36658cb768a54c1d4dec43c3116c27ed893e88b02ecfcb44f2166f9c0b7f2a0d
+
+patch_url = local
+patch_filename = local-wrap-patch-test.zip
+patch_hash = d3eb539a556352f3f47881d71fb0e5777b2f3e9a4251d283c18c67ce996774b7
