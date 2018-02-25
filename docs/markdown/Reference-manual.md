@@ -976,9 +976,13 @@ Project supports the following keyword arguments.
     runresult run_command(command, list_of_args)
 ```
 
-Runs the command specified in positional arguments. Returns [an opaque
-object](#run-result-object) containing the result of the
-invocation. The script is run from an *unspecified* directory, and
+Runs the command specified in positional arguments.
+`command` can be a string, or the output of [`find_program()`](#find_program),
+[`files()`](#files) or [`configure_file()`](#configure_file), or
+[a compiler object](#compiler-object).
+
+Returns [an opaque object](#run-result-object) containing the result of the
+invocation. The command is run from an *unspecified* directory, and
 Meson will set three environment variables `MESON_SOURCE_ROOT`,
 `MESON_BUILD_ROOT` and `MESON_SUBDIR` that specify the source
 directory, build directory and subdirectory the target was defined in,
