@@ -325,9 +325,12 @@ class QtBaseDependency(ExternalDependency):
                                              self.language, kwargs)
             self.compile_args.append('-F' + libdir)
             if fwdep.found():
-                self.is_found = True
                 self.compile_args += fwdep.get_compile_args()
                 self.link_args += fwdep.get_link_args()
+            else:
+                break
+        else:
+            self.is_found = True
         # Used by self.compilers_detect()
         self.bindir = self.get_qmake_host_bins(qvars)
 
