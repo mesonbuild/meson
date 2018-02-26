@@ -145,11 +145,13 @@ class CCompiler(Compiler):
     def get_std_exe_link_args(self):
         return []
 
-    def get_include_args(self, path, is_system):
+    def get_include_args(self, path, is_system, is_dirafter):
         if path == '':
             path = '.'
         if is_system:
             return ['-isystem', path]
+        if is_dirafter:
+            return ['-idirafter', path]
         return ['-I' + path]
 
     def get_std_shared_lib_link_args(self):
@@ -1074,7 +1076,7 @@ class VisualStudioCCompiler(CCompiler):
     def get_werror_args(self):
         return ['/WX']
 
-    def get_include_args(self, path, is_system):
+    def get_include_args(self, path, is_system, is_dirafter):
         if path == '':
             path = '.'
         # msvc does not have a concept of system header dirs.

@@ -117,7 +117,7 @@ end program prog
     def get_linker_output_args(self, outputname):
         return ['-o', outputname]
 
-    def get_include_args(self, path, is_system):
+    def get_include_args(self, path, is_system, is_dirafter):
         return ['-I' + path]
 
     def get_module_incdir_args(self):

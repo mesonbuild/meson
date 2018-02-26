@@ -2079,13 +2079,13 @@ rule FORTRAN_DEP_HACK
     def get_source_dir_include_args(self, target, compiler):
         curdir = target.get_subdir()
         tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
-        return compiler.get_include_args(tmppath, False)
+        return compiler.get_include_args(tmppath, False, False)
 
     def get_build_dir_include_args(self, target, compiler):
         curdir = target.get_subdir()
         if curdir == '':
             curdir = '.'
-        return compiler.get_include_args(curdir, False)
+        return compiler.get_include_args(curdir, False, False)
 
     def get_custom_target_dir_include_args(self, target, compiler):
         custom_target_include_dirs = []
@@ -2100,7 +2100,7 @@ rule FORTRAN_DEP_HACK
                 custom_target_include_dirs.append(idir)
         incs = []
         for i in custom_target_include_dirs:
-            incs += compiler.get_include_args(i, False)
+            incs += compiler.get_include_args(i, False, False)
         return incs
 
     def _generate_single_compile(self, target, compiler, is_generated=False):
@@ -2145,7 +2145,7 @@ rule FORTRAN_DEP_HACK
                     expdir = basedir
                 srctreedir = os.path.join(self.build_to_src, expdir)
                 # Add source subdir first so that the build subdir overrides it
-                sargs = compiler.get_include_args(srctreedir, i.is_system)
+                sargs = compiler.get_include_args(srctreedir, i.is_system, i.is_dirafter)
                 commands += sargs
                 # There may be include dirs where a build directory has not been
                 # created for some source dir. For example if someone does this:
@@ -2154,12 +2154,12 @@ rule FORTRAN_DEP_HACK
                 #
                 # But never subdir()s into the actual dir.
                 if os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
-                    bargs = compiler.get_include_args(expdir, i.is_system)
+                    bargs = compiler.get_include_args(expdir, i.is_system, i.is_dirafter)
                 else:
                     bargs = []
                 commands += bargs
             for d in i.get_extra_build_dirs():
-                commands += compiler.get_include_args(d, i.is_system)
+                commands += compiler.get_include_args(d, i.is_system, i.is_dirafter)
         # Add per-target compile args, f.ex, `c_args : ['-DFOO']`. We set these
         # near the end since these are supposed to override everything else.
         commands += self.escape_extra_args(compiler,
@@ -2179,7 +2179,7 @@ rule FORTRAN_DEP_HACK
             commands += self.get_build_dir_include_args(target, compiler)
         # Finally add the private dir for the target to the include path. This
         # must override everything else and must be the final path added.
-        commands += compiler.get_include_args(self.get_target_private_dir(target), False)
+        commands += compiler.get_include_args(self.get_target_private_dir(target), False, False)
         return commands
 
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):

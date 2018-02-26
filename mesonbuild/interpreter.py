@@ -574,8 +574,9 @@ class BuildTargetHolder(TargetHolder):
         return self.held_object.is_cross()
 
     def private_dir_include_method(self, args, kwargs):
-        return IncludeDirsHolder(build.IncludeDirs('', [], False,
-                                                   [self.interpreter.backend.get_target_private_dir(self.held_object)]))
+        extra_build_dirs = [self.interpreter.backend.get_target_private_dir(self.held_object)]
+        return IncludeDirsHolder(build.IncludeDirs(
+            '', [], False, False, extra_build_dirs=extra_build_dirs))
 
     def full_path_method(self, args, kwargs):
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
@@ -737,7 +738,7 @@ class CompilerHolder(InterpreterObject):
             for idir in i.held_object.get_incdirs():
                 idir = os.path.join(self.environment.get_source_dir(),
                                     i.held_object.get_curdir(), idir)
-                args += self.compiler.get_include_args(idir, False)
+                args += self.compiler.get_include_args(idir, False, False)
         if not nobuiltins:
             opts = self.environment.coredata.compiler_options
             args += self.compiler.get_option_compile_args(opts)
@@ -2853,8 +2854,13 @@ root and issuing %s.
         return self.build_incdir_object(args, kwargs.get('is_system', False))
 
     def build_incdir_object(self, incdir_strings, is_system=False):
-        if not isinstance(is_system, bool):
-            raise InvalidArguments('Is_system must be boolean.')
+        is_dirafter = False
+        if (not isinstance(is_system, bool) and
+                not (isinstance(is_system, str) and is_system == 'dirafter')):
+            raise InvalidArguments("Is_system must be boolean or 'dirafter'.")
+        if isinstance(is_system, str):
+            is_system = False
+            is_dirafter = True
         src_root = self.environment.get_source_dir()
         build_root = self.environment.get_build_dir()
         absbase_src = os.path.join(src_root, self.subdir)
@@ -2883,7 +2889,7 @@ different subdirectory.
             absdir_build = os.path.join(absbase_build, a)
             if not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
                 raise InvalidArguments('Include dir %s does not exist.' % a)
-        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, incdir_strings, is_system))
+        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, incdir_strings, is_system, is_dirafter))
         return i
 
     @permittedKwargs(permitted_kwargs['add_test_setup'])

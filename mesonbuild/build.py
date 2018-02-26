@@ -179,10 +179,11 @@ class Build:
         return link_args.get(compiler.get_language(), [])
 
 class IncludeDirs:
-    def __init__(self, curdir, dirs, is_system, extra_build_dirs=None):
+    def __init__(self, curdir, dirs, is_system, is_dirafter, extra_build_dirs=None):
         self.curdir = curdir
         self.incdirs = dirs
         self.is_system = is_system
+        self.is_dirafter = is_dirafter
         # Interpreter has validated that all given directories
         # actually exist.
         if extra_build_dirs is None:

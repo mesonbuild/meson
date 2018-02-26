@@ -262,7 +262,7 @@ class GnuDCompiler(DCompiler):
     def get_linker_output_args(self, target):
         return ['-o', target]
 
-    def get_include_args(self, path, is_system):
+    def get_include_args(self, path, is_system, is_dirafter):
         return ['-I' + path]
 
     def get_warn_args(self, level):
@@ -303,7 +303,7 @@ class LLVMDCompiler(DCompiler):
     def get_linker_output_args(self, target):
         return ['-of', target]
 
-    def get_include_args(self, path, is_system):
+    def get_include_args(self, path, is_system, is_dirafter):
         return ['-I' + path]
 
     def get_warn_args(self, level):
@@ -360,7 +360,7 @@ class DmdDCompiler(DCompiler):
     def get_linker_output_args(self, target):
         return ['-of' + target]
 
-    def get_include_args(self, path, is_system):
+    def get_include_args(self, path, is_system, is_dirafter):
         return ['-I' + path]
 
     def get_warn_args(self, level):

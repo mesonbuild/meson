@@ -409,7 +409,7 @@ class Backend:
     def get_pch_include_args(self, compiler, target):
         args = []
         pchpath = self.get_target_private_dir(target)
-        includeargs = compiler.get_include_args(pchpath, False)
+        includeargs = compiler.get_include_args(pchpath, False, False)
         p = target.get_pch(compiler.get_language())
         if p:
             args += compiler.get_pch_use_args(pchpath, p[0])
@@ -519,7 +519,7 @@ class Backend:
         if compiler.language == 'fortran':
             for lt in target.link_targets:
                 priv_dir = os.path.join(self.get_target_dir(lt), lt.get_basename() + lt.type_suffix())
-                incflag = compiler.get_include_args(priv_dir, False)
+                incflag = compiler.get_include_args(priv_dir, False, False)
                 commands += incflag
         return commands
 

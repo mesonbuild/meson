@@ -245,7 +245,7 @@ class BoostDependency(ExternalDependency):
         # for more details
 
         if include_dir and include_dir not in self.compiler.get_default_include_dirs():
-            args.append("".join(self.compiler.get_include_args(include_dir, True)))
+            args.append("".join(self.compiler.get_include_args(include_dir, True, False)))
         return args
 
     def get_requested(self, kwargs):
