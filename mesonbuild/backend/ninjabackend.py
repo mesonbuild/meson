@@ -668,6 +668,19 @@ int dummy;
             elem.add_item('COMMAND', command)
             elem.add_item('DESC', 'Generating HTML coverage report.')
             elem.write(outfile)
+        elif gcovr_exe and gcovr_3_1:
+            added_rule = True
+            htmloutdir = os.path.join(self.environment.get_log_dir(), 'coveragereport')
+            phony_elem = NinjaBuildElement(self.all_outputs, 'meson-coverage-html', 'phony', os.path.join(htmloutdir, 'index.html'))
+            phony_elem.write(outfile)
+            # Alias that runs the target defined above
+            self.create_target_alias('meson-coverage-html', outfile)
+            elem = NinjaBuildElement(self.all_outputs, os.path.join(htmloutdir, 'index.html'), 'CUSTOM_COMMAND', '')
+            command = [gcovr_exe, '--html', '--html-details', '-r', self.environment.get_build_dir(),
+                       '-o', os.path.join(htmloutdir, 'index.html')]
+            elem.add_item('COMMAND', command)
+            elem.add_item('DESC', 'Generating HTML coverage report.')
+            elem.write(outfile)
         if not added_rule:
             mlog.warning('coverage requested but neither gcovr nor lcov/genhtml found.')
 

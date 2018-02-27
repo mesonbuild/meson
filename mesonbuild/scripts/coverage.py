@@ -70,13 +70,21 @@ def coverage(source_root, build_root, log_dir):
                                '--show-details',
                                '--branch-coverage',
                                covinfo])
+    elif gcovr_exe and gcovr_3_1:
+        htmloutdir = os.path.join(log_dir, 'coveragereport')
+        subprocess.check_call([gcovr_exe,
+                               '--html',
+                               '--html-details',
+                               '-r', build_root,
+                               '-o', os.path.join(htmloutdir, 'index.html'),
+                               ])
     if gcovr_exe:
         print('')
         print('XML coverage report can be found at',
               pathlib.Path(log_dir, 'coverage.xml').as_uri())
         print('Text coverage report can be found at',
               pathlib.Path(log_dir, 'coverage.txt').as_uri())
-    if lcov_exe and genhtml_exe:
+    if (lcov_exe and genhtml_exe) or (gcovr_exe and gcovr_3_1):
         print('Html coverage report can be found at',
               pathlib.Path(htmloutdir, 'index.html').as_uri())
     return 0
