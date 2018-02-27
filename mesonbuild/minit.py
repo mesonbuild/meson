@@ -122,8 +122,7 @@ int main(int argc, char **argv) {{
 
 hello_c_meson_template = '''project('{project_name}', 'c',
   version : '{version}',
-  default_options : ['warning_level=3',
-                     'cpp_std=c++14'])
+  default_options : ['warning_level=3'])
 
 exe = executable('{exe_name}', '{source_name}',
   install : true)
@@ -147,7 +146,8 @@ int main(int argc, char **argv) {{
 
 hello_cpp_meson_template = '''project('{project_name}', 'cpp',
   version : '{version}',
-  default_options : ['warning_level=3'])
+  default_options : ['warning_level=3',
+                     'cpp_std=c++14'])
 
 exe = executable('{exe_name}', '{source_name}',
   install : true)
