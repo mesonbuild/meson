@@ -526,9 +526,13 @@ class BasePlatformTests(unittest.TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                (returncode, out, _) = run_configure(self.meson_mainfile, self.meson_args + args + extra_args)
+                (returncode, out, err) = run_configure(self.meson_mainfile, self.meson_args + args + extra_args)
                 if returncode != 0:
                     self._print_meson_log()
+                    print('Stdout:\n')
+                    print(out)
+                    print('Stderr:\n')
+                    print(err)
                     raise RuntimeError('Configure failed')
             except:
                 self._print_meson_log()
@@ -1774,6 +1778,11 @@ int main(int argc, char **argv) {
                     self._run(ninja,
                               workdir=os.path.join(tmpdir, 'builddir'))
 
+    # The test uses mocking and thus requires that
+    # the current process is the one to run the Meson steps.
+    # If we are using an external test executable (most commonly
+    # in Debian autopkgtests) then the mocking won't work.
+    @unittest.skipIf('MESON_EXE' in os.environ, 'MESON_EXE is defined, can not use mocking.')
     def test_cross_file_system_paths(self):
         if is_windows():
             raise unittest.SkipTest('system crossfile paths not defined for Windows (yet)')
