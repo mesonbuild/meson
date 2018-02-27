@@ -653,10 +653,11 @@ class RunTargetHolder(InterpreterObject, ObjectHolder):
         return r.format(self.__class__.__name__, h.get_id(), h.command)
 
 class Test(InterpreterObject):
-    def __init__(self, name, suite, exe, is_parallel, cmd_args, env, should_fail, timeout, workdir):
+    def __init__(self, name, project, suite, exe, is_parallel, cmd_args, env, should_fail, timeout, workdir):
         InterpreterObject.__init__(self)
         self.name = name
         self.suite = suite
+        self.project_name = project
         self.exe = exe
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
@@ -2169,7 +2170,7 @@ to directly access options of other subprojects.''')
         if progobj is None:
             progobj = self.program_from_system(args)
         if required and (progobj is None or not progobj.found()):
-            raise InvalidArguments('Program "%s" not found or not executable' % args[0])
+            raise InvalidArguments('Program(s) {!r} not found or not executable'.format(args))
         if progobj is None:
             return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
         return progobj
@@ -2586,14 +2587,12 @@ root and issuing %s.
         if not isinstance(timeout, int):
             raise InterpreterException('Timeout must be an integer.')
         suite = []
+        prj = self.subproject if self.is_subproject() else self.build.project_name
         for s in mesonlib.stringlistify(kwargs.get('suite', '')):
             if len(s) > 0:
                 s = ':' + s
-            if self.is_subproject():
-                suite.append(self.subproject.replace(' ', '_').replace(':', '_') + s)
-            else:
-                suite.append(self.build.project_name.replace(' ', '_').replace(':', '_') + s)
-        t = Test(args[0], suite, exe.held_object, par, cmd_args, env, should_fail, timeout, workdir)
+            suite.append(prj.replace(' ', '_').replace(':', '_') + s)
+        t = Test(args[0], prj, suite, exe.held_object, par, cmd_args, env, should_fail, timeout, workdir)
         if is_base_test:
             self.build.tests.append(t)
             mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
@@ -2892,8 +2891,10 @@ different subdirectory.
         if len(args) != 1:
             raise InterpreterException('Add_test_setup needs one argument for the setup name.')
         setup_name = args[0]
-        if re.fullmatch('[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
+        if re.fullmatch('([_a-zA-Z][_0-9a-zA-Z]*:)?[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
             raise InterpreterException('Setup name may only contain alphanumeric characters.')
+        if ":" not in setup_name:
+            setup_name = (self.subproject if self.subproject else self.build.project_name) + ":" + setup_name
         try:
             inp = extract_as_list(kwargs, 'exe_wrapper')
             exe_wrapper = []
@@ -2917,14 +2918,10 @@ different subdirectory.
         if not isinstance(timeout_multiplier, int):
             raise InterpreterException('Timeout multiplier must be a number.')
         env = self.unpack_env_kwarg(kwargs)
-        setupobj = build.TestSetup(exe_wrapper=exe_wrapper,
-                                   gdb=gdb,
-                                   timeout_multiplier=timeout_multiplier,
-                                   env=env)
-        if self.subproject == '':
-            # Dunno what we should do with subprojects really. Let's start simple
-            # and just use the master project ones.
-            self.build.test_setups[setup_name] = setupobj
+        self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper=exe_wrapper,
+                                                             gdb=gdb,
+                                                             timeout_multiplier=timeout_multiplier,
+                                                             env=env)
 
     @permittedKwargs(permitted_kwargs['add_global_arguments'])
     @stringArgs

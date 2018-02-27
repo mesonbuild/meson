@@ -28,6 +28,7 @@ import concurrent.futures as conc
 import platform
 import signal
 import random
+from copy import deepcopy
 
 # GNU autotools interprets a return code of 77 from tests it executes to
 # mean that the test should be skipped.
@@ -89,7 +90,7 @@ parser.add_argument('-v', '--verbose', default=False, action='store_true',
                     help='Do not redirect stdout and stderr')
 parser.add_argument('-q', '--quiet', default=False, action='store_true',
                     help='Produce less output to the terminal.')
-parser.add_argument('-t', '--timeout-multiplier', type=float, default=None,
+parser.add_argument('-t', '--timeout-multiplier', type=float, default=1,
                     help='Define a multiplier for test timeout, for example '
                     ' when running tests in particular conditions they might take'
                     ' more time to execute.')
@@ -192,7 +193,17 @@ class TestHarness:
         if self.jsonlogfile:
             self.jsonlogfile.close()
 
-    def run_single_test(self, wrap, test):
+    def get_test_env(self, options, test):
+        if options.setup:
+            env = merge_suite_options(options, test)
+        else:
+            env = os.environ.copy()
+        if isinstance(test.env, build.EnvironmentVariables):
+            test.env = test.env.get_env(env)
+        env.update(test.env)
+        return env
+
+    def run_single_test(self, test):
         if test.fname[0].endswith('.jar'):
             cmd = ['java', '-jar'] + test.fname
         elif not test.is_cross_built and run_with_mono(test.fname[0]):
@@ -215,24 +226,26 @@ class TestHarness:
             stde = None
             returncode = GNU_SKIP_RETURNCODE
         else:
+            test_opts = deepcopy(self.options)
+            test_env = self.get_test_env(test_opts, test)
+            wrap = self.get_wrapper(test_opts)
+
+            if test_opts.gdb:
+                test.timeout = None
+
             cmd = wrap + cmd + test.cmd_args + self.options.test_args
             starttime = time.time()
-            child_env = os.environ.copy()
-            child_env.update(self.options.global_env.get_env(child_env))
-            if isinstance(test.env, build.EnvironmentVariables):
-                test.env = test.env.get_env(child_env)
 
-            child_env.update(test.env)
             if len(test.extra_paths) > 0:
-                child_env['PATH'] = os.pathsep.join(test.extra_paths + ['']) + child_env['PATH']
+                test_env['PATH'] = os.pathsep.join(test.extra_paths + ['']) + test_env['PATH']
 
             # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
             # (i.e., the test or the environment don't explicitly set it), set
             # it ourselves. We do this unconditionally for regular tests
             # because it is extremely useful to have.
             # Setting MALLOC_PERTURB_="0" will completely disable this feature.
-            if ('MALLOC_PERTURB_' not in child_env or not child_env['MALLOC_PERTURB_']) and not self.options.benchmark:
-                child_env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
+            if ('MALLOC_PERTURB_' not in test_env or not test_env['MALLOC_PERTURB_']) and not self.options.benchmark:
+                test_env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
 
             setsid = None
             stdout = None
@@ -247,7 +260,7 @@ class TestHarness:
             p = subprocess.Popen(cmd,
                                  stdout=stdout,
                                  stderr=stderr,
-                                 env=child_env,
+                                 env=test_env,
                                  cwd=test.workdir,
                                  preexec_fn=setsid)
             timed_out = False
@@ -255,7 +268,7 @@ class TestHarness:
             if test.timeout is None:
                 timeout = None
             else:
-                timeout = test.timeout * self.options.timeout_multiplier
+                timeout = test.timeout * test_opts.timeout_multiplier
             try:
                 (stdo, stde) = p.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -444,9 +457,9 @@ TIMEOUT: %4d
         logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
 
         if self.options.wrapper:
-            namebase = os.path.basename(self.get_wrapper()[0])
+            namebase = os.path.basename(self.get_wrapper(self.options)[0])
         elif self.options.setup:
-            namebase = self.options.setup
+            namebase = self.options.setup.replace(":", "_")
 
         if namebase:
             logfile_base += '-' + namebase.replace(' ', '_')
@@ -459,16 +472,16 @@ TIMEOUT: %4d
         self.logfile.write('Log of Meson test suite run on %s\n\n'
                            % datetime.datetime.now().isoformat())
 
-    def get_wrapper(self):
+    def get_wrapper(self, options):
         wrap = []
-        if self.options.gdb:
+        if options.gdb:
             wrap = ['gdb', '--quiet', '--nh']
-            if self.options.repeat > 1:
+            if options.repeat > 1:
                 wrap += ['-ex', 'run', '-ex', 'quit']
             # Signal the end of arguments to gdb
             wrap += ['--args']
-        if self.options.wrapper:
-            wrap += self.options.wrapper
+        if options.wrapper:
+            wrap += options.wrapper
         assert(isinstance(wrap, list))
         return wrap
 
@@ -487,7 +500,6 @@ TIMEOUT: %4d
         futures = []
         numlen = len('%d' % len(tests))
         self.open_log_files()
-        wrap = self.get_wrapper()
         startdir = os.getcwd()
         if self.options.wd:
             os.chdir(self.options.wd)
@@ -497,18 +509,15 @@ TIMEOUT: %4d
                 for i, test in enumerate(tests):
                     visible_name = self.get_pretty_suite(test)
 
-                    if self.options.gdb:
-                        test.timeout = None
-
                     if not test.is_parallel or self.options.gdb:
                         self.drain_futures(futures)
                         futures = []
-                        res = self.run_single_test(wrap, test)
+                        res = self.run_single_test(test)
                         self.print_stats(numlen, tests, visible_name, res, i)
                     else:
                         if not executor:
                             executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
-                        f = executor.submit(self.run_single_test, wrap, test)
+                        f = executor.submit(self.run_single_test, test)
                         futures.append((f, numlen, tests, visible_name, i))
                     if self.options.repeat > 1 and self.fail_count:
                         break
@@ -549,14 +558,19 @@ def list_tests(th):
     for t in tests:
         print(th.get_pretty_suite(t))
 
-def merge_suite_options(options):
+def merge_suite_options(options, test):
     buildfile = os.path.join(options.wd, 'meson-private/build.dat')
     with open(buildfile, 'rb') as f:
         build = pickle.load(f)
-    setups = build.test_setups
-    if options.setup not in setups:
-        sys.exit('Unknown test setup: %s' % options.setup)
-    current = setups[options.setup]
+    if ":" in options.setup:
+        if options.setup not in build.test_setups:
+            sys.exit("Unknown test setup '%s'." % options.setup)
+        current = build.test_setups[options.setup]
+    else:
+        full_name = test.project_name + ":" + options.setup
+        if full_name not in build.test_setups:
+            sys.exit("Test setup '%s' not found from project '%s'." % (options.setup, test.project_name))
+        current = build.test_setups[full_name]
     if not options.gdb:
         options.gdb = current.gdb
     if options.timeout_multiplier is None:
@@ -567,7 +581,7 @@ def merge_suite_options(options):
         sys.exit('Conflict: both test setup and command line specify an exe wrapper.')
     if options.wrapper is None:
         options.wrapper = current.exe_wrapper
-    return current.env
+    return current.env.get_env(os.environ.copy())
 
 def rebuild_all(wd):
     if not os.path.isfile(os.path.join(wd, 'build.ninja')):
@@ -593,15 +607,6 @@ def run(args):
 
     if options.benchmark:
         options.num_processes = 1
-
-    if options.setup is not None:
-        global_env = merge_suite_options(options)
-    else:
-        global_env = build.EnvironmentVariables()
-        if options.timeout_multiplier is None:
-            options.timeout_multiplier = 1
-
-    setattr(options, 'global_env', global_env)
 
     if options.verbose and options.quiet:
         print('Can not be both quiet and verbose at the same time.')
