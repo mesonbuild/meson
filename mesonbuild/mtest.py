@@ -207,9 +207,31 @@ class TestHarness:
         if self.jsonlogfile:
             self.jsonlogfile.close()
 
+    def merge_suite_options(self, options, test):
+        if ":" in options.setup:
+            if options.setup not in self.build_data.test_setups:
+                sys.exit("Unknown test setup '%s'." % options.setup)
+            current = self.build_data.test_setups[options.setup]
+        else:
+            full_name = test.project_name + ":" + options.setup
+            if full_name not in self.build_data.test_setups:
+                sys.exit("Test setup '%s' not found from project '%s'." % (options.setup, test.project_name))
+            current = self.build_data.test_setups[full_name]
+        if not options.gdb:
+            options.gdb = current.gdb
+        if options.timeout_multiplier is None:
+            options.timeout_multiplier = current.timeout_multiplier
+    #    if options.env is None:
+    #        options.env = current.env # FIXME, should probably merge options here.
+        if options.wrapper is not None and current.exe_wrapper is not None:
+            sys.exit('Conflict: both test setup and command line specify an exe wrapper.')
+        if options.wrapper is None:
+            options.wrapper = current.exe_wrapper
+        return current.env.get_env(os.environ.copy())
+
     def get_test_env(self, options, test):
         if options.setup:
-            env = merge_suite_options(options, test)
+            env = self.merge_suite_options(options, test)
         else:
             env = os.environ.copy()
         if isinstance(test.env, build.EnvironmentVariables):
@@ -505,6 +527,7 @@ TIMEOUT: %4d
         startdir = os.getcwd()
         if self.options.wd:
             os.chdir(self.options.wd)
+        self.build_data = build.load(os.getcwd())
 
         try:
             for _ in range(self.options.repeat):
@@ -559,29 +582,6 @@ def list_tests(th):
     tests = th.get_tests()
     for t in tests:
         print(th.get_pretty_suite(t))
-
-def merge_suite_options(options, test):
-    bld = build.load(options.wd)
-    if ":" in options.setup:
-        if options.setup not in bld.test_setups:
-            sys.exit("Unknown test setup '%s'." % options.setup)
-        current = bld.test_setups[options.setup]
-    else:
-        full_name = test.project_name + ":" + options.setup
-        if full_name not in bld.test_setups:
-            sys.exit("Test setup '%s' not found from project '%s'." % (options.setup, test.project_name))
-        current = bld.test_setups[full_name]
-    if not options.gdb:
-        options.gdb = current.gdb
-    if options.timeout_multiplier is None:
-        options.timeout_multiplier = current.timeout_multiplier
-#    if options.env is None:
-#        options.env = current.env # FIXME, should probably merge options here.
-    if options.wrapper is not None and current.exe_wrapper is not None:
-        sys.exit('Conflict: both test setup and command line specify an exe wrapper.')
-    if options.wrapper is None:
-        options.wrapper = current.exe_wrapper
-    return current.env.get_env(os.environ.copy())
 
 def rebuild_all(wd):
     if not os.path.isfile(os.path.join(wd, 'build.ninja')):
