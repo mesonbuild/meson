@@ -251,8 +251,7 @@ class Environment:
         os.makedirs(self.scratch_dir, exist_ok=True)
         os.makedirs(self.log_dir, exist_ok=True)
         try:
-            cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
-            self.coredata = coredata.load(cdf)
+            self.coredata = coredata.load(self.get_build_dir())
             self.first_invocation = False
         except FileNotFoundError:
             # WARNING: Don't use any values from coredata in __init__. It gets
@@ -315,9 +314,8 @@ class Environment:
         return self.cross_info is not None
 
     def dump_coredata(self):
-        cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
-        coredata.save(self.coredata, cdf)
-        return cdf
+        coredata.save(self.coredata, self.get_build_dir())
+        return os.path.join(self.get_build_dir(), Environment.coredata_file)
 
     def get_script_dir(self):
         import mesonbuild.scripts

@@ -19,8 +19,9 @@ tests and so on. All output is in JSON for simple parsing.
 Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
-import json, pickle
-from . import coredata, build
+import json
+from . import build, mtest, coredata as cdata
+from .backend import ninjabackend
 import argparse
 import sys, os
 import pathlib
@@ -132,16 +133,16 @@ def add_keys(optlist, options):
     for key in keys:
         opt = options[key]
         optdict = {'name': key, 'value': opt.value}
-        if isinstance(opt, coredata.UserStringOption):
+        if isinstance(opt, cdata.UserStringOption):
             typestr = 'string'
-        elif isinstance(opt, coredata.UserBooleanOption):
+        elif isinstance(opt, cdata.UserBooleanOption):
             typestr = 'boolean'
-        elif isinstance(opt, coredata.UserComboOption):
+        elif isinstance(opt, cdata.UserComboOption):
             optdict['choices'] = opt.choices
             typestr = 'combo'
-        elif isinstance(opt, coredata.UserIntegerOption):
+        elif isinstance(opt, cdata.UserIntegerOption):
             typestr = 'integer'
-        elif isinstance(opt, coredata.UserArrayOption):
+        elif isinstance(opt, cdata.UserArrayOption):
             typestr = 'array'
         else:
             raise RuntimeError("Unknown option type")
@@ -149,7 +150,7 @@ def add_keys(optlist, options):
         optdict['description'] = opt.description
         optlist.append(optdict)
 
-def list_buildsystem_files(coredata, builddata):
+def list_buildsystem_files(builddata):
     src_dir = builddata.environment.get_source_dir()
     # I feel dirty about this. But only slightly.
     filelist = []
@@ -208,26 +209,15 @@ def run(args):
               'change the working directory to it.')
         return 1
 
-    corefile = os.path.join(datadir, 'coredata.dat')
-    buildfile = os.path.join(datadir, 'build.dat')
-    installfile = os.path.join(datadir, 'install.dat')
-    testfile = os.path.join(datadir, 'meson_test_setup.dat')
-    benchmarkfile = os.path.join(datadir, 'meson_benchmark_setup.dat')
+    coredata = cdata.load(options.builddir)
+    builddata = build.load(options.builddir)
+    testdata = mtest.load_tests(options.builddir)
+    benchmarkdata = mtest.load_benchmarks(options.builddir)
 
-    # Load all data files
-    with open(corefile, 'rb') as f:
-        coredata = pickle.load(f)
-    with open(buildfile, 'rb') as f:
-        builddata = pickle.load(f)
-    with open(testfile, 'rb') as f:
-        testdata = pickle.load(f)
-    with open(benchmarkfile, 'rb') as f:
-        benchmarkdata = pickle.load(f)
     # Install data is only available with the Ninja backend
-    if os.path.isfile(installfile):
-        with open(installfile, 'rb') as f:
-            installdata = pickle.load(f)
-    else:
+    try:
+        installdata = ninjabackend.load(options.builddir)
+    except FileNotFoundError:
         installdata = None
 
     if options.list_targets:
@@ -237,7 +227,7 @@ def run(args):
     elif options.target_files is not None:
         list_target_files(options.target_files, coredata, builddata)
     elif options.buildsystem_files:
-        list_buildsystem_files(coredata, builddata)
+        list_buildsystem_files(builddata)
     elif options.buildoptions:
         list_buildoptions(coredata, builddata)
     elif options.tests:

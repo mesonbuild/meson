@@ -2691,3 +2691,9 @@ rule FORTRAN_DEP_HACK
 
         elem = NinjaBuildElement(self.all_outputs, deps, 'phony', '')
         elem.write(outfile)
+
+def load(build_dir):
+    filename = os.path.join(build_dir, 'meson-private', 'install.dat')
+    with open(filename, 'rb') as f:
+        obj = pickle.load(f)
+    return obj

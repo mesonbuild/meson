@@ -165,6 +165,22 @@ def run_with_mono(fname):
         return True
     return False
 
+def load_benchmarks(build_dir):
+    datafile = os.path.join(build_dir, 'meson-private', 'meson_benchmark_setup.dat')
+    if not os.path.isfile(datafile):
+        raise TestException('Directory ${!r} does not seem to be a Meson build directory.'.format(build_dir))
+    with open(datafile, 'rb') as f:
+        obj = pickle.load(f)
+    return obj
+
+def load_tests(build_dir):
+    datafile = os.path.join(build_dir, 'meson-private', 'meson_test_setup.dat')
+    if not os.path.isfile(datafile):
+        raise TestException('Directory ${!r} does not seem to be a Meson build directory.'.format(build_dir))
+    with open(datafile, 'rb') as f:
+        obj = pickle.load(f)
+    return obj
+
 class TestHarness:
     def __init__(self, options):
         self.options = options
@@ -180,12 +196,10 @@ class TestHarness:
         self.logfile = None
         self.jsonlogfile = None
         if self.options.benchmark:
-            datafile = os.path.join(options.wd, 'meson-private', 'meson_benchmark_setup.dat')
+            self.tests = load_benchmarks(options.wd)
         else:
-            datafile = os.path.join(options.wd, 'meson-private', 'meson_test_setup.dat')
-        if not os.path.isfile(datafile):
-            raise TestException('Directory %s does not seem to be a Meson build directory.' % options.wd)
-        self.load_datafile(datafile)
+            self.tests = load_tests(options.wd)
+        self.load_suites()
 
     def __del__(self):
         if self.logfile:
@@ -374,9 +388,6 @@ TIMEOUT: %4d
     def doit(self):
         if self.is_run:
             raise RuntimeError('Test harness object can only be used once.')
-        if not os.path.isfile(self.datafile):
-            print('Test data file. Probably this means that you did not run this in the build directory.')
-            return 1
         self.is_run = True
         tests = self.get_tests()
         if not tests:
@@ -414,15 +425,6 @@ TIMEOUT: %4d
             for s in t.suite:
                 ss.add(s)
         self.suites = list(ss)
-
-    def load_tests(self):
-        with open(self.datafile, 'rb') as f:
-            self.tests = pickle.load(f)
-
-    def load_datafile(self, datafile):
-        self.datafile = datafile
-        self.load_tests()
-        self.load_suites()
 
     def get_tests(self):
         if not self.tests:
@@ -559,18 +561,16 @@ def list_tests(th):
         print(th.get_pretty_suite(t))
 
 def merge_suite_options(options, test):
-    buildfile = os.path.join(options.wd, 'meson-private/build.dat')
-    with open(buildfile, 'rb') as f:
-        build = pickle.load(f)
+    bld = build.load(options.wd)
     if ":" in options.setup:
-        if options.setup not in build.test_setups:
+        if options.setup not in bld.test_setups:
             sys.exit("Unknown test setup '%s'." % options.setup)
-        current = build.test_setups[options.setup]
+        current = bld.test_setups[options.setup]
     else:
         full_name = test.project_name + ":" + options.setup
-        if full_name not in build.test_setups:
+        if full_name not in bld.test_setups:
             sys.exit("Test setup '%s' not found from project '%s'." % (options.setup, test.project_name))
-        current = build.test_setups[full_name]
+        current = bld.test_setups[full_name]
     if not options.gdb:
         options.gdb = current.gdb
     if options.timeout_multiplier is None:

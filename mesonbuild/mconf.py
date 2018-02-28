@@ -13,9 +13,8 @@
 # limitations under the License.
 
 import sys, os
-import pickle
 import argparse
-from . import coredata, mesonlib
+from . import coredata, mesonlib, build
 
 parser = argparse.ArgumentParser(prog='meson configure')
 
@@ -31,25 +30,17 @@ class ConfException(mesonlib.MesonException):
 class Conf:
     def __init__(self, build_dir):
         self.build_dir = build_dir
-        self.coredata_file = os.path.join(build_dir, 'meson-private/coredata.dat')
-        self.build_file = os.path.join(build_dir, 'meson-private/build.dat')
-        if not os.path.isfile(self.coredata_file) or not os.path.isfile(self.build_file):
+        if not os.path.isdir(os.path.join(build_dir, 'meson-private')):
             raise ConfException('Directory %s does not seem to be a Meson build directory.' % build_dir)
-        with open(self.coredata_file, 'rb') as f:
-            self.coredata = pickle.load(f)
-        with open(self.build_file, 'rb') as f:
-            self.build = pickle.load(f)
-        if self.coredata.version != coredata.version:
-            raise ConfException('Version mismatch (%s vs %s)' %
-                                (coredata.version, self.coredata.version))
+        self.build = build.load(self.build_dir)
+        self.coredata = coredata.load(self.build_dir)
 
     def clear_cache(self):
         self.coredata.deps = {}
 
     def save(self):
         # Only called if something has changed so overwrite unconditionally.
-        with open(self.coredata_file, 'wb') as f:
-            pickle.dump(self.coredata, f)
+        coredata.save(self.coredata, self.build_dir)
         # We don't write the build file because any changes to it
         # are erased when Meson is executed the next time, i.e. when
         # Ninja is run.

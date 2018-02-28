@@ -340,7 +340,8 @@ class CoreData:
                 return opt.validate_value(override_value)
         raise MesonException('Tried to validate unknown option %s.' % option_name)
 
-def load(filename):
+def load(build_dir):
+    filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
     load_fail_msg = 'Coredata file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
     try:
         with open(filename, 'rb') as f:
@@ -354,7 +355,8 @@ def load(filename):
                              (obj.version, version))
     return obj
 
-def save(obj, filename):
+def save(obj, build_dir):
+    filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
     if obj.version != version:
         raise MesonException('Fatal version mismatch corruption.')
     with open(filename, 'wb') as f:
