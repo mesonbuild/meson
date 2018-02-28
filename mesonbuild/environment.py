@@ -19,7 +19,6 @@ from .linkers import ArLinker, VisualStudioLinker
 from . import mesonlib
 from .mesonlib import EnvironmentException, Popen_safe
 from . import mlog
-import sys
 
 from . import compilers
 from .compilers import (

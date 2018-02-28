@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, pickle, re, shlex, subprocess, sys
+import os, pickle, re, shlex, subprocess
 from collections import OrderedDict
 from pathlib import PurePath
 
@@ -115,7 +115,6 @@ class NinjaBuildElement:
             (name, elems) = e
             should_quote = name not in raw_names
             line = ' %s = ' % name
-            noq_templ = "%s"
             newelems = []
             for i in elems:
                 if not should_quote or i == '&&': # Hackety hack hack
@@ -1852,7 +1851,6 @@ rule FORTRAN_DEP_HACK
         infilelist = genlist.get_inputs()
         outfilelist = genlist.get_outputs()
         extra_dependencies = [os.path.join(self.build_to_src, i) for i in genlist.extra_depends]
-        source_target_dir = self.get_target_source_dir(target)
         for i in range(len(infilelist)):
             if len(generator.outputs) == 1:
                 sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
@@ -1877,7 +1875,6 @@ rule FORTRAN_DEP_HACK
             # We have consumed output files, so drop them from the list of remaining outputs.
             if sole_output == '':
                 outfilelist = outfilelist[len(generator.outputs):]
-            relout = self.get_target_private_dir(target)
             args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
             if generator.capture:
