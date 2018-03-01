@@ -77,3 +77,27 @@ subproject `b` and have `b` also use `a`.
 Meson ships with a dependency system to automatically obtain
 dependency subprojects. It is documented in the [Wrap dependency
 system manual](Wrap-dependency-system-manual.md).
+
+# Why must all subprojects be inside a single directory?
+
+There are several reasons.
+
+First of all, to maintain any sort of sanity, the system must prevent going
+inside other subprojects with `subdir()` or variations thereof. Having the
+subprojects in well defined places makes this easy. If subprojects could be
+anywhere at all, it would be a lot harder.
+
+Second of all it is extremely important that end users can easily see what
+subprojects any project has. Because they are in one, and only one, place,
+reviewing them becomes easy.
+
+This is also a question of convention. Since all Meson projects have the same
+layout w.r.t subprojects, switching between projects becomes easier. You don't
+have to spend time on a new project traipsing through the source tree looking
+for subprojects. They are always in the same place.
+
+Finally if you can have subprojects anywhere, this increases the possibility of
+having many different (possibly incompatible) versions of a dependency in your
+source tree. Then changing some code (such as changing the order you traverse
+directories) may cause a completely different version of the subproject to be
+used by accident.
