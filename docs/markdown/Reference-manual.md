@@ -661,6 +661,10 @@ Note that this function call itself does not add the directories into
 the search path, since there is no global search path. For something
 like that, see [`add_project_arguments()`](#add_project_arguments).
 
+See also `implicit_include_directories` parameter of
+[executable()](#executable), which adds current source and build directories
+to include path.
+
 Each directory given is converted to two include paths: one that is
 relative to the source root and one relative to the build root.
 
