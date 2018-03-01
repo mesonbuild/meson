@@ -15,6 +15,7 @@
 import copy, os, re
 from collections import OrderedDict
 import itertools, pathlib
+import pickle
 
 from . import environment
 from . import dependencies
@@ -1928,3 +1929,22 @@ def get_sources_string_names(sources):
         else:
             raise AssertionError('Unknown source type: {!r}'.format(s))
     return names
+
+def load(build_dir):
+    filename = os.path.join(build_dir, 'meson-private', 'build.dat')
+    load_fail_msg = 'Build data file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
+    nonexisting_fail_msg = 'No such build data file as "{!r}".'.format(filename)
+    try:
+        with open(filename, 'rb') as f:
+            obj = pickle.load(f)
+    except FileNotFoundError:
+        raise MesonException(nonexisting_fail_msg)
+    except pickle.UnpicklingError:
+        raise MesonException(load_fail_msg)
+    if not isinstance(obj, Build):
+        raise MesonException(load_fail_msg)
+    return obj
+
+def save(obj, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(obj, f)

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, stat, traceback, pickle, argparse
-import time, datetime
+import sys, stat, traceback, argparse
+import datetime
 import os.path
 from . import environment, interpreter, mesonlib
 from . import build
@@ -196,6 +196,7 @@ class MesonApp:
         mlog.log('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
         intr.run()
         try:
+            dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
             # We would like to write coredata as late as possible since we use the existence of
             # this file to check if we generated the build file successfully. Since coredata
             # includes settings, the build files must depend on it and appear newer. However, due
@@ -204,15 +205,12 @@ class MesonApp:
             # possible, but before build files, and if any error occurs, delete it.
             cdf = env.dump_coredata()
             g.generate(intr)
-            dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
-            with open(dumpfile, 'wb') as f:
-                pickle.dump(b, f)
+            build.save(b, dumpfile)
             # Post-conf scripts must be run after writing coredata or else introspection fails.
             g.run_postconf_scripts()
         except:
             os.unlink(cdf)
             raise
-
 
 def run_script_command(args):
     cmdname = args[0]

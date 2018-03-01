@@ -165,6 +165,22 @@ def run_with_mono(fname):
         return True
     return False
 
+def load_benchmarks(build_dir):
+    datafile = os.path.join(build_dir, 'meson-private', 'meson_benchmark_setup.dat')
+    if not os.path.isfile(datafile):
+        raise TestException('Directory ${!r} does not seem to be a Meson build directory.'.format(build_dir))
+    with open(datafile, 'rb') as f:
+        obj = pickle.load(f)
+    return obj
+
+def load_tests(build_dir):
+    datafile = os.path.join(build_dir, 'meson-private', 'meson_test_setup.dat')
+    if not os.path.isfile(datafile):
+        raise TestException('Directory ${!r} does not seem to be a Meson build directory.'.format(build_dir))
+    with open(datafile, 'rb') as f:
+        obj = pickle.load(f)
+    return obj
+
 class TestHarness:
     def __init__(self, options):
         self.options = options
@@ -180,12 +196,10 @@ class TestHarness:
         self.logfile = None
         self.jsonlogfile = None
         if self.options.benchmark:
-            datafile = os.path.join(options.wd, 'meson-private', 'meson_benchmark_setup.dat')
+            self.tests = load_benchmarks(options.wd)
         else:
-            datafile = os.path.join(options.wd, 'meson-private', 'meson_test_setup.dat')
-        if not os.path.isfile(datafile):
-            raise TestException('Directory %s does not seem to be a Meson build directory.' % options.wd)
-        self.load_datafile(datafile)
+            self.tests = load_tests(options.wd)
+        self.load_suites()
 
     def __del__(self):
         if self.logfile:
@@ -193,9 +207,31 @@ class TestHarness:
         if self.jsonlogfile:
             self.jsonlogfile.close()
 
+    def merge_suite_options(self, options, test):
+        if ":" in options.setup:
+            if options.setup not in self.build_data.test_setups:
+                sys.exit("Unknown test setup '%s'." % options.setup)
+            current = self.build_data.test_setups[options.setup]
+        else:
+            full_name = test.project_name + ":" + options.setup
+            if full_name not in self.build_data.test_setups:
+                sys.exit("Test setup '%s' not found from project '%s'." % (options.setup, test.project_name))
+            current = self.build_data.test_setups[full_name]
+        if not options.gdb:
+            options.gdb = current.gdb
+        if options.timeout_multiplier is None:
+            options.timeout_multiplier = current.timeout_multiplier
+    #    if options.env is None:
+    #        options.env = current.env # FIXME, should probably merge options here.
+        if options.wrapper is not None and current.exe_wrapper is not None:
+            sys.exit('Conflict: both test setup and command line specify an exe wrapper.')
+        if options.wrapper is None:
+            options.wrapper = current.exe_wrapper
+        return current.env.get_env(os.environ.copy())
+
     def get_test_env(self, options, test):
         if options.setup:
-            env = merge_suite_options(options, test)
+            env = self.merge_suite_options(options, test)
         else:
             env = os.environ.copy()
         if isinstance(test.env, build.EnvironmentVariables):
@@ -374,9 +410,6 @@ TIMEOUT: %4d
     def doit(self):
         if self.is_run:
             raise RuntimeError('Test harness object can only be used once.')
-        if not os.path.isfile(self.datafile):
-            print('Test data file. Probably this means that you did not run this in the build directory.')
-            return 1
         self.is_run = True
         tests = self.get_tests()
         if not tests:
@@ -414,15 +447,6 @@ TIMEOUT: %4d
             for s in t.suite:
                 ss.add(s)
         self.suites = list(ss)
-
-    def load_tests(self):
-        with open(self.datafile, 'rb') as f:
-            self.tests = pickle.load(f)
-
-    def load_datafile(self, datafile):
-        self.datafile = datafile
-        self.load_tests()
-        self.load_suites()
 
     def get_tests(self):
         if not self.tests:
@@ -503,6 +527,7 @@ TIMEOUT: %4d
         startdir = os.getcwd()
         if self.options.wd:
             os.chdir(self.options.wd)
+        self.build_data = build.load(os.getcwd())
 
         try:
             for _ in range(self.options.repeat):
@@ -557,31 +582,6 @@ def list_tests(th):
     tests = th.get_tests()
     for t in tests:
         print(th.get_pretty_suite(t))
-
-def merge_suite_options(options, test):
-    buildfile = os.path.join(options.wd, 'meson-private/build.dat')
-    with open(buildfile, 'rb') as f:
-        build = pickle.load(f)
-    if ":" in options.setup:
-        if options.setup not in build.test_setups:
-            sys.exit("Unknown test setup '%s'." % options.setup)
-        current = build.test_setups[options.setup]
-    else:
-        full_name = test.project_name + ":" + options.setup
-        if full_name not in build.test_setups:
-            sys.exit("Test setup '%s' not found from project '%s'." % (options.setup, test.project_name))
-        current = build.test_setups[full_name]
-    if not options.gdb:
-        options.gdb = current.gdb
-    if options.timeout_multiplier is None:
-        options.timeout_multiplier = current.timeout_multiplier
-#    if options.env is None:
-#        options.env = current.env # FIXME, should probably merge options here.
-    if options.wrapper is not None and current.exe_wrapper is not None:
-        sys.exit('Conflict: both test setup and command line specify an exe wrapper.')
-    if options.wrapper is None:
-        options.wrapper = current.exe_wrapper
-    return current.env.get_env(os.environ.copy())
 
 def rebuild_all(wd):
     if not os.path.isfile(os.path.join(wd, 'build.ninja')):
