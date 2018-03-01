@@ -1138,6 +1138,8 @@ subproject. However, if you want to use a dependency object from
 inside a subproject, an easier way is to use the `fallback:` keyword
 argument to [`dependency()`](#dependency).
 
+[See additional documentation](Subprojects.md).
+
 ### test()
 
 ``` meson
@@ -1784,7 +1786,7 @@ opaque object representing it.
 
 - `get_variable(name)` fetches the specified variable from inside the
   subproject. This is useful to, for instance, get a [declared
-  dependency](#declare_dependency) from the subproject.
+  dependency](#declare_dependency) from the [subproject](Subprojects.md).
 
 ### `run result` object
 
