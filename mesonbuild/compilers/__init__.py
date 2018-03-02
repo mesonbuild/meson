@@ -120,6 +120,7 @@ from .c import (
     GnuCCompiler,
     IntelCCompiler,
     VisualStudioCCompiler,
+    ArmCCompiler,
 )
 from .cpp import (
     CPPCompiler,
@@ -127,6 +128,7 @@ from .cpp import (
     GnuCPPCompiler,
     IntelCPPCompiler,
     VisualStudioCPPCompiler,
+    ArmCPPCompiler,
 )
 from .cs import MonoCompiler, VisualStudioCsCompiler
 from .d import (

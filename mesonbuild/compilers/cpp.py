@@ -26,6 +26,7 @@ from .compilers import (
     ClangCompiler,
     GnuCompiler,
     IntelCompiler,
+    ArmCompiler,
 )
 
 class CPPCompiler(CCompiler):
@@ -215,3 +216,8 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         # Visual Studio C++ compiler doesn't support -fpermissive,
         # so just use the plain C args.
         return super(VisualStudioCCompiler, self).get_compiler_check_args()
+
+class ArmCPPCompiler(ArmCompiler, CPPCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrap):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        ArmCompiler.__init__(self)

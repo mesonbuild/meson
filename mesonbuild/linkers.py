@@ -112,3 +112,36 @@ class ArLinker(StaticLinker):
 
     def get_link_debugfile_args(self, targetfile):
         return []
+
+
+class ArmLinker(StaticLinker):
+    def __init__(self, exelist):
+        self.exelist = exelist
+
+    def get_exelist(self):
+        return self.exelist[:]
+
+    def get_output_args(self, target):
+        return [target]
+
+    def get_linker_always_args(self):
+        return []
+
+    def get_buildtype_linker_args(self, buildtype):
+        return []
+
+    def get_link_debugfile_args(self, targetfile):
+        return []
+
+    def get_std_link_args(self):
+        return ['-ru']
+
+    def get_option_link_args(self, options):
+        return []
+
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+        return []
+
+    @classmethod
+    def unix_args_to_native(cls, args):
+        return args[:]
