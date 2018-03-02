@@ -2270,11 +2270,8 @@ class LinuxlikeTests(BasePlatformTests):
         if not shutil.which('qmake-qt5'):
             if not shutil.which('qmake'):
                 raise unittest.SkipTest('QMake not found')
-            # For some inexplicable reason qmake --version gives different
-            # results when run from the command line vs invoked by Python.
-            # Check for both cases in case this behavior changes in the future.
-            output = subprocess.getoutput(['qmake', '--version'])
-            if 'Qt version 5' not in output and 'qt5' not in output:
+            output = subprocess.getoutput('qmake --version')
+            if 'Qt version 5' not in output:
                 raise unittest.SkipTest('Qmake found, but it is not for Qt 5.')
         # Disable pkg-config codepath and force searching with qmake/qmake-qt5
         testdir = os.path.join(self.framework_test_dir, '4 qt')
