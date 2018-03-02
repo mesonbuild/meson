@@ -320,10 +320,15 @@ class QtBaseDependency(ExternalDependency):
 
     def _framework_detect(self, qvars, modules, kwargs):
         libdir = qvars['QT_INSTALL_LIBS']
+
+        # ExtraFrameworkDependency doesn't support any methods
+        fw_kwargs = kwargs.copy()
+        fw_kwargs.pop('method', None)
+
         for m in modules:
             fname = 'Qt' + m
             fwdep = ExtraFrameworkDependency(fname, False, libdir, self.env,
-                                             self.language, kwargs)
+                                             self.language, fw_kwargs)
             self.compile_args.append('-F' + libdir)
             if fwdep.found():
                 self.compile_args += fwdep.get_compile_args()
