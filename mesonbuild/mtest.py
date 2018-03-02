@@ -283,22 +283,35 @@ class TestHarness:
             if ('MALLOC_PERTURB_' not in test_env or not test_env['MALLOC_PERTURB_']) and not self.options.benchmark:
                 test_env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
 
-            setsid = None
             stdout = None
             stderr = None
             if not self.options.verbose:
                 stdout = subprocess.PIPE
                 stderr = subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT
 
-            if not is_windows():
-                setsid = os.setsid
+            # Let gdb handle ^C instead of us
+            if test_opts.gdb:
+                previous_sigint_handler = signal.getsignal(signal.SIGINT)
+                # Make the meson executable ignore SIGINT while gdb is running.
+                signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+            def preexec_fn():
+                if test_opts.gdb:
+                    # Restore the SIGINT handler for the child process to
+                    # ensure it can handle it.
+                    signal.signal(signal.SIGINT, signal.SIG_DFL)
+                else:
+                    # We don't want setsid() in gdb because gdb needs the
+                    # terminal in order to handle ^C and not show tcsetpgrp()
+                    # errors avoid not being able to use the terminal.
+                    os.setsid()
 
             p = subprocess.Popen(cmd,
                                  stdout=stdout,
                                  stderr=stderr,
                                  env=test_env,
                                  cwd=test.workdir,
-                                 preexec_fn=setsid)
+                                 preexec_fn=preexec_fn if not is_windows() else None)
             timed_out = False
             kill_test = False
             if test.timeout is None:
@@ -314,6 +327,10 @@ class TestHarness:
             except KeyboardInterrupt:
                 mlog.warning("CTRL-C detected while running %s" % (test.name))
                 kill_test = True
+            finally:
+                if test_opts.gdb:
+                    # Let us accept ^C again
+                    signal.signal(signal.SIGINT, previous_sigint_handler)
 
             if kill_test or timed_out:
                 # Python does not provide multiplatform support for
