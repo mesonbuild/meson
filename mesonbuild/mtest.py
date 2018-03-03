@@ -90,7 +90,7 @@ parser.add_argument('-v', '--verbose', default=False, action='store_true',
                     help='Do not redirect stdout and stderr')
 parser.add_argument('-q', '--quiet', default=False, action='store_true',
                     help='Produce less output to the terminal.')
-parser.add_argument('-t', '--timeout-multiplier', type=float, default=1,
+parser.add_argument('-t', '--timeout-multiplier', type=float, default=None,
                     help='Define a multiplier for test timeout, for example '
                     ' when running tests in particular conditions they might take'
                     ' more time to execute.')
@@ -303,8 +303,10 @@ class TestHarness:
             kill_test = False
             if test.timeout is None:
                 timeout = None
-            else:
+            elif test_opts.timeout_multiplier is not None:
                 timeout = test.timeout * test_opts.timeout_multiplier
+            else:
+                timeout = test.timeout
             try:
                 (stdo, stde) = p.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
