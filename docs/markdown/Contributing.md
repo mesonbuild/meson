@@ -18,6 +18,45 @@ Github](https://github.com/mesonbuild/meson/pulls). This causes them
 to be run through the CI system. All submissions must pass a full CI
 test run before they are even considered for submission.
 
+## Acceptance and merging
+
+The kind of review and acceptance any merge proposal gets depends on
+the changes it contains. All pull requests must be reviewed and
+accepted by someone with commit rights who is not the original
+submitter. Merge requests can be roughly split into three different
+categories.
+
+The first one consists of MRs that only change the markdown
+documentation under `docs/markdown`. Anyone with access rights can
+push changes to these directly to master. For major changes it is
+still recommended to create a MR so other people can comment on it.
+
+The second group consists of merges that don't change any
+functionality, fixes to the CI system and bug fixes that have added
+regression tests (see below) and don't change existing
+functionality. Once successfully reviewed anyone with merge rights can
+merge these to master.
+
+The final kind of merges are those that add new functionality or
+change existing functionality in a backwards incompatible way. These
+require the approval of the project lead.
+
+In a simplified list form the split would look like the following:
+
+ - members with commit access can do:
+   - documentation changes (directly to master if warranted)
+   - bug fixes that don't change functionality
+   - refactorings
+   - new dependency types
+   - new tool support (e.g. a new Doxygen-kind of tool)
+   - support for new compilers to existing languages
+ - project leader decision is needed for:
+   - new modules
+   - new functions in the Meson language
+   - syntax changes for Meson files
+   - changes breaking backwards compatibility
+   - support for new languages
+
 ## Tests
 
 All new features must come with automatic tests that thoroughly prove
