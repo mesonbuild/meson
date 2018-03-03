@@ -580,7 +580,7 @@ the following special substitutions:
 - `@PLAINNAME@`: the complete input file name, e.g: `foo.c` becomes `foo.c` (unchanged)
 - `@BASENAME@`: the base of the input filename, e.g.: `foo.c.y` becomes `foo.c` (extension is removed)
 
-Each string passed to the `outputs` keyword argument *must* be
+Each string passed to the `output` keyword argument *must* be
 constructed using one or both of these two substitutions.
 
 In addition to the above substitutions, the `arguments` keyword
