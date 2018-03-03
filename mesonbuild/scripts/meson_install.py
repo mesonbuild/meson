@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import sys, pickle, os, shutil, subprocess, gzip, platform, errno
+import stat
 import shlex
 from glob import glob
 from . import depfixer
 from . import destdir_join
-from ..mesonlib import is_windows, Popen_safe
+from ..mesonlib import is_windows, Popen_safe, FileMode
 
 install_log_file = None
 selinux_updates = []
@@ -50,6 +51,26 @@ class DirMaker:
         self.dirs.reverse()
         for d in self.dirs:
             append_to_log(d)
+
+def is_file_executable(path):
+    # Check if any of the 'x' bits are set in the source file mode
+    return bool(os.stat(path).st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
+
+def get_mode_default(mode, is_executable):
+    if mode is not None and mode.perms_s is not None:
+        # Mode is set explicitly, so keep it as is
+        return mode
+    if mode is not None:
+        new_owner = mode.owner
+        new_group = mode.group
+    else:
+        new_owner = None
+        new_group = None
+    if is_executable:
+        new_perms = 'rwxr-xr-x'
+    else:
+        new_perms = 'rw-r--r--'
+    return FileMode(new_perms, new_owner, new_group)
 
 def set_mode(path, mode):
     if mode is None:
@@ -222,6 +243,7 @@ def install_subdirs(d):
         print('Installing subdir %s to %s' % (src_dir, full_dst_dir))
         d.dirmaker.makedirs(full_dst_dir, exist_ok=True)
         do_copydir(d, src_dir, full_dst_dir, exclude)
+        mode = get_mode_default(mode, True)
         set_mode(full_dst_dir, mode)
 
 def install_data(d):
@@ -233,6 +255,7 @@ def install_data(d):
         d.dirmaker.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s' % (fullfilename, outdir))
         do_copyfile(fullfilename, outfilename)
+        mode = get_mode_default(mode, is_file_executable(fullfilename))
         set_mode(outfilename, mode)
 
 def install_man(d):
