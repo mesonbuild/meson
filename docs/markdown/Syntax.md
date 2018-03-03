@@ -90,8 +90,24 @@ single quote do it like this:
 single quote = 'contains a \' character'
 ```
 
-Similarly `\n` gets converted to a newline and `\\` to a single
-backslash.
+The full list of escape sequences is:
+
+* `\\` Backslash
+* `\'` Single quote
+* `\a` Bell
+* `\b` Backspace
+* `\f` Formfeed
+* `\n` Newline
+* `\r` Carriage Return
+* `\t` Horizontal Tab
+* `\v` Vertical Tab
+* `\ooo` Character with octal value ooo
+* `\xhh` Character with hex value hh
+* `\uxxxx` Character with 16-bit hex value xxxx
+* `\Uxxxxxxxx` Character with 32-bit hex value xxxxxxxx
+* `\N{name}` Character named name in Unicode database
+
+As in python and C, up to three octal digits are accepted in `\ooo`.
 
 #### String concatenation
 

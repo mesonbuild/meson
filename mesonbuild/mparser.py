@@ -13,8 +13,35 @@
 # limitations under the License.
 
 import re
+import codecs
 from .mesonlib import MesonException
 from . import mlog
+
+# This is the regex for the supported escape sequences of a regular string
+# literal, like 'abc\x00'
+ESCAPE_SEQUENCE_SINGLE_RE = re.compile(r'''
+    ( \\U........      # 8-digit hex escapes
+    | \\u....          # 4-digit hex escapes
+    | \\x..            # 2-digit hex escapes
+    | \\[0-7]{1,3}     # Octal escapes
+    | \\N\{[^}]+\}     # Unicode characters by name
+    | \\[\\'abfnrtv]   # Single-character escapes
+    )''', re.UNICODE | re.VERBOSE)
+
+# This is the regex for the supported escape sequences of a multiline string
+# literal, like '''abc\x00'''. The only difference is that single quote (')
+# doesn't require escaping.
+ESCAPE_SEQUENCE_MULTI_RE = re.compile(r'''
+    ( \\U........      # 8-digit hex escapes
+    | \\u....          # 4-digit hex escapes
+    | \\x..            # 2-digit hex escapes
+    | \\[0-7]{1,3}     # Octal escapes
+    | \\N\{[^}]+\}     # Unicode characters by name
+    | \\[\\abfnrtv]    # Single-character escapes
+    )''', re.UNICODE | re.VERBOSE)
+
+def decode_match(match):
+    return codecs.decode(match.group(0), 'unicode_escape')
 
 class ParseException(MesonException):
     def __init__(self, text, line, lineno, colno):
@@ -112,7 +139,6 @@ class Lexer:
         par_count = 0
         bracket_count = 0
         col = 0
-        newline_rx = re.compile(r'(?<!\\)((?:\\\\)*)\\n')
         while loc < len(self.code):
             matched = False
             value = None
@@ -145,12 +171,12 @@ class Lexer:
                         if match_text.find("\n") != -1:
                             mlog.warning("""Newline character in a string detected, use ''' (three single quotes) for multiline strings instead.
 This will become a hard error in a future Meson release.""", self.getline(line_start), lineno, col)
-                        value = match_text[1:-1].replace(r"\'", "'")
-                        value = newline_rx.sub(r'\1\n', value)
-                        value = value.replace(r" \\ ".strip(), r" \ ".strip())
+                        value = match_text[1:-1]
+                        value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, value)
                     elif tid == 'multiline_string':
                         tid = 'string'
                         value = match_text[3:-3]
+                        value = ESCAPE_SEQUENCE_MULTI_RE.sub(decode_match, value)
                         lines = match_text.split('\n')
                         if len(lines) > 1:
                             lineno += len(lines) - 1
