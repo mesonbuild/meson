@@ -1984,8 +1984,8 @@ class FailureTests(BasePlatformTests):
         env = Environment('', self.builddir, self.meson_command,
                           get_fake_options(self.prefix), [])
         try:
-            objc = env.detect_objc_compiler(False)
-            objcpp = env.detect_objcpp_compiler(False)
+            env.detect_objc_compiler(False)
+            env.detect_objcpp_compiler(False)
         except EnvironmentException:
             code = "add_languages('objc')\nadd_languages('objcpp')"
             self.assertMesonRaises(code, "Unknown compiler")

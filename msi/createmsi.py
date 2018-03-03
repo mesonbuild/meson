@@ -223,7 +223,6 @@ class PackageGenerator:
                 })
             self.component_num += 1
             for f in cur_node.files:
-                file_source = os.path.join(current_dir, f).replace('\\', '\\\\')
                 file_id = os.path.join(current_dir, f).replace('\\', '_').replace('#', '_').replace('-', '_')
                 ET.SubElement(comp_xml_node, 'File', {
                     'Id': file_id,
