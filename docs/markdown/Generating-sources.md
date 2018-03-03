@@ -67,7 +67,7 @@ Generators can also generate multiple output files with unknown names:
 
 ```meson
 gen2 = generator(someprog,
-                 outputs : ['@BASENAME@.c', '@BASENAME@.h'],
+                 output : ['@BASENAME@.c', '@BASENAME@.h'],
                  arguments : ['--out_dir=@BUILD_DIR@', '@INPUT@'])
 ```
 
