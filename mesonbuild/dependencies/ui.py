@@ -433,7 +433,7 @@ class WxDependency(ConfigToolDependency):
         # wx-config seems to have a cflags as well but since it requires C++,
         # this should be good, at least for now.
         self.compile_args = self.get_config_value(['--cxxflags'] + self.requested_modules, 'compile_args')
-        self.link_args = self.get_config_value(['--libs'] + self.requested_modules, 'link_args')
+        self.link_args = self.get_config_value(['--libs', '--gl-libs'] + self.requested_modules, 'link_args')
 
     def get_requested(self, kwargs):
         if 'modules' not in kwargs:
