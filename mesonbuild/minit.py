@@ -106,7 +106,7 @@ pkg_mod.generate(
 )
 '''
 
-hello_c_template  = '''#include <stdio.h>
+hello_c_template = '''#include <stdio.h>
 
 #define PROJECT_NAME "{project_name}"
 
@@ -127,11 +127,11 @@ hello_c_meson_template = '''project('{project_name}', 'c',
 
 exe = executable('{exe_name}', '{source_name}',
   install : true)
-  
+
 test('basic', exe)
 '''
 
-hello_cpp_template  = '''#include <iostream>
+hello_cpp_template = '''#include <iostream>
 
 #define PROJECT_NAME "{project_name}"
 
@@ -151,7 +151,7 @@ hello_cpp_meson_template = '''project('{project_name}', 'cpp',
 
 exe = executable('{exe_name}', '{source_name}',
   install : true)
-  
+
 test('basic', exe)
 '''
 
@@ -177,9 +177,9 @@ class {utoken}_PUBLIC {class_name} {{
 public:
   {class_name}();
   int get_number() const;
-  
+
 private:
-  
+
   int number;
 
 }};
@@ -290,7 +290,7 @@ def create_lib_c_sample(project_name, version):
               'function_name': function_name,
               'header_file': lib_h_name,
               'source_file': lib_c_name,
-              'test_source_file': test_c_name, 
+              'test_source_file': test_c_name,
               'test_exe_name': lowercase_token,
               'project_name': project_name,
               'lib_name': lowercase_token,
@@ -327,7 +327,7 @@ def create_lib_cpp_sample(project_name, version):
               'namespace': namespace,
               'header_file': lib_h_name,
               'source_file': lib_c_name,
-              'test_source_file': test_c_name, 
+              'test_source_file': test_c_name,
               'test_exe_name': lowercase_token,
               'project_name': project_name,
               'lib_name': lowercase_token,

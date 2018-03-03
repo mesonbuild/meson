@@ -1498,7 +1498,6 @@ int main(int argc, char **argv) {
             cmd += ['-c', source, '-o', objectfile] + extra_args
         subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-
     def test_prebuilt_object(self):
         (compiler, _, object_suffix, _) = self.detect_prebuild_env()
         tdir = os.path.join(self.unit_test_dir, '14 prebuilt object')
