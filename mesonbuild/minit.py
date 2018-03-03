@@ -1,5 +1,4 @@
 # Copyright 2017 The Meson development team
-from pyclbr import Function
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +14,7 @@ from pyclbr import Function
 
 """Code that creates simple startup projects."""
 
-import os, sys, argparse, re
+import sys, argparse, re
 from glob import glob
 
 lib_h_template = '''#pragma once
