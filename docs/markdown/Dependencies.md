@@ -206,8 +206,8 @@ subparts of Qt the program uses.
 
 ## Dependencies using config tools
 
-CUPS, LLVM, PCAP, WxWidgets, libwmf, and GnuStep either do not provide
-pkg-config modules or additionally can be detected via a config tool
+CUPS, LLVM, PCAP, [WxWidgets](#wxwidgets), libwmf, and GnuStep either do not
+provide pkg-config modules or additionally can be detected via a config tool
 (cups-config, llvm-config, etc). Meson has native support for these tools, and
 then can be found like other dependencies:
 
@@ -222,6 +222,30 @@ tools support. You can force one or another via the method keyword:
 
 ```meson
 wmf_dep = dependency('wmf', method : 'config-tool')
+```
+
+## WxWidgets
+
+Similar to [Boost](#boost), WxWidgets is not a single library but rather
+a collection of modules. WxWidgets is supported via `wx-config`.
+Meson substitutes `modules` to `wx-config` invocation, it generates
+- `compile_args` using `wx-config --cxxflags $modules...`
+- `link_args` using `wx-config --libs $modules...`
+
+### Example
+
+```meson
+wx_dep = dependency(
+  'wxwidgets', version : '>=3.0.0', modules : ['std', 'stc'],
+)
+```
+
+```shell
+# compile_args:
+$ wx-config --cxxflags std stc
+
+# link_args:
+$ wx-config --libs std stc
 ```
 
 ## LLVM
