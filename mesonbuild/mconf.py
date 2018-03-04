@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os
+import os
+import sys
 import argparse
-from . import coredata, mesonlib, build
+from . import (coredata, mesonlib, build)
 
 parser = argparse.ArgumentParser(prog='meson configure')
 
@@ -24,8 +25,10 @@ parser.add_argument('directory', nargs='*')
 parser.add_argument('--clearcache', action='store_true', default=False,
                     help='Clear cached state (e.g. found dependencies)')
 
+
 class ConfException(mesonlib.MesonException):
     pass
+
 
 class Conf:
     def __init__(self, build_dir):
@@ -218,6 +221,7 @@ class Conf:
                          'choices': coredata.get_builtin_option_choices(key)})
         self.print_aligned(tarr)
 
+
 def run(args):
     args = mesonlib.expand_arguments(args)
     if not args:
@@ -249,6 +253,7 @@ def run(args):
         print(e)
         return 1
     return 0
+
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))
