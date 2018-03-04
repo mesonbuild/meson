@@ -140,7 +140,7 @@ class Conf:
                          'choices': coredata.get_builtin_option_choices(key)})
         self.print_aligned(carr)
         print('')
-        bekeys = sorted(self.coredata.backend_options.keys())
+        bekeys = sorted(self.coredata.backend_options)
         if not bekeys:
             print('  No backend options\n')
         else:
@@ -151,7 +151,7 @@ class Conf:
             self.print_aligned(bearr)
         print('')
         print('Base options:')
-        okeys = sorted(self.coredata.base_options.keys())
+        okeys = sorted(self.coredata.base_options)
         if not okeys:
             print('  No base options\n')
         else:
@@ -170,7 +170,7 @@ class Conf:
             print('  ' + lang + '_link_args', str(args))
         print('')
         print('Compiler options:')
-        okeys = sorted(self.coredata.compiler_options.keys())
+        okeys = sorted(self.coredata.compiler_options)
         if not okeys:
             print('  No compiler options\n')
         else:
@@ -207,8 +207,7 @@ class Conf:
             print('  This project does not have any options')
         else:
             options = self.coredata.user_options
-            keys = list(options.keys())
-            keys.sort()
+            keys = sorted(options)
             optarr = []
             for key in keys:
                 opt = options[key]
