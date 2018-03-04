@@ -138,22 +138,20 @@ class Conf:
                          'value': self.coredata.get_builtin_option(key),
                          'choices': coredata.get_builtin_option_choices(key)})
         self.print_aligned(carr)
-        bekeys = sorted(self.coredata.backend_options)
-        if not bekeys:
+        if not self.coredata.backend_options:
             print('  No backend options\n')
         else:
             bearr = []
-            for k in bekeys:
+            for k in sorted(self.coredata.backend_options):
                 o = self.coredata.backend_options[k]
                 bearr.append({'name': k, 'descr': o.description, 'value': o.value, 'choices': ''})
             self.print_aligned(bearr)
         print('\nBase options:')
-        okeys = sorted(self.coredata.base_options)
-        if not okeys:
+        if not self.coredata.base_options:
             print('  No base options\n')
         else:
             coarr = []
-            for k in okeys:
+            for k in sorted(self.coredata.base_options):
                 o = self.coredata.base_options[k]
                 coarr.append({'name': k, 'descr': o.description, 'value': o.value, 'choices': o.choices})
             self.print_aligned(coarr)
@@ -164,12 +162,11 @@ class Conf:
         for (lang, args) in self.coredata.external_link_args.items():
             print('  ' + lang + '_link_args', str(args))
         print('\nCompiler options:')
-        okeys = sorted(self.coredata.compiler_options)
-        if not okeys:
+        if not self.coredata.compiler_options:
             print('  No compiler options\n')
         else:
             coarr = []
-            for k in okeys:
+            for k in self.coredata.compiler_options:
                 o = self.coredata.compiler_options[k]
                 coarr.append({'name': k, 'descr': o.description, 'value': o.value, 'choices': ''})
             self.print_aligned(coarr)
@@ -198,11 +195,9 @@ class Conf:
         if not self.coredata.user_options:
             print('  This project does not have any options')
         else:
-            options = self.coredata.user_options
-            keys = sorted(options)
             optarr = []
-            for key in keys:
-                opt = options[key]
+            for key in sorted(self.coredata.user_options):
+                opt = self.coredata.user_options[key]
                 if (opt.choices is None) or (not opt.choices):
                     # Zero length list or string
                     choices = ''
