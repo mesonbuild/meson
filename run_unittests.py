@@ -21,7 +21,6 @@ import tempfile
 import textwrap
 import os
 import shutil
-import sys
 import unittest
 from unittest import mock
 from configparser import ConfigParser
@@ -1360,9 +1359,9 @@ class AllPlatformTests(BasePlatformTests):
             subprocess.check_call(['git', 'config',
                                    'user.email', 'teh_coderz@example.com'], cwd=project_dir)
             subprocess.check_call(['git', 'add', 'meson.build', 'distexe.c'], cwd=project_dir,
-                                    stdout=subprocess.DEVNULL)
+                                  stdout=subprocess.DEVNULL)
             subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir,
-                                    stdout=subprocess.DEVNULL)
+                                  stdout=subprocess.DEVNULL)
 
         try:
             self.dist_impl(git_init)
@@ -1502,7 +1501,6 @@ int main(int argc, char **argv) {
         else:
             cmd += ['-c', source, '-o', objectfile] + extra_args
         subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
 
     def test_prebuilt_object(self):
         (compiler, _, object_suffix, _) = self.detect_prebuild_env()
@@ -1995,8 +1993,8 @@ class FailureTests(BasePlatformTests):
         env = Environment('', self.builddir, self.meson_command,
                           get_fake_options(self.prefix), [])
         try:
-            objc = env.detect_objc_compiler(False)
-            objcpp = env.detect_objcpp_compiler(False)
+            env.detect_objc_compiler(False)
+            env.detect_objcpp_compiler(False)
         except EnvironmentException:
             code = "add_languages('objc')\nadd_languages('objcpp')"
             self.assertMesonRaises(code, "Unknown compiler")

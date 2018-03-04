@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild import mesonmain, mesonlib
-import sys, os, locale
+from mesonbuild import mesonmain
+import sys, os
 
 def main():
     # Always resolve the command path so Ninja can find it for regen, tests, etc.

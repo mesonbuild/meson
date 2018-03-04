@@ -2339,7 +2339,7 @@ root and issuing %s.
         cmds = []
         command_templ = 'meson wrap promote '
         for l in found:
-            cmds.append(command_templ + l[len(self.source_root)+1:])
+            cmds.append(command_templ + l[len(self.source_root) + 1:])
         final_message = message + '\n'.join(cmds)
         print(final_message)
 

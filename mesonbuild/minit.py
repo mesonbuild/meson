@@ -1,5 +1,4 @@
 # Copyright 2017 The Meson development team
-from pyclbr import Function
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +14,7 @@ from pyclbr import Function
 
 """Code that creates simple startup projects."""
 
-import os, sys, argparse, re
+import sys, argparse, re
 from glob import glob
 
 lib_h_template = '''#pragma once
@@ -107,7 +106,7 @@ pkg_mod.generate(
 )
 '''
 
-hello_c_template  = '''#include <stdio.h>
+hello_c_template = '''#include <stdio.h>
 
 #define PROJECT_NAME "{project_name}"
 
@@ -128,11 +127,11 @@ hello_c_meson_template = '''project('{project_name}', 'c',
 
 exe = executable('{exe_name}', '{source_name}',
   install : true)
-  
+
 test('basic', exe)
 '''
 
-hello_cpp_template  = '''#include <iostream>
+hello_cpp_template = '''#include <iostream>
 
 #define PROJECT_NAME "{project_name}"
 
@@ -152,7 +151,7 @@ hello_cpp_meson_template = '''project('{project_name}', 'cpp',
 
 exe = executable('{exe_name}', '{source_name}',
   install : true)
-  
+
 test('basic', exe)
 '''
 
@@ -178,9 +177,9 @@ class {utoken}_PUBLIC {class_name} {{
 public:
   {class_name}();
   int get_number() const;
-  
+
 private:
-  
+
   int number;
 
 }};
@@ -270,7 +269,6 @@ ninja -C builddir
 
 def create_exe_c_sample(project_name, project_version):
     lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
-    uppercase_token = lowercase_token.upper()
     source_name = lowercase_token + '.c'
     open(source_name, 'w').write(hello_c_template.format(project_name=project_name))
     open('meson.build', 'w').write(hello_c_meson_template.format(project_name=project_name,
@@ -291,7 +289,7 @@ def create_lib_c_sample(project_name, version):
               'function_name': function_name,
               'header_file': lib_h_name,
               'source_file': lib_c_name,
-              'test_source_file': test_c_name, 
+              'test_source_file': test_c_name,
               'test_exe_name': lowercase_token,
               'project_name': project_name,
               'lib_name': lowercase_token,
@@ -305,13 +303,12 @@ def create_lib_c_sample(project_name, version):
 
 def create_exe_cpp_sample(project_name, project_version):
     lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
-    uppercase_token = lowercase_token.upper()
     source_name = lowercase_token + '.cpp'
     open(source_name, 'w').write(hello_cpp_template.format(project_name=project_name))
     open('meson.build', 'w').write(hello_cpp_meson_template.format(project_name=project_name,
-                                                                 exe_name=lowercase_token,
-                                                                 source_name=source_name,
-                                                                 version=project_version))
+                                                                   exe_name=lowercase_token,
+                                                                   source_name=source_name,
+                                                                   version=project_version))
 
 def create_lib_cpp_sample(project_name, version):
     lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
@@ -328,7 +325,7 @@ def create_lib_cpp_sample(project_name, version):
               'namespace': namespace,
               'header_file': lib_h_name,
               'source_file': lib_c_name,
-              'test_source_file': test_c_name, 
+              'test_source_file': test_c_name,
               'test_exe_name': lowercase_token,
               'project_name': project_name,
               'lib_name': lowercase_token,

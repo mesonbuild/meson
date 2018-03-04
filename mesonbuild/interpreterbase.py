@@ -408,7 +408,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         varname = node.var_name
         addition = self.evaluate_statement(node.value)
         if is_disabler(addition):
-            set_variable(varname, addition)
+            self.set_variable(varname, addition)
             return
         # Remember that all variables are immutable. We must always create a
         # full new variable and then assign it.

@@ -16,7 +16,7 @@ from . import backends
 from .. import build
 from .. import dependencies
 from .. import mesonlib
-import uuid, os, sys
+import uuid, os
 
 from ..mesonlib import MesonException
 

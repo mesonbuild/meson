@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import mesonlib, compilers, mlog
+from .. import mesonlib
 
 from . import ExtensionModule
 
@@ -33,7 +33,6 @@ class IceStormModule(ExtensionModule):
     def project(self, interpreter, state, args, kwargs):
         if not self.yosys_bin:
             self.detect_binaries(interpreter)
-        result = []
         if not len(args):
             raise mesonlib.MesonException('Project requires at least one argument, which is the project name.')
         proj_name = args[0]
@@ -46,7 +45,7 @@ class IceStormModule(ExtensionModule):
         all_sources = interpreter.source_strings_to_files(interpreter.flatten(arg_sources + kwarg_sources))
         if 'constraint_file' not in kwargs:
             raise mesonlib.MesonException('Constraint file not specified.')
-        
+
         constraint_file = interpreter.source_strings_to_files(kwargs['constraint_file'])
         if len(constraint_file) != 1:
             raise mesonlib.MesonException('Constraint file must contain one and only one entry.')
@@ -73,13 +72,13 @@ class IceStormModule(ExtensionModule):
             'input': asc_target,
             'output': bin_fname,
             'command': [self.icepack_bin, '@INPUT@', '@OUTPUT@'],
-            'build_by_default' : True})
+            'build_by_default': True})
 
-        up_target = interpreter.func_run_target(None, [upload_name], {
+        interpreter.func_run_target(None, [upload_name], {
             'command': [self.iceprog_bin, bin_target]})
 
-        time_target = interpreter.func_run_target(None, [time_name], {
-            'command' : [self.icetime_bin, bin_target]})
+        interpreter.func_run_target(None, [time_name], {
+            'command': [self.icetime_bin, bin_target]})
 
 def initialize():
     return IceStormModule()

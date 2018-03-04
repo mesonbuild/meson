@@ -153,7 +153,7 @@ class PackageGenerator:
             'SourceFile': self.redist_path,
             'DiskId': '1',
             'Language': '0',
-            })
+        })
 
         ET.SubElement(product, 'Property', {
             'Id': 'WIXUI_INSTALLDIR',
@@ -185,7 +185,7 @@ class PackageGenerator:
             'AllowAdvertise': 'no',
             'Display': 'hidden',
             'Level': '1',
-            })
+        })
         ET.SubElement(vcredist_feature, 'MergeRef', {'Id': 'VCRedist'})
         ET.ElementTree(self.root).write(self.main_xml, encoding='utf-8', xml_declaration=True)
         # ElementTree can not do prettyprinting so do it manually
@@ -223,7 +223,6 @@ class PackageGenerator:
                 })
             self.component_num += 1
             for f in cur_node.files:
-                file_source = os.path.join(current_dir, f).replace('\\', '\\\\')
                 file_id = os.path.join(current_dir, f).replace('\\', '_').replace('#', '_').replace('-', '_')
                 ET.SubElement(comp_xml_node, 'File', {
                     'Id': file_id,
