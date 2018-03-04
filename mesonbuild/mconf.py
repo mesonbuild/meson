@@ -45,7 +45,8 @@ class Conf:
         # are erased when Meson is executed the next time, i.e. when
         # Ninja is run.
 
-    def print_aligned(self, arr):
+    @staticmethod
+    def print_aligned(arr):
         def make_lower_case(val):
             if isinstance(val, bool):
                 return str(val).lower()
