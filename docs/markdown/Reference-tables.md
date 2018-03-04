@@ -70,7 +70,7 @@ future releases.
 These are the parameter names for passing language specific arguments to your build target.
 
 | Language      | Parameter name |
-| -----         | -----
+| -----         | ----- |
 | C             | c_args |
 | C++           | cpp_args |
 | C#            | cs_args |
