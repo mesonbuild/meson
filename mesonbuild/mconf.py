@@ -46,65 +46,48 @@ class Conf:
         # Ninja is run.
 
     def print_aligned(self, arr):
+        def make_lower_case(val):
+            if isinstance(val, bool):
+                return str(val).lower()
+            elif isinstance(val, list):
+                return [make_lower_case(i) for i in val]
+            else:
+                return str(val)
+
         if not arr:
             return
+
         titles = {'name': 'Option', 'descr': 'Description', 'value': 'Current Value', 'choices': 'Possible Values'}
-        len_name = longest_name = len(titles['name'])
-        len_descr = longest_descr = len(titles['descr'])
-        len_value = longest_value = len(titles['value'])
-        longest_choices = 0 # not printed if we don't get any optional values
 
-        # calculate the max length of each
-        for x in arr:
-            name = x['name']
-            descr = x['descr']
-            value = x['value'] if isinstance(x['value'], str) else str(x['value']).lower()
-            choices = ''
-            if isinstance(x['choices'], list):
-                if x['choices']:
-                    x['choices'] = [s if isinstance(s, str) else str(s).lower() for s in x['choices']]
-                    choices = '[%s]' % ', '.join(map(str, x['choices']))
-            elif x['choices']:
-                choices = x['choices'] if isinstance(x['choices'], str) else str(x['choices']).lower()
+        name_col = [titles['name'], '-' * len(titles['name'])]
+        value_col = [titles['value'], '-' * len(titles['value'])]
+        choices_col = [titles['choices'], '-' * len(titles['choices'])]
+        descr_col = [titles['descr'], '-' * len(titles['descr'])]
 
-            longest_name = max(longest_name, len(name))
-            longest_descr = max(longest_descr, len(descr))
-            longest_value = max(longest_value, len(value))
-            longest_choices = max(longest_choices, len(choices))
-
-            # update possible non strings
-            x['value'] = value
-            x['choices'] = choices
-
-        # prints header
-        namepad = ' ' * (longest_name - len_name)
-        valuepad = ' ' * (longest_value - len_value)
-        if longest_choices:
-            len_choices = len(titles['choices'])
-            longest_choices = max(longest_choices, len_choices)
-            choicepad = ' ' * (longest_choices - len_choices)
-            print('  %s%s %s%s %s%s %s' % (titles['name'], namepad, titles['value'], valuepad, titles['choices'], choicepad, titles['descr']))
-            print('  %s%s %s%s %s%s %s' % ('-' * len_name, namepad, '-' * len_value, valuepad, '-' * len_choices, choicepad, '-' * len_descr))
-        else:
-            print('  %s%s %s%s %s' % (titles['name'], namepad, titles['value'], valuepad, titles['descr']))
-            print('  %s%s %s%s %s' % ('-' * len_name, namepad, '-' * len_value, valuepad, '-' * len_descr))
-
-        # print values
-        for i in arr:
-            name = i['name']
-            descr = i['descr']
-            value = i['value']
-            choices = i['choices']
-
-            namepad = ' ' * (longest_name - len(name))
-            valuepad = ' ' * (longest_value - len(value))
-            if longest_choices:
-                choicespad = ' ' * (longest_choices - len(choices))
-                f = '  %s%s %s%s %s%s %s' % (name, namepad, value, valuepad, choices, choicespad, descr)
+        choices_found = False
+        for opt in arr:
+            name_col.append(opt['name'])
+            descr_col.append(opt['descr'])
+            if isinstance(opt['value'], list):
+                value_col.append('[{0}]'.format(', '.join(make_lower_case(opt['value']))))
             else:
-                f = '  %s%s %s%s %s' % (name, namepad, value, valuepad, descr)
+                value_col.append(make_lower_case(opt['value']))
+            if opt['choices']:
+                choices_found = True
+                choices_col.append('[{0}]'.format(', '.join(make_lower_case(opt['choices']))))
+            else:
+                choices_col.append('')
 
-            print(f)
+        col_widths = (max([len(i) for i in name_col], default=0),
+                      max([len(i) for i in value_col], default=0),
+                      max([len(i) for i in choices_col], default=0),
+                      max([len(i) for i in descr_col], default=0))
+
+        for line in zip(name_col, value_col, choices_col, descr_col):
+            if choices_found:
+                print('  {0:{width[0]}} {1:{width[1]}} {2:{width[2]}} {3:{width[3]}}'.format(*line, width=col_widths))
+            else:
+                print('  {0:{width[0]}} {1:{width[1]}} {3:{width[3]}}'.format(*line, width=col_widths))
 
     def set_options(self, options):
         for o in options:
