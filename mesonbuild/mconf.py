@@ -233,8 +233,7 @@ class Conf:
                     # Zero length list or string
                     choices = ''
                 else:
-                    # A non zero length list or string, convert to string
-                    choices = str(opt.choices)
+                    choices = opt.choices
                 optarr.append({'name': key,
                                'descr': opt.description,
                                'value': opt.value,
