@@ -13,4 +13,5 @@ generate_enums_docbook = find_program('generate-enums-docbook.py')
 
 docbook = custom_target('enum-docbook',
   output : 'bar.xml',
-  command : [generate_enums_docbook, '@OUTPUT@', 'BAR', 'BAR_TYPE', 'BAR_FOO'])
+  command : [generate_enums_docbook, '@OUTPUT@', 'BAR', 'BAR_TYPE', 'BAR_FOO'],
+  build_by_default : true)
