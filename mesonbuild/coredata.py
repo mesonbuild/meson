@@ -21,7 +21,7 @@ from .mesonlib import MesonException
 from .mesonlib import default_libdir, default_libexecdir, default_prefix
 import ast
 
-version = '0.45.0'
+version = '0.46.0.dev1'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']
 
 default_yielding = False
