@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os
+import os
+import sys
 import argparse
-from . import coredata, mesonlib, build
+from . import (coredata, mesonlib, build)
 
 parser = argparse.ArgumentParser(prog='meson configure')
 
@@ -24,8 +25,10 @@ parser.add_argument('directory', nargs='*')
 parser.add_argument('--clearcache', action='store_true', default=False,
                     help='Clear cached state (e.g. found dependencies)')
 
+
 class ConfException(mesonlib.MesonException):
     pass
+
 
 class Conf:
     def __init__(self, build_dir):
@@ -45,66 +48,50 @@ class Conf:
         # are erased when Meson is executed the next time, i.e. when
         # Ninja is run.
 
-    def print_aligned(self, arr):
+    @staticmethod
+    def print_aligned(arr):
+        def make_lower_case(val):
+            if isinstance(val, bool):
+                return str(val).lower()
+            elif isinstance(val, list):
+                return [make_lower_case(i) for i in val]
+            else:
+                return str(val)
+
         if not arr:
             return
+
         titles = {'name': 'Option', 'descr': 'Description', 'value': 'Current Value', 'choices': 'Possible Values'}
-        len_name = longest_name = len(titles['name'])
-        len_descr = longest_descr = len(titles['descr'])
-        len_value = longest_value = len(titles['value'])
-        longest_choices = 0 # not printed if we don't get any optional values
 
-        # calculate the max length of each
-        for x in arr:
-            name = x['name']
-            descr = x['descr']
-            value = x['value'] if isinstance(x['value'], str) else str(x['value']).lower()
-            choices = ''
-            if isinstance(x['choices'], list):
-                if x['choices']:
-                    x['choices'] = [s if isinstance(s, str) else str(s).lower() for s in x['choices']]
-                    choices = '[%s]' % ', '.join(map(str, x['choices']))
-            elif x['choices']:
-                choices = x['choices'] if isinstance(x['choices'], str) else str(x['choices']).lower()
+        name_col = [titles['name'], '-' * len(titles['name'])]
+        value_col = [titles['value'], '-' * len(titles['value'])]
+        choices_col = [titles['choices'], '-' * len(titles['choices'])]
+        descr_col = [titles['descr'], '-' * len(titles['descr'])]
 
-            longest_name = max(longest_name, len(name))
-            longest_descr = max(longest_descr, len(descr))
-            longest_value = max(longest_value, len(value))
-            longest_choices = max(longest_choices, len(choices))
-
-            # update possible non strings
-            x['value'] = value
-            x['choices'] = choices
-
-        # prints header
-        namepad = ' ' * (longest_name - len_name)
-        valuepad = ' ' * (longest_value - len_value)
-        if longest_choices:
-            len_choices = len(titles['choices'])
-            longest_choices = max(longest_choices, len_choices)
-            choicepad = ' ' * (longest_choices - len_choices)
-            print('  %s%s %s%s %s%s %s' % (titles['name'], namepad, titles['value'], valuepad, titles['choices'], choicepad, titles['descr']))
-            print('  %s%s %s%s %s%s %s' % ('-' * len_name, namepad, '-' * len_value, valuepad, '-' * len_choices, choicepad, '-' * len_descr))
-        else:
-            print('  %s%s %s%s %s' % (titles['name'], namepad, titles['value'], valuepad, titles['descr']))
-            print('  %s%s %s%s %s' % ('-' * len_name, namepad, '-' * len_value, valuepad, '-' * len_descr))
-
-        # print values
-        for i in arr:
-            name = i['name']
-            descr = i['descr']
-            value = i['value']
-            choices = i['choices']
-
-            namepad = ' ' * (longest_name - len(name))
-            valuepad = ' ' * (longest_value - len(value))
-            if longest_choices:
-                choicespad = ' ' * (longest_choices - len(choices))
-                f = '  %s%s %s%s %s%s %s' % (name, namepad, value, valuepad, choices, choicespad, descr)
+        choices_found = False
+        for opt in arr:
+            name_col.append(opt['name'])
+            descr_col.append(opt['descr'])
+            if isinstance(opt['value'], list):
+                value_col.append('[{0}]'.format(', '.join(make_lower_case(opt['value']))))
             else:
-                f = '  %s%s %s%s %s' % (name, namepad, value, valuepad, descr)
+                value_col.append(make_lower_case(opt['value']))
+            if opt['choices']:
+                choices_found = True
+                choices_col.append('[{0}]'.format(', '.join(make_lower_case(opt['choices']))))
+            else:
+                choices_col.append('')
 
-            print(f)
+        col_widths = (max([len(i) for i in name_col], default=0),
+                      max([len(i) for i in value_col], default=0),
+                      max([len(i) for i in choices_col], default=0),
+                      max([len(i) for i in descr_col], default=0))
+
+        for line in zip(name_col, value_col, choices_col, descr_col):
+            if choices_found:
+                print('  {0:{width[0]}} {1:{width[1]}} {2:{width[2]}} {3:{width[3]}}'.format(*line, width=col_widths))
+            else:
+                print('  {0:{width[0]}} {1:{width[1]}} {3:{width[3]}}'.format(*line, width=col_widths))
 
     def set_options(self, options):
         for o in options:
@@ -147,8 +134,7 @@ class Conf:
         print('Core properties:')
         print('  Source dir', self.build.environment.source_dir)
         print('  Build dir ', self.build.environment.build_dir)
-        print('')
-        print('Core options:')
+        print('\nCore options:\n')
         carr = []
         for key in ['buildtype', 'warning_level', 'werror', 'strip', 'unity', 'default_library']:
             carr.append({'name': key,
@@ -156,48 +142,39 @@ class Conf:
                          'value': self.coredata.get_builtin_option(key),
                          'choices': coredata.get_builtin_option_choices(key)})
         self.print_aligned(carr)
-        print('')
-        bekeys = sorted(self.coredata.backend_options.keys())
-        if not bekeys:
+        if not self.coredata.backend_options:
             print('  No backend options\n')
         else:
             bearr = []
-            for k in bekeys:
+            for k in sorted(self.coredata.backend_options):
                 o = self.coredata.backend_options[k]
                 bearr.append({'name': k, 'descr': o.description, 'value': o.value, 'choices': ''})
             self.print_aligned(bearr)
-        print('')
-        print('Base options:')
-        okeys = sorted(self.coredata.base_options.keys())
-        if not okeys:
+        print('\nBase options:')
+        if not self.coredata.base_options:
             print('  No base options\n')
         else:
             coarr = []
-            for k in okeys:
+            for k in sorted(self.coredata.base_options):
                 o = self.coredata.base_options[k]
                 coarr.append({'name': k, 'descr': o.description, 'value': o.value, 'choices': o.choices})
             self.print_aligned(coarr)
-        print('')
-        print('Compiler arguments:')
+        print('\nCompiler arguments:')
         for (lang, args) in self.coredata.external_args.items():
             print('  ' + lang + '_args', str(args))
-        print('')
-        print('Linker args:')
+        print('\nLinker args:')
         for (lang, args) in self.coredata.external_link_args.items():
             print('  ' + lang + '_link_args', str(args))
-        print('')
-        print('Compiler options:')
-        okeys = sorted(self.coredata.compiler_options.keys())
-        if not okeys:
+        print('\nCompiler options:')
+        if not self.coredata.compiler_options:
             print('  No compiler options\n')
         else:
             coarr = []
-            for k in okeys:
+            for k in self.coredata.compiler_options:
                 o = self.coredata.compiler_options[k]
                 coarr.append({'name': k, 'descr': o.description, 'value': o.value, 'choices': ''})
             self.print_aligned(coarr)
-        print('')
-        print('Directories:')
+        print('\nDirectories:')
         parr = []
         for key in ['prefix',
                     'libdir',
@@ -218,30 +195,24 @@ class Conf:
                          'value': self.coredata.get_builtin_option(key),
                          'choices': coredata.get_builtin_option_choices(key)})
         self.print_aligned(parr)
-        print('')
-        print('Project options:')
+        print('\nProject options:')
         if not self.coredata.user_options:
             print('  This project does not have any options')
         else:
-            options = self.coredata.user_options
-            keys = list(options.keys())
-            keys.sort()
             optarr = []
-            for key in keys:
-                opt = options[key]
+            for key in sorted(self.coredata.user_options):
+                opt = self.coredata.user_options[key]
                 if (opt.choices is None) or (not opt.choices):
                     # Zero length list or string
                     choices = ''
                 else:
-                    # A non zero length list or string, convert to string
-                    choices = str(opt.choices)
+                    choices = opt.choices
                 optarr.append({'name': key,
                                'descr': opt.description,
                                'value': opt.value,
                                'choices': choices})
             self.print_aligned(optarr)
-        print('')
-        print('Testing options:')
+        print('\nTesting options:')
         tarr = []
         for key in ['stdsplit', 'errorlogs']:
             tarr.append({'name': key,
@@ -249,6 +220,7 @@ class Conf:
                          'value': self.coredata.get_builtin_option(key),
                          'choices': coredata.get_builtin_option_choices(key)})
         self.print_aligned(tarr)
+
 
 def run(args):
     args = mesonlib.expand_arguments(args)
@@ -281,6 +253,7 @@ def run(args):
         print(e)
         return 1
     return 0
+
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))
