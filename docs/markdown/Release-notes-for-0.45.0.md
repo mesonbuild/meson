@@ -65,6 +65,7 @@ g = generator(...) # Compiles protobuf sources
 generated = gen.process('com/mesonbuild/one.proto',
   'com/mesonbuild/two.proto',
   preserve_path_from : meson.current_source_dir())
+```
 
 This would cause the following files to be generated inside the target
 private directory:
