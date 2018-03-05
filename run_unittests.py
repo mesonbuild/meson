@@ -25,7 +25,7 @@ import unittest
 from unittest import mock
 from configparser import ConfigParser
 from glob import glob
-from pathlib import PurePath
+from pathlib import (PurePath, Path)
 
 import mesonbuild.mlog
 import mesonbuild.compilers
@@ -429,6 +429,20 @@ class InternalTests(unittest.TestCase):
         kwargs = {'sources': [1, 2, 3], 'pch_sources': [4, 5, 6]}
         self.assertEqual([[1, 2, 3], [4, 5, 6]], extract(kwargs, 'sources', 'pch_sources'))
 
+    def test_snippets(self):
+        hashcounter = re.compile('^ *(#)+')
+        snippet_dir = Path('docs/markdown/snippets')
+        self.assertTrue(snippet_dir.is_dir())
+        for f in snippet_dir.glob('*'):
+            self.assertTrue(f.is_file())
+            if f.suffix == '.md':
+                for line in f.open():
+                    m = re.match(hashcounter, line)
+                    if m:
+                        self.assertEqual(len(m.group(0)), 2, 'All headings in snippets must have two hash symbols: ' + f.name)
+            else:
+                if f.name != 'add_release_note_snippets_here':
+                    self.assertTrue(False, 'A file without .md suffix in snippets dir: ' + f.name)
 
 class BasePlatformTests(unittest.TestCase):
     def setUp(self):
