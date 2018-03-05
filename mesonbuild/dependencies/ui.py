@@ -23,7 +23,7 @@ from collections import OrderedDict
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
-    MesonException, Popen_safe, extract_as_list, for_windows,
+    MesonException, Popen_safe, extract_as_list, for_windows, for_cygwin,
     version_compare_many
 )
 from ..environment import detect_cpu
@@ -281,10 +281,15 @@ class QtBaseDependency(ExternalDependency):
             (k, v) = tuple(line.split(':', 1))
             qvars[k] = v
         if mesonlib.is_osx():
-            return self._framework_detect(qvars, mods, kwargs)
+            self._framework_detect(qvars, mods, kwargs)
+            return qmake
         incdir = qvars['QT_INSTALL_HEADERS']
         self.compile_args.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
+        if for_cygwin(self.env.is_cross_build(), self.env):
+            shlibext = '.dll.a'
+        else:
+            shlibext = '.so'
         # Used by self.compilers_detect()
         self.bindir = self.get_qmake_host_bins(qvars)
         self.is_found = True
@@ -306,7 +311,7 @@ class QtBaseDependency(ExternalDependency):
                         self.is_found = False
                         break
             else:
-                libfile = os.path.join(libdir, 'lib{}{}.so'.format(self.qtpkgname, module))
+                libfile = os.path.join(libdir, 'lib{}{}{}'.format(self.qtpkgname, module, shlibext))
                 if not os.path.isfile(libfile):
                     self.is_found = False
                     break
@@ -315,15 +320,23 @@ class QtBaseDependency(ExternalDependency):
 
     def _framework_detect(self, qvars, modules, kwargs):
         libdir = qvars['QT_INSTALL_LIBS']
+
+        # ExtraFrameworkDependency doesn't support any methods
+        fw_kwargs = kwargs.copy()
+        fw_kwargs.pop('method', None)
+
         for m in modules:
             fname = 'Qt' + m
             fwdep = ExtraFrameworkDependency(fname, False, libdir, self.env,
-                                             self.language, kwargs)
+                                             self.language, fw_kwargs)
             self.compile_args.append('-F' + libdir)
             if fwdep.found():
-                self.is_found = True
                 self.compile_args += fwdep.get_compile_args()
                 self.link_args += fwdep.get_link_args()
+            else:
+                break
+        else:
+            self.is_found = True
         # Used by self.compilers_detect()
         self.bindir = self.get_qmake_host_bins(qvars)
 
