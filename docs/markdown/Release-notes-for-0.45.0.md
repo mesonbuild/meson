@@ -5,13 +5,18 @@ short-description: Release notes for 0.45
 
 # New features
 
+## Python minimum version is now 3.5
+
+Meson will from this version on require Python version 3.5 or newer.
+
 ## Config-Tool based dependencies can be specified in a cross file
 
-Tools like LLVM and pcap use a config tool for dependencies, this is a script
-or binary that is run to get configuration information (cflags, ldflags, etc)
-from.
+Tools like LLVM and pcap use a config tool for dependencies, this is a
+script or binary that is run to get configuration information (cflags,
+ldflags, etc) from.
 
-These binaries may now be specified in the `binaries` section of a cross file.
+These binaries may now be specified in the `binaries` section of a
+cross file.
 
 ```dosini
 [binaries]
@@ -109,8 +114,8 @@ values. It can be specified like this in the `meson_options.txt` file:
 
 ## New method meson.project_license()
 
-The `meson` builtin object now has a `project_license()` method that returns a
-list of all licenses for the project.
+The `meson` builtin object now has a `project_license()` method that
+returns a list of all licenses for the project.
 
 ## Rust cross-compilation
 
@@ -147,10 +152,10 @@ meson init --name=myproject --type=executable --language=c
 
 ## Improve test setup selection
 
-Test setups are now identified (also) by the project they belong to and it
-is possible to select the used test setup from a specific project. E.g.
-to use a test setup `some_setup` from project `some_project` for all
-executed tests one can use
+Test setups are now identified (also) by the project they belong to
+and it is possible to select the used test setup from a specific
+project. E.g.  to use a test setup `some_setup` from project
+`some_project` for all executed tests one can use
 
     meson test --setup some_project:some_setup
 
@@ -171,9 +176,11 @@ The `promote` command makes it easy to copy nested dependencies to the top level
 
     meson wrap promote scommon
 
-This will search the project tree for a subproject called `scommon` and copy it to the top level.
+This will search the project tree for a subproject called `scommon`
+and copy it to the top level.
 
-If there are many embedded subprojects with the same name, you have to specify which one to promote manually like this:
+If there are many embedded subprojects with the same name, you have to
+specify which one to promote manually like this:
 
     meson wrap promote subprojects/s1/subprojects/scommon
 
