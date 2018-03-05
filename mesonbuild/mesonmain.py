@@ -284,6 +284,13 @@ def run(original_args, mainfile=None):
         # First check if we want to run a subcommand.
         cmd_name = args[0]
         remaining_args = args[1:]
+        # "help" is a special case: Since printing of the help may be
+        # delegated to a subcommand, we edit cmd_name before executing
+        # the rest of the logic here.
+        if cmd_name == 'help':
+            remaining_args += ['--help']
+            args = remaining_args
+            cmd_name = args[0]
         if cmd_name == 'test':
             return mtest.run(remaining_args)
         elif cmd_name == 'setup':
