@@ -127,7 +127,7 @@ argument list as separate elements.
 gen3 = generator(genprog,
                  output : '@BASENAME@.cc',
                  arguments : ['@INPUT@', '@EXTRA_ARGS@', '@OUTPUT@'])
-gen3_src1 = gen3.process('input1.y)
+gen3_src1 = gen3.process('input1.y')
 gen3_src2 = gen3.process('input2.y', extra_args: '--foo')
 gen3_src3 = gen3.process('input3.y', extra_args: ['--foo', '--bar'])
 ```
