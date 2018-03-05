@@ -19,8 +19,9 @@ import sys
 
 from mesonbuild.coredata import version
 
-if sys.version_info[0] < 3:
-    print('Tried to install with Python 2, Meson only supports Python 3.')
+if sys.version_info < (3, 5, 0):
+    print('Tried to install with an unsupported version of Python. '
+          'Meson requires Python 3.5.0 or greater')
     sys.exit(1)
 
 # We need to support Python installations that have nothing but the basic
@@ -62,6 +63,7 @@ setup(name='meson',
       author_email='jpakkane@gmail.com',
       url='http://mesonbuild.com',
       license=' Apache License, Version 2.0',
+      python_requires='>=3.5',
       packages=['mesonbuild',
                 'mesonbuild.backend',
                 'mesonbuild.compilers',
