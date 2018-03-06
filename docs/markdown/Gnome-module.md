@@ -123,7 +123,9 @@ Returns an array of two elements which are: `[c_source, header_file]`
 ### gnome.mkenums()
 
 Generates enum files for GObject using the `glib-mkenums` tool. The
-first argument is the base name of the output files.
+first argument is the base name of the output files, unless `c_template`
+and `h_template` are specified. In this case, the output files will be
+the base name of the values passed as templates.
 
 This method is essentially a wrapper around the `glib-mkenums` tool's
 command line API. It is the most featureful method for enum creation.
