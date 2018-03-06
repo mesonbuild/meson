@@ -145,7 +145,7 @@ class Dependency:
 
 
 class InternalDependency(Dependency):
-    def __init__(self, version, incdirs, compile_args, link_args, libraries, sources, ext_deps):
+    def __init__(self, version, incdirs, compile_args, link_args, libraries, whole_libraries, sources, ext_deps):
         super().__init__('internal', {})
         self.version = version
         self.is_found = True
@@ -153,6 +153,7 @@ class InternalDependency(Dependency):
         self.compile_args = compile_args
         self.link_args = link_args
         self.libraries = libraries
+        self.whole_libraries = whole_libraries
         self.sources = sources
         self.ext_deps = ext_deps
 

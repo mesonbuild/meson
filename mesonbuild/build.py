@@ -838,12 +838,14 @@ This will become a hard error in a future Meson release.''')
                 self.add_include_dirs(dep.include_directories)
                 for l in dep.libraries:
                     self.link(l)
+                for l in dep.whole_libraries:
+                    self.link_whole(l)
                 # Those parts that are external.
                 extpart = dependencies.InternalDependency('undefined',
                                                           [],
                                                           dep.compile_args,
                                                           dep.link_args,
-                                                          [], [], [])
+                                                          [], [], [], [])
                 self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)
