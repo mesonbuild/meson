@@ -1485,7 +1485,7 @@ int dummy;
         # gcc-ar blindly pass the --plugin argument to `ar` and you cannot pass
         # options as arguments while using the @file.rsp syntax.
         # See: https://github.com/mesonbuild/meson/issues/1646
-        if mesonlib.is_windows() and not isinstance(static_linker, ArLinker):
+        if static_linker.can_linker_accept_rsp():
             command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
  rspfile_content = $LINK_ARGS {output_args} $in
@@ -1540,7 +1540,7 @@ int dummy;
                     except KeyError:
                         pass
                 rule = 'rule %s%s_LINKER\n' % (langname, crstr)
-                if mesonlib.is_windows():
+                if compiler.can_linker_accept_rsp():
                     command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
  rspfile_content = $ARGS  {output_args} $in $LINK_ARGS {cross_args} $aliasing
@@ -1669,7 +1669,7 @@ rule FORTRAN_DEP_HACK
         if getattr(self, 'created_llvm_ir_rule', False):
             return
         rule = 'rule llvm_ir{}_COMPILER\n'.format('_CROSS' if is_cross else '')
-        if mesonlib.is_windows():
+        if compiler.can_linker_accept_rsp():
             command_template = ' command = {executable} @$out.rsp\n' \
                                ' rspfile = $out.rsp\n' \
                                ' rspfile_content = {cross_args} $ARGS {output_args} {compile_only_args} $in\n'
@@ -1730,7 +1730,7 @@ rule FORTRAN_DEP_HACK
                 d = quote_func(d)
             quoted_depargs.append(d)
         cross_args = self.get_cross_info_lang_args(langname, is_cross)
-        if mesonlib.is_windows():
+        if compiler.can_linker_accept_rsp():
             command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
  rspfile_content = {cross_args} $ARGS {dep_args} {output_args} {compile_only_args} $in

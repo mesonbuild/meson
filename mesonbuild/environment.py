@@ -38,6 +38,7 @@ from .compilers import (
     is_source,
 )
 from .compilers import (
+    ARMCCompiler,
     ClangCCompiler,
     ClangCPPCompiler,
     ClangObjCCompiler,
@@ -492,7 +493,10 @@ class Environment:
                         continue
                 arg = '/?'
             else:
-                arg = '--version'
+                if re.search('.*arm.*', compiler[0]):
+                    arg = '--vsn'
+                else:
+                    arg = '--version'
             try:
                 p, out, err = Popen_safe(compiler + [arg])
             except OSError as e:
@@ -537,6 +541,8 @@ class Environment:
                 inteltype = ICC_STANDARD
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap, full_version=full_version)
+            if 'ARM' in out:
+                return ARMCCompiler(ccache + compiler, version, is_cross, exe_wrap, full_version=full_version)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, want_cross):
@@ -791,7 +797,10 @@ class Environment:
             if 'lib' in linker or 'lib.exe' in linker:
                 arg = '/?'
             else:
-                arg = '--version'
+                if re.search('.*arm.*', linker[0]):
+                    arg = '--vsn'
+                else:
+                    arg = '--version'
             try:
                 p, out, err = Popen_safe(linker + [arg])
             except OSError as e:

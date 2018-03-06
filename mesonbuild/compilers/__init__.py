@@ -41,6 +41,8 @@ __all__ = [
     'sanitizer_compile_args',
     'sort_clike',
 
+    'ARMCompiler',
+    'ARMCCompiler',
     'CCompiler',
     'ClangCCompiler',
     'ClangCompiler',
@@ -115,6 +117,7 @@ from .compilers import (
     IntelCompiler,
 )
 from .c import (
+    ARMCCompiler,
     CCompiler,
     ClangCCompiler,
     GnuCCompiler,

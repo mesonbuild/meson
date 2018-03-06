@@ -112,6 +112,12 @@ gnulike_buildtype_args = {'plain': [],
                           'debugoptimized': ['-O2', '-g'],
                           'release': ['-O3'],
                           'minsize': ['-Os', '-g']}
+arm_buildtype_args = {'plain': [],
+                      'debug': ['-O0', '-g'],
+                      'debugoptimized': ['-O2', '-g'],
+                      'release': ['-O2'],
+                      'minsize': ['-Os', '-g'],
+                     }
 
 msvc_buildtype_args = {'plain': [],
                        'debug': ["/MDd", "/ZI", "/Ob0", "/Od", "/RTC1"],
@@ -133,6 +139,12 @@ gnulike_buildtype_linker_args = {'plain': [],
                                  'release': ['-Wl,-O1'],
                                  'minsize': [],
                                  }
+arm_buildtype_linker_args = {'plain': [],
+                             'debug': [],
+                             'debugoptimized': [],
+                             'release': [],
+                             'minsize': [],
+                            }
 
 msvc_buildtype_linker_args = {'plain': [],
                               'debug': [],
@@ -657,6 +669,12 @@ class Compiler:
     def get_always_args(self):
         return []
 
+    def can_linker_accept_rsp(self):
+        """
+        Determines whether the linker can accept arguments using the @rsp syntax.
+        """
+        return mesonlib.is_windows()
+
     def get_linker_always_args(self):
         return []
 
@@ -1074,6 +1092,39 @@ class GnuCompiler:
 
     def get_default_include_dirs(self):
         return gnulike_default_include_dirs(self.exelist, self.language)
+
+class ARMCompiler:
+    # Functionality that is common to all ARM family compilers.
+    def __init__(self, defines):
+        self.id = 'arm'
+        self.defines = defines or {}
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+                             'b_colorout', 'b_ndebug', 'b_staticpic']
+        # Assembly
+        self.can_compile_suffixes.add('s')
+
+    def can_linker_accept_rsp(self):
+        return False
+
+    def get_pic_args(self):
+        # FIXME: Add /ropi, /rwpi, /fpic etc. qualifiers to --apcs
+        return []
+
+    def get_buildtype_args(self, buildtype):
+        return arm_buildtype_args[buildtype]
+
+    def get_buildtype_linker_args(self, buildtype):
+        return arm_buildtype_linker_args[buildtype]
+
+    def get_pch_suffix(self):
+        # NOTE from armcc user guide:
+        # "Support for Precompiled Header (PCH) files is deprecated from ARM Compiler 5.05
+        # onwards on all platforms. Note that ARM Compiler on Windows 8 never supported
+        # PCH files."
+        return 'pch'
+
+    def split_shlib_to_parts(self, fname):
+        return os.path.split(fname)[0], fname
 
 
 class ClangCompiler:

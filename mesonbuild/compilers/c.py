@@ -31,6 +31,7 @@ from .compilers import (
     msvc_winlibs,
     vs32_instruction_set_args,
     vs64_instruction_set_args,
+    ARMCompiler,
     ClangCompiler,
     Compiler,
     CompilerArgs,
@@ -886,6 +887,62 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
     def get_pch_use_args(self, pch_dir, header):
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
+
+
+class ARMCCompiler(ARMCompiler, CCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+        ARMCompiler.__init__(self, defines)
+
+    def sanity_check_impl(self, work_dir, environment, sname, code):
+        mlog.debug('Sanity testing disabled for armcc compiler')
+        return
+
+    def get_options(self):
+        opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
+                                                  ['none', 'c89', 'c99', 'c11'],
+                                                  'none')}
+        return opts
+
+    def get_warn_args(self, level):
+        # ARMCC doesn't have warning levels
+        return []
+
+    def get_coverage_args(self):
+        return []
+
+    def get_coverage_link_args(self):
+        return []
+
+    # Override CCompiler.get_always_args
+    def get_always_args(self):
+        return []
+
+    def get_option_compile_args(self, options):
+        return []
+
+    def get_linker_exelist(self):
+        args = ['armlink']
+        return args
+
+    # Override CCompiler.get_dependency_gen_args
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return []
+
+    # Override CCompiler.get_std_shared_lib_link_args
+    def get_std_shared_lib_link_args(self):
+        return []
+
+    def get_pch_use_args(self, pch_dir, header):
+        # FIXME: Add required arguments
+        # NOTE from armcc user guide:
+        # "Support for Precompiled Header (PCH) files is deprecated from ARM Compiler 5.05
+        # onwards on all platforms. Note that ARM Compiler on Windows 8 never supported
+        # PCH files."
+        return []
+
+    def get_compile_only_args(self):
+        return ['-c']
 
 
 class IntelCCompiler(IntelCompiler, CCompiler):
