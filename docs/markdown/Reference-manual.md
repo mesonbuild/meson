@@ -1197,10 +1197,18 @@ be up to date on every build. Keywords are similar to `custom_target`.
 
 Meson will read the contents of `input`, substitute the
 `replace_string` with the detected revision number, and write the
-result to `output`. This method returns an opaque
-[`custom_target`](#custom_target) object that can be used as
-source. If you desire more specific behavior than what this command
-provides, you should use `custom_target`.
+result to `output`. This method returns a 
+[`custom_target`](#custom_target) object that (as usual) should be
+used to signal dependencies if other targets use the file outputted
+by this.
+
+For example, if you generate a header with this and want to use that in
+a build target, you must add the return value to the sources of that
+build target. Without that, Meson will not know the order in which to
+build the targets.
+
+If you desire more specific behavior than what this command provides,
+you should use `custom_target`.
 
 ## Built-in objects
 
