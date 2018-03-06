@@ -36,12 +36,11 @@ def detect_meson_py_location():
         # $ <mesontool> <args> (gets run from /usr/bin/<mesontool>)
         in_path_exe = shutil.which(c_fname)
         if in_path_exe:
-            m_dir, c_fname = os.path.split(in_path_exe)
-            # Special case: when run like "./meson.py <opts>",
-            # we need to expand it out, because, for example,
-            # "ninja test" will be run from a different directory.
-            if m_dir == '.':
+            if not os.path.isabs(in_path_exe):
                 m_dir = os.getcwd()
+                c_fname = in_path_exe
+            else:
+                m_dir, c_fname = os.path.split(in_path_exe)
     else:
         m_dir = os.path.abspath(c_dir)
 
