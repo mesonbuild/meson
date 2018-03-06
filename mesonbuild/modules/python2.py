@@ -1,4 +1,4 @@
-# Copyright 2016-2017 The Meson development team
+# Copyright 2018 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import mesonlib, dependencies
+from .. import dependencies
 from .python_common import PythonModule
 
 
-class Python3Module(PythonModule):
+class Python2Module(PythonModule):
     def _find_python(self):
-        return dependencies.ExternalProgram('python3', mesonlib.python_command, silent=True)
+        return dependencies.ExternalProgram('python2', silent = True)
 
 
 def initialize():
-    return Python3Module()
+    return Python2Module()
