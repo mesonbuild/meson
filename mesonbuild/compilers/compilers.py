@@ -112,12 +112,13 @@ gnulike_buildtype_args = {'plain': [],
                           'debugoptimized': ['-O2', '-g'],
                           'release': ['-O3'],
                           'minsize': ['-Os', '-g']}
+
 arm_buildtype_args = {'plain': [],
                       'debug': ['-O0', '-g'],
                       'debugoptimized': ['-O2', '-g'],
                       'release': ['-O2'],
                       'minsize': ['-Os', '-g'],
-                     }
+                      }
 
 msvc_buildtype_args = {'plain': [],
                        'debug': ["/MDd", "/ZI", "/Ob0", "/Od", "/RTC1"],
@@ -139,12 +140,13 @@ gnulike_buildtype_linker_args = {'plain': [],
                                  'release': ['-Wl,-O1'],
                                  'minsize': [],
                                  }
+
 arm_buildtype_linker_args = {'plain': [],
                              'debug': [],
                              'debugoptimized': [],
                              'release': [],
                              'minsize': [],
-                            }
+                             }
 
 msvc_buildtype_linker_args = {'plain': [],
                               'debug': [],

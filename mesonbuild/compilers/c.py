@@ -891,6 +891,9 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
 class ARMCCompiler(ARMCompiler, CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        # ARMCC is only a cross compiler
+        if not is_cross:
+            raise EnvironmentException('armcc supports only cross-compilation.')
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
         ARMCompiler.__init__(self, defines)
 

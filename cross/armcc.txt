@@ -1,0 +1,11 @@
+[binaries]
+c = 'armcc'
+cpp = 'armcc'
+ar = 'armar'
+strip = 'armar'
+
+[host_machine]
+system = 'WINDOWS'
+cpu_family = 'arm'
+cpu = 'Cortex-M0+'
+endian = 'little'
