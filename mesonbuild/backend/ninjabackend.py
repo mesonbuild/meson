@@ -14,6 +14,7 @@
 
 import os, pickle, re, shlex, subprocess
 from collections import OrderedDict
+import itertools
 from pathlib import PurePath
 
 from . import backends
@@ -263,7 +264,7 @@ int dummy;
             vala_header = File.from_built_file(self.get_target_dir(target), target.vala_header)
             header_deps.append(vala_header)
         # Recurse and find generated headers
-        for dep in target.link_targets:
+        for dep in itertools.chain(target.link_targets, target.link_whole_targets):
             if isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
                 header_deps += self.get_generated_headers(dep)
         return header_deps
