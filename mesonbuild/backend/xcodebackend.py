@@ -706,7 +706,7 @@ class XCodeBackend(backends.Backend):
                 if isinstance(target, build.SharedLibrary):
                     ldargs = ['-dynamiclib', '-Wl,-headerpad_max_install_names'] + dep_libs
                     install_path = os.path.join(self.environment.get_build_dir(), target.subdir, buildtype)
-                    dylib_version = target.version
+                    dylib_version = target.soversion
                 else:
                     ldargs = dep_libs
                     install_path = ''
