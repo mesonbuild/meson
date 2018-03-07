@@ -565,9 +565,7 @@ class XCodeBackend(backends.Backend):
         self.write_line(');')
         self.write_line('runOnlyForDeploymentPostprocessing = 0;')
         self.write_line('shellPath = /bin/sh;')
-        script_root = self.environment.get_script_dir()
-        test_script = os.path.join(script_root, 'meson_test.py')
-        cmd = mesonlib.python_command + [test_script, test_data, '--wd', self.environment.get_build_dir()]
+        cmd = mesonlib.meson_command + ['test', test_data, '-C', self.environment.get_build_dir()]
         cmdstr = ' '.join(["'%s'" % i for i in cmd])
         self.write_line('shellScript = "%s";' % cmdstr)
         self.write_line('showEnvVarsInLog = 0;')
