@@ -14,3 +14,5 @@ RUN apt-get -y update && apt-get -y upgrade \
 && apt-get -y install libwmf-dev \
 && apt-get -y install qt4-linguist-tools qttools5-dev-tools \
 && python3 -m pip install hotdoc codecov
+
+ENV LANG='C.UTF-8'
