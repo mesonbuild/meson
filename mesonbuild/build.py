@@ -1648,7 +1648,7 @@ class CustomTarget(Target):
 
     def process_kwargs(self, kwargs):
         super().process_kwargs(kwargs)
-        self.sources = extract_as_list(kwargs, 'input', unholder=True)
+        self.sources = [File(True, self.subdir, source) for source in extract_as_list(kwargs, 'input', unholder=True)]
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.outputs = listify(kwargs['output'])
