@@ -1,0 +1,4 @@
+# This file is not read by meson itself, but by the test framework.
+# It is not possible to pass arguments to meson from a file.
+['-Dc_args=-march=native', '-Dc_args=-funroll-loops',
+ '-Dc_link_args=-random_linker_option']
