@@ -416,7 +416,7 @@ class CCompiler(Compiler):
         }}'''
         if not self.compiles(t.format(**fargs), env, extra_args, dependencies):
             return -1
-        return self.cross_compute_int('sizeof(%s)' % typename, 1, 128, None, prefix, env, extra_args, dependencies)
+        return self.cross_compute_int('sizeof(%s)' % typename, 1, 1024, None, prefix, env, extra_args, dependencies)
 
     def sizeof(self, typename, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
