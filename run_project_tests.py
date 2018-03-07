@@ -109,8 +109,6 @@ def setup_commands(optbackend):
     if backend is None:
         if msbuild_exe is not None:
             backend = 'vs' # Meson will auto-detect VS version to use
-        elif mesonlib.is_osx():
-            backend = 'xcode'
         else:
             backend = 'ninja'
     # Set backend arguments for Meson
