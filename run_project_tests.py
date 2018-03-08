@@ -675,6 +675,8 @@ if __name__ == '__main__':
     parser.add_argument('--backend', default=None, dest='backend',
                         choices=backendlist)
     parser.add_argument('--tests', default='.*', help='Names of tests to run (regexp)')
+    parser.add_argument('--skip_basic_checks', action='store_true',
+                        help='Skip the basic checks for compilation before running the given tests.')
     options = parser.parse_args()
     setup_commands(options.backend)
 
@@ -683,7 +685,8 @@ if __name__ == '__main__':
     if script_dir != '':
         os.chdir(script_dir)
     check_format()
-    check_meson_commands_work()
+    if not options.skip_basic_checks:
+        check_meson_commands_work()
     try:
         all_tests = detect_tests_to_run()
         # Filter tests to only ones where the names matches --tests.
