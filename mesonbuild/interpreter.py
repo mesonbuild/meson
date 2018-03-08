@@ -1945,6 +1945,8 @@ to directly access options of other subprojects.''')
                 raise InterpreterException('Subproject_dir must not contain a ".." segment.')
             self.subproject_dir = spdirname
 
+        self.build.subproject_dir = self.subproject_dir
+
         if 'meson_version' in kwargs:
             cv = coredata.version
             pv = kwargs['meson_version']
