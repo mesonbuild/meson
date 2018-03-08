@@ -655,11 +655,30 @@ int dummy;
             # Alias that runs the target defined above
             self.create_target_alias('meson-coverage-html', outfile)
             elem = NinjaBuildElement(self.all_outputs, os.path.join(htmloutdir, 'index.html'), 'CUSTOM_COMMAND', '')
-            command = [lcov_exe, '--directory', self.environment.get_build_dir(),
-                       '--capture', '--output-file', covinfo, '--no-checksum',
-                       '&&', genhtml_exe, '--prefix', self.environment.get_build_dir(),
-                       '--output-directory', htmloutdir, '--title', 'Code coverage',
-                       '--legend', '--show-details', covinfo]
+
+            subproject_dir = self.build.get_subproject_dir()
+            command = [lcov_exe,
+                       '--directory', self.environment.get_build_dir(),
+                       '--capture',
+                       '--output-file', covinfo,
+                       '--no-checksum',
+                       '&&', lcov_exe,
+                       '--extract',
+                       covinfo,
+                       os.path.join(self.environment.get_source_dir(), '*'),
+                       '--output-file', covinfo,
+                       '&&', lcov_exe,
+                       '--remove',
+                       covinfo,
+                       os.path.join(self.environment.get_source_dir(), subproject_dir, '*'),
+                       '--output-file', covinfo,
+                       '&&', genhtml_exe,
+                       '--prefix', self.environment.get_build_dir(),
+                       '--output-directory', htmloutdir,
+                       '--title', 'Code coverage',
+                       '--legend',
+                       '--show-details',
+                       covinfo]
             elem.add_item('COMMAND', command)
             elem.add_item('DESC', 'Generating HTML coverage report.')
             elem.write(outfile)

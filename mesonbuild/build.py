@@ -114,6 +114,7 @@ class Build:
         self.static_linker = None
         self.static_cross_linker = None
         self.subprojects = {}
+        self.subproject_dir = ''
         self.install_scripts = []
         self.postconf_scripts = []
         self.install_dirs = []
@@ -138,6 +139,9 @@ class Build:
 
     def get_project(self):
         return self.projects['']
+
+    def get_subproject_dir(self):
+        return self.subproject_dir
 
     def get_targets(self):
         return self.targets
