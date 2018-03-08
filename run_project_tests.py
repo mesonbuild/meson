@@ -674,6 +674,7 @@ if __name__ == '__main__':
                         help='arguments that are passed directly to Meson (remember to have -- before these).')
     parser.add_argument('--backend', default=None, dest='backend',
                         choices=backendlist)
+    parser.add_argument('--tests', default='.*', help='Names of tests to run (regexp)')
     options = parser.parse_args()
     setup_commands(options.backend)
 
@@ -685,6 +686,14 @@ if __name__ == '__main__':
     check_meson_commands_work()
     try:
         all_tests = detect_tests_to_run()
+        # Filter tests to only ones where the names matches --tests.
+        all_tests = [(test_group[0],
+                      [test_name for test_name in test_group[1]
+                       if re.search(options.tests, test_name)],
+                      test_group[2])
+                     for test_group in all_tests]
+        # Filter out test groups that didn't have any matching tests.
+        all_tests = [test_group for test_group in all_tests if test_group[1]]
         (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.extra_args)
     except StopException:
         pass
