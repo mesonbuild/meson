@@ -51,12 +51,25 @@ class DirMaker:
         for d in self.dirs:
             append_to_log(d)
 
-def set_mode(path, mode):
-    if mode is None:
-        # Keep mode unchanged
+def is_executable(path):
+    '''Checks whether any of the "x" bits are set in the source file mode.'''
+    return bool(os.stat(path).st_mode & 0o111)
+
+def sanitize_permissions(path, umask):
+    if umask is None:
         return
-    if (mode.perms_s or mode.owner or mode.group) is None:
-        # Nothing to set
+    new_perms = 0o777 if is_executable(path) else 0o666
+    new_perms &= ~umask
+    try:
+        os.chmod(path, new_perms)
+    except PermissionError as e:
+        msg = '{!r}: Unable to set permissions {!r}: {}, ignoring...'
+        print(msg.format(path, new_perms, e.strerror))
+
+def set_mode(path, mode, default_umask):
+    if mode is None or (mode.perms_s or mode.owner or mode.group) is None:
+        # Just sanitize permissions with the default umask
+        sanitize_permissions(path, default_umask)
         return
     # No chown() on Windows, and must set one of owner/group
     if not is_windows() and (mode.owner or mode.group) is not None:
@@ -83,6 +96,8 @@ def set_mode(path, mode):
         except PermissionError as e:
             msg = '{!r}: Unable to set permissions {!r}: {}, ignoring...'
             print(msg.format(path, mode.perms_s, e.strerror))
+    else:
+        sanitize_permissions(path, default_umask)
 
 def restore_selinux_contexts():
     '''
@@ -180,6 +195,7 @@ def do_copydir(data, src_dir, dst_dir, exclude):
                 sys.exit(1)
             data.dirmaker.makedirs(abs_dst)
             shutil.copystat(abs_src, abs_dst)
+            sanitize_permissions(abs_dst, data.install_umask)
         for f in files:
             abs_src = os.path.join(root, f)
             filepart = os.path.relpath(abs_src, start=src_dir)
@@ -195,6 +211,7 @@ def do_copydir(data, src_dir, dst_dir, exclude):
                 os.mkdir(parent_dir)
                 shutil.copystat(os.path.dirname(abs_src), parent_dir)
             shutil.copy2(abs_src, abs_dst, follow_symlinks=False)
+            sanitize_permissions(abs_dst, data.install_umask)
             append_to_log(abs_dst)
 
 def get_destdir_path(d, path):
@@ -210,6 +227,8 @@ def do_install(datafilename):
     d.destdir = os.environ.get('DESTDIR', '')
     d.fullprefix = destdir_join(d.destdir, d.prefix)
 
+    if d.install_umask is not None:
+        os.umask(d.install_umask)
     d.dirmaker = DirMaker()
     with d.dirmaker:
         install_subdirs(d) # Must be first, because it needs to delete the old subtree.
@@ -226,7 +245,7 @@ def install_subdirs(d):
         print('Installing subdir %s to %s' % (src_dir, full_dst_dir))
         d.dirmaker.makedirs(full_dst_dir, exist_ok=True)
         do_copydir(d, src_dir, full_dst_dir, exclude)
-        set_mode(full_dst_dir, mode)
+        set_mode(full_dst_dir, mode, d.install_umask)
 
 def install_data(d):
     for i in d.data:
@@ -237,7 +256,7 @@ def install_data(d):
         d.dirmaker.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s' % (fullfilename, outdir))
         do_copyfile(fullfilename, outfilename)
-        set_mode(outfilename, mode)
+        set_mode(outfilename, mode, d.install_umask)
 
 def install_man(d):
     for m in d.man:
@@ -256,6 +275,7 @@ def install_man(d):
             append_to_log(outfilename)
         else:
             do_copyfile(full_source_filename, outfilename)
+        sanitize_permissions(outfilename, d.install_umask)
 
 def install_headers(d):
     for t in d.headers:
@@ -266,6 +286,7 @@ def install_headers(d):
         print('Installing %s to %s' % (fname, outdir))
         d.dirmaker.makedirs(outdir, exist_ok=True)
         do_copyfile(fullfilename, outfilename)
+        sanitize_permissions(outfilename, d.install_umask)
 
 def run_install_script(d):
     env = {'MESON_SOURCE_ROOT': d.source_dir,
@@ -330,6 +351,7 @@ def install_targets(d):
             raise RuntimeError('File {!r} could not be found'.format(fname))
         elif os.path.isfile(fname):
             do_copyfile(fname, outname)
+            sanitize_permissions(outname, d.install_umask)
             if should_strip and d.strip_bin is not None:
                 if fname.endswith('.jar'):
                     print('Not stripping jar target:', os.path.basename(fname))
@@ -346,9 +368,12 @@ def install_targets(d):
                 pdb_outname = os.path.splitext(outname)[0] + '.pdb'
                 print('Installing pdb file %s to %s' % (pdb_filename, pdb_outname))
                 do_copyfile(pdb_filename, pdb_outname)
+                sanitize_permissions(pdb_outname, d.install_umask)
         elif os.path.isdir(fname):
             fname = os.path.join(d.build_dir, fname.rstrip('/'))
-            do_copydir(d, fname, os.path.join(outdir, os.path.basename(fname)), None)
+            outname = os.path.join(outdir, os.path.basename(fname))
+            do_copydir(d, fname, outname, None)
+            sanitize_permissions(outname, d.install_umask)
         else:
             raise RuntimeError('Unknown file type for {!r}'.format(fname))
         printed_symlink_error = False

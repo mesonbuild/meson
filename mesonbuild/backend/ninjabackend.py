@@ -668,7 +668,9 @@ int dummy;
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
                         self.environment.get_prefix(),
-                        strip_bin, self.environment.get_build_command() + ['introspect'])
+                        strip_bin,
+                        self.environment.coredata.get_builtin_option('install_umask'),
+                        self.environment.get_build_command() + ['introspect'])
         elem = NinjaBuildElement(self.all_outputs, 'meson-install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
