@@ -1,5 +1,11 @@
 project('doxygen test', 'cpp', version : '0.1.0')
 
+spede_inc = include_directories('include')
+
+spede_src = [ 'src/spede.cpp' ]
+
+spede_lib = library('spede', spede_src, include_directories: spede_inc)
+
 doxygen = find_program('doxygen', required : false)
 if not doxygen.found()
   error('MESON_SKIP_TEST doxygen not found.')

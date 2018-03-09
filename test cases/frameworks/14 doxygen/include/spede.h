@@ -29,10 +29,7 @@ namespace Comedy {
             throw std::runtime_error("Not implemented");
         }
 
+    private:
+        int num_movies; ///< How many movies has he done.
     };
-
-
-private:
-
-    int num_movies; ///< How many movies has he done.
 }
