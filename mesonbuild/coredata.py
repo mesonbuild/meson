@@ -111,7 +111,7 @@ class UserIntegerOption(UserOption):
     def toint(self, valuestring):
         try:
             return int(valuestring)
-        except:
+        except ValueError:
             raise MesonException('Value string "%s" is not convertable to an integer.' % valuestring)
 
     def validate_value(self, value):

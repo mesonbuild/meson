@@ -12,7 +12,7 @@ def generate(infile, outfile, fallback):
         (stdo, _) = p.communicate()
         if p.returncode == 0:
             version = stdo.decode().strip()
-    except:
+    except Exception:
         pass
     with open(infile) as f:
         newdata = f.read().replace('@VERSION@', version)
@@ -21,7 +21,7 @@ def generate(infile, outfile, fallback):
             olddata = f.read()
         if olddata == newdata:
             return
-    except:
+    except Exception:
         pass
     with open(outfile, 'w') as f:
         f.write(newdata)
