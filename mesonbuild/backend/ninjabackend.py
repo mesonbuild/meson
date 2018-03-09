@@ -504,7 +504,7 @@ int dummy;
         deps = self.unwrap_dep_list(target)
         deps += self.get_custom_target_depend_files(target)
         desc = 'Generating {0} with a {1} command.'
-        if target.build_always:
+        if target.build_always_stale:
             deps.append('PHONY')
         if target.depfile is None:
             rulename = 'CUSTOM_COMMAND'
