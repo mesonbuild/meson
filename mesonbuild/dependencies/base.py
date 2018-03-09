@@ -878,6 +878,8 @@ class ExtraFrameworkDependency(ExternalDependency):
         super().__init__('extraframeworks', env, lang, kwargs)
         self.name = None
         self.required = required
+        if isinstance(path, str):
+            path = [path]
         self.detect(name, path)
         if self.found():
             mlog.log('Dependency', mlog.bold(name), 'found:', mlog.green('YES'),
@@ -885,12 +887,10 @@ class ExtraFrameworkDependency(ExternalDependency):
         else:
             mlog.log('Dependency', name, 'found:', mlog.red('NO'))
 
-    def detect(self, name, path):
+    def detect(self, name, paths):
         lname = name.lower()
-        if path is None:
+        if paths is None or len(paths) == 0:
             paths = ['/System/Library/Frameworks', '/Library/Frameworks']
-        else:
-            paths = [path]
         for p in paths:
             for d in os.listdir(p):
                 fullpath = os.path.join(p, d)
