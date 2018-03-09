@@ -309,7 +309,7 @@ a hard error in the future.''' % name)
         self.subproject = subproject
         self.build_by_default = build_by_default
         self.install = False
-        self.build_always = False
+        self.build_always_stale = False
         self.option_overrides = {}
 
     def get_basename(self):
@@ -1636,6 +1636,7 @@ class CustomTarget(Target):
         'install_dir',
         'install_mode',
         'build_always',
+        'build_always_stale',
         'depends',
         'depend_files',
         'depfile',
@@ -1788,9 +1789,16 @@ class CustomTarget(Target):
             self.install = False
             self.install_dir = [None]
             self.install_mode = None
-        self.build_always = kwargs.get('build_always', False)
-        if not isinstance(self.build_always, bool):
-            raise InvalidArguments('Argument build_always must be a boolean.')
+        if 'build_always' in kwargs and 'build_always_stale' in kwargs:
+            raise InvalidArguments('build_always and build_always_stale are mutually exclusive. Combine build_by_default and build_always_stale.')
+        elif 'build_always' in kwargs:
+            mlog.warning('build_always is deprecated. Combine build_by_default and build_always_stale instead.')
+            self.build_by_default = kwargs['build_always']
+            self.build_always_stale = kwargs['build_always']
+        elif 'build_always_stale' in kwargs:
+            self.build_always_stale = kwargs['build_always_stale']
+        if not isinstance(self.build_always_stale, bool):
+            raise InvalidArguments('Argument build_always_stale must be a boolean.')
         extra_deps, depend_files = extract_as_list(kwargs, 'depends', 'depend_files', pop = False)
         for ed in extra_deps:
             while hasattr(ed, 'held_object'):

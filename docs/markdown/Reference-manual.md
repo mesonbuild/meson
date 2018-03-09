@@ -232,9 +232,11 @@ following.
 - `build_by_default` *(added 0.38.0)* causes, when set to true, to
   have this target be built by default, that is, when invoking plain
   `ninja`; the default value is false
-- `build_always` if `true` this target is always considered out of
+- `build_always` (deprecated) if `true` this target is always considered out of
   date and is rebuilt every time, useful for things such as build
-  timestamps or revision control tags
+  timestamps or revision control tags.
+- `build_always_stale` if `true` the target is always considered out of date.
+  The associated command is run even if the outputs are up to date.
 - `capture`, there are some compilers that can't be told to write
   their output to a file but instead write it to standard output. When
   this argument is set to true, Meson captures `stdout` and writes it
