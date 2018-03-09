@@ -42,7 +42,7 @@ int gesticulate(int force) {
 Spede::Spede() : num_movies(100) {
 }
 
-Spede::slap_forehead() {
+void Spede::slap_forehead() {
     gesticulate(42);
 }
 

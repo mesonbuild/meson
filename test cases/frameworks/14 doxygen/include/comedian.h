@@ -11,7 +11,7 @@ namespace Comedy {
          * Do the thing people want to happen.
          */
         virtual void tell_joke() = 0;
-        virtual ~Comedian();
+        virtual ~Comedian(){};
     };
 
 }
