@@ -1771,6 +1771,12 @@ external dependencies (including libraries) must go to "dependencies".''')
         try:
             resolved = r.resolve(dirname)
         except RuntimeError as e:
+            # if the reason subproject execution failed was because
+            # the directory doesn't exist, try to give some helpful
+            # advice if it's a nested subproject that needs
+            # promotion...
+            self.print_nested_info(dirname)
+
             msg = 'Subproject directory {!r} does not exist and cannot be downloaded:\n{}'
             raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname), e))
         subdir = os.path.join(self.subproject_dir, resolved)
@@ -2315,7 +2321,6 @@ to directly access options of other subprojects.''')
                         # we won't actually read all the build files.
                         return fallback_dep
                 if not dep:
-                    self.print_nested_info(name)
                     assert(exception is not None)
                     raise exception
 
