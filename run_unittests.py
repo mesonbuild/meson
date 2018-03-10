@@ -2308,13 +2308,13 @@ class FailureTests(BasePlatformTests):
         '''
         tdir = os.path.join(self.unit_test_dir, '20 subproj dep variables')
         out = self.init(tdir, inprocess=True)
-        self.assertRegex(out, r"Also couldn't find a fallback subproject "
+        self.assertRegex(out, r"Couldn't use fallback subproject "
                          "in.*subprojects.*nosubproj.*for the dependency.*somedep")
         self.assertRegex(out, r'Dependency.*somenotfounddep.*from subproject.*'
                          'subprojects.*somesubproj.*found:.*NO')
         self.assertRegex(out, r'Dependency.*zlibproxy.*from subproject.*'
                          'subprojects.*somesubproj.*found:.*YES.*(cached)')
-        self.assertRegex(out, r'Also couldn\'t find a fallback subproject in '
+        self.assertRegex(out, r'Couldn\'t use fallback subproject in '
                          '.*subprojects.*failingsubproj.*for the dependency.*somedep')
 
     def test_exception_exit_status(self):
