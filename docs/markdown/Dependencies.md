@@ -61,7 +61,7 @@ zdep_prefix = zdep.get_pkgconfig_variable('libdir', define_variable: ['prefix', 
 The dependency detector works with all libraries that provide a
 `pkg-config` file. Unfortunately several packages don't provide
 pkg-config files. Meson has autodetection support for some of these,
-and they are described later on this page.
+and they are described [later in this page](#dependencies-with-custom-lookup-functionality).
 
 # Declaring your own
 
@@ -138,7 +138,7 @@ can set the BOOST_ROOT, BOOST_INCLUDEDIR, and/or BOOST_LIBRARYDIR
 environment variables.
 
 You can set the argument `threading` to `single` to use boost libraries that
-has been compiled for single-threaded use instead.
+have been compiled for single-threaded use instead.
 
 ## GTest and GMock
 
@@ -160,9 +160,9 @@ test('gtest test', e)
 MPI is supported for C, C++ and Fortran. Because dependencies are
 language-specific, you must specify the requested language using the
 `language` keyword argument, i.e.,
- * `dependency('mpi', language='c')` for the C MPI headers and libraries
- * `dependency('mpi', language='cpp')` for the C++ MPI headers and libraries
- * `dependency('mpi', language='fortran')` for the Fortran MPI headers and libraries
+ * `dependency('mpi', language: 'c')` for the C MPI headers and libraries
+ * `dependency('mpi', language: 'cpp')` for the C++ MPI headers and libraries
+ * `dependency('mpi', language: 'fortran')` for the Fortran MPI headers and libraries
 
 Meson prefers pkg-config for MPI, but if your MPI implementation does
 not provide them, it will search for the standard wrapper executables,
@@ -171,9 +171,9 @@ are not in your path, they can be specified by setting the standard
 environment variables `MPICC`, `MPICXX`, `MPIFC`, `MPIF90`, or
 `MPIF77`, during configuration.
 
-## Qt5
+## Qt4 & Qt5
 
-Meson has native Qt5 support. Its usage is best demonstrated with an
+Meson has native Qt support. Its usage is best demonstrated with an
 example.
 
 ```meson
@@ -209,7 +209,7 @@ subparts of Qt the program uses.
 CUPS, LLVM, PCAP, [WxWidgets](#wxwidgets), libwmf, and GnuStep either do not
 provide pkg-config modules or additionally can be detected via a config tool
 (cups-config, llvm-config, etc). Meson has native support for these tools, and
-then can be found like other dependencies:
+they can be found like other dependencies:
 
 ```meson
 pcap_dep = dependency('pcap', version : '>=1.0')
@@ -281,10 +281,10 @@ llvm_dep = dependency(
 
 Python3 is handled specially by meson:
 1. Meson tries to use `pkg-config`.
-1. If `pkg-config` fails meson uses fallback:
-    - On Windows fallback is current `python3` interpreter.
-    - On OSX fallback is framework dependency from `/Library/Frameworks`.
+1. If `pkg-config` fails meson uses a fallback:
+    - On Windows the fallback is the current `python3` interpreter.
+    - On OSX the fallback is a framework dependency from `/Library/Frameworks`.
 
 Note that `python3` found by this dependency might differ from the one used in
-`python3` module because modules uses current interpreter but dependency tries
+`python3` module because modules uses the current interpreter, but dependency tries
 `pkg-config` first.
