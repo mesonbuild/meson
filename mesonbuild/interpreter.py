@@ -2104,6 +2104,19 @@ to directly access options of other subprojects.''')
             else:
                 version_string = ' (%s %s)' % (comp.id, comp.version)
             mlog.log('Native %s compiler: ' % comp.get_display_language(), mlog.bold(' '.join(comp.get_exelist())), version_string, sep='')
+
+            # If <language>_args/_link_args settings are given on the
+            # command line, use them.
+            for optspec in self.build.environment.cmd_line_options.projectoptions:
+                (optname, optvalue) = optspec.split('=', maxsplit=1)
+                if optname.endswith('_link_args'):
+                    lang = optname[:-10]
+                    self.coredata.external_link_args.setdefault(lang, []).append(optvalue)
+                elif optname.endswith('_args'):
+                    lang = optname[:-5]
+                    self.coredata.external_args.setdefault(lang, []).append(optvalue)
+            # Otherwise, look for definitions from environment
+            # variables such as CFLAGS.
             if not comp.get_language() in self.coredata.external_args:
                 (preproc_args, compile_args, link_args) = environment.get_args_from_envvars(comp)
                 self.coredata.external_preprocess_args[comp.get_language()] = preproc_args
