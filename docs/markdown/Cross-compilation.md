@@ -261,7 +261,7 @@ myvar = meson.get_cross_property('somekey')
 ## Cross file locations
 
 As of version 0.44.0 meson supports loading cross files from system locations
-on Linux and the BSDs. This will be $XDG_DATA_DIRS/meson/cross, or if
+(except on Windows).  This will be $XDG_DATA_DIRS/meson/cross, or if
 XDG_DATA_DIRS is undefined, then /usr/local/share/meson/cross and
 /usr/share/meson/cross will be tried in that order, for system wide cross
 files. User local files can be put in $XDG_DATA_HOME/meson/cross, or
@@ -272,7 +272,7 @@ The order of locations tried is as follows:
  - The user local location
  - The system wide locations in order
 
-Linux and BSD distributions are encouraged to ship cross files either with
+Distributions are encouraged to ship cross files either with
 their cross compiler toolchain packages or as a standalone package, and put
 them in one of the system paths referenced above.
 
