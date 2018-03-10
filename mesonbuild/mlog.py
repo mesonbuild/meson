@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import sys, os, platform, io
+from contextlib import contextmanager
 
 """This is (mostly) a standalone module used to write logging
 information about Meson runs. Some output goes to screen,
@@ -25,6 +26,7 @@ else:
 log_dir = None
 log_file = None
 log_fname = 'meson-log.txt'
+log_depth = 0
 
 def initialize(logdir):
     global log_dir, log_file
@@ -77,15 +79,21 @@ def process_markup(args, keep):
     return arr
 
 def force_print(*args, **kwargs):
+    iostr = io.StringIO()
+    kwargs['file'] = iostr
+    print(*args, **kwargs)
+
+    raw = iostr.getvalue()
+    if log_depth > 0:
+        prepend = '|' * log_depth
+        raw = prepend + raw.replace('\n', '\n' + prepend, raw.count('\n') - 1)
+
     # _Something_ is going to get printed.
     try:
-        print(*args, **kwargs)
+        print(raw, end='')
     except UnicodeEncodeError:
-        iostr = io.StringIO()
-        kwargs['file'] = iostr
-        print(*args, **kwargs)
-        cleaned = iostr.getvalue().encode('ascii', 'replace').decode('ascii')
-        print(cleaned)
+        cleaned = raw.encode('ascii', 'replace').decode('ascii')
+        print(cleaned, end='')
 
 def debug(*args, **kwargs):
     arr = process_markup(args, False)
@@ -146,3 +154,12 @@ def format_list(list):
         return list[0]
     else:
         return ''
+
+@contextmanager
+def nested():
+    global log_depth
+    log_depth += 1
+    try:
+        yield
+    finally:
+        log_depth -= 1

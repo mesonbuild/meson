@@ -1862,21 +1862,23 @@ external dependencies (including libraries) must go to "dependencies".''')
         subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
-        mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
-        subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
-                           mesonlib.stringlistify(kwargs.get('default_options', [])))
-        subi.subprojects = self.subprojects
+        mlog.log()
+        with mlog.nested():
+            mlog.log('Executing subproject ', mlog.bold(dirname), '.\n', sep='')
+            subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
+                               mesonlib.stringlistify(kwargs.get('default_options', [])))
+            subi.subprojects = self.subprojects
 
-        subi.subproject_stack = self.subproject_stack + [dirname]
-        current_active = self.active_projectname
-        subi.run()
+            subi.subproject_stack = self.subproject_stack + [dirname]
+            current_active = self.active_projectname
+            subi.run()
+            mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
         if 'version' in kwargs:
             pv = subi.project_version
             wanted = kwargs['version']
             if pv == 'undefined' or not mesonlib.version_compare(pv, wanted):
                 raise InterpreterException('Subproject %s version is %s but %s required.' % (dirname, pv, wanted))
         self.active_projectname = current_active
-        mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
         self.build.subprojects[dirname] = subi.project_version
         self.subprojects.update(subi.subprojects)
         self.subprojects[dirname] = SubprojectHolder(subi)
