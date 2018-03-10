@@ -456,7 +456,7 @@ builtin_options = {
     'backend':         [UserComboOption, 'Backend to use.', backendlist, 'ninja'],
     'stdsplit':        [UserBooleanOption, 'Split stdout and stderr in test logs.', True],
     'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests.", True],
-    'install_umask':   [UserUmaskOption, 'Default umask to apply on permissions of installed files.', None],
+    'install_umask':   [UserUmaskOption, 'Default umask to apply on permissions of installed files.', '022'],
 }
 
 # Special prefix-dependent defaults for installation directories that reside in
