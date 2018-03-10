@@ -249,9 +249,8 @@ def run(args):
         if save:
             c.save()
     except ConfException as e:
-        print('Meson configurator encountered an error:\n')
-        print(e)
-        return 1
+        print('Meson configurator encountered an error:')
+        raise e
     return 0
 
 

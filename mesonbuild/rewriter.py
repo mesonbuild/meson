@@ -54,11 +54,7 @@ def run(args):
             sys.exit('Unknown command: ' + options.commands[0])
     except Exception as e:
         if isinstance(e, MesonException):
-            if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
-                mlog.log(mlog.red('\nMeson encountered an error in file %s, line %d, column %d:' % (e.file, e.lineno, e.colno)))
-            else:
-                mlog.log(mlog.red('\nMeson encountered an error:'))
-            mlog.log(e)
+            mlog.exception(e)
         else:
             traceback.print_exc()
         return 1

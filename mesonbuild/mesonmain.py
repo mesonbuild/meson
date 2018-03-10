@@ -304,7 +304,7 @@ def run(original_args, mainfile=None):
             try:
                 return mconf.run(remaining_args)
             except MesonException as e:
-                mlog.log(mlog.red('\nError configuring project:'), e)
+                mlog.exception(e)
                 sys.exit(1)
         elif cmd_name == 'wrap':
             return wraptool.run(remaining_args)
@@ -324,8 +324,8 @@ def run(original_args, mainfile=None):
             try:
                 sys.exit(run_script_command(args[1:]))
             except MesonException as e:
-                mlog.log(mlog.red('\nError in {} helper script:'.format(script)))
-                mlog.log(e)
+                mlog.error('\nError in {} helper script:'.format(script))
+                mlog.exception(e)
                 sys.exit(1)
         args = args[2:]
         handshake = True
@@ -368,13 +368,7 @@ def run(original_args, mainfile=None):
         app.generate()
     except Exception as e:
         if isinstance(e, MesonException):
-            mlog.log()
-            if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
-                mlog.log('%s:%d:%d:' % (e.file, e.lineno, e.colno), mlog.red('ERROR: '), end='')
-            else:
-                mlog.log(mlog.red('ERROR: '), end='')
-            # Error message
-            mlog.log(e)
+            mlog.exception(e)
             # Path to log file
             mlog.shutdown()
             logfile = os.path.join(app.build_dir, environment.Environment.log_dir, mlog.log_fname)

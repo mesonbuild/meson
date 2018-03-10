@@ -167,7 +167,7 @@ class BoostDependency(ExternalDependency):
         invalid_modules = [x for x in invalid_modules if x not in remove]
 
         if invalid_modules:
-            mlog.log(mlog.red('ERROR:'), 'Invalid Boost modules: ' + ', '.join(invalid_modules))
+            mlog.error('Invalid Boost modules: ' + ', '.join(invalid_modules))
             return True
         else:
             return False

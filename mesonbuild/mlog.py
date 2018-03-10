@@ -102,18 +102,37 @@ def log(*args, **kwargs):
         arr = process_markup(args, True)
     force_print(*arr, **kwargs)
 
-def warning(*args, **kwargs):
+def _log_error(severity, *args, **kwargs):
     from . import environment
-
-    args = (yellow('WARNING:'),) + args
+    if severity == 'warning':
+        args = (yellow('WARNING:'),) + args
+    elif severity == 'error':
+        args = (red('ERROR:'),) + args
+    else:
+        assert False, 'Invalid severity ' + severity
 
     if 'location' in kwargs:
         location = kwargs['location']
         del kwargs['location']
-        location = '{}:{}:'.format(os.path.join(location.subdir, environment.build_filename), location.lineno)
-        args = (location,) + args
+        location_str = '{}:{}:'.format(os.path.join(location.subdir,
+                                                    environment.build_filename),
+                                       location.lineno)
+        args = (location_str,) + args
 
     log(*args, **kwargs)
+
+def error(*args, **kwargs):
+    return _log_error('error', *args, **kwargs)
+
+def warning(*args, **kwargs):
+    return _log_error('warning', *args, **kwargs)
+
+def exception(e):
+    log()
+    if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
+        log('%s:%d:%d:' % (e.file, e.lineno, e.colno), red('ERROR: '), e)
+    else:
+        log(red('ERROR:'), e)
 
 # Format a list for logging purposes as a string. It separates
 # all but the last item with commas, and the last with 'and'.
