@@ -111,6 +111,14 @@ of all the work behind the scenes to make this work.
 
 # Dependencies with custom lookup functionality
 
+## AppleFrameworks
+
+Use the `modules` keyword to list frameworks required, e.g.
+
+```meson
+dep = find_dep('appleframeworks', modules : 'foundation')
+```
+
 ## Boost
 
 Boost is not a single dependency but rather a group of different
@@ -139,6 +147,10 @@ environment variables.
 
 You can set the argument `threading` to `single` to use boost libraries that
 have been compiled for single-threaded use instead.
+
+## GL
+
+This finds the OpenGL library in a way appropriate to the platform.
 
 ## GTest and GMock
 
@@ -203,6 +215,20 @@ the necessary tools in the correct order, which is done with the
 the list of sources for the target. The `modules` keyword of
 `dependency` works just like it does with Boost. It tells which
 subparts of Qt the program uses.
+
+## SDL2
+
+SDL2 can be located using `pkg-confg`, the `sdl2-config` config tool, or as an
+OSX framework.
+
+## Valgrind
+
+Meson will find valgrind using `pkg-config`, but only uses the compilation flags
+and avoids trying to link with it's non-PIC static libs.
+
+## Vulkan
+
+Vulkan can be located using `pkg-config`, or the `VULKAN_SDK` environment variable.
 
 ## Dependencies using config tools
 
