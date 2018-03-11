@@ -23,10 +23,7 @@
 # - move targets
 # - reindent?
 
-from mesonbuild import mesonmain
 import sys
 
 if __name__ == '__main__':
-    print('Warning: This executable is deprecated. Use "meson rewrite" instead.',
-          file=sys.stderr)
-    sys.exit(mesonmain.run(['rewrite'] + sys.argv[1:]))
+    sys.exit('Error: This executable is no more. Use "meson rewrite" instead.')
