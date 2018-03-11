@@ -532,10 +532,10 @@ class Backend:
         # Add buildtype args: optimization level, debugging, etc.
         commands += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
         # Add compile args added using add_project_arguments()
-        commands += self.build.get_project_args(compiler, target.subproject)
+        commands += self.build.get_project_args(compiler, target.subproject, target.is_cross)
         # Add compile args added using add_global_arguments()
         # These override per-project arguments
-        commands += self.build.get_global_args(compiler)
+        commands += self.build.get_global_args(compiler, target.is_cross)
         if not target.is_cross:
             # Compile args added from the env: CFLAGS/CXXFLAGS, etc. We want these
             # to override all the defaults, but not the per-target compile args.

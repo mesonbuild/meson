@@ -3630,25 +3630,38 @@ different subdirectory.
                                                              timeout_multiplier=timeout_multiplier,
                                                              env=env)
 
+    def use_cross_list(self, kwargs):
+        if 'native' in kwargs:
+            b = kwargs['native']
+            if not isinstance(b, bool):
+                raise InterpreterException('Native keyword must be boolean.')
+            return not b
+        else:
+            return self.environment.is_cross_build()
+
     @permittedKwargs(permitted_kwargs['add_global_arguments'])
     @stringArgs
     def func_add_global_arguments(self, node, args, kwargs):
-        self.add_global_arguments(node, self.build.global_args, args, kwargs)
+        arg_obj = self.build.global_cross_args if self.use_cross_list(kwargs) else self.build.global_args
+        self.add_global_arguments(node, arg_obj, args, kwargs)
 
     @permittedKwargs(permitted_kwargs['add_global_link_arguments'])
     @stringArgs
     def func_add_global_link_arguments(self, node, args, kwargs):
-        self.add_global_arguments(node, self.build.global_link_args, args, kwargs)
+        arg_obj = self.build.global_cross_link_args if self.use_cross_list(kwargs) else self.build.global_link_args
+        self.add_global_arguments(node, arg_obj, args, kwargs)
 
     @permittedKwargs(permitted_kwargs['add_project_arguments'])
     @stringArgs
     def func_add_project_arguments(self, node, args, kwargs):
-        self.add_project_arguments(node, self.build.projects_args, args, kwargs)
+        arg_obj = self.build.projects_cross_args if self.use_cross_list(kwargs) else self.build.projects_args
+        self.add_project_arguments(node, arg_obj, args, kwargs)
 
     @permittedKwargs(permitted_kwargs['add_project_link_arguments'])
     @stringArgs
     def func_add_project_link_arguments(self, node, args, kwargs):
-        self.add_project_arguments(node, self.build.projects_link_args, args, kwargs)
+        arg_obj = self.build.projects_cross_link_args if self.use_cross_list(kwargs) else self.build.projects_link_args
+        self.add_project_arguments(node, arg_obj, args, kwargs)
 
     def add_global_arguments(self, node, argsdict, args, kwargs):
         if self.is_subproject():
