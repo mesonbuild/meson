@@ -1304,6 +1304,7 @@ class MesonMain(InterpreterObject):
                              'add_install_script': self.add_install_script_method,
                              'add_postconf_script': self.add_postconf_script_method,
                              'install_dependency_manifest': self.install_dependency_manifest_method,
+                             'override_find_program': self.override_find_program_method,
                              'project_version': self.project_version_method,
                              'project_license': self.project_license_method,
                              'version': self.version_method,
@@ -1415,6 +1416,20 @@ class MesonMain(InterpreterObject):
         if not isinstance(args[0], str):
             raise InterpreterException('Argument must be a string.')
         self.build.dep_manifest_name = args[0]
+
+    def override_find_program_method(self, args, kwargs):
+        if len(args) != 2:
+            raise InterpreterException('Override needs two arguments')
+        name = args[0]
+        exe = args[1]
+        if not isinstance(name, str):
+            raise InterpreterException('First argument must be a string')
+        if hasattr(exe, 'held_object'):
+            exe = exe.held_object
+        if not isinstance(exe, dependencies.ExternalProgram):
+            # FIXME, make this work if the exe is an Executable target.
+            raise InterpreterException('Second argument must be an external program.')
+        self.interpreter.add_find_program_override(name, exe)
 
     def project_version_method(self, args, kwargs):
         return self.build.dep_manifest[self.interpreter.active_projectname]['version']
@@ -2264,6 +2279,31 @@ to directly access options of other subprojects.''')
             if progobj.found():
                 return progobj
 
+    def program_from_overrides(self, command_names):
+        for name in command_names:
+            if not isinstance(name, str):
+                continue
+            if name in self.build.find_overrides:
+                exe = self.build.find_overrides[name]
+                mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
+                         '(overridden: %s)' % ' '.join(exe.command))
+                return ExternalProgramHolder(exe)
+        return None
+
+    def store_name_lookups(self, command_names):
+        for name in command_names:
+            if isinstance(name, str):
+                self.build.searched_programs.add(name)
+
+    def add_find_program_override(self, name, exe):
+        if name in self.build.searched_programs:
+            raise InterpreterException('Tried to override finding of executable "%s" which has already been found.'
+                                       % name)
+        if name in self.build.find_overrides:
+            raise InterpreterException('Tried to override executable "%s" which has already been overridden.'
+                                       % name)
+        self.build.find_overrides[name] = exe
+
     @permittedKwargs(permitted_kwargs['find_program'])
     def func_find_program(self, node, args, kwargs):
         if not args:
@@ -2271,8 +2311,9 @@ to directly access options of other subprojects.''')
         required = kwargs.get('required', True)
         if not isinstance(required, bool):
             raise InvalidArguments('"required" argument must be a boolean.')
-        progobj = None
-        if self.build.environment.is_cross_build():
+        self.store_name_lookups(args)
+        progobj = self.program_from_overrides(args)
+        if progobj is None and self.build.environment.is_cross_build():
             use_native = kwargs.get('native', False)
             if not isinstance(use_native, bool):
                 raise InvalidArguments('Argument to "native" must be a boolean.')
