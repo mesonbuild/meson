@@ -210,7 +210,8 @@ class MesonApp:
             # Post-conf scripts must be run after writing coredata or else introspection fails.
             g.run_postconf_scripts()
         except:
-            os.unlink(cdf)
+            if 'cdf' in locals():
+                os.unlink(cdf)
             raise
 
 def run_script_command(args):

@@ -1508,7 +1508,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
 class Interpreter(InterpreterBase):
 
     def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects',
-                 default_project_options=[]):
+                 modules = None, default_project_options=[]):
         super().__init__(build.environment.get_source_dir(), subdir)
         self.an_unpicklable_object = mesonlib.an_unpicklable_object
         self.build = build
@@ -1516,6 +1516,10 @@ class Interpreter(InterpreterBase):
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.subproject = subproject
+        if modules is None:
+            self.modules = {}
+        else:
+            self.modules = modules
         # Subproject directory is usually the name of the subproject, but can
         # be different for dependencies provided by wrap files.
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
@@ -1696,13 +1700,13 @@ class Interpreter(InterpreterBase):
             plainname = modname.split('-', 1)[1]
             mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname, location=node)
             modname = 'unstable_' + plainname
-        if modname not in self.environment.coredata.modules:
+        if modname not in self.modules:
             try:
                 module = importlib.import_module('mesonbuild.modules.' + modname)
             except ImportError:
                 raise InvalidArguments('Module "%s" does not exist' % (modname, ))
-            self.environment.coredata.modules[modname] = module.initialize()
-        return ModuleHolder(modname, self.environment.coredata.modules[modname], self)
+            self.modules[modname] = module.initialize(self)
+        return ModuleHolder(modname, self.modules[modname], self)
 
     @stringArgs
     @noKwargs
@@ -1879,15 +1883,16 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.global_args_frozen = True
         mlog.log()
         with mlog.nested():
-            mlog.log('Executing subproject ', mlog.bold(dirname), '.\n', sep='')
+            mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
             subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
-                               mesonlib.stringlistify(kwargs.get('default_options', [])))
+                               self.modules, mesonlib.stringlistify(kwargs.get('default_options', [])))
             subi.subprojects = self.subprojects
 
             subi.subproject_stack = self.subproject_stack + [dirname]
             current_active = self.active_projectname
             subi.run()
             mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
+
         if 'version' in kwargs:
             pv = subi.project_version
             wanted = kwargs['version']
@@ -2308,6 +2313,8 @@ to directly access options of other subprojects.''')
     def func_find_program(self, node, args, kwargs):
         if not args:
             raise InterpreterException('No program name specified.')
+        if not isinstance(args, list):
+            args = [args]
         required = kwargs.get('required', True)
         if not isinstance(required, bool):
             raise InvalidArguments('"required" argument must be a boolean.')

@@ -185,7 +185,6 @@ class CoreData:
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
         self.deps = OrderedDict()
-        self.modules = {}
         # Only to print a warning if it changes between Meson invocations.
         self.pkgconf_envvar = os.environ.get('PKG_CONFIG_PATH', '')
 
