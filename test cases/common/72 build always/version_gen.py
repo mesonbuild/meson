@@ -6,14 +6,10 @@ def generate(infile, outfile, fallback):
     workdir = os.path.split(infile)[0]
     if workdir == '':
         workdir = '.'
-    version = fallback
     try:
-        p = subprocess.Popen(['git', 'describe'], cwd=workdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdo, _) = p.communicate()
-        if p.returncode == 0:
-            version = stdo.decode().strip()
+        version = subprocess.check_output(['git', 'describe'], cwd=workdir).decode().strip()
     except Exception:
-        pass
+        version = fallback
     with open(infile) as f:
         newdata = f.read().replace('@VERSION@', version)
     try:
