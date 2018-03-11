@@ -2711,9 +2711,15 @@ root and issuing %s.
     def dependency_fallback(self, name, kwargs):
         if self.coredata.wrap_mode in (WrapMode.nofallback, WrapMode.nodownload):
             mlog.log('Not looking for a fallback subproject for the dependency',
-                     mlog.bold(name), 'because:\nAutomatic wrap-based fallback '
-                     'dependency downloading is disabled.')
+                     mlog.bold(name), 'because:\nUse of fallback'
+                     'dependencies is disabled.')
             return None
+        elif self.coredata.wrap_mode == WrapMode.forcefallback:
+            mlog.log('Looking for a fallback subproject for the dependency',
+                     mlog.bold(name), 'because:\nUse of fallback dependencies is forced.')
+        else:
+            mlog.log('Looking for a fallback subproject for the dependency',
+                     mlog.bold(name))
         dirname, varname = self.get_subproject_infos(kwargs)
         # Try to execute the subproject
         try:
