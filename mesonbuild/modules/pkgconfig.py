@@ -90,11 +90,18 @@ class DependenciesHelper:
         return processed_libs, processed_reqs, processed_cflags
 
     def remove_dups(self):
-        self.pub_libs = list(set(self.pub_libs))
-        self.pub_reqs = list(set(self.pub_reqs))
-        self.priv_libs = list(set(self.priv_libs))
-        self.priv_reqs = list(set(self.priv_reqs))
-        self.cflags = list(set(self.cflags))
+        def _fn(xs):
+            # Remove duplicates whilst preserving original order
+            result = []
+            for x in xs:
+                if x not in result:
+                    result.append(x)
+            return result
+        self.pub_libs = _fn(self.pub_libs)
+        self.pub_reqs = _fn(self.pub_reqs)
+        self.priv_libs = _fn(self.priv_libs)
+        self.priv_reqs = _fn(self.priv_reqs)
+        self.cflags = _fn(self.cflags)
 
         # Remove from pivate libs/reqs if they are in public already
         self.priv_libs = [i for i in self.priv_libs if i not in self.pub_libs]
