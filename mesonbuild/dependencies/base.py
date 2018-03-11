@@ -381,9 +381,7 @@ class PkgConfigDependency(ExternalDependency):
                 pkgname = environment.cross_info.config['binaries']['pkgconfig']
                 potential_pkgbin = ExternalProgram(pkgname, silent=True)
                 if potential_pkgbin.found():
-                    # FIXME, we should store all pkg-configs in ExternalPrograms.
-                    # However that is too destabilizing a change to do just before release.
-                    self.pkgbin = potential_pkgbin.get_command()[0]
+                    self.pkgbin = potential_pkgbin
                     PkgConfigDependency.class_pkgbin = self.pkgbin
                 else:
                     mlog.debug('Cross pkg-config %s not found.' % potential_pkgbin.name)
@@ -405,7 +403,7 @@ class PkgConfigDependency(ExternalDependency):
             self.type_string = 'Native'
 
         mlog.debug('Determining dependency {!r} with pkg-config executable '
-                   '{!r}'.format(name, self.pkgbin))
+                   '{!r}'.format(name, self.pkgbin.get_path()))
         ret, self.version = self._call_pkgbin(['--modversion', name])
         if ret != 0:
             if self.required:
@@ -464,7 +462,7 @@ class PkgConfigDependency(ExternalDependency):
     def _call_pkgbin(self, args, env=None):
         if not env:
             env = os.environ
-        p, out = Popen_safe([self.pkgbin] + args, env=env)[0:2]
+        p, out = Popen_safe(self.pkgbin.get_command() + args, env=env)[0:2]
         return p.returncode, out.strip()
 
     def _convert_mingw_paths(self, args):
@@ -609,21 +607,23 @@ class PkgConfigDependency(ExternalDependency):
             pkgbin = os.environ[evar].strip()
         else:
             pkgbin = 'pkg-config'
-        try:
-            p, out = Popen_safe([pkgbin, '--version'])[0:2]
-            if p.returncode != 0:
-                # Set to False instead of None to signify that we've already
-                # searched for it and not found it
+        pkgbin = ExternalProgram(pkgbin, silent=True)
+        if pkgbin.found():
+            try:
+                p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
+                if p.returncode != 0:
+                    mlog.warning('Found pkg-config {!r} but couldn\'t run it'
+                                 ''.format(' '.join(pkgbin.get_command())))
+                    # Set to False instead of None to signify that we've already
+                    # searched for it and not found it
+                    pkgbin = False
+            except (FileNotFoundError, PermissionError):
                 pkgbin = False
-        except (FileNotFoundError, PermissionError):
+        else:
             pkgbin = False
-        if pkgbin and not os.path.isabs(pkgbin) and shutil.which(pkgbin):
-            # Sometimes shutil.which fails where Popen succeeds, so
-            # only find the abs path if it can be found by shutil.which
-            pkgbin = shutil.which(pkgbin)
         if not self.silent:
             if pkgbin:
-                mlog.log('Found pkg-config:', mlog.bold(pkgbin),
+                mlog.log('Found pkg-config:', mlog.bold(pkgbin.get_path()),
                          '(%s)' % out.strip())
             else:
                 mlog.log('Found Pkg-config:', mlog.red('NO'))
