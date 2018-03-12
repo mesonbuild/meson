@@ -668,7 +668,7 @@ int dummy;
             elem.add_item('COMMAND', command)
             elem.add_item('DESC', 'Generating HTML coverage report.')
             elem.write(outfile)
-        elif gcovr_exe and gcovr_3_1:
+        elif gcovr_exe and gcovr_new_rootdir:
             added_rule = True
             htmloutdir = os.path.join(self.environment.get_log_dir(), 'coveragereport')
             phony_elem = NinjaBuildElement(self.all_outputs, 'meson-coverage-html', 'phony', os.path.join(htmloutdir, 'index.html'))
