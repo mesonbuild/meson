@@ -283,7 +283,7 @@ def run_install_script(d):
             rc = subprocess.call(script + args, env=child_env)
             if rc != 0:
                 sys.exit(rc)
-        except Exception:
+        except OSError:
             print('Failed to run install script {!r}'.format(name))
             sys.exit(1)
 
