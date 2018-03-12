@@ -55,7 +55,7 @@ def unpack(sproj, branch, outdir):
         print(' expected:', dig)
         print(' obtained:', should)
         return 1
-    spdir = os.path.split(outdir)[0]
+    spdir = os.path.dirname(outdir)
     ofilename = os.path.join(spdir, config['wrap-file']['source_filename'])
     with open(ofilename, 'wb') as ofile:
         ofile.write(us)
