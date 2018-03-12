@@ -1894,13 +1894,19 @@ class ConfigurationData:
 # A bit poorly named, but this represents plain data files to copy
 # during install.
 class Data:
-    def __init__(self, sources, install_dir, install_mode=None):
+    def __init__(self, sources, install_dir, install_mode=None, rename=None):
         self.sources = sources
         self.install_dir = install_dir
         self.install_mode = install_mode
         self.sources = listify(self.sources)
         for s in self.sources:
             assert(isinstance(s, File))
+        if rename is None:
+            self.rename = [os.path.basename(f.fname) for f in self.sources]
+        else:
+            self.rename = stringlistify(rename)
+            if len(self.rename) != len(self.sources):
+                raise MesonException('Size of rename argument is different from number of sources')
 
 class RunScript(dict):
     def __init__(self, script, args):
