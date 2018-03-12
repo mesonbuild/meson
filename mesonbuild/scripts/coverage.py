@@ -17,10 +17,10 @@ from mesonbuild import environment
 import sys, os, subprocess, pathlib
 
 def coverage(source_root, build_root, log_dir):
-    (gcovr_exe, gcovr_3_1, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
+    (gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
     if gcovr_exe:
         # gcovr >= 3.1 interprets rootdir differently
-        if gcovr_3_1:
+        if gcovr_new_rootdir:
             rootdir = build_root
         else:
             rootdir = source_root

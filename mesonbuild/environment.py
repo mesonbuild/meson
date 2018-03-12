@@ -91,7 +91,7 @@ def detect_gcovr(version='3.1', log=False):
         return gcovr_exe, mesonlib.version_compare(found, '>=' + version)
 
 def find_coverage_tools():
-    gcovr_exe, gcovr_3_1 = detect_gcovr()
+    gcovr_exe, gcovr_new_rootdir = detect_gcovr()
 
     lcov_exe = 'lcov'
     genhtml_exe = 'genhtml'
@@ -101,7 +101,7 @@ def find_coverage_tools():
     if not mesonlib.exe_exists([genhtml_exe, '--version']):
         genhtml_exe = None
 
-    return gcovr_exe, gcovr_3_1, lcov_exe, genhtml_exe
+    return gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe
 
 def detect_ninja(version='1.5', log=False):
     for n in ['ninja', 'ninja-build']:
