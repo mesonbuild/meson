@@ -29,6 +29,19 @@ install_man('foo.1') # -> share/man/man1/foo.1.gz
 install_data('datafile.dat', install_dir : join_paths(get_option('datadir'), 'progname')) # -> share/progname/datafile.dat
 ```
 
+`install_data()` supports rename of the file *since 0.46.0*.
+
+```meson
+# file.txt -> {datadir}/{projectname}/new-name.txt
+install_data('file.txt', rename : 'new-name.txt')
+
+# file1.txt -> share/myapp/dir1/data.txt
+# file2.txt -> share/myapp/dir2/data.txt
+install_data(['file1.txt', 'file2.txt'],
+             rename : ['dir1/data.txt', 'dir2/data.txt'],
+             install_dir : 'share/myapp')
+```
+
 Sometimes you want to copy an entire subtree directly. For this use case there is the `install_subdir` command, which can be used like this.
 
 ```meson

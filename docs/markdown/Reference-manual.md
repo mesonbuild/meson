@@ -737,6 +737,13 @@ arguments. The following keyword arguments are supported:
 
  To leave any of these three as the default, specify `false`.
 
+- `rename` if specified renames each source file into corresponding file
+  from `rename` list. Nested paths are allowed and they are joined with
+  `install_dir`. Length of `rename` list must be equal to the number of sources.
+  *(added 0.46.0)*
+
+See [Installing](Installing.md) for more examples.
+
 ### install_headers()
 
 ``` meson
