@@ -999,6 +999,8 @@ Meson will set three environment variables `MESON_SOURCE_ROOT`,
 directory, build directory and subdirectory the target was defined in,
 respectively.
 
+See also [External commands](External-commands.md).
+
 ### run_target
 
 ``` meson
