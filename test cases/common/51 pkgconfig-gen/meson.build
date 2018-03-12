@@ -46,3 +46,9 @@ pkgg.generate(
   description : 'A foo library.',
   variables : ['foo=bar', 'datadir=${prefix}/data']
 )
+
+pkgg.generate(
+  name : 'libhello',
+  description : 'A minimalistic pkgconfig file.',
+  version : libver,
+)

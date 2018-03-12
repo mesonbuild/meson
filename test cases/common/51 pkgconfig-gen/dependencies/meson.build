@@ -21,7 +21,7 @@ custom_dep = declare_dependency(link_args : ['-lcustom'], compile_args : ['-DCUS
 custom2_dep = declare_dependency(link_args : ['-lcustom2'], compile_args : ['-DCUSTOM2'])
 
 # Generate a PC file:
-# - Having libmain in libraries should pull implicitely libexposed and libinternal in Libs.private
+# - Having libmain in libraries should pull implicitly libexposed and libinternal in Libs.private
 # - Having libexposed in libraries should remove it from Libs.private
 # - We generated a pc file for libexposed so it should be in Requires instead of Libs
 # - Having threads_dep in libraries should add '-pthread' in both Libs and Cflags
@@ -35,4 +35,18 @@ pkgg.generate(libraries : [main_lib, exposed_lib, threads_dep , custom_dep],
   name : 'dependency-test',
   filebase : 'dependency-test',
   description : 'A dependency test.'
+)
+
+pkgg.generate(
+  name : 'requires-test',
+  version : '1.0',
+  description : 'Dependency Requires field test.',
+  requires : [exposed_lib, pc_dep, 'libhello'],
+)
+
+pkgg.generate(
+  name : 'requires-private-test',
+  version : '1.0',
+  description : 'Dependency Requires.private field test.',
+  requires_private : [exposed_lib, pc_dep, 'libhello', notfound_dep],
 )

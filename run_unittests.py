@@ -2234,6 +2234,14 @@ class LinuxlikeTests(BasePlatformTests):
                                               '-llibinternal', '-lcustom2',
                                               '-lfoo']))
 
+        cmd = ['pkg-config', 'requires-test']
+        out = self._run(cmd + ['--print-requires']).strip().split()
+        self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo', 'libhello']))
+
+        cmd = ['pkg-config', 'requires-private-test']
+        out = self._run(cmd + ['--print-requires-private']).strip().split()
+        self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo', 'libhello']))
+
     def test_pkg_unfound(self):
         testdir = os.path.join(self.unit_test_dir, '22 unfound pkgconfig')
         self.init(testdir)

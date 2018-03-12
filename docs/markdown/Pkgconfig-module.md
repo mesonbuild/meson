@@ -38,8 +38,9 @@ keyword arguments.
   search path, for example if you install headers into
   `${PREFIX}/include/foobar-1`, the correct value for this argument
   would be `foobar-1`
-- `requires` list of strings to put in the `Requires` field
-- `requires_private` list of strings to put in the `Requires.private`
+- `requires` list of strings, pkgconfig-dependencies or libraries that
+   `pkgconfig.generate()` was used on to put in the `Requires` field
+- `requires_private` same as `requires` but for `Requires.private` field
   field
 - `url` a string with a url for the library
 - `variables` a list of strings with custom variables to add to the

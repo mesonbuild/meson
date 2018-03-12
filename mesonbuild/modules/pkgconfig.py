@@ -44,22 +44,40 @@ class DependenciesHelper:
         self.priv_reqs += reqs
 
     def add_pub_reqs(self, reqs):
-        self.pub_reqs += mesonlib.stringlistify(reqs)
+        self.pub_reqs += self._process_reqs(reqs)
 
     def add_priv_reqs(self, reqs):
-        self.priv_reqs += mesonlib.stringlistify(reqs)
+        self.priv_reqs += self._process_reqs(reqs)
+
+    def _process_reqs(self, reqs):
+        '''Returns string names of requirements'''
+        processed_reqs = []
+        for obj in mesonlib.listify(reqs, unholder=True):
+            if hasattr(obj, 'generated_pc'):
+                processed_reqs.append(obj.generated_pc)
+            elif hasattr(obj, 'pcdep'):
+                pcdeps = mesonlib.listify(obj.pcdep)
+                processed_reqs += [i.name for i in pcdeps]
+            elif isinstance(obj, dependencies.PkgConfigDependency):
+                if obj.found():
+                    processed_reqs.append(obj.name)
+            elif isinstance(obj, str):
+                processed_reqs.append(obj)
+            else:
+                raise mesonlib.MesonException('requires argument not a string, '
+                                              'library with pkgconfig-generated file '
+                                              'or pkgconfig-dependency object.')
+        return processed_reqs
 
     def add_cflags(self, cflags):
         self.cflags += mesonlib.stringlistify(cflags)
 
     def _process_libs(self, libs, public):
-        libs = mesonlib.listify(libs)
+        libs = mesonlib.listify(libs, unholder=True)
         processed_libs = []
         processed_reqs = []
         processed_cflags = []
         for obj in libs:
-            if hasattr(obj, 'held_object'):
-                obj = obj.held_object
             if hasattr(obj, 'pcdep'):
                 pcdeps = mesonlib.listify(obj.pcdep)
                 processed_reqs += [i.name for i in pcdeps]
@@ -96,7 +114,7 @@ class DependenciesHelper:
         self.priv_reqs = list(set(self.priv_reqs))
         self.cflags = list(set(self.cflags))
 
-        # Remove from pivate libs/reqs if they are in public already
+        # Remove from private libs/reqs if they are in public already
         self.priv_libs = [i for i in self.priv_libs if i not in self.pub_libs]
         self.priv_reqs = [i for i in self.priv_reqs if i not in self.pub_reqs]
 
