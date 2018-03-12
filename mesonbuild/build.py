@@ -798,7 +798,7 @@ This will become a hard error in a future Meson release.''')
 
     def get_dependencies(self):
         transitive_deps = []
-        for t in self.link_targets + self.link_whole_targets:
+        for t in itertools.chain(self.link_targets, self.link_whole_targets):
             transitive_deps.append(t)
             if isinstance(t, StaticLibrary):
                 transitive_deps += t.get_dependencies()

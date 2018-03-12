@@ -525,7 +525,7 @@ class CCompiler(Compiler):
         elif rtype == 'int':
             try:
                 return int(res.stdout.strip())
-            except:
+            except ValueError:
                 m = 'Return value of {}() is not an int'
                 raise EnvironmentException(m.format(fname))
 
@@ -1140,7 +1140,7 @@ class VisualStudioCCompiler(CCompiler):
         # See boost/config/compiler/visualc.cpp for up to date mapping
         try:
             version = int(''.join(self.version.split('.')[0:2]))
-        except:
+        except ValueError:
             return None
         if version < 1310:
             return '7.0'
