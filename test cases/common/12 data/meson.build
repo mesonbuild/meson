@@ -15,3 +15,9 @@ install_data(files('somefile.txt'))
 subdir('vanishing')
 
 install_data(sources : 'vanishing/vanishing2.dat', install_dir : 'share/progname')
+
+install_data(sources : 'to_be_renamed_1.txt', rename : 'renamed file.txt')
+install_data(sources : ['vanishing/to_be_renamed_2.txt', 'to_be_renamed_3.txt'],
+             install_dir : 'share/renamed',
+             rename : ['renamed 2.txt', 'renamed 3.txt'])
+install_data(sources : 'to_be_renamed_4.txt', rename : 'some/nested/path.txt')
