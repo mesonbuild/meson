@@ -2318,7 +2318,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertTrue(msg in mesonlog or msg2 in mesonlog)
 
     def _test_soname_impl(self, libpath, install):
-        if is_cygwin() or is_osx:
+        if is_cygwin() or is_osx():
             raise unittest.SkipTest('Test only applicable to ELF and linuxlike sonames')
 
         testdir = os.path.join(self.unit_test_dir, '1 soname')
