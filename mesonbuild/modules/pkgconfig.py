@@ -66,7 +66,8 @@ class DependenciesHelper:
             else:
                 raise mesonlib.MesonException('requires argument not a string, '
                                               'library with pkgconfig-generated file '
-                                              'or pkgconfig-dependency object.')
+                                              'or pkgconfig-dependency object, '
+                                              'got {!r}'.format(obj))
         return processed_reqs
 
     def add_cflags(self, cflags):
