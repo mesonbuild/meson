@@ -2838,6 +2838,43 @@ class LinuxArmCrossCompileTests(BasePlatformTests):
         self.assertNotIn('-DBUILD_ENVIRONMENT_ONLY', compdb[0]['command'])
 
 
+class PythonTests(BasePlatformTests):
+    '''
+    Tests that verify compilation of python extension modules
+    '''
+    def test_versions(self):
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Skipping python tests with {} backend'.format(self.backend.name))
+
+        testdir = os.path.join(self.src_root, 'test cases', 'python', '1 extmodule')
+
+        # No python version specified, this will use meson's python
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+        self.wipe()
+
+        # When specifying a known name, (python2 / python3) the module
+        # will also try 'python' as a fallback and use it if the major
+        # version matches
+        self.init(testdir, ['-Dpython=python2'])
+        self.build()
+        self.run_tests()
+        self.wipe()
+
+        # The test is configured to error out with MESON_SKIP_TEST
+        # in case it could not find python
+        with self.assertRaises(unittest.SkipTest):
+            self.init(testdir, ['-Dpython=not-python'])
+        self.wipe()
+
+        # While dir is an external command on both Windows and Linux,
+        # it certainly isn't python
+        with self.assertRaises(unittest.SkipTest):
+            self.init(testdir, ['-Dpython=dir'])
+        self.wipe()
+
+
 class RewriterTests(unittest.TestCase):
 
     def setUp(self):
@@ -2912,7 +2949,7 @@ def unset_envs():
 
 if __name__ == '__main__':
     unset_envs()
-    cases = ['InternalTests', 'AllPlatformTests', 'FailureTests']
+    cases = ['InternalTests', 'AllPlatformTests', 'FailureTests', 'PythonTests']
     if not is_windows():
         cases += ['LinuxlikeTests']
         if should_run_linux_cross_tests():
