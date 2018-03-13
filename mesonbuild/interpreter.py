@@ -25,7 +25,7 @@ from .mesonlib import FileMode, Popen_safe, listify, extract_as_list
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, DependencyException
 from .interpreterbase import InterpreterBase
-from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, permittedKwargs
+from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, permittedKwargs, permittedMethodKwargs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler
 from .modules import ModuleReturnValue
@@ -720,9 +720,11 @@ class CompilerHolder(InterpreterObject):
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
                              })
 
+    @permittedMethodKwargs({})
     def version_method(self, args, kwargs):
         return self.compiler.version
 
+    @permittedMethodKwargs({})
     def cmd_array_method(self, args, kwargs):
         return self.compiler.exelist
 
@@ -762,6 +764,11 @@ class CompilerHolder(InterpreterObject):
             deps = final_deps
         return deps
 
+    @permittedMethodKwargs({
+        'prefix',
+        'args',
+        'dependencies',
+    })
     def alignment_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Alignment method takes exactly one positional argument.')
@@ -776,6 +783,13 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Checking for alignment of "', mlog.bold(typename), '": ', result, sep='')
         return result
 
+    @permittedMethodKwargs({
+        'name',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
     def run_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Run method takes exactly one positional argument.')
@@ -801,9 +815,11 @@ class CompilerHolder(InterpreterObject):
             mlog.log('Checking if "', mlog.bold(testname), '" runs: ', h, sep='')
         return TryRunResultHolder(result)
 
+    @permittedMethodKwargs({})
     def get_id_method(self, args, kwargs):
         return self.compiler.get_id()
 
+    @permittedMethodKwargs({})
     def symbols_have_underscore_prefix_method(self, args, kwargs):
         '''
         Check if the compiler prefixes _ (underscore) to global C symbols
@@ -811,6 +827,7 @@ class CompilerHolder(InterpreterObject):
         '''
         return self.compiler.symbols_have_underscore_prefix(self.environment)
 
+    @permittedMethodKwargs({})
     def unittest_args_method(self, args, kwargs):
         '''
         This function is deprecated and should not be used.
@@ -821,6 +838,13 @@ class CompilerHolder(InterpreterObject):
         build_to_src = os.path.relpath(self.environment.get_source_dir(), self.environment.get_build_dir())
         return self.compiler.get_feature_args({'unittest': 'true'}, build_to_src)
 
+    @permittedMethodKwargs({
+        'prefix',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
     def has_member_method(self, args, kwargs):
         if len(args) != 2:
             raise InterpreterException('Has_member takes exactly two arguments.')
@@ -842,6 +866,13 @@ class CompilerHolder(InterpreterObject):
                  '" has member "', mlog.bold(membername), '": ', hadtxt, sep='')
         return had
 
+    @permittedMethodKwargs({
+        'prefix',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
     def has_members_method(self, args, kwargs):
         check_stringlist(args)
         typename = args[0]
@@ -862,6 +893,13 @@ class CompilerHolder(InterpreterObject):
                  '" has members ', members, ': ', hadtxt, sep='')
         return had
 
+    @permittedMethodKwargs({
+        'prefix',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
     def has_function_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Has_function takes exactly one argument.')
@@ -880,6 +918,13 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Checking for function "', mlog.bold(funcname), '": ', hadtxt, sep='')
         return had
 
+    @permittedMethodKwargs({
+        'prefix',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
     def has_type_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Has_type takes exactly one argument.')
@@ -898,6 +943,16 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Checking for type "', mlog.bold(typename), '": ', hadtxt, sep='')
         return had
 
+    @permittedMethodKwargs({
+        'prefix',
+        'low',
+        'high',
+        'guess',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
     def compute_int_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Compute_int takes exactly one argument.')
@@ -921,6 +976,13 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Computing int of "%s": %d' % (expression, res))
         return res
 
+    @permittedMethodKwargs({
+        'prefix',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
     def sizeof_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Sizeof takes exactly one argument.')
@@ -935,6 +997,13 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Checking for size of "%s": %d' % (element, esize))
         return esize
 
+    @permittedMethodKwargs({
+        'prefix',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
     def get_define_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('get_define() takes exactly one argument.')
@@ -949,6 +1018,13 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Fetching value of define "%s": %s' % (element, value))
         return value
 
+    @permittedMethodKwargs({
+        'name',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
     def compiles_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('compiles method takes exactly one argument.')
@@ -972,6 +1048,13 @@ class CompilerHolder(InterpreterObject):
             mlog.log('Checking if "', mlog.bold(testname), '" compiles: ', h, sep='')
         return result
 
+    @permittedMethodKwargs({
+        'name',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
     def links_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('links method takes exactly one argument.')
@@ -995,6 +1078,13 @@ class CompilerHolder(InterpreterObject):
             mlog.log('Checking if "', mlog.bold(testname), '" links: ', h, sep='')
         return result
 
+    @permittedMethodKwargs({
+        'prefix',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
     def has_header_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('has_header method takes exactly one argument.')
@@ -1013,6 +1103,13 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Has header "%s":' % hname, h)
         return haz
 
+    @permittedMethodKwargs({
+        'prefix',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
     def has_header_symbol_method(self, args, kwargs):
         if len(args) != 2:
             raise InterpreterException('has_header_symbol method takes exactly two arguments.')
@@ -1032,6 +1129,10 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Header <{0}> has symbol "{1}":'.format(hname, symbol), h)
         return haz
 
+    @permittedMethodKwargs({
+        'required',
+        'dirs',
+    })
     def find_library_method(self, args, kwargs):
         # TODO add dependencies support?
         if len(args) != 1:
@@ -1053,6 +1154,7 @@ class CompilerHolder(InterpreterObject):
                                            self.compiler.language)
         return ExternalLibraryHolder(lib)
 
+    @permittedMethodKwargs({})
     def has_argument_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         if len(args) != 1:
@@ -1065,6 +1167,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Compiler for {} supports argument {}:'.format(self.compiler.get_display_language(), args[0]), h)
         return result
 
+    @permittedMethodKwargs({})
     def has_multi_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         result = self.compiler.has_multi_arguments(args, self.environment)
@@ -1078,6 +1181,7 @@ class CompilerHolder(InterpreterObject):
             h)
         return result
 
+    @permittedMethodKwargs({})
     def get_supported_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         result = self.compiler.get_supported_arguments(args, self.environment)
@@ -1093,6 +1197,7 @@ class CompilerHolder(InterpreterObject):
             h)
         return result
 
+    @permittedMethodKwargs({})
     def first_supported_argument_method(self, args, kwargs):
         for i in mesonlib.stringlistify(args):
             if self.compiler.has_argument(i, self.environment):
