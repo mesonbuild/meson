@@ -63,6 +63,8 @@ class DependenciesHelper:
                     processed_reqs.append(obj.name)
             elif isinstance(obj, str):
                 processed_reqs.append(obj)
+            elif isinstance(obj, dependencies.Dependency) and not obj.found():
+                pass
             else:
                 raise mesonlib.MesonException('requires argument not a string, '
                                               'library with pkgconfig-generated file '
