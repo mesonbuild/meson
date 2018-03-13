@@ -83,12 +83,13 @@ def detect_gcovr(version='3.1', log=False):
         p, found = Popen_safe([gcovr_exe, '--version'])[0:2]
     except (FileNotFoundError, PermissionError):
         # Doesn't exist in PATH or isn't executable
-        return
+        return None, None
     found = search_version(found)
     if p.returncode == 0:
         if log:
             mlog.log('Found gcovr-{} at {}'.format(found, shlex.quote(shutil.which(gcovr_exe))))
         return gcovr_exe, mesonlib.version_compare(found, '>=' + version)
+    return None, None
 
 def find_coverage_tools():
     gcovr_exe, gcovr_new_rootdir = detect_gcovr()
