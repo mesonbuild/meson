@@ -85,12 +85,12 @@ install:
             $env:Path = 'C:\msys64\mingw32\bin;' + $env:Path
             $env:MESON_PYTHON_PATH = 'C:\msys64\mingw32\bin'
             $env:PYTHON = 'python3'
-            C:\msys64\usr\bin\pacman -S --noconfirm mingw32/mingw-w64-i686-python3
+            C:\msys64\usr\bin\pacman -S --noconfirm --needed mingw32/mingw-w64-i686-python3 2>&1
           } Else {
             $env:Path = 'C:\msys64\mingw64\bin;' + $env:Path
             $env:MESON_PYTHON_PATH = 'C:\msys64\mingw64\bin'
             $env:PYTHON = 'python3'
-            C:\msys64\usr\bin\pacman -S --noconfirm mingw64/mingw-w64-x86_64-python3
+            C:\msys64\usr\bin\pacman -S --noconfirm --needed mingw64/mingw-w64-x86_64-python3 2>&1
           }
         }
   - cmd: if not %compiler%==cygwin ( set "PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%;" )
