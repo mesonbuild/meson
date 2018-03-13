@@ -628,19 +628,24 @@ int dummy;
         self.generate_coverage_legacy_rules(outfile)
 
     def generate_coverage_legacy_rules(self, outfile):
-        (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
+        (gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
         added_rule = False
         if gcovr_exe:
+            # gcovr >= 3.1 interprets rootdir differently
+            if gcovr_new_rootdir:
+                rootdir = self.environment.get_build_dir()
+            else:
+                rootdir = self.environment.get_source_dir(),
             added_rule = True
             elem = NinjaBuildElement(self.all_outputs, 'meson-coverage-xml', 'CUSTOM_COMMAND', '')
-            elem.add_item('COMMAND', [gcovr_exe, '-x', '-r', self.environment.get_source_dir(),
+            elem.add_item('COMMAND', [gcovr_exe, '-x', '-r', rootdir,
                                       '-o', os.path.join(self.environment.get_log_dir(), 'coverage.xml')])
             elem.add_item('DESC', 'Generating XML coverage report.')
             elem.write(outfile)
             # Alias that runs the target defined above
             self.create_target_alias('meson-coverage-xml', outfile)
             elem = NinjaBuildElement(self.all_outputs, 'meson-coverage-text', 'CUSTOM_COMMAND', '')
-            elem.add_item('COMMAND', [gcovr_exe, '-r', self.environment.get_source_dir(),
+            elem.add_item('COMMAND', [gcovr_exe, '-r', rootdir,
                                       '-o', os.path.join(self.environment.get_log_dir(), 'coverage.txt')])
             elem.add_item('DESC', 'Generating text coverage report.')
             elem.write(outfile)
@@ -679,6 +684,19 @@ int dummy;
                        '--legend',
                        '--show-details',
                        covinfo]
+            elem.add_item('COMMAND', command)
+            elem.add_item('DESC', 'Generating HTML coverage report.')
+            elem.write(outfile)
+        elif gcovr_exe and gcovr_new_rootdir:
+            added_rule = True
+            htmloutdir = os.path.join(self.environment.get_log_dir(), 'coveragereport')
+            phony_elem = NinjaBuildElement(self.all_outputs, 'meson-coverage-html', 'phony', os.path.join(htmloutdir, 'index.html'))
+            phony_elem.write(outfile)
+            # Alias that runs the target defined above
+            self.create_target_alias('meson-coverage-html', outfile)
+            elem = NinjaBuildElement(self.all_outputs, os.path.join(htmloutdir, 'index.html'), 'CUSTOM_COMMAND', '')
+            command = [gcovr_exe, '--html', '--html-details', '-r', self.environment.get_build_dir(),
+                       '-o', os.path.join(htmloutdir, 'index.html')]
             elem.add_item('COMMAND', command)
             elem.add_item('DESC', 'Generating HTML coverage report.')
             elem.write(outfile)

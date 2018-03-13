@@ -2639,10 +2639,11 @@ class LinuxlikeTests(BasePlatformTests):
             self.assertIn("-fsanitize=address", i["command"])
 
     def test_coverage(self):
-        if not shutil.which('gcovr'):
+        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
+        if not gcovr_exe:
             raise unittest.SkipTest('gcovr not found')
-        if not shutil.which('genhtml'):
-            raise unittest.SkipTest('genhtml not found')
+        if not shutil.which('genhtml') and not gcovr_new_rootdir:
+            raise unittest.SkipTest('genhtml not found and gcovr is too old')
         if 'clang' in os.environ.get('CC', ''):
             # We need to use llvm-cov instead of gcovr with clang
             raise unittest.SkipTest('Coverage does not work with clang right now, help wanted!')

@@ -76,19 +76,32 @@ cflags_mapping = {'c': 'CFLAGS',
                   'd': 'DFLAGS',
                   'vala': 'VALAFLAGS'}
 
+def detect_gcovr(version='3.1', log=False):
+    gcovr_exe = 'gcovr'
+    try:
+        p, found = Popen_safe([gcovr_exe, '--version'])[0:2]
+    except (FileNotFoundError, PermissionError):
+        # Doesn't exist in PATH or isn't executable
+        return None, None
+    found = search_version(found)
+    if p.returncode == 0:
+        if log:
+            mlog.log('Found gcovr-{} at {}'.format(found, shlex.quote(shutil.which(gcovr_exe))))
+        return gcovr_exe, mesonlib.version_compare(found, '>=' + version)
+    return None, None
 
 def find_coverage_tools():
-    gcovr_exe = 'gcovr'
+    gcovr_exe, gcovr_new_rootdir = detect_gcovr()
+
     lcov_exe = 'lcov'
     genhtml_exe = 'genhtml'
 
-    if not mesonlib.exe_exists([gcovr_exe, '--version']):
-        gcovr_exe = None
     if not mesonlib.exe_exists([lcov_exe, '--version']):
         lcov_exe = None
     if not mesonlib.exe_exists([genhtml_exe, '--version']):
         genhtml_exe = None
-    return gcovr_exe, lcov_exe, genhtml_exe
+
+    return gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe
 
 def detect_ninja(version='1.5', log=False):
     for n in ['ninja', 'ninja-build']:

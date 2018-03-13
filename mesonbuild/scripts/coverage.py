@@ -17,15 +17,20 @@ from mesonbuild import environment
 import sys, os, subprocess, pathlib
 
 def coverage(source_root, build_root, log_dir):
-    (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
+    (gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
     if gcovr_exe:
+        # gcovr >= 3.1 interprets rootdir differently
+        if gcovr_new_rootdir:
+            rootdir = build_root
+        else:
+            rootdir = source_root
         subprocess.check_call([gcovr_exe,
                                '-x',
-                               '-r', source_root,
+                               '-r', rootdir,
                                '-o', os.path.join(log_dir, 'coverage.xml'),
                                ])
         subprocess.check_call([gcovr_exe,
-                               '-r', source_root,
+                               '-r', rootdir,
                                '-o', os.path.join(log_dir, 'coverage.txt'),
                                ])
     if lcov_exe and genhtml_exe:
@@ -65,13 +70,21 @@ def coverage(source_root, build_root, log_dir):
                                '--show-details',
                                '--branch-coverage',
                                covinfo])
+    elif gcovr_exe and gcovr_new_rootdir:
+        htmloutdir = os.path.join(log_dir, 'coveragereport')
+        subprocess.check_call([gcovr_exe,
+                               '--html',
+                               '--html-details',
+                               '-r', build_root,
+                               '-o', os.path.join(htmloutdir, 'index.html'),
+                               ])
     if gcovr_exe:
         print('')
         print('XML coverage report can be found at',
               pathlib.Path(log_dir, 'coverage.xml').as_uri())
         print('Text coverage report can be found at',
               pathlib.Path(log_dir, 'coverage.txt').as_uri())
-    if lcov_exe and genhtml_exe:
+    if (lcov_exe and genhtml_exe) or (gcovr_exe and gcovr_new_rootdir):
         print('Html coverage report can be found at',
               pathlib.Path(htmloutdir, 'index.html').as_uri())
     return 0
