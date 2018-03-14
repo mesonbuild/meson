@@ -69,6 +69,25 @@ def wrapmodetype(string):
         msg = 'invalid argument {!r}, use one of {}'.format(string, msg)
         raise argparse.ArgumentTypeError(msg)
 
+def filter_builtin_options(args, original_args):
+    """Filter out any builtin arguments passed as -D options.
+
+    Error if an argument is passed with -- and -D
+    """
+    arguments = dict(p.split('=', 1) for p in args.projectoptions)
+    meson_opts = set(arguments).intersection(set(coredata.builtin_options))
+    if meson_opts:
+        for arg in meson_opts:
+            value = arguments[arg]
+            if any([a.startswith('--{}'.format(arg)) for a in original_args]):
+                raise MesonException(
+                    'Argument "{0}" passed as both --{0} and -D{0}, but only '
+                    'one is allowed'.format(arg))
+            setattr(args, coredata.get_builtin_option_destination(arg), value)
+
+            # Remove the builtin option from the project args values
+            args.projectoptions.remove('{}={}'.format(arg, value))
+
 class MesonApp:
 
     def __init__(self, dir1, dir2, script_launcher, handshake, options, original_cmd_line_args):
@@ -320,6 +339,7 @@ def run(original_args, mainfile=None):
 
     args = mesonlib.expand_arguments(args)
     options = parser.parse_args(args)
+    filter_builtin_options(options, args)
     args = options.directories
     if not args or len(args) > 2:
         # if there's a meson.build in the dir above, and not in the current
