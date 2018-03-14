@@ -304,6 +304,7 @@ class Vs2010Backend(backends.Backend):
         projlist = []
         for name, target in self.build.targets.items():
             outdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+            os.makedirs(outdir, exist_ok=True)
             fname = name + '.vcxproj'
             relname = os.path.join(target.subdir, fname)
             projfile = os.path.join(outdir, fname)
