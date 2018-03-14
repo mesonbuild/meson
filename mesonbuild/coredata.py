@@ -385,6 +385,20 @@ def get_builtin_option_description(optname):
     else:
         raise RuntimeError('Tried to get the description for an unknown builtin option \'%s\'.' % optname)
 
+def get_builtin_option_action(optname):
+    default = builtin_options[optname][2]
+    if default is True:
+        return 'store_false'
+    elif default is False:
+        return 'store_true'
+    return None
+
+def get_builtin_option_destination(optname):
+    optname = optname.replace('-', '_')
+    if optname == 'warnlevel':
+        return 'warning_level'
+    return optname
+
 def get_builtin_option_default(optname, prefix='', noneIfSuppress=False):
     if is_builtin_option(optname):
         o = builtin_options[optname]
@@ -427,6 +441,13 @@ builtin_options = {
     'stdsplit':        [UserBooleanOption, 'Split stdout and stderr in test logs.', True],
     'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests.", True],
 }
+# FIXME: this ins't DRY at all, but importing the dependencies module creates a
+# circular import, and can't even be solved by something ugly like import
+# inside a function
+for t in ['gnustep-config', 'sdl2-config', 'wx-config', 'llvm-config',
+          'pcap-config', 'cups-config', 'libwmf-config']:
+    t = t.replace('-', '_')
+    builtin_options['c_{}'.format(t)] = [UserStringOption, 'Override default search paths for native tool {}.'.format(t), '']
 
 # Special prefix-dependent defaults for installation directories that reside in
 # a path outside of the prefix in FHS and common usage.
