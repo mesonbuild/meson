@@ -474,8 +474,7 @@ int dummy;
 
     def process_target_dependencies(self, target, outfile):
         for t in target.get_dependencies():
-            tname = t.get_basename() + t.type_suffix()
-            if tname not in self.processed_targets:
+            if t.get_id() not in self.processed_targets:
                 self.generate_target(t, outfile)
 
     def custom_target_generator_inputs(self, target, outfile):

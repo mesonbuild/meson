@@ -108,9 +108,6 @@ class Backend:
         self.processed_targets = {}
         self.build_to_src = os.path.relpath(self.environment.get_source_dir(),
                                             self.environment.get_build_dir())
-        for t in self.build.targets:
-            priv_dirname = self.get_target_private_dir_abs(t)
-            os.makedirs(priv_dirname, exist_ok=True)
 
     def get_target_filename(self, t):
         if isinstance(t, build.CustomTarget):
@@ -170,12 +167,10 @@ class Backend:
         return self.build_to_src
 
     def get_target_private_dir(self, target):
-        dirname = os.path.join(self.get_target_dir(target), target.get_basename() + target.type_suffix())
-        return dirname
+        return os.path.join(self.get_target_dir(target), target.get_id())
 
     def get_target_private_dir_abs(self, target):
-        dirname = os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
-        return dirname
+        return os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
 
     def get_target_generated_dir(self, target, gensrc, src):
         """
@@ -519,9 +514,8 @@ class Backend:
         # Fortran requires extra include directives.
         if compiler.language == 'fortran':
             for lt in target.link_targets:
-                priv_dir = os.path.join(self.get_target_dir(lt), lt.get_basename() + lt.type_suffix())
-                incflag = compiler.get_include_args(priv_dir, False)
-                commands += incflag
+                priv_dir = self.get_target_private_dir(lt)
+                commands += compiler.get_include_args(priv_dir, False)
         return commands
 
     def build_target_link_arguments(self, compiler, deps):

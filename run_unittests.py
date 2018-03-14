@@ -68,8 +68,10 @@ def get_dynamic_section_entry(fname, entry):
 def get_soname(fname):
     return get_dynamic_section_entry(fname, 'soname')
 
+
 def get_rpath(fname):
     return get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
+
 
 class InternalTests(unittest.TestCase):
 
@@ -443,6 +445,7 @@ class InternalTests(unittest.TestCase):
             else:
                 if f.name != 'add_release_note_snippets_here':
                     self.assertTrue(False, 'A file without .md suffix in snippets dir: ' + f.name)
+
 
 class BasePlatformTests(unittest.TestCase):
     def setUp(self):
@@ -1868,6 +1871,15 @@ int main(int argc, char **argv) {
         testdir = os.path.join(self.unit_test_dir, '23 compiler run_command')
         self.init(testdir)
 
+    def test_identical_target_name_in_subproject_flat_layout(self):
+        '''
+        Test that identical targets in different subprojects do not collide
+        if layout is flat.
+        '''
+        testdir = os.path.join(self.common_test_dir, '182 identical target name in subproject flat layout')
+        self.init(testdir, extra_args=['--layout=flat'])
+        self.build()
+
 
 class FailureTests(BasePlatformTests):
     '''
@@ -2466,8 +2478,8 @@ class LinuxlikeTests(BasePlatformTests):
     def test_unity_subproj(self):
         testdir = os.path.join(self.common_test_dir, '49 subproject')
         self.init(testdir, extra_args='--unity=subprojects')
-        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib/simpletest@exe/simpletest-unity.c'))
-        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib/sublib@sha/sublib-unity.c'))
+        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib/sublib@@simpletest@exe/simpletest-unity.c'))
+        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib/sublib@@sublib@sha/sublib-unity.c'))
         self.assertPathDoesNotExist(os.path.join(self.builddir, 'user@exe/user-unity.c'))
         self.build()
 
@@ -2744,6 +2756,7 @@ class LinuxArmCrossCompileTests(BasePlatformTests):
         self.init(testdir)
         compdb = self.get_compdb()
         self.assertNotIn('-DBUILD_ENVIRONMENT_ONLY', compdb[0]['command'])
+
 
 class RewriterTests(unittest.TestCase):
 
