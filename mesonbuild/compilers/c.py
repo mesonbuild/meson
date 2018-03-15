@@ -766,7 +766,7 @@ class CCompiler(Compiler):
             raise AssertionError('BUG: unknown libtype {!r}'.format(libtype))
         return prefixes, suffixes
 
-    def find_library(self, libname, env, extra_dirs, libtype='default'):
+    def find_library(self, libname, env, extra_dirs, libtype='default', dependencies = None):
         # These libraries are either built-in or invalid
         if libname in self.ignore_libs:
             return []
@@ -778,7 +778,7 @@ class CCompiler(Compiler):
         # Only try to find std libs if no extra dirs specified.
         if not extra_dirs and libtype == 'default':
             args = ['-l' + libname]
-            if self.links(code, env, extra_args=args):
+            if self.links(code, env, extra_args=args, dependencies=dependencies):
                 return args
         # Ensure that we won't modify the list that was passed to us
         extra_dirs = extra_dirs[:]

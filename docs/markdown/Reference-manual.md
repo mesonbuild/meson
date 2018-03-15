@@ -1438,8 +1438,12 @@ the following methods:
   value of `dependency`. If the keyword argument `required` is false,
   Meson will proceed even if the library is not found. By default the
   library is searched for in the system library directory
-  (e.g. /usr/lib). This can be overridden with the `dirs` keyword
-  argument, which can be either a string or a list of strings.
+  (e.g. /usr/lib). If libraries are installed outside of the system
+  library directory, the `dependencies` keyword argument can be used
+  to look in additional directories. Furthermore, if it is known in
+  which directory the library is to be found, the list of search
+  directories can be overridden with the `dirs` keyword argument,
+  which can be either a string or a list of strings.
 
 - `first_supported_argument(list_of_strings)`, given a list of
   strings, returns the first argument that passes the `has_argument`
