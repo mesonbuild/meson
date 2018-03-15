@@ -16,7 +16,7 @@ from mesonbuild import environment
 
 import argparse, sys, os, subprocess, pathlib
 
-def coverage(outputs, source_root, build_root, log_dir):
+def coverage(outputs, source_root, subproject_root, build_root, log_dir):
     outfiles = []
     exitcode = 0
 
@@ -33,6 +33,7 @@ def coverage(outputs, source_root, build_root, log_dir):
             subprocess.check_call([gcovr_exe,
                                    '-x',
                                    '-r', gcovr_rootdir,
+                                   '-e', subproject_root,
                                    '-o', os.path.join(log_dir, 'coverage.xml'),
                                    ])
             outfiles.append(('Xml', pathlib.Path(log_dir, 'coverage.xml')))
@@ -44,6 +45,7 @@ def coverage(outputs, source_root, build_root, log_dir):
         if gcovr_exe:
             subprocess.check_call([gcovr_exe,
                                    '-r', gcovr_rootdir,
+                                   '-e', subproject_root,
                                    '-o', os.path.join(log_dir, 'coverage.txt'),
                                    ])
             outfiles.append(('Text', pathlib.Path(log_dir, 'coverage.txt')))
@@ -81,6 +83,11 @@ def coverage(outputs, source_root, build_root, log_dir):
                                    '--extract', raw_tracefile,
                                    os.path.join(source_root, '*'),
                                    '--output-file', covinfo])
+            # Remove all directories inside subproject dir
+            subprocess.check_call([lcov_exe,
+                                   '--remove', covinfo,
+                                   os.path.join(subproject_root, '*'),
+                                   '--output-file', covinfo])
             subprocess.check_call([genhtml_exe,
                                    '--prefix', build_root,
                                    '--output-directory', htmloutdir,
@@ -96,6 +103,7 @@ def coverage(outputs, source_root, build_root, log_dir):
                                    '--html',
                                    '--html-details',
                                    '-r', build_root,
+                                   '-e', subproject_root,
                                    '-o', os.path.join(htmloutdir, 'index.html'),
                                    ])
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
@@ -126,11 +134,13 @@ def run(args):
     parser.add_argument('--html', dest='outputs', action='append_const',
                         const='html', help='generate Html report')
     parser.add_argument('source_root')
+    parser.add_argument('subproject_root')
     parser.add_argument('build_root')
     parser.add_argument('log_dir')
     options = parser.parse_args(args)
     return coverage(options.outputs, options.source_root,
-                    options.build_root, options.log_dir)
+                    options.subproject_root, options.build_root,
+                    options.log_dir)
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

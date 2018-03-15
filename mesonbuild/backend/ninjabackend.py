@@ -618,6 +618,8 @@ int dummy;
                       ['--internal', 'coverage'] +
                       outputs +
                       [self.environment.get_source_dir(),
+                       os.path.join(self.environment.get_source_dir(),
+                                    self.build.get_subproject_dir()),
                        self.environment.get_build_dir(),
                        self.environment.get_log_dir()])
 
