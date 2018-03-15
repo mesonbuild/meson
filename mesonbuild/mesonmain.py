@@ -25,29 +25,9 @@ from .wrap import WrapMode, wraptool
 
 default_warning = '1'
 
-def add_builtin_argument(p, name):
-    kwargs = {}
-    k = coredata.get_builtin_option_destination(name)
-    c = coredata.get_builtin_option_choices(k)
-    b = coredata.get_builtin_option_action(k)
-    h = coredata.get_builtin_option_description(k)
-    if not b:
-        h = h.rstrip('.') + ' (default: %s).' % coredata.get_builtin_option_default(k)
-    else:
-        kwargs['action'] = b
-    if c and not b:
-        kwargs['choices'] = c
-    default = coredata.get_builtin_option_default(k, noneIfSuppress=True)
-    if default is not None:
-        kwargs['default'] = default
-    else:
-        kwargs['default'] = argparse.SUPPRESS
-    p.add_argument('--' + name, help=h, **kwargs)
-
 def create_parser():
     p = argparse.ArgumentParser(prog='meson')
-    for n in coredata.builtin_options:
-        add_builtin_argument(p, n)
+    coredata.register_builtin_arguments(p)
     p.add_argument('--cross-file', default=None,
                    help='File describing cross compilation environment.')
     p.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
