@@ -43,6 +43,7 @@ __all__ = [
 
     'ARMCompiler',
     'ARMCCompiler',
+    'ARMCPPCompiler',
     'CCompiler',
     'ClangCCompiler',
     'ClangCompiler',
@@ -125,6 +126,7 @@ from .c import (
     VisualStudioCCompiler,
 )
 from .cpp import (
+    ARMCPPCompiler,
     CPPCompiler,
     ClangCPPCompiler,
     GnuCPPCompiler,

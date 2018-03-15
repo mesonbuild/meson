@@ -917,32 +917,12 @@ class ARMCCompiler(ARMCompiler, CCompiler):
     def get_coverage_link_args(self):
         return []
 
-    # Override CCompiler.get_always_args
-    def get_always_args(self):
-        return []
-
     def get_option_compile_args(self, options):
         return []
 
     def get_linker_exelist(self):
         args = ['armlink']
         return args
-
-    # Override CCompiler.get_dependency_gen_args
-    def get_dependency_gen_args(self, outtarget, outfile):
-        return []
-
-    # Override CCompiler.get_std_shared_lib_link_args
-    def get_std_shared_lib_link_args(self):
-        return []
-
-    def get_pch_use_args(self, pch_dir, header):
-        # FIXME: Add required arguments
-        # NOTE from armcc user guide:
-        # "Support for Precompiled Header (PCH) files is deprecated from ARM Compiler 5.05
-        # onwards on all platforms. Note that ARM Compiler on Windows 8 never supported
-        # PCH files."
-        return []
 
     def get_compile_only_args(self):
         return ['-c']
