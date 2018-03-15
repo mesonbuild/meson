@@ -1917,6 +1917,15 @@ int main(int argc, char **argv) {
         self.init(testdir, extra_args=['--layout=flat'])
         self.build()
 
+    def test_identical_target_name_in_subdir_flat_layout(self):
+        '''
+        Test that identical targets in different subdirs do not collide
+        if layout is flat.
+        '''
+        testdir = os.path.join(self.common_test_dir, '189 same target name flat layout')
+        self.init(testdir, extra_args=['--layout=flat'])
+        self.build()
+
     def test_flock(self):
         exception_raised = False
         with tempfile.TemporaryDirectory() as tdir:
