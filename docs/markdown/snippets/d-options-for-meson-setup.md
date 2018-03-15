@@ -1,6 +1,6 @@
-## Meson now accepts -D for builtin arguments at setup time like configure time
+## Meson and meson configure now accept the same arguments
 
 Previously meson required that builtin arguments (like prefix) be passed as
-`--prefix` to `meson` and `-Dprefix` to `meson configure`. Meson now accepts -D
-form like meson configure does. `meson configure` still does not accept the
-`--prefix` form.
+`--prefix` to `meson` and `-Dprefix` to `meson configure`. `meson` now accepts -D
+form like `meson configure` has. `meson configure` also accepts the `--prefix`
+form, like `meson` has.
