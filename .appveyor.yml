@@ -79,20 +79,14 @@ install:
   - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
   - cmd: if %compiler%==msvc2017 ( call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat" -arch=%arch% )
   - cmd: if %compiler%==cygwin ( set PYTHON=python3 ) else ( set PYTHON=python )
-  - ps: |
-        If($Env:compiler -eq 'msys2-mingw') {
-          If($Env:arch -eq 'x86') {
-            $env:Path = 'C:\msys64\mingw32\bin;' + $env:Path
-            $env:MESON_PYTHON_PATH = 'C:\msys64\mingw32\bin'
-            $env:PYTHON = 'python3'
-            C:\msys64\usr\bin\pacman -S --noconfirm mingw32/mingw-w64-i686-python3
-          } Else {
-            $env:Path = 'C:\msys64\mingw64\bin;' + $env:Path
-            $env:MESON_PYTHON_PATH = 'C:\msys64\mingw64\bin'
-            $env:PYTHON = 'python3'
-            C:\msys64\usr\bin\pacman -S --noconfirm mingw64/mingw-w64-x86_64-python3
-          }
-        }
+  # MinGW setup, lines are split to prevent "The input line is too long." error.
+  - cmd: if %arch%==x86 ( set "PACMAN_ARCH=i686" ) else ( set "PACMAN_ARCH=x86_64" )
+  - cmd: if %arch%==x86 ( set "PACMAN_BITS=32" ) else ( set "PACMAN_BITS=64" )
+  - cmd: if %compiler%==msys2-mingw ( set "PATH=C:\msys64\mingw%PACMAN_BITS%\bin;%PATH%" )
+  - cmd: if %compiler%==msys2-mingw ( set "MESON_PYTHON_PATH=C:\msys64\mingw%PACMAN_BITS%\bin" )
+  - cmd: if %compiler%==msys2-mingw ( set "PYTHON=python3" )
+  - cmd: if %compiler%==msys2-mingw ( C:\msys64\usr\bin\pacman -S --needed --noconfirm "mingw%PACMAN_BITS%/mingw-w64-%PACMAN_ARCH%-python3" )
+  # Cygwin
   - cmd: if not %compiler%==cygwin ( set "PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%;" )
   - cmd: if %compiler%==cygwin ( set WRAPPER=ci\run-in-cygwin.bat )
   - cmd: if %compiler%==cygwin ( %WRAPPER% which %PYTHON% ) else ( where %PYTHON% )
