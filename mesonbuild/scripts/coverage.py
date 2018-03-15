@@ -99,6 +99,8 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
         elif gcovr_exe and gcovr_new_rootdir:
             htmloutdir = os.path.join(log_dir, 'coveragereport')
+            if not os.path.isdir(htmloutdir):
+                os.mkdir(htmloutdir)
             subprocess.check_call([gcovr_exe,
                                    '--html',
                                    '--html-details',
