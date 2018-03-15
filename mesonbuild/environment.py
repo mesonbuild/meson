@@ -38,8 +38,8 @@ from .compilers import (
     is_source,
 )
 from .compilers import (
-    ARMCCompiler,
-    ARMCPPCompiler,
+    ArmCCompiler,
+    ArmCPPCompiler,
     ClangCCompiler,
     ClangCPPCompiler,
     ClangObjCCompiler,
@@ -493,11 +493,10 @@ class Environment:
                     if found_cl in watcom_cls:
                         continue
                 arg = '/?'
+            elif 'armcc' in compiler[0]:
+                arg = '--vsn'
             else:
-                if compiler[0] == 'armcc':
-                    arg = '--vsn'
-                else:
-                    arg = '--version'
+                arg = '--version'
             try:
                 p, out, err = Popen_safe(compiler + [arg])
             except OSError as e:
@@ -543,7 +542,7 @@ class Environment:
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap, full_version=full_version)
             if 'ARM' in out:
-                cls = ARMCCompiler if lang == 'c' else ARMCPPCompiler
+                cls = ArmCCompiler if lang == 'c' else ArmCPPCompiler
                 return cls(ccache + compiler, version, is_cross, exe_wrap, full_version=full_version)
         self._handle_exceptions(popen_exceptions, compilers)
 
@@ -799,7 +798,7 @@ class Environment:
             if 'lib' in linker or 'lib.exe' in linker:
                 arg = '/?'
             else:
-                    arg = '--version'
+                arg = '--version'
             try:
                 p, out, err = Popen_safe(linker + [arg])
             except OSError as e:

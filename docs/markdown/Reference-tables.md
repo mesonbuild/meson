@@ -21,6 +21,7 @@ These are return values of the `get_id` method in a compiler object.
 | g95       | The G95 Fortran compiler       |
 | open64    | The Open64 Fortran Compiler    |
 | nagfor    | The NAG Fortran compiler       |
+| arm       | ARM compiler                   |
 
 ## Script environment variables
 

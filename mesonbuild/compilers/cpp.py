@@ -26,7 +26,7 @@ from .compilers import (
     ClangCompiler,
     GnuCompiler,
     IntelCompiler,
-    ARMCompiler,
+    ArmCompiler,
 )
 
 class CPPCompiler(CCompiler):
@@ -134,35 +134,6 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
 
 
-class ARMCPPCompiler(ARMCompiler, CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap=None, defines=None, **kwargs):
-        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
-        ARMCompiler.__init__(self, defines)
-        default_warn_args = []
-        self.warn_args = {'1': default_warn_args,
-                          '2': default_warn_args + [],
-                          '3': default_warn_args + []}
-
-    def get_options(self):
-        opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                    ['none', 'c++11'],
-                                                    'none')}
-        return opts
-
-    def get_option_compile_args(self, options):
-        args = []
-        std = options['cpp_std']
-        if std.value == 'c++11':
-            args.append('--cpp11')
-        return args
-
-    def get_option_link_args(self, options):
-        return []
-
-    def get_compiler_check_args(self):
-        return []
-
-
 class IntelCPPCompiler(IntelCompiler, CPPCompiler):
     def __init__(self, exelist, version, icc_type, is_cross, exe_wrap, **kwargs):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
@@ -245,3 +216,30 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         # Visual Studio C++ compiler doesn't support -fpermissive,
         # so just use the plain C args.
         return super(VisualStudioCCompiler, self).get_compiler_check_args()
+
+
+class ArmCPPCompiler(ArmCompiler, CPPCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrap=None, defines=None, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
+        ArmCompiler.__init__(self, defines)
+
+    def get_options(self):
+        opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                    ['none', 'c++03', 'c++11'],
+                                                    'none')}
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['cpp_std']
+        if std.value == 'c++11':
+            args.append('--cpp11')
+        elif std.value == 'c++03':
+            args.append('--cpp')
+        return args
+
+    def get_option_link_args(self, options):
+        return []
+
+    def get_compiler_check_args(self):
+        return []

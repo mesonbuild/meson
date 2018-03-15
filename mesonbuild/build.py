@@ -1178,7 +1178,8 @@ class Executable(BuildTarget):
                     for_cygwin(is_cross, environment) or 'cs' in self.compilers):
                 self.suffix = 'exe'
             else:
-                if 'c' in self.compilers and self.compilers['c'].get_id().startswith('arm'):
+                if ('c' in self.compilers and self.compilers['c'].get_id().startswith('arm') or
+                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('arm')):
                     self.suffix = 'axf'
                 else:
                     self.suffix = ''

@@ -31,7 +31,7 @@ from .compilers import (
     msvc_winlibs,
     vs32_instruction_set_args,
     vs64_instruction_set_args,
-    ARMCompiler,
+    ArmCompiler,
     ClangCompiler,
     Compiler,
     CompilerArgs,
@@ -889,45 +889,6 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
 
 
-class ARMCCompiler(ARMCompiler, CCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        # ARMCC is only a cross compiler
-        if not is_cross:
-            raise EnvironmentException('armcc supports only cross-compilation.')
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
-        ARMCompiler.__init__(self, defines)
-
-    def sanity_check_impl(self, work_dir, environment, sname, code):
-        mlog.debug('Sanity testing disabled for armcc compiler')
-        return
-
-    def get_options(self):
-        opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
-                                                  ['none', 'c89', 'c99', 'c11'],
-                                                  'none')}
-        return opts
-
-    def get_warn_args(self, level):
-        # ARMCC doesn't have warning levels
-        return []
-
-    def get_coverage_args(self):
-        return []
-
-    def get_coverage_link_args(self):
-        return []
-
-    def get_option_compile_args(self, options):
-        return []
-
-    def get_linker_exelist(self):
-        args = ['armlink']
-        return args
-
-    def get_compile_only_args(self):
-        return ['-c']
-
-
 class IntelCCompiler(IntelCompiler, CCompiler):
     def __init__(self, exelist, version, icc_type, is_cross, exe_wrapper=None, **kwargs):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
@@ -1206,3 +1167,22 @@ class VisualStudioCCompiler(CCompiler):
         if 'INCLUDE' not in os.environ:
             return []
         return os.environ['INCLUDE'].split(os.pathsep)
+
+
+class ArmCCompiler(ArmCompiler, CCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+        ArmCompiler.__init__(self)
+
+    def get_options(self):
+        opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
+                                                  ['none', 'c90', 'c99'],
+                                                  'none')}
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['c_std']
+        if std.value != 'none':
+            args.append('--' + std.value)
+        return args
