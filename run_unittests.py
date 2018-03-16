@@ -2726,6 +2726,13 @@ endian = 'little'
             self.assertTrue(os.path.exists(os.path.join(pkg_dir, 'libpkgdep.pc')))
             lib_dir = os.path.join(tempdirname, 'lib')
             os.environ['PKG_CONFIG_PATH'] = pkg_dir
+            # Private internal libraries must not leak out.
+            pkg_out = subprocess.check_output(['pkg-config', '--static', '--libs', 'libpkgdep'])
+            self.assertFalse(b'libpkgdep-int' in pkg_out, 'Internal library leaked out.')
+            # Dependencies must not leak to cflags when building only a shared library.
+            pkg_out = subprocess.check_output(['pkg-config', '--cflags', 'libpkgdep'])
+            self.assertFalse(b'glib' in pkg_out, 'Internal dependency leaked to headers.')
+            # Test that the result is usable.
             self.init(testdir2)
             self.build()
             myenv = os.environ.copy()
