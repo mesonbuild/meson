@@ -567,10 +567,11 @@ class BasePlatformTests(unittest.TestCase):
     def run_tests(self):
         self._run(self.test_command, workdir=self.builddir)
 
-    def install(self):
+    def install(self, *, use_destdir=True):
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
-        os.environ['DESTDIR'] = self.installdir
+        if use_destdir:
+            os.environ['DESTDIR'] = self.installdir
         self._run(self.install_command, workdir=self.builddir)
 
     def uninstall(self):
@@ -2657,6 +2658,29 @@ endian = 'little'
         self.init(testdir, inprocess=True)
         self.build()
         mesonbuild.modules.gnome.native_glib_version = None
+
+    @unittest.skipIf(shutil.which('pkg-config') is None, 'Pkg-config not found.')
+    def test_pkgconfig_usage(self):
+        testdir1 = os.path.join(self.unit_test_dir, '24 pkgconfig usage/dependency')
+        testdir2 = os.path.join(self.unit_test_dir, '24 pkgconfig usage/dependee')
+        with tempfile.TemporaryDirectory() as tempdirname:
+            self.init(testdir1, ['--prefix=' + tempdirname, '--libdir=lib'], default_args=False)
+            self.install(use_destdir=False)
+            shutil.rmtree(self.builddir)
+            os.mkdir(self.builddir)
+            pkg_dir = os.path.join(tempdirname, 'lib/pkgconfig')
+            self.assertTrue(os.path.exists(os.path.join(pkg_dir, 'libpkgdep.pc')))
+            lib_dir = os.path.join(tempdirname, 'lib')
+            os.environ['PKG_CONFIG_PATH'] = pkg_dir
+            self.init(testdir2)
+            self.build()
+            myenv = os.environ.copy()
+            myenv['LD_LIBRARY_PATH'] = lib_dir
+            self.assertTrue(os.path.isdir(lib_dir))
+            self.assertTrue(os.path.isfile(os.path.join(lib_dir, 'libpkgdep.so')))
+            test_exe = os.path.join(self.builddir, 'pkguser')
+            self.assertTrue(os.path.isfile(test_exe))
+            subprocess.check_call(test_exe, env=myenv)
 
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
