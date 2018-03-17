@@ -1426,6 +1426,12 @@ class MesonMain(InterpreterObject):
             raise InterpreterException('First argument must be a string')
         if hasattr(exe, 'held_object'):
             exe = exe.held_object
+        if isinstance(exe, mesonlib.File):
+            abspath = exe.absolute_path(self.interpreter.environment.source_dir,
+                                        self.interpreter.environment.build_dir)
+            if not os.path.exists(abspath):
+                raise InterpreterException('Tried to override %s with a file that does not exist.' % name)
+            exe = dependencies.ExternalProgram(abspath)
         if not isinstance(exe, dependencies.ExternalProgram):
             # FIXME, make this work if the exe is an Executable target.
             raise InterpreterException('Second argument must be an external program.')
