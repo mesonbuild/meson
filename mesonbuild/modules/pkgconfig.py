@@ -77,6 +77,9 @@ class DependenciesHelper:
                     processed_cflags += obj.get_compile_args()
             elif isinstance(obj, build.SharedLibrary):
                 processed_libs.append(obj)
+                if public:
+                    if not hasattr(obj, 'generated_pc'):
+                        obj.generated_pc = self.name
             elif isinstance(obj, build.StaticLibrary):
                 # Due to a "feature" in pkgconfig, it leaks out private dependencies.
                 # Thus we will not add them to the pc file unless the target

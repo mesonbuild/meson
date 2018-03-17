@@ -494,7 +494,8 @@ class BasePlatformTests(unittest.TestCase):
                 windows_proof_rmtree(path)
             except FileNotFoundError:
                 pass
-        os.environ = self.orig_env
+        os.environ.clear()
+        os.environ.update(self.orig_env)
         super().tearDown()
 
     def _run(self, command, workdir=None):
@@ -2663,6 +2664,10 @@ endian = 'little'
     def test_pkgconfig_usage(self):
         testdir1 = os.path.join(self.unit_test_dir, '24 pkgconfig usage/dependency')
         testdir2 = os.path.join(self.unit_test_dir, '24 pkgconfig usage/dependee')
+        if subprocess.call(['pkg-config', '--cflags', 'glib-2.0'],
+                           stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL) != 0:
+            raise unittest.SkipTest('Glib 2.0 dependency not available.')
         with tempfile.TemporaryDirectory() as tempdirname:
             self.init(testdir1, ['--prefix=' + tempdirname, '--libdir=lib'], default_args=False)
             self.install(use_destdir=False)
@@ -2683,8 +2688,10 @@ endian = 'little'
             self.build()
             myenv = os.environ.copy()
             myenv['LD_LIBRARY_PATH'] = lib_dir
+            if is_cygwin():
+                bin_dir = os.path.join(tempdirname, 'bin')
+                myenv['PATH'] = bin_dir + os.pathsep + myenv['PATH']
             self.assertTrue(os.path.isdir(lib_dir))
-            self.assertTrue(os.path.isfile(os.path.join(lib_dir, 'libpkgdep.so')))
             test_exe = os.path.join(self.builddir, 'pkguser')
             self.assertTrue(os.path.isfile(test_exe))
             subprocess.check_call(test_exe, env=myenv)
