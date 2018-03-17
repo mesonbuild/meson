@@ -1355,9 +1355,9 @@ G_END_DECLS'''
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes = self._extract_vapi_packages(state, kwargs)
         target_name = 'generate_vapi({})'.format(library)
         if 'VAPIGEN' in os.environ:
-            cmd = [self.interpreter.func_find_program(None, os.environ['VAPIGEN'], {}), target_name]
+            cmd = [self.interpreter.func_find_program(None, os.environ['VAPIGEN'], {})]
         else:
-            cmd = [self.interpreter.func_find_program(None, 'vapigen'), target_name]
+            cmd = [self.interpreter.func_find_program(None, 'vapigen', {})]
         cmd += ['--quiet', '--library=' + library, '--directory=' + build_dir]
         cmd += self._vapi_args_to_command('--vapidir=', 'vapi_dirs', kwargs)
         cmd += self._vapi_args_to_command('--metadatadir=', 'metadata_dirs', kwargs)

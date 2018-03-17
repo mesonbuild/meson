@@ -2745,7 +2745,7 @@ root and issuing %s.
         exe = args[1]
         if not isinstance(exe, (ExecutableHolder, JarHolder, ExternalProgramHolder)):
             if isinstance(exe, mesonlib.File):
-                exe = self.func_find_program(node, (args[1], ), {})
+                exe = self.func_find_program(node, args[1], {})
             else:
                 raise InterpreterException('Second argument must be executable.')
         par = kwargs.get('is_parallel', True)

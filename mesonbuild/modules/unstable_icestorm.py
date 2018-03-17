@@ -18,8 +18,8 @@ from . import ExtensionModule
 
 class IceStormModule(ExtensionModule):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, interpreter):
+        super().__init__(interpreter)
         self.snippets.add('project')
         self.yosys_bin = None
 
@@ -80,5 +80,5 @@ class IceStormModule(ExtensionModule):
         interpreter.func_run_target(None, [time_name], {
             'command': [self.icetime_bin, bin_target]})
 
-def initialize():
-    return IceStormModule()
+def initialize(*args, **kwargs):
+    return IceStormModule(*args, **kwargs)

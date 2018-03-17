@@ -18,8 +18,8 @@ from . import ExtensionModule
 
 class SimdModule(ExtensionModule):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, interpreter):
+        super().__init__(interpreter)
         self.snippets.add('check')
         # FIXME add Altivec and AVX512.
         self.isets = ('mmx',
@@ -79,5 +79,5 @@ class SimdModule(ExtensionModule):
             result.append(interpreter.func_static_lib(None, [libname], lib_kwargs))
         return [result, cdata]
 
-def initialize():
-    return SimdModule()
+def initialize(*args, **kwargs):
+    return SimdModule(*args, **kwargs)
