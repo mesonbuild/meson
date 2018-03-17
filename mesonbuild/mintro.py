@@ -186,6 +186,7 @@ def list_tests(testdata):
         to['workdir'] = t.workdir
         to['timeout'] = t.timeout
         to['suite'] = t.suite
+        to['is_parallel'] = t.is_parallel
         result.append(to)
     print(json.dumps(result))
 
