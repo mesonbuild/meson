@@ -8,7 +8,7 @@ build system.
 
 [![PyPI](https://img.shields.io/pypi/v/meson.svg)](https://pypi.python.org/pypi/meson)
 [![Travis](https://travis-ci.org/mesonbuild/meson.svg?branch=master)](https://travis-ci.org/mesonbuild/meson)
-[![Appveyor](https://ci.appveyor.com/api/projects/status/l5c8v71ninew2i3p?svg=true)](https://ci.appveyor.com/project/jpakkane/meson)
+[![Appveyor](https://ci.appveyor.com/api/projects/status/7jfaotriu8d8ncov?svg=true)](https://ci.appveyor.com/project/mesonbuild/meson)
 [![Codecov](https://codecov.io/gh/mesonbuild/meson/coverage.svg?branch=master)](https://codecov.io/gh/mesonbuild/meson/branch/master)
 
 #### Dependencies
