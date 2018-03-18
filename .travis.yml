@@ -25,7 +25,7 @@ services:
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew uninstall python mercurial; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew uninstall mercurial python; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python@2 python@3 mercurial qt; fi
   # Test against a real gcc too
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$CC" == "gcc" ]]; then brew install --only-dependencies gcc; fi
