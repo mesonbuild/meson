@@ -25,6 +25,6 @@ $ ninja -C builddir
 ```
 
 The generator has many different projects and settings. They can all
-be listed by invoking the command `meson test --help`.
+be listed by invoking the command `meson init --help`.
 
 This feature is available since Meson version 0.45.0.
