@@ -21,6 +21,21 @@ import platform, subprocess, operator, os, shutil, re
 import collections
 from mesonbuild import mlog
 
+have_fcntl = False
+have_msvcrt = False
+
+try:
+    import fcntl
+    have_fcntl = True
+except Exception:
+    pass
+
+try:
+    import msvcrt
+    have_msvcrt = True
+except Exception:
+    pass
+
 from glob import glob
 
 def detect_meson_py_location():
@@ -978,3 +993,26 @@ class OrderedSet(collections.MutableSet):
 
     def difference(self, set_):
         return type(self)(e for e in self if e not in set_)
+
+class BuildDirLock:
+
+    def __init__(self, builddir):
+        self.lockfilename = os.path.join(builddir, 'meson-private/meson.lock')
+
+    def __enter__(self):
+        self.lockfile = open(self.lockfilename, 'w')
+        try:
+            if have_fcntl:
+                fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            elif have_msvcrt:
+                msvcrt.locking(self.lockfile.fileno(), msvcrt.LK_NBLCK, 1)
+        except (BlockingIOError, PermissionError):
+            self.lockfile.close()
+            raise MesonException('Some other Meson process is already using this build directory. Exiting.')
+
+    def __exit__(self, *args):
+        if have_fcntl:
+            fcntl.flock(self.lockfile, fcntl.LOCK_UN)
+        elif have_msvcrt:
+            msvcrt.locking(self.lockfile.fileno(), msvcrt.LK_UNLCK, 1)
+        self.lockfile.close()

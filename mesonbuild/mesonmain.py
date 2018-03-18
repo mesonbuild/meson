@@ -147,7 +147,8 @@ class MesonApp:
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_launcher, self.options, self.original_cmd_line_args)
         mlog.initialize(env.get_log_dir())
-        self._generate(env)
+        with mesonlib.BuildDirLock(self.build_dir):
+            self._generate(env)
 
     def _generate(self, env):
         mlog.debug('Build started at', datetime.datetime.now().isoformat())

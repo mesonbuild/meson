@@ -37,6 +37,7 @@ from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import (
     is_windows, is_osx, is_cygwin, is_dragonflybsd,
     windows_proof_rmtree, python_command, meson_command, version_compare,
+    BuildDirLock
 )
 from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -1881,6 +1882,18 @@ int main(int argc, char **argv) {
         testdir = os.path.join(self.common_test_dir, '182 identical target name in subproject flat layout')
         self.init(testdir, extra_args=['--layout=flat'])
         self.build()
+
+    def test_flock(self):
+        exception_raised = False
+        with tempfile.TemporaryDirectory() as tdir:
+            os.mkdir(os.path.join(tdir, 'meson-private'))
+            with BuildDirLock(tdir):
+                try:
+                    with BuildDirLock(tdir):
+                        pass
+                except MesonException:
+                    exception_raised = True
+        self.assertTrue(exception_raised, 'Double locking did not raise exception.')
 
 
 class FailureTests(BasePlatformTests):
