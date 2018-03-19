@@ -1076,6 +1076,17 @@ class GnuCompiler:
         return gnulike_default_include_dirs(self.exelist, self.language)
 
 
+class ElbrusCompiler(GnuCompiler):
+    # Elbrus compiler is nearly like GCC, but does not support
+    # PCH, LTO, sanitizers and color output as of version 1.21.x.
+    def __init__(self, gcc_type, defines):
+        GnuCompiler.__init__(self, gcc_type, defines)
+        self.id = 'lcc'
+        self.base_options = ['b_pgo', 'b_coverage',
+                             'b_ndebug', 'b_staticpic',
+                             'b_lundef', 'b_asneeded' ]
+
+
 class ClangCompiler:
     def __init__(self, clang_type):
         self.id = 'clang'

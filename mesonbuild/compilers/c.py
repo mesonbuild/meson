@@ -36,6 +36,7 @@ from .compilers import (
     CompilerArgs,
     CrossNoRunException,
     GnuCompiler,
+    ElbrusCompiler,
     IntelCompiler,
     RunResult,
 )
@@ -886,6 +887,21 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
     def get_pch_use_args(self, pch_dir, header):
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
+
+
+class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        GnuCCompiler.__init__(self, exelist, version, gcc_type, is_cross, exe_wrapper, defines, **kwargs)
+        ElbrusCompiler.__init__(self, gcc_type, defines)
+
+    # It does support some various ISO standards and c/gnu 90, 9x, 1x in addition to those which GNU CC supports.
+    def get_options(self):
+        opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
+                                                  ['none', 'c89', 'c90', 'c9x', 'c99', 'c1x', 'c11',
+                                                   'gnu89', 'gnu90', 'gnu9x', 'gnu99', 'gnu1x', 'gnu11',
+                                                   'iso9899:2011', 'iso9899:1990', 'iso9899:199409', 'iso9899:1999'],
+                                                  'none')}
+        return opts
 
 
 class IntelCCompiler(IntelCompiler, CCompiler):
