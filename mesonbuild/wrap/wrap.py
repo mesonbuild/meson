@@ -332,7 +332,7 @@ class Resolver:
             else:
                 purl = p.get('patch_url')
                 if purl == "local":
-                    purl = 'file://' + os.path.join(self.subdir_root, patch_filename)
+                    purl = 'file:' + urllib.request.pathname2url(os.path.join(self.subdir_root, patch_filename))
                 mlog.log('Downloading patch from', mlog.bold(purl))
                 phash, tmpfile = self.get_data(purl)
                 expected = p.get('patch_hash')
