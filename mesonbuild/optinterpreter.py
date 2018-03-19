@@ -78,7 +78,7 @@ def BooleanParser(name, description, kwargs):
                                       kwargs.get('value', True),
                                       kwargs.get('yield', coredata.default_yielding))
 
-@permitted_kwargs({'value', 'yiel', 'choices'})
+@permitted_kwargs({'value', 'yield', 'choices'})
 def ComboParser(name, description, kwargs):
     if 'choices' not in kwargs:
         raise OptionException('Combo option missing "choices" keyword.')
