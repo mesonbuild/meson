@@ -878,11 +878,10 @@ int dummy;
             subdir = de.install_dir
             if not subdir:
                 subdir = os.path.join(self.environment.get_datadir(), self.interpreter.build.project_name)
-            for f in de.sources:
-                assert(isinstance(f, mesonlib.File))
-                plain_f = os.path.basename(f.fname)
-                dstabs = os.path.join(subdir, plain_f)
-                i = [f.absolute_path(srcdir, builddir), dstabs, de.install_mode]
+            for src_file, dst_name in zip(de.sources, de.rename):
+                assert(isinstance(src_file, mesonlib.File))
+                dst_abs = os.path.join(subdir, dst_name)
+                i = [src_file.absolute_path(srcdir, builddir), dst_abs, de.install_mode]
                 d.data.append(i)
 
     def generate_subdir_install(self, d):

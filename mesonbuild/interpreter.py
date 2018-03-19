@@ -1500,7 +1500,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'find_program': {'required', 'native'},
                     'generator': {'arguments', 'output', 'depfile', 'capture', 'preserve_path_from'},
                     'include_directories': {'is_system'},
-                    'install_data': {'install_dir', 'install_mode', 'sources'},
+                    'install_data': {'install_dir', 'install_mode', 'rename', 'sources'},
                     'install_headers': {'install_dir', 'subdir'},
                     'install_man': {'install_dir'},
                     'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'},
@@ -2826,7 +2826,8 @@ root and issuing %s.
         if not isinstance(install_dir, (str, type(None))):
             raise InvalidArguments('Keyword argument install_dir not a string.')
         install_mode = self._get_kwarg_install_mode(kwargs)
-        data = DataHolder(build.Data(sources, install_dir, install_mode))
+        rename = kwargs.get('rename', None)
+        data = DataHolder(build.Data(sources, install_dir, install_mode, rename))
         self.build.data.append(data.held_object)
         return data
 
