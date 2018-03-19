@@ -1084,7 +1084,7 @@ class ElbrusCompiler(GnuCompiler):
         self.id = 'lcc'
         self.base_options = ['b_pgo', 'b_coverage',
                              'b_ndebug', 'b_staticpic',
-                             'b_lundef', 'b_asneeded' ]
+                             'b_lundef', 'b_asneeded']
 
 
 class ClangCompiler:
