@@ -348,7 +348,7 @@ def get_base_link_args(options, linker, is_shared_module):
         pass
     try:
         if 'b_asneeded' in linker.base_options and options['b_asneeded'].value:
-            args.append('-Wl,--as-needed')
+            args.append(linker.get_asneeded_args())
     except KeyError:
         pass
     try:
@@ -900,6 +900,13 @@ ICC_STANDARD = 0
 ICC_OSX = 1
 ICC_WIN = 2
 
+# GNU ld cannot be installed on macOS
+# https://github.com/Homebrew/homebrew-core/issues/17794#issuecomment-328174395
+# Hence, we don't need to differentiate between OS and ld
+# for the sake of adding as-needed support
+GNU_LD_AS_NEEDED = '-Wl,--as-needed'
+APPLE_LD_AS_NEEDED = '-Wl,-dead_strip_dylibs'
+
 def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module):
     if soversion is None:
         sostr = ''
@@ -1002,9 +1009,17 @@ class GnuCompiler:
                              'b_colorout', 'b_ndebug', 'b_staticpic']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
+        self.base_options.append('b_asneeded')
         # All GCC backends can do assembly
         self.can_compile_suffixes.add('s')
+
+    # TODO: centralise this policy more globally, instead
+    # of fragmenting it into GnuCompiler and ClangCompiler
+    def get_asneeded_args(self):
+        if self.gcc_type == GCC_OSX:
+            return APPLE_LD_AS_NEEDED
+        else:
+            return GNU_LD_AS_NEEDED
 
     def get_colorout_args(self, colortype):
         if mesonlib.version_compare(self.version, '>=4.9.0'):
@@ -1084,9 +1099,17 @@ class ClangCompiler:
                              'b_ndebug', 'b_staticpic', 'b_colorout']
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
+        self.base_options.append('b_asneeded')
         # All Clang backends can do assembly and LLVM IR
         self.can_compile_suffixes.update(['ll', 's'])
+
+    # TODO: centralise this policy more globally, instead
+    # of fragmenting it into GnuCompiler and ClangCompiler
+    def get_asneeded_args(self):
+        if self.clang_type == CLANG_OSX:
+            return APPLE_LD_AS_NEEDED
+        else:
+            return GNU_LD_AS_NEEDED
 
     def get_pic_args(self):
         if self.clang_type in (CLANG_WIN, CLANG_OSX):
