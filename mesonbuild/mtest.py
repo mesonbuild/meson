@@ -509,8 +509,8 @@ TIMEOUT: %4d
         self.logfilename = logfile_base + '.txt'
         self.jsonlogfilename = logfile_base + '.json'
 
-        self.jsonlogfile = open(self.jsonlogfilename, 'w')
-        self.logfile = open(self.logfilename, 'w')
+        self.jsonlogfile = open(self.jsonlogfilename, 'w', encoding='utf-8')
+        self.logfile = open(self.logfilename, 'w', encoding='utf-8')
 
         self.logfile.write('Log of Meson test suite run on %s\n\n'
                            % datetime.datetime.now().isoformat())
