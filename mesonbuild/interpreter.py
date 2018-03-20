@@ -2349,7 +2349,7 @@ to directly access options of other subprojects.''')
     def check_subproject_version(wanted, found):
         if wanted == 'undefined':
             return True
-        if found == 'undefined' or not mesonlib.version_compare(found, wanted):
+        if found == 'undefined' or not mesonlib.version_compare_many(found, wanted)[0]:
             return False
         return True
 
