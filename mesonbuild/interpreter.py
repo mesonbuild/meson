@@ -2839,9 +2839,11 @@ root and issuing %s.
             conffile = os.path.normpath(inputfile.relative_name())
             if conffile not in self.build_def_files:
                 self.build_def_files.append(conffile)
-        # Install file if requested
+        # Install file if requested, we check for the empty string
+        # for backwards compatibility. That was the behaviour before
+        # 0.45.0 so preserve it.
         idir = kwargs.get('install_dir', None)
-        if isinstance(idir, str):
+        if isinstance(idir, str) and idir:
             cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
             self.build.data.append(build.Data([cfile], idir))
         return mesonlib.File.from_built_file(self.subdir, output)
