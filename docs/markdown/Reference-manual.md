@@ -173,7 +173,8 @@ These are all the supported keyword arguments:
   mode, all the variables in the `configuration:` object (see above)
   are written to the `output:` file.
 - `install_dir` the subdirectory to install the generated file to
-  (e.g. `share/myproject`), if omitted the file is not installed.
+  (e.g. `share/myproject`), if omitted or given the value of empty
+  string, the file is not installed.
 - `output` the output file name (since v0.41.0, may contain
   `@PLAINNAME@` or `@BASENAME@` substitutions). In configuration mode,
   the permissions of the input file (if it is specified) are copied to

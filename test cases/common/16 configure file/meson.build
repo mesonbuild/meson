@@ -131,3 +131,9 @@ configure_file(
   configuration : conf6
 )
 test('test6', executable('prog6', 'prog6.c'))
+
+# test empty install dir string
+cfile = configure_file(input : 'config.h.in',
+  output : 'do_not_get_installed.h',
+  install_dir : '',
+  configuration : conf)
