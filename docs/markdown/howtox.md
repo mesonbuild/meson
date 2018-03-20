@@ -125,9 +125,9 @@ Install scan-build and configure your project. Then do this:
 $ ninja scan-build
 ```
 
-You can use the `SCAN_BUILD` environment variable to choose the scan-build executable.
+You can use the `SCANBUILD` environment variable to choose the scan-build executable.
 ```console
-$ SCAN_BUILD=<your exe> ninja scan-build
+$ SCANBUILD=<your exe> ninja scan-build
 ```
 
 
