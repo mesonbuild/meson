@@ -971,7 +971,7 @@ def gnulike_default_include_dirs(compiler, lang):
         stdout=subprocess.PIPE,
         env=env
     )
-    stderr = p.stderr.read().decode('utf-8')
+    stderr = p.stderr.read().decode('utf-8', errors='replace')
     parse_state = 0
     paths = []
     for line in stderr.split('\n'):
