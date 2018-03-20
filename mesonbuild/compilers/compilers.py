@@ -1086,6 +1086,18 @@ class ElbrusCompiler(GnuCompiler):
                              'b_ndebug', 'b_staticpic',
                              'b_lundef', 'b_asneeded']
 
+    def get_library_dirs(self):
+        env = os.environ.copy()
+        env['LC_ALL'] = 'C'
+        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=env)[1]
+        for line in stdo.split('\n'):
+            if line.startswith('libraries:'):
+                # lcc does not include '=' in --print-search-dirs output.
+                libstr = line.split(' ', 1)[1]
+                return libstr.split(':')
+        return []
+
+
 
 class ClangCompiler:
     def __init__(self, clang_type):
