@@ -64,10 +64,28 @@ init:
         }
 
 install:
+  - ps: |
+        function DownloadFile([String] $Source, [String] $Destination) {
+            $retries = 10
+            for ($i = 1; $i -le $retries; $i++) {
+                try {
+                    (New-Object net.webclient).DownloadFile($Source, $Destination)
+                    break # succeeded
+                } catch [net.WebException] {
+                    if ($i -eq $retries) {
+                        throw # fail on last retry
+                    }
+                    $backoff = (10 * $i) # backoff 10s, 20s, 30s...
+                    echo ('{0}: {1}' -f $Source, $_.Exception.Message)
+                    echo ('Retrying in {0}s...' -f $backoff)
+                    Start-Sleep -m ($backoff * 1000)
+                }
+            }
+        }
   - cmd: set "ORIG_PATH=%PATH%"
   # Use a Ninja with QuLogic's patch: https://github.com/ninja-build/ninja/issues/1219
   - cmd: set "MESON_FIXED_NINJA=1"
-  - ps: (new-object net.webclient).DownloadFile('http://nirbheek.in/files/binaries/ninja/win32/ninja.exe', 'C:\projects\meson\ninja.exe')
+  - ps: DownloadFile -Source 'http://nirbheek.in/files/binaries/ninja/win32/ninja.exe' -Destination 'C:\projects\meson\ninja.exe'
   # Use the x86 python only when building for x86 for the cpython tests.
   # For all other archs (including, say, arm), use the x64 python.
   - cmd: if %arch%==x86 (set MESON_PYTHON_PATH=C:\python35) else (set MESON_PYTHON_PATH=C:\python35-x64)
@@ -97,17 +115,19 @@ install:
   - cmd: if %compiler%==cygwin ( %WRAPPER% which %PYTHON% ) else ( where %PYTHON% )
 
   # pkg-config is needed for the pkg-config tests on msvc
-  - ps: If($Env:compiler.StartsWith('msvc')) {(new-object net.webclient).DownloadFile('http://nirbheek.in/files/binaries/pkg-config/win32/pkg-config.exe', 'C:\projects\meson\pkg-config.exe')}
+  - ps: |
+        If($Env:compiler.StartsWith('msvc')) {
+          DownloadFile -Source 'http://nirbheek.in/files/binaries/pkg-config/win32/pkg-config.exe' `
+                       -Destination 'C:\projects\meson\pkg-config.exe'
+        }
   - cmd: if %compiler%==cygwin ( call ci\appveyor-install.bat )
   - ps: |
         If($Env:compiler -like 'msvc*') {
-          (new-object net.webclient).DownloadFile(
-            "https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/msmpisdk.msi",
-            "C:\projects\msmpisdk.msi")
+          DownloadFile -Source "https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/msmpisdk.msi" `
+                       -Destination "C:\projects\msmpisdk.msi"
           c:\windows\system32\msiexec.exe /i C:\projects\msmpisdk.msi /quiet
-          (new-object net.webclient).DownloadFile(
-            "https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/MSMpiSetup.exe",
-            "C:\projects\MSMpiSetup.exe")
+          DownloadFile -Source "https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/MSMpiSetup.exe" `
+                       -Destination "C:\projects\MSMpiSetup.exe"
           c:\projects\MSMpiSetup.exe -unattend -full
         }
 
