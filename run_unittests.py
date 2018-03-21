@@ -2543,7 +2543,7 @@ endian = 'little'
 
     def test_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '13 reconfigure')
-        self.init(testdir, ['-Db_lto=true'], default_args=False)
+        self.init(testdir, ['-Db_coverage=true'], default_args=False)
         self.build('reconfigure')
 
     def test_cross_file_system_paths(self):
