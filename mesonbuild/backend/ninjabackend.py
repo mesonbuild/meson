@@ -2137,8 +2137,7 @@ rule FORTRAN_DEP_HACK
         return incs
 
     def _generate_single_compile(self, target, compiler, is_generated=False):
-        base_proxy = backends.OptionOverrideProxy(target.option_overrides,
-                                                  self.environment.coredata.base_options)
+        base_proxy = self.get_base_options_for_target(target)
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
         commands = CompilerArgs(compiler)

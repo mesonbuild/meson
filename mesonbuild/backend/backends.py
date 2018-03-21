@@ -89,12 +89,17 @@ class OptionProxy:
 class OptionOverrideProxy:
     '''Mimic an option list but transparently override
     selected option values.'''
-    def __init__(self, overrides, options):
+    def __init__(self, overrides, *options):
         self.overrides = overrides
         self.options = options
 
     def __getitem__(self, option_name):
-        base_opt = self.options[option_name]
+        for opts in self.options:
+            if option_name in opts:
+                return self._get_override(option_name, opts[option_name])
+        raise KeyError('Option not found', option_name)
+
+    def _get_override(self, option_name, base_opt):
         if option_name in self.overrides:
             return OptionProxy(base_opt.name, base_opt.validate_value(self.overrides[option_name]))
         return base_opt
@@ -122,6 +127,20 @@ class Backend:
 
     def get_target_filename_abs(self, target):
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
+
+    def get_builtin_options_for_target(self, target):
+        return OptionOverrideProxy(target.option_overrides,
+                                   self.environment.coredata.builtins)
+
+    def get_base_options_for_target(self, target):
+        return OptionOverrideProxy(target.option_overrides,
+                                   self.environment.coredata.builtins,
+                                   self.environment.coredata.base_options)
+
+    def get_compiler_options_for_target(self, target):
+        return OptionOverrideProxy(target.option_overrides,
+                                   # no code depends on builtins for now
+                                   self.environment.coredata.compiler_options)
 
     def get_option_for_target(self, option_name, target):
         if option_name in target.option_overrides:
@@ -444,7 +463,7 @@ class Backend:
         # starting from hard-coded defaults followed by build options and so on.
         commands = CompilerArgs(compiler)
 
-        copt_proxy = OptionOverrideProxy(target.option_overrides, self.environment.coredata.compiler_options)
+        copt_proxy = self.get_compiler_options_for_target(target)
         # First, the trivial ones that are impossible to override.
         #
         # Add -nostdinc/-nostdinc++ if needed; can't be overridden
