@@ -936,7 +936,7 @@ class VisualStudioCCompiler(CCompiler):
         self.warn_args = {'1': ['/W2'],
                           '2': ['/W3'],
                           '3': ['/W4']}
-        self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
+        self.base_options = ['b_pch', 'b_ndebug'] # FIXME add lto, pgo and the like
         self.is_64 = is_64
 
     # Override CCompiler.get_always_args
