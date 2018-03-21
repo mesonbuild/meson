@@ -148,6 +148,14 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
                                                    'none')
         return opts
 
+    # Elbrus C++ compiler does not have lchmod, but there is only linker warning, not compiler error.
+    # So we should explicitly fail at this case.
+    def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
+        if funcname == 'lchmod':
+            return False
+        else:
+            return super().has_function(funcname, prefix, env, extra_args, dependencies)
+
 
 class IntelCPPCompiler(IntelCompiler, CPPCompiler):
     def __init__(self, exelist, version, icc_type, is_cross, exe_wrap, **kwargs):
