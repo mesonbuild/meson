@@ -1264,7 +1264,8 @@ class AllPlatformTests(BasePlatformTests):
         # \n is never substituted by the GNU pre-processor via a -D define
         # ' and " confuse shlex.split() even when they are escaped
         # % and # confuse the MSVC preprocessor
-        value = 'spaces and fun!@$^&*()-=_+{}[]:;<>?,./~`'
+        # !, ^, *, and < confuse lcc preprocessor
+        value = 'spaces and fun@$&()-=_+{}[]:;>?,./~`'
         os.environ['CPPFLAGS'] = '-D{}="{}"'.format(define, value)
         os.environ['CFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
         self.init(testdir, ['-D{}={}'.format(define, value)])
