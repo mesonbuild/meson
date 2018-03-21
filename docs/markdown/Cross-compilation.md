@@ -83,7 +83,7 @@ automatically use the given wrapper when it needs to run host
 binaries. This happens e.g. when running the project's test suite.
 
 The next section lists properties of the cross compiler and thus of
-the target system. It looks like this:
+the host system. It looks like this:
 
 ```ini
 [properties]
