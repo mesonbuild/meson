@@ -1,4 +1,4 @@
-project('pkgconfig-gen-dependencies', 'c')
+project('pkgconfig-gen-dependencies', 'c', version: '1.0')
 
 pkgg = import('pkgconfig')
 
@@ -7,11 +7,7 @@ exposed_lib = shared_library('libexposed', 'exposed.c')
 internal_lib = shared_library('libinternal', 'internal.c')
 main_lib = static_library('libmain', link_with : [exposed_lib, internal_lib])
 
-pkgg.generate(libraries : exposed_lib,
-  version : '1.0',
-  name : 'libexposed',
-  description : 'An exposed library in dependency test.'
-)
+pkgg.generate(exposed_lib)
 
 # Declare a few different Dependency objects
 pc_dep = dependency('libfoo', version : '>=1.0')

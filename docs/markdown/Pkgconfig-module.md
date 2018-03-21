@@ -51,3 +51,10 @@ keyword arguments.
 - `version` a string describing the version of this library
 - `d_module_versions` a list of module version flags used when compiling
    D sources referred to by this pkg-config file
+
+Since 0.46 a `StaticLibrary` or `SharedLibrary` object can optionally be passed
+as first positional argument. If one is provided a default value will be
+provided for all required fields of the pc file:
+- `install_dir` is set to `pkgconfig` folder in the same location than the provided library.
+- `description` is set to the project's name followed by the library's name.
+- `name` is set to the library's name.
