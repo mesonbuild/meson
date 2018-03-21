@@ -380,6 +380,7 @@ class BuildTarget(Target):
         self.process_compilers_late()
         self.validate_sources()
         self.validate_cross_install(environment)
+        self.check_module_linking()
 
     def __lt__(self, other):
         return self.get_id() < other.get_id()
@@ -1027,6 +1028,13 @@ You probably should put it in link_with instead.''')
     def is_linkable_target(self):
         return False
 
+    def check_module_linking(self):
+        '''
+        Warn if shared modules are linked with target: (link_with) #2865
+        '''
+        for link_target in self.link_targets:
+            if isinstance(link_target, SharedModule):
+                mlog.warning('''Linking shared modules to targets is not recommended''')
 
 class Generator:
     def __init__(self, args, kwargs):
