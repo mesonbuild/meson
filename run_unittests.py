@@ -1895,6 +1895,20 @@ int main(int argc, char **argv) {
                     exception_raised = True
         self.assertTrue(exception_raised, 'Double locking did not raise exception.')
 
+    def test_ndebug_if_release_disabled(self):
+        testdir = os.path.join(self.unit_test_dir, '25 ndebug if-release')
+        self.init(testdir, extra_args=['--buildtype=release', '-Db_ndebug=if-release'])
+        self.build()
+        exe = os.path.join(self.builddir, 'main')
+        self.assertEqual(b'NDEBUG=1', subprocess.check_output(exe).strip())
+
+    def test_ndebug_if_release_enabled(self):
+        testdir = os.path.join(self.unit_test_dir, '25 ndebug if-release')
+        self.init(testdir, extra_args=['--buildtype=debugoptimized', '-Db_ndebug=if-release'])
+        self.build()
+        exe = os.path.join(self.builddir, 'main')
+        self.assertEqual(b'NDEBUG=0', subprocess.check_output(exe).strip())
+
 
 class FailureTests(BasePlatformTests):
     '''
