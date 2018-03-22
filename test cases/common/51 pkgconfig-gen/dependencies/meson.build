@@ -14,7 +14,7 @@ pkgg.generate(libraries : exposed_lib,
 )
 
 # Declare a few different Dependency objects
-pc_dep = dependency('libfoo')
+pc_dep = dependency('libfoo', version : '>=1.0')
 notfound_dep = dependency('notfound', required : false)
 threads_dep = dependency('threads')
 custom_dep = declare_dependency(link_args : ['-lcustom'], compile_args : ['-DCUSTOM'])
