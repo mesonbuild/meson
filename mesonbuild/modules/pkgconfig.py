@@ -31,6 +31,7 @@ class DependenciesHelper:
         self.priv_libs = []
         self.priv_reqs = []
         self.cflags = []
+        self.version_reqs = {}
 
     def add_pub_libs(self, libs):
         libs, reqs, cflags = self._process_libs(libs, True)
@@ -57,12 +58,17 @@ class DependenciesHelper:
                 processed_reqs.append(obj.generated_pc)
             elif hasattr(obj, 'pcdep'):
                 pcdeps = mesonlib.listify(obj.pcdep)
-                processed_reqs += [i.name for i in pcdeps]
+                for d in pcdeps:
+                    processed_reqs += d.name
+                    self.add_version_reqs(d.name, obj.version_reqs)
             elif isinstance(obj, dependencies.PkgConfigDependency):
                 if obj.found():
                     processed_reqs.append(obj.name)
+                    self.add_version_reqs(obj.name, obj.version_reqs)
             elif isinstance(obj, str):
-                processed_reqs.append(obj)
+                name, version_req = self.split_version_req(obj)
+                processed_reqs.append(name)
+                self.add_version_reqs(name, version_req)
             elif isinstance(obj, dependencies.Dependency) and not obj.found():
                 pass
             else:
@@ -83,12 +89,15 @@ class DependenciesHelper:
         for obj in libs:
             if hasattr(obj, 'pcdep'):
                 pcdeps = mesonlib.listify(obj.pcdep)
-                processed_reqs += [i.name for i in pcdeps]
+                for d in pcdeps:
+                    processed_reqs += d.name
+                    self.add_version_reqs(d.name, obj.version_reqs)
             elif hasattr(obj, 'generated_pc'):
                 processed_reqs.append(obj.generated_pc)
             elif isinstance(obj, dependencies.PkgConfigDependency):
                 if obj.found():
                     processed_reqs.append(obj.name)
+                    self.add_version_reqs(obj.name, obj.version_reqs)
             elif isinstance(obj, dependencies.ThreadDependency):
                 processed_libs += obj.get_compiler().thread_link_flags(obj.env)
                 processed_cflags += obj.get_compiler().thread_flags(obj.env)
@@ -122,6 +131,36 @@ class DependenciesHelper:
                 raise mesonlib.MesonException('library argument not a string, library or dependency object.')
 
         return processed_libs, processed_reqs, processed_cflags
+
+    def add_version_reqs(self, name, version_reqs):
+        if version_reqs:
+            vreqs = self.version_reqs.get(name, [])
+            vreqs += mesonlib.stringlistify(version_reqs)
+            self.version_reqs[name] = vreqs
+
+    def split_version_req(self, s):
+        for op in ['>=', '<=', '!=', '==', '=', '>', '<']:
+            pos = s.find(op)
+            if pos > 0:
+                return s[0:pos].strip(), s[pos:].strip()
+        return s, None
+
+    def format_vreq(self, vreq):
+        # vreq are '>=1.0' and pkgconfig wants '>= 1.0'
+        for op in ['>=', '<=', '!=', '==', '=', '>', '<']:
+            if vreq.startswith(op):
+                return op + ' ' + vreq[len(op):]
+        return vreq
+
+    def format_reqs(self, reqs):
+        result = []
+        for name in reqs:
+            vreqs = self.version_reqs.get(name, None)
+            if vreqs:
+                result += [name + ' ' + self.format_vreq(vreq) for vreq in vreqs]
+            else:
+                result += [name]
+        return ', '.join(result)
 
     def remove_dups(self):
         def _fn(xs):
@@ -207,11 +246,12 @@ class PkgConfigModule(ExtensionModule):
             if len(url) > 0:
                 ofile.write('URL: %s\n' % url)
             ofile.write('Version: %s\n' % version)
-            if len(deps.pub_reqs) > 0:
-                ofile.write('Requires: {}\n'.format(' '.join(deps.pub_reqs)))
-            if len(deps.priv_reqs) > 0:
-                ofile.write(
-                    'Requires.private: {}\n'.format(' '.join(deps.priv_reqs)))
+            reqs_str = deps.format_reqs(deps.pub_reqs)
+            if len(reqs_str) > 0:
+                ofile.write('Requires: {}\n'.format(reqs_str))
+            reqs_str = deps.format_reqs(deps.priv_reqs)
+            if len(reqs_str) > 0:
+                ofile.write('Requires.private: {}\n'.format(reqs_str))
             if len(conflicts) > 0:
                 ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
 
