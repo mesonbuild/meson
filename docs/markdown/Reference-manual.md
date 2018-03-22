@@ -1167,9 +1167,17 @@ argument to [`dependency()`](#dependency).
     void test(name, executable, ...)
 ```
 
-Defines a unit test. Takes two positional arguments, the first is the
-name of this test and the second is the executable to run. Keyword
-arguments are the following.
+Defines a test to run with the test harness. Takes two positional arguments,
+the first is the name of the test and the second is the executable to run.
+The executable can be an [executable build target object](#build-target-object)
+returned by [`executable()`](#executable) or an
+[external program object](#external-program-object) returned by
+[`find_program()`](#find_program). The executable's exit code is used by the
+test harness to record the outcome of the test, for example exit code zero
+indicates success. For more on the Meson test harness protocol read
+[Unit Tests](Unit-tests.md).
+
+Keyword arguments are the following:
 
 - `args` arguments to pass to the executable
 
