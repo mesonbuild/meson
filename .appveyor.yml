@@ -72,6 +72,9 @@ install:
   # For all other archs (including, say, arm), use the x64 python.
   - cmd: if %arch%==x86 (set MESON_PYTHON_PATH=C:\python35) else (set MESON_PYTHON_PATH=C:\python35-x64)
 
+  # Skip CI requires python
+  - cmd: python ./skip_ci.py --base-branch-env=APPVEYOR_REPO_BRANCH --is-pull-env=APPVEYOR_PULL_REQUEST_NUMBER
+
   # Set paths for BOOST dll files
   - cmd: if %compiler%==msvc2015 ( if %arch%==x86 ( set "PATH=%PATH%;C:\Libraries\boost_1_59_0\lib32-msvc-14.0" ) else ( set "PATH=%PATH%;C:\Libraries\boost_1_59_0\lib64-msvc-14.0" ) )
   - cmd: if %compiler%==msvc2017 ( if %arch%==x86 ( set "PATH=%PATH%;C:\Libraries\boost_1_64_0\lib32-msvc-14.1" ) else ( set "PATH=%PATH%;C:\Libraries\boost_1_64_0\lib64-msvc-14.1" ) )

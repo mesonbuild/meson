@@ -31,6 +31,7 @@ matrix:
     compiler: gcc
 
 before_install:
+  - python ./skip_ci.py --base-branch-env=TRAVIS_BRANCH --is-pull-env=TRAVIS_PULL_REQUEST
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew uninstall python mercurial; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python@2 python@3 mercurial qt; fi
