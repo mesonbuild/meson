@@ -1232,6 +1232,14 @@ class IntelCompiler:
             raise MesonException('Unreachable code when converting icc type to gcc type.')
         return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
 
+    # TODO: centralise this policy more globally, instead
+    # of fragmenting it into GnuCompiler and ClangCompiler
+    def get_asneeded_args(self):
+        if self.icc_type == CLANG_OSX:
+            return APPLE_LD_AS_NEEDED
+        else:
+            return GNU_LD_AS_NEEDED
+
     def get_std_shared_lib_link_args(self):
         # FIXME: Don't know how icc works on OSX
         # if self.icc_type == ICC_OSX:
