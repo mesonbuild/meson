@@ -369,9 +369,8 @@ can be of the following types:
 These input files can be sources, objects, libraries, or any other
 file. Meson will automatically categorize them based on the extension
 and use them accordingly. For instance, sources (`.c`, `.cpp`,
-`.vala`, `.rs`, etc) will be compiled, objects (`.o`, `.obj`) and
-libraries (`.so`, `.dll`, etc) will be linked, and all other files
-(headers, unknown extensions, etc) will be ignored.
+`.vala`, `.rs`, etc) will be compiled and objects (`.o`, `.obj`) and
+libraries (`.so`, `.dll`, etc) will be linked.
 
 With the Ninja backend, Meson will create a build-time [order-only
 dependency](https://ninja-build.org/manual.html#ref_dependencies) on
