@@ -85,6 +85,8 @@ known_exe_kwargs = known_basic_kwargs.copy()
 known_exe_kwargs.update({'implib': True,
                          'export_dynamic': True
                          })
+known_jar_kwargs = known_basic_kwargs.copy()
+known_jar_kwargs.update({'target_type': 'jar'})
 
 class InvalidArguments(MesonException):
     pass
@@ -1824,6 +1826,8 @@ class Jar(BuildTarget):
         # All jar targets are installable.
         pass
 
+    def check_unknown_kwargs(self, kwargs):
+        self.check_unknown_kwargs_int(kwargs, known_jar_kwargs)
 
 class CustomTargetIndex:
 
