@@ -263,7 +263,7 @@ changed the value and from which value to which other value. Since
 people don't remember their own actions that far back, toggling
 between states based on long history would be confusing.
 
-Because of this we do the simple an understandable thing: default
+Because of this we do the simple and understandable thing: default
 values are only defaults and will never affect the value of an option
 once set.
 
