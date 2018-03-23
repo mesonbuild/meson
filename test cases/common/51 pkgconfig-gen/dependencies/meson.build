@@ -26,7 +26,7 @@ custom2_dep = declare_dependency(link_args : ['-lcustom2'], compile_args : ['-DC
 # - We generated a pc file for libexposed so it should be in Requires instead of Libs
 # - Having threads_dep in libraries should add '-pthread' in both Libs and Cflags
 # - Having custom_dep in libraries and libraries_private should only add it in Libs
-# - Having custom2_dep in libraries_private should not add its Cflags
+# - Having custom2_dep in libraries_private should add its Cflags
 # - Having pc_dep in libraries_private should add it in Requires.private
 # - notfound_dep is not required so it shouldn't appear in the pc file.
 pkgg.generate(libraries : [main_lib, exposed_lib, threads_dep , custom_dep],

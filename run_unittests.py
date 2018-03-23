@@ -590,11 +590,10 @@ class BasePlatformTests(unittest.TestCase):
     def run_tests(self):
         self._run(self.test_command, workdir=self.builddir)
 
-    def install(self, *, use_destdir=True):
+    def install(self):
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
-        if use_destdir:
-            os.environ['DESTDIR'] = self.installdir
+        os.environ['DESTDIR'] = self.installdir
         self._run(self.install_command, workdir=self.builddir)
 
     def uninstall(self):
@@ -2273,7 +2272,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(sorted(out), sorted(['libfoo']))
 
         out = self._run(cmd + ['--cflags-only-other']).strip().split()
-        self.assertEqual(sorted(out), sorted(['-pthread', '-DCUSTOM']))
+        self.assertEqual(sorted(out), sorted(['-pthread', '-DCUSTOM', '-DCUSTOM2']))
 
         out = self._run(cmd + ['--libs-only-l', '--libs-only-other']).strip().split()
         self.assertEqual(sorted(out), sorted(['-pthread', '-lcustom',
@@ -2763,42 +2762,6 @@ endian = 'little'
         self.init(testdir, inprocess=True)
         self.build()
         mesonbuild.modules.gnome.native_glib_version = None
-
-    @unittest.skipIf(shutil.which('pkg-config') is None, 'Pkg-config not found.')
-    def test_pkgconfig_usage(self):
-        testdir1 = os.path.join(self.unit_test_dir, '24 pkgconfig usage/dependency')
-        testdir2 = os.path.join(self.unit_test_dir, '24 pkgconfig usage/dependee')
-        if subprocess.call(['pkg-config', '--cflags', 'glib-2.0'],
-                           stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL) != 0:
-            raise unittest.SkipTest('Glib 2.0 dependency not available.')
-        with tempfile.TemporaryDirectory() as tempdirname:
-            self.init(testdir1, ['--prefix=' + tempdirname, '--libdir=lib'], default_args=False)
-            self.install(use_destdir=False)
-            shutil.rmtree(self.builddir)
-            os.mkdir(self.builddir)
-            pkg_dir = os.path.join(tempdirname, 'lib/pkgconfig')
-            self.assertTrue(os.path.exists(os.path.join(pkg_dir, 'libpkgdep.pc')))
-            lib_dir = os.path.join(tempdirname, 'lib')
-            os.environ['PKG_CONFIG_PATH'] = pkg_dir
-            # Private internal libraries must not leak out.
-            pkg_out = subprocess.check_output(['pkg-config', '--static', '--libs', 'libpkgdep'])
-            self.assertFalse(b'libpkgdep-int' in pkg_out, 'Internal library leaked out.')
-            # Dependencies must not leak to cflags when building only a shared library.
-            pkg_out = subprocess.check_output(['pkg-config', '--cflags', 'libpkgdep'])
-            self.assertFalse(b'glib' in pkg_out, 'Internal dependency leaked to headers.')
-            # Test that the result is usable.
-            self.init(testdir2)
-            self.build()
-            myenv = os.environ.copy()
-            myenv['LD_LIBRARY_PATH'] = lib_dir
-            if is_cygwin():
-                bin_dir = os.path.join(tempdirname, 'bin')
-                myenv['PATH'] = bin_dir + os.pathsep + myenv['PATH']
-            self.assertTrue(os.path.isdir(lib_dir))
-            test_exe = os.path.join(self.builddir, 'pkguser')
-            self.assertTrue(os.path.isfile(test_exe))
-            subprocess.check_call(test_exe, env=myenv)
 
 
 class LinuxArmCrossCompileTests(BasePlatformTests):

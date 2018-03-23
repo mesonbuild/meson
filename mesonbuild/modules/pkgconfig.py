@@ -30,6 +30,7 @@ class DependenciesHelper:
         self.pub_reqs = []
         self.priv_libs = []
         self.priv_reqs = []
+        self.internal_reqs = []
         self.cflags = []
 
     def add_pub_libs(self, libs):
@@ -39,9 +40,15 @@ class DependenciesHelper:
         self.cflags += cflags
 
     def add_priv_libs(self, libs):
-        libs, reqs, _ = self._process_libs(libs, False)
+        libs, reqs, cflags = self._process_libs(libs, False)
         self.priv_libs += libs
         self.priv_reqs += reqs
+        self.cflags += cflags
+
+    def add_internal_libs(self, libs):
+        libs, reqs, _ = self._process_libs(libs, False)
+        self.priv_libs += libs
+        self.internal_reqs += reqs
 
     def add_pub_reqs(self, reqs):
         self.pub_reqs += self._process_reqs(reqs)
@@ -96,26 +103,16 @@ class DependenciesHelper:
                 if obj.found():
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-            elif isinstance(obj, build.SharedLibrary):
+            elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
+                # By default add all dependencies as internal because we have no
+                # way to know if they are exposed into the library's API. User
+                # can promote some dependencies to private or public by adding
+                # them manually.
                 processed_libs.append(obj)
-                if public:
-                    if not hasattr(obj, 'generated_pc'):
-                        obj.generated_pc = self.name
-            elif isinstance(obj, build.StaticLibrary):
-                # Due to a "feature" in pkgconfig, it leaks out private dependencies.
-                # Thus we will not add them to the pc file unless the target
-                # we are processing is a static library.
-                #
-                # This way (hopefully) "pkgconfig --libs --static foobar" works
-                # and "pkgconfig --cflags/--libs foobar" does not have any trace
-                # of dependencies that the build file creator has not explicitly
-                # added to the dependency list.
-                processed_libs.append(obj)
-                if public:
-                    if not hasattr(obj, 'generated_pc'):
-                        obj.generated_pc = self.name
-                    self.add_priv_libs(obj.get_dependencies())
-                    self.add_priv_libs(obj.get_external_deps())
+                self.add_internal_libs(obj.get_dependencies())
+                self.add_internal_libs(obj.get_external_deps())
+                if public and not hasattr(obj, 'generated_pc'):
+                    obj.generated_pc = self.name
             elif isinstance(obj, str):
                 processed_libs.append(obj)
             else:
@@ -128,11 +125,14 @@ class DependenciesHelper:
         self.pub_reqs = list(set(self.pub_reqs))
         self.priv_libs = list(set(self.priv_libs))
         self.priv_reqs = list(set(self.priv_reqs))
+        self.internal_reqs = list(set(self.internal_reqs))
         self.cflags = list(set(self.cflags))
 
         # Remove from private libs/reqs if they are in public already
         self.priv_libs = [i for i in self.priv_libs if i not in self.pub_libs]
         self.priv_reqs = [i for i in self.priv_reqs if i not in self.pub_reqs]
+        tmp = self.priv_reqs + self.pub_reqs
+        self.internal_reqs = [i for i in self.internal_reqs if i not in tmp]
 
 class PkgConfigModule(ExtensionModule):
 
@@ -205,6 +205,11 @@ class PkgConfigModule(ExtensionModule):
             if len(deps.priv_reqs) > 0:
                 ofile.write(
                     'Requires.private: {}\n'.format(' '.join(deps.priv_reqs)))
+            if len(deps.internal_reqs) > 0:
+                # FIXME: Use Requires.internal when it gets released:
+                # https://bugs.freedesktop.org/show_bug.cgi?id=105572
+                ofile.write(
+                    'Requires.private: {}\n'.format(' '.join(deps.internal_reqs)))
             if len(conflicts) > 0:
                 ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
 
