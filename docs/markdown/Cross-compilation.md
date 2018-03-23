@@ -14,7 +14,10 @@ we are going to call these the *build machine*, *host machine* and
 
 * *build machine* is the computer that is doing the actual compiling
 * *host machine* is the machine on which the compiled binary will run
-* *target machine* is the machine on which the compiled binary's output will run (this is only meaningful for programs such as compilers that, when run, produce object code for a different CPU than what the program is being run on)
+* *target machine* is the machine on which the compiled binary's
+  output will run (this is only meaningful for programs such as
+  compilers that, when run, produce object code for a different CPU
+  than what the program is being run on)
 
 The `tl/dr` summary is the following: if you are doing regular cross
 compilation, you only care about *build_machine* and
