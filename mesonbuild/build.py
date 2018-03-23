@@ -1034,7 +1034,9 @@ You probably should put it in link_with instead.''')
         '''
         for link_target in self.link_targets:
             if isinstance(link_target, SharedModule):
-                mlog.warning('''Linking shared modules to targets is not recommended''')
+                mlog.warning('''target links against shared modules. This is not 
+recommended as it can lead to undefined behaviour on some platforms''')
+                return
 
 class Generator:
     def __init__(self, args, kwargs):

@@ -1898,15 +1898,14 @@ int main(int argc, char **argv) {
         self.assertTrue(exception_raised, 'Double locking did not raise exception.')
 
     def test_check_module_linking(self):
-        '''
+        """
         Test that shared modules are not linked with targets(link_with:) #2865
-        '''
+        """
         tdir = os.path.join(self.unit_test_dir, '25 shared_mod linking')
         out = self.init(tdir)
-        for expected in [
-            r'WARNING: Linking shared modules to targets is not recommended'
-        ]:
-            self.assertRegex(out, re.escape(expected))
+        msg = ('''WARNING: target links against shared modules. This is not 
+recommended as it can lead to undefined behaviour on some platforms''')
+        self.assertIn(msg, out)
 
     def test_ndebug_if_release_disabled(self):
         testdir = os.path.join(self.unit_test_dir, '25 ndebug if-release')
