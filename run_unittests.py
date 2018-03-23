@@ -2273,7 +2273,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(sorted(out), sorted(['libfoo']))
 
         out = self._run(cmd + ['--cflags-only-other']).strip().split()
-        self.assertEqual(sorted(out), sorted(['-pthread', '-DCUSTOM']))
+        self.assertEqual(sorted(out), sorted(['-pthread', '-DCUSTOM', '-DCUSTOM2']))
 
         out = self._run(cmd + ['--libs-only-l', '--libs-only-other']).strip().split()
         self.assertEqual(sorted(out), sorted(['-pthread', '-lcustom',

@@ -39,9 +39,10 @@ class DependenciesHelper:
         self.cflags += cflags
 
     def add_priv_libs(self, libs):
-        libs, reqs, _ = self._process_libs(libs, False)
+        libs, reqs, cflags = self._process_libs(libs, False)
         self.priv_libs += libs
         self.priv_reqs += reqs
+        self.cflags += cflags
 
     def add_pub_reqs(self, reqs):
         self.pub_reqs += self._process_reqs(reqs)
