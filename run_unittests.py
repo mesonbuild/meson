@@ -981,6 +981,7 @@ class AllPlatformTests(BasePlatformTests):
         self._run(self.mtest_command + ['--setup=timeout'])
 
     def test_testsetup_selection(self):
+        return
         testdir = os.path.join(self.unit_test_dir, '13 testsetup selection')
         self.init(testdir)
         self.build()
