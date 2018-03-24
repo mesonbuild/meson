@@ -288,3 +288,9 @@ has a option called `wrap-mode` which can be used to disable wrap
 downloads altogether with `--wrap-mode=nodownload`. You can also
 disable dependency fallbacks altogether with `--wrap-mode=nofallback`,
 which also implies the `nodownload` option.
+
+If on the other hand, you want meson to always use the fallback
+for dependencies, even when an external dependency exists and could
+satisfy the version requirements, for example in order to make
+sure your project builds when fallbacks are used, you can use
+`--wrap-mode=forcefallback`.

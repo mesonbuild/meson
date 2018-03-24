@@ -2404,10 +2404,13 @@ to directly access options of other subprojects.''')
             dep = None
 
             # Search for it outside the project
-            try:
-                dep = dependencies.find_external_dependency(name, self.environment, kwargs)
-            except DependencyException as e:
-                exception = e
+            if self.coredata.wrap_mode != WrapMode.forcefallback or 'fallback' not in kwargs:
+                try:
+                    dep = dependencies.find_external_dependency(name, self.environment, kwargs)
+                except DependencyException as e:
+                    exception = e
+            else:
+                exception = DependencyException("fallback for %s not found" % name)
 
             # Search inside the projects list
             if not dep or not dep.found():

@@ -25,7 +25,12 @@ from enum import Enum
 # to use 'nofallback' so that any 'copylib' wraps will be
 # download as subprojects.
 #
+# --wrap-mode=forcefallback will ignore external dependencies,
+# even if they match the version requirements, and automatically
+# use the fallback if one was provided. This is useful for example
+# to make sure a project builds when using the fallbacks.
+#
 # Note that these options do not affect subprojects that
 # are git submodules since those are only usable in git
 # repositories, and you almost always want to download them.
-WrapMode = Enum('WrapMode', 'default nofallback nodownload')
+WrapMode = Enum('WrapMode', 'default nofallback nodownload forcefallback')
