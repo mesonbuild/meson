@@ -416,7 +416,7 @@ class CCompiler(Compiler):
         }}'''
         if not self.compiles(t.format(**fargs), env, extra_args, dependencies):
             return -1
-        return self.cross_compute_int('sizeof(%s)' % typename, 1, 128, None, prefix, env, extra_args, dependencies)
+        return self.cross_compute_int('sizeof(%s)' % typename, 1, 1024, None, prefix, env, extra_args, dependencies)
 
     def sizeof(self, typename, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -766,7 +766,7 @@ class CCompiler(Compiler):
             raise AssertionError('BUG: unknown libtype {!r}'.format(libtype))
         return prefixes, suffixes
 
-    def find_library(self, libname, env, extra_dirs, libtype='default'):
+    def find_library(self, libname, env, dependencies, extra_dirs, libtype='default'):
         # These libraries are either built-in or invalid
         if libname in self.ignore_libs:
             return []
@@ -778,7 +778,7 @@ class CCompiler(Compiler):
         # Only try to find std libs if no extra dirs specified.
         if not extra_dirs and libtype == 'default':
             args = ['-l' + libname]
-            if self.links(code, env, extra_args=args):
+            if self.links(code, env, extra_args=args, dependencies=dependencies):
                 return args
         # Ensure that we won't modify the list that was passed to us
         extra_dirs = extra_dirs[:]
