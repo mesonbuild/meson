@@ -2624,7 +2624,7 @@ root and issuing %s.
             if 'command' not in kwargs:
                 raise InterpreterException('Missing "command" keyword argument')
             all_args = extract_as_list(kwargs, 'command')
-            deps = extract_as_list(kwargs, 'depends')
+            deps = extract_as_list(kwargs, 'depends', unholder=True)
         else:
             raise InterpreterException('Run_target needs at least one positional argument.')
 
@@ -2639,10 +2639,6 @@ root and issuing %s.
             raise InterpreterException('First argument must be a string.')
         cleaned_deps = []
         for d in deps:
-            try:
-                d = d.held_object
-            except AttributeError:
-                pass
             if not isinstance(d, (build.BuildTarget, build.CustomTarget)):
                 raise InterpreterException('Depends items must be build targets.')
             cleaned_deps.append(d)
@@ -3032,11 +3028,9 @@ different subdirectory.
         if ":" not in setup_name:
             setup_name = (self.subproject if self.subproject else self.build.project_name) + ":" + setup_name
         try:
-            inp = extract_as_list(kwargs, 'exe_wrapper')
+            inp = extract_as_list(kwargs, 'exe_wrapper', unholder=True)
             exe_wrapper = []
             for i in inp:
-                if hasattr(i, 'held_object'):
-                    i = i.held_object
                 if isinstance(i, str):
                     exe_wrapper.append(i)
                 elif isinstance(i, dependencies.ExternalProgram):
