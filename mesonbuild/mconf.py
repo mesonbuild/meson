@@ -17,13 +17,15 @@ import sys
 import argparse
 from . import (coredata, mesonlib, build)
 
-parser = argparse.ArgumentParser(prog='meson configure')
+def buildparser():
+    parser = argparse.ArgumentParser(prog='meson configure')
 
-parser.add_argument('-D', action='append', default=[], dest='sets',
-                    help='Set an option to the given value.')
-parser.add_argument('directory', nargs='*')
-parser.add_argument('--clearcache', action='store_true', default=False,
-                    help='Clear cached state (e.g. found dependencies)')
+    parser.add_argument('-D', action='append', default=[], dest='sets',
+                        help='Set an option to the given value.')
+    parser.add_argument('directory', nargs='*')
+    parser.add_argument('--clearcache', action='store_true', default=False,
+                        help='Clear cached state (e.g. found dependencies)')
+    return parser
 
 
 class ConfException(mesonlib.MesonException):
@@ -226,7 +228,7 @@ def run(args):
     args = mesonlib.expand_arguments(args)
     if not args:
         args = [os.getcwd()]
-    options = parser.parse_args(args)
+    options = buildparser().parse_args(args)
     if len(options.directory) > 1:
         print('%s <build directory>' % args[0])
         print('If you omit the build directory, the current directory is substituted.')
