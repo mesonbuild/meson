@@ -30,3 +30,7 @@ f = executable('somefxe', 'sub4/main.c',
 
 test('eh', e)
 test('oh', f)
+
+# Test that the order in include_directories() is maintained
+incs = include_directories('inc1', 'inc2')
+executable('ordertest', 'ordertest.c', include_directories: incs)

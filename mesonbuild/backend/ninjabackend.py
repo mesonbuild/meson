@@ -2169,7 +2169,10 @@ rule FORTRAN_DEP_HACK
         # Hence, we must reverse the list so that the order is preserved.
         for i in reversed(target.get_include_dirs()):
             basedir = i.get_curdir()
-            for d in i.get_incdirs():
+            # We should iterate include dirs in reversed orders because
+            # -Ipath will add to begin of array. And without reverse
+            # flags will be added in reversed order.
+            for d in reversed(i.get_incdirs()):
                 # Avoid superfluous '/.' at the end of paths when d is '.'
                 if d not in ('', '.'):
                     expdir = os.path.join(basedir, d)

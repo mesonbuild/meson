@@ -769,7 +769,8 @@ class Vs2010Backend(backends.Backend):
             # These are per-target, but we still add them as per-file because we
             # need them to be looked in first.
             for d in reversed(target.get_include_dirs()):
-                for i in d.get_incdirs():
+                # reversed is used to keep order of includes
+                for i in reversed(d.get_incdirs()):
                     curdir = os.path.join(d.get_curdir(), i)
                     args.append('-I' + self.relpath(curdir, target.subdir)) # build dir
                     args.append('-I' + os.path.join(proj_to_src_root, curdir)) # src dir
