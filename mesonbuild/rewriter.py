@@ -29,18 +29,20 @@ from mesonbuild import mlog
 import sys, traceback
 import argparse
 
-parser = argparse.ArgumentParser(prog='meson rewrite')
+def buildparser():
+    parser = argparse.ArgumentParser(prog='meson rewrite')
 
-parser.add_argument('--sourcedir', default='.',
-                    help='Path to source directory.')
-parser.add_argument('--target', default=None,
-                    help='Name of target to edit.')
-parser.add_argument('--filename', default=None,
-                    help='Name of source file to add or remove to target.')
-parser.add_argument('commands', nargs='+')
+    parser.add_argument('--sourcedir', default='.',
+                        help='Path to source directory.')
+    parser.add_argument('--target', default=None,
+                        help='Name of target to edit.')
+    parser.add_argument('--filename', default=None,
+                        help='Name of source file to add or remove to target.')
+    parser.add_argument('commands', nargs='+')
+    return parser
 
 def run(args):
-    options = parser.parse_args(args)
+    options = buildparser().parse_args(args)
     if options.target is None or options.filename is None:
         sys.exit("Must specify both target and filename.")
     print('This tool is highly experimental, use with care.')

@@ -59,47 +59,49 @@ def determine_worker_count():
             num_workers = 1
     return num_workers
 
-parser = argparse.ArgumentParser(prog='meson test')
-parser.add_argument('--repeat', default=1, dest='repeat', type=int,
-                    help='Number of times to run the tests.')
-parser.add_argument('--no-rebuild', default=False, action='store_true',
-                    help='Do not rebuild before running tests.')
-parser.add_argument('--gdb', default=False, dest='gdb', action='store_true',
-                    help='Run test under gdb.')
-parser.add_argument('--list', default=False, dest='list', action='store_true',
-                    help='List available tests.')
-parser.add_argument('--wrapper', default=None, dest='wrapper', type=shlex.split,
-                    help='wrapper to run tests with (e.g. Valgrind)')
-parser.add_argument('-C', default='.', dest='wd',
-                    help='directory to cd into before running')
-parser.add_argument('--suite', default=[], dest='include_suites', action='append', metavar='SUITE',
-                    help='Only run tests belonging to the given suite.')
-parser.add_argument('--no-suite', default=[], dest='exclude_suites', action='append', metavar='SUITE',
-                    help='Do not run tests belonging to the given suite.')
-parser.add_argument('--no-stdsplit', default=True, dest='split', action='store_false',
-                    help='Do not split stderr and stdout in test logs.')
-parser.add_argument('--print-errorlogs', default=False, action='store_true',
-                    help="Whether to print failing tests' logs.")
-parser.add_argument('--benchmark', default=False, action='store_true',
-                    help="Run benchmarks instead of tests.")
-parser.add_argument('--logbase', default='testlog',
-                    help="Base name for log file.")
-parser.add_argument('--num-processes', default=determine_worker_count(), type=int,
-                    help='How many parallel processes to use.')
-parser.add_argument('-v', '--verbose', default=False, action='store_true',
-                    help='Do not redirect stdout and stderr')
-parser.add_argument('-q', '--quiet', default=False, action='store_true',
-                    help='Produce less output to the terminal.')
-parser.add_argument('-t', '--timeout-multiplier', type=float, default=None,
-                    help='Define a multiplier for test timeout, for example '
-                    ' when running tests in particular conditions they might take'
-                    ' more time to execute.')
-parser.add_argument('--setup', default=None, dest='setup',
-                    help='Which test setup to use.')
-parser.add_argument('--test-args', default=[], type=shlex.split,
-                    help='Arguments to pass to the specified test(s) or all tests')
-parser.add_argument('args', nargs='*',
-                    help='Optional list of tests to run')
+def buildparser():
+    parser = argparse.ArgumentParser(prog='meson test')
+    parser.add_argument('--repeat', default=1, dest='repeat', type=int,
+                        help='Number of times to run the tests.')
+    parser.add_argument('--no-rebuild', default=False, action='store_true',
+                        help='Do not rebuild before running tests.')
+    parser.add_argument('--gdb', default=False, dest='gdb', action='store_true',
+                        help='Run test under gdb.')
+    parser.add_argument('--list', default=False, dest='list', action='store_true',
+                        help='List available tests.')
+    parser.add_argument('--wrapper', default=None, dest='wrapper', type=shlex.split,
+                        help='wrapper to run tests with (e.g. Valgrind)')
+    parser.add_argument('-C', default='.', dest='wd',
+                        help='directory to cd into before running')
+    parser.add_argument('--suite', default=[], dest='include_suites', action='append', metavar='SUITE',
+                        help='Only run tests belonging to the given suite.')
+    parser.add_argument('--no-suite', default=[], dest='exclude_suites', action='append', metavar='SUITE',
+                        help='Do not run tests belonging to the given suite.')
+    parser.add_argument('--no-stdsplit', default=True, dest='split', action='store_false',
+                        help='Do not split stderr and stdout in test logs.')
+    parser.add_argument('--print-errorlogs', default=False, action='store_true',
+                        help="Whether to print failing tests' logs.")
+    parser.add_argument('--benchmark', default=False, action='store_true',
+                        help="Run benchmarks instead of tests.")
+    parser.add_argument('--logbase', default='testlog',
+                        help="Base name for log file.")
+    parser.add_argument('--num-processes', default=determine_worker_count(), type=int,
+                        help='How many parallel processes to use.')
+    parser.add_argument('-v', '--verbose', default=False, action='store_true',
+                        help='Do not redirect stdout and stderr')
+    parser.add_argument('-q', '--quiet', default=False, action='store_true',
+                        help='Produce less output to the terminal.')
+    parser.add_argument('-t', '--timeout-multiplier', type=float, default=None,
+                        help='Define a multiplier for test timeout, for example '
+                        ' when running tests in particular conditions they might take'
+                        ' more time to execute.')
+    parser.add_argument('--setup', default=None, dest='setup',
+                        help='Which test setup to use.')
+    parser.add_argument('--test-args', default=[], type=shlex.split,
+                        help='Arguments to pass to the specified test(s) or all tests')
+    parser.add_argument('args', nargs='*',
+                        help='Optional list of tests to run')
+    return parser
 
 
 class TestException(mesonlib.MesonException):
@@ -622,7 +624,7 @@ def rebuild_all(wd):
     return True
 
 def run(args):
-    options = parser.parse_args(args)
+    options = buildparser().parse_args(args)
 
     if options.benchmark:
         options.num_processes = 1

@@ -21,8 +21,10 @@ import subprocess
 
 options = None
 
-parser = argparse.ArgumentParser()
-parser.add_argument('args', nargs='+')
+def buildparser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('args', nargs='+')
+    return parser
 
 def is_windows():
     platname = platform.system().lower()
@@ -70,7 +72,7 @@ def run_exe(exe):
 
 def run(args):
     global options
-    options = parser.parse_args(args)
+    options = buildparser().parse_args(args)
     if len(options.args) != 1:
         print('Test runner for Meson. Do not run on your own, mmm\'kay?')
         print(sys.argv[0] + ' [data file]')

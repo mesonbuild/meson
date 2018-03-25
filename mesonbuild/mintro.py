@@ -26,26 +26,28 @@ import argparse
 import sys, os
 import pathlib
 
-parser = argparse.ArgumentParser(prog='meson introspect')
-parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
-                    help='List top level targets.')
-parser.add_argument('--installed', action='store_true', dest='list_installed', default=False,
-                    help='List all installed files and directories.')
-parser.add_argument('--target-files', action='store', dest='target_files', default=None,
-                    help='List source files for a given target.')
-parser.add_argument('--buildsystem-files', action='store_true', dest='buildsystem_files', default=False,
-                    help='List files that make up the build system.')
-parser.add_argument('--buildoptions', action='store_true', dest='buildoptions', default=False,
-                    help='List all build options.')
-parser.add_argument('--tests', action='store_true', dest='tests', default=False,
-                    help='List all unit tests.')
-parser.add_argument('--benchmarks', action='store_true', dest='benchmarks', default=False,
-                    help='List all benchmarks.')
-parser.add_argument('--dependencies', action='store_true', dest='dependencies', default=False,
-                    help='List external dependencies.')
-parser.add_argument('--projectinfo', action='store_true', dest='projectinfo', default=False,
-                    help='Information about projects.')
-parser.add_argument('builddir', nargs='?', help='The build directory')
+def buildparser():
+    parser = argparse.ArgumentParser(prog='meson introspect')
+    parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
+                        help='List top level targets.')
+    parser.add_argument('--installed', action='store_true', dest='list_installed', default=False,
+                        help='List all installed files and directories.')
+    parser.add_argument('--target-files', action='store', dest='target_files', default=None,
+                        help='List source files for a given target.')
+    parser.add_argument('--buildsystem-files', action='store_true', dest='buildsystem_files', default=False,
+                        help='List files that make up the build system.')
+    parser.add_argument('--buildoptions', action='store_true', dest='buildoptions', default=False,
+                        help='List all build options.')
+    parser.add_argument('--tests', action='store_true', dest='tests', default=False,
+                        help='List all unit tests.')
+    parser.add_argument('--benchmarks', action='store_true', dest='benchmarks', default=False,
+                        help='List all benchmarks.')
+    parser.add_argument('--dependencies', action='store_true', dest='dependencies', default=False,
+                        help='List external dependencies.')
+    parser.add_argument('--projectinfo', action='store_true', dest='projectinfo', default=False,
+                        help='Information about projects.')
+    parser.add_argument('builddir', nargs='?', help='The build directory')
+    return parser
 
 def determine_installed_path(target, installdata):
     install_target = None
@@ -202,7 +204,7 @@ def list_projinfo(builddata):
 
 def run(args):
     datadir = 'meson-private'
-    options = parser.parse_args(args)
+    options = buildparser().parse_args(args)
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
     if not os.path.isdir(datadir):
