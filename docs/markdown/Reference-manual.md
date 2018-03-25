@@ -1198,6 +1198,13 @@ Keyword arguments are the following:
 - `workdir` absolute path that will be used as the working directory
   for the test
 
+- `depends` specifies that this test depends on the specified
+  target(s), even though it does not take any of them as a command
+  line argument. This is meant for cases where test finds those
+  targets internally, e.g. plugins or globbing. Those targets are built
+  before test is executed even if they have `build_by_default : false`.
+  Since 0.46.0
+
 Defined tests can be run in a backend-agnostic way by calling
 `meson test` inside the build dir, or by using backend-specific
 commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.
