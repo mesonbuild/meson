@@ -709,6 +709,9 @@ class Backend:
                 if not isinstance(arg, (build.CustomTarget, build.BuildTarget)):
                     continue
                 result[arg.get_id()] = arg
+            for dep in t.depends:
+                assert isinstance(dep, (build.CustomTarget, build.BuildTarget))
+                result[dep.get_id()] = dep
         return result
 
     def get_custom_target_provided_libraries(self, target):
