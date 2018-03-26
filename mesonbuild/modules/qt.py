@@ -15,7 +15,7 @@
 import os
 from .. import mlog
 from .. import build
-from ..mesonlib import MesonException, Popen_safe, extract_as_list
+from ..mesonlib import MesonException, Popen_safe, extract_as_list, File
 from ..dependencies import Qt4Dependency, Qt5Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args
@@ -71,16 +71,21 @@ class QtBaseModule:
                 mlog.log(' {}:'.format(compiler_name.lower()), mlog.red('NO'))
         self.tools_detected = True
 
-    def parse_qrc(self, state, fname):
-        abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
-        relative_part = os.path.dirname(fname)
+    def parse_qrc(self, state, rcc_file):
+        if type(rcc_file) is str:
+            abspath = os.path.join(state.environment.source_dir, state.subdir, rcc_file)
+            relative_part = os.path.dirname(rcc_file)
+        elif type(rcc_file) is File:
+            abspath = rcc_file.fname
+            relative_part = os.path.dirname(abspath)
+
         try:
             tree = ET.parse(abspath)
             root = tree.getroot()
             result = []
             for child in root[0]:
                 if child.tag != 'file':
-                    mlog.warning("malformed rcc file: ", os.path.join(state.subdir, fname))
+                    mlog.warning("malformed rcc file: ", os.path.join(state.subdir, rcc_file))
                     break
                 else:
                     result.append(os.path.join(relative_part, child.text))
@@ -116,7 +121,10 @@ class QtBaseModule:
                 sources.append(res_target)
             else:
                 for rcc_file in rcc_files:
-                    basename = os.path.basename(rcc_file)
+                    if type(rcc_file) is str:
+                        basename = os.path.basename(rcc_file)
+                    elif type(rcc_file) is File:
+                        basename = os.path.basename(rcc_file.fname)
                     name = 'qt' + str(self.qt_version) + '-' + basename.replace('.', '_')
                     rcc_kwargs = {'input': rcc_file,
                                   'output': name + '.cpp',
