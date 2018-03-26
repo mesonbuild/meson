@@ -439,10 +439,11 @@ class InternalTests(unittest.TestCase):
         for f in snippet_dir.glob('*'):
             self.assertTrue(f.is_file())
             if f.suffix == '.md':
-                for line in f.open():
-                    m = re.match(hashcounter, line)
-                    if m:
-                        self.assertEqual(len(m.group(0)), 2, 'All headings in snippets must have two hash symbols: ' + f.name)
+                with f.open() as snippet:
+                    for line in snippet:
+                        m = re.match(hashcounter, line)
+                        if m:
+                            self.assertEqual(len(m.group(0)), 2, 'All headings in snippets must have two hash symbols: ' + f.name)
             else:
                 if f.name != 'add_release_note_snippets_here':
                     self.assertTrue(False, 'A file without .md suffix in snippets dir: ' + f.name)
@@ -1811,7 +1812,8 @@ int main(int argc, char **argv) {
                     self._run(ninja,
                               workdir=os.path.join(tmpdir, 'builddir'))
             with tempfile.TemporaryDirectory() as tmpdir:
-                open(os.path.join(tmpdir, 'foo.' + lang), 'w').write('int main() {}')
+                with open(os.path.join(tmpdir, 'foo.' + lang), 'w') as f:
+                    f.write('int main() {}')
                 self._run(meson_command + ['init', '-b'], workdir=tmpdir)
 
     # The test uses mocking and thus requires that
@@ -2296,7 +2298,8 @@ class LinuxlikeTests(BasePlatformTests):
     def test_pkg_unfound(self):
         testdir = os.path.join(self.unit_test_dir, '22 unfound pkgconfig')
         self.init(testdir)
-        pcfile = open(os.path.join(self.privatedir, 'somename.pc')).read()
+        with open(os.path.join(self.privatedir, 'somename.pc')) as f:
+            pcfile = f.read()
         self.assertFalse('blub_blob_blib' in pcfile)
 
     def test_vala_c_warnings(self):
