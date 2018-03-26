@@ -1231,6 +1231,41 @@ class CompilerHolder(InterpreterObject):
         mlog.log('First supported argument:', mlog.red('None'))
         return []
 
+class BuildArgsHolder(MutableInterpreterObject, ObjectHolder):
+    def __init__(self):
+        InterpreterObject.__init__(self)
+        ObjectHolder.__init__(self, build.BuildArgs())
+        self.used = False # These objects become immutable after use.
+        self.methods.update({'add_compiler_args': self.add_compiler_args,
+                             })
+
+    def is_used(self):
+        return self.used
+
+    def mark_used(self):
+        self.used = True
+
+    @permittedMethodKwargs({'target_type', 'language'})
+    def add_compiler_args(self, args, kwargs):
+        if self.used:
+            raise InterpreterException("Can not set values on build_args object that has been used.")
+
+        check_stringlist(args)
+
+        if 'target_type' not in kwargs:
+            raise InterpreterException('Missing target_type keyword argument')
+        target_type = kwargs['target_type']
+        if not isinstance(target_type, str):
+            raise InterpreterException('target_type keyword argument must be a string')
+
+        if 'language' not in kwargs:
+            raise InterpreterException('Missing language keyword argument')
+        language = kwargs['language']
+        if not isinstance(language, str):
+            raise InterpreterException('language keyword argument must be a string')
+
+        self.held_object.add_compiler_args(args, target_type, language)
+
 ModuleState = namedtuple('ModuleState', [
     'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
     'project_name', 'project_version', 'backend', 'compilers', 'targets',
@@ -1545,6 +1580,7 @@ class Interpreter(InterpreterBase):
                            'assert': self.func_assert,
                            'benchmark': self.func_benchmark,
                            'build_target': self.func_build_target,
+                           'build_args': self.func_build_args,
                            'configuration_data': self.func_configuration_data,
                            'configure_file': self.func_configure_file,
                            'custom_target': self.func_custom_target,
@@ -2553,6 +2589,11 @@ root and issuing %s.
         else:
             raise InterpreterException('Unknown target_type.')
 
+    @noKwargs
+    @noPosargs
+    def func_build_args(self, node, args, kwargs):
+        return BuildArgsHolder()
+
     @permittedKwargs(permitted_kwargs['vcs_tag'])
     def func_vcs_tag(self, node, args, kwargs):
         if 'input' not in kwargs or 'output' not in kwargs:
@@ -3212,7 +3253,17 @@ different subdirectory.
         elif 'b_staticpic' in self.environment.coredata.base_options:
             pic = self.environment.coredata.base_options['b_staticpic'].value
 
-        if pic:
+        # Check if compiler args are the same for both libraries
+        has_different_args = False
+        extra_args = extract_as_list(kwargs, 'extra_args')
+        for obj in extra_args:
+            compiler_args = obj.held_object.compiler_args
+            if 'static_library' in compiler_args or \
+               'shared_library' in compiler_args:
+                has_different_args = True
+                break
+
+        if pic and not has_different_args:
             # Exclude sources from args and kwargs to avoid building them twice
             static_args = [args[0]]
             static_kwargs = kwargs.copy()
@@ -3257,6 +3308,11 @@ different subdirectory.
         if 'extra_files' in kwargs:
             ef = extract_as_list(kwargs, 'extra_files')
             kwargs['extra_files'] = self.source_strings_to_files(ef)
+        extra_args = extract_as_list(kwargs, 'extra_args')
+        for item in extra_args:
+            if not isinstance(item, BuildArgsHolder):
+                raise InterpreterException('Argument "extra_args" is not a list of build_args')
+            item.mark_used()
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         if targetholder is ExecutableHolder:
             targetclass = build.Executable
