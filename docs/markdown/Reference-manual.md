@@ -1139,6 +1139,7 @@ Stops further interpretation of the meson script file from the point of
 the invocation. All steps executed up to this point are valid and will
 be executed by meson. This means that all targets defined before the call
 of `subdir_done` will be build.
+
 If the current script was called by `subdir` the execution returns to the
 calling directory and continues as if the script had reached the end.
 If the current script is the top level script meson configures the project
