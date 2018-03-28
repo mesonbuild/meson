@@ -409,6 +409,15 @@ class Environment:
         return dot.join((major, minor, patch))
 
     @staticmethod
+    def get_lcc_version_from_defines(defines):
+        dot = '.'
+        generation_and_major = defines.get('__LCC__', '100')
+        generation = generation_and_major[:1]
+        major = generation_and_major[1:]
+        minor = defines.get('__LCC_MINOR__', '0')
+        return dot.join((generation, major, minor))
+
+    @staticmethod
     def get_gnu_compiler_type(defines):
         # Detect GCC type (Apple, MinGW, Cygwin, Unix)
         if '__APPLE__' in defines:
@@ -514,10 +523,11 @@ class Environment:
                     popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
                     continue
                 gtype = self.get_gnu_compiler_type(defines)
-                version = self.get_gnu_version_from_defines(defines)
                 if guess_gcc_or_lcc == 'lcc':
+                    version = self.get_lcc_version_from_defines(defines)
                     cls = ElbrusCCompiler if lang == 'c' else ElbrusCPPCompiler
                 else:
+                    version = self.get_gnu_version_from_defines(defines)
                     cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
                 return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version)
 
@@ -585,10 +595,11 @@ class Environment:
                         popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
                         continue
                     gtype = self.get_gnu_compiler_type(defines)
-                    version = self.get_gnu_version_from_defines(defines)
                     if guess_gcc_or_lcc == 'lcc':
+                        version = self.get_lcc_version_from_defines(defines)
                         cls = ElbrusFortranCompiler
                     else:
+                        version = self.get_gnu_version_from_defines(defines)
                         cls = GnuFortranCompiler
                     return cls(compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version)
 
