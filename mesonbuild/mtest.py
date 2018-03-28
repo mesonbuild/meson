@@ -200,22 +200,24 @@ class SingleTestRunner:
         self.env = env
         self.options = options
 
-    def run(self):
+    def _get_cmd(self):
         if self.test.fname[0].endswith('.jar'):
-            cmd = ['java', '-jar'] + self.test.fname
+            return ['java', '-jar'] + self.test.fname
         elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
-            cmd = ['mono'] + self.test.fname
+            return ['mono'] + self.test.fname
         else:
             if self.test.is_cross_built:
                 if self.test.exe_runner is None:
                     # Can not run test on cross compiled executable
                     # because there is no execute wrapper.
-                    cmd = None
+                    return None
                 else:
-                    cmd = [self.test.exe_runner] + self.test.fname
+                    return [self.test.exe_runner] + self.test.fname
             else:
-                cmd = self.test.fname
+                return self.test.fname
 
+    def run(self):
+        cmd = self._get_cmd()
         if cmd is None:
             res = TestResult.SKIP
             duration = 0.0
