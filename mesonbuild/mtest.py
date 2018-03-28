@@ -134,7 +134,7 @@ class TestRun:
         if self.cmd is None:
             res += 'NONE\n'
         else:
-            res += "%s%s\n" % (''.join(["%s='%s' " % (k, v) for k, v in self.env.items()]), ' ' .join(self.cmd))
+            res += '%s%s\n' % (''.join(["%s='%s' " % (k, v) for k, v in self.env.items()]), ' ' .join(self.cmd))
         if self.stdo:
             res += '--- stdout ---\n'
             res += self.stdo
@@ -284,10 +284,10 @@ class SingleTestRunner:
             (stdo, stde) = p.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             if self.options.verbose:
-                print("%s time out (After %d seconds)" % (self.test.name, timeout))
+                print('%s time out (After %d seconds)' % (self.test.name, timeout))
             timed_out = True
         except KeyboardInterrupt:
-            mlog.warning("CTRL-C detected while running %s" % (self.test.name))
+            mlog.warning('CTRL-C detected while running %s' % (self.test.name))
             kill_test = True
         finally:
             if self.options.gdb:
@@ -352,7 +352,7 @@ class TestHarness:
             self.jsonlogfile.close()
 
     def merge_suite_options(self, options, test):
-        if ":" in options.setup:
+        if ':' in options.setup:
             if options.setup not in self.build_data.test_setups:
                 sys.exit("Unknown test setup '%s'." % options.setup)
             current = self.build_data.test_setups[options.setup]
@@ -617,7 +617,7 @@ TIMEOUT: %4d
             self.print_stats(numlen, tests, name, result.result(), i)
 
     def run_special(self):
-        'Tests run by the user, usually something like "under gdb 1000 times".'
+        '''Tests run by the user, usually something like "under gdb 1000 times".'''
         if self.is_run:
             raise RuntimeError('Can not use run_special after a full run.')
         tests = self.get_tests()
@@ -634,7 +634,7 @@ def list_tests(th):
 
 def rebuild_all(wd):
     if not os.path.isfile(os.path.join(wd, 'build.ninja')):
-        print("Only ninja backend is supported to rebuild tests before running them.")
+        print('Only ninja backend is supported to rebuild tests before running them.')
         return True
 
     ninja = environment.detect_ninja()
@@ -646,7 +646,7 @@ def rebuild_all(wd):
     p.communicate()
 
     if p.returncode != 0:
-        print("Could not rebuild")
+        print('Could not rebuild')
         return False
 
     return True
@@ -675,7 +675,7 @@ def run(args):
     if check_bin is not None:
         exe = ExternalProgram(check_bin, silent=True)
         if not exe.found():
-            sys.exit("Could not find requested program: %s" % check_bin)
+            sys.exit('Could not find requested program: %s' % check_bin)
     options.wd = os.path.abspath(options.wd)
 
     if not options.list and not options.no_rebuild:
