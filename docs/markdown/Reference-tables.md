@@ -21,6 +21,7 @@ These are return values of the `get_id` method in a compiler object.
 | g95       | The G95 Fortran compiler       |
 | open64    | The Open64 Fortran Compiler    |
 | nagfor    | The NAG Fortran compiler       |
+| lcc       | Elbrus C/C++/Fortran Compiler  |
 
 ## Script environment variables
 
@@ -42,6 +43,7 @@ set in the cross file.
 | x86                 | 32 bit x86 processor  |
 | x86_64              | 64 bit x86 processor  |
 | arm                 | 32 bit ARM processor |
+| e2k                 | MCST Elbrus processor |
 
 Any cpu family not listed in the above list is not guaranteed to
 remain stable in future releases.
