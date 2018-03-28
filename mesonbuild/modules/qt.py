@@ -15,7 +15,7 @@
 import os
 from .. import mlog
 from .. import build
-from ..mesonlib import MesonException, Popen_safe, extract_as_list
+from ..mesonlib import MesonException, Popen_safe, extract_as_list, File
 from ..dependencies import Qt4Dependency, Qt5Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args
@@ -103,6 +103,12 @@ class QtBaseModule:
             if not self.rcc.found():
                 raise MesonException(err_msg.format('RCC', 'rcc-qt{}'.format(self.qt_version), self.qt_version))
             qrc_deps = []
+            rcc_files_as_str = []
+            for i in rcc_files:
+                if isinstance(i, File):
+                    i = str(i)
+                rcc_files_as_str.append(i)
+            rcc_files = rcc_files_as_str
             for i in rcc_files:
                 qrc_deps += self.parse_qrc(state, i)
             # custom output name set? -> one output file, multiple otherwise
