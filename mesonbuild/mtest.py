@@ -219,112 +219,110 @@ class SingleTestRunner:
     def run(self):
         cmd = self._get_cmd()
         if cmd is None:
-            res = TestResult.SKIP
-            duration = 0.0
-            stdo = 'Not run because can not execute cross compiled binaries.'
-            stde = None
-            returncode = GNU_SKIP_RETURNCODE
+            skip_stdout = 'Not run because can not execute cross compiled binaries.'
+            return TestRun(res=TestResult.SKIP, returncode=GNU_SKIP_RETURNCODE,
+                           should_fail=self.test.should_fail, duration=0.0,
+                           stdo=skip_stdout, stde=None, cmd=None, env=self.test.env)
         else:
             wrap = TestHarness.get_wrapper(self.options)
-
             if self.options.gdb:
                 self.test.timeout = None
+            return self._run_cmd(wrap + cmd + self.test.cmd_args + self.options.test_args)
 
-            cmd = wrap + cmd + self.test.cmd_args + self.options.test_args
-            starttime = time.time()
+    def _run_cmd(self, cmd):
+        starttime = time.time()
 
-            if len(self.test.extra_paths) > 0:
-                self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
+        if len(self.test.extra_paths) > 0:
+            self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
 
-            # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
-            # (i.e., the test or the environment don't explicitly set it), set
-            # it ourselves. We do this unconditionally for regular tests
-            # because it is extremely useful to have.
-            # Setting MALLOC_PERTURB_="0" will completely disable this feature.
-            if ('MALLOC_PERTURB_' not in self.env or not self.env['MALLOC_PERTURB_']) and not self.options.benchmark:
-                self.env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
+        # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
+        # (i.e., the test or the environment don't explicitly set it), set
+        # it ourselves. We do this unconditionally for regular tests
+        # because it is extremely useful to have.
+        # Setting MALLOC_PERTURB_="0" will completely disable this feature.
+        if ('MALLOC_PERTURB_' not in self.env or not self.env['MALLOC_PERTURB_']) and not self.options.benchmark:
+            self.env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
 
-            stdout = None
-            stderr = None
-            if not self.options.verbose:
-                stdout = subprocess.PIPE
-                stderr = subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT
+        stdout = None
+        stderr = None
+        if not self.options.verbose:
+            stdout = subprocess.PIPE
+            stderr = subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT
 
-            # Let gdb handle ^C instead of us
+        # Let gdb handle ^C instead of us
+        if self.options.gdb:
+            previous_sigint_handler = signal.getsignal(signal.SIGINT)
+            # Make the meson executable ignore SIGINT while gdb is running.
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+        def preexec_fn():
             if self.options.gdb:
-                previous_sigint_handler = signal.getsignal(signal.SIGINT)
-                # Make the meson executable ignore SIGINT while gdb is running.
-                signal.signal(signal.SIGINT, signal.SIG_IGN)
-
-            def preexec_fn():
-                if self.options.gdb:
-                    # Restore the SIGINT handler for the child process to
-                    # ensure it can handle it.
-                    signal.signal(signal.SIGINT, signal.SIG_DFL)
-                else:
-                    # We don't want setsid() in gdb because gdb needs the
-                    # terminal in order to handle ^C and not show tcsetpgrp()
-                    # errors avoid not being able to use the terminal.
-                    os.setsid()
-
-            p = subprocess.Popen(cmd,
-                                 stdout=stdout,
-                                 stderr=stderr,
-                                 env=self.env,
-                                 cwd=self.test.workdir,
-                                 preexec_fn=preexec_fn if not is_windows() else None)
-            timed_out = False
-            kill_test = False
-            if self.test.timeout is None:
-                timeout = None
-            elif self.options.timeout_multiplier is not None:
-                timeout = self.test.timeout * self.options.timeout_multiplier
+                # Restore the SIGINT handler for the child process to
+                # ensure it can handle it.
+                signal.signal(signal.SIGINT, signal.SIG_DFL)
             else:
-                timeout = self.test.timeout
-            try:
-                (stdo, stde) = p.communicate(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                if self.options.verbose:
-                    print("%s time out (After %d seconds)" % (self.test.name, timeout))
-                timed_out = True
-            except KeyboardInterrupt:
-                mlog.warning("CTRL-C detected while running %s" % (self.test.name))
-                kill_test = True
-            finally:
-                if self.options.gdb:
-                    # Let us accept ^C again
-                    signal.signal(signal.SIGINT, previous_sigint_handler)
+                # We don't want setsid() in gdb because gdb needs the
+                # terminal in order to handle ^C and not show tcsetpgrp()
+                # errors avoid not being able to use the terminal.
+                os.setsid()
 
-            if kill_test or timed_out:
-                # Python does not provide multiplatform support for
-                # killing a process and all its children so we need
-                # to roll our own.
-                if is_windows():
-                    subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
-                else:
-                    try:
-                        os.killpg(os.getpgid(p.pid), signal.SIGKILL)
-                    except ProcessLookupError:
-                        # Sometimes (e.g. with Wine) this happens.
-                        # There's nothing we can do (maybe the process
-                        # already died) so carry on.
-                        pass
-                (stdo, stde) = p.communicate()
-            endtime = time.time()
-            duration = endtime - starttime
-            stdo = decode(stdo)
-            if stde:
-                stde = decode(stde)
-            if timed_out:
-                res = TestResult.TIMEOUT
-            elif p.returncode == GNU_SKIP_RETURNCODE:
-                res = TestResult.SKIP
-            elif self.test.should_fail == bool(p.returncode):
-                res = TestResult.OK
+        p = subprocess.Popen(cmd,
+                             stdout=stdout,
+                             stderr=stderr,
+                             env=self.env,
+                             cwd=self.test.workdir,
+                             preexec_fn=preexec_fn if not is_windows() else None)
+        timed_out = False
+        kill_test = False
+        if self.test.timeout is None:
+            timeout = None
+        elif self.options.timeout_multiplier is not None:
+            timeout = self.test.timeout * self.options.timeout_multiplier
+        else:
+            timeout = self.test.timeout
+        try:
+            (stdo, stde) = p.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            if self.options.verbose:
+                print("%s time out (After %d seconds)" % (self.test.name, timeout))
+            timed_out = True
+        except KeyboardInterrupt:
+            mlog.warning("CTRL-C detected while running %s" % (self.test.name))
+            kill_test = True
+        finally:
+            if self.options.gdb:
+                # Let us accept ^C again
+                signal.signal(signal.SIGINT, previous_sigint_handler)
+
+        if kill_test or timed_out:
+            # Python does not provide multiplatform support for
+            # killing a process and all its children so we need
+            # to roll our own.
+            if is_windows():
+                subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
             else:
-                res = TestResult.FAIL
-            returncode = p.returncode
-        return TestRun(res, returncode, self.test.should_fail, duration, stdo, stde, cmd, self.test.env)
+                try:
+                    os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+                except ProcessLookupError:
+                    # Sometimes (e.g. with Wine) this happens.
+                    # There's nothing we can do (maybe the process
+                    # already died) so carry on.
+                    pass
+            (stdo, stde) = p.communicate()
+        endtime = time.time()
+        duration = endtime - starttime
+        stdo = decode(stdo)
+        if stde:
+            stde = decode(stde)
+        if timed_out:
+            res = TestResult.TIMEOUT
+        elif p.returncode == GNU_SKIP_RETURNCODE:
+            res = TestResult.SKIP
+        elif self.test.should_fail == bool(p.returncode):
+            res = TestResult.OK
+        else:
+            res = TestResult.FAIL
+        return TestRun(res, p.returncode, self.test.should_fail, duration, stdo, stde, cmd, self.test.env)
 
 
 class TestHarness:
