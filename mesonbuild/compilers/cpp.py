@@ -219,9 +219,9 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
 
 
 class ArmCPPCompiler(ArmCompiler, CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap=None, defines=None, **kwargs):
+    def __init__(self, exelist, version, is_cross, exe_wrap=None, **kwargs):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
-        ArmCompiler.__init__(self, defines)
+        ArmCompiler.__init__(self)
 
     def get_options(self):
         opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
