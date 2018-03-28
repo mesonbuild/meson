@@ -29,6 +29,7 @@ import platform
 import signal
 import random
 from copy import deepcopy
+import enum
 
 # GNU autotools interprets a return code of 77 from tests it executes to
 # mean that the test should be skipped.
@@ -106,9 +107,19 @@ class TestException(mesonlib.MesonException):
     pass
 
 
+@enum.unique
+class TestResult(enum.Enum):
+
+    OK = 'OK'
+    TIMEOUT = 'TIMEOUT'
+    SKIP = 'SKIP'
+    FAIL = 'FAIL'
+
+
 class TestRun:
     def __init__(self, res, returncode, should_fail, duration, stdo, stde, cmd,
                  env):
+        assert isinstance(res, TestResult)
         self.res = res
         self.returncode = returncode
         self.duration = duration
@@ -148,7 +159,7 @@ def decode(stream):
 def write_json_log(jsonlogfile, test_name, result):
     jresult = {'name': test_name,
                'stdout': result.stdo,
-               'result': result.res,
+               'result': result.res.value,
                'duration': result.duration,
                'returncode': result.returncode,
                'command': result.cmd}
@@ -257,7 +268,7 @@ class TestHarness:
                 cmd = test.fname
 
         if cmd is None:
-            res = 'SKIP'
+            res = TestResult.SKIP
             duration = 0.0
             stdo = 'Not run because can not execute cross compiled binaries.'
             stde = None
@@ -354,17 +365,17 @@ class TestHarness:
             if stde:
                 stde = decode(stde)
             if timed_out:
-                res = 'TIMEOUT'
+                res = TestResult.TIMEOUT
                 self.timeout_count += 1
                 self.fail_count += 1
             elif p.returncode == GNU_SKIP_RETURNCODE:
-                res = 'SKIP'
+                res = TestResult.SKIP
                 self.skip_count += 1
             elif test.should_fail == bool(p.returncode):
-                res = 'OK'
+                res = TestResult.OK
                 self.success_count += 1
             else:
-                res = 'FAIL'
+                res = TestResult.FAIL
                 self.fail_count += 1
             returncode = p.returncode
         result = TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd, test.env)
@@ -375,14 +386,14 @@ class TestHarness:
         startpad = ' ' * (numlen - len('%d' % (i + 1)))
         num = '%s%d/%d' % (startpad, i + 1, len(tests))
         padding1 = ' ' * (38 - len(name))
-        padding2 = ' ' * (8 - len(result.res))
+        padding2 = ' ' * (8 - len(result.res.value))
         result_str = '%s %s  %s%s%s%5.2f s' % \
-            (num, name, padding1, result.res, padding2, result.duration)
-        if not self.options.quiet or result.res != 'OK':
-            if result.res != 'OK' and mlog.colorize_console:
-                if result.res == 'FAIL' or result.res == 'TIMEOUT':
+            (num, name, padding1, result.res.value, padding2, result.duration)
+        if not self.options.quiet or result.res is not TestResult.OK:
+            if result.res is not TestResult.OK and mlog.colorize_console:
+                if result.res is TestResult.FAIL or result.res is TestResult.TIMEOUT:
                     decorator = mlog.red
-                elif result.res == 'SKIP':
+                elif result.res is TestResult.SKIP:
                     decorator = mlog.yellow
                 else:
                     sys.exit('Unreachable code was ... well ... reached.')
