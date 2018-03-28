@@ -251,7 +251,8 @@ class TestHarness:
         env.update(test.env)
         return env, options
 
-    def run_single_test(self, test, test_env, test_opts):
+    @staticmethod
+    def run_single_test(test, test_env, test_opts):
         if test.fname[0].endswith('.jar'):
             cmd = ['java', '-jar'] + test.fname
         elif not test.is_cross_built and run_with_mono(test.fname[0]):
@@ -274,7 +275,7 @@ class TestHarness:
             stde = None
             returncode = GNU_SKIP_RETURNCODE
         else:
-            wrap = self.get_wrapper(test_opts)
+            wrap = TestHarness.get_wrapper(test_opts)
 
             if test_opts.gdb:
                 test.timeout = None
@@ -533,7 +534,8 @@ TIMEOUT: %4d
         self.logfile.write('Log of Meson test suite run on %s\n\n'
                            % datetime.datetime.now().isoformat())
 
-    def get_wrapper(self, options):
+    @staticmethod
+    def get_wrapper(options):
         wrap = []
         if options.gdb:
             wrap = ['gdb', '--quiet', '--nh']
