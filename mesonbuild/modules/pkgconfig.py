@@ -349,7 +349,7 @@ class PkgConfigModule(ExtensionModule):
         if dversions:
             compiler = state.environment.coredata.compilers.get('d')
             if compiler:
-                deps.add_cflags(compiler.get_feature_args({'versions': dversions}))
+                deps.add_cflags(compiler.get_feature_args({'versions': dversions}, None))
 
         def parse_variable_list(stringlist):
             reserved = ['prefix', 'libdir', 'includedir']
