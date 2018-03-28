@@ -366,21 +366,29 @@ class TestHarness:
                 stde = decode(stde)
             if timed_out:
                 res = TestResult.TIMEOUT
-                self.timeout_count += 1
-                self.fail_count += 1
             elif p.returncode == GNU_SKIP_RETURNCODE:
                 res = TestResult.SKIP
-                self.skip_count += 1
             elif test.should_fail == bool(p.returncode):
                 res = TestResult.OK
-                self.success_count += 1
             else:
                 res = TestResult.FAIL
-                self.fail_count += 1
             returncode = p.returncode
         result = TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd, test.env)
 
         return result
+
+    def process_test_result(self, result):
+        if result.res is TestResult.TIMEOUT:
+            self.timeout_count += 1
+            self.fail_count += 1
+        elif result.res is TestResult.SKIP:
+            self.skip_count += 1
+        elif result.res is TestResult.OK:
+            self.success_count += 1
+        elif result.res is TestResult.FAIL:
+            self.fail_count += 1
+        else:
+            sys.exit('Unknown test result encountered: {}'.format(result.res))
 
     def print_stats(self, numlen, tests, name, result, i):
         startpad = ' ' * (numlen - len('%d' % (i + 1)))
@@ -568,6 +576,7 @@ TIMEOUT: %4d
                         futures = []
                         test_env, test_opts = self.get_test_env(test)
                         res = self.run_single_test(test, test_env, test_opts)
+                        self.process_test_result(res)
                         self.print_stats(numlen, tests, visible_name, res, i)
                     else:
                         if not executor:
@@ -596,6 +605,7 @@ TIMEOUT: %4d
                 result.cancel()
             if self.options.verbose:
                 result.result()
+            self.process_test_result(result.result())
             self.print_stats(numlen, tests, name, result.result(), i)
 
     def run_special(self):
