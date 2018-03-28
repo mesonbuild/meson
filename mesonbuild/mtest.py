@@ -192,6 +192,139 @@ def load_tests(build_dir):
         obj = pickle.load(f)
     return obj
 
+
+class SingleTestRunner:
+
+    def __init__(self, test, env, options):
+        self.test = test
+        self.env = env
+        self.options = options
+
+    def run(self):
+        if self.test.fname[0].endswith('.jar'):
+            cmd = ['java', '-jar'] + self.test.fname
+        elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
+            cmd = ['mono'] + self.test.fname
+        else:
+            if self.test.is_cross_built:
+                if self.test.exe_runner is None:
+                    # Can not run test on cross compiled executable
+                    # because there is no execute wrapper.
+                    cmd = None
+                else:
+                    cmd = [self.test.exe_runner] + self.test.fname
+            else:
+                cmd = self.test.fname
+
+        if cmd is None:
+            res = TestResult.SKIP
+            duration = 0.0
+            stdo = 'Not run because can not execute cross compiled binaries.'
+            stde = None
+            returncode = GNU_SKIP_RETURNCODE
+        else:
+            wrap = TestHarness.get_wrapper(self.options)
+
+            if self.options.gdb:
+                self.test.timeout = None
+
+            cmd = wrap + cmd + self.test.cmd_args + self.options.test_args
+            starttime = time.time()
+
+            if len(self.test.extra_paths) > 0:
+                self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
+
+            # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
+            # (i.e., the test or the environment don't explicitly set it), set
+            # it ourselves. We do this unconditionally for regular tests
+            # because it is extremely useful to have.
+            # Setting MALLOC_PERTURB_="0" will completely disable this feature.
+            if ('MALLOC_PERTURB_' not in self.env or not self.env['MALLOC_PERTURB_']) and not self.options.benchmark:
+                self.env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
+
+            stdout = None
+            stderr = None
+            if not self.options.verbose:
+                stdout = subprocess.PIPE
+                stderr = subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT
+
+            # Let gdb handle ^C instead of us
+            if self.options.gdb:
+                previous_sigint_handler = signal.getsignal(signal.SIGINT)
+                # Make the meson executable ignore SIGINT while gdb is running.
+                signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+            def preexec_fn():
+                if self.options.gdb:
+                    # Restore the SIGINT handler for the child process to
+                    # ensure it can handle it.
+                    signal.signal(signal.SIGINT, signal.SIG_DFL)
+                else:
+                    # We don't want setsid() in gdb because gdb needs the
+                    # terminal in order to handle ^C and not show tcsetpgrp()
+                    # errors avoid not being able to use the terminal.
+                    os.setsid()
+
+            p = subprocess.Popen(cmd,
+                                 stdout=stdout,
+                                 stderr=stderr,
+                                 env=self.env,
+                                 cwd=self.test.workdir,
+                                 preexec_fn=preexec_fn if not is_windows() else None)
+            timed_out = False
+            kill_test = False
+            if self.test.timeout is None:
+                timeout = None
+            elif self.options.timeout_multiplier is not None:
+                timeout = self.test.timeout * self.options.timeout_multiplier
+            else:
+                timeout = self.test.timeout
+            try:
+                (stdo, stde) = p.communicate(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                if self.options.verbose:
+                    print("%s time out (After %d seconds)" % (self.test.name, timeout))
+                timed_out = True
+            except KeyboardInterrupt:
+                mlog.warning("CTRL-C detected while running %s" % (self.test.name))
+                kill_test = True
+            finally:
+                if self.options.gdb:
+                    # Let us accept ^C again
+                    signal.signal(signal.SIGINT, previous_sigint_handler)
+
+            if kill_test or timed_out:
+                # Python does not provide multiplatform support for
+                # killing a process and all its children so we need
+                # to roll our own.
+                if is_windows():
+                    subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
+                else:
+                    try:
+                        os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+                    except ProcessLookupError:
+                        # Sometimes (e.g. with Wine) this happens.
+                        # There's nothing we can do (maybe the process
+                        # already died) so carry on.
+                        pass
+                (stdo, stde) = p.communicate()
+            endtime = time.time()
+            duration = endtime - starttime
+            stdo = decode(stdo)
+            if stde:
+                stde = decode(stde)
+            if timed_out:
+                res = TestResult.TIMEOUT
+            elif p.returncode == GNU_SKIP_RETURNCODE:
+                res = TestResult.SKIP
+            elif self.test.should_fail == bool(p.returncode):
+                res = TestResult.OK
+            else:
+                res = TestResult.FAIL
+            returncode = p.returncode
+        return TestRun(res, returncode, self.test.should_fail, duration, stdo, stde, cmd, self.test.env)
+
+
 class TestHarness:
     def __init__(self, options):
         self.options = options
@@ -240,7 +373,7 @@ class TestHarness:
             options.wrapper = current.exe_wrapper
         return current.env.get_env(os.environ.copy())
 
-    def get_test_env(self, test):
+    def get_test_runner(self, test):
         options = deepcopy(self.options)
         if options.setup:
             env = self.merge_suite_options(options, test)
@@ -249,134 +382,7 @@ class TestHarness:
         if isinstance(test.env, build.EnvironmentVariables):
             test.env = test.env.get_env(env)
         env.update(test.env)
-        return env, options
-
-    @staticmethod
-    def run_single_test(test, test_env, test_opts):
-        if test.fname[0].endswith('.jar'):
-            cmd = ['java', '-jar'] + test.fname
-        elif not test.is_cross_built and run_with_mono(test.fname[0]):
-            cmd = ['mono'] + test.fname
-        else:
-            if test.is_cross_built:
-                if test.exe_runner is None:
-                    # Can not run test on cross compiled executable
-                    # because there is no execute wrapper.
-                    cmd = None
-                else:
-                    cmd = [test.exe_runner] + test.fname
-            else:
-                cmd = test.fname
-
-        if cmd is None:
-            res = TestResult.SKIP
-            duration = 0.0
-            stdo = 'Not run because can not execute cross compiled binaries.'
-            stde = None
-            returncode = GNU_SKIP_RETURNCODE
-        else:
-            wrap = TestHarness.get_wrapper(test_opts)
-
-            if test_opts.gdb:
-                test.timeout = None
-
-            cmd = wrap + cmd + test.cmd_args + test_opts.test_args
-            starttime = time.time()
-
-            if len(test.extra_paths) > 0:
-                test_env['PATH'] = os.pathsep.join(test.extra_paths + ['']) + test_env['PATH']
-
-            # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
-            # (i.e., the test or the environment don't explicitly set it), set
-            # it ourselves. We do this unconditionally for regular tests
-            # because it is extremely useful to have.
-            # Setting MALLOC_PERTURB_="0" will completely disable this feature.
-            if ('MALLOC_PERTURB_' not in test_env or not test_env['MALLOC_PERTURB_']) and not test_opts.benchmark:
-                test_env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
-
-            stdout = None
-            stderr = None
-            if not test_opts.verbose:
-                stdout = subprocess.PIPE
-                stderr = subprocess.PIPE if test_opts and test_opts.split else subprocess.STDOUT
-
-            # Let gdb handle ^C instead of us
-            if test_opts.gdb:
-                previous_sigint_handler = signal.getsignal(signal.SIGINT)
-                # Make the meson executable ignore SIGINT while gdb is running.
-                signal.signal(signal.SIGINT, signal.SIG_IGN)
-
-            def preexec_fn():
-                if test_opts.gdb:
-                    # Restore the SIGINT handler for the child process to
-                    # ensure it can handle it.
-                    signal.signal(signal.SIGINT, signal.SIG_DFL)
-                else:
-                    # We don't want setsid() in gdb because gdb needs the
-                    # terminal in order to handle ^C and not show tcsetpgrp()
-                    # errors avoid not being able to use the terminal.
-                    os.setsid()
-
-            p = subprocess.Popen(cmd,
-                                 stdout=stdout,
-                                 stderr=stderr,
-                                 env=test_env,
-                                 cwd=test.workdir,
-                                 preexec_fn=preexec_fn if not is_windows() else None)
-            timed_out = False
-            kill_test = False
-            if test.timeout is None:
-                timeout = None
-            elif test_opts.timeout_multiplier is not None:
-                timeout = test.timeout * test_opts.timeout_multiplier
-            else:
-                timeout = test.timeout
-            try:
-                (stdo, stde) = p.communicate(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                if test_opts.verbose:
-                    print("%s time out (After %d seconds)" % (test.name, timeout))
-                timed_out = True
-            except KeyboardInterrupt:
-                mlog.warning("CTRL-C detected while running %s" % (test.name))
-                kill_test = True
-            finally:
-                if test_opts.gdb:
-                    # Let us accept ^C again
-                    signal.signal(signal.SIGINT, previous_sigint_handler)
-
-            if kill_test or timed_out:
-                # Python does not provide multiplatform support for
-                # killing a process and all its children so we need
-                # to roll our own.
-                if is_windows():
-                    subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
-                else:
-                    try:
-                        os.killpg(os.getpgid(p.pid), signal.SIGKILL)
-                    except ProcessLookupError:
-                        # Sometimes (e.g. with Wine) this happens.
-                        # There's nothing we can do (maybe the process
-                        # already died) so carry on.
-                        pass
-                (stdo, stde) = p.communicate()
-            endtime = time.time()
-            duration = endtime - starttime
-            stdo = decode(stdo)
-            if stde:
-                stde = decode(stde)
-            if timed_out:
-                res = TestResult.TIMEOUT
-            elif p.returncode == GNU_SKIP_RETURNCODE:
-                res = TestResult.SKIP
-            elif test.should_fail == bool(p.returncode):
-                res = TestResult.OK
-            else:
-                res = TestResult.FAIL
-            returncode = p.returncode
-        result = TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd, test.env)
-
-        return result
+        return SingleTestRunner(test, env, options)
 
     def process_test_result(self, result):
         if result.res is TestResult.TIMEOUT:
@@ -576,15 +582,15 @@ TIMEOUT: %4d
                     if not test.is_parallel or self.options.gdb:
                         self.drain_futures(futures)
                         futures = []
-                        test_env, test_opts = self.get_test_env(test)
-                        res = self.run_single_test(test, test_env, test_opts)
+                        single_test = self.get_test_runner(test)
+                        res = single_test.run()
                         self.process_test_result(res)
                         self.print_stats(numlen, tests, visible_name, res, i)
                     else:
                         if not executor:
                             executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
-                        test_env, test_opts = self.get_test_env(test)
-                        f = executor.submit(self.run_single_test, test, test_env, test_opts)
+                        single_test = self.get_test_runner(test)
+                        f = executor.submit(single_test.run)
                         futures.append((f, numlen, tests, visible_name, i))
                     if self.options.repeat > 1 and self.fail_count:
                         break
