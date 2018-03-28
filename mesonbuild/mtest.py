@@ -229,7 +229,8 @@ class TestHarness:
             options.wrapper = current.exe_wrapper
         return current.env.get_env(os.environ.copy())
 
-    def get_test_env(self, options, test):
+    def get_test_env(self, test):
+        options = deepcopy(self.options)
         if options.setup:
             env = self.merge_suite_options(options, test)
         else:
@@ -237,9 +238,9 @@ class TestHarness:
         if isinstance(test.env, build.EnvironmentVariables):
             test.env = test.env.get_env(env)
         env.update(test.env)
-        return env
+        return env, options
 
-    def run_single_test(self, test):
+    def run_single_test(self, test, test_env, test_opts):
         if test.fname[0].endswith('.jar'):
             cmd = ['java', '-jar'] + test.fname
         elif not test.is_cross_built and run_with_mono(test.fname[0]):
@@ -262,14 +263,12 @@ class TestHarness:
             stde = None
             returncode = GNU_SKIP_RETURNCODE
         else:
-            test_opts = deepcopy(self.options)
-            test_env = self.get_test_env(test_opts, test)
             wrap = self.get_wrapper(test_opts)
 
             if test_opts.gdb:
                 test.timeout = None
 
-            cmd = wrap + cmd + test.cmd_args + self.options.test_args
+            cmd = wrap + cmd + test.cmd_args + test_opts.test_args
             starttime = time.time()
 
             if len(test.extra_paths) > 0:
@@ -280,14 +279,14 @@ class TestHarness:
             # it ourselves. We do this unconditionally for regular tests
             # because it is extremely useful to have.
             # Setting MALLOC_PERTURB_="0" will completely disable this feature.
-            if ('MALLOC_PERTURB_' not in test_env or not test_env['MALLOC_PERTURB_']) and not self.options.benchmark:
+            if ('MALLOC_PERTURB_' not in test_env or not test_env['MALLOC_PERTURB_']) and not test_opts.benchmark:
                 test_env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
 
             stdout = None
             stderr = None
-            if not self.options.verbose:
+            if not test_opts.verbose:
                 stdout = subprocess.PIPE
-                stderr = subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT
+                stderr = subprocess.PIPE if test_opts and test_opts.split else subprocess.STDOUT
 
             # Let gdb handle ^C instead of us
             if test_opts.gdb:
@@ -323,7 +322,7 @@ class TestHarness:
             try:
                 (stdo, stde) = p.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
-                if self.options.verbose:
+                if test_opts.verbose:
                     print("%s time out (After %d seconds)" % (test.name, timeout))
                 timed_out = True
             except KeyboardInterrupt:
@@ -556,12 +555,14 @@ TIMEOUT: %4d
                     if not test.is_parallel or self.options.gdb:
                         self.drain_futures(futures)
                         futures = []
-                        res = self.run_single_test(test)
+                        test_env, test_opts = self.get_test_env(test)
+                        res = self.run_single_test(test, test_env, test_opts)
                         self.print_stats(numlen, tests, visible_name, res, i)
                     else:
                         if not executor:
                             executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
-                        f = executor.submit(self.run_single_test, test)
+                        test_env, test_opts = self.get_test_env(test)
+                        f = executor.submit(self.run_single_test, test, test_env, test_opts)
                         futures.append((f, numlen, tests, visible_name, i))
                     if self.options.repeat > 1 and self.fail_count:
                         break
