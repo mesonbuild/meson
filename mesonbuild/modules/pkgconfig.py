@@ -301,20 +301,34 @@ class PkgConfigModule(ExtensionModule):
                       'subdirs', 'requires', 'requires_private', 'libraries_private',
                       'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions'})
     def generate(self, state, args, kwargs):
-        if len(args) > 0:
-            raise mesonlib.MesonException('Pkgconfig_gen takes no positional arguments.')
+        default_version = state.project_version['version']
+        default_install_dir = None
+        default_description = None
+        default_name = None
+        mainlib = None
+        if len(args) == 1:
+            mainlib = getattr(args[0], 'held_object', args[0])
+            if not isinstance(mainlib, (build.StaticLibrary, build.SharedLibrary)):
+                raise mesonlib.MesonException('Pkgconfig_gen first positional argument must be a library object')
+            default_name = mainlib.name
+            default_description = state.project_name + ': ' + mainlib.name
+            install_dir = mainlib.get_custom_install_dir()[0]
+            if isinstance(install_dir, str):
+                default_install_dir = os.path.join(install_dir, 'pkgconfig')
+        elif len(args) > 1:
+            raise mesonlib.MesonException('Too many positional arguments passed to Pkgconfig_gen.')
 
         subdirs = mesonlib.stringlistify(kwargs.get('subdirs', ['.']))
-        version = kwargs.get('version', None)
+        version = kwargs.get('version', default_version)
         if not isinstance(version, str):
             raise mesonlib.MesonException('Version must be specified.')
-        name = kwargs.get('name', None)
+        name = kwargs.get('name', default_name)
         if not isinstance(name, str):
             raise mesonlib.MesonException('Name not specified.')
         filebase = kwargs.get('filebase', name)
         if not isinstance(filebase, str):
             raise mesonlib.MesonException('Filebase must be a string.')
-        description = kwargs.get('description', None)
+        description = kwargs.get('description', default_description)
         if not isinstance(description, str):
             raise mesonlib.MesonException('Description is not a string.')
         url = kwargs.get('url', '')
@@ -323,6 +337,8 @@ class PkgConfigModule(ExtensionModule):
         conflicts = mesonlib.stringlistify(kwargs.get('conflicts', []))
 
         deps = DependenciesHelper(filebase)
+        if mainlib:
+            deps.add_pub_libs(mainlib)
         deps.add_pub_libs(kwargs.get('libraries', []))
         deps.add_priv_libs(kwargs.get('libraries_private', []))
         deps.add_pub_reqs(kwargs.get('requires', []))
@@ -362,7 +378,7 @@ class PkgConfigModule(ExtensionModule):
         variables = parse_variable_list(mesonlib.stringlistify(kwargs.get('variables', [])))
 
         pcfile = filebase + '.pc'
-        pkgroot = kwargs.get('install_dir', None)
+        pkgroot = kwargs.get('install_dir', default_install_dir)
         if pkgroot is None:
             pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
         if not isinstance(pkgroot, str):
