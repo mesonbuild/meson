@@ -10,17 +10,23 @@ nomenclature. The three most important definitions are traditionally
 called *build*, *host* and *target*. This is confusing because those
 terms are used for quite many different things. To simplify the issue,
 we are going to call these the *build machine*, *host machine* and
-*target machine*. Their definitions are the following
+*target machine*. Their definitions are the following:
 
-* *build machine* is the computer that is doing the actual compiling
-* *host machine* is the machine on which the compiled binary will run
-* *target machine* is the machine on which the compiled binary's output will run (this is only meaningful for programs such as compilers that, when run, produce object code for a different CPU than what the program is being run on)
+* *build machine* is the computer that is doing the actual compiling.
+* *host machine* is the machine on which the compiled binary will run.
+* *target machine* is the machine on which the compiled binary's
+  output will run, *only meaningful* if the program produces
+  machine-specific output.
 
 The `tl/dr` summary is the following: if you are doing regular cross
-compilation, you only care about *build_machine* and
-*host_machine*. Just ignore *target_machine* altogether and you will
-be correct 99% of the time. If your needs are more complex or you are
-interested in the actual details, do read on.
+compilation, you only care about `build_machine` and
+`host_machine`. Just ignore `target_machine` altogether and you will
+be correct 99% of the time. Only compilers and similar tools care
+about the target machine. In fact, for so-called "multi-target" tools
+the target machine need not be fixed at build-time like the others but
+chosen at runtime, so `target_machine` *still* doesn't matter. If your
+needs are more complex or you are interested in the actual details, do
+read on.
 
 This might be easier to understand through examples. Let's start with
 the regular, not cross-compiling case. In these cases all of these
@@ -49,6 +55,20 @@ a side note, be careful when reading cross compilation articles on
 Wikipedia or the net in general. It is very common for them to get
 build, host and target mixed up, even in consecutive sentences, which
 can leave you puzzled until you figure it out.
+
+A lot of confusion stems from the fact that when you cross-compile
+something, the 3 systems (*build*, *host*, and *target*) used when
+building the cross compiler don't align with the ones used when
+building something with that newly-built cross compiler. To take our
+Canadian Cross scenario from above (for full generality), since its
+*host machine* is x86 Windows, the *build machine* of anything we
+build with it is *x86 Windows*. And since its *target machine* is MIPS
+Linux, the *host machine* of anything we build with it is *MIPS
+Linux*. Only the *target machine* of whatever we build with it can be
+freely chosen by us, say if we want to build another cross compiler
+that runs on MIPS Linux and targets Aarch64 iOS. As this example
+hopefully makes clear to you, the platforms are shifted over to the
+left by one position.
 
 If you did not understand all of the details, don't worry. For most
 people it takes a while to wrap their head around these
@@ -82,8 +102,9 @@ of a wrapper, these lines are all you need to write. Meson will
 automatically use the given wrapper when it needs to run host
 binaries. This happens e.g. when running the project's test suite.
 
-The next section lists properties of the cross compiler and thus of
-the host system. It looks like this:
+The next section lists properties of the cross compiler and its target
+system, and thus properties of host system of what we're building. It
+looks like this:
 
 ```ini
 [properties]
