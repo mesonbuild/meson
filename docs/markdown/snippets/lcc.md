@@ -5,9 +5,9 @@ based on [e2k microarchitecture](https://en.wikipedia.org/wiki/Elbrus_2000)
 has been added.
 
 Examples of such CPUs:
-* [Elbrus-8S (Эльбрус-8С)](https://en.wikipedia.org/wiki/Elbrus-8S);
-* Elbrus-4S (Эльбрус-4С);
-* [Elbrus-2S+ (Эльбрус-2С+)](https://en.wikipedia.org/wiki/Elbrus-2S%2B).
+* [Elbrus-8S](https://en.wikipedia.org/wiki/Elbrus-8S);
+* Elbrus-4S;
+* [Elbrus-2S+](https://en.wikipedia.org/wiki/Elbrus-2S%2B).
 
 Such compiler have a similar behavior as gcc (basic option compatibility),
 but, in is not strictly compatible with gcc as of current version.
