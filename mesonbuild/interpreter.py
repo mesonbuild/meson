@@ -605,6 +605,8 @@ class StaticLibraryHolder(BuildTargetHolder):
 class SharedLibraryHolder(BuildTargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
+        # Set to True only when called from self.func_shared_lib().
+        target.shared_library_only = False
 
 class SharedModuleHolder(BuildTargetHolder):
     def __init__(self, target, interp):
@@ -2486,7 +2488,9 @@ root and issuing %s.
 
     @permittedKwargs(permitted_kwargs['shared_library'])
     def func_shared_lib(self, node, args, kwargs):
-        return self.build_target(node, args, kwargs, SharedLibraryHolder)
+        holder = self.build_target(node, args, kwargs, SharedLibraryHolder)
+        holder.held_object.shared_library_only = True
+        return holder
 
     @permittedKwargs(permitted_kwargs['shared_module'])
     def func_shared_module(self, node, args, kwargs):
