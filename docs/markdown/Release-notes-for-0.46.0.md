@@ -14,3 +14,10 @@ whose contents should look like this:
     ## Feature name
 
     A short description explaining the new feature and how it should be used.
+
+## Allow early return from a script
+
+Added the function `subdir_done()`. Its invocation exits the current script at
+the point of invocation. All previously invoked build targets and commands are
+build/executed. All following ones are ignored. If the current script was
+invoked via `subdir()` the parent script continues normally.
