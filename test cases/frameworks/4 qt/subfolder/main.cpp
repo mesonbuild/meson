@@ -1,4 +1,6 @@
 #include <QImage>
+#include <QFile>
+#include <QString>
 
 int main(int argc, char **argv) {
   #ifndef UNITY_BUILD
@@ -14,5 +16,11 @@ int main(int argc, char **argv) {
   if(img2.width() != 640) {
       return 1;
   }
+  QFile file(":/txt_resource.txt");
+  if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+      return 1;
+  QString line = file.readLine();
+  if(line.compare("Hello World"))
+      return 1;
   return 0;
 }

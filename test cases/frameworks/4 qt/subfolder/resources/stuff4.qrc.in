@@ -2,5 +2,6 @@
 <RCC version="1.0">
   <qresource>
       <file alias="thing4.png">@filepath@</file>
+      <file alias="txt_resource.txt">@txt_resource@</file>
   </qresource>
 </RCC>

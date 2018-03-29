@@ -1,6 +1,16 @@
+
+simple_gen = find_program('generator.py', required : true)
+
+txt_resource = custom_target('txt_resource',
+  output : 'txt_resource.txt',
+  command : [simple_gen, '@OUTPUT@'],
+)
+
 cfg = configuration_data()
 
 cfg.set('filepath', meson.current_source_dir()+'/../thing2.png')
+cfg.set('txt_resource', txt_resource.full_path())
+
 rc_file = configure_file(
   configuration : cfg,
   input : 'resources/stuff4.qrc.in',
