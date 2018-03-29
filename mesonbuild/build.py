@@ -1034,7 +1034,7 @@ You probably should put it in link_with instead.''')
         '''
         for link_target in self.link_targets:
             if isinstance(link_target, SharedModule):
-                mlog.warning('''target links against shared modules. This is not 
+                mlog.warning('''target links against shared modules. This is not
 recommended as it can lead to undefined behaviour on some platforms''')
                 return
 

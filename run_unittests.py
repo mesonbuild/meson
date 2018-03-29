@@ -1901,9 +1901,9 @@ int main(int argc, char **argv) {
         """
         Test that shared modules are not linked with targets(link_with:) #2865
         """
-        tdir = os.path.join(self.unit_test_dir, '25 shared_mod linking')
+        tdir = os.path.join(self.unit_test_dir, '26 shared_mod linking')
         out = self.init(tdir)
-        msg = ('''WARNING: target links against shared modules. This is not 
+        msg = ('''WARNING: target links against shared modules. This is not
 recommended as it can lead to undefined behaviour on some platforms''')
         self.assertIn(msg, out)
 
