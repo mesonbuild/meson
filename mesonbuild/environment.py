@@ -674,7 +674,7 @@ class Environment:
         except OSError:
             raise EnvironmentException('Could not execute Java compiler "%s"' % ' '.join(exelist))
         version = search_version(err)
-        if 'javac' in err:
+        if 'javac' in out or 'javac' in err:
             return JavaCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
