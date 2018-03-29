@@ -88,7 +88,27 @@ class QtBaseModule:
                     mlog.warning("malformed rcc file: ", os.path.join(state.subdir, rcc_file))
                     break
                 else:
-                    result.append(os.path.join(relative_part, child.text))
+                    resource_path = child.text
+                    # We need to guess if the pointed resource is:
+                    #   a) in build directory -> implies a generated file
+                    #   b) in source directory
+                    #   c) somewhere else external dependency file to bundle
+                    if os.path.isabs(resource_path):
+                        # a)
+                        if resource_path.startswith(os.path.abspath(state.environment.build_dir)):
+                            resource_relpath = os.path.relpath(resource_path, state.environment.build_dir)
+                            result.append(File(is_built=True, subdir=state.subdir, fname=resource_relpath))
+                        # either b) or c)
+                        else:
+                            result.append(File(is_built=False, subdir=state.subdir, fname=resource_path))
+                    else:
+                        # a)
+                        if os.path.exists(state.environment.build_dir+resource_path):
+                            result.append(File(is_built=True, subdir=state.subdir, fname=resource_path))
+                        # b)
+                        else:
+                            result.append(File(is_built=False, subdir=state.subdir,
+                                           fname=os.path.join(relative_part, resource_path)))
             return result
         except Exception:
             return []
