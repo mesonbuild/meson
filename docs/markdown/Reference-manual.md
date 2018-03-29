@@ -1129,6 +1129,33 @@ This function has one keyword argument.
    recurse in the subdir if they all return `true` when queried with
    `.found()`
 
+### subdir_done()
+
+``` meson
+    subdir_done()
+```
+
+Stops further interpretation of the meson script file from the point of
+the invocation. All steps executed up to this point are valid and will
+be executed by meson. This means that all targets defined before the call
+of `subdir_done` will be build.
+
+If the current script was called by `subdir` the execution returns to the
+calling directory and continues as if the script had reached the end.
+If the current script is the top level script meson configures the project
+as defined up to this point.
+
+Example:
+```meson
+project('example exit', 'cpp')
+executable('exe1', 'exe1.cpp')
+subdir_done()
+executable('exe2', 'exe2.cpp')
+```
+
+The executable `exe1` will be build, while the executable `exe2` is not
+build.
+
 ### subproject()
 
 ``` meson

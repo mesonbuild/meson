@@ -26,7 +26,7 @@ from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, DependencyException
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, permittedKwargs, permittedMethodKwargs
-from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
+from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler
 from .modules import ModuleReturnValue
 
@@ -1612,6 +1612,7 @@ class Interpreter(InterpreterBase):
                            'static_library': self.func_static_lib,
                            'test': self.func_test,
                            'vcs_tag': self.func_vcs_tag,
+                           'subdir_done': self.func_subdir_done,
                            })
         if 'MESON_UNIT_TEST' in os.environ:
             self.funcs.update({'exception': self.func_exception})
@@ -2605,6 +2606,14 @@ root and issuing %s.
              regex_selector] + vcs_cmd
         kwargs.setdefault('build_always', True)
         return self.func_custom_target(node, [kwargs['output']], kwargs)
+
+    @stringArgs
+    def func_subdir_done(self, node, args, kwargs):
+        if len(kwargs) > 0:
+            raise InterpreterException('exit does not take named arguments')
+        if len(args) > 0:
+            raise InterpreterException('exit does not take any arguments')
+        raise SubdirDoneRequest()
 
     @stringArgs
     @permittedKwargs(permitted_kwargs['custom_target'])
