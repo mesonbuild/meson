@@ -29,6 +29,7 @@ import platform
 import signal
 import random
 from copy import deepcopy
+import enum
 
 # GNU autotools interprets a return code of 77 from tests it executes to
 # mean that the test should be skipped.
@@ -108,9 +109,19 @@ class TestException(mesonlib.MesonException):
     pass
 
 
+@enum.unique
+class TestResult(enum.Enum):
+
+    OK = 'OK'
+    TIMEOUT = 'TIMEOUT'
+    SKIP = 'SKIP'
+    FAIL = 'FAIL'
+
+
 class TestRun:
     def __init__(self, res, returncode, should_fail, duration, stdo, stde, cmd,
                  env):
+        assert isinstance(res, TestResult)
         self.res = res
         self.returncode = returncode
         self.duration = duration
@@ -125,7 +136,7 @@ class TestRun:
         if self.cmd is None:
             res += 'NONE\n'
         else:
-            res += "%s%s\n" % (''.join(["%s='%s' " % (k, v) for k, v in self.env.items()]), ' ' .join(self.cmd))
+            res += '%s%s\n' % (''.join(["%s='%s' " % (k, v) for k, v in self.env.items()]), ' ' .join(self.cmd))
         if self.stdo:
             res += '--- stdout ---\n'
             res += self.stdo
@@ -150,7 +161,7 @@ def decode(stream):
 def write_json_log(jsonlogfile, test_name, result):
     jresult = {'name': test_name,
                'stdout': result.stdo,
-               'result': result.res,
+               'result': result.res.value,
                'duration': result.duration,
                'returncode': result.returncode,
                'command': result.cmd}
@@ -183,6 +194,139 @@ def load_tests(build_dir):
         obj = pickle.load(f)
     return obj
 
+
+class SingleTestRunner:
+
+    def __init__(self, test, env, options):
+        self.test = test
+        self.env = env
+        self.options = options
+
+    def _get_cmd(self):
+        if self.test.fname[0].endswith('.jar'):
+            return ['java', '-jar'] + self.test.fname
+        elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
+            return ['mono'] + self.test.fname
+        else:
+            if self.test.is_cross_built:
+                if self.test.exe_runner is None:
+                    # Can not run test on cross compiled executable
+                    # because there is no execute wrapper.
+                    return None
+                else:
+                    return [self.test.exe_runner] + self.test.fname
+            else:
+                return self.test.fname
+
+    def run(self):
+        cmd = self._get_cmd()
+        if cmd is None:
+            skip_stdout = 'Not run because can not execute cross compiled binaries.'
+            return TestRun(res=TestResult.SKIP, returncode=GNU_SKIP_RETURNCODE,
+                           should_fail=self.test.should_fail, duration=0.0,
+                           stdo=skip_stdout, stde=None, cmd=None, env=self.test.env)
+        else:
+            wrap = TestHarness.get_wrapper(self.options)
+            if self.options.gdb:
+                self.test.timeout = None
+            return self._run_cmd(wrap + cmd + self.test.cmd_args + self.options.test_args)
+
+    def _run_cmd(self, cmd):
+        starttime = time.time()
+
+        if len(self.test.extra_paths) > 0:
+            self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
+
+        # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
+        # (i.e., the test or the environment don't explicitly set it), set
+        # it ourselves. We do this unconditionally for regular tests
+        # because it is extremely useful to have.
+        # Setting MALLOC_PERTURB_="0" will completely disable this feature.
+        if ('MALLOC_PERTURB_' not in self.env or not self.env['MALLOC_PERTURB_']) and not self.options.benchmark:
+            self.env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
+
+        stdout = None
+        stderr = None
+        if not self.options.verbose:
+            stdout = subprocess.PIPE
+            stderr = subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT
+
+        # Let gdb handle ^C instead of us
+        if self.options.gdb:
+            previous_sigint_handler = signal.getsignal(signal.SIGINT)
+            # Make the meson executable ignore SIGINT while gdb is running.
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+        def preexec_fn():
+            if self.options.gdb:
+                # Restore the SIGINT handler for the child process to
+                # ensure it can handle it.
+                signal.signal(signal.SIGINT, signal.SIG_DFL)
+            else:
+                # We don't want setsid() in gdb because gdb needs the
+                # terminal in order to handle ^C and not show tcsetpgrp()
+                # errors avoid not being able to use the terminal.
+                os.setsid()
+
+        p = subprocess.Popen(cmd,
+                             stdout=stdout,
+                             stderr=stderr,
+                             env=self.env,
+                             cwd=self.test.workdir,
+                             preexec_fn=preexec_fn if not is_windows() else None)
+        timed_out = False
+        kill_test = False
+        if self.test.timeout is None:
+            timeout = None
+        elif self.options.timeout_multiplier is not None:
+            timeout = self.test.timeout * self.options.timeout_multiplier
+        else:
+            timeout = self.test.timeout
+        try:
+            (stdo, stde) = p.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            if self.options.verbose:
+                print('%s time out (After %d seconds)' % (self.test.name, timeout))
+            timed_out = True
+        except KeyboardInterrupt:
+            mlog.warning('CTRL-C detected while running %s' % (self.test.name))
+            kill_test = True
+        finally:
+            if self.options.gdb:
+                # Let us accept ^C again
+                signal.signal(signal.SIGINT, previous_sigint_handler)
+
+        if kill_test or timed_out:
+            # Python does not provide multiplatform support for
+            # killing a process and all its children so we need
+            # to roll our own.
+            if is_windows():
+                subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
+            else:
+                try:
+                    os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+                except ProcessLookupError:
+                    # Sometimes (e.g. with Wine) this happens.
+                    # There's nothing we can do (maybe the process
+                    # already died) so carry on.
+                    pass
+            (stdo, stde) = p.communicate()
+        endtime = time.time()
+        duration = endtime - starttime
+        stdo = decode(stdo)
+        if stde:
+            stde = decode(stde)
+        if timed_out:
+            res = TestResult.TIMEOUT
+        elif p.returncode == GNU_SKIP_RETURNCODE:
+            res = TestResult.SKIP
+        elif self.test.should_fail == bool(p.returncode):
+            res = TestResult.OK
+        else:
+            res = TestResult.FAIL
+        return TestRun(res, p.returncode, self.test.should_fail, duration, stdo, stde, cmd, self.test.env)
+
+
 class TestHarness:
     def __init__(self, options):
         self.options = options
@@ -210,7 +354,7 @@ class TestHarness:
             self.jsonlogfile.close()
 
     def merge_suite_options(self, options, test):
-        if ":" in options.setup:
+        if ':' in options.setup:
             if options.setup not in self.build_data.test_setups:
                 sys.exit("Unknown test setup '%s'." % options.setup)
             current = self.build_data.test_setups[options.setup]
@@ -231,7 +375,8 @@ class TestHarness:
             options.wrapper = current.exe_wrapper
         return current.env.get_env(os.environ.copy())
 
-    def get_test_env(self, options, test):
+    def get_test_runner(self, test):
+        options = deepcopy(self.options)
         if options.setup:
             env = self.merge_suite_options(options, test)
         else:
@@ -239,153 +384,33 @@ class TestHarness:
         if isinstance(test.env, build.EnvironmentVariables):
             test.env = test.env.get_env(env)
         env.update(test.env)
-        return env
+        return SingleTestRunner(test, env, options)
 
-    def run_single_test(self, test):
-        if test.fname[0].endswith('.jar'):
-            cmd = ['java', '-jar'] + test.fname
-        elif not test.is_cross_built and run_with_mono(test.fname[0]):
-            cmd = ['mono'] + test.fname
+    def process_test_result(self, result):
+        if result.res is TestResult.TIMEOUT:
+            self.timeout_count += 1
+            self.fail_count += 1
+        elif result.res is TestResult.SKIP:
+            self.skip_count += 1
+        elif result.res is TestResult.OK:
+            self.success_count += 1
+        elif result.res is TestResult.FAIL:
+            self.fail_count += 1
         else:
-            if test.is_cross_built:
-                if test.exe_runner is None:
-                    # Can not run test on cross compiled executable
-                    # because there is no execute wrapper.
-                    cmd = None
-                else:
-                    cmd = [test.exe_runner] + test.fname
-            else:
-                cmd = test.fname
-
-        if cmd is None:
-            res = 'SKIP'
-            duration = 0.0
-            stdo = 'Not run because can not execute cross compiled binaries.'
-            stde = None
-            returncode = GNU_SKIP_RETURNCODE
-        else:
-            test_opts = deepcopy(self.options)
-            test_env = self.get_test_env(test_opts, test)
-            wrap = self.get_wrapper(test_opts)
-
-            if test_opts.gdb:
-                test.timeout = None
-
-            cmd = wrap + cmd + test.cmd_args + self.options.test_args
-            starttime = time.time()
-
-            if len(test.extra_paths) > 0:
-                test_env['PATH'] = os.pathsep.join(test.extra_paths + ['']) + test_env['PATH']
-
-            # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
-            # (i.e., the test or the environment don't explicitly set it), set
-            # it ourselves. We do this unconditionally for regular tests
-            # because it is extremely useful to have.
-            # Setting MALLOC_PERTURB_="0" will completely disable this feature.
-            if ('MALLOC_PERTURB_' not in test_env or not test_env['MALLOC_PERTURB_']) and not self.options.benchmark:
-                test_env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
-
-            stdout = None
-            stderr = None
-            if not self.options.verbose:
-                stdout = subprocess.PIPE
-                stderr = subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT
-
-            # Let gdb handle ^C instead of us
-            if test_opts.gdb:
-                previous_sigint_handler = signal.getsignal(signal.SIGINT)
-                # Make the meson executable ignore SIGINT while gdb is running.
-                signal.signal(signal.SIGINT, signal.SIG_IGN)
-
-            def preexec_fn():
-                if test_opts.gdb:
-                    # Restore the SIGINT handler for the child process to
-                    # ensure it can handle it.
-                    signal.signal(signal.SIGINT, signal.SIG_DFL)
-                else:
-                    # We don't want setsid() in gdb because gdb needs the
-                    # terminal in order to handle ^C and not show tcsetpgrp()
-                    # errors avoid not being able to use the terminal.
-                    os.setsid()
-
-            p = subprocess.Popen(cmd,
-                                 stdout=stdout,
-                                 stderr=stderr,
-                                 env=test_env,
-                                 cwd=test.workdir,
-                                 preexec_fn=preexec_fn if not is_windows() else None)
-            timed_out = False
-            kill_test = False
-            if test.timeout is None:
-                timeout = None
-            elif test_opts.timeout_multiplier is not None:
-                timeout = test.timeout * test_opts.timeout_multiplier
-            else:
-                timeout = test.timeout
-            try:
-                (stdo, stde) = p.communicate(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                if self.options.verbose:
-                    print("%s time out (After %d seconds)" % (test.name, timeout))
-                timed_out = True
-            except KeyboardInterrupt:
-                mlog.warning("CTRL-C detected while running %s" % (test.name))
-                kill_test = True
-            finally:
-                if test_opts.gdb:
-                    # Let us accept ^C again
-                    signal.signal(signal.SIGINT, previous_sigint_handler)
-
-            if kill_test or timed_out:
-                # Python does not provide multiplatform support for
-                # killing a process and all its children so we need
-                # to roll our own.
-                if is_windows():
-                    subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
-                else:
-                    try:
-                        os.killpg(os.getpgid(p.pid), signal.SIGKILL)
-                    except ProcessLookupError:
-                        # Sometimes (e.g. with Wine) this happens.
-                        # There's nothing we can do (maybe the process
-                        # already died) so carry on.
-                        pass
-                (stdo, stde) = p.communicate()
-            endtime = time.time()
-            duration = endtime - starttime
-            stdo = decode(stdo)
-            if stde:
-                stde = decode(stde)
-            if timed_out:
-                res = 'TIMEOUT'
-                self.timeout_count += 1
-                self.fail_count += 1
-            elif p.returncode == GNU_SKIP_RETURNCODE:
-                res = 'SKIP'
-                self.skip_count += 1
-            elif test.should_fail == bool(p.returncode):
-                res = 'OK'
-                self.success_count += 1
-            else:
-                res = 'FAIL'
-                self.fail_count += 1
-            returncode = p.returncode
-        result = TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd, test.env)
-
-        return result
+            sys.exit('Unknown test result encountered: {}'.format(result.res))
 
     def print_stats(self, numlen, tests, name, result, i):
         startpad = ' ' * (numlen - len('%d' % (i + 1)))
         num = '%s%d/%d' % (startpad, i + 1, len(tests))
         padding1 = ' ' * (38 - len(name))
-        padding2 = ' ' * (8 - len(result.res))
+        padding2 = ' ' * (8 - len(result.res.value))
         result_str = '%s %s  %s%s%s%5.2f s' % \
-            (num, name, padding1, result.res, padding2, result.duration)
-        if not self.options.quiet or result.res != 'OK':
-            if result.res != 'OK' and mlog.colorize_console:
-                if result.res == 'FAIL' or result.res == 'TIMEOUT':
+            (num, name, padding1, result.res.value, padding2, result.duration)
+        if not self.options.quiet or result.res is not TestResult.OK:
+            if result.res is not TestResult.OK and mlog.colorize_console:
+                if result.res is TestResult.FAIL or result.res is TestResult.TIMEOUT:
                     decorator = mlog.red
-                elif result.res == 'SKIP':
+                elif result.res is TestResult.SKIP:
                     decorator = mlog.yellow
                 else:
                     sys.exit('Unreachable code was ... well ... reached.')
@@ -517,7 +542,8 @@ TIMEOUT: %4d
         self.logfile.write('Log of Meson test suite run on %s\n\n'
                            % datetime.datetime.now().isoformat())
 
-    def get_wrapper(self, options):
+    @staticmethod
+    def get_wrapper(options):
         wrap = []
         if options.gdb:
             wrap = ['gdb', '--quiet', '--nh']
@@ -558,12 +584,15 @@ TIMEOUT: %4d
                     if not test.is_parallel or self.options.gdb:
                         self.drain_futures(futures)
                         futures = []
-                        res = self.run_single_test(test)
+                        single_test = self.get_test_runner(test)
+                        res = single_test.run()
+                        self.process_test_result(res)
                         self.print_stats(numlen, tests, visible_name, res, i)
                     else:
                         if not executor:
                             executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
-                        f = executor.submit(self.run_single_test, test)
+                        single_test = self.get_test_runner(test)
+                        f = executor.submit(single_test.run)
                         futures.append((f, numlen, tests, visible_name, i))
                     if self.options.repeat > 1 and self.fail_count:
                         break
@@ -586,10 +615,11 @@ TIMEOUT: %4d
                 result.cancel()
             if self.options.verbose:
                 result.result()
+            self.process_test_result(result.result())
             self.print_stats(numlen, tests, name, result.result(), i)
 
     def run_special(self):
-        'Tests run by the user, usually something like "under gdb 1000 times".'
+        '''Tests run by the user, usually something like "under gdb 1000 times".'''
         if self.is_run:
             raise RuntimeError('Can not use run_special after a full run.')
         tests = self.get_tests()
@@ -606,7 +636,7 @@ def list_tests(th):
 
 def rebuild_all(wd):
     if not os.path.isfile(os.path.join(wd, 'build.ninja')):
-        print("Only ninja backend is supported to rebuild tests before running them.")
+        print('Only ninja backend is supported to rebuild tests before running them.')
         return True
 
     ninja = environment.detect_ninja()
@@ -618,7 +648,7 @@ def rebuild_all(wd):
     p.communicate()
 
     if p.returncode != 0:
-        print("Could not rebuild")
+        print('Could not rebuild')
         return False
 
     return True
@@ -647,7 +677,7 @@ def run(args):
     if check_bin is not None:
         exe = ExternalProgram(check_bin, silent=True)
         if not exe.found():
-            sys.exit("Could not find requested program: %s" % check_bin)
+            sys.exit('Could not find requested program: %s' % check_bin)
     options.wd = os.path.abspath(options.wd)
 
     if not options.list and not options.no_rebuild:

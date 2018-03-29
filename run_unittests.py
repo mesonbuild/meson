@@ -524,16 +524,18 @@ class BasePlatformTests(unittest.TestCase):
         Run a command while printing the stdout and stderr to stdout,
         and also return a copy of it
         '''
-        p = subprocess.Popen(command, stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT, env=os.environ.copy(),
-                             universal_newlines=True, cwd=workdir)
-        output = p.communicate()[0]
-        print(output)
+        # If this call hangs CI will just abort. It is very hard to distinguish
+        # between CI issue and test bug in that case. Set timeout and fail loud
+        # instead.
+        p = subprocess.run(command, stdout=subprocess.PIPE,
+                           stderr=subprocess.STDOUT, env=os.environ.copy(),
+                           universal_newlines=True, cwd=workdir, timeout=60 * 5)
+        print(p.stdout)
         if p.returncode != 0:
-            if 'MESON_SKIP_TEST' in output:
+            if 'MESON_SKIP_TEST' in p.stdout:
                 raise unittest.SkipTest('Project requested skipping.')
             raise subprocess.CalledProcessError(p.returncode, command)
-        return output
+        return p.stdout
 
     def init(self, srcdir, extra_args=None, default_args=True, inprocess=False):
         self.assertPathExists(srcdir)
