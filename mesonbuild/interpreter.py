@@ -2311,9 +2311,9 @@ to directly access options of other subprojects.''')
         return progobj
 
     def func_find_library(self, node, args, kwargs):
-        raise InvalidCode("find_library() is removed, use the corresponding method in a compiler object instead.\n"
-                          "Look here for documentation: http://mesonbuild.com/Reference-manual.html#compiler-object\n"
-                          "Look here for example: http://mesonbuild.com/howtox.html#add-math-library-lm-portably\n"
+        raise InvalidCode('find_library() is removed, use meson.get_compiler(\'name\').find_library() instead.\n'
+                          'Look here for documentation: http://mesonbuild.com/Reference-manual.html#compiler-object\n'
+                          'Look here for example: http://mesonbuild.com/howtox.html#add-math-library-lm-portably\n'
                           )
 
     def _find_cached_dep(self, name, kwargs):
