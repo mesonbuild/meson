@@ -946,7 +946,8 @@ class Vs2010Backend(backends.Backend):
                 self.add_project_reference(root, tvcxproj, tid)
             else:
                 # Other libraries go into AdditionalDependencies
-                additional_links.append(linkname)
+                if linkname not in additional_links:
+                    additional_links.append(linkname)
         for lib in self.get_custom_target_provided_libraries(target):
             additional_links.append(self.relpath(lib, self.get_target_dir(target)))
         additional_objects = []
