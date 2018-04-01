@@ -745,20 +745,10 @@ class Compiler:
     def get_library_dirs(self):
         return []
 
-    def has_argument(self, arg, env):
-        return self.has_multi_arguments([arg], env)
-
     def has_multi_arguments(self, args, env):
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
-
-    def get_supported_arguments(self, args, env):
-        supported_args = []
-        for arg in args:
-            if self.has_argument(arg, env):
-                supported_args.append(arg)
-        return supported_args
 
     def get_cross_extra_flags(self, environment, link):
         extra_flags = []
