@@ -58,6 +58,8 @@ def gtkdoc_run_check(cmd, cwd, library_path=None):
         if out:
             err_msg.append(out)
         raise MesonException('\n'.join(err_msg))
+    elif out:
+        print(out)
 
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                  main_file, module,
