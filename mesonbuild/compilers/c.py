@@ -835,16 +835,30 @@ class CCompiler(Compiler):
             return []
         return ['-pthread']
 
+    def linker_to_compiler_args(self, args):
+        return args
+
+    def has_arguments(self, args, env, code, mode):
+        return self.compiles(code, env, extra_args=args, mode=mode)
+
     def has_multi_arguments(self, args, env):
         for arg in args:
             if arg.startswith('-Wl,'):
-                mlog.warning('''{} looks like a linker argument, but has_argument
-and other similar methods only support checking compiler arguments.
-Using them to check linker arguments are never supported, and results
-are likely to be wrong regardless of the compiler you are using.
-'''.format(arg))
-        return self.compiles('int i;\n', env, extra_args=args)
+                mlog.warning('{} looks like a linker argument, '
+                             'but has_argument and other similar methods only '
+                             'support checking compiler arguments. Using them '
+                             'to check linker arguments are never supported, '
+                             'and results are likely to be wrong regardless of '
+                             'the compiler you are using. has_link_argument or '
+                             'other similar method can be used instead.'
+                             .format(arg))
+        code = 'int i;\n'
+        return self.has_arguments(args, env, code, mode='compile')
 
+    def has_multi_link_arguments(self, args, env):
+        args = self.linker_to_compiler_args(args)
+        code = 'int main(int argc, char **argv) { return 0; }'
+        return self.has_arguments(args, env, code, mode='link')
 
 class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None, **kwargs):
@@ -970,8 +984,8 @@ class IntelCCompiler(IntelCompiler, CCompiler):
     def get_std_shared_lib_link_args(self):
         return ['-shared']
 
-    def has_multi_arguments(self, args, env):
-        return super().has_multi_arguments(args + ['-diag-error', '10006'], env)
+    def has_arguments(self, args, env, code, mode):
+        return super().has_arguments(args + ['-diag-error', '10006'], env, code, mode)
 
 
 class VisualStudioCCompiler(CCompiler):
@@ -1055,6 +1069,9 @@ class VisualStudioCCompiler(CCompiler):
     def get_linker_search_args(self, dirname):
         return ['/LIBPATH:' + dirname]
 
+    def linker_to_compiler_args(self, args):
+        return ['/link'] + args
+
     def get_gui_app_args(self):
         return ['/SUBSYSTEM:WINDOWS']
 
@@ -1135,10 +1152,9 @@ class VisualStudioCCompiler(CCompiler):
     # Visual Studio is special. It ignores some arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_multi_arguments(self, args, env):
-        warning_text = '9002'
-        code = 'int i;\n'
-        with self._build_wrapper(code, env, extra_args=args, mode='compile') as p:
+    def has_arguments(self, args, env, code, mode):
+        warning_text = '4044' if mode == 'link' else '9002'
+        with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
                 return False
             return not(warning_text in p.stde or warning_text in p.stdo)

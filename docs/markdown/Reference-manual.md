@@ -1508,7 +1508,11 @@ the following methods:
 
 - `first_supported_argument(list_of_strings)`, given a list of
   strings, returns the first argument that passes the `has_argument`
-  test above or an empty array if none pass.
+  test or an empty array if none pass.
+
+- `first_supported_link_argument(list_of_strings)` *(added 0.46.0)*, given a
+  list of strings, returns the first argument that passes the
+  `has_link_argument` test or an empty array if none pass.
 
 - `get_define(definename)` returns the given preprocessor symbol's
   value as a string or empty string if it is not defined.
@@ -1520,11 +1524,19 @@ the following methods:
   an array containing only the arguments supported by the compiler,
   as if `has_argument` were called on them individually.
 
+- `get_supported_link_arguments(list_of_string)` *(added 0.46.0)* returns
+  an array containing only the arguments supported by the linker,
+  as if `has_link_argument` were called on them individually.
+
 - `has_argument(argument_name)` returns true if the compiler accepts
   the specified command line argument, that is, can compile code
-  without erroring out or printing a warning about an unknown flag,
-  you can specify external dependencies to use with `dependencies`
-  keyword argument.
+  without erroring out or printing a warning about an unknown flag.
+
+- `has_link_argument(argument_name)` *(added 0.46.0)* returns true if the linker
+  accepts the specified command line argument, that is, can compile and link
+  code without erroring out or printing a warning about an unknown flag. Link
+  arguments will be passed to the compiler, so should usually have the `-Wl,`
+  prefix. On VisualStudio a `/link` argument will be prepended.
 
 - `has_function(funcname)` returns true if the given function is
   provided by the standard library or a library passed in with the
@@ -1558,6 +1570,10 @@ the following methods:
 - `has_multi_arguments(arg1, arg2, arg3, ...)` is the same as
   `has_argument` but takes multiple arguments and uses them all in a
   single compiler invocation, available since 0.37.0.
+
+- `has_multi_link_arguments(arg1, arg2, arg3, ...)` *(added 0.46.0)* is the same
+  as `has_link_argument` but takes multiple arguments and uses them all in a
+  single compiler invocation.
 
 - `has_type(typename)` returns true if the specified token is a type,
   you can specify external dependencies to use with `dependencies`
