@@ -3,6 +3,8 @@ import std.stdio;
 import std.array : split;
 import std.string : strip;
 
+import extra;
+
 auto getMenu ()
 {
     auto foods = import ("food.txt").strip.split ("\n");
@@ -31,7 +33,12 @@ void main (string[] args)
     version (With_People) {
         if (request == "people") {
             writeln ("People: ", getPeople.join (", "));
-            exit (0);
+
+            // only exit successfully if the second module also had its module version set.
+            // this checks for issue https://github.com/mesonbuild/meson/issues/3337
+            if (secondModulePeopleVersionSet ())
+                exit (0);
+            exit (1);
         }
     }
 

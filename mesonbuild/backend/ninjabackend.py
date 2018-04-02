@@ -2199,6 +2199,11 @@ rule FORTRAN_DEP_HACK
         # near the end since these are supposed to override everything else.
         commands += self.escape_extra_args(compiler,
                                            target.get_extra_args(compiler.get_language()))
+
+        # D specific additional flags
+        if compiler.language == 'd':
+            commands += compiler.get_feature_args(target.d_features, self.build_to_src)
+
         # Add source dir and build dir. Project-specific and target-specific
         # include paths must override per-target compile args, include paths
         # from external dependencies, internal dependencies, and from
@@ -2291,9 +2296,6 @@ rule FORTRAN_DEP_HACK
                     depelem = NinjaBuildElement(self.all_outputs, modfile, 'FORTRAN_DEP_HACK', rel_obj)
                     depelem.write(outfile)
             commands += compiler.get_module_outdir_args(self.get_target_private_dir(target))
-
-        if compiler.language == 'd':
-            commands += compiler.get_feature_args(target.d_features, self.build_to_src)
 
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
         for d in header_deps:

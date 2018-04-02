@@ -6,8 +6,10 @@ project('D Features', 'd')
 # STRINGS TO PATHS MANUALLY!
 data_dir = join_paths(meson.current_source_dir(), 'data')
 
+test_src = ['app.d', 'extra.d']
+
 e_plain_bcompat = executable('dapp_menu_bcompat',
-    'app.d',
+    test_src,
     d_import_dirs: [data_dir]
 )
 test('dapp_menu_t_fail_bcompat', e_plain_bcompat, should_fail: true)
@@ -18,7 +20,7 @@ test('dapp_menu_t_bcompat', e_plain_bcompat, args: ['menu'])
 data_dir = include_directories('data')
 
 e_plain = executable('dapp_menu',
-    'app.d',
+    test_src,
     d_import_dirs: [data_dir]
 )
 test('dapp_menu_t_fail', e_plain, should_fail: true)
@@ -27,7 +29,7 @@ test('dapp_menu_t', e_plain, args: ['menu'])
 
 # test feature versions and string imports
 e_versions = executable('dapp_versions',
-    'app.d',
+    test_src,
     d_import_dirs: [data_dir],
     d_module_versions: ['No_Menu', 'With_People']
 )
@@ -36,7 +38,7 @@ test('dapp_versions_t', e_versions, args: ['people'])
 
 # test everything and unittests
 e_test = executable('dapp_test',
-    'app.d',
+    test_src,
     d_import_dirs: [data_dir],
     d_module_versions: ['No_Menu', 'With_People'],
     d_unittest: true
