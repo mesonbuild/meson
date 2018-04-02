@@ -374,8 +374,7 @@ def install_targets(d):
                     printed_symlink_error = True
         if is_elf_platform() and os.path.isfile(outname):
             try:
-                e = depfixer.Elf(outname, False)
-                e.fix_rpath(install_rpath)
+                depfixer.fix_rpath(outname, install_rpath, False)
             except SystemExit as e:
                 if isinstance(e.code, int) and e.code == 0:
                     pass
