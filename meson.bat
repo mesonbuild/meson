@@ -20,4 +20,3 @@
 
 :exit
 @pause
-@exit
