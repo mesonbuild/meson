@@ -792,7 +792,7 @@ This will become a hard error in the future.''')
                                                   state.backend.get_target_dir(s),
                                                   s.get_outputs()[0]))
             elif isinstance(s, mesonlib.File):
-                content_files.append(s.rel_to_builddir(state.build_to_src))
+                content_files.append(os.path.join(state.environment.get_build_dir(), s.subdir, s.fname))
             elif isinstance(s, build.GeneratedList):
                 depends.append(s)
                 for gen_src in s.get_outputs():
