@@ -74,10 +74,10 @@ class QtBaseModule:
     def parse_qrc(self, state, rcc_file):
         if type(rcc_file) is str:
             abspath = os.path.join(state.environment.source_dir, state.subdir, rcc_file)
-            relative_part = os.path.dirname(rcc_file)
+            rcc_dirname = os.path.dirname(abspath)
         elif type(rcc_file) is File:
             abspath = rcc_file.absolute_path(state.environment.source_dir, state.environment.build_dir)
-            relative_part = os.path.dirname(abspath)
+            rcc_dirname = os.path.dirname(abspath)
 
         try:
             tree = ET.parse(abspath)
@@ -102,13 +102,14 @@ class QtBaseModule:
                         else:
                             result.append(File(is_built=False, subdir=state.subdir, fname=resource_path))
                     else:
+                        path_from_build = os.path.normpath(os.path.join(state.environment.build_dir, resource_path))
+                        path_from_rcc = os.path.join(rcc_dirname, resource_path)
                         # a)
-                        if os.path.exists(state.environment.build_dir + resource_path):
+                        if path_from_build.startswith(state.environment.build_dir) and not os.path.exists(path_from_rcc):
                             result.append(File(is_built=True, subdir=state.subdir, fname=resource_path))
                         # b)
                         else:
-                            result.append(File(is_built=False, subdir=state.subdir,
-                                          fname=os.path.join(relative_part, resource_path)))
+                            result.append(File(is_built=False, subdir=state.subdir, fname=path_from_rcc))
             return result
         except Exception:
             return []
@@ -127,11 +128,11 @@ class QtBaseModule:
         if len(rcc_files) > 0:
             if not self.rcc.found():
                 raise MesonException(err_msg.format('RCC', 'rcc-qt{}'.format(self.qt_version), self.qt_version))
-            qrc_deps = []
-            for i in rcc_files:
-                qrc_deps += self.parse_qrc(state, i)
             # custom output name set? -> one output file, multiple otherwise
             if len(args) > 0:
+                qrc_deps = []
+                for i in rcc_files:
+                    qrc_deps += self.parse_qrc(state, i)
                 name = args[0]
                 rcc_kwargs = {'input': rcc_files,
                               'output': name + '.cpp',
@@ -141,6 +142,7 @@ class QtBaseModule:
                 sources.append(res_target)
             else:
                 for rcc_file in rcc_files:
+                    qrc_deps = self.parse_qrc(state, rcc_file)
                     if type(rcc_file) is str:
                         basename = os.path.basename(rcc_file)
                     elif type(rcc_file) is File:

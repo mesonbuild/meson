@@ -10,6 +10,9 @@ cfg = configuration_data()
 
 cfg.set('filepath', meson.current_source_dir()+'/../thing2.png')
 cfg.set('txt_resource', txt_resource.full_path())
+# here we abuse the system by guessing build dir layout
+cfg.set('txt_resource2', 'txt_resource.txt')
+
 
 rc_file = configure_file(
   configuration : cfg,
