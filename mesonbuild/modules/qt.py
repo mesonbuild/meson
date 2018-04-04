@@ -93,6 +93,9 @@ class QtBaseModule:
                     #   a) in build directory -> implies a generated file
                     #   b) in source directory
                     #   c) somewhere else external dependency file to bundle
+                    #
+                    # Also from qrc documentation: relative path are always from qrc file
+                    # So relative path must always be computed from qrc file !
                     if os.path.isabs(resource_path):
                         # a)
                         if resource_path.startswith(os.path.abspath(state.environment.build_dir)):
@@ -102,10 +105,9 @@ class QtBaseModule:
                         else:
                             result.append(File(is_built=False, subdir=state.subdir, fname=resource_path))
                     else:
-                        path_from_build = os.path.normpath(os.path.join(state.environment.build_dir, resource_path))
-                        path_from_rcc = os.path.join(rcc_dirname, resource_path)
+                        path_from_rcc = os.path.normpath(os.path.join(rcc_dirname, resource_path))
                         # a)
-                        if path_from_build.startswith(state.environment.build_dir) and not os.path.exists(path_from_rcc):
+                        if path_from_rcc.startswith(state.environment.build_dir):
                             result.append(File(is_built=True, subdir=state.subdir, fname=resource_path))
                         # b)
                         else:
