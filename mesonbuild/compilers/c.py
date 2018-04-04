@@ -321,25 +321,21 @@ class CCompiler(Compiler):
         args += extra_args
         return args
 
-    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile', want_output=False):
-        args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
-        # We only want to compile; not link
-        with self.compile(code, args.to_native(), mode) as p:
+    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
+        with self._build_wrapper(code, env, extra_args, dependencies, mode) as p:
             return p.returncode == 0
 
-    def _links_wrapper(self, code, env, extra_args, dependencies, want_output=False):
-        "Shares common code between self.links and self.run"
-        args = self._get_compiler_check_args(env, extra_args, dependencies, mode='link')
-        return self.compile(code, args, want_output=want_output)
+    def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False):
+        args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
+        return self.compile(code, args.to_native(), mode, want_output=want_output)
 
     def links(self, code, env, extra_args=None, dependencies=None):
-        with self._links_wrapper(code, env, extra_args, dependencies) as p:
-            return p.returncode == 0
+        return self.compiles(code, env, extra_args, dependencies, mode='link')
 
     def run(self, code, env, extra_args=None, dependencies=None):
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
-        with self._links_wrapper(code, env, extra_args, dependencies, True) as p:
+        with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
             if p.returncode != 0:
                 mlog.debug('Could not compile test file %s: %d\n' % (
                     p.input_name,
@@ -1142,21 +1138,10 @@ class VisualStudioCCompiler(CCompiler):
     def has_multi_arguments(self, args, env):
         warning_text = '9002'
         code = 'int i;\n'
-        (fd, srcname) = tempfile.mkstemp(suffix='.' + self.default_suffix)
-        os.close(fd)
-        with open(srcname, 'w') as ofile:
-            ofile.write(code)
-        # Read c_args/cpp_args/etc from the cross-info file (if needed)
-        extra_args = self.get_cross_extra_flags(env, link=False)
-        extra_args += self.get_compile_only_args()
-        commands = self.exelist + args + extra_args + [srcname]
-        mlog.debug('Running VS compile:')
-        mlog.debug('Command line: ', ' '.join(commands))
-        mlog.debug('Code:\n', code)
-        p, stdo, stde = Popen_safe(commands, cwd=os.path.dirname(srcname))
-        if p.returncode != 0:
-            return False
-        return not(warning_text in stde or warning_text in stdo)
+        with self._build_wrapper(code, env, extra_args=args, mode='compile') as p:
+            if p.returncode != 0:
+                return False
+            return not(warning_text in p.stde or warning_text in p.stdo)
 
     def get_compile_debugfile_args(self, rel_obj, pch=False):
         pdbarr = rel_obj.split('.')[:-1]
