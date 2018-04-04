@@ -505,7 +505,7 @@ def detect_tests_to_run():
         ('common', 'common', False),
         ('failing-meson', 'failing', False),
         ('failing-build', 'failing build', False),
-        ('failing-tests', 'failing tests', False),
+        ('failing-test',  'failing test', False),
 
         ('platform-osx', 'osx', not mesonlib.is_osx()),
         ('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
