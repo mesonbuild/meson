@@ -7,3 +7,7 @@ files will be reused to build both shared and static libraries, unless
 sources will be compiled twice.
 
 The returned `buildtarget` object always represents the shared library.
+
+A new `module` keyword argument has been added to `library()` and
+`both_libraries()` functions to build a `shared_module()` instead of the shared
+library. This is useful to build a module that can also be statically linked.

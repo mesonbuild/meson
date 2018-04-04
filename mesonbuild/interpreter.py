@@ -1445,7 +1445,8 @@ class MesonMain(InterpreterObject):
 
 known_library_kwargs = (
     build.known_shlib_kwargs |
-    build.known_stlib_kwargs
+    build.known_stlib_kwargs |
+    {'module'}
 )
 
 known_build_target_kwargs = (
@@ -3258,6 +3259,13 @@ different subdirectory.
             ef = extract_as_list(kwargs, 'extra_files')
             kwargs['extra_files'] = self.source_strings_to_files(ef)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
+
+        module = kwargs.get('module', False)
+        if not isinstance(module, bool):
+            raise InterpreterException('Module keyword argument must be boolean')
+        if module and targetholder is SharedLibraryHolder:
+            targetholder = SharedModuleHolder
+
         if targetholder is ExecutableHolder:
             targetclass = build.Executable
         elif targetholder is SharedLibraryHolder:

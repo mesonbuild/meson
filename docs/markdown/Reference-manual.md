@@ -929,6 +929,9 @@ The keyword arguments for this are the same as for [`executable`](#executable) w
 - `rust_crate_type` specifies the crate type for Rust
   libraries. Defaults to `dylib` for shared libraries and `rlib` for
   static libraries.
+- `module` if set to `true` and a shared library is built (because
+  `default_library` is `shared` or `both`), a [shared module](#shared_module)
+  will be built instead. Since 0.46.0.
 
 `static_library`, `shared_library` and `both_libraries` also accept these keyword
 arguments.
