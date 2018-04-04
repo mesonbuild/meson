@@ -26,67 +26,64 @@ from .mesonlib import get_filenames_templates_dict, substitute_values
 from .mesonlib import for_windows, for_darwin, for_cygwin, for_android, has_path_sep
 from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
 
-known_basic_kwargs = {'install': True,
-                      'c_pch': True,
-                      'cpp_pch': True,
-                      'c_args': True,
-                      'objc_args': True,
-                      'objcpp_args': True,
-                      'cpp_args': True,
-                      'cs_args': True,
-                      'vala_args': True,
-                      'fortran_args': True,
-                      'd_args': True,
-                      'd_import_dirs': True,
-                      'd_unittest': True,
-                      'd_module_versions': True,
-                      'java_args': True,
-                      'rust_args': True,
-                      'link_args': True,
-                      'link_depends': True,
-                      'link_with': True,
-                      'link_whole': True,
-                      'implicit_include_directories': True,
-                      'include_directories': True,
-                      'dependencies': True,
-                      'install_dir': True,
-                      'main_class': True,
-                      'name_suffix': True,
-                      'gui_app': True,
-                      'extra_files': True,
-                      'install_rpath': True,
-                      'build_rpath': True,
-                      'resources': True,
-                      'sources': True,
-                      'objects': True,
-                      'native': True,
-                      'build_by_default': True,
-                      'override_options': True,
-                      }
+pch_kwargs = set(['c_pch', 'cpp_pch'])
 
-# These contain kwargs supported by both static and shared libraries. These are
-# combined here because a library() call might be shared_library() or
-# static_library() at runtime based on the configuration.
-# FIXME: Find a way to pass that info down here so we can have proper target
-# kwargs checking when specifically using shared_library() or static_library().
-known_lib_kwargs = known_basic_kwargs.copy()
-known_lib_kwargs.update({'version': True, # Only for shared libs
-                         'soversion': True, # Only for shared libs
-                         'name_prefix': True,
-                         'vs_module_defs': True, # Only for shared libs
-                         'vala_header': True,
-                         'vala_vapi': True,
-                         'vala_gir': True,
-                         'pic': True, # Only for static libs
-                         'rust_crate_type': True, # Only for Rust libs
-                         })
+lang_arg_kwargs = set([
+    'c_args',
+    'cpp_args',
+    'd_args',
+    'd_import_dirs',
+    'd_unittest',
+    'd_module_versions',
+    'fortran_args',
+    'java_args',
+    'objc_args',
+    'objcpp_args',
+    'rust_args',
+    'vala_args',
+    'cs_args',
+])
 
-known_exe_kwargs = known_basic_kwargs.copy()
-known_exe_kwargs.update({'implib': True,
-                         'export_dynamic': True
-                         })
-known_jar_kwargs = known_basic_kwargs.copy()
-known_jar_kwargs.update({'target_type': 'jar'})
+vala_kwargs = set(['vala_header', 'vala_gir', 'vala_vapi'])
+rust_kwargs = set(['rust_crate_type'])
+cs_kwargs = set(['resources', 'cs_args'])
+
+buildtarget_kwargs = set([
+    'build_by_default',
+    'build_rpath',
+    'dependencies',
+    'extra_files',
+    'gui_app',
+    'link_with',
+    'link_whole',
+    'link_args',
+    'link_depends',
+    'implicit_include_directories',
+    'include_directories',
+    'install',
+    'install_rpath',
+    'install_dir',
+    'name_prefix',
+    'name_suffix',
+    'native',
+    'objects',
+    'override_options',
+    'sources',
+])
+
+known_build_target_kwargs = (
+    buildtarget_kwargs |
+    lang_arg_kwargs |
+    pch_kwargs |
+    vala_kwargs |
+    rust_kwargs |
+    cs_kwargs)
+
+known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic'}
+known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs'}
+known_shmod_kwargs = known_build_target_kwargs
+known_stlib_kwargs = known_build_target_kwargs | {'pic'}
+known_jar_kwargs = known_exe_kwargs | {'main_class'}
 
 class InvalidArguments(MesonException):
     pass
@@ -214,9 +211,10 @@ class ExtractedObjects:
     '''
     Holds a list of sources for which the objects must be extracted
     '''
-    def __init__(self, target, srclist, is_unity):
+    def __init__(self, target, srclist, genlist, is_unity):
         self.target = target
         self.srclist = srclist
+        self.genlist = genlist
         if is_unity:
             self.check_unity_compatible()
 
@@ -337,6 +335,8 @@ a hard error in the future.''' % name)
 
 
 class BuildTarget(Target):
+    known_kwargs = known_build_target_kwargs
+
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, True)
         self.is_cross = is_cross
@@ -396,7 +396,7 @@ class BuildTarget(Target):
     def check_unknown_kwargs(self, kwargs):
         # Override this method in derived classes that have more
         # keywords.
-        self.check_unknown_kwargs_int(kwargs, known_basic_kwargs)
+        self.check_unknown_kwargs_int(kwargs, self.known_kwargs)
 
     def check_unknown_kwargs_int(self, kwargs, known_kwargs):
         unknowns = []
@@ -626,13 +626,17 @@ class BuildTarget(Target):
             if not isinstance(src, str):
                 raise MesonException('Object extraction arguments must be strings.')
             src = File(False, self.subdir, src)
+            # FIXME: It could be a generated source
             if src not in self.sources:
                 raise MesonException('Tried to extract unknown source %s.' % src)
             obj_src.append(src)
-        return ExtractedObjects(self, obj_src, self.is_unity)
+        return ExtractedObjects(self, obj_src, [], self.is_unity)
 
     def extract_all_objects(self):
-        return ExtractedObjects(self, self.sources, self.is_unity)
+        # FIXME: We should add support for transitive extract_objects()
+        if self.objects:
+            raise MesonException('Cannot extract objects from a target that itself has extracted objects')
+        return ExtractedObjects(self, self.sources, self.generated, self.is_unity)
 
     def get_all_link_deps(self):
         return self.get_transitive_link_deps()
@@ -1184,6 +1188,8 @@ class GeneratedList:
         return self.extra_args
 
 class Executable(BuildTarget):
+    known_kwargs = known_exe_kwargs
+
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
         # Unless overridden, executables have no suffix or prefix. Except on
@@ -1239,9 +1245,6 @@ class Executable(BuildTarget):
     def type_suffix(self):
         return "@exe"
 
-    def check_unknown_kwargs(self, kwargs):
-        self.check_unknown_kwargs_int(kwargs, known_exe_kwargs)
-
     def get_import_filename(self):
         """
         The name of the import library that will be outputted by the compiler
@@ -1259,6 +1262,8 @@ class Executable(BuildTarget):
         return self.is_linkwithable
 
 class StaticLibrary(BuildTarget):
+    known_kwargs = known_stlib_kwargs
+
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         if 'pic' not in kwargs and 'b_staticpic' in environment.coredata.base_options:
             kwargs['pic'] = environment.coredata.base_options['b_staticpic'].value
@@ -1297,9 +1302,6 @@ class StaticLibrary(BuildTarget):
     def type_suffix(self):
         return "@sta"
 
-    def check_unknown_kwargs(self, kwargs):
-        self.check_unknown_kwargs_int(kwargs, known_lib_kwargs)
-
     def process_kwargs(self, kwargs, environment):
         super().process_kwargs(kwargs, environment)
         if 'rust_crate_type' in kwargs:
@@ -1313,6 +1315,8 @@ class StaticLibrary(BuildTarget):
         return True
 
 class SharedLibrary(BuildTarget):
+    known_kwargs = known_shlib_kwargs
+
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         self.soversion = None
         self.ltversion = None
@@ -1501,9 +1505,6 @@ class SharedLibrary(BuildTarget):
             else:
                 raise InvalidArguments('Invalid rust_crate_type "{0}": must be a string.'.format(rust_crate_type))
 
-    def check_unknown_kwargs(self, kwargs):
-        self.check_unknown_kwargs_int(kwargs, known_lib_kwargs)
-
     def get_import_filename(self):
         """
         The name of the import library that will be outputted by the compiler
@@ -1559,6 +1560,8 @@ class SharedLibrary(BuildTarget):
 # A shared library that is meant to be used with dlopen rather than linking
 # into something else.
 class SharedModule(SharedLibrary):
+    known_kwargs = known_shmod_kwargs
+
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
@@ -1568,19 +1571,20 @@ class SharedModule(SharedLibrary):
         self.import_filename = None
 
 class CustomTarget(Target):
-    known_kwargs = {'input': True,
-                    'output': True,
-                    'command': True,
-                    'capture': False,
-                    'install': True,
-                    'install_dir': True,
-                    'build_always': True,
-                    'depends': True,
-                    'depend_files': True,
-                    'depfile': True,
-                    'build_by_default': True,
-                    'override_options': True,
-                    }
+    known_kwargs = set([
+        'input',
+        'output',
+        'command',
+        'capture',
+        'install',
+        'install_dir',
+        'build_always',
+        'depends',
+        'depend_files',
+        'depfile',
+        'build_by_default',
+        'override_options',
+    ])
 
     def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False):
         super().__init__(name, subdir, subproject, False)
@@ -1814,6 +1818,8 @@ class RunTarget(Target):
         return "@run"
 
 class Jar(BuildTarget):
+    known_kwargs = known_jar_kwargs
+
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
         for s in self.sources:
@@ -1835,9 +1841,6 @@ class Jar(BuildTarget):
     def validate_cross_install(self, environment):
         # All jar targets are installable.
         pass
-
-    def check_unknown_kwargs(self, kwargs):
-        self.check_unknown_kwargs_int(kwargs, known_jar_kwargs)
 
 class CustomTargetIndex:
 

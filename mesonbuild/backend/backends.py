@@ -22,6 +22,7 @@ import json
 import subprocess
 from ..mesonlib import MesonException
 from ..mesonlib import get_compiler_for_source, classify_unity_sources
+from ..mesonlib import File
 from ..compilers import CompilerArgs
 from collections import OrderedDict
 import shlex
@@ -414,11 +415,20 @@ class Backend:
             objname = objname.replace('/', '_').replace('\\', '_')
             objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
             return [objpath]
-        for osrc in extobj.srclist:
+
+        sources = list(extobj.srclist)
+        for gensrc in extobj.genlist:
+            for s in gensrc.get_outputs():
+                path = self.get_target_generated_dir(extobj.target, gensrc, s)
+                dirpart, fnamepart = os.path.split(path)
+                sources.append(File(True, dirpart, fnamepart))
+
+        for osrc in sources:
             objname = self.object_filename_from_source(extobj.target, osrc, False)
             if objname:
                 objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
                 result.append(objpath)
+
         return result
 
     def get_pch_include_args(self, compiler, target):

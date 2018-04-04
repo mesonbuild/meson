@@ -605,6 +605,31 @@ class StaticLibraryHolder(BuildTargetHolder):
 class SharedLibraryHolder(BuildTargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
+        # Set to True only when called from self.func_shared_lib().
+        target.shared_library_only = False
+
+class BothLibrariesHolder(BuildTargetHolder):
+    def __init__(self, shared_holder, static_holder, interp):
+        # FIXME: This build target always represents the shared library, but
+        # that should be configurable.
+        super().__init__(shared_holder.held_object, interp)
+        self.shared_holder = shared_holder
+        self.static_holder = static_holder
+        self.methods.update({'get_shared_lib': self.get_shared_lib_method,
+                             'get_static_lib': self.get_static_lib_method,
+                             })
+
+    def __repr__(self):
+        r = '<{} {}: {}, {}: {}>'
+        h1 = self.shared_holder.held_object
+        h2 = self.static_holder.held_object
+        return r.format(self.__class__.__name__, h1.get_id(), h1.filename, h2.get_id(), h2.filename)
+
+    def get_shared_lib_method(self, args, kwargs):
+        return self.shared_holder
+
+    def get_static_lib_method(self, args, kwargs):
+        return self.static_holder
 
 class SharedModuleHolder(BuildTargetHolder):
     def __init__(self, target, interp):
@@ -1418,71 +1443,17 @@ class MesonMain(InterpreterObject):
             raise InterpreterException('Unknown cross property: %s.' % propname)
 
 
-pch_kwargs = set(['c_pch', 'cpp_pch'])
+known_library_kwargs = (
+    build.known_shlib_kwargs |
+    build.known_stlib_kwargs
+)
 
-lang_arg_kwargs = set([
-    'c_args',
-    'cpp_args',
-    'd_args',
-    'd_import_dirs',
-    'd_unittest',
-    'd_module_versions',
-    'fortran_args',
-    'java_args',
-    'objc_args',
-    'objcpp_args',
-    'rust_args',
-    'vala_args',
-    'cs_args',
-])
-
-vala_kwargs = set(['vala_header', 'vala_gir', 'vala_vapi'])
-rust_kwargs = set(['rust_crate_type'])
-cs_kwargs = set(['resources', 'cs_args'])
-
-buildtarget_kwargs = set([
-    'build_by_default',
-    'build_rpath',
-    'dependencies',
-    'extra_files',
-    'gui_app',
-    'link_with',
-    'link_whole',
-    'link_args',
-    'link_depends',
-    'implicit_include_directories',
-    'include_directories',
-    'install',
-    'install_rpath',
-    'install_dir',
-    'name_prefix',
-    'name_suffix',
-    'native',
-    'objects',
-    'override_options',
-    'pic',
-    'sources',
-    'vs_module_defs',
-])
-
-build_target_common_kwargs = (
-    buildtarget_kwargs |
-    lang_arg_kwargs |
-    pch_kwargs |
-    vala_kwargs |
-    rust_kwargs |
-    cs_kwargs)
-
-exe_kwargs = (build_target_common_kwargs) | {'implib', 'export_dynamic'}
-shlib_kwargs = (build_target_common_kwargs) | {'version', 'soversion'}
-shmod_kwargs = shlib_kwargs
-stlib_kwargs = shlib_kwargs
-
-jar_kwargs = exe_kwargs.copy()
-jar_kwargs.update(['main_class'])
-
-build_target_kwargs = exe_kwargs.copy()
-build_target_kwargs.update(['target_type'])
+known_build_target_kwargs = (
+    known_library_kwargs |
+    build.known_exe_kwargs |
+    build.known_jar_kwargs |
+    {'target_type'}
+)
 
 permitted_kwargs = {'add_global_arguments': {'language'},
                     'add_global_link_arguments': {'language'},
@@ -1491,12 +1462,12 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'add_project_arguments': {'language'},
                     'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env'},
                     'benchmark': {'args', 'env', 'should_fail', 'timeout', 'workdir', 'suite'},
-                    'build_target': build_target_kwargs,
+                    'build_target': known_build_target_kwargs,
                     'configure_file': {'input', 'output', 'configuration', 'command', 'install_dir', 'capture', 'install'},
                     'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
                     'dependency': {'default_options', 'fallback', 'language', 'main', 'method', 'modules', 'optional_modules', 'native', 'required', 'static', 'version'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'link_whole', 'version'},
-                    'executable': exe_kwargs,
+                    'executable': build.known_exe_kwargs,
                     'find_program': {'required', 'native'},
                     'generator': {'arguments', 'output', 'depfile', 'capture', 'preserve_path_from'},
                     'include_directories': {'is_system'},
@@ -1504,12 +1475,14 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'install_headers': {'install_dir', 'subdir'},
                     'install_man': {'install_dir'},
                     'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'},
-                    'jar': jar_kwargs,
+                    'jar': build.known_jar_kwargs,
                     'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
                     'run_target': {'command', 'depends'},
-                    'shared_library': shlib_kwargs,
-                    'shared_module': shmod_kwargs,
-                    'static_library': stlib_kwargs,
+                    'shared_library': build.known_shlib_kwargs,
+                    'shared_module': build.known_shmod_kwargs,
+                    'static_library': build.known_stlib_kwargs,
+                    'both_libraries': known_library_kwargs,
+                    'library': known_library_kwargs,
                     'subdir': {'if_found'},
                     'subproject': {'version', 'default_options'},
                     'test': {'args', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir', 'suite'},
@@ -1610,6 +1583,7 @@ class Interpreter(InterpreterBase):
                            'shared_library': self.func_shared_lib,
                            'shared_module': self.func_shared_module,
                            'static_library': self.func_static_lib,
+                           'both_libraries': self.func_both_lib,
                            'test': self.func_test,
                            'vcs_tag': self.func_vcs_tag,
                            'subdir_done': self.func_subdir_done,
@@ -2539,20 +2513,24 @@ root and issuing %s.
 
     @permittedKwargs(permitted_kwargs['shared_library'])
     def func_shared_lib(self, node, args, kwargs):
-        return self.build_target(node, args, kwargs, SharedLibraryHolder)
+        holder = self.build_target(node, args, kwargs, SharedLibraryHolder)
+        holder.held_object.shared_library_only = True
+        return holder
+
+    @permittedKwargs(permitted_kwargs['both_libraries'])
+    def func_both_lib(self, node, args, kwargs):
+        return self.build_both_libraries(node, args, kwargs)
 
     @permittedKwargs(permitted_kwargs['shared_module'])
     def func_shared_module(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, SharedModuleHolder)
 
+    @permittedKwargs(permitted_kwargs['library'])
     def func_library(self, node, args, kwargs):
-        if self.coredata.get_builtin_option('default_library') == 'shared':
-            return self.func_shared_lib(node, args, kwargs)
-        return self.func_static_lib(node, args, kwargs)
+        return self.build_library(node, args, kwargs)
 
     @permittedKwargs(permitted_kwargs['jar'])
     def func_jar(self, node, args, kwargs):
-        kwargs['target_type'] = 'jar'
         return self.build_target(node, args, kwargs, JarHolder)
 
     @permittedKwargs(permitted_kwargs['build_target'])
@@ -2561,15 +2539,17 @@ root and issuing %s.
             raise InterpreterException('Missing target_type keyword argument')
         target_type = kwargs.pop('target_type')
         if target_type == 'executable':
-            return self.func_executable(node, args, kwargs)
+            return self.build_target(node, args, kwargs, ExecutableHolder)
         elif target_type == 'shared_library':
-            return self.func_shared_lib(node, args, kwargs)
+            return self.build_target(node, args, kwargs, SharedLibraryHolder)
         elif target_type == 'static_library':
-            return self.func_static_lib(node, args, kwargs)
+            return self.build_target(node, args, kwargs, StaticLibraryHolder)
+        elif target_type == 'both_libraries':
+            return self.build_both_libraries(node, args, kwargs)
         elif target_type == 'library':
-            return self.func_library(node, args, kwargs)
+            return self.build_library(node, args, kwargs)
         elif target_type == 'jar':
-            return self.func_jar(node, args, kwargs)
+            return self.build_target(node, args, kwargs, JarHolder)
         else:
             raise InterpreterException('Unknown target_type.')
 
@@ -3222,6 +3202,41 @@ different subdirectory.
         if idname not in self.coredata.target_guids:
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
 
+    def build_both_libraries(self, node, args, kwargs):
+        shared_holder = self.build_target(node, args, kwargs, SharedLibraryHolder)
+
+        # Check if user forces non-PIC static library.
+        pic = True
+        if 'pic' in kwargs:
+            pic = kwargs['pic']
+        elif 'b_staticpic' in self.environment.coredata.base_options:
+            pic = self.environment.coredata.base_options['b_staticpic'].value
+
+        if pic:
+            # Exclude sources from args and kwargs to avoid building them twice
+            static_args = [args[0]]
+            static_kwargs = kwargs.copy()
+            static_kwargs['sources'] = []
+            static_kwargs['objects'] = shared_holder.held_object.extract_all_objects()
+        else:
+            static_args = args
+            static_kwargs = kwargs
+
+        static_holder = self.build_target(node, static_args, static_kwargs, StaticLibraryHolder)
+
+        return BothLibrariesHolder(shared_holder, static_holder, self)
+
+    def build_library(self, node, args, kwargs):
+        default_library = self.coredata.get_builtin_option('default_library')
+        if default_library == 'shared':
+            return self.build_target(node, args, kwargs, SharedLibraryHolder)
+        elif default_library == 'static':
+            return self.build_target(node, args, kwargs, StaticLibraryHolder)
+        elif default_library == 'both':
+            return self.build_both_libraries(node, args, kwargs)
+        else:
+            raise InterpreterException('Unknown default_library value: %s.', default_library)
+
     def build_target(self, node, args, kwargs, targetholder):
         if not args:
             raise InterpreterException('Target does not have a name.')
@@ -3257,7 +3272,13 @@ different subdirectory.
             mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')
         self.kwarg_strings_to_includedirs(kwargs)
+
+        # Filter out kwargs from other target types. For example 'soversion'
+        # passed to library() when default_library == 'static'.
+        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
+
         target = targetclass(name, self.subdir, self.subproject, is_cross, sources, objs, self.environment, kwargs)
+
         if is_cross:
             self.add_cross_stdlib_info(target)
         l = targetholder(target, self)

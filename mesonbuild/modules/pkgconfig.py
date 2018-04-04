@@ -105,26 +105,24 @@ class DependenciesHelper:
                 if obj.found():
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-            elif isinstance(obj, build.SharedLibrary):
+            elif isinstance(obj, build.SharedLibrary) and obj.shared_library_only:
+                # Do not pull dependencies for shared libraries because they are
+                # only required for static linking. Adding private requires has
+                # the side effect of exposing their cflags, which is the
+                # intended behaviour of pkg-config but force Debian to add more
+                # than needed build deps.
+                # See https://bugs.freedesktop.org/show_bug.cgi?id=105572
                 processed_libs.append(obj)
                 if public:
                     if not hasattr(obj, 'generated_pc'):
                         obj.generated_pc = self.name
-            elif isinstance(obj, build.StaticLibrary):
-                # Due to a "feature" in pkgconfig, it leaks out private dependencies.
-                # Thus we will not add them to the pc file unless the target
-                # we are processing is a static library.
-                #
-                # This way (hopefully) "pkgconfig --libs --static foobar" works
-                # and "pkgconfig --cflags/--libs foobar" does not have any trace
-                # of dependencies that the build file creator has not explicitly
-                # added to the dependency list.
+            elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
+                self.add_priv_libs(obj.get_dependencies())
+                self.add_priv_libs(obj.get_external_deps())
                 if public:
                     if not hasattr(obj, 'generated_pc'):
                         obj.generated_pc = self.name
-                    self.add_priv_libs(obj.get_dependencies())
-                    self.add_priv_libs(obj.get_external_deps())
             elif isinstance(obj, str):
                 processed_libs.append(obj)
             else:
