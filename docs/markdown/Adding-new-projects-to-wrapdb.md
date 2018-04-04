@@ -37,11 +37,10 @@ Each project gets its own repo. It is initialized like this:
 
     git init
     git add readme.txt
-    git commit -a -m 'Start of project foobar.'
-    git tag commit_zero -a -m 'A tag that helps get revision ids for releases.'
+    git add LICENSE.build
+    git commit -a -m 'Create project foobar'
     git remote add origin <repo url>
     git push -u origin master
-    git push --tags
 
 Note that this is the *only* commit that will ever be made to master branch. All other commits are done to branches.
 
