@@ -1,5 +1,16 @@
 @REM Locate Python
-@REM Reset error level before checking if Python is reachable
+@REM Reset error level before each chheck of Python availability.
+
+@REM Search for py launcher and go to next check if not found.
+@set ERRORLEVEL=0
+@where /q py.exe
+@IF ERRORLEVEL 1 GOTO nopylauncher
+@FOR /F "tokens=* USEBACKQ" %%a IN (`py -c "import sys; print(sys.executable)"`) DO @SET pythonloc=%%a
+@set pythonloc="%pythonloc%"
+@GOTO CheckMeson
+
+:nopylauncher
+@REM Check if Python is in PATH or current folder.
 @set ERRORLEVEL=0
 @where /q python.exe
 @IF ERRORLEVEL 1 GOTO NotInPATHPython
@@ -8,6 +19,7 @@
 @GOTO CheckMeson
 
 :NotInPATHPython
+@REM Check if Python is in parent folder as it is tipical for a Pypi installation. Last chance of finding Python.
 @set pythonloc="%~dp0
 @if NOT "%pythonloc:~-1%"=="\" pythonloc=%pythonloc%\
 @set pythonloc=%pythonloc%..\python.exe"
