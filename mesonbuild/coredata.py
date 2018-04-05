@@ -370,7 +370,7 @@ def is_builtin_option(optname):
 
 def get_builtin_option_choices(optname):
     if is_builtin_option(optname):
-        if builtin_options[optname][0] == UserStringOption:
+        if builtin_options[optname][0] in [UserStringOption, UserArrayOption]:
             return None
         elif builtin_options[optname][0] == UserBooleanOption:
             return [True, False]
@@ -423,6 +423,8 @@ builtin_options = {
     'warning_level':   [UserComboOption, 'Compiler warning level to use.', ['1', '2', '3'], '1'],
     'layout':          [UserComboOption, 'Build directory layout.', ['mirror', 'flat'], 'mirror'],
     'default_library': [UserComboOption, 'Default library type.', ['shared', 'static', 'both'], 'shared'],
+    'default_link':    [UserComboOption, 'Default link method when both are possible', ['shared', 'static'], 'shared'],
+    'static_paths':    [UserArrayOption, 'Paths under which static libraries are allowed', ['/']],
     'backend':         [UserComboOption, 'Backend to use.', backendlist, 'ninja'],
     'stdsplit':        [UserBooleanOption, 'Split stdout and stderr in test logs.', True],
     'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests.", True],

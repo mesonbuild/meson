@@ -124,8 +124,9 @@ files will be compiled only once and object files will be reused to build both
 shared and static libraries, unless `b_staticpic` user option or `pic` argument
 are set to false in which case sources will be compiled twice.
 
-The returned [buildtarget](#build-target-object) always represents the shared
-library. In addition it supports the following extra methods:
+The returned [buildtarget](#build-target-object) represents either the static or
+the shared library depending on the value of the `default_link` user option.
+In addition it supports the following extra methods:
 
 - `get_shared_lib()` returns the shared library build target
 - `get_static_lib()` returns the static library build target

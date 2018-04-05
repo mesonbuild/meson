@@ -6,4 +6,5 @@ files will be reused to build both shared and static libraries, unless
 `b_staticpic` user option or `pic` argument are set to false in which case
 sources will be compiled twice.
 
-The returned `buildtarget` object always represents the shared library.
+The returned `buildtarget` object represents either the static or
+the shared library depending on the value of the new `default_link` user option.

@@ -610,9 +610,9 @@ class SharedLibraryHolder(BuildTargetHolder):
 
 class BothLibrariesHolder(BuildTargetHolder):
     def __init__(self, shared_holder, static_holder, interp):
-        # FIXME: This build target always represents the shared library, but
-        # that should be configurable.
-        super().__init__(shared_holder.held_object, interp)
+        opt = interp.coredata.get_builtin_option('default_link')
+        holder = shared_holder if opt == 'shared' else static_holder
+        super().__init__(holder.held_object, interp)
         self.shared_holder = shared_holder
         self.static_holder = static_holder
         self.methods.update({'get_shared_lib': self.get_shared_lib_method,
