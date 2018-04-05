@@ -1,15 +1,10 @@
 @REM Locate Python
 @REM Reset error level before each chheck of Python availability.
 
-@REM Search for py launcher and go to next check if not found.
-@set ERRORLEVEL=0
-@where /q py.exe
-@IF ERRORLEVEL 1 GOTO nopylauncher
-@FOR /F "tokens=* USEBACKQ" %%a IN (`py -c "import sys; print(sys.executable)"`) DO @SET pythonloc=%%a
-@set pythonloc="%pythonloc%"
-@GOTO CheckMeson
+@REM No need to bother with Py launcher as it is still necessary to use relative/absolute path to run this script if Python
+@REM is not in PATH. That's because this script is deployed with each Pypi installation of Meson.
+@REM This is not a center-stage script that tries to run various versions of Python from an outside location.
 
-:nopylauncher
 @REM Check if Python is in PATH or current folder.
 @set ERRORLEVEL=0
 @where /q python.exe
