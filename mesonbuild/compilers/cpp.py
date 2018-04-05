@@ -212,7 +212,7 @@ are likely to be wrong regardless of the compiler you are using.
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
-        self.language = 'cpp'
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap, is_64)
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
@@ -239,7 +239,7 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
     def get_compiler_check_args(self):
         # Visual Studio C++ compiler doesn't support -fpermissive,
         # so just use the plain C args.
-        return super(VisualStudioCCompiler, self).get_compiler_check_args()
+        return VisualStudioCCompiler.get_compiler_check_args(self)
 
 
 class ArmCPPCompiler(ArmCompiler, CPPCompiler):
