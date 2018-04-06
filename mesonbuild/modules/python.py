@@ -24,7 +24,8 @@ from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
     InterpreterObject, InvalidArguments
 )
-from ..interpreter import shlib_kwargs, ExternalProgramHolder
+from ..interpreter import ExternalProgramHolder
+from ..build import known_shmod_kwargs
 from .. import mlog
 from ..environment import detect_cpu_family
 from ..dependencies.base import (
@@ -34,7 +35,7 @@ from ..dependencies.base import (
 )
 
 mod_kwargs = set(['subdir'])
-mod_kwargs.update(shlib_kwargs)
+mod_kwargs.update(known_shmod_kwargs)
 
 
 def run_command(python, command):
