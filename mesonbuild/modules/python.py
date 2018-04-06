@@ -35,7 +35,6 @@ from ..dependencies.base import (
 
 mod_kwargs = set(['subdir'])
 mod_kwargs.update(shlib_kwargs)
-mod_kwargs -= set(['install_dir', 'install_rpath'])
 
 
 def run_command(python, command):
@@ -245,11 +244,15 @@ class PythonHolder(ExternalProgramHolder, InterpreterObject):
         if 'name_suffix' in kwargs:
             raise mesonlib.MesonException('Name_suffix is set automatically, specifying it is forbidden.')
 
-        subdir = kwargs.pop('subdir', '')
-        if not isinstance(subdir, str):
-            raise InvalidArguments('"subdir" argument must be a string.')
+        if 'subdir' in kwargs and 'install_dir' in kwargs:
+            raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
 
-        kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
+        if 'subdir' in kwargs:
+            subdir = kwargs.pop('subdir', '')
+            if not isinstance(subdir, str):
+                raise InvalidArguments('"subdir" argument must be a string.')
+
+            kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
 
         suffix = self.variables.get('EXT_SUFFIX') or self.variables.get('SO') or self.variables.get('.so')
 
