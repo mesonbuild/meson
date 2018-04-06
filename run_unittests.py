@@ -950,6 +950,12 @@ class AllPlatformTests(BasePlatformTests):
         self.uninstall()
         self.assertPathDoesNotExist(exename)
 
+    def test_forcefallback(self):
+        testdir = os.path.join(self.unit_test_dir, '26 forcefallback')
+        self.init(testdir, ['--wrap-mode=forcefallback'])
+        self.build()
+        self.run_tests()
+
     def test_testsetups(self):
         if not shutil.which('valgrind'):
                 raise unittest.SkipTest('Valgrind not installed.')
