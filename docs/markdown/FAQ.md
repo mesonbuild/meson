@@ -293,4 +293,4 @@ If on the other hand, you want meson to always use the fallback
 for dependencies, even when an external dependency exists and could
 satisfy the version requirements, for example in order to make
 sure your project builds when fallbacks are used, you can use
-`--wrap-mode=forcefallback`.
+`--wrap-mode=forcefallback` since 0.46.0.
