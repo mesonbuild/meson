@@ -984,20 +984,20 @@ class CompilerHolder(InterpreterObject):
         check_stringlist(args)
         expression = args[0]
         prefix = kwargs.get('prefix', '')
-        l = kwargs.get('low', -1024)
-        h = kwargs.get('high', 1024)
+        low = kwargs.get('low', None)
+        high = kwargs.get('high', None)
         guess = kwargs.get('guess', None)
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of compute_int must be a string.')
-        if not isinstance(l, int):
+        if low is not None and not isinstance(low, int):
             raise InterpreterException('Low argument of compute_int must be an int.')
-        if not isinstance(h, int):
+        if high is not None and not isinstance(high, int):
             raise InterpreterException('High argument of compute_int must be an int.')
         if guess is not None and not isinstance(guess, int):
             raise InterpreterException('Guess argument of compute_int must be an int.')
         extra_args = self.determine_args(kwargs)
         deps = self.determine_dependencies(kwargs)
-        res = self.compiler.compute_int(expression, l, h, guess, prefix, self.environment, extra_args, deps)
+        res = self.compiler.compute_int(expression, low, high, guess, prefix, self.environment, extra_args, deps)
         mlog.log('Computing int of "%s": %d' % (expression, res))
         return res
 

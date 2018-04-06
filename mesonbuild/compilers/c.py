@@ -367,24 +367,52 @@ class CCompiler(Compiler):
         return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
     def cross_compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies):
+        # Try user's guess first
         if isinstance(guess, int):
             if self._compile_int('%s == %d' % (expression, guess), prefix, env, extra_args, dependencies):
                 return guess
 
-        cur = low
-        while low < high:
-            cur = int((low + high) / 2)
-            if cur == low:
-                break
-
-            if self._compile_int('%s >= %d' % (expression, cur), prefix, env, extra_args, dependencies):
-                low = cur
-            else:
+        # If no bounds are given, compute them in the limit of int32
+        maxint = 0x7fffffff
+        minint = -0x80000000
+        if not isinstance(low, int) or not isinstance(high, int):
+            if self._compile_int('%s >= 0' % (expression), prefix, env, extra_args, dependencies):
+                low = cur = 0
+                while self._compile_int('%s > %d' % (expression, cur), prefix, env, extra_args, dependencies):
+                    low = cur + 1
+                    if low > maxint:
+                        raise EnvironmentException('Cross-compile check overflowed')
+                    cur = cur * 2 + 1
+                    if cur > maxint:
+                        cur = maxint
                 high = cur
+            else:
+                low = cur = -1
+                while self._compile_int('%s < %d' % (expression, cur), prefix, env, extra_args, dependencies):
+                    high = cur - 1
+                    if high < minint:
+                        raise EnvironmentException('Cross-compile check overflowed')
+                    cur = cur * 2
+                    if cur < minint:
+                        cur = minint
+                low = cur
+        else:
+            # Sanity check limits given by user
+            if high < low:
+                raise EnvironmentException('high limit smaller than low limit')
+            condition = '%s <= %d && %s >= %d' % (expression, high, expression, low)
+            if not self._compile_int(condition, prefix, env, extra_args, dependencies):
+                raise EnvironmentException('Value out of given range')
 
-        if self._compile_int('%s == %d' % (expression, cur), prefix, env, extra_args, dependencies):
-            return cur
-        raise EnvironmentException('Cross-compile check overflowed')
+        # Binary search
+        while low != high:
+            cur = low + int((high - low) / 2)
+            if self._compile_int('%s <= %d' % (expression, cur), prefix, env, extra_args, dependencies):
+                high = cur
+            else:
+                low = cur + 1
+
+        return low
 
     def compute_int(self, expression, low, high, guess, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -416,7 +444,7 @@ class CCompiler(Compiler):
         }}'''
         if not self.compiles(t.format(**fargs), env, extra_args, dependencies):
             return -1
-        return self.cross_compute_int('sizeof(%s)' % typename, 1, 1024, None, prefix, env, extra_args, dependencies)
+        return self.cross_compute_int('sizeof(%s)' % typename, None, None, None, prefix, env, extra_args, dependencies)
 
     def sizeof(self, typename, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -454,7 +482,7 @@ class CCompiler(Compiler):
             char c;
             {type} target;
         }};'''
-        return self.cross_compute_int('offsetof(struct tmp, target)', 1, 1024, None, t.format(**fargs), env, extra_args, dependencies)
+        return self.cross_compute_int('offsetof(struct tmp, target)', None, None, None, t.format(**fargs), env, extra_args, dependencies)
 
     def alignment(self, typename, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
