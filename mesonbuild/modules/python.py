@@ -63,35 +63,36 @@ class PythonDependency(ExternalDependency):
 
         if DependencyMethods.PKGCONFIG in self.methods:
             pkg_version = self.variables.get('LDVERSION') or self.version
-            pkg_path = self.variables.get('LIBPC')
+            pkg_libdir = self.variables.get('LIBPC')
+            old_pkg_libdir = os.environ.get('PKG_CONFIG_LIBDIR')
             old_pkg_path = os.environ.get('PKG_CONFIG_PATH')
 
-            if pkg_path:
-                os.environ['PKG_CONFIG_PATH'] = pkg_path
+            os.environ.pop('PKG_CONFIG_PATH', None)
+
+            if pkg_libdir:
+                os.environ['PKG_CONFIG_LIBDIR'] = pkg_libdir
 
             try:
                 self.pkgdep = PkgConfigDependency('python-{}'.format(pkg_version), environment, kwargs)
-                if self.pkgdep.found():
-                    self.compile_args = self.pkgdep.get_compile_args()
-                    self.link_args = self.pkgdep.get_link_args()
-                    self.is_found = True
-                    self.pcdep = self.pkgdep
-                    if old_pkg_path:
-                        os.environ['PKG_CONFIG_PATH'] = old_pkg_path
-                    else:
-                        os.environ.pop('PKG_CONFIG_PATH', None)
-                    return
-                else:
-                    self.pkgdep = None
             except Exception:
                 pass
 
-            if old_pkg_path:
+            if old_pkg_path is not None:
                 os.environ['PKG_CONFIG_PATH'] = old_pkg_path
-            else:
-                os.environ.pop('PKG_CONFIG_PATH', None)
 
-        if not self.is_found:
+            if old_pkg_libdir is not None:
+                os.environ['PKG_CONFIG_LIBDIR'] = old_pkg_libdir
+            else:
+                os.environ.pop('PKG_CONFIG_LIBDIR', None)
+
+        if self.pkgdep and self.pkgdep.found():
+            self.compile_args = self.pkgdep.get_compile_args()
+            self.link_args = self.pkgdep.get_link_args()
+            self.is_found = True
+            self.pcdep = self.pkgdep
+        else:
+            self.pkgdep = None
+
             if mesonlib.is_windows() and DependencyMethods.SYSCONFIG in self.methods:
                 self._find_libpy_windows(environment)
 
