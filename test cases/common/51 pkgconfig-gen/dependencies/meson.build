@@ -11,6 +11,7 @@ pkgg.generate(exposed_lib)
 
 # Declare a few different Dependency objects
 pc_dep = dependency('libfoo', version : '>=1.0')
+pc_dep_dup = dependency('libfoo', version : '>= 1.0')
 notfound_dep = dependency('notfound', required : false)
 threads_dep = dependency('threads')
 custom_dep = declare_dependency(link_args : ['-lcustom'], compile_args : ['-DCUSTOM'])
@@ -24,9 +25,10 @@ custom2_dep = declare_dependency(link_args : ['-lcustom2'], compile_args : ['-DC
 # - Having custom_dep in libraries and libraries_private should only add it in Libs
 # - Having custom2_dep in libraries_private should not add its Cflags
 # - Having pc_dep in libraries_private should add it in Requires.private
+# - pc_dep_dup is the same library and same version, should be ignored
 # - notfound_dep is not required so it shouldn't appear in the pc file.
 pkgg.generate(libraries : [main_lib, exposed_lib, threads_dep , custom_dep],
-  libraries_private : [custom_dep, custom2_dep, pc_dep, notfound_dep],
+  libraries_private : [custom_dep, custom2_dep, pc_dep, pc_dep_dup, notfound_dep],
   version : '1.0',
   name : 'dependency-test',
   filebase : 'dependency-test',

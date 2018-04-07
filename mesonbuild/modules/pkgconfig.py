@@ -133,9 +133,11 @@ class DependenciesHelper:
 
     def add_version_reqs(self, name, version_reqs):
         if version_reqs:
-            vreqs = self.version_reqs.get(name, [])
-            vreqs += mesonlib.stringlistify(version_reqs)
-            self.version_reqs[name] = vreqs
+            if name not in self.version_reqs:
+                self.version_reqs[name] = set()
+            # We could have '>=1.0' or '>= 1.0', remove spaces to normalize
+            new_vreqs = [s.replace(' ', '') for s in mesonlib.stringlistify(version_reqs)]
+            self.version_reqs[name].update(new_vreqs)
 
     def split_version_req(self, s):
         for op in ['>=', '<=', '!=', '==', '=', '>', '<']:
