@@ -29,7 +29,7 @@ if sys.version_info < (3, 5, 0):
 # plain distutils when setuptools is not available.
 #
 # Also import distutil.spawn in order to check if we have a Windows MSI
-#installation of Meson.
+# installation of Meson.
 try:
     from setuptools import setup
     from setuptools.command.install_scripts import install_scripts as orig
@@ -63,14 +63,14 @@ class install_scripts(orig):
 # Create a dynamic scripts list.
 # Install meson.bat only on Windows
 # and if meson.exe is not in PATH.
-scriptslist=['meson.py',
-         'mesonconf.py',
-         'mesontest.py',
-         'mesonintrospect.py',
-         'wraptool.py']
+scriptslist = ['meson.py',
+               'mesonconf.py',
+               'mesontest.py',
+               'mesonintrospect.py',
+               'wraptool.py']
 if distutils.spawn.find_executable("meson.exe") is None:
-    if os.name=='nt':
-        scriptslist=['meson.bat']+scriptslist
+    if os.name == 'nt':
+        scriptslist = ['meson.bat'] + scriptslist
 
 setup(name='meson',
       version=version,
