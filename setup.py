@@ -27,9 +27,13 @@ if sys.version_info < (3, 5, 0):
 # We need to support Python installations that have nothing but the basic
 # Python installation. Use setuptools when possible and fall back to
 # plain distutils when setuptools is not available.
+#
+# Also import distutil.spawn in order to check if we have a Windows MSI
+#installation of Meson.
 try:
     from setuptools import setup
     from setuptools.command.install_scripts import install_scripts as orig
+    import distutils.spawn
 except ImportError:
     from distutils.core import setup
     from distutils.command.install_scripts import install_scripts as orig
@@ -56,6 +60,18 @@ class install_scripts(orig):
             self.copy_file(in_built, outfile)
             self.outfiles.append(outfile)
 
+# Create a dynamic scripts list.
+# Install meson.bat only on Windows
+# and if meson.exe is not in PATH.
+scriptslist=['meson.py',
+         'mesonconf.py',
+         'mesontest.py',
+         'mesonintrospect.py',
+         'wraptool.py']
+if distutils.spawn.find_executable("meson.exe") is None:
+    if os.name=='nt':
+        scriptslist=['meson.bat']+scriptslist
+
 setup(name='meson',
       version=version,
       description='A high performance build system',
@@ -71,12 +87,7 @@ setup(name='meson',
                 'mesonbuild.modules',
                 'mesonbuild.scripts',
                 'mesonbuild.wrap'],
-      scripts=['meson.bat',
-               'meson.py',
-               'mesonconf.py',
-               'mesontest.py',
-               'mesonintrospect.py',
-               'wraptool.py'],
+      scripts=scriptslist,
       cmdclass={'install_scripts': install_scripts},
       data_files=[('share/man/man1', ['man/meson.1',
                                       'man/mesonconf.1',
