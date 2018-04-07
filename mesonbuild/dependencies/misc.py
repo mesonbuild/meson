@@ -237,6 +237,19 @@ class MPIDependency(ExternalDependency):
                     [os.path.join(libdir, 'msmpi.lib')])
 
 
+class OpenMPDependency(ExternalDependency):
+    def __init__(self, environment, kwargs):
+        super().__init__('openmp', environment, None, {})
+        self.is_found = True
+        mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
+
+    def need_openmp(self):
+        return True
+
+    def get_version(self):
+        return 'unknown'
+
+
 class ThreadDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('threads', environment, None, {})

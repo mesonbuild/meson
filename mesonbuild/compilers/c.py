@@ -296,6 +296,8 @@ class CCompiler(Compiler):
             args += d.get_compile_args()
             if d.need_threads():
                 args += self.thread_flags(env)
+            elif d.need_openmp():
+                args += self.openmp_flags()
             if mode == 'link':
                 # Add link flags needed to find dependencies
                 args += d.get_link_args()
@@ -1085,6 +1087,9 @@ class VisualStudioCCompiler(CCompiler):
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return []
+
+    def openmp_flags(self):
+        return ['/openmp']
 
     # FIXME, no idea what these should be.
     def thread_flags(self, env):

@@ -180,6 +180,9 @@ class GnuFortranCompiler(FortranCompiler):
         """
         return ['-Wl,--out-implib=' + implibname]
 
+    def openmp_flags(self):
+        return ['-fopenmp']
+
 
 class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
@@ -231,6 +234,9 @@ class SunFortranCompiler(FortranCompiler):
     def get_module_outdir_args(self, path):
         return ['-moddir=' + path]
 
+    def openmp_flags(self):
+        return ['-xopenmp']
+
 
 class IntelFortranCompiler(IntelCompiler, FortranCompiler):
     std_warn_args = ['-warn', 'all']
@@ -263,6 +269,10 @@ class PathScaleFortranCompiler(FortranCompiler):
     def get_std_warn_args(self, level):
         return PathScaleFortranCompiler.std_warn_args
 
+    def openmp_flags(self):
+        return ['-mp']
+
+
 class PGIFortranCompiler(FortranCompiler):
     std_warn_args = ['-Minform=inform']
 
@@ -282,6 +292,9 @@ class PGIFortranCompiler(FortranCompiler):
     def get_no_warn_args(self):
         return ['-silent']
 
+    def openmp_flags(self):
+        return ['-fopenmp']
+
 
 class Open64FortranCompiler(FortranCompiler):
     std_warn_args = ['-fullwarn']
@@ -296,6 +309,9 @@ class Open64FortranCompiler(FortranCompiler):
     def get_warn_args(self, level):
         return Open64FortranCompiler.std_warn_args
 
+    def openmp_flags(self):
+        return ['-mp']
+
 
 class NAGFortranCompiler(FortranCompiler):
     std_warn_args = []
@@ -309,3 +325,6 @@ class NAGFortranCompiler(FortranCompiler):
 
     def get_warn_args(self, level):
         return NAGFortranCompiler.std_warn_args
+
+    def openmp_flags(self):
+        return ['-openmp']

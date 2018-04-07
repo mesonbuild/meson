@@ -2551,6 +2551,8 @@ rule FORTRAN_DEP_HACK
         for d in target.external_deps:
             if d.need_threads():
                 commands += linker.thread_link_flags(self.environment)
+            elif d.need_openmp():
+                commands += linker.openmp_flags()
         # Only non-static built targets need link args and link dependencies
         if not isinstance(target, build.StaticLibrary):
             commands += target.link_args
