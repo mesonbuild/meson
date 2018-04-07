@@ -238,16 +238,27 @@ class MPIDependency(ExternalDependency):
 
 
 class OpenMPDependency(ExternalDependency):
+    # Map date of specification release (which is the macro value) to a version.
+    VERSIONS = {
+        '201511': '4.5',
+        '201307': '4.0',
+        '201107': '3.1',
+        '200805': '3.0',
+        '200505': '2.5',
+        '200203': '2.0',
+        '199810': '1.0',
+    }
+
     def __init__(self, environment, kwargs):
-        super().__init__('openmp', environment, None, {})
+        language = kwargs.get('language')
+        super().__init__('openmp', environment, language, kwargs)
         self.is_found = True
-        mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
+        openmp_date = self.compiler.get_define('_OPENMP', '', self.env, [], [self])
+        self.version = self.VERSIONS[openmp_date]
+        mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'), self.version)
 
     def need_openmp(self):
         return True
-
-    def get_version(self):
-        return 'unknown'
 
 
 class ThreadDependency(ExternalDependency):
