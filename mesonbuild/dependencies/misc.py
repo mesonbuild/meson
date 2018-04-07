@@ -252,10 +252,18 @@ class OpenMPDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         language = kwargs.get('language')
         super().__init__('openmp', environment, language, kwargs)
-        self.is_found = True
+        self.is_found = False
         openmp_date = self.compiler.get_define('_OPENMP', '', self.env, [], [self])
-        self.version = self.VERSIONS[openmp_date]
-        mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'), self.version)
+        if openmp_date:
+            self.version = self.VERSIONS[openmp_date]
+            if self.compiler.has_header('omp.h', '', self.env, dependencies=[self]):
+                self.is_found = True
+            else:
+                mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
+        if self.is_found:
+            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'), self.version)
+        else:
+            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
 
     def need_openmp(self):
         return True

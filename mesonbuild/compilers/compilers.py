@@ -1282,7 +1282,8 @@ class ClangCompiler:
         elif version_compare(self.version, '>=3.7.0'):
             return ['-fopenmp=libomp']
         else:
-            return None
+            # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
+            return []
 
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
