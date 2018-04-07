@@ -33,7 +33,7 @@ if sys.version_info < (3, 5, 0):
 try:
     from setuptools import setup
     from setuptools.command.install_scripts import install_scripts as orig
-    import distutils.spawn
+    from distutils.spawn import find_executable
 except ImportError:
     from distutils.core import setup
     from distutils.command.install_scripts import install_scripts as orig
@@ -68,7 +68,7 @@ scriptslist = ['meson.py',
                'mesontest.py',
                'mesonintrospect.py',
                'wraptool.py']
-if distutils.spawn.find_executable("meson.exe") is None:
+if find_executable("meson.exe") is None:
     if os.name == 'nt':
         scriptslist = ['meson.bat'] + scriptslist
 
