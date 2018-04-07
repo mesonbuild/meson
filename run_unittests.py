@@ -951,7 +951,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathDoesNotExist(exename)
 
     def test_forcefallback(self):
-        testdir = os.path.join(self.unit_test_dir, '26 forcefallback')
+        testdir = os.path.join(self.unit_test_dir, '27 forcefallback')
         self.init(testdir, ['--wrap-mode=forcefallback'])
         self.build()
         self.run_tests()
