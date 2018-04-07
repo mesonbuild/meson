@@ -1579,14 +1579,14 @@ class Interpreter(InterpreterBase):
                            'run_command': self.func_run_command,
                            'set_variable': self.func_set_variable,
                            'subdir': self.func_subdir,
+                           'subdir_done': self.func_subdir_done,
                            'subproject': self.func_subproject,
                            'shared_library': self.func_shared_lib,
                            'shared_module': self.func_shared_module,
                            'static_library': self.func_static_lib,
                            'both_libraries': self.func_both_lib,
                            'test': self.func_test,
-                           'vcs_tag': self.func_vcs_tag,
-                           'subdir_done': self.func_subdir_done,
+                           'vcs_tag': self.func_vcs_tag
                            })
         if 'MESON_UNIT_TEST' in os.environ:
             self.funcs.update({'exception': self.func_exception})
