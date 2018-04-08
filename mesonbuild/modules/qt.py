@@ -15,7 +15,7 @@
 import os
 from .. import mlog
 from .. import build
-from ..mesonlib import MesonException, Popen_safe, extract_as_list
+from ..mesonlib import MesonException, Popen_safe, extract_as_list, File
 from ..dependencies import Qt4Dependency, Qt5Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args
@@ -71,19 +71,47 @@ class QtBaseModule:
                 mlog.log(' {}:'.format(compiler_name.lower()), mlog.red('NO'))
         self.tools_detected = True
 
-    def parse_qrc(self, state, fname):
-        abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
-        relative_part = os.path.dirname(fname)
+    def parse_qrc(self, state, rcc_file):
+        if type(rcc_file) is str:
+            abspath = os.path.join(state.environment.source_dir, state.subdir, rcc_file)
+            rcc_dirname = os.path.dirname(abspath)
+        elif type(rcc_file) is File:
+            abspath = rcc_file.absolute_path(state.environment.source_dir, state.environment.build_dir)
+            rcc_dirname = os.path.dirname(abspath)
+
         try:
             tree = ET.parse(abspath)
             root = tree.getroot()
             result = []
             for child in root[0]:
                 if child.tag != 'file':
-                    mlog.warning("malformed rcc file: ", os.path.join(state.subdir, fname))
+                    mlog.warning("malformed rcc file: ", os.path.join(state.subdir, rcc_file))
                     break
                 else:
-                    result.append(os.path.join(relative_part, child.text))
+                    resource_path = child.text
+                    # We need to guess if the pointed resource is:
+                    #   a) in build directory -> implies a generated file
+                    #   b) in source directory
+                    #   c) somewhere else external dependency file to bundle
+                    #
+                    # Also from qrc documentation: relative path are always from qrc file
+                    # So relative path must always be computed from qrc file !
+                    if os.path.isabs(resource_path):
+                        # a)
+                        if resource_path.startswith(os.path.abspath(state.environment.build_dir)):
+                            resource_relpath = os.path.relpath(resource_path, state.environment.build_dir)
+                            result.append(File(is_built=True, subdir='', fname=resource_relpath))
+                        # either b) or c)
+                        else:
+                            result.append(File(is_built=False, subdir=state.subdir, fname=resource_path))
+                    else:
+                        path_from_rcc = os.path.normpath(os.path.join(rcc_dirname, resource_path))
+                        # a)
+                        if path_from_rcc.startswith(state.environment.build_dir):
+                            result.append(File(is_built=True, subdir=state.subdir, fname=resource_path))
+                        # b)
+                        else:
+                            result.append(File(is_built=False, subdir=state.subdir, fname=path_from_rcc))
             return result
         except Exception:
             return []
@@ -102,11 +130,11 @@ class QtBaseModule:
         if len(rcc_files) > 0:
             if not self.rcc.found():
                 raise MesonException(err_msg.format('RCC', 'rcc-qt{}'.format(self.qt_version), self.qt_version))
-            qrc_deps = []
-            for i in rcc_files:
-                qrc_deps += self.parse_qrc(state, i)
             # custom output name set? -> one output file, multiple otherwise
             if len(args) > 0:
+                qrc_deps = []
+                for i in rcc_files:
+                    qrc_deps += self.parse_qrc(state, i)
                 name = args[0]
                 rcc_kwargs = {'input': rcc_files,
                               'output': name + '.cpp',
@@ -116,7 +144,11 @@ class QtBaseModule:
                 sources.append(res_target)
             else:
                 for rcc_file in rcc_files:
-                    basename = os.path.basename(rcc_file)
+                    qrc_deps = self.parse_qrc(state, rcc_file)
+                    if type(rcc_file) is str:
+                        basename = os.path.basename(rcc_file)
+                    elif type(rcc_file) is File:
+                        basename = os.path.basename(rcc_file.fname)
                     name = 'qt' + str(self.qt_version) + '-' + basename.replace('.', '_')
                     rcc_kwargs = {'input': rcc_file,
                                   'output': name + '.cpp',
