@@ -87,6 +87,7 @@ class DependenciesHelper:
         processed_reqs = []
         processed_cflags = []
         for obj in libs:
+            shared_library_only = getattr(obj, 'shared_library_only', False)
             if hasattr(obj, 'pcdep'):
                 pcdeps = mesonlib.listify(obj.pcdep)
                 for d in pcdeps:
@@ -105,7 +106,7 @@ class DependenciesHelper:
                 if obj.found():
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-            elif isinstance(obj, build.SharedLibrary) and obj.shared_library_only:
+            elif isinstance(obj, build.SharedLibrary) and shared_library_only:
                 # Do not pull dependencies for shared libraries because they are
                 # only required for static linking. Adding private requires has
                 # the side effect of exposing their cflags, which is the
@@ -132,9 +133,11 @@ class DependenciesHelper:
 
     def add_version_reqs(self, name, version_reqs):
         if version_reqs:
-            vreqs = self.version_reqs.get(name, [])
-            vreqs += mesonlib.stringlistify(version_reqs)
-            self.version_reqs[name] = vreqs
+            if name not in self.version_reqs:
+                self.version_reqs[name] = set()
+            # We could have '>=1.0' or '>= 1.0', remove spaces to normalize
+            new_vreqs = [s.replace(' ', '') for s in mesonlib.stringlistify(version_reqs)]
+            self.version_reqs[name].update(new_vreqs)
 
     def split_version_req(self, s):
         for op in ['>=', '<=', '!=', '==', '=', '>', '<']:
