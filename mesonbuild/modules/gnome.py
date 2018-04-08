@@ -286,7 +286,10 @@ class GnomeModule(ExtensionModule):
                        use_gir_args=False):
         link_command = []
         # Construct link args
-        if isinstance(lib, build.SharedLibrary):
+        if isinstance(lib, build.StaticLibrary):
+            libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
+            link_command.append('-L' + libdir)
+        elif isinstance(lib, build.SharedLibrary):
             libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
             link_command.append('-L' + libdir)
             # Needed for the following binutils bug:
@@ -830,9 +833,9 @@ This will become a hard error in the future.''')
         cflags.update(state.environment.coredata.external_args['c'])
         ldflags.update(state.environment.coredata.external_link_args['c'])
         if cflags:
-            args += ['--cflags=%s' % ' '.join(cflags)]
+            args += ['--cflags=%s' % ' '.join(['"' + flag + '"' for flag in cflags])]
         if ldflags:
-            args += ['--ldflags=%s' % ' '.join(ldflags)]
+            args += ['--ldflags=%s' % ' '.join(['"' + flag + '"' for flag in ldflags])]
         compiler = state.environment.coredata.compilers.get('c')
         if compiler:
             args += ['--cc=%s' % ' '.join(compiler.get_exelist())]
