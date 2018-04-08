@@ -1396,6 +1396,12 @@ the following methods.
   /path/to/meson.py introspect`. The user is responsible for splitting
   the string to an array if needed.
 
+- `override_find_program(progname, program)` specifies that whenever
+  `find_program` is used to find a program named `progname`, Meson
+  should not not look it up on the system but instead return
+  `program`, which may either be the result of `find_program` or
+  `configure_file`.
+
 - `project_version()` returns the version string specified in `project` function call.
 
 - `project_license()` returns the array of licenses specified in `project` function call.
