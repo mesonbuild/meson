@@ -476,6 +476,25 @@ TIMEOUT: %4d
             (prj_match, st_match) = TestHarness.split_suite_string(suite)
             for prjst in test.suite:
                 (prj, st) = TestHarness.split_suite_string(prjst)
+
+                # the SUITE can be passed as
+                #     suite_name
+                # or
+                #     project_name:suite_name
+                # so we need to select only the test belonging to project_name
+
+                # this if hanlde the first case (i.e., SUITE == suite_name)
+
+                # in this way we can run tests belonging to different
+                # (sub)projects which share the same suite_name
+                if not st_match and st == prj_match:
+                    return True
+
+                # these two conditions are needed to handle the second option
+                # i.e., SUITE == project_name:suite_name
+
+                # in this way we select the only the tests of
+                # project_name with suite_name
                 if prj_match and prj != prj_match:
                     continue
                 if st_match and st != st_match:

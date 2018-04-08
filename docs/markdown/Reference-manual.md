@@ -1245,6 +1245,12 @@ Keyword arguments are the following:
 - `workdir` absolute path that will be used as the working directory
   for the test
 
+- 'suite' label attached to this test. `meson test --suite suite_name`
+  run all the tests with suite defined as `suite_name`. Note that by
+  default, the full suite name is `project_name:suite_name`, so if you
+  want to select the test suite of a given (sub)project only, you have
+  to run 'meson test --test project_name:suite_name'
+
 Defined tests can be run in a backend-agnostic way by calling
 `meson test` inside the build dir, or by using backend-specific
 commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.
