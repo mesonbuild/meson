@@ -2858,9 +2858,19 @@ class PythonTests(BasePlatformTests):
         # When specifying a known name, (python2 / python3) the module
         # will also try 'python' as a fallback and use it if the major
         # version matches
-        self.init(testdir, ['-Dpython=python2'])
-        self.build()
-        self.run_tests()
+        try:
+            self.init(testdir, ['-Dpython=python2'])
+            self.build()
+            self.run_tests()
+        except unittest.SkipTest:
+            # python2 is not necessarily installed on the test machine,
+            # if it is not, or the python headers can't be found, the test
+            # will raise MESON_SKIP_TEST, we could check beforehand what version
+            # of python is available, but it's a bit of a chicken and egg situation,
+            # as that is the job of the module, so we just ask for forgiveness rather
+            # than permission.
+            pass
+
         self.wipe()
 
         # The test is configured to error out with MESON_SKIP_TEST

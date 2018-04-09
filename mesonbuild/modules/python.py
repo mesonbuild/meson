@@ -416,7 +416,7 @@ class PythonModule(ExtensionModule):
                     if not version or \
                             name_or_path == 'python2' and mesonlib.version_compare(version, '>= 3.0') or \
                             name_or_path == 'python3' and not mesonlib.version_compare(version, '>= 3.0'):
-                        res = NonExistingExternalProgram()
+                        python = NonExistingExternalProgram()
 
         if not python.found():
             if required:
