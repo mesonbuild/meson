@@ -1046,6 +1046,12 @@ This will become a hard error in the future.''')
             raise MesonException(
                 'Sources keyword argument must be a string or array.')
 
+        # The `install_header` argument will be used by mkenums() when
+        # not using template files, so we need to forcibly unset it
+        # when generating the C source file, otherwise we will end up
+        # installing it
+        c_file_kwargs['install_header'] = False
+
         header_prefix = kwargs.get('header_prefix', '')
         decl_decorator = kwargs.get('decorator', '')
         func_prefix = kwargs.get('function_prefix', '')
