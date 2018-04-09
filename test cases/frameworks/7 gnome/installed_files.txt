@@ -1,6 +1,7 @@
 usr/include/enums.h
 usr/include/enums2.h
 usr/include/enums3.h
+usr/include/enums5.h
 usr/include/marshaller.h
 usr/lib/?libgir_lib.so
 usr/lib/?libdep1lib.so
