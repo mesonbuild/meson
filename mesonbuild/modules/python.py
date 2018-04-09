@@ -36,6 +36,7 @@ from ..dependencies.base import (
 
 mod_kwargs = set(['subdir'])
 mod_kwargs.update(known_shmod_kwargs)
+mod_kwargs -= set(['name_prefix', 'name_suffix'])
 
 
 def run_command(python, command):
@@ -240,11 +241,6 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
 
     @permittedSnippetKwargs(mod_kwargs)
     def extension_module(self, interpreter, state, args, kwargs):
-        if 'name_prefix' in kwargs:
-            raise mesonlib.MesonException('Name_prefix is set automatically, specifying it is forbidden.')
-        if 'name_suffix' in kwargs:
-            raise mesonlib.MesonException('Name_suffix is set automatically, specifying it is forbidden.')
-
         if 'subdir' in kwargs and 'install_dir' in kwargs:
             raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
 
@@ -291,7 +287,7 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
     @noPosargs
     @permittedKwargs(['pure', 'subdir'])
     def get_install_dir(self, node, args, kwargs):
-        pure = kwargs.pop('pure', False)
+        pure = kwargs.pop('pure', True)
         if not isinstance(pure, bool):
             raise InvalidArguments('"pure" argument must be a boolean.')
 
@@ -386,13 +382,13 @@ class PythonModule(ExtensionModule):
         if not isinstance(required, bool):
             raise InvalidArguments('"required" argument must be a boolean.')
 
-        if len(args) != 1:
-            raise InvalidArguments('find takes zero or one positional argument.')
+        if len(args) > 1:
+            raise InvalidArguments('find_installation takes zero or one positional argument.')
 
         if args:
             name_or_path = args[0]
             if not isinstance(name_or_path, str):
-                raise InvalidArguments('find argument must be a string.')
+                raise InvalidArguments('find_installation argument must be a string.')
         else:
             name_or_path = None
 
