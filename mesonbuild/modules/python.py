@@ -224,7 +224,7 @@ print (json.dumps(sysconfig.get_paths(scheme='posix_prefix', vars={'base': '', '
 '''
 
 
-class PythonHolder(ExternalProgramHolder, InterpreterObject):
+class PythonInstallation(ExternalProgramHolder, InterpreterObject):
     def __init__(self, interpreter, python):
         InterpreterObject.__init__(self)
         ExternalProgramHolder.__init__(self, python)
@@ -365,7 +365,7 @@ class PythonHolder(ExternalProgramHolder, InterpreterObject):
 class PythonModule(ExtensionModule):
     def __init__(self):
         super().__init__()
-        self.snippets.add('find')
+        self.snippets.add('find_installation')
 
     # https://www.python.org/dev/peps/pep-0397/
     def _get_win_pythonpath(self, name_or_path):
@@ -381,7 +381,7 @@ class PythonModule(ExtensionModule):
             return None
 
     @permittedSnippetKwargs(['required'])
-    def find(self, interpreter, state, args, kwargs):
+    def find_installation(self, interpreter, state, args, kwargs):
         required = kwargs.get('required', True)
         if not isinstance(required, bool):
             raise InvalidArguments('"required" argument must be a boolean.')
@@ -428,7 +428,7 @@ class PythonModule(ExtensionModule):
             if not version:
                 res = ExternalProgramHolder(NonExistingExternalProgram())
             else:
-                res = PythonHolder(interpreter, python)
+                res = PythonInstallation(interpreter, python)
 
         return res
 

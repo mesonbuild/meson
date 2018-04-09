@@ -3,7 +3,7 @@ project('Python extension module', 'c',
 
 py_mod = import('python')
 
-py = py_mod.find(get_option('python'), required : false)
+py = py_mod.find_installation(get_option('python'), required : false)
 
 if py.found()
   py_dep = py.dependency()
