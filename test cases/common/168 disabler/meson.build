@@ -21,7 +21,7 @@ else
   number = 2
 endif
 
-assert(d == 0, 'Plain if handled incorrectly, value should be 0 but is @0@'.format(number))
+assert(number == 0, 'Plain if handled incorrectly, value should be 0 but is @0@'.format(number))
 
 if d.found()
   number = 1
@@ -29,6 +29,6 @@ else
   number = 2
 endif
 
-assert(d == 1, 'If found handled incorrectly, value should be 1 but is @0@'.format(number))
+assert(number == 2, 'If found handled incorrectly, value should be 2 but is @0@'.format(number))
 
 
