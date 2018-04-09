@@ -1,4 +1,4 @@
-# Generic python module
+## Generic python module
 
 This is a revamped and generic (python 2 and 3) version of the python3
 module. With this new interface, projects can now fully specify the version
