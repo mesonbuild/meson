@@ -32,6 +32,7 @@ index.md
 			i18n-module.md
 			Icestorm-module.md
 			Pkgconfig-module.md
+			Python-module.md
 			Python-3-module.md
 			Qt4-module.md
 			Qt5-module.md
