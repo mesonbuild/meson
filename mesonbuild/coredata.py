@@ -44,21 +44,17 @@ class UserOption:
     def validate_value(self, value):
         raise RuntimeError('Derived option class did not override validate_value.')
 
+    def set_value(self, newvalue):
+        self.value = self.validate_value(newvalue)
+
 class UserStringOption(UserOption):
     def __init__(self, name, description, value, choices=None, yielding=None):
         super().__init__(name, description, choices, yielding)
         self.set_value(value)
 
-    def validate(self, value):
+    def validate_value(self, value):
         if not isinstance(value, str):
             raise MesonException('Value "%s" for string option "%s" is not a string.' % (str(value), self.name))
-
-    def set_value(self, newvalue):
-        self.validate(newvalue)
-        self.value = newvalue
-
-    def validate_value(self, value):
-        self.validate(value)
         return value
 
 class UserBooleanOption(UserOption):
@@ -66,23 +62,17 @@ class UserBooleanOption(UserOption):
         super().__init__(name, description, [True, False], yielding)
         self.set_value(value)
 
-    def tobool(self, thing):
-        if isinstance(thing, bool):
-            return thing
-        if thing.lower() == 'true':
-            return True
-        if thing.lower() == 'false':
-            return False
-        raise MesonException('Value %s is not boolean (true or false).' % thing)
-
-    def set_value(self, newvalue):
-        self.value = self.tobool(newvalue)
-
     def __bool__(self):
         return self.value
 
     def validate_value(self, value):
-        return self.tobool(value)
+        if isinstance(value, bool):
+            return value
+        if value.lower() == 'true':
+            return True
+        if value.lower() == 'false':
+            return False
+        raise MesonException('Value %s is not boolean (true or false).' % value)
 
 class UserIntegerOption(UserOption):
     def __init__(self, name, description, min_value, max_value, value, yielding=None):
@@ -97,25 +87,22 @@ class UserIntegerOption(UserOption):
             c.append('<=' + str(max_value))
         self.choices = ', '.join(c)
 
-    def set_value(self, newvalue):
-        if isinstance(newvalue, str):
-            newvalue = self.toint(newvalue)
-        if not isinstance(newvalue, int):
+    def validate_value(self, value):
+        if isinstance(value, str):
+            value = self.toint(value)
+        if not isinstance(value, int):
             raise MesonException('New value for integer option is not an integer.')
-        if self.min_value is not None and newvalue < self.min_value:
-            raise MesonException('New value %d is less than minimum value %d.' % (newvalue, self.min_value))
-        if self.max_value is not None and newvalue > self.max_value:
-            raise MesonException('New value %d is more than maximum value %d.' % (newvalue, self.max_value))
-        self.value = newvalue
+        if self.min_value is not None and value < self.min_value:
+            raise MesonException('New value %d is less than minimum value %d.' % (value, self.min_value))
+        if self.max_value is not None and value > self.max_value:
+            raise MesonException('New value %d is more than maximum value %d.' % (value, self.max_value))
+        return value
 
     def toint(self, valuestring):
         try:
             return int(valuestring)
         except ValueError:
             raise MesonException('Value string "%s" is not convertable to an integer.' % valuestring)
-
-    def validate_value(self, value):
-        return self.toint(value)
 
 class UserComboOption(UserOption):
     def __init__(self, name, description, choices, value, yielding=None):
@@ -127,23 +114,18 @@ class UserComboOption(UserOption):
                 raise MesonException('Combo choice elements must be strings.')
         self.set_value(value)
 
-    def set_value(self, newvalue):
-        if newvalue not in self.choices:
-            optionsstring = ', '.join(['"%s"' % (item,) for item in self.choices])
-            raise MesonException('Value "%s" for combo option "%s" is not one of the choices. Possible choices are: %s.' % (newvalue, self.name, optionsstring))
-        self.value = newvalue
-
     def validate_value(self, value):
         if value not in self.choices:
-            raise MesonException('Value %s not one of accepted values.' % value)
+            optionsstring = ', '.join(['"%s"' % (item,) for item in self.choices])
+            raise MesonException('Value "%s" for combo option "%s" is not one of the choices. Possible choices are: %s.' % (value, self.name, optionsstring))
         return value
 
 class UserArrayOption(UserOption):
     def __init__(self, name, description, value, **kwargs):
         super().__init__(name, description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
-        self.set_value(value, user_input=False)
+        self.value = self.validate_value(value, user_input=False)
 
-    def validate(self, value, user_input):
+    def validate_value(self, value, user_input=True):
         # User input is for options defined on the command line (via -D
         # options). Users can put their input in as a comma separated
         # string, but for defining options in meson_options.txt the format
@@ -175,13 +157,6 @@ This will become a hard error in the future.''')
                 raise MesonException('Options "{}" are not in allowed choices: "{}"'.format(
                     ', '.join(bad), ', '.join(self.choices)))
         return newvalue
-
-    def set_value(self, newvalue, user_input=True):
-        self.value = self.validate(newvalue, user_input)
-
-    def validate_value(self, value):
-        self.validate(value)
-        return value
 
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
