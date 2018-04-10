@@ -27,7 +27,7 @@ from .dependencies import InternalDependency, Dependency, NotFoundDependency, De
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, flatten, noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
-from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler
+from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler, disablerIfNotFound
 from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
 from .interpreterbase import ObjectHolder
 from .modules import ModuleReturnValue
@@ -1381,6 +1381,8 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Header <{0}> has symbol "{1}":'.format(hname, symbol), h)
         return haz
 
+    @FeatureNewKwargs('compiler.find_library', '0.49.0', ['disabler'])
+    @disablerIfNotFound
     @permittedKwargs({
         'required',
         'dirs',
@@ -2776,6 +2778,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.store_name_lookups(args)
         return progobj
 
+    @FeatureNewKwargs('find_program', '0.49.0', ['disabler'])
+    @disablerIfNotFound
     @permittedKwargs(permitted_kwargs['find_program'])
     def func_find_program(self, node, args, kwargs):
         if not args:
@@ -2902,8 +2906,10 @@ external dependencies (including libraries) must go to "dependencies".''')
         elif name == 'openmp':
             FeatureNew('OpenMP Dependency', '0.46.0').use(self.subproject)
 
+    @FeatureNewKwargs('dependency', '0.49.0', ['disabler'])
     @FeatureNewKwargs('dependency', '0.40.0', ['method'])
     @FeatureNewKwargs('dependency', '0.38.0', ['default_options'])
+    @disablerIfNotFound
     @permittedKwargs(permitted_kwargs['dependency'])
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])

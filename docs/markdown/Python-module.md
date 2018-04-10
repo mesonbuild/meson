@@ -48,6 +48,9 @@ Keyword arguments are the following:
   whether it was found or not. Since *0.48.0*  the value of a
   [`feature`](Build-options.md#features) option can also be passed to the
   `required` keyword argument.
+- `disabler`: if `true` and no python installation can be found, return a
+  [disabler object](#disabler-object) instead of a not-found object.
+  *Since 0.49.0*
 
 **Returns**: a [python installation][`python_installation` object]
 
