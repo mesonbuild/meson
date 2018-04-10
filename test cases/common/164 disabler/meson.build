@@ -31,4 +31,12 @@ endif
 
 assert(number == 2, 'If found handled incorrectly, value should be 2 but is @0@'.format(number))
 
+dep = dependency('notfounddep', required : false, disabler : true)
+app = executable('myapp', 'notfound.c', dependencies : [dep])
 
+cc = meson.get_compiler('c')
+dep = cc.find_library('notfounddep', required : false, disabler : true)
+app = executable('myapp', 'notfound.c', dependencies : [dep])
+
+dep = find_program('donotfindme', required : false, disabler : true)
+app = executable('myapp', 'notfound.c', dependencies : [dep])

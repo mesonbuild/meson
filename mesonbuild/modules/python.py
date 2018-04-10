@@ -23,7 +23,7 @@ from mesonbuild.modules import ModuleReturnValue
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
     InterpreterObject, InvalidArguments,
-    FeatureNew
+    FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg
 from ..interpreterbase import flatten
@@ -467,6 +467,8 @@ class PythonModule(ExtensionModule):
             return mesonlib.version_compare(version, '>= 3.0')
         return True
 
+    @FeatureNewKwargs('python.find_installation', '0.49.0', ['disabler'])
+    @disablerIfNotFound
     @permittedKwargs(['required'])
     def find_installation(self, interpreter, state, args, kwargs):
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')

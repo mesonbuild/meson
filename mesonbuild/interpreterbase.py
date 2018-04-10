@@ -145,6 +145,17 @@ def noArgsFlattening(f):
     setattr(f, 'no-args-flattening', True)
     return f
 
+def disablerIfNotFound(f):
+    @wraps(f)
+    def wrapped(*wrapped_args, **wrapped_kwargs):
+        kwargs = _get_callee_args(wrapped_args)[3]
+        disabler = kwargs.pop('disabler', False)
+        ret = f(*wrapped_args, **wrapped_kwargs)
+        if disabler and not ret.held_object.found():
+            return Disabler()
+        return ret
+    return wrapped
+
 class permittedKwargs:
 
     def __init__(self, permitted):

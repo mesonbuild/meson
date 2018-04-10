@@ -408,6 +408,9 @@ otherwise. This function supports the following keyword arguments:
 [library-specific](Dependencies.md#dependencies-with-custom-lookup-functionality)
 keywords may also be accepted (e.g. `modules` specifies submodules to use for
 dependencies such as Qt5 or Boost. )
+- `disabler` if `true` and the dependency couldn't be found, return a
+  [disabler object](#disabler-object) instead of a not-found dependency.
+  *Since 0.49.0*
 
 If dependency_name is `''`, the dependency is always not found.  So with
 `required: false`, this always returns a dependency object for which the
@@ -599,6 +602,10 @@ Keyword arguments are the following:
   executable in the cross file (when cross building) and if it is not
   defined there, then from the system. If set to `true`, the cross
   file is ignored and the program is only searched from the system.
+
+- `disabler` if `true` and the program couldn't be found, return a
+  [disabler object](#disabler-object) instead of a not-found object.
+  *Since 0.49.0*
 
 Meson will also autodetect scripts with a shebang line and run them
 with the executable/interpreter specified in it both on Windows
@@ -1666,6 +1673,9 @@ the following methods:
   argument, which can be either a string or a list of strings.  Since
   *0.47.0* the value of a [`feature`](Build-options.md#features)
   option can also be passed to the `required` keyword argument.
+  *Since 0.49.0* if the keyword argument `disabler` is `true` and the
+  dependency couldn't be found, return a [disabler object](#disabler-object)
+  instead of a not-found dependency.
 
 - `first_supported_argument(list_of_strings)`, given a list of
   strings, returns the first argument that passes the `has_argument`
