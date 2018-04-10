@@ -46,7 +46,7 @@ def buildparser():
                         help='List external dependencies.')
     parser.add_argument('--projectinfo', action='store_true', dest='projectinfo', default=False,
                         help='Information about projects.')
-    parser.add_argument('builddir', nargs='?', help='The build directory')
+    parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
     return parser
 
 def determine_installed_path(target, installdata):
