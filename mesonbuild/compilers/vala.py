@@ -35,10 +35,10 @@ class ValaCompiler(Compiler):
         return False # Because compiles into C.
 
     def get_output_args(self, target):
-        return ['-o', target]
+        return [] # Because compiles into C.
 
     def get_compile_only_args(self):
-        return ['-C']
+        return [] # Because compiles into C.
 
     def get_pic_args(self):
         return []
