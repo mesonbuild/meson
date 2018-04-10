@@ -1238,18 +1238,18 @@ Keyword arguments are the following:
 - `should_fail` when true the test is considered passed if the
   executable returns a non-zero return value (i.e. reports an error)
 
+- `suite` `'label'` (or list of labels `['label1', 'label2']`)
+  attached to this test. The suite name is qualified by a (sub)project
+  name resulting in `(sub)project_name:label`. In the case of a list
+  of strings, the suite names will be `(sub)project_name:label1`,
+  `(sub)project_name:label2`, etc.
+
 - `timeout` the amount of seconds the test is allowed to run, a test
   that exceeds its time limit is always considered failed, defaults to
   30 seconds
 
 - `workdir` absolute path that will be used as the working directory
   for the test
-
-- 'suite' label attached to this test. `meson test --suite suite_name`
-  run all the tests with suite defined as `suite_name`. Note that by
-  default, the full suite name is `project_name:suite_name`, so if you
-  want to select the test suite of a given (sub)project only, you have
-  to run 'meson test --test project_name:suite_name'
 
 Defined tests can be run in a backend-agnostic way by calling
 `meson test` inside the build dir, or by using backend-specific

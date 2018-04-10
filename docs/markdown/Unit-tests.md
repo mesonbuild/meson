@@ -71,6 +71,14 @@ You can also run only a single test by giving its name:
 $ meson test testname
 ```
 
+Tests belonging to a suite `suite` can be run as follows
+
+```console
+$ meson test --suite (sub)project_name:suite
+```
+
+Since version *0.46*, `(sub)project_name` can be omitted if it is the top-level project.
+
 Sometimes you need to run the tests multiple times, which is done like this:
 
 ```console
