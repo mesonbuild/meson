@@ -120,6 +120,14 @@ class InterpreterObject:
 class MutableInterpreterObject(InterpreterObject):
     def __init__(self):
         super().__init__()
+        # Used by mutable objects that become immutable after first use.
+        self.used = False
+
+    def is_used(self):
+        return self.used
+
+    def mark_used(self):
+        self.used = True
 
 class Disabler(InterpreterObject):
     def __init__(self):
@@ -698,6 +706,7 @@ To specify a keyword argument, use : instead of =.''')
         # For mutable objects we need to make a copy on assignment
         if isinstance(value, MutableInterpreterObject):
             value = copy.deepcopy(value)
+            value.used = False
         self.set_variable(var_name, value)
         return None
 
