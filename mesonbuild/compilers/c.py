@@ -58,11 +58,11 @@ class CCompiler(Compiler):
     def needs_static_linker(self):
         return True # When compiling static libraries, so yes.
 
-    def get_always_args(self):
+    def get_always_args(self, environment):
         '''
         Args that are always-on for all C compilers other than MSVC
         '''
-        return ['-pipe'] + get_largefile_args(self)
+        return ['-pipe'] + get_largefile_args(self, environment)
 
     def get_linker_debug_crt_args(self):
         """
@@ -322,13 +322,13 @@ class CCompiler(Compiler):
     def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
         # We only want to compile; not link
-        with self.compile(code, args.to_native(), mode) as p:
+        with self.compile(code, env, args.to_native(), mode) as p:
             return p.returncode == 0
 
     def _links_wrapper(self, code, env, extra_args, dependencies):
         "Shares common code between self.links and self.run"
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode='link')
-        return self.compile(code, args)
+        return self.compile(code, env, args)
 
     def links(self, code, env, extra_args=None, dependencies=None):
         with self._links_wrapper(code, env, extra_args, dependencies) as p:
@@ -522,7 +522,7 @@ class CCompiler(Compiler):
         {delim}\n{define}'''
         args = self._get_compiler_check_args(env, extra_args, dependencies,
                                              mode='preprocess').to_native()
-        with self.compile(code.format(**fargs), args, 'preprocess') as p:
+        with self.compile(code.format(**fargs), env, args, 'preprocess') as p:
             if p.returncode != 0:
                 raise EnvironmentException('Could not get define {!r}'.format(dname))
         # Get the preprocessed value after the delimiter,
@@ -736,7 +736,7 @@ class CCompiler(Compiler):
         args = self.get_cross_extra_flags(env, link=False)
         args += self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
-        with self.compile(code, args, 'compile') as p:
+        with self.compile(code, env, args, 'compile') as p:
             if p.returncode != 0:
                 m = 'BUG: Unable to compile {!r} check: {}'
                 raise RuntimeError(m.format(n, p.stdo))
@@ -968,7 +968,7 @@ class VisualStudioCCompiler(CCompiler):
         self.is_64 = is_64
 
     # Override CCompiler.get_always_args
-    def get_always_args(self):
+    def get_always_args(self, environment):
         return self.always_args
 
     def get_linker_debug_crt_args(self):

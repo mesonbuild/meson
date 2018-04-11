@@ -191,7 +191,7 @@ class DCompiler(Compiler):
     def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
 
-        with self.compile(code, args, mode) as p:
+        with self.compile(code, env, args, mode) as p:
             return p.returncode == 0
 
     def has_multi_arguments(self, args, env):
