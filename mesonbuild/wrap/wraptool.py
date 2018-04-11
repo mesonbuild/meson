@@ -160,8 +160,11 @@ def promote(argument):
     path_segment, subproject_name = os.path.split(argument)
     spdir_name = 'subprojects'
     sprojs = mesonlib.detect_subprojects(spdir_name)
+    # The command we suggest ends with .wrap, so allow that too
+    if subproject_name.endswith('.wrap'):
+        subproject_name = subproject_name[:-5]
     if subproject_name not in sprojs:
-        sys.exit('Subproject %s not found in directory tree.' % subproject_name)
+        sys.exit('Subproject {!r} not found in directory tree'.format(subproject_name))
     matches = sprojs[subproject_name]
     if len(matches) == 1:
         do_promotion(matches[0], spdir_name)
