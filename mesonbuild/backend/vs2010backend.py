@@ -227,7 +227,7 @@ class Vs2010Backend(backends.Backend):
 
     def generate_solution(self, sln_filename, projlist):
         default_projlist = self.get_build_by_default_targets()
-        with open(sln_filename, 'w') as ofile:
+        with open(sln_filename, 'w', encoding='utf-8') as ofile:
             ofile.write('Microsoft Visual Studio Solution File, Format '
                         'Version 11.00\n')
             ofile.write('# Visual Studio ' + self.vs_version + '\n')
@@ -575,7 +575,7 @@ class Vs2010Backend(backends.Backend):
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
         # ElementTree can not do prettyprinting so do it manually
         doc = xml.dom.minidom.parse(ofname)
-        with open(ofname, 'w') as of:
+        with open(ofname, 'w', encoding='utf-8') as of:
             of.write(doc.toprettyxml())
 
     def gen_vcxproj(self, target, ofname, guid):
@@ -1119,7 +1119,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         igroup = ET.SubElement(root, 'ItemGroup')
         rulefile = os.path.join(self.environment.get_scratch_dir(), 'regen.rule')
         if not os.path.exists(rulefile):
-            with open(rulefile, 'w') as f:
+            with open(rulefile, 'w', encoding='utf-8') as f:
                 f.write("# Meson regen file.")
         custombuild = ET.SubElement(igroup, 'CustomBuild', Include=rulefile)
         message = ET.SubElement(custombuild, 'Message')
