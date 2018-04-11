@@ -60,7 +60,8 @@ endif
 Takes one keyword argument, `required`. It defaults to `true`, which
 means that if any of the languages specified is not found, Meson will
 halt. Returns true if all languages specified were found and false
-otherwise.
+otherwise. Since *0.47.0*  the value of a [`feature`](Build-options.md#features)
+option can also be passed to the `required` keyword argument.
 
 ### add_project_arguments()
 
@@ -354,7 +355,8 @@ otherwise. This function supports the following keyword arguments:
   cross compiled binary will run on), usually only needed if you build
   a tool to be used during compilation.
 - `required`, when set to false, Meson will proceed with the build
-  even if the dependency is not found
+  even if the dependency is not found. Since *0.47.0* the value of a
+  [`feature`](Build-options.md#features) option can also be passed.
 - `static` tells the dependency provider to try to get static
   libraries instead of dynamic ones (note that this is not supported
   by all dependency backends)
@@ -540,7 +542,9 @@ Keyword arguments are the following:
   abort if no program can be found. If `required` is set to `false`,
   Meson continue even if none of the programs can be found. You can
   then use the `.found()` method on the returned object to check
-  whether it was found or not.
+  whether it was found or not. Since *0.47.0*  the value of a
+  [`feature`](Build-options.md#features) option can also be passed to the
+  `required` keyword argument.
 
 - `native` *(since 0.43)* defines how this executable should be searched. By default
   it is set to `false`, which causes Meson to first look for the
@@ -674,6 +678,9 @@ absolute, or relative to `prefix`.  [`install_dir` arguments](Installing.md)
 handles that as expected, but if you need the absolute path to one of these
 e.g. to use in a define etc., you should use `join_paths(get_option('prefix'),
 get_option('localstatedir')))`
+
+For options of type `feature` a special object is returned instead of a string.
+See [`feature` options](Build-options.md#features) documentation for more details.
 
 ### get_variable()
 
@@ -1564,6 +1571,8 @@ the following methods:
   library is searched for in the system library directory
   (e.g. /usr/lib). This can be overridden with the `dirs` keyword
   argument, which can be either a string or a list of strings.
+  Since *0.47.0*  the value of a [`feature`](Build-options.md#features) option
+  can also be passed to the `required` keyword argument.
 
 - `first_supported_argument(list_of_strings)`, given a list of
   strings, returns the first argument that passes the `has_argument`

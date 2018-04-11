@@ -116,11 +116,19 @@ def string_array_parser(name, description, kwargs):
                                     choices=choices,
                                     yielding=kwargs.get('yield', coredata.default_yielding))
 
+@permitted_kwargs({'value', 'yield'})
+def FeatureParser(name, description, kwargs):
+    return coredata.UserFeatureOption(name,
+                                      description,
+                                      kwargs.get('value', 'enabled'),
+                                      yielding=kwargs.get('yield', coredata.default_yielding))
+
 option_types = {'string': StringParser,
                 'boolean': BooleanParser,
                 'combo': ComboParser,
                 'integer': IntegerParser,
                 'array': string_array_parser,
+                'feature': FeatureParser,
                 }
 
 class OptionInterpreter:
