@@ -922,7 +922,11 @@ This will become a hard error in the future.''')
             targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
 
             if 'docbook' in kwargs:
-                docbook_cmd = cmd + ['--output-directory', '@OUTDIR@', '--generate-docbook', kwargs.pop('docbook'), '@INPUT@']
+                docbook = kwargs.pop('docbook')
+                if not isinstance(docbook, str):
+                    raise MesonException('docbook value must be a string.')
+
+                docbook_cmd = cmd + ['--output-directory', '@OUTDIR@', '--generate-docbook', docbook, '@INPUT@']
 
                 output = namebase + '-docbook'
                 custom_kwargs = {'input': xml_file,
@@ -933,7 +937,11 @@ This will become a hard error in the future.''')
                 targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
         else:
             if 'docbook' in kwargs:
-                cmd += ['--generate-docbook', kwargs.pop('docbook')]
+                docbook = kwargs.pop('docbook')
+                if not isinstance(docbook, str):
+                    raise MesonException('docbook value must be a string.')
+
+                cmd += ['--generate-docbook', docbook]
 
             # https://git.gnome.org/browse/glib/commit/?id=ee09bb704fe9ccb24d92dd86696a0e6bb8f0dc1a
             if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.51.3'):
