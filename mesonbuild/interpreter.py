@@ -3146,13 +3146,13 @@ root and issuing %s.
                 raise InterpreterException('"capture" keyword requires "command" keyword.')
 
         if 'format' in kwargs:
-            format = kwargs['format']
-            if not isinstance(format, str):
+            fmt = kwargs['format']
+            if not isinstance(fmt, str):
                 raise InterpreterException('"format" keyword must be a string.')
         else:
-            format = 'meson'
+            fmt = 'meson'
 
-        if format not in ('meson', 'cmake', 'cmake@'):
+        if fmt not in ('meson', 'cmake', 'cmake@'):
             raise InterpreterException('"format" possible values are "meson", "cmake" or "cmake@".')
 
         # Validate input
@@ -3208,7 +3208,7 @@ root and issuing %s.
             if inputfile is not None:
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
                 missing_variables = mesonlib.do_conf_file(ifile_abs, ofile_abs,
-                                                          conf.held_object, format)
+                                                          conf.held_object, fmt)
                 if missing_variables:
                     var_list = ", ".join(map(repr, sorted(missing_variables)))
                     mlog.warning(
