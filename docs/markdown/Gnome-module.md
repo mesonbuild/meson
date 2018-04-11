@@ -242,11 +242,14 @@ files and the second specifies the XML file name.
   bundle depending on previous options
 * `install_header`: (*Added 0.46.0*) if true, install the header file
 
-If gdbus-codegen version is greater than 2.55.2 it will return at
-most three targets, one for the souce code, one for the header and
-another one for the files generated with docbook. Otherwise, it
-returns an opaque object containing the source files. Add it to a
-top level target's source list.
+Starting *0.46.0*, this function returns a list of at least two custom targets
+(in order): one for the source code and one for the header. The list will
+contain a third custom target for the generated docbook files if that keyword
+argument is passed.
+
+Earlier versions return a single custom target representing all the outputs.
+Generally, you should just add this list of targets to a top level target's
+source list.
 
 Example:
 

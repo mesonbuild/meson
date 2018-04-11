@@ -873,10 +873,9 @@ This will become a hard error in the future.''')
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) != 2:
             raise MesonException('Gdbus_codegen takes two arguments, name and xml file.')
-        namebase = args[0]
+        namebase = args[0] + '-gdbus'
         xml_file = args[1]
-        target_name = namebase + '-gdbus'
-        cmd = [find_program('gdbus-codegen', target_name)]
+        cmd = [find_program('gdbus-codegen', namebase)]
         if 'interface_prefix' in kwargs:
             cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
         if 'namespace' in kwargs:
@@ -922,7 +921,7 @@ This will become a hard error in the future.''')
             targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
 
             if 'docbook' in kwargs:
-                docbook = kwargs.pop('docbook')
+                docbook = kwargs['docbook']
                 if not isinstance(docbook, str):
                     raise MesonException('docbook value must be a string.')
 
@@ -937,7 +936,7 @@ This will become a hard error in the future.''')
                 targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
         else:
             if 'docbook' in kwargs:
-                docbook = kwargs.pop('docbook')
+                docbook = kwargs['docbook']
                 if not isinstance(docbook, str):
                     raise MesonException('docbook value must be a string.')
 
@@ -955,9 +954,13 @@ This will become a hard error in the future.''')
                              'command': cmd,
                              'build_by_default': build_by_default
                              }
-            ct = build.CustomTarget(target_name, state.subdir, state.subproject, custom_kwargs)
-            targets = [ct, ct, ct]
-        return ModuleReturnValue(targets, targets)
+            ct = build.CustomTarget(namebase, state.subdir, state.subproject, custom_kwargs)
+            # Ensure that the same number (and order) of arguments are returned
+            # regardless of the gdbus-codegen (glib) version being used
+            targets = [ct, ct]
+            if 'docbook' in kwargs:
+                targets.append(ct)
+        return ModuleReturnValue(targets, [ct])
 
     @permittedKwargs({'sources', 'c_template', 'h_template', 'install_header', 'install_dir',
                       'comments', 'identifier_prefix', 'symbol_prefix', 'eprod', 'vprod',
