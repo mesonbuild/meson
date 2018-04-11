@@ -209,6 +209,14 @@ class ExternalDependency(Dependency):
         return self.compiler
 
 
+class NotFoundDependency(Dependency):
+    def __init__(self, environment):
+        super().__init__('not-found', {})
+        self.env = environment
+        self.name = 'not-found'
+        self.is_found = False
+
+
 class ConfigToolDependency(ExternalDependency):
 
     """Class representing dependencies found using a config tool."""

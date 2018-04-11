@@ -15,7 +15,7 @@
 from .boost import BoostDependency
 from .base import (  # noqa: F401
     Dependency, DependencyException, DependencyMethods, ExternalProgram, NonExistingExternalProgram,
-    ExternalDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
+    ExternalDependency, NotFoundDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
     PkgConfigDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language)
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
 from .misc import (MPIDependency, Python3Dependency, ThreadDependency, PcapDependency, CupsDependency, LibWmfDependency)
