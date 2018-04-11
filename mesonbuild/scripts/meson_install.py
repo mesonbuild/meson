@@ -291,12 +291,6 @@ def run_install_script(d):
             print('Failed to run install script {!r}'.format(name))
             sys.exit(1)
 
-def is_elf_platform():
-    platname = platform.system().lower()
-    if platname == 'darwin' or platname == 'windows' or platname == 'cygwin':
-        return False
-    return True
-
 def check_for_stampfile(fname):
     '''Some languages e.g. Rust have output files
     whose names are not known at configure time.
@@ -372,7 +366,7 @@ def install_targets(d):
                     print("Symlink creation does not work on this platform. "
                           "Skipping all symlinking.")
                     printed_symlink_error = True
-        if is_elf_platform() and os.path.isfile(outname):
+        if os.path.isfile(outname):
             try:
                 depfixer.fix_rpath(outname, install_rpath, False)
             except SystemExit as e:

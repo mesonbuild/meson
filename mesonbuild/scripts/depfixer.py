@@ -351,6 +351,7 @@ def get_darwin_rpaths_to_remove(fname):
     result = []
     current_cmd = 'FOOBAR'
     for line in out.split('\n'):
+        line = line.strip()
         if ' ' not in line:
             continue
         key, value = line.strip().split(' ', 1)
@@ -363,7 +364,13 @@ def get_darwin_rpaths_to_remove(fname):
 
 def fix_darwin(fname, new_rpath):
     try:
-        for rp in get_darwin_rpaths_to_remove(fname):
+        rpaths = get_darwin_rpaths_to_remove(fname)
+    except subprocess.CalledProcessError:
+        # Otool failed, which happens when invoked on a
+        # non-executable target. Just return.
+        return
+    try:
+        for rp in rpaths:
             subprocess.check_call(['install_name_tool', '-delete_rpath', rp, fname])
         if new_rpath != '':
             subprocess.check_call(['install_name_tool', '-add_rpath', new_rpath, fname])
