@@ -294,3 +294,40 @@ for dependencies, even when an external dependency exists and could
 satisfy the version requirements, for example in order to make
 sure your project builds when fallbacks are used, you can use
 `--wrap-mode=forcefallback` since 0.46.0.
+
+## Why is Meson implemented in Python rather than [programming language X]?
+
+Because build systems are special in ways normal applications aren't.
+
+Perhaps the biggest limitation is that because Meson is used to build
+software at the very lowest levels of the OS, it is part of the core
+bootstrap for new systems. Whenever support for a new CPU architecture
+is added, Meson must run on the system before software using it can be
+compiled natively. This requirement adds two hard limitations.
+
+The first one is that Meson must have the minimal amount of
+dependencies, because they must all be built during the bootstrap to
+get Meson to work.
+
+The second is that Meson must support all CPU architectures, both
+existing and future ones. As an example many new programming languages
+have only an LLVM based compiler available. LLVM has limited CPU
+support compared to, say, GCC, and thus bootstrapping Meson on such
+platforms would first require adding new processor support to
+LLVM. This is in most cases unfeasible.
+
+A further limitation is that we want developers on as many platforms
+as possible to submit to Meson development using the default tools
+provided by their operating system. In practice what this means is
+that Windows developers should be able to contribute using nothing but
+Visual Studio.
+
+At the time of writing (April 2018) there are only three languages
+that could fullfill these requirements:
+
+ - C
+ - C++
+ - Python
+
+Out of these we have chosen Python because it is the best fit for our
+needs.
