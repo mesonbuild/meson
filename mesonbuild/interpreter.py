@@ -23,7 +23,7 @@ from .wrap import wrap, WrapMode
 from . import mesonlib
 from .mesonlib import FileMode, Popen_safe, listify, extract_as_list, has_path_sep
 from .dependencies import ExternalProgram
-from .dependencies import InternalDependency, Dependency, DependencyException
+from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, permittedKwargs, permittedMethodKwargs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
@@ -2501,7 +2501,7 @@ to directly access options of other subprojects.''')
         if name == '':
             if required:
                 raise InvalidArguments('Dependency is both required and not-found')
-            return DependencyHolder(Dependency('not-found', {}))
+            return DependencyHolder(NotFoundDependency(self.environment))
 
         if '<' in name or '>' in name or '=' in name:
             raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
@@ -2525,7 +2525,7 @@ to directly access options of other subprojects.''')
 
             # We need to actually search for this dep
             exception = None
-            dep = None
+            dep = NotFoundDependency(self.environment)
 
             # Search for it outside the project
             if self.coredata.wrap_mode != WrapMode.forcefallback or 'fallback' not in kwargs:
@@ -2537,7 +2537,7 @@ to directly access options of other subprojects.''')
                 exception = DependencyException("fallback for %s not found" % name)
 
             # Search inside the projects list
-            if not dep or not dep.found():
+            if not dep.found():
                 if 'fallback' in kwargs:
                     fallback_dep = self.dependency_fallback(name, kwargs)
                     if fallback_dep:
@@ -2545,7 +2545,7 @@ to directly access options of other subprojects.''')
                         # cannot cache them. They must always be evaluated else
                         # we won't actually read all the build files.
                         return fallback_dep
-                if not dep:
+                if required:
                     assert(exception is not None)
                     raise exception
 
