@@ -39,11 +39,17 @@ assert(l2.length() == 0, 'First supported did not return empty array.')
 
 if cc.get_id() == 'gcc'
   pre_arg = '-Wformat'
-  anti_pre_arg = '-Wno-format'
+  # NOTE: We have special handling for -Wno-foo args because gcc silently
+  # ignores unknown -Wno-foo args unless you pass -Werror, so for this test, we
+  # pass it as two separate arguments.
+  anti_pre_arg = ['-W', 'no-format']
   arg = '-Werror=format-security'
   assert(not cc.has_multi_arguments([anti_pre_arg, arg]), 'Arg that should be broken is not.')
   assert(cc.has_multi_arguments(pre_arg), 'Arg that should have worked does not work.')
   assert(cc.has_multi_arguments([pre_arg, arg]), 'Arg that should have worked does not work.')
+  # Test that gcc correctly errors out on unknown -Wno flags
+  assert(not cc.has_argument('-Wno-lol-meson-test-flags'), 'should error out on unknown -Wno args')
+  assert(not cc.has_multi_arguments(['-Wno-pragmas', '-Wno-lol-meson-test-flags']), 'should error out even if some -Wno args are valid')
 endif
 
 if cc.get_id() == 'clang' and cc.version().version_compare('<=4.0.0')
