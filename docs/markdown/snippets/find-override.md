@@ -25,3 +25,13 @@ genprog = find_program('mycodegen')
 
 Now `genprog` points to the custom script. If the dependency had come
 from the system, then it would point to the system version.
+
+You can also use the return value of `configure_file()` to override
+a program in the same way as above:
+
+```meson
+prog_script = configure_file(input : 'script.sh.in',
+                             output : 'script.sh',
+                             configuration : cdata)
+meson.override_find_program('mycodegen', prog_script)
+```
