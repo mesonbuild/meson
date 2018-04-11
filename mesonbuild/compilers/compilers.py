@@ -526,15 +526,22 @@ class CompilerArgs(list):
     def append_direct(self, arg):
         '''
         Append the specified argument without any reordering or de-dup
+        except for absolute paths where the order of include search directories
+        is not relevant
         '''
-        super().append(arg)
+        if os.path.isabs(arg):
+            self.append(arg)
+        else:
+            super().append(arg)
 
     def extend_direct(self, iterable):
         '''
         Extend using the elements in the specified iterable without any
-        reordering or de-dup
+        reordering or de-dup except for absolute paths where the order of
+        include search directories is not relevant
         '''
-        super().extend(iterable)
+        for elem in iterable:
+            self.append_direct(elem)
 
     def __add__(self, args):
         new = CompilerArgs(self, self.compiler)
