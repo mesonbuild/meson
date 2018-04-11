@@ -19,6 +19,7 @@ option('combo_opt', type : 'combo', choices : ['one', 'two', 'three'], value : '
 option('integer_opt', type : 'integer', min : 0, max : 5, value : 3) # Since 0.45.0
 option('free_array_opt', type : 'array', value : ['one', 'two'])
 option('array_opt', type : 'array', choices : ['one', 'two', 'three'], value : ['one', 'two'])
+option('some_feature', type : 'feature', value : 'enabled')
 ```
 
 ## Build option types
@@ -62,6 +63,41 @@ default.
 
 This type is available since version 0.44.0
 
+### Features
+
+A `feature` option has three states: `enabled`, `disabled` or `auto`. It is intended
+to be passed as value for the `required` keyword argument of most functions.
+Currently supported in
+[`dependency()`](Reference-manual.md#dependency),
+[`find_library()`](Reference-manual.md#compiler-object),
+[`find_program()`](Reference-manual.md#find_program) and
+[`add_languages()`](Reference-manual.md#add_languages) functions.
+
+- `enabled` is the same as passing `required : true`.
+- `auto` is the same as passing `required : false`.
+- `disabled` do not look for the dependency and always return 'not-found'.
+
+When getting the value of this type of option using `get_option()`, a special
+object is returned instead of the string representation of the option's value.
+That object has three methods returning boolean and taking no argument:
+`enabled()`, `disabled()`, and `auto()`.
+
+```meson
+d = dependency('foo', required : get_option('myfeature'))
+if d.found()
+  app = executable('myapp', 'main.c', dependencies : [d])
+endif
+```
+
+If the value of a `feature` option is set to `auto`, that value is overriden by
+the global `auto_features` option (which defaults to `auto`). This is intended
+to be used by packagers who want to have full control on which dependencies are
+required and which are disabled, and not rely on build-deps being installed
+(at the right version) to get a feature enabled. They could set
+`auto_features=enabled` to enable all features and disable explicitly only the
+few they don't want, if any.
+
+This type is available since version 0.47.0
 
 ## Using build options
 

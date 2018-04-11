@@ -62,6 +62,55 @@ class ObjectHolder:
     def __repr__(self):
         return '<Holder: {!r}>'.format(self.held_object)
 
+class FeatureOptionHolder(InterpreterObject, ObjectHolder):
+    def __init__(self, env, option):
+        InterpreterObject.__init__(self)
+        ObjectHolder.__init__(self, option)
+        if option.is_auto():
+            self.held_object = env.coredata.builtins['auto_features']
+        self.name = option.name
+        self.methods.update({'enabled': self.enabled_method,
+                             'disabled': self.disabled_method,
+                             'auto': self.auto_method,
+                             })
+
+    @noPosargs
+    @permittedKwargs({})
+    def enabled_method(self, args, kwargs):
+        return self.held_object.is_enabled()
+
+    @noPosargs
+    @permittedKwargs({})
+    def disabled_method(self, args, kwargs):
+        return self.held_object.is_disabled()
+
+    @noPosargs
+    @permittedKwargs({})
+    def auto_method(self, args, kwargs):
+        return self.held_object.is_auto()
+
+def extract_required_kwarg(kwargs):
+    val = kwargs.get('required', True)
+    disabled = False
+    required = False
+    feature = None
+    if isinstance(val, FeatureOptionHolder):
+        option = val.held_object
+        feature = val.name
+        if option.is_disabled():
+            disabled = True
+        elif option.is_enabled():
+            required = True
+    elif isinstance(required, bool):
+        required = val
+    else:
+        raise InterpreterException('required keyword argument must be boolean or a feature option')
+
+    # Keep boolean value in kwargs to simplify other places where this kwarg is
+    # checked.
+    kwargs['required'] = required
+
+    return disabled, required, feature
 
 class TryRunResultHolder(InterpreterObject):
     def __init__(self, res):
@@ -1337,9 +1386,16 @@ class CompilerHolder(InterpreterObject):
         libname = args[0]
         if not isinstance(libname, str):
             raise InterpreterException('Library name not a string.')
-        required = kwargs.get('required', True)
-        if not isinstance(required, bool):
-            raise InterpreterException('required must be boolean.')
+
+        disabled, required, feature = extract_required_kwarg(kwargs)
+        if disabled:
+            mlog.log('Library', mlog.bold(libname), 'skipped: feature', mlog.bold(feature), 'disabled')
+            lib = dependencies.ExternalLibrary(libname, None,
+                                               self.environment,
+                                               self.compiler.language,
+                                               silent=True)
+            return ExternalLibraryHolder(lib)
+
         search_dirs = mesonlib.stringlistify(kwargs.get('dirs', []))
         for i in search_dirs:
             if not os.path.isabs(i):
@@ -2168,43 +2224,53 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build_def_files += subi.build_def_files
         return self.subprojects[dirname]
 
-    @stringArgs
-    @noKwargs
-    def func_get_option(self, nodes, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Argument required for get_option.')
-        undecorated_optname = optname = args[0]
-        if ':' in optname:
-            raise InterpreterException('''Having a colon in option name is forbidden, projects are not allowed
-to directly access options of other subprojects.''')
+    def get_option_internal(self, optname):
+        undecorated_optname = optname
         try:
-            return self.environment.get_coredata().base_options[optname].value
+            return self.coredata.base_options[optname]
         except KeyError:
             pass
         try:
-            return self.environment.coredata.get_builtin_option(optname)
-        except RuntimeError:
+            return self.coredata.builtins[optname]
+        except KeyError:
             pass
         try:
-            return self.environment.coredata.compiler_options[optname].value
+            return self.coredata.compiler_options[optname]
         except KeyError:
             pass
         if not coredata.is_builtin_option(optname) and self.is_subproject():
             optname = self.subproject + ':' + optname
         try:
-            opt = self.environment.coredata.user_options[optname]
+            opt = self.coredata.user_options[optname]
             if opt.yielding and ':' in optname:
                 # If option not present in superproject, keep the original.
-                opt = self.environment.coredata.user_options.get(undecorated_optname, opt)
-            return opt.value
+                opt = self.coredata.user_options.get(undecorated_optname, opt)
+            return opt
         except KeyError:
             pass
         # Some base options are not defined in some environments, return the default value.
         try:
-            return compilers.base_options[optname].value
+            return compilers.base_options[optname]
         except KeyError:
             pass
         raise InterpreterException('Tried to access unknown option "%s".' % optname)
+
+    @stringArgs
+    @noKwargs
+    def func_get_option(self, nodes, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Argument required for get_option.')
+        optname = args[0]
+        if ':' in optname:
+            raise InterpreterException('Having a colon in option name is forbidden, '
+                                       'projects are not allowed to directly access '
+                                       'options of other subprojects.')
+        opt = self.get_option_internal(optname)
+        if isinstance(opt, coredata.UserFeatureOption):
+            return FeatureOptionHolder(self.environment, opt)
+        elif isinstance(opt, coredata.UserOption):
+            return opt.value
+        return opt
 
     @noKwargs
     def func_configuration_data(self, node, args, kwargs):
@@ -2350,7 +2416,12 @@ to directly access options of other subprojects.''')
     @permittedKwargs(permitted_kwargs['add_languages'])
     @stringArgs
     def func_add_languages(self, node, args, kwargs):
-        return self.add_languages(args, kwargs.get('required', True))
+        disabled, required, feature = extract_required_kwarg(kwargs)
+        if disabled:
+            for lang in sorted(args, key=compilers.sort_clike):
+                mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        return self.add_languages(args, required)
 
     def get_message_string_arg(self, node):
         # reduce arguments again to avoid flattening posargs
@@ -2604,7 +2675,12 @@ to directly access options of other subprojects.''')
     def func_find_program(self, node, args, kwargs):
         if not args:
             raise InterpreterException('No program name specified.')
-        required = kwargs.get('required', True)
+
+        disabled, required, feature = extract_required_kwarg(kwargs)
+        if disabled:
+            mlog.log('Program', mlog.bold(' '.join(args)), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
+
         if not isinstance(required, bool):
             raise InvalidArguments('"required" argument must be a boolean.')
         use_native = kwargs.get('native', False)
@@ -2699,10 +2775,12 @@ to directly access options of other subprojects.''')
     @permittedKwargs(permitted_kwargs['dependency'])
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
-        required = kwargs.get('required', True)
-        if not isinstance(required, bool):
-            raise DependencyException('Keyword "required" must be a boolean.')
         name = args[0]
+
+        disabled, required, feature = extract_required_kwarg(kwargs)
+        if disabled:
+            mlog.log('Dependency', mlog.bold(name), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return DependencyHolder(NotFoundDependency(self.environment))
 
         if name == '':
             if required:

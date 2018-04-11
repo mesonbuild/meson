@@ -178,6 +178,21 @@ class UserArrayOption(UserOption):
                     ', '.join(bad), ', '.join(self.choices)))
         return newvalue
 
+class UserFeatureOption(UserComboOption):
+    static_choices = ['enabled', 'disabled', 'auto']
+
+    def __init__(self, name, description, value, yielding=None):
+        super().__init__(name, description, self.static_choices, value, yielding)
+
+    def is_enabled(self):
+        return self.value == 'enabled'
+
+    def is_disabled(self):
+        return self.value == 'disabled'
+
+    def is_auto(self):
+        return self.value == 'auto'
+
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
 # cmakecache.
@@ -437,6 +452,8 @@ def get_builtin_option_choices(optname):
             return builtin_options[optname][2]
         elif builtin_options[optname][0] == UserBooleanOption:
             return [True, False]
+        elif builtin_options[optname][0] == UserFeatureOption:
+            return UserFeatureOption.static_choices
         else:
             return None
     else:
@@ -549,6 +566,7 @@ builtin_options = {
     'stdsplit':        [UserBooleanOption, 'Split stdout and stderr in test logs.', True],
     'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests.", True],
     'install_umask':   [UserUmaskOption, 'Default umask to apply on permissions of installed files.', '022'],
+    'auto_features':   [UserFeatureOption, "Override value of all 'auto' features.", 'auto'],
 }
 
 # Special prefix-dependent defaults for installation directories that reside in
