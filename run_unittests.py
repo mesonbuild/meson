@@ -198,6 +198,12 @@ class InternalTests(unittest.TestCase):
         # Direct-adding the same library again still adds it
         l.append_direct('-lbar')
         self.assertEqual(l, ['-Lfoodir', '-lfoo', '-Lbardir', '-lbar', '-lbar'])
+        # Direct-adding with absolute path deduplicates
+        l.append_direct('/libbaz.a')
+        self.assertEqual(l, ['-Lfoodir', '-lfoo', '-Lbardir', '-lbar', '-lbar', '/libbaz.a'])
+        # Adding libbaz again does nothing
+        l.append_direct('/libbaz.a')
+        self.assertEqual(l, ['-Lfoodir', '-lfoo', '-Lbardir', '-lbar', '-lbar', '/libbaz.a'])
 
     def test_string_templates_substitution(self):
         dictfunc = mesonbuild.mesonlib.get_filenames_templates_dict
