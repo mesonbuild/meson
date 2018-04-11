@@ -1665,7 +1665,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env'},
                     'benchmark': {'args', 'env', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'build_target': known_build_target_kwargs,
-                    'configure_file': {'input', 'output', 'configuration', 'command', 'install_dir', 'capture', 'install', 'format'},
+                    'configure_file': {'input', 'output', 'configuration', 'command', 'copy', 'install_dir', 'capture', 'install', 'format'},
                     'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
                     'dependency': {'default_options', 'fallback', 'language', 'main', 'method', 'modules', 'optional_modules', 'native', 'required', 'static', 'version'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'link_whole', 'version'},
@@ -3126,10 +3126,19 @@ root and issuing %s.
             raise InterpreterException("configure_file takes only keyword arguments.")
         if 'output' not in kwargs:
             raise InterpreterException('Required keyword argument "output" not defined.')
-        if 'configuration' in kwargs and 'command' in kwargs:
-            raise InterpreterException('Must not specify both "configuration" '
-                                       'and "command" keyword arguments since '
-                                       'they are mutually exclusive.')
+        actions = set(['configuration', 'command', 'copy']).intersection(kwargs.keys())
+        if len(actions) == 0:
+            raise InterpreterException('Must specify an action with one of these '
+                                       'keyword arguments: \'configuration\', '
+                                       '\'command\', or \'copy\'.')
+        elif len(actions) == 2:
+            raise InterpreterException('Must not specify both {!r} and {!r} '
+                                       'keyword arguments since they are '
+                                       'mutually exclusive.'.format(*actions))
+        elif len(actions) == 3:
+            raise InterpreterException('Must specify one of {!r}, {!r}, and '
+                                       '{!r} keyword arguments since they are '
+                                       'mutually exclusive.'.format(*actions))
         if 'capture' in kwargs:
             if not isinstance(kwargs['capture'], bool):
                 raise InterpreterException('"capture" keyword must be a boolean.')
@@ -3177,6 +3186,20 @@ root and issuing %s.
             raise InterpreterException('Output file name must not contain a subdirectory.')
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
+        # Optimize copies by not doing substitution if there's nothing to
+        # substitute, and warn about this legacy hack
+        if 'configuration' in kwargs:
+            conf = kwargs['configuration']
+            if not isinstance(conf, ConfigurationDataHolder):
+                raise InterpreterException('Argument "configuration" must be of type configuration_data')
+            if ifile_abs and not conf.keys():
+                del kwargs['configuration']
+                kwargs['copy'] = True
+                mlog.warning('Got an empty configuration_data() object: '
+                             'optimizing copy automatically; if you want to '
+                             'copy a file to the build dir, use the \'copy:\' '
+                             'keyword argument added in 0.46.0', location=node)
+        # Perform the appropriate action
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
             if not isinstance(conf, ConfigurationDataHolder):
@@ -3217,8 +3240,13 @@ root and issuing %s.
                 if ifile_abs:
                     shutil.copymode(ifile_abs, dst_tmp)
                 mesonlib.replace_if_different(ofile_abs, dst_tmp)
+        elif 'copy' in kwargs:
+            os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
+            shutil.copyfile(ifile_abs, ofile_abs)
+            shutil.copymode(ifile_abs, ofile_abs)
         else:
-            raise InterpreterException('Configure_file must have either "configuration" or "command".')
+            # Not reachable
+            raise AssertionError
         # If the input is a source file, add it to the list of files that we
         # need to reconfigure on when they change. FIXME: Do the same for
         # files() objects in the command: kwarg.

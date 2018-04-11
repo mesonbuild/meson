@@ -1,7 +1,7 @@
 configure_file(input : 'someinput.in',
   output : 'outputsubdir',
   install : false,
-  configuration : configuration_data())
+  copy: true)
 
 py3 = import('python3').find_python()
 

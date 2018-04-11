@@ -1827,7 +1827,7 @@ int main(int argc, char **argv) {
             r'meson.build:6: WARNING: a warning of some sort',
             r'sub' + os.path.sep + r'meson.build:4: WARNING: subdir warning',
             r'meson.build:7: WARNING: Module unstable-simd has no backwards or forwards compatibility and might not exist in future releases.',
-            r"meson.build:10: WARNING: The variable(s) 'MISSING' in the input file conf.in are not present in the given configuration data.",
+            r"meson.build:11: WARNING: The variable(s) 'MISSING' in the input file conf.in are not present in the given configuration data.",
             r'meson.build:1: WARNING: Passed invalid keyword argument "invalid".',
         ]:
             self.assertRegex(out, re.escape(expected))

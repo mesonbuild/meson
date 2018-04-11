@@ -3,6 +3,6 @@
 # because there is no structure in the build dir.
 genlib = configure_file(input : '../lib.c',
   output : 'genlib.c',
-  configuration : configuration_data())
+  copy: true)
 shared_library('genlib', genlib,
   install : false)
