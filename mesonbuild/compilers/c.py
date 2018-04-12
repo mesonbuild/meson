@@ -319,16 +319,16 @@ class CCompiler(Compiler):
         args += extra_args
         return args
 
-    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
+    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile', want_output=False):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
         # We only want to compile; not link
         with self.compile(code, args.to_native(), mode) as p:
             return p.returncode == 0
 
-    def _links_wrapper(self, code, env, extra_args, dependencies):
+    def _links_wrapper(self, code, env, extra_args, dependencies, want_output=False):
         "Shares common code between self.links and self.run"
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode='link')
-        return self.compile(code, args)
+        return self.compile(code, args, want_output=want_output)
 
     def links(self, code, env, extra_args=None, dependencies=None):
         with self._links_wrapper(code, env, extra_args, dependencies) as p:
@@ -337,7 +337,7 @@ class CCompiler(Compiler):
     def run(self, code, env, extra_args=None, dependencies=None):
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
-        with self._links_wrapper(code, env, extra_args, dependencies) as p:
+        with self._links_wrapper(code, env, extra_args, dependencies, True) as p:
             if p.returncode != 0:
                 mlog.debug('Could not compile test file %s: %d\n' % (
                     p.input_name,
@@ -736,7 +736,7 @@ class CCompiler(Compiler):
         args = self.get_cross_extra_flags(env, link=False)
         args += self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
-        with self.compile(code, args, 'compile') as p:
+        with self.compile(code, args, 'compile', want_output=True) as p:
             if p.returncode != 0:
                 m = 'BUG: Unable to compile {!r} check: {}'
                 raise RuntimeError(m.format(n, p.stdo))
