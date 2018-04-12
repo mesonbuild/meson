@@ -213,6 +213,9 @@ def detect_cpu(compilers):
             except mesonlib.MesonException:
                 pass
         return 'x86_64'
+    if trial == 'e2k':
+        # Make more precise CPU detection for Elbrus platform.
+        trial = platform.processor().lower()
     # Add fixes here as bugs are reported.
     return trial
 
