@@ -749,7 +749,9 @@ def expand_arguments(args):
     return expended_args
 
 def Popen_safe(args, write=None, stderr=subprocess.PIPE, **kwargs):
-    if sys.version_info < (3, 6) or not sys.stdout.encoding:
+    import locale
+    encoding = locale.getpreferredencoding()
+    if sys.version_info < (3, 6) or not sys.stdout.encoding or encoding.upper() != 'UTF-8':
         return Popen_safe_legacy(args, write=write, stderr=stderr, **kwargs)
     p = subprocess.Popen(args, universal_newlines=True,
                          close_fds=False,
