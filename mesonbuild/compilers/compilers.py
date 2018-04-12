@@ -601,6 +601,8 @@ class Compiler:
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
     ignore_libs = ()
+    # Cache for the result of compiler checks which can be cached
+    compiler_check_cache = {}
 
     def __init__(self, exelist, version, **kwargs):
         if isinstance(exelist, str):
@@ -753,9 +755,23 @@ class Compiler:
         return os.path.join(dirname, 'output.' + suffix)
 
     @contextlib.contextmanager
-    def compile(self, code, extra_args=None, mode='link'):
+    def compile(self, code, extra_args=None, mode='link', want_output=False):
         if extra_args is None:
+            textra_args = None
             extra_args = []
+        else:
+            textra_args = tuple(extra_args)
+        key = (code, textra_args, mode)
+        if not want_output:
+            if key in self.compiler_check_cache:
+                p = self.compiler_check_cache[key]
+                mlog.debug('Using cached compile:')
+                mlog.debug('Cached command line: ', ' '.join(p.commands), '\n')
+                mlog.debug('Code:\n', code)
+                mlog.debug('Cached compiler stdout:\n', p.stdo)
+                mlog.debug('Cached compiler stderr:\n', p.stde)
+                yield p
+                raise StopIteration
         try:
             with tempfile.TemporaryDirectory() as tmpdirname:
                 if isinstance(code, str):
@@ -765,7 +781,6 @@ class Compiler:
                         ofile.write(code)
                 elif isinstance(code, mesonlib.File):
                     srcname = code.fname
-                output = self._get_compile_output(tmpdirname, mode)
 
                 # Construct the compiler command-line
                 commands = CompilerArgs(self)
@@ -778,6 +793,7 @@ class Compiler:
                 if mode == 'preprocess':
                     commands += self.get_preprocess_only_args()
                 else:
+                    output = self._get_compile_output(tmpdirname, mode)
                     commands += self.get_output_args(output)
                 # Generate full command-line with the exelist
                 commands = self.get_exelist() + commands.to_native()
@@ -788,8 +804,12 @@ class Compiler:
                 p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname)
                 mlog.debug('Compiler stdout:\n', p.stdo)
                 mlog.debug('Compiler stderr:\n', p.stde)
+                p.commands = commands
                 p.input_name = srcname
-                p.output_name = output
+                if want_output:
+                    p.output_name = output
+                else:
+                    self.compiler_check_cache[key] = p
                 yield p
         except (PermissionError, OSError):
             # On Windows antivirus programs and the like hold on to files so
