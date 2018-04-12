@@ -362,6 +362,8 @@ class PkgConfigDependency(ExternalDependency):
     # The class's copy of the pkg-config path. Avoids having to search for it
     # multiple times in the same Meson invocation.
     class_pkgbin = None
+    # We cache all pkg-config subprocess invocations to avoid redundant calls
+    pkgbin_cache = {}
 
     def __init__(self, name, environment, kwargs, language=None):
         super().__init__('pkgconfig', environment, language, kwargs)
@@ -459,11 +461,18 @@ class PkgConfigDependency(ExternalDependency):
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
-    def _call_pkgbin(self, args, env=None):
+    def _call_pkgbin_real(self, args, env):
         if not env:
             env = os.environ
         p, out = Popen_safe(self.pkgbin.get_command() + args, env=env)[0:2]
         return p.returncode, out.strip()
+
+    def _call_pkgbin(self, args, env=None):
+        targs = tuple(args)
+        cache = PkgConfigDependency.pkgbin_cache
+        if (self.pkgbin, targs, env) not in cache:
+            cache[(self.pkgbin, targs, env)] = self._call_pkgbin_real(args, env)
+        return cache[(self.pkgbin, targs, env)]
 
     def _convert_mingw_paths(self, args):
         '''
