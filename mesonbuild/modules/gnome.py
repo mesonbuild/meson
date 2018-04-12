@@ -935,6 +935,8 @@ This will become a hard error in the future.''')
                                  'build_by_default': build_by_default
                                  }
                 targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
+
+            objects = targets
         else:
             if 'docbook' in kwargs:
                 docbook = kwargs['docbook']
@@ -961,7 +963,8 @@ This will become a hard error in the future.''')
             targets = [ct, ct]
             if 'docbook' in kwargs:
                 targets.append(ct)
-        return ModuleReturnValue(targets, [ct])
+            objects = [ct]
+        return ModuleReturnValue(targets, objects)
 
     @permittedKwargs({'sources', 'c_template', 'h_template', 'install_header', 'install_dir',
                       'comments', 'identifier_prefix', 'symbol_prefix', 'eprod', 'vprod',
