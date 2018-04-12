@@ -462,17 +462,20 @@ class PkgConfigDependency(ExternalDependency):
                         self.version_reqs)
 
     def _call_pkgbin_real(self, args, env):
-        if not env:
-            env = os.environ
         p, out = Popen_safe(self.pkgbin.get_command() + args, env=env)[0:2]
         return p.returncode, out.strip()
 
     def _call_pkgbin(self, args, env=None):
+        if env is None:
+            fenv = env
+            env = os.environ
+        else:
+            fenv = frozenset(env.items())
         targs = tuple(args)
         cache = PkgConfigDependency.pkgbin_cache
-        if (self.pkgbin, targs, env) not in cache:
-            cache[(self.pkgbin, targs, env)] = self._call_pkgbin_real(args, env)
-        return cache[(self.pkgbin, targs, env)]
+        if (self.pkgbin, targs, fenv) not in cache:
+            cache[(self.pkgbin, targs, fenv)] = self._call_pkgbin_real(args, env)
+        return cache[(self.pkgbin, targs, fenv)]
 
     def _convert_mingw_paths(self, args):
         '''
