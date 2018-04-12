@@ -873,9 +873,10 @@ This will become a hard error in the future.''')
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) != 2:
             raise MesonException('Gdbus_codegen takes two arguments, name and xml file.')
-        namebase = args[0] + '-gdbus'
+        namebase = args[0]
         xml_file = args[1]
-        cmd = [find_program('gdbus-codegen', namebase)]
+        target_name = namebase + '-gdbus'
+        cmd = [find_program('gdbus-codegen', target_name)]
         if 'interface_prefix' in kwargs:
             cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
         if 'namespace' in kwargs:
@@ -954,7 +955,7 @@ This will become a hard error in the future.''')
                              'command': cmd,
                              'build_by_default': build_by_default
                              }
-            ct = build.CustomTarget(namebase, state.subdir, state.subproject, custom_kwargs)
+            ct = build.CustomTarget(target_name, state.subdir, state.subproject, custom_kwargs)
             # Ensure that the same number (and order) of arguments are returned
             # regardless of the gdbus-codegen (glib) version being used
             targets = [ct, ct]
