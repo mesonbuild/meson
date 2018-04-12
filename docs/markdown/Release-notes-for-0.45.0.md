@@ -18,7 +18,7 @@ ldflags, etc) from.
 These binaries may now be specified in the `binaries` section of a
 cross file.
 
-```dosini
+```ini
 [binaries]
 cc = ...
 llvm-config = '/usr/bin/llvm-config32'
@@ -37,12 +37,16 @@ time. Starting with this version it becomes a hard error.
 There used to be a keywordless version of `run_target` which looked
 like this:
 
-    run_target('targetname', 'command', 'arg1', 'arg2')
+```meson
+run_target('targetname', 'command', 'arg1', 'arg2')
+```
 
 This is now an error. The correct format for this is now:
 
-    run_target('targetname',
-      command : ['command', 'arg1', 'arg2'])
+```meson
+run_target('targetname',
+  command : ['command', 'arg1', 'arg2'])
+```
 
 ## Experimental FPGA support
 
@@ -84,7 +88,9 @@ private directory:
 
 Hexadecimal integer literals can now be used in build and option files.
 
-    int_255 = 0xFF
+```meson
+int_255 = 0xFF
+```
 
 ## b_ndebug : if-release
 
@@ -110,7 +116,9 @@ instead of directory itself, stripping basename of the source directory.
 There is a new integer option type with optional minimum and maximum
 values. It can be specified like this in the `meson_options.txt` file:
 
-    option('integer_option', type : 'integer', min : 0, max : 5, value : 3)
+```meson
+option('integer_option', type : 'integer', min : 0, max : 5, value : 3)
+```
 
 ## New method meson.project_license()
 
@@ -124,7 +132,7 @@ cross-compilers, the Rust binary must be specified in your cross
 file. It should specify a `--target` (as installed by `rustup target`)
 and a custom linker pointing to your C cross-compiler. For example:
 
-```
+```ini
 [binaries]
 c = '/usr/bin/arm-linux-gnueabihf-gcc-7'
 rust = [
@@ -146,9 +154,7 @@ private sysroot.
 Meson ships with predefined project templates. To start a new project from
 scratch, simply go to an empty directory and type:
 
-```meson
-meson init --name=myproject --type=executable --language=c
-```
+    meson init --name=myproject --type=executable --language=c
 
 ## Improve test setup selection
 
