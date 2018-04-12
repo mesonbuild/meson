@@ -803,12 +803,16 @@ This will become a hard error in a future Meson release.''')
     def get_extra_args(self, language):
         return self.extra_args.get(language, [])
 
-    def get_dependencies(self):
+    def get_dependencies(self, exclude=None):
         transitive_deps = []
+        if exclude is None:
+            exclude = []
         for t in itertools.chain(self.link_targets, self.link_whole_targets):
+            if t in transitive_deps or t in exclude:
+                continue
             transitive_deps.append(t)
             if isinstance(t, StaticLibrary):
-                transitive_deps += t.get_dependencies()
+                transitive_deps += t.get_dependencies(transitive_deps + exclude)
         return transitive_deps
 
     def get_source_subdir(self):
