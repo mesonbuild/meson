@@ -27,9 +27,5 @@ test('file arg', testerpy, args : testfile, env : env_array)
 
 copy = find_program('copyfile.py')
 tester = executable('tester', 'tester.c')
-testfilect = custom_target('testfile',
-                           input : testfile,
-                           output : 'outfile.txt',
-                           build_by_default : true,
-                           command : [copy, '@INPUT@', '@OUTPUT@'])
+subdir('sub1')
 test('custom target arg', tester, args : testfilect, env : env_array)
