@@ -241,8 +241,11 @@ class Backend:
                                os.path.join('dummyprefixdir', fromdir))
 
     def flatten_object_list(self, target, proj_dir_to_build_root=''):
+        return self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
+
+    def _flatten_object_list(self, target, objects, proj_dir_to_build_root):
         obj_list = []
-        for obj in target.get_objects():
+        for obj in objects:
             if isinstance(obj, str):
                 o = os.path.join(proj_dir_to_build_root,
                                  self.build_to_src, target.get_subdir(), obj)
@@ -250,6 +253,7 @@ class Backend:
             elif isinstance(obj, mesonlib.File):
                 obj_list.append(obj.rel_to_builddir(self.build_to_src))
             elif isinstance(obj, build.ExtractedObjects):
+                obj_list += self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root)
                 obj_list += self.determine_ext_objs(obj, proj_dir_to_build_root)
             else:
                 raise MesonException('Unknown data type in object list.')
@@ -407,6 +411,10 @@ class Backend:
 
         # Filter out headers and all non-source files
         sources = [s for s in sources if self.environment.is_source(s) and not self.environment.is_header(s)]
+
+        # extobj could contain only objects and no sources
+        if not sources:
+            return result
 
         targetdir = self.get_target_private_dir(extobj.target)
 
