@@ -213,40 +213,47 @@ class ExtractedObjects:
     '''
     Holds a list of sources for which the objects must be extracted
     '''
-    def __init__(self, target, srclist, genlist, is_unity):
+    def __init__(self, target, srclist, genlist):
         self.target = target
         self.srclist = srclist
         self.genlist = genlist
-        if is_unity:
+        if self.target.is_unity:
             self.check_unity_compatible()
 
     def __repr__(self):
         r = '<{0} {1!r}: {2}>'
         return r.format(self.__class__.__name__, self.target.name, self.srclist)
 
+    def classify_all_sources(self, sources, generated_sources):
+        # Merge sources and generated sources
+        sources = list(sources)
+        for gensrc in generated_sources:
+            for s in gensrc.get_outputs():
+                # We cannot know the path where this source will be generated,
+                # but all we need here is the file extension to determine the
+                # compiler.
+                sources.append(s)
+
+        # Filter out headers and all non-source files
+        sources = [s for s in sources if environment.is_source(s) and not environment.is_header(s)]
+
+        return classify_unity_sources(self.target.compilers.values(), sources)
+
     def check_unity_compatible(self):
         # Figure out if the extracted object list is compatible with a Unity
         # build. When we're doing a Unified build, we go through the sources,
         # and create a single source file from each subset of the sources that
         # can be compiled with a specific compiler. Then we create one object
-        # from each unified source file.
-        # If the list of sources for which we want objects is the same as the
-        # list of sources that go into each unified build, we're good.
-        srclist_set = set(self.srclist)
-        # Objects for all the sources are required, so we're compatible
-        if srclist_set == set(self.target.sources):
-            return
-        # Check if the srclist is a subset (of the target's sources) that is
-        # going to form a unified source file and a single object
-        compsrcs = classify_unity_sources(self.target.compilers.values(),
-                                          self.target.sources)
-        for srcs in compsrcs.values():
-            if srclist_set == set(srcs):
-                return
-        msg = 'Single object files can not be extracted in Unity builds. ' \
-              'You can only extract all the object files at once.'
-        raise MesonException(msg)
+        # from each unified source file. So for each compiler we can either
+        # extra all its sources or none.
+        cmpsrcs = self.classify_all_sources(self.target.sources, self.target.generated)
+        extracted_cmpsrcs = self.classify_all_sources(self.srclist, self.genlist)
 
+        for comp, srcs in extracted_cmpsrcs.items():
+            if set(srcs) != set(cmpsrcs[comp]):
+                raise MesonException('Single object files can not be extracted '
+                                     'in Unity builds. You can only extract all '
+                                     'the object files for each compiler at once.')
 
 class EnvironmentVariables:
     def __init__(self):
@@ -637,13 +644,13 @@ class BuildTarget(Target):
             if src not in self.sources:
                 raise MesonException('Tried to extract unknown source %s.' % src)
             obj_src.append(src)
-        return ExtractedObjects(self, obj_src, [], self.is_unity)
+        return ExtractedObjects(self, obj_src, [])
 
     def extract_all_objects(self):
         # FIXME: We should add support for transitive extract_objects()
         if self.objects:
             raise MesonException('Cannot extract objects from a target that itself has extracted objects')
-        return ExtractedObjects(self, self.sources, self.generated, self.is_unity)
+        return ExtractedObjects(self, self.sources, self.generated)
 
     def get_all_link_deps(self):
         return self.get_transitive_link_deps()
