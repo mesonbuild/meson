@@ -601,6 +601,10 @@ class Compiler:
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
     ignore_libs = ()
+    # Cache for the result of compiler checks which can be cached
+    compiler_check_cache = {}
+    cache_tmpdir = None
+    cache_tmpdir_counter = 0
 
     def __init__(self, exelist, version, **kwargs):
         if isinstance(exelist, str):
@@ -621,6 +625,16 @@ class Compiler:
         else:
             self.full_version = None
         self.base_options = []
+
+    def __del__(self):
+        try:
+            if self.cache_tmpdir:
+                self.cache_tmpdir.cleanup()
+        except (PermissionError, OSError):
+            # On Windows antivirus programs and the like hold on to files so
+            # they can't be deleted. There's not much to do in this case. Also,
+            # catch OSError because the directory is then no longer empty.
+            pass
 
     def __repr__(self):
         repr_str = "<{0}: v{1} `{2}`>"
@@ -752,50 +766,63 @@ class Compiler:
             suffix = 'obj'
         return os.path.join(dirname, 'output.' + suffix)
 
-    @contextlib.contextmanager
     def compile(self, code, extra_args=None, mode='link'):
         if extra_args is None:
+            textra_args = None
             extra_args = []
-        try:
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                if isinstance(code, str):
-                    srcname = os.path.join(tmpdirname,
-                                           'testfile.' + self.default_suffix)
-                    with open(srcname, 'w') as ofile:
-                        ofile.write(code)
-                elif isinstance(code, mesonlib.File):
-                    srcname = code.fname
-                output = self._get_compile_output(tmpdirname, mode)
+        else:
+            textra_args = tuple(extra_args)
+        key = (code, textra_args, mode)
+        p = self.compiler_check_cache.get(key, None)
+        if p:
+            mlog.debug('Using cached compile:')
+            mlog.debug('Cached command line: ', ' '.join(p.commands), '\n')
+            mlog.debug('Code:\n', code)
+            mlog.debug('Cached compiler stdout:\n', p.stdo)
+            mlog.debug('Cached compiler stderr:\n', p.stde)
+            return p
 
-                # Construct the compiler command-line
-                commands = CompilerArgs(self)
-                commands.append(srcname)
-                commands += extra_args
-                commands += self.get_always_args()
-                if mode == 'compile':
-                    commands += self.get_compile_only_args()
-                # Preprocess mode outputs to stdout, so no output args
-                if mode == 'preprocess':
-                    commands += self.get_preprocess_only_args()
-                else:
-                    commands += self.get_output_args(output)
-                # Generate full command-line with the exelist
-                commands = self.get_exelist() + commands.to_native()
-                mlog.debug('Running compile:')
-                mlog.debug('Working directory: ', tmpdirname)
-                mlog.debug('Command line: ', ' '.join(commands), '\n')
-                mlog.debug('Code:\n', code)
-                p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname)
-                mlog.debug('Compiler stdout:\n', p.stdo)
-                mlog.debug('Compiler stderr:\n', p.stde)
-                p.input_name = srcname
-                p.output_name = output
-                yield p
-        except (PermissionError, OSError):
-            # On Windows antivirus programs and the like hold on to files so
-            # they can't be deleted. There's not much to do in this case. Also,
-            # catch OSError because the directory is then no longer empty.
-            pass
+        if not self.cache_tmpdir:
+            self.cache_tmpdir = tempfile.TemporaryDirectory()
+        tmpdirname = os.path.join(self.cache_tmpdir.name, str(self.cache_tmpdir_counter))
+        os.mkdir(tmpdirname)
+        self.cache_tmpdir_counter += 1
+
+        if isinstance(code, str):
+            srcname = os.path.join(tmpdirname,
+                                   'testfile.' + self.default_suffix)
+            with open(srcname, 'w') as ofile:
+                ofile.write(code)
+        elif isinstance(code, mesonlib.File):
+            srcname = code.fname
+        output = self._get_compile_output(tmpdirname, mode)
+
+        # Construct the compiler command-line
+        commands = CompilerArgs(self)
+        commands.append(srcname)
+        commands += extra_args
+        commands += self.get_always_args()
+        if mode == 'compile':
+            commands += self.get_compile_only_args()
+        # Preprocess mode outputs to stdout, so no output args
+        if mode == 'preprocess':
+            commands += self.get_preprocess_only_args()
+        else:
+            commands += self.get_output_args(output)
+        # Generate full command-line with the exelist
+        commands = self.get_exelist() + commands.to_native()
+        mlog.debug('Running compile:')
+        mlog.debug('Working directory: ', tmpdirname)
+        mlog.debug('Command line: ', ' '.join(commands), '\n')
+        mlog.debug('Code:\n', code)
+        p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname)
+        mlog.debug('Compiler stdout:\n', p.stdo)
+        mlog.debug('Compiler stderr:\n', p.stde)
+        p.commands = commands
+        p.input_name = srcname
+        p.output_name = output
+        self.compiler_check_cache[key] = p
+        return p
 
     def get_colorout_args(self, colortype):
         return []

@@ -322,8 +322,8 @@ class CCompiler(Compiler):
     def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
         # We only want to compile; not link
-        with self.compile(code, args.to_native(), mode) as p:
-            return p.returncode == 0
+        p = self.compile(code, args.to_native(), mode)
+        return p.returncode == 0
 
     def _links_wrapper(self, code, env, extra_args, dependencies):
         "Shares common code between self.links and self.run"
@@ -331,27 +331,27 @@ class CCompiler(Compiler):
         return self.compile(code, args)
 
     def links(self, code, env, extra_args=None, dependencies=None):
-        with self._links_wrapper(code, env, extra_args, dependencies) as p:
-            return p.returncode == 0
+        p = self._links_wrapper(code, env, extra_args, dependencies)
+        return p.returncode == 0
 
     def run(self, code, env, extra_args=None, dependencies=None):
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
-        with self._links_wrapper(code, env, extra_args, dependencies) as p:
-            if p.returncode != 0:
-                mlog.debug('Could not compile test file %s: %d\n' % (
-                    p.input_name,
-                    p.returncode))
-                return RunResult(False)
-            if self.is_cross:
-                cmdlist = self.exe_wrapper + [p.output_name]
-            else:
-                cmdlist = p.output_name
-            try:
-                pe, so, se = Popen_safe(cmdlist)
-            except Exception as e:
-                mlog.debug('Could not run: %s (error: %s)\n' % (cmdlist, e))
-                return RunResult(False)
+        p = self._links_wrapper(code, env, extra_args, dependencies)
+        if p.returncode != 0:
+            mlog.debug('Could not compile test file %s: %d\n' % (
+                p.input_name,
+                p.returncode))
+            return RunResult(False)
+        if self.is_cross:
+            cmdlist = self.exe_wrapper + [p.output_name]
+        else:
+            cmdlist = p.output_name
+        try:
+            pe, so, se = Popen_safe(cmdlist)
+        except Exception as e:
+            mlog.debug('Could not run: %s (error: %s)\n' % (cmdlist, e))
+            return RunResult(False)
 
         mlog.debug('Program stdout:\n')
         mlog.debug(so)
@@ -522,9 +522,9 @@ class CCompiler(Compiler):
         {delim}\n{define}'''
         args = self._get_compiler_check_args(env, extra_args, dependencies,
                                              mode='preprocess').to_native()
-        with self.compile(code.format(**fargs), args, 'preprocess') as p:
-            if p.returncode != 0:
-                raise EnvironmentException('Could not get define {!r}'.format(dname))
+        p = self.compile(code.format(**fargs), args, 'preprocess')
+        if p.returncode != 0:
+            raise EnvironmentException('Could not get define {!r}'.format(dname))
         # Get the preprocessed value after the delimiter,
         # minus the extra newline at the end
         return p.stdo.split(delim + '\n')[-1][:-1]
@@ -736,22 +736,22 @@ class CCompiler(Compiler):
         args = self.get_cross_extra_flags(env, link=False)
         args += self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
-        with self.compile(code, args, 'compile') as p:
-            if p.returncode != 0:
-                m = 'BUG: Unable to compile {!r} check: {}'
-                raise RuntimeError(m.format(n, p.stdo))
-            if not os.path.isfile(p.output_name):
-                m = 'BUG: Can\'t find compiled test code for {!r} check'
-                raise RuntimeError(m.format(n))
-            with open(p.output_name, 'rb') as o:
-                for line in o:
-                    # Check if the underscore form of the symbol is somewhere
-                    # in the output file.
-                    if b'_' + symbol_name in line:
-                        return True
-                    # Else, check if the non-underscored form is present
-                    elif symbol_name in line:
-                        return False
+        p = self.compile(code, args, 'compile')
+        if p.returncode != 0:
+            m = 'BUG: Unable to compile {!r} check: {}'
+            raise RuntimeError(m.format(n, p.stdo))
+        if not os.path.isfile(p.output_name):
+            m = 'BUG: Can\'t find compiled test code for {!r} check'
+            raise RuntimeError(m.format(n))
+        with open(p.output_name, 'rb') as o:
+            for line in o:
+                # Check if the underscore form of the symbol is somewhere
+                # in the output file.
+                if b'_' + symbol_name in line:
+                    return True
+                # Else, check if the non-underscored form is present
+                elif symbol_name in line:
+                    return False
         raise RuntimeError('BUG: {!r} check failed unexpectedly'.format(n))
 
     def get_library_naming(self, env, libtype):
