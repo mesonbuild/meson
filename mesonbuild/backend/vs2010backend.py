@@ -306,7 +306,7 @@ class Vs2010Backend(backends.Backend):
             outdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(outdir, exist_ok=True)
             fname = name + '.vcxproj'
-            relname = os.path.join(target.subdir, fname)
+            relname = os.path.join(self.get_target_dir(target), fname)
             projfile = os.path.join(outdir, fname)
             uuid = self.environment.coredata.target_guids[name]
             self.gen_vcxproj(target, projfile, uuid)
@@ -336,10 +336,10 @@ class Vs2010Backend(backends.Backend):
         return sources, headers, objects, languages
 
     def target_to_build_root(self, target):
-        if target.subdir == '':
+        if self.get_target_dir(target) == '':
             return ''
 
-        directories = os.path.normpath(target.subdir).split(os.sep)
+        directories = os.path.normpath(self.get_target_dir(target)).split(os.sep)
         return os.sep.join(['..'] * len(directories))
 
     def quote_arguments(self, arr):
@@ -603,7 +603,7 @@ class Vs2010Backend(backends.Backend):
         # Prefix to use to access the source tree's root from the vcxproj dir
         proj_to_src_root = os.path.join(down, self.build_to_src)
         # Prefix to use to access the source tree's subdir from the vcxproj dir
-        proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
+        proj_to_src_dir = os.path.join(proj_to_src_root, self.get_target_dir(target))
         (sources, headers, objects, languages) = self.split_sources(target.sources)
         if self.is_unity(target):
             sources = self.generate_unity_files(target, sources)
