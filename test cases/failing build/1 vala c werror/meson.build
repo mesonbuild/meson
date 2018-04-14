@@ -1,4 +1,4 @@
-project('valatest', 'c', default_options : 'werror=true')
+project('valatest', 'c', default_options : ['warnlevel=2', 'werror=true'])
 
 if find_program('valac', required : false).found()
   add_languages('vala')

@@ -59,6 +59,10 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+        default_generated_warn_args = []
+        self.generated_warn_args = {'1': default_generated_warn_args + self.get_no_warn_args(),
+                                    '2': default_generated_warn_args,
+                                    '3': default_generated_warn_args}
 
 
 class ClangObjCPPCompiler(ClangCompiler, GnuObjCPPCompiler):

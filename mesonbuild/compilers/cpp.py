@@ -76,6 +76,10 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+        default_generated_warn_args = []
+        self.generated_warn_args = {'1': default_generated_warn_args + self.get_no_warn_args(),
+                                    '2': default_generated_warn_args,
+                                    '3': default_generated_warn_args}
 
     def get_options(self):
         return {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
@@ -102,6 +106,10 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+        default_generated_warn_args = []
+        self.generated_warn_args = {'1': default_generated_warn_args + self.get_no_warn_args(),
+                                    '2': default_generated_warn_args,
+                                    '3': default_generated_warn_args}
 
     def get_options(self):
         opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
@@ -168,6 +176,10 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+        default_generated_warn_args = []
+        self.generated_warn_args = {'1': default_generated_warn_args + self.get_no_warn_args(),
+                                    '2': default_generated_warn_args,
+                                    '3': default_generated_warn_args}
 
     def get_options(self):
         c_stds = []

@@ -467,7 +467,7 @@ class Backend:
                 extra_args.append(arg)
         return extra_args
 
-    def generate_basic_compiler_args(self, target, compiler, no_warn_args=False):
+    def generate_basic_compiler_args(self, target, compiler, is_generated=False):
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
         # starting from hard-coded defaults followed by build options and so on.
@@ -480,16 +480,16 @@ class Backend:
         commands += self.get_cross_stdlib_args(target, compiler)
         # Add things like /NOLOGO or -pipe; usually can't be overridden
         commands += compiler.get_always_args()
-        # Only add warning-flags by default if the buildtype enables it, and if
-        # we weren't explicitly asked to not emit warnings (for Vala, f.ex)
-        if no_warn_args:
-            commands += compiler.get_no_warn_args()
-        elif self.get_option_for_target('buildtype', target) != 'plain':
+        # Only add warning-flags by default if the buildtype enables it.
+        if self.get_option_for_target('buildtype', target) != 'plain':
             commands += compiler.get_warn_args(self.get_option_for_target('warning_level', target))
+        # Include extra warning-flags for generated targets (from Vala, f.ex)
+        if self.get_option_for_target('buildtype', target) != 'plain' and is_generated:
+            commands += compiler.get_generated_warn_args(self.get_option_for_target('warning_level', target))
         # Add -Werror if werror=true is set in the build options set on the
         # command-line or default_options inside project(). This only sets the
         # action to be done for warnings if/when they are emitted, so it's ok
-        # to set it after get_no_warn_args() or get_warn_args().
+        # to set it after get_generated_warn_args() or get_warn_args().
         if self.get_option_for_target('werror', target):
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
