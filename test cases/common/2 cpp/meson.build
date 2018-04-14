@@ -6,4 +6,7 @@ if meson.get_compiler('cpp').get_id() == 'intel'
 endif
 
 exe = executable('trivialprog', 'trivial.cc', extra_files : 'something.txt')
+exe2 = executable('trivialprog2', 'trivial2.C')
+
 test('runtest', exe)
+test('runtest', exe2)
