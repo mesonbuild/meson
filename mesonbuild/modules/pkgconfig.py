@@ -91,7 +91,7 @@ class DependenciesHelper:
             if hasattr(obj, 'pcdep'):
                 pcdeps = mesonlib.listify(obj.pcdep)
                 for d in pcdeps:
-                    processed_reqs += d.name
+                    processed_reqs.append(d.name)
                     self.add_version_reqs(d.name, obj.version_reqs)
             elif hasattr(obj, 'generated_pc'):
                 processed_reqs.append(obj.generated_pc)
