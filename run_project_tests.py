@@ -612,7 +612,7 @@ def _run_tests(all_tests, log_name_base, extra_args):
     ET.ElementTree(element=junit_root).write(xmlname, xml_declaration=True, encoding='UTF-8')
     return passing_tests, failing_tests, skipped_tests
 
-def check_file(fname):
+def check_file(fname, autocrlf):
     linenum = 1
     with open(fname, 'rb') as f:
         lines = f.readlines()
@@ -620,17 +620,23 @@ def check_file(fname):
         if line.startswith(b'\t'):
             print("File %s contains a literal tab on line %d. Only spaces are permitted." % (fname, linenum))
             sys.exit(1)
-        if b'\r' in line:
+        if b'\r' in line and not autocrlf:
             print("File %s contains DOS line ending on line %d. Only unix-style line endings are permitted." % (fname, linenum))
             sys.exit(1)
         linenum += 1
 
 def check_format():
+    # If git is configured to convert CRLF to LF, don't fail on CR in sources
+    autocrlf = False
+    try:
+        autocrlf = subprocess.check_output(['git', 'config', '--get', 'core.autocrlf']).strip() == b'true'
+    except subprocess.CalledProcessError:
+        pass
     for (root, _, files) in os.walk('.'):
         for file in files:
             if file.endswith('.py') or file.endswith('.build') or file == 'meson_options.txt':
                 fullname = os.path.join(root, file)
-                check_file(fullname)
+                check_file(fullname, autocrlf)
 
 def check_meson_commands_work():
     global backend, meson_command, compile_commands, test_commands, install_commands
