@@ -637,8 +637,12 @@ class Compiler:
     def can_compile(self, src):
         if hasattr(src, 'fname'):
             src = src.fname
+        # We try first in case sensitive mode detect .C as C++ code instead of C
         suffix = os.path.splitext(src)[1]
         if suffix and suffix[1:] in self.can_compile_suffixes:
+            return True
+        # We keep the old case insensitive behaviour
+        if suffix.lower() and suffix[1:] in self.can_compile_suffixes:
             return True
         return False
 
