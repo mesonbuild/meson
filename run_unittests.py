@@ -42,6 +42,7 @@ from mesonbuild.mesonlib import (
 from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
+import mesonbuild.modules.pkgconfig
 
 from run_tests import exe_suffix, get_fake_options
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
@@ -453,6 +454,19 @@ class InternalTests(unittest.TestCase):
             else:
                 if f.name != 'add_release_note_snippets_here':
                     self.assertTrue(False, 'A file without .md suffix in snippets dir: ' + f.name)
+
+    def test_pkgconfig_module(self):
+        deps = mesonbuild.modules.pkgconfig.DependenciesHelper("thislib")
+
+        class Mock:
+            pass
+
+        mock = Mock()
+        mock.pcdep = Mock()
+        mock.pcdep.name = "some_name"
+        mock.version_reqs = []
+        deps.add_pub_libs([mock])
+        self.assertEqual(deps.format_reqs(deps.pub_reqs), "some_name")
 
 
 class BasePlatformTests(unittest.TestCase):
