@@ -944,9 +944,11 @@ def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, i
         sostr = ''
     else:
         sostr = '.' + soversion
-    if gcc_type in (GCC_STANDARD, GCC_MINGW, GCC_CYGWIN):
-        # Might not be correct for mingw but seems to work.
+    if gcc_type == GCC_STANDARD:
         return ['-Wl,-soname,%s%s.%s%s' % (prefix, shlib_name, suffix, sostr)]
+    elif gcc_type in (GCC_MINGW, GCC_CYGWIN):
+        # For PE/COFF the soname argument has no effect with GNU LD
+        return []
     elif gcc_type == GCC_OSX:
         if is_shared_module:
             return []
