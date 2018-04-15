@@ -52,7 +52,7 @@ def gir_has_extra_lib_arg(intr_obj):
 
     _gir_has_extra_lib_arg = False
     try:
-        g_ir_scanner = intr_obj.func_find_program(None, 'g-ir-scanner', {}).get_command()
+        g_ir_scanner = intr_obj.find_program_impl('g-ir-scanner').get_command()
         opts = Popen_safe(g_ir_scanner + ['--help'], stderr=subprocess.STDOUT)[1]
         _gir_has_extra_lib_arg = '--extra-library' in opts
     except (MesonException, FileNotFoundError, subprocess.CalledProcessError):
@@ -388,8 +388,8 @@ class GnomeModule(ExtensionModule):
             raise MesonException('Gir takes one argument')
         if kwargs.get('install_dir'):
             raise MesonException('install_dir is not supported with generate_gir(), see "install_dir_gir" and "install_dir_typelib"')
-        giscanner = self.interpreter.func_find_program(None, 'g-ir-scanner', {})
-        gicompiler = self.interpreter.func_find_program(None, 'g-ir-compiler', {})
+        giscanner = self.interpreter.find_program_impl('g-ir-scanner')
+        gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
         girtarget = args[0]
         while hasattr(girtarget, 'held_object'):
             girtarget = girtarget.held_object
@@ -637,7 +637,7 @@ class GnomeModule(ExtensionModule):
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
 
-        cmd = [self.interpreter.func_find_program(None, 'glib-compile-schemas', {})]
+        cmd = [self.interpreter.find_program_impl('glib-compile-schemas')]
         cmd += ['--targetdir', outdir, srcdir]
         kwargs['command'] = cmd
         kwargs['input'] = []
@@ -876,7 +876,7 @@ This will become a hard error in the future.''')
         namebase = args[0]
         xml_file = args[1]
         target_name = namebase + '-gdbus'
-        cmd = [self.interpreter.func_find_program(None, 'gdbus-codegen', {})]
+        cmd = [self.interpreter.find_program_impl('gdbus-codegen')]
         if 'interface_prefix' in kwargs:
             cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
         if 'namespace' in kwargs:
@@ -1013,7 +1013,7 @@ This will become a hard error in the future.''')
             elif arg not in known_custom_target_kwargs:
                 raise MesonException(
                     'Mkenums does not take a %s keyword argument.' % (arg, ))
-        cmd = [self.interpreter.func_find_program(None, ['glib-mkenums', 'mkenums'], {})] + cmd
+        cmd = [self.interpreter.find_program_impl(['glib-mkenums', 'mkenums'])] + cmd
         custom_kwargs = {}
         for arg in known_custom_target_kwargs:
             if arg in kwargs:
@@ -1209,7 +1209,7 @@ G_END_DECLS'''
 
         new_genmarshal = mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.3')
 
-        cmd = [self.interpreter.func_find_program(None, 'glib-genmarshal', {})]
+        cmd = [self.interpreter.find_program_impl('glib-genmarshal')]
         known_kwargs = ['internal', 'nostdinc', 'skip_source', 'stdinc',
                         'valist_marshallers', 'extra_args']
         known_custom_target_kwargs = ['build_always', 'depends',
@@ -1355,9 +1355,9 @@ G_END_DECLS'''
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes = self._extract_vapi_packages(state, kwargs)
         target_name = 'generate_vapi({})'.format(library)
         if 'VAPIGEN' in os.environ:
-            cmd = [self.interpreter.func_find_program(None, os.environ['VAPIGEN'], {})]
+            cmd = [self.interpreter.find_program_impl(os.environ['VAPIGEN'])]
         else:
-            cmd = [self.interpreter.func_find_program(None, 'vapigen', {})]
+            cmd = [self.interpreter.find_program_impl('vapigen')]
         cmd += ['--quiet', '--library=' + library, '--directory=' + build_dir]
         cmd += self._vapi_args_to_command('--vapidir=', 'vapi_dirs', kwargs)
         cmd += self._vapi_args_to_command('--metadatadir=', 'metadata_dirs', kwargs)

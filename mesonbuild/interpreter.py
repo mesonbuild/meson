@@ -2251,7 +2251,7 @@ to directly access options of other subprojects.''')
                     break
             self.coredata.base_options[optname] = oobj
 
-    def program_from_cross_file(self, prognames):
+    def program_from_cross_file(self, prognames, silent=False):
         bins = self.environment.cross_info.config['binaries']
         for p in prognames:
             if hasattr(p, 'held_object'):
@@ -2262,11 +2262,11 @@ to directly access options of other subprojects.''')
                 raise InterpreterException('Executable name must be a string.')
             if p in bins:
                 exename = bins[p]
-                extprog = dependencies.ExternalProgram(exename)
+                extprog = dependencies.ExternalProgram(exename, silent=silent)
                 progobj = ExternalProgramHolder(extprog)
                 return progobj
 
-    def program_from_system(self, args):
+    def program_from_system(self, args, silent=False):
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
         # might give different results when run from different source dirs.
@@ -2285,19 +2285,21 @@ to directly access options of other subprojects.''')
             else:
                 raise InvalidArguments('find_program only accepts strings and '
                                        'files, not {!r}'.format(exename))
-            extprog = dependencies.ExternalProgram(exename, search_dir=search_dir)
+            extprog = dependencies.ExternalProgram(exename, search_dir=search_dir,
+                                                   silent=silent)
             progobj = ExternalProgramHolder(extprog)
             if progobj.found():
                 return progobj
 
-    def program_from_overrides(self, command_names):
+    def program_from_overrides(self, command_names, silent=False):
         for name in command_names:
             if not isinstance(name, str):
                 continue
             if name in self.build.find_overrides:
                 exe = self.build.find_overrides[name]
-                mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
-                         '(overridden: %s)' % ' '.join(exe.command))
+                if not silent:
+                    mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
+                             '(overridden: %s)' % ' '.join(exe.command))
                 return ExternalProgramHolder(exe)
         return None
 
@@ -2315,24 +2317,15 @@ to directly access options of other subprojects.''')
                                        % name)
         self.build.find_overrides[name] = exe
 
-    @permittedKwargs(permitted_kwargs['find_program'])
-    def func_find_program(self, node, args, kwargs):
-        if not args:
-            raise InterpreterException('No program name specified.')
+    def find_program_impl(self, args, native=False, required=True, silent=True):
         if not isinstance(args, list):
             args = [args]
-        required = kwargs.get('required', True)
-        if not isinstance(required, bool):
-            raise InvalidArguments('"required" argument must be a boolean.')
-        progobj = self.program_from_overrides(args)
+        progobj = self.program_from_overrides(args, silent=silent)
         if progobj is None and self.build.environment.is_cross_build():
-            use_native = kwargs.get('native', False)
-            if not isinstance(use_native, bool):
-                raise InvalidArguments('Argument to "native" must be a boolean.')
-            if not use_native:
-                progobj = self.program_from_cross_file(args)
+            if not native:
+                progobj = self.program_from_cross_file(args, silent=silent)
         if progobj is None:
-            progobj = self.program_from_system(args)
+            progobj = self.program_from_system(args, silent=silent)
         if required and (progobj is None or not progobj.found()):
             raise InvalidArguments('Program(s) {!r} not found or not executable'.format(args))
         if progobj is None:
@@ -2340,6 +2333,18 @@ to directly access options of other subprojects.''')
         # Only store successful lookups
         self.store_name_lookups(args)
         return progobj
+
+    @permittedKwargs(permitted_kwargs['find_program'])
+    def func_find_program(self, node, args, kwargs):
+        if not args:
+            raise InterpreterException('No program name specified.')
+        required = kwargs.get('required', True)
+        if not isinstance(required, bool):
+            raise InvalidArguments('"required" argument must be a boolean.')
+        use_native = kwargs.get('native', False)
+        if not isinstance(use_native, bool):
+            raise InvalidArguments('Argument to "native" must be a boolean.')
+        return self.find_program_impl(args, native=use_native, required=required, silent=False)
 
     def func_find_library(self, node, args, kwargs):
         raise InvalidCode('find_library() is removed, use meson.get_compiler(\'name\').find_library() instead.\n'
