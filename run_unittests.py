@@ -482,6 +482,7 @@ class BasePlatformTests(unittest.TestCase):
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
         self.meson_mainfile = os.path.join(src_root, 'meson.py')
         self.meson_args = ['--backend=' + self.backend.name]
+        self.meson_cross_file = None
         self.meson_command = meson_command + self.meson_args
         self.mconf_command = meson_command + ['configure']
         self.mintro_command = meson_command + ['introspect']
@@ -567,6 +568,8 @@ class BasePlatformTests(unittest.TestCase):
         if default_args:
             args += ['--prefix', self.prefix,
                      '--libdir', self.libdir]
+            if self.meson_cross_file:
+                args += ['--cross-file', self.meson_cross_file]
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
@@ -2764,7 +2767,8 @@ cpu = 'armv7' # Not sure if correct.
 endian = 'little'
 ''' % os.path.join(testdir, 'some_cross_tool.py'))
         crossfile.flush()
-        self.init(testdir, ['--cross-file=' + crossfile.name])
+        self.meson_cross_file = crossfile.name
+        self.init(testdir)
 
     def test_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '13 reconfigure')
@@ -2870,7 +2874,7 @@ class LinuxArmCrossCompileTests(BasePlatformTests):
     def setUp(self):
         super().setUp()
         src_root = os.path.dirname(__file__)
-        self.meson_command += ['--cross=' + os.path.join(src_root, 'cross', 'ubuntu-armhf.txt')]
+        self.meson_cross_file = os.path.join(src_root, 'cross', 'ubuntu-armhf.txt')
 
     def test_cflags_cross_environment_pollution(self):
         '''
@@ -2883,6 +2887,21 @@ class LinuxArmCrossCompileTests(BasePlatformTests):
         self.init(testdir)
         compdb = self.get_compdb()
         self.assertNotIn('-DBUILD_ENVIRONMENT_ONLY', compdb[0]['command'])
+
+    def test_cross_file_overrides_always_args(self):
+        '''
+        Test that $lang_args in cross files always override get_always_args().
+        Needed for overriding the default -D_FILE_OFFSET_BITS=64 on some
+        architectures such as some Android versions and Raspbian.
+        https://github.com/mesonbuild/meson/issues/3049
+        https://github.com/mesonbuild/meson/issues/3089
+        '''
+        testdir = os.path.join(self.unit_test_dir, '29 cross file overrides always args')
+        self.meson_cross_file = os.path.join(self.unit_test_dir, 'ubuntu-armhf-overrides.txt')
+        self.init(testdir)
+        compdb = self.get_compdb()
+        self.assertRegex(compdb[0]['command'], '-D_FILE_OFFSET_BITS=64.*-U_FILE_OFFSET_BITS')
+        self.build()
 
 
 class RewriterTests(unittest.TestCase):
