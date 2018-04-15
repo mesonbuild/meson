@@ -1,12 +1,17 @@
 project('c++ test', 'cpp')
 
-if meson.get_compiler('cpp').get_id() == 'intel'
+compiler_id = meson.get_compiler('cpp').get_id()
+
+if compiler_id == 'intel'
   # Error out if the -std=xxx option is incorrect
   add_project_arguments('-diag-error', '10159', language : 'cpp')
 endif
 
 exe = executable('trivialprog', 'trivial.cc', extra_files : 'something.txt')
-exe2 = executable('trivialprog2', 'trivial2.C')
 
 test('runtest', exe)
-test('runtest', exe2)
+
+if (compiler_id == 'gcc') or (compiler_id == 'clang')
+  exe2 = executable('trivialprog2', 'trivial2.C')
+  test('runtest2', exe2)
+endif

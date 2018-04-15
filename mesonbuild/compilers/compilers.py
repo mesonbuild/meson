@@ -32,7 +32,7 @@ lib_suffixes = ('a', 'lib', 'dll', 'dylib', 'so')
 # This means we can't include .h headers here since they could be C, C++, ObjC, etc.
 lang_suffixes = {
     'c': ('c',),
-    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx', 'C'),
+    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'H', 'hh', 'hpp', 'ipp', 'hxx', 'C'),
     # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
     # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
     'fortran': ('f90', 'f95', 'f03', 'f08', 'f', 'for', 'ftn', 'fpp'),
@@ -642,7 +642,7 @@ class Compiler:
         if suffix and suffix[1:] in self.can_compile_suffixes:
             return True
         # We keep the old case insensitive behaviour
-        if suffix.lower() and suffix[1:] in self.can_compile_suffixes:
+        if suffix and suffix[1:].lower() in self.can_compile_suffixes:
             return True
         return False
 
