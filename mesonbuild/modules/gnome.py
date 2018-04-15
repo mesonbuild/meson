@@ -869,12 +869,12 @@ This will become a hard error in the future.''')
         return []
 
     @permittedKwargs({'interface_prefix', 'namespace', 'object_manager', 'build_by_default',
-                      'annotations', 'docbook', 'install_header', 'install_dir'})
+                      'annotations', 'docbook', 'install_header', 'install_dir', 'sources'})
     def gdbus_codegen(self, state, args, kwargs):
-        if len(args) != 2:
-            raise MesonException('Gdbus_codegen takes two arguments, name and xml file.')
+        if len(args) not in (1, 2):
+            raise MesonException('Gdbus_codegen takes at most two arguments, name and xml file.')
         namebase = args[0]
-        xml_file = args[1]
+        xml_files = [args[1:]]
         target_name = namebase + '-gdbus'
         cmd = [self.interpreter.find_program_impl('gdbus-codegen')]
         if 'interface_prefix' in kwargs:
@@ -883,6 +883,8 @@ This will become a hard error in the future.''')
             cmd += ['--c-namespace', kwargs.pop('namespace')]
         if kwargs.get('object_manager', False):
             cmd += ['--c-generate-object-manager']
+        if 'sources' in kwargs:
+            xml_files += mesonlib.listify(kwargs.pop('sources'))
         build_by_default = kwargs.get('build_by_default', False)
 
         # Annotations are a bit ugly in that they are a list of lists of strings...
@@ -904,7 +906,7 @@ This will become a hard error in the future.''')
             install_dir = kwargs.get('install_dir', state.environment.coredata.get_builtin_option('includedir'))
 
             output = namebase + '.c'
-            custom_kwargs = {'input': xml_file,
+            custom_kwargs = {'input': xml_files,
                              'output': output,
                              'command': cmd + ['--body', '--output', '@OUTDIR@/' + output, '@INPUT@'],
                              'build_by_default': build_by_default
@@ -912,7 +914,7 @@ This will become a hard error in the future.''')
             targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
 
             output = namebase + '.h'
-            custom_kwargs = {'input': xml_file,
+            custom_kwargs = {'input': xml_files,
                              'output': output,
                              'command': cmd + ['--header', '--output', '@OUTDIR@/' + output, '@INPUT@'],
                              'build_by_default': build_by_default,
@@ -929,7 +931,7 @@ This will become a hard error in the future.''')
                 docbook_cmd = cmd + ['--output-directory', '@OUTDIR@', '--generate-docbook', docbook, '@INPUT@']
 
                 output = namebase + '-docbook'
-                custom_kwargs = {'input': xml_file,
+                custom_kwargs = {'input': xml_files,
                                  'output': output,
                                  'command': docbook_cmd,
                                  'build_by_default': build_by_default
@@ -952,7 +954,7 @@ This will become a hard error in the future.''')
                 self._print_gdbus_warning()
                 cmd += ['--generate-c-code', '@OUTDIR@/' + namebase, '@INPUT@']
             outputs = [namebase + '.c', namebase + '.h']
-            custom_kwargs = {'input': xml_file,
+            custom_kwargs = {'input': xml_files,
                              'output': outputs,
                              'command': cmd,
                              'build_by_default': build_by_default
