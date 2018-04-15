@@ -32,7 +32,7 @@ lib_suffixes = ('a', 'lib', 'dll', 'dylib', 'so')
 # This means we can't include .h headers here since they could be C, C++, ObjC, etc.
 lang_suffixes = {
     'c': ('c',),
-    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx'),
+    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'C', 'hh', 'hpp', 'ipp', 'hxx', 'H'),
     # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
     # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
     'fortran': ('f90', 'f95', 'f03', 'f08', 'f', 'for', 'ftn', 'fpp'),
@@ -1043,7 +1043,7 @@ class GnuCompiler:
             self.base_options.append('b_lundef')
         self.base_options.append('b_asneeded')
         # All GCC backends can do assembly
-        self.can_compile_suffixes.add('s')
+        self.can_compile_suffixes.update(['s', 'S'])
 
     # TODO: centralise this policy more globally, instead
     # of fragmenting it into GnuCompiler and ClangCompiler
@@ -1133,7 +1133,7 @@ class ClangCompiler:
             self.base_options.append('b_lundef')
         self.base_options.append('b_asneeded')
         # All Clang backends can do assembly and LLVM IR
-        self.can_compile_suffixes.update(['ll', 's'])
+        self.can_compile_suffixes.update(['ll', 's', 'S'])
 
     # TODO: centralise this policy more globally, instead
     # of fragmenting it into GnuCompiler and ClangCompiler
@@ -1227,7 +1227,7 @@ class IntelCompiler:
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_colorout', 'b_ndebug', 'b_staticpic', 'b_lundef', 'b_asneeded']
         # Assembly
-        self.can_compile_suffixes.add('s')
+        self.can_compile_suffixes.update(['s', 'S'])
 
     def get_pic_args(self):
         return ['-fPIC']
