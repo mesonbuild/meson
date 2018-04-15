@@ -1346,7 +1346,8 @@ class AllPlatformTests(BasePlatformTests):
         # \n is never substituted by the GNU pre-processor via a -D define
         # ' and " confuse shlex.split() even when they are escaped
         # % and # confuse the MSVC preprocessor
-        value = 'spaces and fun!@$^&*()-=_+{}[]:;<>?,./~`'
+        # !, ^, *, and < confuse lcc preprocessor
+        value = 'spaces and fun@$&()-=_+{}[]:;>?,./~`'
         os.environ['CPPFLAGS'] = '-D{}="{}"'.format(define, value)
         os.environ['CFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
         self.init(testdir, ['-D{}={}'.format(define, value)])
@@ -2817,7 +2818,7 @@ endian = 'little'
 
     def test_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '13 reconfigure')
-        self.init(testdir, ['-Db_lto=true'], default_args=False)
+        self.init(testdir, ['-Db_coverage=true'], default_args=False)
         self.build('reconfigure')
 
     def test_vala_generated_source_buildir_inside_source_tree(self):

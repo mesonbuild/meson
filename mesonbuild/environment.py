@@ -48,6 +48,9 @@ from .compilers import (
     GnuFortranCompiler,
     GnuObjCCompiler,
     GnuObjCPPCompiler,
+    ElbrusCCompiler,
+    ElbrusCPPCompiler,
+    ElbrusFortranCompiler,
     IntelCCompiler,
     IntelCPPCompiler,
     IntelFortranCompiler,
@@ -223,6 +226,9 @@ def detect_cpu(compilers):
             except mesonlib.MesonException:
                 pass
         return 'x86_64'
+    if trial == 'e2k':
+        # Make more precise CPU detection for Elbrus platform.
+        trial = platform.processor().lower()
     # Add fixes here as bugs are reported.
     return trial
 
@@ -421,6 +427,15 @@ class Environment:
         return dot.join((major, minor, patch))
 
     @staticmethod
+    def get_lcc_version_from_defines(defines):
+        dot = '.'
+        generation_and_major = defines.get('__LCC__', '100')
+        generation = generation_and_major[:1]
+        major = generation_and_major[1:]
+        minor = defines.get('__LCC_MINOR__', '0')
+        return dot.join((generation, major, minor))
+
+    @staticmethod
     def get_gnu_compiler_type(defines):
         # Detect GCC type (Apple, MinGW, Cygwin, Unix)
         if '__APPLE__' in defines:
@@ -513,15 +528,27 @@ class Environment:
                 continue
             version = search_version(out)
             full_version = out.split('\n', 1)[0]
+
+            guess_gcc_or_lcc = False
             if 'Free Software Foundation' in out:
+                guess_gcc_or_lcc = 'gcc'
+            if 'e2k' in out and 'lcc' in out:
+                guess_gcc_or_lcc = 'lcc'
+
+            if guess_gcc_or_lcc:
                 defines = self.get_gnu_compiler_defines(compiler)
                 if not defines:
                     popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
                     continue
                 gtype = self.get_gnu_compiler_type(defines)
-                version = self.get_gnu_version_from_defines(defines)
-                cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
+                if guess_gcc_or_lcc == 'lcc':
+                    version = self.get_lcc_version_from_defines(defines)
+                    cls = ElbrusCCompiler if lang == 'c' else ElbrusCPPCompiler
+                else:
+                    version = self.get_gnu_version_from_defines(defines)
+                    cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
                 return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version)
+
             if 'clang' in out:
                 if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
                     cltype = CLANG_OSX
@@ -574,14 +601,25 @@ class Environment:
                 version = search_version(out)
                 full_version = out.split('\n', 1)[0]
 
+                guess_gcc_or_lcc = False
                 if 'GNU Fortran' in out:
+                    guess_gcc_or_lcc = 'gcc'
+                if 'e2k' in out and 'lcc' in out:
+                    guess_gcc_or_lcc = 'lcc'
+
+                if guess_gcc_or_lcc:
                     defines = self.get_gnu_compiler_defines(compiler)
                     if not defines:
                         popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
                         continue
                     gtype = self.get_gnu_compiler_type(defines)
-                    version = self.get_gnu_version_from_defines(defines)
-                    return GnuFortranCompiler(compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version)
+                    if guess_gcc_or_lcc == 'lcc':
+                        version = self.get_lcc_version_from_defines(defines)
+                        cls = ElbrusFortranCompiler
+                    else:
+                        version = self.get_gnu_version_from_defines(defines)
+                        cls = GnuFortranCompiler
+                    return cls(compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version)
 
                 if 'G95' in out:
                     return G95FortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
@@ -626,7 +664,7 @@ class Environment:
                 popen_exceptions[' '.join(compiler + arg)] = e
                 continue
             version = search_version(out)
-            if 'Free Software Foundation' in out:
+            if 'Free Software Foundation' in out or ('e2k' in out and 'lcc' in out):
                 defines = self.get_gnu_compiler_defines(compiler)
                 if not defines:
                     popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
@@ -653,7 +691,7 @@ class Environment:
                 popen_exceptions[' '.join(compiler + arg)] = e
                 continue
             version = search_version(out)
-            if 'Free Software Foundation' in out:
+            if 'Free Software Foundation' in out or ('e2k' in out and 'lcc' in out):
                 defines = self.get_gnu_compiler_defines(compiler)
                 if not defines:
                     popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'

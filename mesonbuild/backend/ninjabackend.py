@@ -1156,7 +1156,7 @@ int dummy;
                 abs_vala_file = os.path.join(self.environment.get_build_dir(), vala_file)
                 if PurePath(os.path.commonpath((abs_srcbasedir, abs_vala_file))) == PurePath(abs_srcbasedir):
                     vala_c_subdir = PurePath(abs_vala_file).parent.relative_to(abs_srcbasedir)
-                    vala_c_file = os.path.join(vala_c_subdir, vala_c_file)
+                    vala_c_file = os.path.join(str(vala_c_subdir), vala_c_file)
             else:
                 path_to_target = os.path.join(self.build_to_src, target.get_subdir())
                 if vala_file.startswith(path_to_target):

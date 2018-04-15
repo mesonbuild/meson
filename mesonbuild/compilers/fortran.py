@@ -27,6 +27,7 @@ from .compilers import (
     gnulike_buildtype_args,
     gnulike_buildtype_linker_args,
     Compiler,
+    ElbrusCompiler,
     IntelCompiler,
 )
 
@@ -178,6 +179,12 @@ class GnuFortranCompiler(FortranCompiler):
         Used only on Windows
         """
         return ['-Wl,--out-implib=' + implibname]
+
+
+class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        GnuFortranCompiler.__init__(self, exelist, version, gcc_type, is_cross, exe_wrapper, defines, **kwargs)
+        ElbrusCompiler.__init__(self, gcc_type, defines)
 
 
 class G95FortranCompiler(FortranCompiler):

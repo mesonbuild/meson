@@ -32,10 +32,17 @@ class RPMModule(ExtensionModule):
     def generate_spec_template(self, state, args, kwargs):
         compiler_deps = set()
         for compiler in state.compilers.values():
+            # Elbrus has one 'lcc' package for every compiler
             if isinstance(compiler, compilers.GnuCCompiler):
                 compiler_deps.add('gcc')
             elif isinstance(compiler, compilers.GnuCPPCompiler):
                 compiler_deps.add('gcc-c++')
+            elif isinstance(compiler, compilers.ElbrusCCompiler):
+                compiler_deps.add('lcc')
+            elif isinstance(compiler, compilers.ElbrusCPPCompiler):
+                compiler_deps.add('lcc')
+            elif isinstance(compiler, compilers.ElbrusFortranCompiler):
+                compiler_deps.add('lcc')
             elif isinstance(compiler, compilers.ValaCompiler):
                 compiler_deps.add('vala')
             elif isinstance(compiler, compilers.GnuFortranCompiler):

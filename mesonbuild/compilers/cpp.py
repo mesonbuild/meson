@@ -25,6 +25,7 @@ from .compilers import (
     msvc_winlibs,
     ClangCompiler,
     GnuCompiler,
+    ElbrusCompiler,
     IntelCompiler,
 )
 
@@ -131,6 +132,29 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
     def get_pch_use_args(self, pch_dir, header):
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
+
+
+class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        GnuCPPCompiler.__init__(self, exelist, version, gcc_type, is_cross, exe_wrapper, defines, **kwargs)
+        ElbrusCompiler.__init__(self, gcc_type, defines)
+
+    # It does not support c++/gnu++ 17 and 1z, but still does support 0x, 1y, and gnu++98.
+    def get_options(self):
+        opts = super().get_options()
+        opts['cpp_std'] = coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                   ['none', 'c++98', 'c++03', 'c++0x', 'c++11', 'c++14', 'c++1y',
+                                                    'gnu++98', 'gnu++03', 'gnu++0x', 'gnu++11', 'gnu++14', 'gnu++1y'],
+                                                   'none')
+        return opts
+
+    # Elbrus C++ compiler does not have lchmod, but there is only linker warning, not compiler error.
+    # So we should explicitly fail at this case.
+    def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
+        if funcname == 'lchmod':
+            return False
+        else:
+            return super().has_function(funcname, prefix, env, extra_args, dependencies)
 
 
 class IntelCPPCompiler(IntelCompiler, CPPCompiler):
