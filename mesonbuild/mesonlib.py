@@ -796,22 +796,19 @@ def expand_arguments(args):
             return None
     return expended_args
 
-def Popen_safe(args, write=None, stderr=subprocess.PIPE, **kwargs):
+def Popen_safe(args, write=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs):
     import locale
     encoding = locale.getpreferredencoding()
     if sys.version_info < (3, 6) or not sys.stdout.encoding or encoding.upper() != 'UTF-8':
-        return Popen_safe_legacy(args, write=write, stderr=stderr, **kwargs)
-    p = subprocess.Popen(args, universal_newlines=True,
-                         close_fds=False,
-                         stdout=subprocess.PIPE,
-                         stderr=stderr, **kwargs)
+        return Popen_safe_legacy(args, write=write, stdout=stdout, stderr=stderr, **kwargs)
+    p = subprocess.Popen(args, universal_newlines=True, close_fds=False,
+                         stdout=stdout, stderr=stderr, **kwargs)
     o, e = p.communicate(write)
     return p, o, e
 
-def Popen_safe_legacy(args, write=None, stderr=subprocess.PIPE, **kwargs):
+def Popen_safe_legacy(args, write=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs):
     p = subprocess.Popen(args, universal_newlines=False,
-                         stdout=subprocess.PIPE,
-                         stderr=stderr, **kwargs)
+                         stdout=stdout, stderr=stderr, **kwargs)
     if write is not None:
         write = write.encode('utf-8')
     o, e = p.communicate(write)
