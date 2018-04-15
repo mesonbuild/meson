@@ -22,4 +22,3 @@ foreach l : find_file_list.stdout().strip('\x00').split('\x00')
 endforeach
 
 test('second', executable('second', found_files_hex + [gen_file]))
-
