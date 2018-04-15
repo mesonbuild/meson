@@ -1660,9 +1660,9 @@ rule FORTRAN_DEP_HACK
         if mesonlib.is_windows():
             command_template = ' command = {executable} @$out.rsp\n' \
                                ' rspfile = $out.rsp\n' \
-                               ' rspfile_content = {cross_args} $ARGS {output_args} {compile_only_args} $in\n'
+                               ' rspfile_content =  $ARGS{cross_args} {output_args} {compile_only_args} $in\n'
         else:
-            command_template = ' command = {executable} {cross_args} $ARGS {output_args} {compile_only_args} $in\n'
+            command_template = ' command = {executable} $ARGS {cross_args} {output_args} {compile_only_args} $in\n'
         command = command_template.format(
             executable=' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
             cross_args=' '.join(self.get_cross_info_lang_args(compiler.language, is_cross)),
@@ -1721,10 +1721,10 @@ rule FORTRAN_DEP_HACK
         if mesonlib.is_windows():
             command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
- rspfile_content = {cross_args} $ARGS {dep_args} {output_args} {compile_only_args} $in
+ rspfile_content = $ARGS {cross_args} {dep_args} {output_args} {compile_only_args} $in
 '''
         else:
-            command_template = ' command = {executable} {cross_args} $ARGS {dep_args} {output_args} {compile_only_args} $in\n'
+            command_template = ' command = {executable} $ARGS {cross_args} {dep_args} {output_args} {compile_only_args} $in\n'
         command = command_template.format(
             executable=' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
             cross_args=' '.join(cross_args),
@@ -1769,7 +1769,7 @@ rule FORTRAN_DEP_HACK
             output = ''
         else:
             output = ' '.join(compiler.get_output_args('$out'))
-        command = " command = {executable} {cross_args} $ARGS {dep_args} {output_args} {compile_only_args} $in\n".format(
+        command = " command = {executable} $ARGS {cross_args} {dep_args} {output_args} {compile_only_args} $in\n".format(
             executable=' '.join(compiler.get_exelist()),
             cross_args=' '.join(cross_args),
             dep_args=' '.join(quoted_depargs),
