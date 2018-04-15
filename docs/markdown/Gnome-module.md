@@ -227,9 +227,11 @@ useful when running the application locally for example during tests.
 ### gnome.gdbus_codegen()
 
 Compiles the given XML schema into gdbus source code. Takes two
-positional arguments, the first one specifies the name of the source
-files and the second specifies the XML file name.
+positional arguments, the first one specifies the base name to use
+while creating the output source and header and the second specifies
+one XML file.
 
+* `sources`: list of XML files
 * `interface_prefix`: prefix for the interface
 * `namespace`: namespace of the interface
 * `object_manager`: *(Added 0.40.0)* if true generates object manager code
@@ -257,7 +259,8 @@ Example:
 gnome = import('gnome')
 
 # The returned source would be passed to another target
-gdbus_src = gnome.gdbus_codegen('example-interface', 'com.example.Sample.xml',
+gdbus_src = gnome.gdbus_codegen('example-interface',
+  sources: 'com.example.Sample.xml',
   interface_prefix : 'com.example.',
   namespace : 'Sample',
   annotations : [
