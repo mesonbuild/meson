@@ -7,7 +7,8 @@ gdbus_src = gnome.gdbus_codegen('generated-gdbus-no-docbook', 'com.example.Sampl
 )
 assert(gdbus_src.length() == 2, 'expected 2 targets')
 
-gdbus_src = gnome.gdbus_codegen('generated-gdbus', 'com.example.Sample.xml',
+gdbus_src = gnome.gdbus_codegen('generated-gdbus',
+  sources : 'com.example.Sample.xml',
   interface_prefix : 'com.example.',
   namespace : 'Sample',
   annotations : [
