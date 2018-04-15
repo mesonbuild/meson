@@ -40,8 +40,16 @@ ESCAPE_SEQUENCE_MULTI_RE = re.compile(r'''
     | \\[\\abfnrtv]    # Single-character escapes
     )''', re.UNICODE | re.VERBOSE)
 
+class MesonUnicodeDecodeError(MesonException):
+    def __init__(self, match):
+        super().__init__("%s" % match)
+        self.match = match
+
 def decode_match(match):
-    return codecs.decode(match.group(0), 'unicode_escape')
+    try:
+        return codecs.decode(match.group(0), 'unicode_escape')
+    except UnicodeDecodeError as err:
+        raise MesonUnicodeDecodeError(match.group(0))
 
 class ParseException(MesonException):
     def __init__(self, text, line, lineno, colno):
@@ -172,11 +180,17 @@ class Lexer:
                             mlog.warning("""Newline character in a string detected, use ''' (three single quotes) for multiline strings instead.
 This will become a hard error in a future Meson release.""", self.getline(line_start), lineno, col)
                         value = match_text[1:-1]
-                        value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, value)
+                        try:
+                            value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, value)
+                        except MesonUnicodeDecodeError as err:
+                            raise MesonException("Failed to parse escape sequence: '{}' in string:\n  {}".format(err.match, match_text))
                     elif tid == 'multiline_string':
                         tid = 'string'
                         value = match_text[3:-3]
-                        value = ESCAPE_SEQUENCE_MULTI_RE.sub(decode_match, value)
+                        try:
+                            value = ESCAPE_SEQUENCE_MULTI_RE.sub(decode_match, value)
+                        except MesonUnicodeDecodeError as err:
+                            raise MesonException("Failed to parse escape sequence: '{}' in string:\n{}".format(err.match, match_text))
                         lines = match_text.split('\n')
                         if len(lines) > 1:
                             lineno += len(lines) - 1
