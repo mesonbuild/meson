@@ -1117,7 +1117,7 @@ class AllPlatformTests(BasePlatformTests):
         incs = [a for a in shlex.split(execmd) if a.startswith("-I")]
         self.assertEqual(len(incs), 9)
         # target private dir
-        self.assertPathEqual(incs[0], "-Isub4/someexe@exe")
+        self.assertPathEqual(incs[0], "-Isub4/sub4@@someexe@exe")
         # target build subdir
         self.assertPathEqual(incs[1], "-Isub4")
         # target source subdir
@@ -1917,6 +1917,15 @@ int main(int argc, char **argv) {
         self.init(testdir, extra_args=['--layout=flat'])
         self.build()
 
+    def test_identical_target_name_in_subdir_flat_layout(self):
+        '''
+        Test that identical targets in different subdirs do not collide
+        if layout is flat.
+        '''
+        testdir = os.path.join(self.common_test_dir, '189 same target name flat layout')
+        self.init(testdir, extra_args=['--layout=flat'])
+        self.build()
+
     def test_flock(self):
         exception_raised = False
         with tempfile.TemporaryDirectory() as tdir:
@@ -2601,8 +2610,8 @@ class LinuxlikeTests(BasePlatformTests):
     def test_unity_subproj(self):
         testdir = os.path.join(self.common_test_dir, '49 subproject')
         self.init(testdir, extra_args='--unity=subprojects')
-        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib/sublib@@simpletest@exe/simpletest-unity.c'))
-        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib/sublib@@sublib@sha/sublib-unity.c'))
+        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib/subprojects@sublib@@simpletest@exe/simpletest-unity.c'))
+        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib/subprojects@sublib@@sublib@sha/sublib-unity.c'))
         self.assertPathDoesNotExist(os.path.join(self.builddir, 'user@exe/user-unity.c'))
         self.build()
 

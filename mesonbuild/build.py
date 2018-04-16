@@ -310,11 +310,16 @@ a hard error in the future.''' % name)
     def get_id(self):
         # This ID must also be a valid file name on all OSs.
         # It should also avoid shell metacharacters for obvious
-        # reasons.
-        base = self.name + self.type_suffix()
-        if self.subproject == '':
-            return base
-        return self.subproject + '@@' + base
+        # reasons. '@' is not used as often as '_' in source code names.
+        # In case of collisions consider using checksums.
+        # FIXME replace with assert when slash in names is prohibited
+        name_part = self.name.replace('/', '@').replace('\\', '@')
+        assert not has_path_sep(self.type_suffix())
+        myid = name_part + self.type_suffix()
+        if self.subdir:
+            subdir_part = self.subdir.replace('/', '@').replace('\\', '@')
+            myid = subdir_part + '@@' + myid
+        return myid
 
     def process_kwargs(self, kwargs):
         if 'build_by_default' in kwargs:
