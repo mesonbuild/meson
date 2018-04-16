@@ -27,6 +27,7 @@ from .compilers import (
     GnuCompiler,
     ElbrusCompiler,
     IntelCompiler,
+    ArmCompiler,
 )
 
 class CPPCompiler(CCompiler):
@@ -239,3 +240,30 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         # Visual Studio C++ compiler doesn't support -fpermissive,
         # so just use the plain C args.
         return super(VisualStudioCCompiler, self).get_compiler_check_args()
+
+
+class ArmCPPCompiler(ArmCompiler, CPPCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrap=None, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
+        ArmCompiler.__init__(self)
+
+    def get_options(self):
+        opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                    ['none', 'c++03', 'c++11'],
+                                                    'none')}
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['cpp_std']
+        if std.value == 'c++11':
+            args.append('--cpp11')
+        elif std.value == 'c++03':
+            args.append('--cpp')
+        return args
+
+    def get_option_link_args(self, options):
+        return []
+
+    def get_compiler_check_args(self):
+        return []

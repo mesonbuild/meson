@@ -38,6 +38,8 @@ from .compilers import (
     is_source,
 )
 from .compilers import (
+    ArmCCompiler,
+    ArmCPPCompiler,
     ClangCCompiler,
     ClangCPPCompiler,
     ClangObjCCompiler,
@@ -519,6 +521,8 @@ class Environment:
                     if found_cl in watcom_cls:
                         continue
                 arg = '/?'
+            elif 'armcc' in compiler[0]:
+                arg = '--vsn'
             else:
                 arg = '--version'
             try:
@@ -577,6 +581,9 @@ class Environment:
                 inteltype = ICC_STANDARD
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap, full_version=full_version)
+            if 'ARM' in out:
+                cls = ArmCCompiler if lang == 'c' else ArmCPPCompiler
+                return cls(ccache + compiler, version, is_cross, exe_wrap, full_version=full_version)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, want_cross):

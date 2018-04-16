@@ -118,6 +118,7 @@ from .compilers import (
     IntelCompiler,
 )
 from .c import (
+    ArmCCompiler,
     CCompiler,
     ClangCCompiler,
     GnuCCompiler,
@@ -126,6 +127,7 @@ from .c import (
     VisualStudioCCompiler,
 )
 from .cpp import (
+    ArmCPPCompiler,
     CPPCompiler,
     ClangCPPCompiler,
     GnuCPPCompiler,

@@ -31,6 +31,7 @@ from .compilers import (
     msvc_winlibs,
     vs32_instruction_set_args,
     vs64_instruction_set_args,
+    ArmCompiler,
     ClangCompiler,
     Compiler,
     CompilerArgs,
@@ -1221,3 +1222,22 @@ class VisualStudioCCompiler(CCompiler):
         if 'INCLUDE' not in os.environ:
             return []
         return os.environ['INCLUDE'].split(os.pathsep)
+
+
+class ArmCCompiler(ArmCompiler, CCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+        ArmCompiler.__init__(self)
+
+    def get_options(self):
+        opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
+                                                  ['none', 'c90', 'c99'],
+                                                  'none')}
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['c_std']
+        if std.value != 'none':
+            args.append('--' + std.value)
+        return args

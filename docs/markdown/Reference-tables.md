@@ -22,6 +22,7 @@ These are return values of the `get_id` method in a compiler object.
 | open64    | The Open64 Fortran Compiler    |
 | nagfor    | The NAG Fortran compiler       |
 | lcc       | Elbrus C/C++/Fortran Compiler  |
+| arm       | ARM compiler                   |
 
 ## Script environment variables
 

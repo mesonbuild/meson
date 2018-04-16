@@ -13,9 +13,14 @@
 # limitations under the License.
 
 from .mesonlib import Popen_safe
+from . import mesonlib
 
 class StaticLinker:
-    pass
+    def can_linker_accept_rsp(self):
+        """
+        Determines whether the linker can accept arguments using the @rsp syntax.
+        """
+        return mesonlib.is_windows()
 
 
 class VisualStudioLinker(StaticLinker):
@@ -75,6 +80,12 @@ class ArLinker(StaticLinker):
             self.std_args = ['csrD']
         else:
             self.std_args = ['csr']
+        # For 'armar' the options should be prefixed with '-'.
+        if 'armar' in stdo:
+            self.std_args = ['-csr']
+
+    def can_linker_accept_rsp(self):
+        return False
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return []
