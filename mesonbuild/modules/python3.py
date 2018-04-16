@@ -23,8 +23,8 @@ from ..build import known_shmod_kwargs
 
 
 class Python3Module(ExtensionModule):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.snippets.add('extension_module')
 
     @permittedSnippetKwargs(known_shmod_kwargs)
@@ -69,5 +69,5 @@ class Python3Module(ExtensionModule):
         return ModuleReturnValue(path, [])
 
 
-def initialize():
-    return Python3Module()
+def initialize(*args, **kwargs):
+    return Python3Module(*args, **kwargs)

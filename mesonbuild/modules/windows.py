@@ -104,5 +104,5 @@ class WindowsModule(ExtensionModule):
 
         return ModuleReturnValue(res_targets, [res_targets])
 
-def initialize():
-    return WindowsModule()
+def initialize(*args, **kwargs):
+    return WindowsModule(*args, **kwargs)

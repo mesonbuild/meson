@@ -167,5 +167,5 @@ class RPMModule(ExtensionModule):
         mlog.log('RPM spec template written to %s.spec.\n' % proj)
         return ModuleReturnValue(None, [])
 
-def initialize():
-    return RPMModule()
+def initialize(*args, **kwargs):
+    return RPMModule(*args, **kwargs)

@@ -18,25 +18,14 @@ class permittedSnippetKwargs:
             return f(s, interpreter, state, args, kwargs)
         return wrapped
 
-_found_programs = {}
-
 
 class ExtensionModule:
-    def __init__(self):
+    def __init__(self, interpreter):
+        self.interpreter = interpreter
         self.snippets = set() # List of methods that operate only on the interpreter.
 
     def is_snippet(self, funcname):
         return funcname in self.snippets
-
-def find_program(program_name, target_name):
-    if program_name in _found_programs:
-        return _found_programs[program_name]
-    program = dependencies.ExternalProgram(program_name)
-    if not program.found():
-        m = "Target {!r} can't be generated as {!r} could not be found"
-        raise MesonException(m.format(target_name, program_name))
-    _found_programs[program_name] = program
-    return program
 
 
 def get_include_args(include_dirs, prefix='-I'):

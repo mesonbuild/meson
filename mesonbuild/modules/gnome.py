@@ -25,7 +25,7 @@ from .. import mesonlib
 from .. import compilers
 from .. import interpreter
 from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
-from . import find_program, get_include_args
+from . import get_include_args
 from . import ExtensionModule
 from . import ModuleReturnValue
 from ..mesonlib import MesonException, OrderedSet, Popen_safe, extract_as_list
@@ -45,14 +45,14 @@ gdbuswarning_printed = False
 gresource_warning_printed = False
 _gir_has_extra_lib_arg = None
 
-def gir_has_extra_lib_arg():
+def gir_has_extra_lib_arg(intr_obj):
     global _gir_has_extra_lib_arg
     if _gir_has_extra_lib_arg is not None:
         return _gir_has_extra_lib_arg
 
     _gir_has_extra_lib_arg = False
     try:
-        g_ir_scanner = find_program('g-ir-scanner', '').get_command()
+        g_ir_scanner = intr_obj.find_program_impl('g-ir-scanner').get_command()
         opts = Popen_safe(g_ir_scanner + ['--help'], stderr=subprocess.STDOUT)[1]
         _gir_has_extra_lib_arg = '--extra-library' in opts
     except (MesonException, FileNotFoundError, subprocess.CalledProcessError):
@@ -302,7 +302,7 @@ class GnomeModule(ExtensionModule):
                 link_command.append('-Wl,-rpath,' + libdir)
             if depends:
                 depends.append(lib)
-        if gir_has_extra_lib_arg() and use_gir_args:
+        if gir_has_extra_lib_arg(self.interpreter) and use_gir_args:
             link_command.append('--extra-library=' + lib.name)
         else:
             link_command.append('-l' + lib.name)
@@ -369,7 +369,7 @@ class GnomeModule(ExtensionModule):
                 mlog.log('dependency {!r} not handled to build gir files'.format(dep))
                 continue
 
-        if gir_has_extra_lib_arg() and use_gir_args:
+        if gir_has_extra_lib_arg(self.interpreter) and use_gir_args:
             fixed_ldflags = OrderedSet()
             for ldflag in ldflags:
                 if ldflag.startswith("-l"):
@@ -388,8 +388,8 @@ class GnomeModule(ExtensionModule):
             raise MesonException('Gir takes one argument')
         if kwargs.get('install_dir'):
             raise MesonException('install_dir is not supported with generate_gir(), see "install_dir_gir" and "install_dir_typelib"')
-        giscanner = find_program('g-ir-scanner', 'Gir')
-        gicompiler = find_program('g-ir-compiler', 'Gir')
+        giscanner = self.interpreter.find_program_impl('g-ir-scanner')
+        gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
         girtarget = args[0]
         while hasattr(girtarget, 'held_object'):
             girtarget = girtarget.held_object
@@ -637,7 +637,7 @@ class GnomeModule(ExtensionModule):
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
 
-        cmd = [find_program('glib-compile-schemas', 'gsettings-compile')]
+        cmd = [self.interpreter.find_program_impl('glib-compile-schemas')]
         cmd += ['--targetdir', outdir, srcdir]
         kwargs['command'] = cmd
         kwargs['input'] = []
@@ -876,7 +876,7 @@ This will become a hard error in the future.''')
         namebase = args[0]
         xml_file = args[1]
         target_name = namebase + '-gdbus'
-        cmd = [find_program('gdbus-codegen', target_name)]
+        cmd = [self.interpreter.find_program_impl('gdbus-codegen')]
         if 'interface_prefix' in kwargs:
             cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
         if 'namespace' in kwargs:
@@ -1013,7 +1013,7 @@ This will become a hard error in the future.''')
             elif arg not in known_custom_target_kwargs:
                 raise MesonException(
                     'Mkenums does not take a %s keyword argument.' % (arg, ))
-        cmd = [find_program('glib-mkenums', 'mkenums')] + cmd
+        cmd = [self.interpreter.find_program_impl(['glib-mkenums', 'mkenums'])] + cmd
         custom_kwargs = {}
         for arg in known_custom_target_kwargs:
             if arg in kwargs:
@@ -1209,7 +1209,7 @@ G_END_DECLS'''
 
         new_genmarshal = mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.3')
 
-        cmd = [find_program('glib-genmarshal', output + '_genmarshal')]
+        cmd = [self.interpreter.find_program_impl('glib-genmarshal')]
         known_kwargs = ['internal', 'nostdinc', 'skip_source', 'stdinc',
                         'valist_marshallers', 'extra_args']
         known_custom_target_kwargs = ['build_always', 'depends',
@@ -1355,9 +1355,9 @@ G_END_DECLS'''
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes = self._extract_vapi_packages(state, kwargs)
         target_name = 'generate_vapi({})'.format(library)
         if 'VAPIGEN' in os.environ:
-            cmd = [find_program(os.environ['VAPIGEN'], target_name)]
+            cmd = [self.interpreter.find_program_impl(os.environ['VAPIGEN'])]
         else:
-            cmd = [find_program('vapigen', target_name)]
+            cmd = [self.interpreter.find_program_impl('vapigen')]
         cmd += ['--quiet', '--library=' + library, '--directory=' + build_dir]
         cmd += self._vapi_args_to_command('--vapidir=', 'vapi_dirs', kwargs)
         cmd += self._vapi_args_to_command('--metadatadir=', 'metadata_dirs', kwargs)
@@ -1412,5 +1412,5 @@ G_END_DECLS'''
         created_values.append(rv)
         return ModuleReturnValue(rv, created_values)
 
-def initialize():
-    return GnomeModule()
+def initialize(*args, **kwargs):
+    return GnomeModule(*args, **kwargs)

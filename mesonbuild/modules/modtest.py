@@ -24,5 +24,5 @@ class TestModule(ExtensionModule):
         rv = ModuleReturnValue(None, [])
         return rv
 
-def initialize():
-    return TestModule()
+def initialize(*args, **kwargs):
+    return TestModule(*args, **kwargs)

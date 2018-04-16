@@ -393,5 +393,5 @@ class PkgConfigModule(ExtensionModule):
         res = build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
         return ModuleReturnValue(res, [res])
 
-def initialize():
-    return PkgConfigModule()
+def initialize(*args, **kwargs):
+    return PkgConfigModule(*args, **kwargs)

@@ -143,5 +143,5 @@ class I18nModule(ExtensionModule):
 
         return ModuleReturnValue(None, targets)
 
-def initialize():
-    return I18nModule()
+def initialize(*args, **kwargs):
+    return I18nModule(*args, **kwargs)
