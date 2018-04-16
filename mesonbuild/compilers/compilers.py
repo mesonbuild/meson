@@ -147,6 +147,13 @@ msvc_buildtype_linker_args = {'plain': [],
                               'minsize': ['/INCREMENTAL:NO', '/OPT:REF'],
                               }
 
+arm_buildtype_linker_args = {'plain': [],
+                             'debug': [],
+                             'debugoptimized': [],
+                             'release': [],
+                             'minsize': [],
+                             }
+
 java_buildtype_args = {'plain': [],
                        'debug': ['-g'],
                        'debugoptimized': ['-g'],
@@ -195,6 +202,13 @@ swift_buildtype_args = {'plain': [],
                         'release': ['-O'],
                         'minsize': [],
                         }
+
+arm_buildtype_args = {'plain': [],
+                      'debug': ['-O0', '--debug'],
+                      'debugoptimized': ['-O1', '--debug'],
+                      'release': ['-O3', '-Otime'],
+                      'minsize': ['-O3', '-Ospace'],
+                      }
 
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
                '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']
@@ -1303,3 +1317,24 @@ class IntelCompiler:
 
     def get_default_include_dirs(self):
         return gnulike_default_include_dirs(self.exelist, self.language)
+
+class ArmCompiler:
+    def __init__(self):
+        self.warn_args = {'1': [],
+                          '2': ['--strict_warnings'],
+                          '3': ['--strict_warnings', '--diag_warning=optimizations']}
+
+    def get_buildtype_args(self, buildtype):
+        return arm_buildtype_args[buildtype]
+
+    def get_always_args(self):
+        return []
+
+    def get_pic_args(self):
+        return []
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return ['--depend_single_line', '--depend', outfile]
+
+    def get_buildtype_linker_args(self, buildtype):
+        return arm_buildtype_linker_args[buildtype]

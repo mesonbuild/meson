@@ -124,6 +124,7 @@ from .c import (
     ElbrusCCompiler,
     IntelCCompiler,
     VisualStudioCCompiler,
+    ArmCCompiler,
 )
 from .cpp import (
     CPPCompiler,
@@ -132,6 +133,7 @@ from .cpp import (
     ElbrusCPPCompiler,
     IntelCPPCompiler,
     VisualStudioCPPCompiler,
+    ArmCPPCompiler,
 )
 from .cs import MonoCompiler, VisualStudioCsCompiler
 from .d import (

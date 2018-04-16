@@ -15,7 +15,7 @@
 import configparser, os, platform, re, shlex, shutil, subprocess
 
 from . import coredata
-from .linkers import ArLinker, VisualStudioLinker
+from .linkers import ArLinker, VisualStudioLinker, ArmLinker
 from . import mesonlib
 from .mesonlib import EnvironmentException, Popen_safe
 from . import mlog
@@ -66,6 +66,8 @@ from .compilers import (
     ValaCompiler,
     VisualStudioCCompiler,
     VisualStudioCPPCompiler,
+    ArmCCompiler,
+    ArmCPPCompiler,
 )
 
 build_filename = 'meson.build'
@@ -519,6 +521,8 @@ class Environment:
                     if found_cl in watcom_cls:
                         continue
                 arg = '/?'
+            elif compiler[-1].endswith('armcc'):
+                arg = '--vsn'
             else:
                 arg = '--version'
             try:
@@ -577,6 +581,10 @@ class Environment:
                 inteltype = ICC_STANDARD
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap, full_version=full_version)
+            if 'ARM Limited' in out:
+                cls = ArmCCompiler if lang == 'c' else ArmCPPCompiler
+                return cls(ccache + compiler, version, is_cross, exe_wrap)
+
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, want_cross):
@@ -850,6 +858,8 @@ class Environment:
                 continue
             if '/OUT:' in out or '/OUT:' in err:
                 return VisualStudioLinker(linker)
+            if 'armar' in out:
+                return ArmLinker(linker)
             if p.returncode == 0:
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('usage'): # OSX

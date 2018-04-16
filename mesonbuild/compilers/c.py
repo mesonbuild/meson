@@ -38,6 +38,7 @@ from .compilers import (
     GnuCompiler,
     ElbrusCompiler,
     IntelCompiler,
+    ArmCompiler,
     RunResult,
 )
 
@@ -1221,3 +1222,8 @@ class VisualStudioCCompiler(CCompiler):
         if 'INCLUDE' not in os.environ:
             return []
         return os.environ['INCLUDE'].split(os.pathsep)
+
+class ArmCCompiler(ArmCompiler, CCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrap):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        ArmCompiler.__init__(self)
