@@ -1,0 +1,23 @@
+project('Python extension module', 'c',
+  default_options : ['buildtype=release'])
+
+py_mod = import('python')
+
+py = py_mod.find_installation(get_option('python'), required : false)
+
+if py.found()
+  py_dep = py.dependency()
+
+  if py_dep.found()
+    subdir('ext')
+
+    test('extmod',
+      py,
+      args : files('blaster.py'),
+      env : ['PYTHONPATH=' + pypathdir])
+  else
+    error('MESON_SKIP_TEST: Python libraries not found, skipping test.')
+  endif
+else
+  error('MESON_SKIP_TEST: Python not found, skipping test.')
+endif

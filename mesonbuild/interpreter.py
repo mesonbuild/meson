@@ -1635,6 +1635,8 @@ class Interpreter(InterpreterBase):
             return DataHolder(item)
         elif isinstance(item, dependencies.InternalDependency):
             return InternalDependencyHolder(item)
+        elif isinstance(item, dependencies.ExternalDependency):
+            return DependencyHolder(item)
         elif isinstance(item, dependencies.ExternalProgram):
             return ExternalProgramHolder(item)
         elif hasattr(item, 'held_object'):
