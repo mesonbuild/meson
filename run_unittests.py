@@ -1923,7 +1923,7 @@ int main(int argc, char **argv) {
         Test that identical targets in different subdirs do not collide
         if layout is flat.
         '''
-        testdir = os.path.join(self.common_test_dir, '189 same target name flat layout')
+        testdir = os.path.join(self.common_test_dir, '192 same target name flat layout')
         self.init(testdir, extra_args=['--layout=flat'])
         self.build()
 
