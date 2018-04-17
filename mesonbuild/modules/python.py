@@ -359,8 +359,8 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
 
 
 class PythonModule(ExtensionModule):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.snippets.add('find_installation')
 
     # https://www.python.org/dev/peps/pep-0397/
@@ -429,5 +429,5 @@ class PythonModule(ExtensionModule):
         return res
 
 
-def initialize():
-    return PythonModule()
+def initialize(*args, **kwargs):
+    return PythonModule(*args, **kwargs)
