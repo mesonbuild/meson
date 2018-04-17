@@ -6,7 +6,7 @@ project('multiwrap', 'c',
 cc = meson.get_compiler('c')
 
 luadep = dependency('lua', fallback : ['lua', 'lua_dep'])
-pngdep = dependency('libpng', fallback : ['libpng', 'pngdep'])
+pngdep = dependency('libpng', fallback : ['libpng', 'png_dep'])
 
 executable('prog', 'prog.c',
   dependencies : [pngdep, luadep])
