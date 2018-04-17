@@ -745,20 +745,15 @@ class Compiler:
     def get_library_dirs(self):
         return []
 
-    def has_argument(self, arg, env):
-        return self.has_multi_arguments([arg], env)
-
     def has_multi_arguments(self, args, env):
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
-    def get_supported_arguments(self, args, env):
-        supported_args = []
-        for arg in args:
-            if self.has_argument(arg, env):
-                supported_args.append(arg)
-        return supported_args
+    def has_multi_link_arguments(self, args, env):
+        raise EnvironmentException(
+            'Language {} does not support has_multi_link_arguments.'.format(
+                self.get_display_language()))
 
     def get_cross_extra_flags(self, environment, link):
         extra_flags = []
@@ -815,7 +810,6 @@ class Compiler:
                 # Construct the compiler command-line
                 commands = CompilerArgs(self)
                 commands.append(srcname)
-                commands += extra_args
                 commands += self.get_always_args()
                 if mode == 'compile':
                     commands += self.get_compile_only_args()
@@ -825,6 +819,10 @@ class Compiler:
                 else:
                     output = self._get_compile_output(tmpdirname, mode)
                     commands += self.get_output_args(output)
+                # extra_args must be last because it could contain '/link' to
+                # pass args to VisualStudio's linker. In that case everything
+                # in the command line after '/link' is given to the linker.
+                commands += extra_args
                 # Generate full command-line with the exelist
                 commands = self.get_exelist() + commands.to_native()
                 mlog.debug('Running compile:')

@@ -741,6 +741,10 @@ class CompilerHolder(InterpreterObject):
                              'has_multi_arguments': self.has_multi_arguments_method,
                              'get_supported_arguments': self.get_supported_arguments_method,
                              'first_supported_argument': self.first_supported_argument_method,
+                             'has_link_argument': self.has_link_argument_method,
+                             'has_multi_link_arguments': self.has_multi_link_arguments_method,
+                             'get_supported_link_arguments': self.get_supported_link_arguments_method,
+                             'first_supported_link_argument': self.first_supported_link_argument_method,
                              'unittest_args': self.unittest_args_method,
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
                              })
@@ -1183,14 +1187,8 @@ class CompilerHolder(InterpreterObject):
     def has_argument_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         if len(args) != 1:
-            raise InterpreterException('Has_arg takes exactly one argument.')
-        result = self.compiler.has_argument(args[0], self.environment)
-        if result:
-            h = mlog.green('YES')
-        else:
-            h = mlog.red('NO')
-        mlog.log('Compiler for {} supports argument {}:'.format(self.compiler.get_display_language(), args[0]), h)
-        return result
+            raise InterpreterException('has_argument takes exactly one argument.')
+        return self.has_multi_arguments_method(args, kwargs)
 
     @permittedMethodKwargs({})
     def has_multi_arguments_method(self, args, kwargs):
@@ -1209,26 +1207,58 @@ class CompilerHolder(InterpreterObject):
     @permittedMethodKwargs({})
     def get_supported_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
-        result = self.compiler.get_supported_arguments(args, self.environment)
-        if len(result) == len(args):
+        supported_args = []
+        for arg in args:
+            if self.has_argument_method(arg, kwargs):
+                supported_args.append(arg)
+        return supported_args
+
+    @permittedMethodKwargs({})
+    def first_supported_argument_method(self, args, kwargs):
+        for i in mesonlib.stringlistify(args):
+            if self.has_argument_method(i, kwargs):
+                mlog.log('First supported argument:', mlog.bold(i))
+                return [i]
+        mlog.log('First supported argument:', mlog.red('None'))
+        return []
+
+    @permittedMethodKwargs({})
+    def has_link_argument_method(self, args, kwargs):
+        args = mesonlib.stringlistify(args)
+        if len(args) != 1:
+            raise InterpreterException('has_link_argument takes exactly one argument.')
+        return self.has_multi_link_arguments_method(args, kwargs)
+
+    @permittedMethodKwargs({})
+    def has_multi_link_arguments_method(self, args, kwargs):
+        args = mesonlib.stringlistify(args)
+        result = self.compiler.has_multi_link_arguments(args, self.environment)
+        if result:
             h = mlog.green('YES')
-        elif len(result) > 0:
-            h = mlog.yellow('SOME')
         else:
             h = mlog.red('NO')
         mlog.log(
-            'Compiler for {} supports arguments {}:'.format(
+            'Compiler for {} supports link arguments {}:'.format(
                 self.compiler.get_display_language(), ' '.join(args)),
             h)
         return result
 
     @permittedMethodKwargs({})
-    def first_supported_argument_method(self, args, kwargs):
+    def get_supported_link_arguments_method(self, args, kwargs):
+        args = mesonlib.stringlistify(args)
+        supported_args = []
+        for arg in args:
+            if self.has_link_argument_method(arg, kwargs):
+                supported_args.append(arg)
+        return supported_args
+
+    @permittedMethodKwargs({})
+    def first_supported_link_argument_method(self, args, kwargs):
         for i in mesonlib.stringlistify(args):
-            if self.compiler.has_argument(i, self.environment):
-                mlog.log('First supported argument:', mlog.bold(i))
+            if self.has_link_argument_method(i, kwargs):
+                mlog.log('First supported link argument:', mlog.bold(i))
                 return [i]
-        mlog.log('First supported argument:', mlog.red('None'))
+        mlog.log('First supported link argument:', mlog.red('None'))
         return []
 
 ModuleState = namedtuple('ModuleState', [

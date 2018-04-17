@@ -199,20 +199,10 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
     def get_option_link_args(self, options):
         return []
 
-    def has_multi_arguments(self, args, env):
-        for arg in args:
-            if arg.startswith('-Wl,'):
-                mlog.warning('''{} looks like a linker argument, but has_argument
-and other similar methods only support checking compiler arguments.
-Using them to check linker arguments are never supported, and results
-are likely to be wrong regardless of the compiler you are using.
-'''.format(arg))
-        return super().has_multi_arguments(args + ['-diag-error', '10006'], env)
-
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
-        self.language = 'cpp'
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap, is_64)
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
@@ -239,7 +229,7 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
     def get_compiler_check_args(self):
         # Visual Studio C++ compiler doesn't support -fpermissive,
         # so just use the plain C args.
-        return super(VisualStudioCCompiler, self).get_compiler_check_args()
+        return VisualStudioCCompiler.get_compiler_check_args(self)
 
 
 class ArmCPPCompiler(ArmCompiler, CPPCompiler):

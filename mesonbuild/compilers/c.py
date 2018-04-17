@@ -323,25 +323,21 @@ class CCompiler(Compiler):
         args += extra_args
         return args
 
-    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile', want_output=False):
-        args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
-        # We only want to compile; not link
-        with self.compile(code, args.to_native(), mode) as p:
+    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
+        with self._build_wrapper(code, env, extra_args, dependencies, mode) as p:
             return p.returncode == 0
 
-    def _links_wrapper(self, code, env, extra_args, dependencies, want_output=False):
-        "Shares common code between self.links and self.run"
-        args = self._get_compiler_check_args(env, extra_args, dependencies, mode='link')
-        return self.compile(code, args, want_output=want_output)
+    def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False):
+        args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
+        return self.compile(code, args.to_native(), mode, want_output=want_output)
 
     def links(self, code, env, extra_args=None, dependencies=None):
-        with self._links_wrapper(code, env, extra_args, dependencies) as p:
-            return p.returncode == 0
+        return self.compiles(code, env, extra_args, dependencies, mode='link')
 
     def run(self, code, env, extra_args=None, dependencies=None):
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
-        with self._links_wrapper(code, env, extra_args, dependencies, True) as p:
+        with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
             if p.returncode != 0:
                 mlog.debug('Could not compile test file %s: %d\n' % (
                     p.input_name,
@@ -841,6 +837,12 @@ class CCompiler(Compiler):
             return []
         return ['-pthread']
 
+    def linker_to_compiler_args(self, args):
+        return args
+
+    def has_arguments(self, args, env, code, mode):
+        return self.compiles(code, env, extra_args=args, mode=mode)
+
     def has_multi_arguments(self, args, env):
         for arg in args[:]:
             # some compilers, e.g. GCC, don't warn for unsupported warning-disable
@@ -849,13 +851,21 @@ class CCompiler(Compiler):
             if arg.startswith('-Wno-'):
                     args.append('-W' + arg[5:])
             if arg.startswith('-Wl,'):
-                mlog.warning('''{} looks like a linker argument, but has_argument
-and other similar methods only support checking compiler arguments.
-Using them to check linker arguments are never supported, and results
-are likely to be wrong regardless of the compiler you are using.
-'''.format(arg))
-        return self.compiles('int i;\n', env, extra_args=args)
+                mlog.warning('{} looks like a linker argument, '
+                             'but has_argument and other similar methods only '
+                             'support checking compiler arguments. Using them '
+                             'to check linker arguments are never supported, '
+                             'and results are likely to be wrong regardless of '
+                             'the compiler you are using. has_link_argument or '
+                             'other similar method can be used instead.'
+                             .format(arg))
+        code = 'int i;\n'
+        return self.has_arguments(args, env, code, mode='compile')
 
+    def has_multi_link_arguments(self, args, env):
+        args = self.linker_to_compiler_args(args)
+        code = 'int main(int argc, char **argv) { return 0; }'
+        return self.has_arguments(args, env, code, mode='link')
 
 class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None, **kwargs):
@@ -981,8 +991,8 @@ class IntelCCompiler(IntelCompiler, CCompiler):
     def get_std_shared_lib_link_args(self):
         return ['-shared']
 
-    def has_multi_arguments(self, args, env):
-        return super().has_multi_arguments(args + ['-diag-error', '10006'], env)
+    def has_arguments(self, args, env, code, mode):
+        return super().has_arguments(args + ['-diag-error', '10006'], env, code, mode)
 
 
 class VisualStudioCCompiler(CCompiler):
@@ -1065,6 +1075,9 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_linker_search_args(self, dirname):
         return ['/LIBPATH:' + dirname]
+
+    def linker_to_compiler_args(self, args):
+        return ['/link'] + args
 
     def get_gui_app_args(self):
         return ['/SUBSYSTEM:WINDOWS']
@@ -1149,24 +1162,12 @@ class VisualStudioCCompiler(CCompiler):
     # Visual Studio is special. It ignores some arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_multi_arguments(self, args, env):
-        warning_text = '9002'
-        code = 'int i;\n'
-        (fd, srcname) = tempfile.mkstemp(suffix='.' + self.default_suffix)
-        os.close(fd)
-        with open(srcname, 'w') as ofile:
-            ofile.write(code)
-        # Read c_args/cpp_args/etc from the cross-info file (if needed)
-        extra_args = self.get_cross_extra_flags(env, link=False)
-        extra_args += self.get_compile_only_args()
-        commands = self.exelist + args + extra_args + [srcname]
-        mlog.debug('Running VS compile:')
-        mlog.debug('Command line: ', ' '.join(commands))
-        mlog.debug('Code:\n', code)
-        p, stdo, stde = Popen_safe(commands, cwd=os.path.dirname(srcname))
-        if p.returncode != 0:
-            return False
-        return not(warning_text in stde or warning_text in stdo)
+    def has_arguments(self, args, env, code, mode):
+        warning_text = '4044' if mode == 'link' else '9002'
+        with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
+            if p.returncode != 0:
+                return False
+            return not(warning_text in p.stde or warning_text in p.stdo)
 
     def get_compile_debugfile_args(self, rel_obj, pch=False):
         pdbarr = rel_obj.split('.')[:-1]
