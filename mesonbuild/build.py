@@ -213,8 +213,9 @@ class ExtractedObjects:
     '''
     Holds a list of sources for which the objects must be extracted
     '''
-    def __init__(self, target, srclist=[], genlist=[], objlist=[]):
+    def __init__(self, target, srclist=[], genlist=[], objlist=[], recursive=True):
         self.target = target
+        self.recursive = recursive
         self.srclist = srclist
         self.genlist = genlist
         self.objlist = objlist
@@ -647,8 +648,9 @@ class BuildTarget(Target):
             obj_src.append(src)
         return ExtractedObjects(self, obj_src)
 
-    def extract_all_objects(self):
-        return ExtractedObjects(self, self.sources, self.generated, self.objects)
+    def extract_all_objects(self, recursive=True):
+        return ExtractedObjects(self, self.sources, self.generated, self.objects,
+                                recursive)
 
     def get_all_link_deps(self):
         return self.get_transitive_link_deps()

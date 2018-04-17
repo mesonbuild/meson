@@ -253,7 +253,8 @@ class Backend:
             elif isinstance(obj, mesonlib.File):
                 obj_list.append(obj.rel_to_builddir(self.build_to_src))
             elif isinstance(obj, build.ExtractedObjects):
-                obj_list += self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root)
+                if obj.recursive:
+                    obj_list += self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root)
                 obj_list += self.determine_ext_objs(obj, proj_dir_to_build_root)
             else:
                 raise MesonException('Unknown data type in object list.')
