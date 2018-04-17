@@ -824,7 +824,10 @@ class Vs2010Backend(backends.Backend):
         for d in reversed(target.get_external_deps()):
             # Cflags required by external deps might have UNIX-specific flags,
             # so filter them out if needed
-            d_compile_args = compiler.unix_args_to_native(d.get_compile_args())
+            if isinstance(d, dependencies.OpenMPDependency):
+                d_compile_args = compiler.openmp_flags()
+            else:
+                d_compile_args = compiler.unix_args_to_native(d.get_compile_args())
             for arg in d_compile_args:
                 if arg.startswith(('-D', '/D')):
                     define = arg[2:]
@@ -915,11 +918,17 @@ class Vs2010Backend(backends.Backend):
             for dep in target.get_external_deps():
                 # Extend without reordering or de-dup to preserve `-L -l` sets
                 # https://github.com/mesonbuild/meson/issues/1718
-                extra_link_args.extend_direct(dep.get_link_args())
+                if isinstance(dep, dependencies.OpenMPDependency):
+                    extra_link_args.extend_direct(compiler.openmp_flags())
+                else:
+                    extra_link_args.extend_direct(dep.get_link_args())
             for d in target.get_dependencies():
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
-                        extra_link_args.extend_direct(dep.get_link_args())
+                        if isinstance(dep, dependencies.OpenMPDependency):
+                            extra_link_args.extend_direct(compiler.openmp_flags())
+                        else:
+                            extra_link_args.extend_direct(dep.get_link_args())
         # Add link args for c_* or cpp_* build options. Currently this only
         # adds c_winlibs and cpp_winlibs when building for Windows. This needs
         # to be after all internal and external libraries so that unresolved

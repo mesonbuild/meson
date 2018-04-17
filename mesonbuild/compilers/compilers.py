@@ -937,6 +937,9 @@ class Compiler:
     def thread_flags(self, env):
         return []
 
+    def openmp_flags(self):
+        raise EnvironmentException('Language %s does not support OpenMP flags.' % self.get_display_language())
+
 
 GCC_STANDARD = 0
 GCC_OSX = 1
@@ -1152,6 +1155,9 @@ class GnuCompiler:
     def get_default_include_dirs(self):
         return gnulike_default_include_dirs(self.exelist, self.language)
 
+    def openmp_flags(self):
+        return ['-fopenmp']
+
 
 class ElbrusCompiler(GnuCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
@@ -1270,6 +1276,15 @@ class ClangCompiler:
     def get_default_include_dirs(self):
         return gnulike_default_include_dirs(self.exelist, self.language)
 
+    def openmp_flags(self):
+        if version_compare(self.version, '>=3.8.0'):
+            return ['-fopenmp']
+        elif version_compare(self.version, '>=3.7.0'):
+            return ['-fopenmp=libomp']
+        else:
+            # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
+            return []
+
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
 class IntelCompiler:
@@ -1331,6 +1346,12 @@ class IntelCompiler:
 
     def get_default_include_dirs(self):
         return gnulike_default_include_dirs(self.exelist, self.language)
+
+    def openmp_flags(self):
+        if version_compare(self.version, '>=15.0.0'):
+            return ['-qopenmp']
+        else:
+            return ['-openmp']
 
 
 class ArmCompiler:

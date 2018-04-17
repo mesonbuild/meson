@@ -237,6 +237,38 @@ class MPIDependency(ExternalDependency):
                     [os.path.join(libdir, 'msmpi.lib')])
 
 
+class OpenMPDependency(ExternalDependency):
+    # Map date of specification release (which is the macro value) to a version.
+    VERSIONS = {
+        '201511': '4.5',
+        '201307': '4.0',
+        '201107': '3.1',
+        '200805': '3.0',
+        '200505': '2.5',
+        '200203': '2.0',
+        '199810': '1.0',
+    }
+
+    def __init__(self, environment, kwargs):
+        language = kwargs.get('language')
+        super().__init__('openmp', environment, language, kwargs)
+        self.is_found = False
+        openmp_date = self.compiler.get_define('_OPENMP', '', self.env, [], [self])
+        if openmp_date:
+            self.version = self.VERSIONS[openmp_date]
+            if self.compiler.has_header('omp.h', '', self.env, dependencies=[self]):
+                self.is_found = True
+            else:
+                mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
+        if self.is_found:
+            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'), self.version)
+        else:
+            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
+
+    def need_openmp(self):
+        return True
+
+
 class ThreadDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('threads', environment, None, {})

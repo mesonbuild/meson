@@ -56,6 +56,9 @@ class VisualStudioLinker(StaticLinker):
     def thread_link_flags(self, env):
         return []
 
+    def openmp_flags(self):
+        return []
+
     def get_option_link_args(self, options):
         return []
 
@@ -112,6 +115,9 @@ class ArLinker(StaticLinker):
         return []
 
     def thread_link_flags(self, env):
+        return []
+
+    def openmp_flags(self):
         return []
 
     def get_option_link_args(self, options):
