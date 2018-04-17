@@ -2225,10 +2225,12 @@ to directly access options of other subprojects.''')
                     self.coredata.external_args.setdefault(lang, []).append(optvalue)
             # Otherwise, look for definitions from environment
             # variables such as CFLAGS.
-            if not comp.get_language() in self.coredata.external_args:
-                (preproc_args, compile_args, link_args) = environment.get_args_from_envvars(comp)
+            (preproc_args, compile_args, link_args) = environment.get_args_from_envvars(comp)
+            if not comp.get_language() in self.coredata.external_preprocess_args:
                 self.coredata.external_preprocess_args[comp.get_language()] = preproc_args
+            if not comp.get_language() in self.coredata.external_args:
                 self.coredata.external_args[comp.get_language()] = compile_args
+            if not comp.get_language() in self.coredata.external_link_args:
                 self.coredata.external_link_args[comp.get_language()] = link_args
             self.build.add_compiler(comp)
             if need_cross_compiler:
