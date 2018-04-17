@@ -25,47 +25,9 @@ from .wrap import WrapMode, wraptool
 
 default_warning = '1'
 
-def add_builtin_argument(p, name, **kwargs):
-    k = kwargs.get('dest', name.replace('-', '_'))
-    c = coredata.get_builtin_option_choices(k)
-    b = kwargs.get('action', None) in ['store_true', 'store_false']
-    h = coredata.get_builtin_option_description(k)
-    if not b:
-        h = h.rstrip('.') + ' (default: %s).' % coredata.get_builtin_option_default(k)
-    if c and not b:
-        kwargs['choices'] = c
-    default = coredata.get_builtin_option_default(k, noneIfSuppress=True)
-    if default is not None:
-        kwargs['default'] = default
-    else:
-        kwargs['default'] = argparse.SUPPRESS
-    p.add_argument('--' + name, help=h, **kwargs)
-
 def create_parser():
     p = argparse.ArgumentParser(prog='meson')
-    add_builtin_argument(p, 'prefix')
-    add_builtin_argument(p, 'libdir')
-    add_builtin_argument(p, 'libexecdir')
-    add_builtin_argument(p, 'bindir')
-    add_builtin_argument(p, 'sbindir')
-    add_builtin_argument(p, 'includedir')
-    add_builtin_argument(p, 'datadir')
-    add_builtin_argument(p, 'mandir')
-    add_builtin_argument(p, 'infodir')
-    add_builtin_argument(p, 'localedir')
-    add_builtin_argument(p, 'sysconfdir')
-    add_builtin_argument(p, 'localstatedir')
-    add_builtin_argument(p, 'sharedstatedir')
-    add_builtin_argument(p, 'backend')
-    add_builtin_argument(p, 'buildtype')
-    add_builtin_argument(p, 'strip', action='store_true')
-    add_builtin_argument(p, 'unity')
-    add_builtin_argument(p, 'werror', action='store_true')
-    add_builtin_argument(p, 'layout')
-    add_builtin_argument(p, 'default-library')
-    add_builtin_argument(p, 'warnlevel', dest='warning_level')
-    add_builtin_argument(p, 'stdsplit', action='store_false')
-    add_builtin_argument(p, 'errorlogs', action='store_false')
+    coredata.register_builtin_arguments(p)
     p.add_argument('--cross-file', default=None,
                    help='File describing cross compilation environment.')
     p.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
@@ -86,6 +48,25 @@ def wrapmodetype(string):
         msg = ', '.join([t.name.lower() for t in WrapMode])
         msg = 'invalid argument {!r}, use one of {}'.format(string, msg)
         raise argparse.ArgumentTypeError(msg)
+
+def filter_builtin_options(args, original_args):
+    """Filter out any builtin arguments passed as -D options.
+
+    Error if an argument is passed with -- and -D
+    """
+    arguments = dict(p.split('=', 1) for p in args.projectoptions)
+    meson_opts = set(arguments).intersection(set(coredata.builtin_options))
+    if meson_opts:
+        for arg in meson_opts:
+            value = arguments[arg]
+            if any([a.startswith('--{}'.format(arg)) for a in original_args]):
+                raise MesonException(
+                    'Argument "{0}" passed as both --{0} and -D{0}, but only '
+                    'one is allowed'.format(arg))
+            setattr(args, coredata.get_builtin_option_destination(arg), value)
+
+            # Remove the builtin option from the project args values
+            args.projectoptions.remove('{}={}'.format(arg, value))
 
 class MesonApp:
 
@@ -338,6 +319,7 @@ def run(original_args, mainfile=None):
 
     args = mesonlib.expand_arguments(args)
     options = parser.parse_args(args)
+    filter_builtin_options(options, args)
     args = options.directories
     if not args or len(args) > 2:
         # if there's a meson.build in the dir above, and not in the current

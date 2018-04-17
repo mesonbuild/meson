@@ -20,6 +20,7 @@ from collections import OrderedDict
 from .mesonlib import MesonException
 from .mesonlib import default_libdir, default_libexecdir, default_prefix
 import ast
+import argparse
 
 version = '0.46.0.dev1'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']
@@ -359,6 +360,20 @@ def get_builtin_option_description(optname):
     else:
         raise RuntimeError('Tried to get the description for an unknown builtin option \'%s\'.' % optname)
 
+def get_builtin_option_action(optname):
+    default = builtin_options[optname][2]
+    if default is True:
+        return 'store_false'
+    elif default is False:
+        return 'store_true'
+    return None
+
+def get_builtin_option_destination(optname):
+    optname = optname.replace('-', '_')
+    if optname == 'warnlevel':
+        return 'warning_level'
+    return optname
+
 def get_builtin_option_default(optname, prefix='', noneIfSuppress=False):
     if is_builtin_option(optname):
         o = builtin_options[optname]
@@ -375,6 +390,29 @@ def get_builtin_option_default(optname, prefix='', noneIfSuppress=False):
         return o[2]
     else:
         raise RuntimeError('Tried to get the default value for an unknown builtin option \'%s\'.' % optname)
+
+def add_builtin_argument(p, name):
+    kwargs = {}
+    k = get_builtin_option_destination(name)
+    c = get_builtin_option_choices(k)
+    b = get_builtin_option_action(k)
+    h = get_builtin_option_description(k)
+    if not b:
+        h = h.rstrip('.') + ' (default: %s).' % get_builtin_option_default(k)
+    else:
+        kwargs['action'] = b
+    if c and not b:
+        kwargs['choices'] = c
+    default = get_builtin_option_default(k, noneIfSuppress=True)
+    if default is not None:
+        kwargs['default'] = default
+    else:
+        kwargs['default'] = argparse.SUPPRESS
+    p.add_argument('--' + name.replace('_', '-'), help=h, **kwargs)
+
+def register_builtin_arguments(parser):
+    for n in builtin_options:
+        add_builtin_argument(parser, n)
 
 builtin_options = {
     'buildtype':  [UserComboOption, 'Build type to use.', ['plain', 'debug', 'debugoptimized', 'release', 'minsize'], 'debug'],
