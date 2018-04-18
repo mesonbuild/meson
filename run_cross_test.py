@@ -22,13 +22,15 @@ Not part of the main test suite because of two reasons:
 
 Eventually migrate to something fancier.'''
 
-import sys, os
+import sys
+import os
+from pathlib import Path
 
 from run_project_tests import gather_tests, run_tests, StopException, setup_commands
 from run_project_tests import failing_logs
 
 def runtests(cross_file):
-    commontests = [('common', gather_tests('test cases/common'), False)]
+    commontests = [('common', gather_tests(Path('test cases', 'common')), False)]
     try:
         (passing_tests, failing_tests, skipped_tests) = run_tests(commontests, 'meson-cross-test-run', ['--cross', cross_file])
     except StopException:
