@@ -869,7 +869,7 @@ This will become a hard error in the future.''')
         return []
 
     @permittedKwargs({'interface_prefix', 'namespace', 'object_manager', 'build_by_default',
-                      'annotations', 'docbook', 'install', 'install_header'})
+                      'annotations', 'docbook', 'install_header', 'install_dir'})
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) != 2:
             raise MesonException('Gdbus_codegen takes two arguments, name and xml file.')
