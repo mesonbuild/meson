@@ -252,6 +252,8 @@ int dummy;
     # Get all generated headers. Any source file might need them so
     # we need to add an order dependency to them.
     def get_generated_headers(self, target):
+        if hasattr(target, 'cached_generated_headers'):
+            return target.cached_generated_headers
         header_deps = []
         # XXX: Why don't we add deps to CustomTarget headers here?
         for genlist in target.get_generated_sources():
@@ -267,6 +269,7 @@ int dummy;
         for dep in itertools.chain(target.link_targets, target.link_whole_targets):
             if isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
                 header_deps += self.get_generated_headers(dep)
+        target.cached_generated_headers = header_deps
         return header_deps
 
     def get_target_generated_sources(self, target):
