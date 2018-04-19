@@ -1026,7 +1026,7 @@ class Vs2010Backend(backends.Backend):
                 self.add_additional_options(lang, inc_cl, file_args)
                 self.add_preprocessor_defines(lang, inc_cl, file_defines)
                 self.add_include_dirs(lang, inc_cl, file_inc_dirs)
-                ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s, False)
+                ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s)
             for s in gen_src:
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
                 lang = Vs2010Backend.lang_from_source_file(s)

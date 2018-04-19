@@ -2206,7 +2206,7 @@ rule FORTRAN_DEP_HACK
             raise AssertionError('BUG: broken generated source file handling for {!r}'.format(src))
         else:
             raise InvalidArguments('Invalid source type: {!r}'.format(src))
-        obj_basename = self.object_filename_from_source(target, src, self.is_unity(target))
+        obj_basename = self.object_filename_from_source(target, src)
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         dep_file = compiler.depfile_for_object(rel_obj)
 

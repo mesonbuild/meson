@@ -206,6 +206,8 @@ class Backend:
         return os.path.join(self.get_target_private_dir(target), src)
 
     def get_unity_source_file(self, target, suffix):
+        # There is a potential conflict here, but it is unlikely that
+        # anyone both enables unity builds and has a file called foo-unity.cpp.
         osrc = target.name + '-unity.' + suffix
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
@@ -239,8 +241,11 @@ class Backend:
                                os.path.join('dummyprefixdir', fromdir))
 
     def flatten_object_list(self, target, proj_dir_to_build_root=''):
+        return self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
+
+    def _flatten_object_list(self, target, objects, proj_dir_to_build_root):
         obj_list = []
-        for obj in target.get_objects():
+        for obj in objects:
             if isinstance(obj, str):
                 o = os.path.join(proj_dir_to_build_root,
                                  self.build_to_src, target.get_subdir(), obj)
@@ -248,7 +253,9 @@ class Backend:
             elif isinstance(obj, mesonlib.File):
                 obj_list.append(obj.rel_to_builddir(self.build_to_src))
             elif isinstance(obj, build.ExtractedObjects):
-                obj_list += self.determine_ext_objs(target, obj, proj_dir_to_build_root)
+                if obj.recursive:
+                    obj_list += self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root)
+                obj_list += self.determine_ext_objs(obj, proj_dir_to_build_root)
             else:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
@@ -361,14 +368,10 @@ class Backend:
                 result += [rp]
         return result
 
-    def object_filename_from_source(self, target, source, is_unity):
+    def object_filename_from_source(self, target, source):
         assert isinstance(source, mesonlib.File)
         build_dir = self.environment.get_build_dir()
         rel_src = source.rel_to_builddir(self.build_to_src)
-
-        if (not self.environment.is_source(rel_src) or
-           self.environment.is_header(rel_src)) and not is_unity:
-            return None
 
         # foo.vala files compile down to foo.c and then foo.c.o, not foo.vala.o
         if rel_src.endswith(('.vala', '.gs')):
@@ -379,8 +382,6 @@ class Backend:
                 rel_src = os.path.relpath(rel_src, self.get_target_private_dir(target))
             else:
                 rel_src = os.path.basename(rel_src)
-            if is_unity:
-                return 'meson-generated_' + rel_src[:-5] + '.c.' + self.environment.get_object_suffix()
             # A meson- prefixed directory is reserved; hopefully no-one creates a file name with such a weird prefix.
             source = 'meson-generated_' + rel_src[:-5] + '.c'
         elif source.is_built:
@@ -398,24 +399,10 @@ class Backend:
                                          os.path.join(self.environment.get_source_dir(), target.get_subdir()))
         return source.replace('/', '_').replace('\\', '_') + '.' + self.environment.get_object_suffix()
 
-    def determine_ext_objs(self, target, extobj, proj_dir_to_build_root):
+    def determine_ext_objs(self, extobj, proj_dir_to_build_root):
         result = []
-        targetdir = self.get_target_private_dir(extobj.target)
-        # With unity builds, there's just one object that contains all the
-        # sources, and we only support extracting all the objects in this mode,
-        # so just return that.
-        if self.is_unity(target):
-            comp = get_compiler_for_source(extobj.target.compilers.values(),
-                                           extobj.srclist[0])
-            # There is a potential conflict here, but it is unlikely that
-            # anyone both enables unity builds and has a file called foo-unity.cpp.
-            osrc = self.get_unity_source_file(extobj.target,
-                                              comp.get_default_suffix())
-            objname = self.object_filename_from_source(extobj.target, osrc, True)
-            objname = objname.replace('/', '_').replace('\\', '_')
-            objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
-            return [objpath]
 
+        # Merge sources and generated sources
         sources = list(extobj.srclist)
         for gensrc in extobj.genlist:
             for s in gensrc.get_outputs():
@@ -423,11 +410,30 @@ class Backend:
                 dirpart, fnamepart = os.path.split(path)
                 sources.append(File(True, dirpart, fnamepart))
 
+        # Filter out headers and all non-source files
+        sources = [s for s in sources if self.environment.is_source(s) and not self.environment.is_header(s)]
+
+        # extobj could contain only objects and no sources
+        if not sources:
+            return result
+
+        targetdir = self.get_target_private_dir(extobj.target)
+
+        # With unity builds, there's just one object that contains all the
+        # sources, and we only support extracting all the objects in this mode,
+        # so just return that.
+        if self.is_unity(extobj.target):
+            compsrcs = classify_unity_sources(extobj.target.compilers.values(), sources)
+            sources = []
+            for comp in compsrcs.keys():
+                osrc = self.get_unity_source_file(extobj.target,
+                                                  comp.get_default_suffix())
+                sources.append(osrc)
+
         for osrc in sources:
-            objname = self.object_filename_from_source(extobj.target, osrc, False)
-            if objname:
-                objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
-                result.append(objpath)
+            objname = self.object_filename_from_source(extobj.target, osrc)
+            objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
+            result.append(objpath)
 
         return result
 

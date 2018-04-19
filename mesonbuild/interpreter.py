@@ -606,8 +606,15 @@ class BuildTargetHolder(TargetHolder):
         gobjs = self.held_object.extract_objects(args)
         return GeneratedObjectsHolder(gobjs)
 
+    @permittedMethodKwargs({'recursive'})
     def extract_all_objects_method(self, args, kwargs):
-        gobjs = self.held_object.extract_all_objects()
+        recursive = kwargs.get('recursive', False)
+        gobjs = self.held_object.extract_all_objects(recursive)
+        if gobjs.objlist and 'recursive' not in kwargs:
+            mlog.warning('extract_all_objects called without setting recursive '
+                         'keyword argument. Meson currently defaults to '
+                         'non-recursive to maintain backward compatibility but '
+                         'the default will be changed in the future.')
         return GeneratedObjectsHolder(gobjs)
 
     def get_id_method(self, args, kwargs):
