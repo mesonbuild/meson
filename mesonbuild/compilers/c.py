@@ -329,7 +329,7 @@ class CCompiler(Compiler):
 
     def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
-        return self.compile(code, args.to_native(), mode, want_output=want_output)
+        return self.compile(code, args, mode, want_output=want_output)
 
     def links(self, code, env, extra_args=None, dependencies=None):
         return self.compiles(code, env, extra_args, dependencies, mode='link')
