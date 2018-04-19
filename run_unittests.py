@@ -456,7 +456,6 @@ class InternalTests(unittest.TestCase):
                     self.assertTrue(False, 'A file without .md suffix in snippets dir: ' + f.name)
 
     def test_pkgconfig_module(self):
-        deps = mesonbuild.modules.pkgconfig.DependenciesHelper("thislib")
 
         class Mock:
             pass
@@ -465,7 +464,15 @@ class InternalTests(unittest.TestCase):
         mock.pcdep = Mock()
         mock.pcdep.name = "some_name"
         mock.version_reqs = []
+
+        # pkgconfig dependency as lib
+        deps = mesonbuild.modules.pkgconfig.DependenciesHelper("thislib")
         deps.add_pub_libs([mock])
+        self.assertEqual(deps.format_reqs(deps.pub_reqs), "some_name")
+
+        # pkgconfig dependency as requires
+        deps = mesonbuild.modules.pkgconfig.DependenciesHelper("thislib")
+        deps.add_pub_reqs([mock])
         self.assertEqual(deps.format_reqs(deps.pub_reqs), "some_name")
 
 
