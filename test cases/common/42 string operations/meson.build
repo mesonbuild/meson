@@ -78,14 +78,14 @@ assert('"1.1.20"'.strip('".') == '1.1.20', '". badly stripped')
 assert('"1.1.20"   '.strip('" ') == '1.1.20', '". badly stripped')
 
 bs_c = '''\c'''
-bs_bs_c = '''\\\c'''
+bs_bs_c = '''\\c'''
 nl = '''
 '''
-bs_n = '''\\n'''
+bs_n = '''\n'''
 bs_nl = '''\
 '''
-bs_bs_n = '''\\\\n'''
-bs_bs_nl = '''\\\\
+bs_bs_n = '''\\n'''
+bs_bs_nl = '''\\
 '''
 
 assert('\c' == bs_c, 'Single backslash broken')
