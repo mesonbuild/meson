@@ -28,18 +28,6 @@ ESCAPE_SEQUENCE_SINGLE_RE = re.compile(r'''
     | \\[\\'abfnrtv]   # Single-character escapes
     )''', re.UNICODE | re.VERBOSE)
 
-# This is the regex for the supported escape sequences of a multiline string
-# literal, like '''abc\x00'''. The only difference is that single quote (')
-# doesn't require escaping.
-ESCAPE_SEQUENCE_MULTI_RE = re.compile(r'''
-    ( \\U........      # 8-digit hex escapes
-    | \\u....          # 4-digit hex escapes
-    | \\x..            # 2-digit hex escapes
-    | \\[0-7]{1,3}     # Octal escapes
-    | \\N\{[^}]+\}     # Unicode characters by name
-    | \\[\\abfnrtv]    # Single-character escapes
-    )''', re.UNICODE | re.VERBOSE)
-
 class MesonUnicodeDecodeError(MesonException):
     def __init__(self, match):
         super().__init__("%s" % match)
@@ -187,10 +175,6 @@ This will become a hard error in a future Meson release.""", self.getline(line_s
                     elif tid == 'multiline_string':
                         tid = 'string'
                         value = match_text[3:-3]
-                        try:
-                            value = ESCAPE_SEQUENCE_MULTI_RE.sub(decode_match, value)
-                        except MesonUnicodeDecodeError as err:
-                            raise MesonException("Failed to parse escape sequence: '{}' in string:\n{}".format(err.match, match_text))
                         lines = match_text.split('\n')
                         if len(lines) > 1:
                             lineno += len(lines) - 1
