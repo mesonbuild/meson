@@ -59,7 +59,7 @@ class DependenciesHelper:
             elif hasattr(obj, 'pcdep'):
                 pcdeps = mesonlib.listify(obj.pcdep)
                 for d in pcdeps:
-                    processed_reqs += d.name
+                    processed_reqs.append(d.name)
                     self.add_version_reqs(d.name, obj.version_reqs)
             elif isinstance(obj, dependencies.PkgConfigDependency):
                 if obj.found():
