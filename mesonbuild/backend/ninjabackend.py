@@ -1640,7 +1640,7 @@ int dummy;
         outfile.write(description)
         outfile.write('\n')
 
-    def generate_fortran_dep_hack(self, outfile):
+    def generate_fortran_dep_hack(self, outfile, crstr):
         if mesonlib.is_windows():
             cmd = 'cmd /C ""'
         else:
@@ -1648,13 +1648,13 @@ int dummy;
         template = '''# Workaround for these issues:
 # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485
-rule FORTRAN_DEP_HACK
+rule FORTRAN_DEP_HACK%s
  command = %s
  description = Dep hack
  restat = 1
 
 '''
-        outfile.write(template % cmd)
+        outfile.write(template % (crstr, cmd))
 
     def generate_llvm_ir_compile_rule(self, compiler, is_cross, outfile):
         if getattr(self, 'created_llvm_ir_rule', False):
@@ -1707,12 +1707,12 @@ rule FORTRAN_DEP_HACK
             if not is_cross:
                 self.generate_swift_compile_rules(compiler, outfile)
             return
-        if langname == 'fortran':
-            self.generate_fortran_dep_hack(outfile)
         if is_cross:
             crstr = '_CROSS'
         else:
             crstr = ''
+        if langname == 'fortran':
+            self.generate_fortran_dep_hack(outfile, crstr)
         rule = 'rule %s%s_COMPILER\n' % (langname, crstr)
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
         quoted_depargs = []
@@ -2248,7 +2248,7 @@ rule FORTRAN_DEP_HACK
                 modfile = os.path.join(self.get_target_private_dir(target),
                                        compiler.module_name_to_filename(modname))
                 if srcfile == src:
-                    depelem = NinjaBuildElement(self.all_outputs, modfile, 'FORTRAN_DEP_HACK', rel_obj)
+                    depelem = NinjaBuildElement(self.all_outputs, modfile, 'FORTRAN_DEP_HACK' + crstr, rel_obj)
                     depelem.write(outfile)
             commands += compiler.get_module_outdir_args(self.get_target_private_dir(target))
 
