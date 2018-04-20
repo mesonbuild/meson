@@ -21,10 +21,7 @@ from io import StringIO
 from ast import literal_eval
 from enum import Enum
 import tempfile
-from mesonbuild import mtest
-from mesonbuild import environment
-from mesonbuild import mesonlib
-from mesonbuild import mlog
+from mesonbuild import build, environment, mesonlib, mlog, mtest
 from mesonbuild.mesonlib import stringlistify, Popen_safe
 from mesonbuild.coredata import backendlist
 import argparse
@@ -137,9 +134,9 @@ def get_relative_files_list_from_dir(fromdir):
             paths.append(path)
     return paths
 
-def platform_fix_name(fname, compiler):
+def platform_fix_name(fname, compiler, env):
     if '?lib' in fname:
-        if mesonlib.is_cygwin():
+        if mesonlib.for_cygwin(env.is_cross_build(), env):
             fname = re.sub(r'lib/\?lib(.*)\.so$', r'bin/cyg\1.dll', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'cyg\1.dll', fname)
         else:
@@ -147,7 +144,7 @@ def platform_fix_name(fname, compiler):
 
     if fname.endswith('?exe'):
         fname = fname[:-4]
-        if mesonlib.is_windows() or mesonlib.is_cygwin():
+        if mesonlib.for_windows(env.is_cross_build(), env) or mesonlib.for_cygwin(env.is_cross_build(), env):
             return fname + '.exe'
 
     if fname.startswith('?msvc:'):
@@ -162,7 +159,7 @@ def platform_fix_name(fname, compiler):
 
     return fname
 
-def validate_install(srcdir, installdir, compiler):
+def validate_install(srcdir, installdir, compiler, env):
     # List of installed files
     info_file = os.path.join(srcdir, 'installed_files.txt')
     # If this exists, the test does not install any other files
@@ -175,7 +172,7 @@ def validate_install(srcdir, installdir, compiler):
     elif os.path.exists(info_file):
         with open(info_file) as f:
             for line in f:
-                line = platform_fix_name(line.strip(), compiler)
+                line = platform_fix_name(line.strip(), compiler, env)
                 if line:
                     expected[line] = False
     # Check if expected files were found
@@ -328,6 +325,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
             return TestResult('Test that should have failed succeeded', BuildStep.configure, stdo, stde, mesonlog, gen_time)
     if returncode != 0:
         return TestResult('Generating the build system failed.', BuildStep.configure, stdo, stde, mesonlog, gen_time)
+    builddata = build.load(test_build_dir)
     # Touch the meson.build file to force a regenerate so we can test that
     # regeneration works before a build is run.
     ensure_backend_detects_changes(backend)
@@ -381,7 +379,8 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
         return TestResult('Running clean failed.', BuildStep.clean, stdo, stde, mesonlog, gen_time, build_time, test_time)
     if not install_commands:
         return TestResult('', BuildStep.install, '', '', mesonlog, gen_time, build_time, test_time)
-    return TestResult(validate_install(testdir, install_dir, compiler), BuildStep.validate, stdo, stde, mesonlog, gen_time, build_time, test_time)
+    return TestResult(validate_install(testdir, install_dir, compiler, builddata.environment),
+                      BuildStep.validate, stdo, stde, mesonlog, gen_time, build_time, test_time)
 
 def gather_tests(testdir):
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(testdir + '/*')]
