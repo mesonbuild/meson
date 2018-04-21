@@ -2356,10 +2356,11 @@ rule FORTRAN_DEP_HACK
         return pch_objects
 
     def generate_shsym(self, outfile, target):
-        target_name = self.get_target_filename(target)
+        target_name = target.get_filename()
+        target_file = self.get_target_filename(target)
         targetdir = self.get_target_private_dir(target)
         symname = os.path.join(targetdir, target_name + '.symbols')
-        elem = NinjaBuildElement(self.all_outputs, symname, 'SHSYM', target_name)
+        elem = NinjaBuildElement(self.all_outputs, symname, 'SHSYM', target_file)
         if self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler():
             elem.add_item('CROSS', '--cross-host=' + self.environment.cross_info.config['host_machine']['system'])
         elem.write(outfile)
@@ -2611,7 +2612,7 @@ rule FORTRAN_DEP_HACK
 
     def get_dependency_filename(self, t):
         if isinstance(t, build.SharedLibrary):
-            return os.path.join(self.get_target_private_dir(t), self.get_target_filename(t) + '.symbols')
+            return os.path.join(self.get_target_private_dir(t), t.get_filename() + '.symbols')
         elif isinstance(t, mesonlib.File):
             if t.is_built:
                 return t.relative_name()
