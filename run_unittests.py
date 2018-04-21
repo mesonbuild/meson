@@ -3067,6 +3067,19 @@ class PythonTests(BasePlatformTests):
 
         self.wipe()
 
+        for py in ('pypy', 'pypy3'):
+            try:
+                self.init(testdir, ['-Dpython=%s' % py])
+            except unittest.SkipTest:
+                # Same as above, pypy2 and pypy3 are not expected to be present
+                # on the test system, the test project only raises in these cases
+                continue
+
+            # We have a pypy, this is expected to work
+            self.build()
+            self.run_tests()
+            self.wipe()
+
         # The test is configured to error out with MESON_SKIP_TEST
         # in case it could not find python
         with self.assertRaises(unittest.SkipTest):
