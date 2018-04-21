@@ -71,8 +71,9 @@ class GnomeModule(ExtensionModule):
             if glib_dep.found():
                 native_glib_version = glib_dep.get_version()
             else:
-                mlog.warning('Could not detect glib version, assuming 2.0')
-                native_glib_version = '2.0'
+                mlog.warning('Could not detect glib version, assuming 2.54. '
+                             'You may get build errors if your glib is older.')
+                native_glib_version = '2.54'
         return native_glib_version
 
     def __print_gresources_warning(self, state):
