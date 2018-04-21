@@ -142,7 +142,7 @@ This function expects no arguments or keyword arguments.
 #### `get_path()`
 
 ``` meson
-string py_installation.get_path(path_name)
+string py_installation.get_path(path_name, fallback)
 ```
 
 Get a path as defined by the `sysconfig` module.
@@ -153,15 +153,28 @@ For example:
 purelib = py_installation.get_path('purelib')
 ```
 
-This function accepts a single argument, `path_name`, which is expected to
-be a non-empty string.
+This function requires at least one argument, `path_name`,
+which is expected to be a non-empty string.
+
+If `fallback` is specified, it will be returned if no path
+with the given name exists. Otherwise, attempting to read
+a non-existing path will cause a fatal error.
 
 **Returns**: A string
+
+#### `has_path()`
+
+``` meson
+    bool py_installation.has_path(path_name)
+```
+
+**Returns**: true if a path named `path_name` can be retrieved with
+[][`get_path()`], false otherwise.
 
 #### `get_variable()`
 
 ``` meson
-string py_installation.get_variable(variable_name)
+string py_installation.get_variable(variable_name, fallback)
 ```
 
 Get a variable as defined by the `sysconfig` module.
@@ -169,13 +182,26 @@ Get a variable as defined by the `sysconfig` module.
 For example:
 
 ``` meson
-py_bindir = py_installation.get_variable('BINDIR')
+py_bindir = py_installation.get_variable('BINDIR', '')
 ```
 
-This function accepts a single argument, `variable_name`, which is expected to
-be a non-empty string.
+This function requires at least one argument, `variable_name`,
+which is expected to be a non-empty string.
+
+If `fallback` is specified, it will be returned if no variable
+with the given name exists. Otherwise, attempting to read
+a non-existing variable will cause a fatal error.
 
 **Returns**: A string
+
+#### `has_variable()`
+
+``` meson
+    bool py_installation.has_variable(variable_name)
+```
+
+**Returns**: true if a variable named `variable_name` can be retrieved with
+[][`get_variable()`], false otherwise.
 
 ## `python_dependency` object
 
