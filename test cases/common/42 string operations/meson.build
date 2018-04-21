@@ -87,6 +87,8 @@ bs_nl = '''\
 bs_bs_n = '''\\n'''
 bs_bs_nl = '''\\
 '''
+bs_bs = '''\\'''
+bs = '''\'''
 
 assert('\c' == bs_c, 'Single backslash broken')
 assert('\\c' == bs_c, 'Double backslash broken')
@@ -97,3 +99,5 @@ assert('\\n' == bs_n, 'Double backslash broken before n')
 assert('\\\n' == bs_nl, 'Three backslash broken before n')
 assert('\\\\n' == bs_bs_n, 'Four backslash broken before n')
 assert('\\\\\n' == bs_bs_nl, 'Five backslash broken before n')
+assert('\\\\' == bs_bs, 'Double-backslash broken')
+assert('\\' == bs, 'Backslash broken')

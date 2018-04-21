@@ -23,3 +23,13 @@ quote2 = '\''
 if quote1 != quote2
   error('Single quote quoting is broken.')
 endif
+
+cc = meson.get_compiler('c')
+prog = '''
+int main(int argc, char **argv) {
+  int num = 1;
+  printf("%d\n", num);
+  return 0;
+}'''
+
+assert(cc.compiles(prog), 'multline test compile failed')

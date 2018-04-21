@@ -131,7 +131,8 @@ int main (int argc, char ** argv) {
 }'''
 ```
 
-This can also be combined with the string formatting functionality
+These are raw strings that do not support the escape sequences listed above.
+These strings can also be combined with the string formatting functionality
 described below.
 
 #### String formatting
