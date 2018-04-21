@@ -94,8 +94,11 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
     # Copy files to build directory
     for f in content_files:
         f_abs = os.path.join(doc_src, f)
-        shutil.copyfile(f_abs, os.path.join(
-            abs_out, os.path.basename(f_abs)))
+        try:
+            shutil.copyfile(f_abs, os.path.join(
+                abs_out, os.path.basename(f_abs)))
+        except shutil.SameFileError:
+            pass
 
     shutil.rmtree(htmldir, ignore_errors=True)
     try:
