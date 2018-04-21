@@ -62,7 +62,7 @@ class PythonDependency(ExternalDependency):
         else:
             self.major_version = 2
 
-        if DependencyMethods.PKGCONFIG in self.methods:
+        if DependencyMethods.PKGCONFIG in self.methods and not python_holder.is_pypy:
             pkg_version = self.variables.get('LDVERSION') or self.version
             pkg_libdir = self.variables.get('LIBPC')
             old_pkg_libdir = os.environ.get('PKG_CONFIG_LIBDIR')
@@ -94,13 +94,45 @@ class PythonDependency(ExternalDependency):
         else:
             self.pkgdep = None
 
-            if mesonlib.is_windows() and DependencyMethods.SYSCONFIG in self.methods:
-                self._find_libpy_windows(environment)
+            if DependencyMethods.SYSCONFIG in self.methods:
+                if mesonlib.is_windows():
+                    self._find_libpy_windows(environment)
+                else:
+                    self._find_libpy(python_holder, environment)
 
         if self.is_found:
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
         else:
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
+
+    def _find_libpy(self, python_holder, environment):
+        if python_holder.is_pypy:
+            if self.major_version == 3:
+                libname = 'pypy3-c'
+            else:
+                libname = 'pypy-c'
+            libdir = os.path.join(self.variables.get('base'), 'bin')
+            libdirs = [libdir]
+        else:
+            libname = 'python{}'.format(self.version)
+            if 'DEBUG_EXT' in self.variables:
+                libname += self.variables['DEBUG_EXT']
+            if 'ABIFLAGS' in self.variables:
+                libname += self.variables['ABIFLAGS']
+            libdirs = []
+
+        largs = self.compiler.find_library(libname, environment, libdirs)
+
+        self.is_found = largs is not None
+
+        self.link_args = largs
+
+        inc_paths = mesonlib.OrderedSet([
+            self.variables.get('INCLUDEPY'),
+            self.paths.get('include'),
+            self.paths.get('platinclude')])
+
+        self.compile_args += ['-I' + path for path in inc_paths if path]
 
     def get_windows_python_arch(self):
         if self.platform == 'mingw':
@@ -192,7 +224,7 @@ class PythonDependency(ExternalDependency):
         elif mesonlib.is_osx():
             return [DependencyMethods.PKGCONFIG, DependencyMethods.EXTRAFRAMEWORK]
         else:
-            return [DependencyMethods.PKGCONFIG]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSCONFIG]
 
     def get_pkgconfig_variable(self, variable_name, kwargs):
         if self.pkgdep:
@@ -225,6 +257,14 @@ print (json.dumps(sysconfig.get_paths(scheme='posix_prefix', vars={'base': '', '
 '''
 
 
+IS_PYPY_COMMAND = '''
+import sys
+import json
+
+print (json.dumps('__pypy__' in sys.builtin_module_names))
+'''
+
+
 class PythonInstallation(ExternalProgramHolder, InterpreterObject):
     def __init__(self, interpreter, python):
         InterpreterObject.__init__(self)
@@ -238,6 +278,7 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         self.purelib_install_path = os.path.join(prefix, install_paths['purelib'][1:])
         self.version = run_command(python, "import sysconfig; print (sysconfig.get_python_version())")
         self.platform = run_command(python, "import sysconfig; print (sysconfig.get_platform())")
+        self.is_pypy = json.loads(run_command(python, IS_PYPY_COMMAND))
 
     @permittedSnippetKwargs(mod_kwargs)
     def extension_module(self, interpreter, state, args, kwargs):
@@ -449,6 +490,8 @@ class PythonModule(ExtensionModule):
             version = run_command(python, "import sysconfig; print (sysconfig.get_python_version())")
             if not version:
                 res = ExternalProgramHolder(NonExistingExternalProgram())
+                if required:
+                    raise mesonlib.MesonException('{} is not a valid python'.format(python))
             else:
                 res = PythonInstallation(interpreter, python)
 
