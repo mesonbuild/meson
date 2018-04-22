@@ -2964,7 +2964,7 @@ class LinuxArmCrossCompileTests(BasePlatformTests):
         https://github.com/mesonbuild/meson/issues/3089
         '''
         testdir = os.path.join(self.unit_test_dir, '29 cross file overrides always args')
-        self.meson_cross_file = os.path.join(self.unit_test_dir, 'ubuntu-armhf-overrides.txt')
+        self.meson_cross_file = os.path.join(testdir, 'ubuntu-armhf-overrides.txt')
         self.init(testdir)
         compdb = self.get_compdb()
         self.assertRegex(compdb[0]['command'], '-D_FILE_OFFSET_BITS=64.*-U_FILE_OFFSET_BITS')
