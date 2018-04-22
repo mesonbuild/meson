@@ -119,9 +119,8 @@ def _log_error(severity, *args, **kwargs):
     else:
         assert False, 'Invalid severity ' + severity
 
-    if 'location' in kwargs:
-        location = kwargs['location']
-        del kwargs['location']
+    location = kwargs.pop('location', None)
+    if location is not None:
         location_str = '{}:{}:'.format(os.path.join(location.subdir,
                                                     environment.build_filename),
                                        location.lineno)

@@ -25,7 +25,7 @@ from .mesonlib import FileMode, Popen_safe, listify, extract_as_list, has_path_s
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .interpreterbase import InterpreterBase
-from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, permittedKwargs, permittedMethodKwargs
+from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, permittedKwargs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler
 from .modules import ModuleReturnValue
@@ -37,6 +37,10 @@ from pathlib import PurePath
 
 import importlib
 
+permitted_method_kwargs = {
+    'partial_dependency': {'compile_args', 'link_args', 'links', 'includes',
+                           'sources'},
+}
 
 def stringifyUserArguments(args):
     if isinstance(args, list):
@@ -66,15 +70,23 @@ class TryRunResultHolder(InterpreterObject):
                              'stderr': self.stderr_method,
                              })
 
+    @noPosargs
+    @permittedKwargs({})
     def returncode_method(self, args, kwargs):
         return self.res.returncode
 
+    @noPosargs
+    @permittedKwargs({})
     def compiled_method(self, args, kwargs):
         return self.res.compiled
 
+    @noPosargs
+    @permittedKwargs({})
     def stdout_method(self, args, kwargs):
         return self.res.stdout
 
+    @noPosargs
+    @permittedKwargs({})
     def stderr_method(self, args, kwargs):
         return self.res.stderr
 
@@ -116,12 +128,18 @@ class RunProcess(InterpreterObject):
         except FileNotFoundError:
             raise InterpreterException('Could not execute command "%s".' % ' '.join(command_array))
 
+    @noPosargs
+    @permittedKwargs({})
     def returncode_method(self, args, kwargs):
         return self.returncode
 
+    @noPosargs
+    @permittedKwargs({})
     def stdout_method(self, args, kwargs):
         return self.stdout
 
+    @noPosargs
+    @permittedKwargs({})
     def stderr_method(self, args, kwargs):
         return self.stderr
 
@@ -146,7 +164,6 @@ class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder):
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.held_object.envvars)
 
-    @stringArgs
     def add_var(self, method, args, kwargs):
         if not isinstance(kwargs.get("separator", ""), str):
             raise InterpreterException("EnvironmentVariablesHolder methods 'separator'"
@@ -157,12 +174,18 @@ class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder):
                                        " following one are values")
         self.held_object.envvars.append((method, args[0], args[1:], kwargs))
 
+    @stringArgs
+    @permittedKwargs({'separator'})
     def set_method(self, args, kwargs):
         self.add_var(self.held_object.set, args, kwargs)
 
+    @stringArgs
+    @permittedKwargs({'separator'})
     def append_method(self, args, kwargs):
         self.add_var(self.held_object.append, args, kwargs)
 
+    @stringArgs
+    @permittedKwargs({'separator'})
     def prepend_method(self, args, kwargs):
         self.add_var(self.held_object.prepend, args, kwargs)
 
@@ -278,17 +301,24 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
                              'partial_dependency': self.partial_dependency_method,
                              })
 
+    @noPosargs
+    @permittedKwargs({})
     def type_name_method(self, args, kwargs):
         return self.held_object.type_name
 
+    @noPosargs
+    @permittedKwargs({})
     def found_method(self, args, kwargs):
         if self.held_object.type_name == 'internal':
             return True
         return self.held_object.found()
 
+    @noPosargs
+    @permittedKwargs({})
     def version_method(self, args, kwargs):
         return self.held_object.get_version()
 
+    @permittedKwargs({'define_variable'})
     def pkgconfig_method(self, args, kwargs):
         args = listify(args)
         if len(args) != 1:
@@ -298,6 +328,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
             raise InterpreterException('Variable name must be a string.')
         return self.held_object.get_pkgconfig_variable(varname, kwargs)
 
+    @permittedKwargs({})
     def configtool_method(self, args, kwargs):
         args = listify(args)
         if len(args) != 1:
@@ -307,9 +338,9 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
             raise InterpreterException('Variable name must be a string.')
         return self.held_object.get_configtool_variable(varname)
 
+    @noPosargs
+    @permittedKwargs(permitted_method_kwargs['partial_dependency'])
     def partial_dependency_method(self, args, kwargs):
-        if args:
-            raise InterpreterException('partial_dependency takes no positional arguments')
         return DependencyHolder(self.held_object.get_partial_dependency(**kwargs))
 
 class InternalDependencyHolder(InterpreterObject, ObjectHolder):
@@ -321,15 +352,19 @@ class InternalDependencyHolder(InterpreterObject, ObjectHolder):
                              'partial_dependency': self.partial_dependency_method,
                              })
 
+    @noPosargs
+    @permittedKwargs({})
     def found_method(self, args, kwargs):
         return True
 
+    @noPosargs
+    @permittedKwargs({})
     def version_method(self, args, kwargs):
         return self.held_object.get_version()
 
+    @noPosargs
+    @permittedKwargs(permitted_method_kwargs['partial_dependency'])
     def partial_dependency_method(self, args, kwargs):
-        if args:
-            raise InterpreterException('get_partial_dependency takes no positional arguments')
         return DependencyHolder(self.held_object.get_partial_dependency(**kwargs))
 
 class ExternalProgramHolder(InterpreterObject, ObjectHolder):
@@ -339,9 +374,13 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
         self.methods.update({'found': self.found_method,
                              'path': self.path_method})
 
+    @noPosargs
+    @permittedKwargs({})
     def found_method(self, args, kwargs):
         return self.found()
 
+    @noPosargs
+    @permittedKwargs({})
     def path_method(self, args, kwargs):
         return self.held_object.get_path()
 
@@ -365,6 +404,8 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder):
     def found(self):
         return self.held_object.found()
 
+    @noPosargs
+    @permittedKwargs({})
     def found_method(self, args, kwargs):
         return self.found()
 
@@ -380,9 +421,9 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder):
     def get_exe_args(self):
         return self.held_object.get_exe_args()
 
+    @noPosargs
+    @permittedKwargs(permitted_method_kwargs['partial_dependency'])
     def partial_dependency_method(self, args, kwargs):
-        if args:
-            raise InterpreterException('partial_dependency takes no positional arguments')
         return DependencyHolder(self.held_object.get_partial_dependency(**kwargs))
 
 class GeneratorHolder(InterpreterObject, ObjectHolder):
@@ -392,6 +433,7 @@ class GeneratorHolder(InterpreterObject, ObjectHolder):
         ObjectHolder.__init__(self, build.Generator(args, kwargs))
         self.methods.update({'process': self.process_method})
 
+    @permittedKwargs({'extra_args', 'preserve_path_from'})
     def process_method(self, args, kwargs):
         extras = mesonlib.stringlistify(kwargs.get('extra_args', []))
         if 'preserve_path_from' in kwargs:
@@ -439,15 +481,23 @@ class BuildMachine(InterpreterObject, ObjectHolder):
                              'endian': self.endian_method,
                              })
 
+    @noPosargs
+    @permittedKwargs({})
     def cpu_family_method(self, args, kwargs):
         return self.held_object.cpu_family
 
+    @noPosargs
+    @permittedKwargs({})
     def cpu_method(self, args, kwargs):
         return self.held_object.cpu
 
+    @noPosargs
+    @permittedKwargs({})
     def system_method(self, args, kwargs):
         return self.held_object.system
 
+    @noPosargs
+    @permittedKwargs({})
     def endian_method(self, args, kwargs):
         return self.held_object.endian
 
@@ -473,15 +523,23 @@ class CrossMachineInfo(InterpreterObject, ObjectHolder):
                              'endian': self.endian_method,
                              })
 
+    @noPosargs
+    @permittedKwargs({})
     def cpu_family_method(self, args, kwargs):
         return self.held_object.cpu_family
 
+    @noPosargs
+    @permittedKwargs({})
     def cpu_method(self, args, kwargs):
         return self.held_object.cpu
 
+    @noPosargs
+    @permittedKwargs({})
     def system_method(self, args, kwargs):
         return self.held_object.system
 
+    @noPosargs
+    @permittedKwargs({})
     def endian_method(self, args, kwargs):
         return self.held_object.endian
 
@@ -592,21 +650,29 @@ class BuildTargetHolder(TargetHolder):
     def is_cross(self):
         return self.held_object.is_cross()
 
+    @noPosargs
+    @permittedKwargs({})
     def private_dir_include_method(self, args, kwargs):
         return IncludeDirsHolder(build.IncludeDirs('', [], False,
                                                    [self.interpreter.backend.get_target_private_dir(self.held_object)]))
 
+    @noPosargs
+    @permittedKwargs({})
     def full_path_method(self, args, kwargs):
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
+    @noPosargs
+    @permittedKwargs({})
     def outdir_method(self, args, kwargs):
         return self.interpreter.backend.get_target_dir(self.held_object)
 
+    @permittedKwargs({})
     def extract_objects_method(self, args, kwargs):
         gobjs = self.held_object.extract_objects(args)
         return GeneratedObjectsHolder(gobjs)
 
-    @permittedMethodKwargs({'recursive'})
+    @noPosargs
+    @permittedKwargs({'recursive'})
     def extract_all_objects_method(self, args, kwargs):
         recursive = kwargs.get('recursive', False)
         gobjs = self.held_object.extract_all_objects(recursive)
@@ -617,6 +683,8 @@ class BuildTargetHolder(TargetHolder):
                          'the default will be changed in the future.')
         return GeneratedObjectsHolder(gobjs)
 
+    @noPosargs
+    @permittedKwargs({})
     def get_id_method(self, args, kwargs):
         return self.held_object.get_id()
 
@@ -651,9 +719,13 @@ class BothLibrariesHolder(BuildTargetHolder):
         h2 = self.static_holder.held_object
         return r.format(self.__class__.__name__, h1.get_id(), h1.filename, h2.get_id(), h2.filename)
 
+    @noPosargs
+    @permittedKwargs({})
     def get_shared_lib_method(self, args, kwargs):
         return self.shared_holder
 
+    @noPosargs
+    @permittedKwargs({})
     def get_static_lib_method(self, args, kwargs):
         return self.static_holder
 
@@ -681,6 +753,8 @@ class CustomTargetHolder(TargetHolder):
         h = self.held_object
         return r.format(self.__class__.__name__, h.get_id(), h.command)
 
+    @noPosargs
+    @permittedKwargs({})
     def full_path_method(self, args, kwargs):
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
@@ -733,6 +807,7 @@ class SubprojectHolder(InterpreterObject, ObjectHolder):
         self.methods.update({'get_variable': self.get_variable_method,
                              })
 
+    @permittedKwargs({})
     def get_variable_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Get_variable takes one argument.')
@@ -777,11 +852,13 @@ class CompilerHolder(InterpreterObject):
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
                              })
 
-    @permittedMethodKwargs({})
+    @noPosargs
+    @permittedKwargs({})
     def version_method(self, args, kwargs):
         return self.compiler.version
 
-    @permittedMethodKwargs({})
+    @noPosargs
+    @permittedKwargs({})
     def cmd_array_method(self, args, kwargs):
         return self.compiler.exelist
 
@@ -821,7 +898,7 @@ class CompilerHolder(InterpreterObject):
             deps = final_deps
         return deps
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'prefix',
         'args',
         'dependencies',
@@ -840,7 +917,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Checking for alignment of "', mlog.bold(typename), '": ', result, sep='')
         return result
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'name',
         'no_builtin_args',
         'include_directories',
@@ -872,11 +949,13 @@ class CompilerHolder(InterpreterObject):
             mlog.log('Checking if "', mlog.bold(testname), '" runs: ', h, sep='')
         return TryRunResultHolder(result)
 
-    @permittedMethodKwargs({})
+    @noPosargs
+    @permittedKwargs({})
     def get_id_method(self, args, kwargs):
         return self.compiler.get_id()
 
-    @permittedMethodKwargs({})
+    @noPosargs
+    @permittedKwargs({})
     def symbols_have_underscore_prefix_method(self, args, kwargs):
         '''
         Check if the compiler prefixes _ (underscore) to global C symbols
@@ -884,7 +963,8 @@ class CompilerHolder(InterpreterObject):
         '''
         return self.compiler.symbols_have_underscore_prefix(self.environment)
 
-    @permittedMethodKwargs({})
+    @noPosargs
+    @permittedKwargs({})
     def unittest_args_method(self, args, kwargs):
         '''
         This function is deprecated and should not be used.
@@ -895,7 +975,7 @@ class CompilerHolder(InterpreterObject):
         build_to_src = os.path.relpath(self.environment.get_source_dir(), self.environment.get_build_dir())
         return self.compiler.get_feature_args({'unittest': 'true'}, build_to_src)
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'prefix',
         'no_builtin_args',
         'include_directories',
@@ -923,7 +1003,7 @@ class CompilerHolder(InterpreterObject):
                  '" has member "', mlog.bold(membername), '": ', hadtxt, sep='')
         return had
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'prefix',
         'no_builtin_args',
         'include_directories',
@@ -950,7 +1030,7 @@ class CompilerHolder(InterpreterObject):
                  '" has members ', members, ': ', hadtxt, sep='')
         return had
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'prefix',
         'no_builtin_args',
         'include_directories',
@@ -975,7 +1055,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Checking for function "', mlog.bold(funcname), '": ', hadtxt, sep='')
         return had
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'prefix',
         'no_builtin_args',
         'include_directories',
@@ -1000,7 +1080,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Checking for type "', mlog.bold(typename), '": ', hadtxt, sep='')
         return had
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'prefix',
         'low',
         'high',
@@ -1033,7 +1113,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Computing int of "%s": %d' % (expression, res))
         return res
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'prefix',
         'no_builtin_args',
         'include_directories',
@@ -1054,7 +1134,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Checking for size of "%s": %d' % (element, esize))
         return esize
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'prefix',
         'no_builtin_args',
         'include_directories',
@@ -1075,7 +1155,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Fetching value of define "%s": %s' % (element, value))
         return value
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'name',
         'no_builtin_args',
         'include_directories',
@@ -1105,7 +1185,7 @@ class CompilerHolder(InterpreterObject):
             mlog.log('Checking if "', mlog.bold(testname), '" compiles: ', h, sep='')
         return result
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'name',
         'no_builtin_args',
         'include_directories',
@@ -1135,7 +1215,7 @@ class CompilerHolder(InterpreterObject):
             mlog.log('Checking if "', mlog.bold(testname), '" links: ', h, sep='')
         return result
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'prefix',
         'no_builtin_args',
         'include_directories',
@@ -1160,7 +1240,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Has header "%s":' % hname, h)
         return haz
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'prefix',
         'no_builtin_args',
         'include_directories',
@@ -1186,7 +1266,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Header <{0}> has symbol "{1}":'.format(hname, symbol), h)
         return haz
 
-    @permittedMethodKwargs({
+    @permittedKwargs({
         'required',
         'dirs',
     })
@@ -1211,14 +1291,14 @@ class CompilerHolder(InterpreterObject):
                                            self.compiler.language)
         return ExternalLibraryHolder(lib)
 
-    @permittedMethodKwargs({})
+    @permittedKwargs({})
     def has_argument_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         if len(args) != 1:
             raise InterpreterException('has_argument takes exactly one argument.')
         return self.has_multi_arguments_method(args, kwargs)
 
-    @permittedMethodKwargs({})
+    @permittedKwargs({})
     def has_multi_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         result = self.compiler.has_multi_arguments(args, self.environment)
@@ -1232,7 +1312,7 @@ class CompilerHolder(InterpreterObject):
             h)
         return result
 
-    @permittedMethodKwargs({})
+    @permittedKwargs({})
     def get_supported_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         supported_args = []
@@ -1241,7 +1321,7 @@ class CompilerHolder(InterpreterObject):
                 supported_args.append(arg)
         return supported_args
 
-    @permittedMethodKwargs({})
+    @permittedKwargs({})
     def first_supported_argument_method(self, args, kwargs):
         for i in mesonlib.stringlistify(args):
             if self.has_argument_method(i, kwargs):
@@ -1250,14 +1330,14 @@ class CompilerHolder(InterpreterObject):
         mlog.log('First supported argument:', mlog.red('None'))
         return []
 
-    @permittedMethodKwargs({})
+    @permittedKwargs({})
     def has_link_argument_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         if len(args) != 1:
             raise InterpreterException('has_link_argument takes exactly one argument.')
         return self.has_multi_link_arguments_method(args, kwargs)
 
-    @permittedMethodKwargs({})
+    @permittedKwargs({})
     def has_multi_link_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         result = self.compiler.has_multi_link_arguments(args, self.environment)
@@ -1271,7 +1351,7 @@ class CompilerHolder(InterpreterObject):
             h)
         return result
 
-    @permittedMethodKwargs({})
+    @permittedKwargs({})
     def get_supported_link_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         supported_args = []
@@ -1280,7 +1360,7 @@ class CompilerHolder(InterpreterObject):
                 supported_args.append(arg)
         return supported_args
 
-    @permittedMethodKwargs({})
+    @permittedKwargs({})
     def first_supported_link_argument_method(self, args, kwargs):
         for i in mesonlib.stringlistify(args):
             if self.has_link_argument_method(i, kwargs):
@@ -1387,6 +1467,7 @@ class MesonMain(InterpreterObject):
                 raise InterpreterException(m.format(name))
         return build.RunScript(found.get_command(), args)
 
+    @permittedKwargs({})
     def add_install_script_method(self, args, kwargs):
         if len(args) < 1:
             raise InterpreterException('add_install_script takes one or more arguments')
@@ -1394,6 +1475,7 @@ class MesonMain(InterpreterObject):
         script = self._find_source_script(args[0], args[1:])
         self.build.install_scripts.append(script)
 
+    @permittedKwargs({})
     def add_postconf_script_method(self, args, kwargs):
         if len(args) < 1:
             raise InterpreterException('add_postconf_script takes one or more arguments')
@@ -1401,6 +1483,8 @@ class MesonMain(InterpreterObject):
         script = self._find_source_script(args[0], args[1:])
         self.build.postconf_scripts.append(script)
 
+    @noPosargs
+    @permittedKwargs({})
     def current_source_dir_method(self, args, kwargs):
         src = self.interpreter.environment.source_dir
         sub = self.interpreter.subdir
@@ -1408,6 +1492,8 @@ class MesonMain(InterpreterObject):
             return src
         return os.path.join(src, sub)
 
+    @noPosargs
+    @permittedKwargs({})
     def current_build_dir_method(self, args, kwargs):
         src = self.interpreter.environment.build_dir
         sub = self.interpreter.subdir
@@ -1415,15 +1501,23 @@ class MesonMain(InterpreterObject):
             return src
         return os.path.join(src, sub)
 
+    @noPosargs
+    @permittedKwargs({})
     def backend_method(self, args, kwargs):
         return self.interpreter.backend.name
 
+    @noPosargs
+    @permittedKwargs({})
     def source_root_method(self, args, kwargs):
         return self.interpreter.environment.source_dir
 
+    @noPosargs
+    @permittedKwargs({})
     def build_root_method(self, args, kwargs):
         return self.interpreter.environment.build_dir
 
+    @noPosargs
+    @permittedKwargs({})
     def has_exe_wrapper_method(self, args, kwargs):
         if self.is_cross_build_method(None, None) and \
            'binaries' in self.build.environment.cross_info.config and \
@@ -1436,9 +1530,12 @@ class MesonMain(InterpreterObject):
         # Need to revisit this.
         return True
 
+    @noPosargs
+    @permittedKwargs({})
     def is_cross_build_method(self, args, kwargs):
         return self.build.environment.is_cross_build()
 
+    @permittedKwargs({'native'})
     def get_compiler_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('get_compiler_method must have one and only one argument.')
@@ -1459,15 +1556,20 @@ class MesonMain(InterpreterObject):
             return CompilerHolder(clist[cname], self.build.environment)
         raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
 
+    @noPosargs
+    @permittedKwargs({})
     def is_unity_method(self, args, kwargs):
         optval = self.interpreter.environment.coredata.get_builtin_option('unity')
         if optval == 'on' or (optval == 'subprojects' and self.interpreter.subproject != ''):
             return True
         return False
 
+    @noPosargs
+    @permittedKwargs({})
     def is_subproject_method(self, args, kwargs):
         return self.interpreter.is_subproject()
 
+    @permittedKwargs({})
     def install_dependency_manifest_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Must specify manifest install file name')
@@ -1475,6 +1577,7 @@ class MesonMain(InterpreterObject):
             raise InterpreterException('Argument must be a string.')
         self.build.dep_manifest_name = args[0]
 
+    @permittedKwargs({})
     def override_find_program_method(self, args, kwargs):
         if len(args) != 2:
             raise InterpreterException('Override needs two arguments')
@@ -1495,18 +1598,27 @@ class MesonMain(InterpreterObject):
             raise InterpreterException('Second argument must be an external program.')
         self.interpreter.add_find_program_override(name, exe)
 
+    @noPosargs
+    @permittedKwargs({})
     def project_version_method(self, args, kwargs):
         return self.build.dep_manifest[self.interpreter.active_projectname]['version']
 
+    @noPosargs
+    @permittedKwargs({})
     def project_license_method(self, args, kwargs):
         return self.build.dep_manifest[self.interpreter.active_projectname]['license']
 
+    @noPosargs
+    @permittedKwargs({})
     def version_method(self, args, kwargs):
         return coredata.version
 
+    @noPosargs
+    @permittedKwargs({})
     def project_name_method(self, args, kwargs):
         return self.interpreter.active_projectname
 
+    @permittedKwargs({})
     def get_cross_property_method(self, args, kwargs):
         if len(args) < 1 or len(args) > 2:
             raise InterpreterException('Must have one or two arguments.')
