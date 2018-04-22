@@ -204,8 +204,16 @@ def log_text_file(logfile, testdir, stdo, stde):
     logfile.write(stde)
     logfile.write('\n\n---\n\n')
     if print_debug:
-        print(stdo)
-        print(stde, file=sys.stderr)
+        try:
+            print(stdo)
+        except UnicodeError:
+            sanitized_out = stdo.encode('ascii', errors='replace').decode()
+            print(sanitized_out)
+        try:
+            print(stde, file=sys.stderr)
+        except UnicodeError:
+            sanitized_err = stde.encode('ascii', errors='replace').decode()
+            print(sanitized_err, file=sys.stderr)
     if stop:
         print("Aborting..")
         for f in futures:
