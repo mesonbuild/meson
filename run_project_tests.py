@@ -311,7 +311,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     (returncode, stdo, stde) = run_configure(meson_command, gen_args)
     try:
         logfile = os.path.join(test_build_dir, 'meson-logs/meson-log.txt')
-        with open(logfile, errors='ignore') as f:
+        with open(logfile, encoding='utf-8', errors='ignore') as f:
             mesonlog = f.read()
     except Exception:
         mesonlog = no_meson_log_msg
@@ -515,7 +515,7 @@ def detect_tests_to_run():
 def run_tests(all_tests, log_name_base, extra_args):
     global logfile
     txtname = log_name_base + '.txt'
-    with open(txtname, 'w', encoding="utf_8") as lf:
+    with open(txtname, 'w', encoding='utf-8', errors='ignore') as lf:
         logfile = lf
         return _run_tests(all_tests, log_name_base, extra_args)
 
