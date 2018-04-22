@@ -701,7 +701,10 @@ if __name__ == '__main__':
     if failing_tests > 0:
         print('\nMesonlogs of failing tests\n')
         for l in failing_logs:
-            print(l, '\n')
+            try:
+                print(l, '\n')
+            except UnicodeError:
+                print(l.encode('ascii', errors='replace').decode(), '\n')
     for name, dirs, skip in all_tests:
         dirs = (os.path.basename(x) for x in dirs)
         for k, g in itertools.groupby(dirs, key=lambda x: x.split()[0]):
