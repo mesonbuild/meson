@@ -313,32 +313,58 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         return ModuleReturnValue(True, [])
 
     @noKwargs
-    def get_path(self, node, args, kwargs):
+    def has_path(self, node, args, kwargs):
         if len(args) != 1:
-            raise InvalidArguments('get_path takes exactly one positional argument.')
+            raise InvalidArguments('has_path takes exactly one positional argument.')
+        path_name = args[0]
+        if not isinstance(path_name, str):
+            raise InvalidArguments('has_path argument must be a string.')
+
+        return ModuleReturnValue(path_name in self.paths, [])
+
+    @noKwargs
+    def get_path(self, node, args, kwargs):
+        if len(args) not in (1, 2):
+            raise InvalidArguments('get_path must have one or two arguments.')
         path_name = args[0]
         if not isinstance(path_name, str):
             raise InvalidArguments('get_path argument must be a string.')
 
-        path = self.paths.get(path_name)
-
-        if path is None:
-            raise InvalidArguments('{} is not a valid path name'.format(path_name))
+        try:
+            path = self.paths[path_name]
+        except KeyError:
+            if len(args) == 2:
+                path = args[1]
+            else:
+                raise InvalidArguments('{} is not a valid path name'.format(path_name))
 
         return ModuleReturnValue(path, [])
 
     @noKwargs
-    def get_variable(self, node, args, kwargs):
+    def has_variable(self, node, args, kwargs):
         if len(args) != 1:
-            raise InvalidArguments('get_variable takes exactly one positional argument.')
+            raise InvalidArguments('has_variable takes exactly one positional argument.')
+        var_name = args[0]
+        if not isinstance(var_name, str):
+            raise InvalidArguments('has_variable argument must be a string.')
+
+        return ModuleReturnValue(var_name in self.variables, [])
+
+    @noKwargs
+    def get_variable(self, node, args, kwargs):
+        if len(args) not in (1, 2):
+            raise InvalidArguments('get_variable must have one or two arguments.')
         var_name = args[0]
         if not isinstance(var_name, str):
             raise InvalidArguments('get_variable argument must be a string.')
 
-        var = self.variables.get(var_name)
-
-        if var is None:
-            raise InvalidArguments('{} is not a valid path name'.format(var_name))
+        try:
+            var = self.variables[var_name]
+        except KeyError:
+            if len(args) == 2:
+                var = args[1]
+            else:
+                raise InvalidArguments('{} is not a valid variable name'.format(var_name))
 
         return ModuleReturnValue(var, [])
 
@@ -351,7 +377,7 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         if method_name in ['extension_module', 'dependency', 'install_sources']:
             value = fn(self.interpreter, None, args, kwargs)
             return self.interpreter.holderify(value)
-        elif method_name in ['get_variable', 'get_path', 'found', 'language_version', 'get_install_dir']:
+        elif method_name in ['has_variable', 'get_variable', 'has_path', 'get_path', 'found', 'language_version', 'get_install_dir']:
             value = fn(None, args, kwargs)
             return self.interpreter.module_method_callback(value)
         else:
