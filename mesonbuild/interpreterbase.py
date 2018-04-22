@@ -31,28 +31,51 @@ def check_stringlist(a, msg='Arguments must be strings.'):
         mlog.debug('Element not a string:', str(a))
         raise InvalidArguments(msg)
 
+def _get_callee_args(wrapped_args):
+    # Functions have 4 positional args and methods have 3.
+    s = wrapped_args[0]
+    if len(wrapped_args) == 3:
+        node_or_state = None
+        args = wrapped_args[1]
+        kwargs = wrapped_args[2]
+    elif len(wrapped_args) == 4:
+        node_or_state = wrapped_args[1]
+        args = wrapped_args[2]
+        kwargs = wrapped_args[3]
+    else:
+        raise InvalidArguments('Expecting 3 or 4 args, got {}'.format(len(wrapped_args)))
+
+    # Sometimes interpreter methods are called internally with None instead of
+    # empty list/dict
+    args = args if args is not None else []
+    kwargs = kwargs if kwargs is not None else {}
+    return s, node_or_state, args, kwargs
+
 def noPosargs(f):
     @wraps(f)
-    def wrapped(self, node, args, kwargs):
+    def wrapped(*wrapped_args, **wrapped_kwargs):
+        args = _get_callee_args(wrapped_args)[2]
         if args:
             raise InvalidArguments('Function does not take positional arguments.')
-        return f(self, node, args, kwargs)
+        return f(*wrapped_args, **wrapped_kwargs)
     return wrapped
 
 def noKwargs(f):
     @wraps(f)
-    def wrapped(self, node, args, kwargs):
+    def wrapped(*wrapped_args, **wrapped_kwargs):
+        kwargs = _get_callee_args(wrapped_args)[3]
         if kwargs:
             raise InvalidArguments('Function does not take keyword arguments.')
-        return f(self, node, args, kwargs)
+        return f(*wrapped_args, **wrapped_kwargs)
     return wrapped
 
 def stringArgs(f):
     @wraps(f)
-    def wrapped(self, node, args, kwargs):
+    def wrapped(*wrapped_args, **wrapped_kwargs):
+        args = _get_callee_args(wrapped_args)[2]
         assert(isinstance(args, list))
         check_stringlist(args)
-        return f(self, node, args, kwargs)
+        return f(*wrapped_args, **wrapped_kwargs)
     return wrapped
 
 class permittedKwargs:
@@ -62,12 +85,13 @@ class permittedKwargs:
 
     def __call__(self, f):
         @wraps(f)
-        def wrapped(s, node_or_state, args, kwargs):
+        def wrapped(*wrapped_args, **wrapped_kwargs):
+            s, node_or_state, args, kwargs = _get_callee_args(wrapped_args)
             loc = types.SimpleNamespace()
             if hasattr(s, 'subdir'):
                 loc.subdir = s.subdir
                 loc.lineno = s.current_lineno
-            elif hasattr(node_or_state, 'subdir'):
+            elif node_or_state and hasattr(node_or_state, 'subdir'):
                 loc.subdir = node_or_state.subdir
                 loc.lineno = node_or_state.current_lineno
             else:
@@ -76,25 +100,8 @@ class permittedKwargs:
                 if k not in self.permitted:
                     mlog.warning('''Passed invalid keyword argument "{}".'''.format(k), location=loc)
                     mlog.warning('This will become a hard error in the future.')
-            return f(s, node_or_state, args, kwargs)
+            return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
-
-
-class permittedMethodKwargs:
-
-    def __init__(self, permitted):
-        self.permitted = permitted
-
-    def __call__(self, f):
-        @wraps(f)
-        def wrapped(obj, args, kwargs):
-            for k in kwargs:
-                if k not in self.permitted:
-                    mlog.warning('''Passed invalid keyword argument "{}".'''.format(k))
-                    mlog.warning('This will become a hard error in the future.')
-            return f(obj, args, kwargs)
-        return wrapped
-
 
 class InterpreterException(mesonlib.MesonException):
     pass
