@@ -26,7 +26,7 @@ The environment path should be set properly for the ARM compiler executables.
 The '--cpu' option with the appropriate target type should be mentioned
 in the cross file as shown in the snippet below.
 
-```
+```ini
 [properties]
 c_args      = ['--cpu=Cortex-M0plus']
 cpp_args    = ['--cpu=Cortex-M0plus']
@@ -50,9 +50,11 @@ to obtain additional information from it.
 One of the use cases is to get the location of development files for the
 GCC plugins:
 
-    cc = meson.get_compiler('c')
-    result = run_command(cc, '-print-file-name=plugin')
-    plugin_dev_path = result.stdout().strip()
+```meson
+cc = meson.get_compiler('c')
+result = run_command(cc, '-print-file-name=plugin')
+plugin_dev_path = result.stdout().strip()
+```
 
 ## declare_dependency() supports link_whole
 
@@ -244,7 +246,6 @@ for example, to only use headers with convenience libraries to avoid linking
 to the same library multiple times.
 
 ```meson
-
 dep = dependency('xcb')
 
 helper = static_library(
