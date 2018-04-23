@@ -642,9 +642,11 @@ class BasePlatformTests(unittest.TestCase):
         return self.build(target=target)
 
     def setconf(self, arg, will_build=True):
+        if not isinstance(arg, list):
+            arg = [arg]
         if will_build:
             ensure_backend_detects_changes(self.backend)
-        self._run(self.mconf_command + [arg, self.builddir])
+        self._run(self.mconf_command + arg + [self.builddir])
 
     def wipe(self):
         windows_proof_rmtree(self.builddir)
@@ -2045,6 +2047,32 @@ recommended as it can lead to undefined behaviour on some platforms''')
 
     def test_same_project_d_option_twice(self):
         self._test_same_option_twice('one', ['-Done=foo', '-Done=bar'])
+
+    def _test_same_option_twice_configure(self, arg, args):
+        testdir = os.path.join(self.unit_test_dir, '30 mixed command line args')
+        self.init(testdir)
+        self.setconf(args)
+        opts = self.introspect('--buildoptions')
+        for item in opts:
+            if item['name'] == arg:
+                self.assertEqual(item['value'], 'bar')
+                return
+        raise Exception('Missing {} value?'.format(arg))
+
+    def test_same_dash_option_twice_configure(self):
+        with self.assertRaises(subprocess.CalledProcessError) as e:
+            self._test_same_option_twice_configure(
+                'bindir', ['--bindir=foo', '--bindir=bar'])
+            self.assertIn('Pick one.', e.stderr)
+
+    def test_same_d_option_twice_configure(self):
+        self._test_same_option_twice_configure(
+            'bindir', ['-Dbindir=foo', '-Dbindir=bar'])
+
+    def test_same_project_d_option_twice_configure(self):
+        self._test_same_option_twice_configure(
+            'one', ['-Done=foo', '-Done=bar'])
+
 
 
 class FailureTests(BasePlatformTests):
