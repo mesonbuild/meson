@@ -439,6 +439,7 @@ class InternalTests(unittest.TestCase):
         kwargs = {'sources': [1, 2, 3], 'pch_sources': [4, 5, 6]}
         self.assertEqual([[1, 2, 3], [4, 5, 6]], extract(kwargs, 'sources', 'pch_sources'))
 
+    @unittest.skipIf(not os.path.isdir('docs'), 'Doc dir not found, presumably because this is a tarball release.')
     def test_snippets(self):
         hashcounter = re.compile('^ *(#)+')
         snippet_dir = Path('docs/markdown/snippets')
