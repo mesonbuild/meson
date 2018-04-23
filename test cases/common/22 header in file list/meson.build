@@ -3,7 +3,7 @@ project('header in file list', 'c')
 cc_id  = meson.get_compiler('c').get_id()
 cc_ver = meson.get_compiler('c').version()
 
-if cc_id == 'intel' or (cc_id == 'lcc' and cc_ver.version_compare('<=1.23.08')
+if cc_id == 'intel' or (cc_id == 'lcc' and cc_ver.version_compare('<=1.23.08'))
   # ICC and LCC <= 1.23.08 do not escape spaces in paths in the dependency file, so Ninja
   # (correctly) thinks that the rule has multiple outputs and errors out:
   # 'depfile has multiple output paths'
