@@ -2012,6 +2012,32 @@ recommended as it can lead to undefined behaviour on some platforms''')
         self.builddir = exebuilddir
         self.assertRebuiltTarget('app')
 
+    def test_conflicting_d_dash_option(self):
+        testdir = os.path.join(self.unit_test_dir, '30 mixed command line args')
+        with self.assertRaises(subprocess.CalledProcessError) as e:
+            self.init(testdir, extra_args=['-Dbindir=foo', '--bindir=bar'])
+            # Just to ensure that we caught the correct error
+            self.assertIn('passed as both', e.stderr)
+
+    def _test_same_option_twice(self, arg, args):
+        testdir = os.path.join(self.unit_test_dir, '30 mixed command line args')
+        self.init(testdir, extra_args=args)
+        opts = self.introspect('--buildoptions')
+        for item in opts:
+            if item['name'] == arg:
+                self.assertEqual(item['value'], 'bar')
+                return
+        raise Exception('Missing {} value?'.format(arg))
+
+    def test_same_dash_option_twice(self):
+        self._test_same_option_twice('bindir', ['--bindir=foo', '--bindir=bar'])
+
+    def test_same_d_option_twice(self):
+        self._test_same_option_twice('bindir', ['-Dbindir=foo', '-Dbindir=bar'])
+
+    def test_same_project_d_option_twice(self):
+        self._test_same_option_twice('one', ['-Done=foo', '-Done=bar'])
+
 
 class FailureTests(BasePlatformTests):
     '''
