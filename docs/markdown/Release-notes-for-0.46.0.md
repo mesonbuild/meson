@@ -196,7 +196,9 @@ Major differences as of version 1.21.22:
 * some backend messages are produced in ru_RU.KOI8-R even if LANG=C;
 * its preprocessor treats some characters differently.
 
-So every noted difference is properly handled now in meson.## String escape character sequence update
+So every noted difference is properly handled now in meson.
+
+## String escape character sequence update
 
 Single-quoted strings in meson have been taught the same set of escape
 sequences as in Python. It is therefore now possible to use arbitrary bytes in
@@ -211,6 +213,9 @@ single-quote strings: `\'`, `\\` and `\n`.
 
 Note that the behaviour of triple-quoted (multiline) strings has not changed.
 They behave like raw strings and do not support any escape sequences.
+
+## New `forcefallback` wrap mode
+
 A new wrap mode was added, `--wrap-mode=forcefallback`. When this is set,
 dependencies for which a fallback was provided will always use it, even
 if an external dependency exists and satisfies the version requirements.
