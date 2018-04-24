@@ -14,88 +14,198 @@
 
 import os.path, subprocess
 
-from ..mesonlib import EnvironmentException, is_osx
-
+from .c import CCompiler
 from .compilers import (
-    GCC_CYGWIN,
-    GCC_MINGW,
-    GCC_OSX,
-    GCC_STANDARD,
     ICC_STANDARD,
-    apple_buildtype_linker_args,
-    get_gcc_soname_args,
-    gnulike_buildtype_args,
-    gnulike_buildtype_linker_args,
     Compiler,
+    GnuCompiler,
     ElbrusCompiler,
     IntelCompiler,
 )
 
 class FortranCompiler(Compiler):
+    library_dirs_cache = CCompiler.library_dirs_cache
+
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
         self.language = 'fortran'
-        super().__init__(exelist, version, **kwargs)
-        self.is_cross = is_cross
-        self.exe_wrapper = exe_wrapper
-        # Not really correct but I don't have Fortran compilers to test with. Sorry.
-        self.gcc_type = GCC_STANDARD
-        self.id = "IMPLEMENTATION CLASSES MUST SET THIS"
+        Compiler.__init__(self, exelist, version, **kwargs)
+        cc = CCompiler(exelist, version, is_cross, exe_wrapper, **kwargs)
+        self.id = 'unknown'
+        self.is_cross = cc.is_cross
+        self.exe_wrapper = cc.exe_wrapper
 
-    def name_string(self):
-        return ' '.join(self.exelist)
-
-    def get_pic_args(self):
-        if self.gcc_type in (GCC_CYGWIN, GCC_MINGW, GCC_OSX):
-            return [] # On Window and OS X, pic is always on.
-        return ['-fPIC']
-
-    def get_std_shared_lib_link_args(self):
-        return ['-shared']
+    def get_display_language(self):
+        return 'Fortran'
 
     def needs_static_linker(self):
-        return True
+        return CCompiler.needs_static_linker(self)
 
-    def sanity_check(self, work_dir, environment):
-        source_name = os.path.join(work_dir, 'sanitycheckf.f90')
-        binary_name = os.path.join(work_dir, 'sanitycheckf')
-        with open(source_name, 'w') as ofile:
-            ofile.write('''program prog
-     print *, "Fortran compilation is working."
-end program prog
-''')
-        extra_flags = self.get_cross_extra_flags(environment, link=True)
-        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
-        pc.wait()
-        if pc.returncode != 0:
-            raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
-        if self.is_cross:
-            if self.exe_wrapper is None:
-                # Can't check if the binaries run so we have to assume they do
-                return
-            cmdlist = self.exe_wrapper + [binary_name]
-        else:
-            cmdlist = [binary_name]
-        pe = subprocess.Popen(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        pe.wait()
-        if pe.returncode != 0:
-            raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
+    def get_always_args(self):
+        return CCompiler.get_always_args(self)
 
-    def get_std_warn_args(self, level):
-        return FortranCompiler.std_warn_args
+    def get_linker_debug_crt_args(self):
+        return CCompiler.get_linker_debug_crt_args(self)
 
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
+    def get_no_stdinc_args(self):
+        return CCompiler.get_no_stdinc_args(self)
 
-    def get_buildtype_linker_args(self, buildtype):
-        if is_osx():
-            return apple_buildtype_linker_args[buildtype]
-        return gnulike_buildtype_linker_args[buildtype]
+    def get_no_stdlib_link_args(self):
+        return CCompiler.get_no_stdlib_link_args(self)
 
-    def split_shlib_to_parts(self, fname):
-        return os.path.dirname(fname), fname
+    def get_warn_args(self, level):
+        return CCompiler.get_warn_args(self, level)
+
+    def get_no_warn_args(self):
+        return CCompiler.get_no_warn_args(self)
 
     def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
-        return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
+        return CCompiler.get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module)
+
+    def split_shlib_to_parts(self, fname):
+        return CCompiler.split_shlib_to_parts(self, fname)
+
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+        return CCompiler.build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return []
+
+    def depfile_for_object(self, objfile):
+        return CCompiler.depfile_for_object(self, objfile)
+
+    def get_depfile_suffix(self):
+        return CCompiler.get_depfile_suffix(self)
+
+    def get_exelist(self):
+        return CCompiler.get_exelist(self)
+
+    def get_linker_exelist(self):
+        return CCompiler.get_linker_exelist(self)
+
+    def get_preprocess_only_args(self):
+        return ['-cpp'] + CCompiler.get_preprocess_only_args(self)
+
+    def get_compile_only_args(self):
+        return CCompiler.get_compile_only_args(self)
+
+    def get_no_optimization_args(self):
+        return CCompiler.get_no_optimization_args(self)
+
+    def get_compiler_check_args(self):
+        return CCompiler.get_compiler_check_args(self)
+
+    def get_output_args(self, target):
+        return CCompiler.get_output_args(self, target)
+
+    def get_linker_output_args(self, outputname):
+        return CCompiler.get_linker_output_args(self, outputname)
+
+    def get_coverage_args(self):
+        return CCompiler.get_coverage_args(self)
+
+    def get_coverage_link_args(self):
+        return CCompiler.get_coverage_link_args(self)
+
+    def get_werror_args(self):
+        return CCompiler.get_werror_args(self)
+
+    def get_std_exe_link_args(self):
+        return CCompiler.get_std_exe_link_args(self)
+
+    def get_include_args(self, path, is_system):
+        return CCompiler.get_include_args(self, path, is_system)
+
+    def get_module_incdir_args(self):
+        return ('-I', )
+
+    def get_module_outdir_args(self, path):
+        return ['-module' + path]
+
+    def module_name_to_filename(self, module_name):
+        return module_name.lower() + '.mod'
+
+    def get_std_shared_lib_link_args(self):
+        return CCompiler.get_std_shared_lib_link_args(self)
+
+    def get_library_dirs_real(self):
+        return CCompiler.get_library_dirs_real(self)
+
+    def get_library_dirs(self):
+        return CCompiler.get_library_dirs(self)
+
+    def get_pic_args(self):
+        return CCompiler.get_pic_args(self)
+
+    def name_string(self):
+        return CCompiler.name_string(self)
+
+    def get_linker_search_args(self, dirname):
+        return CCompiler.get_linker_search_args(self, dirname)
+
+    def get_default_include_dirs(self):
+        return CCompiler.get_default_include_dirs(self)
+
+    def gen_export_dynamic_link_args(self, env):
+        return CCompiler.gen_export_dynamic_link_args(self, env)
+
+    def gen_import_library_args(self, implibname):
+        return CCompiler.gen_import_library_args(self, implibname)
+
+    def sanity_check(self, work_dir, environment):
+        code = '''program main
+            integer :: ret = 0
+            call exit(ret)
+        end program main'''
+        return CCompiler.sanity_check_impl(self, work_dir, environment, 'sanitycheckf.f90', code)
+
+    def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
+        return CCompiler._get_compiler_check_args(self, env, extra_args, dependencies, mode='compile')
+
+    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
+        return CCompiler.compiles(self, code, env, extra_args, dependencies, mode)
+
+    def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False):
+        return CCompiler._build_wrapper(self, code, env, extra_args, dependencies, mode, want_output)
+
+    def links(self, code, env, extra_args=None, dependencies=None):
+        return CCompiler.links(self, code, env, extra_args, dependencies)
+
+    def run(self, code, env, extra_args=None, dependencies=None):
+        return CCompiler.run(self, code, env, extra_args, dependencies)
+
+    def get_library_naming(self, env, libtype, strict=False):
+        return CCompiler.get_library_naming(self, env, libtype, strict)
+
+    def find_library(self, libname, env, extra_dirs, libtype='default'):
+        code = '''program main
+            call exit(0)
+        end program main'''
+        return CCompiler.find_library_impl(self, libname, env, extra_dirs, code, libtype)
+
+    def thread_flags(self, env):
+        return CCompiler.thread_flags(self, env)
+
+    def thread_link_flags(self, env):
+        return CCompiler.thread_link_flags(self, env)
+
+    def linker_to_compiler_args(self, args):
+        return CCompiler.linker_to_compiler_args(self, args)
+
+    def has_arguments(self, args, env, code, mode):
+        return CCompiler.has_arguments(self, args, env, code, mode)
+
+    def has_multi_arguments(self, args, env):
+        return CCompiler.has_multi_arguments(self, args, env)
+
+
+class GnuFortranCompiler(GnuCompiler, FortranCompiler):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+        GnuCompiler.__init__(self, gcc_type, defines)
+        default_warn_args = ['-Wall']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
     def get_dependency_gen_args(self, outtarget, outfile):
         # Disabled until this is fixed:
@@ -103,85 +213,8 @@ end program prog
         # return ['-cpp', '-MD', '-MQ', outtarget]
         return []
 
-    def get_output_args(self, target):
-        return ['-o', target]
-
-    def get_preprocess_only_args(self):
-        return ['-E']
-
-    def get_compile_only_args(self):
-        return ['-c']
-
-    def get_linker_exelist(self):
-        return self.exelist[:]
-
-    def get_linker_output_args(self, outputname):
-        return ['-o', outputname]
-
-    def get_include_args(self, path, is_system):
-        return ['-I' + path]
-
-    def get_module_incdir_args(self):
-        return ('-I', )
-
     def get_module_outdir_args(self, path):
         return ['-J' + path]
-
-    def depfile_for_object(self, objfile):
-        return objfile + '.' + self.get_depfile_suffix()
-
-    def get_depfile_suffix(self):
-        return 'd'
-
-    def get_std_exe_link_args(self):
-        return []
-
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
-
-    def module_name_to_filename(self, module_name):
-        return module_name.lower() + '.mod'
-
-    def get_warn_args(self, level):
-        return ['-Wall']
-
-    def get_no_warn_args(self):
-        return ['-w']
-
-
-class GnuFortranCompiler(FortranCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwargs)
-        self.gcc_type = gcc_type
-        self.defines = defines or {}
-        self.id = 'gcc'
-
-    def has_builtin_define(self, define):
-        return define in self.defines
-
-    def get_builtin_define(self, define):
-        if define in self.defines:
-            return self.defines[define]
-
-    def get_always_args(self):
-        return ['-pipe']
-
-    def get_coverage_args(self):
-        return ['--coverage']
-
-    def get_coverage_link_args(self):
-        return ['--coverage']
-
-    def gen_import_library_args(self, implibname):
-        """
-        The name of the outputted import library
-
-        Used only on Windows
-        """
-        return ['-Wl,--out-implib=' + implibname]
-
-    def openmp_flags(self):
-        return ['-fopenmp']
 
     def language_stdlib_only_link_flags(self):
         return ['-lgfortran', '-lm', '-lquadmath']
@@ -194,31 +227,24 @@ class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
 
 class G95FortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwags)
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         self.id = 'g95'
+        default_warn_args = ['-Wall']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-pedantic']}
 
     def get_module_outdir_args(self, path):
         return ['-fmod=' + path]
-
-    def get_always_args(self):
-        return ['-pipe']
 
     def get_no_warn_args(self):
         # FIXME: Confirm that there's no compiler option to disable all warnings
         return []
 
-    def gen_import_library_args(self, implibname):
-        """
-        The name of the outputted import library
-
-        Used only on Windows
-        """
-        return ['-Wl,--out-implib=' + implibname]
-
 
 class SunFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwags)
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         self.id = 'sun'
 
     def get_dependency_gen_args(self, outtarget, outfile):
@@ -241,8 +267,6 @@ class SunFortranCompiler(FortranCompiler):
 
 
 class IntelFortranCompiler(IntelCompiler, FortranCompiler):
-    std_warn_args = ['-warn', 'all']
-
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
         self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp')
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
@@ -250,46 +274,39 @@ class IntelFortranCompiler(IntelCompiler, FortranCompiler):
         # we are sent the type of compiler
         IntelCompiler.__init__(self, ICC_STANDARD)
         self.id = 'intel'
+        default_warn_args = ['-warn', 'general', '-warn', 'truncated_source']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-warn', 'unused'],
+                          '3': ['-warn', 'all']}
 
-    def get_module_outdir_args(self, path):
-        return ['-module', path]
-
-    def get_warn_args(self, level):
-        return IntelFortranCompiler.std_warn_args
+    def get_preprocess_only_args(self):
+        return ['-cpp', '-EP']
 
 
 class PathScaleFortranCompiler(FortranCompiler):
-    std_warn_args = ['-fullwarn']
-
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwags)
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         self.id = 'pathscale'
-
-    def get_module_outdir_args(self, path):
-        return ['-module', path]
-
-    def get_std_warn_args(self, level):
-        return PathScaleFortranCompiler.std_warn_args
+        default_warn_args = ['-fullwarn']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args,
+                          '3': default_warn_args}
 
     def openmp_flags(self):
         return ['-mp']
 
 
 class PGIFortranCompiler(FortranCompiler):
-    std_warn_args = ['-Minform=inform']
-
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwags)
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         self.id = 'pgi'
+        default_warn_args = ['-Minform=inform']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args,
+                          '3': default_warn_args}
 
     def get_module_incdir_args(self):
         return ('-module', )
-
-    def get_module_outdir_args(self, path):
-        return ['-module', path]
-
-    def get_warn_args(self, level):
-        return PGIFortranCompiler.std_warn_args
 
     def get_no_warn_args(self):
         return ['-silent']
@@ -299,34 +316,28 @@ class PGIFortranCompiler(FortranCompiler):
 
 
 class Open64FortranCompiler(FortranCompiler):
-    std_warn_args = ['-fullwarn']
-
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwags)
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         self.id = 'open64'
-
-    def get_module_outdir_args(self, path):
-        return ['-module', path]
-
-    def get_warn_args(self, level):
-        return Open64FortranCompiler.std_warn_args
+        default_warn_args = ['-fullwarn']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args,
+                          '3': default_warn_args}
 
     def openmp_flags(self):
         return ['-mp']
 
 
 class NAGFortranCompiler(FortranCompiler):
-    std_warn_args = []
-
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
-        super().__init__(exelist, version, is_cross, exe_wrapper=None, **kwags)
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         self.id = 'nagfor'
+
+    def get_warn_args(self, level):
+        return []
 
     def get_module_outdir_args(self, path):
         return ['-mdir', path]
-
-    def get_warn_args(self, level):
-        return NAGFortranCompiler.std_warn_args
 
     def openmp_flags(self):
         return ['-openmp']
