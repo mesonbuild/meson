@@ -15,10 +15,12 @@
 import sys, stat, traceback, argparse
 import datetime
 import os.path
+import platform
+import cProfile as profile
+
 from . import environment, interpreter, mesonlib
 from . import build
 from . import mconf, mintro, mtest, rewriter, minit
-import platform
 from . import mlog, coredata
 from .mesonlib import MesonException
 from .wrap import WrapMode, wraptool
@@ -38,6 +40,8 @@ def create_parser():
     p.add_argument('--wrap-mode', default=WrapMode.default,
                    type=wrapmodetype, choices=WrapMode,
                    help='Special wrap mode to use')
+    p.add_argument('--profile-self', action='store_true', dest='profile',
+                   help=argparse.SUPPRESS)
     p.add_argument('directories', nargs='*')
     return p
 
@@ -176,7 +180,11 @@ class MesonApp:
             mlog.log('Target machine cpu:', mlog.bold(intr.builtin['target_machine'].cpu_method([], {})))
         mlog.log('Build machine cpu family:', mlog.bold(intr.builtin['build_machine'].cpu_family_method([], {})))
         mlog.log('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
-        intr.run()
+        if self.options.profile:
+            fname = os.path.join(self.build_dir, 'meson-private', 'profile-interpreter.log')
+            profile.runctx('intr.run()', globals(), locals(), filename=fname)
+        else:
+            intr.run()
         try:
             dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
             # We would like to write coredata as late as possible since we use the existence of
@@ -186,7 +194,12 @@ class MesonApp:
             # sync with the time that gets applied to any files. Thus, we dump this file as late as
             # possible, but before build files, and if any error occurs, delete it.
             cdf = env.dump_coredata()
-            g.generate(intr)
+            if self.options.profile:
+                fname = 'profile-{}-backend.log'.format(self.options.backend)
+                fname = os.path.join(self.build_dir, 'meson-private', fname)
+                profile.runctx('g.generate(intr)', globals(), locals(), filename=fname)
+            else:
+                g.generate(intr)
             build.save(b, dumpfile)
             # Post-conf scripts must be run after writing coredata or else introspection fails.
             g.run_postconf_scripts()
