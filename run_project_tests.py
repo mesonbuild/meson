@@ -41,7 +41,7 @@ import re
 from run_unittests import get_fake_options, run_configure
 
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
-from run_tests import ensure_backend_detects_changes
+from run_tests import ensure_backend_detects_changes, setup_pythonpath
 
 
 class BuildStep(Enum):
@@ -87,12 +87,6 @@ do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
 system_compiler = None
-
-meson_command = os.path.join(os.getcwd(), 'meson')
-if not os.path.exists(meson_command):
-    meson_command += '.py'
-    if not os.path.exists(meson_command):
-        raise RuntimeError('Could not find main Meson script to run.')
 
 class StopException(Exception):
     def __init__(self):
@@ -324,7 +318,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     if pass_libdir_to_test(testdir):
         gen_args += ['--libdir', 'lib']
     gen_args += [testdir, test_build_dir] + flags + test_args + extra_args
-    (returncode, stdo, stde) = run_configure(meson_command, gen_args)
+    (returncode, stdo, stde) = run_configure(mesonlib.meson_command, gen_args)
     try:
         logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
         mesonlog = logfile.open(errors='ignore', encoding='utf-8').read()
@@ -647,7 +641,7 @@ def check_format():
                 check_file(fullname)
 
 def check_meson_commands_work():
-    global backend, meson_command, compile_commands, test_commands, install_commands
+    global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         print('Checking that configuring works...')
@@ -692,6 +686,7 @@ if __name__ == '__main__':
     setup_commands(options.backend)
 
     detect_system_compiler()
+    setup_pythonpath()
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
         os.chdir(script_dir)
