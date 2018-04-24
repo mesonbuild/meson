@@ -11,6 +11,7 @@ Added the function `subdir_done()`. Its invocation exits the current script at
 the point of invocation. All previously invoked build targets and commands are
 build/executed. All following ones are ignored. If the current script was
 invoked via `subdir()` the parent script continues normally.
+
 ## Log output slightly changed
 
 The format of some human-readable diagnostic messages has changed in
@@ -38,8 +39,8 @@ cpp_args    = ['--cpu=Cortex-M0plus']
 A new function `both_libraries()` has been added to build both shared and static
 libraries at the same time. Source files will be compiled only once and object
 files will be reused to build both shared and static libraries, unless
-`b_staticpic` user option or `pic` argument are set to false in which case
-sources will be compiled twice.
+`b_staticpic` user option or `pic:` keyword argument are set to false in which
+case sources will be compiled twice.
 
 The returned `buildtarget` object always represents the shared library.
 
@@ -56,14 +57,14 @@ result = run_command(cc, '-print-file-name=plugin')
 plugin_dev_path = result.stdout().strip()
 ```
 
-## declare_dependency() supports link_whole
+## declare_dependency() now supports `link_whole:`
 
-`declare_dependency()` supports `link_whole` parameter.
-`link_whole` propagates to build target that uses dependency.
+`declare_dependency()` now supports the `link_whole:` keyword argument which
+transparently works for build targets which use that dependency.
 
 ## Old command names are now errors
 
-Old executable names `mesonintrospect`, `mesonconf`, `mesonrewriter`
+The old executable names `mesonintrospect`, `mesonconf`, `mesonrewriter`
 and `mesontest` have been deprecated for a long time. Starting from
 this version they no longer do anything but instead always error
 out. All functionality is available as subcommands in the main `meson`
@@ -78,8 +79,8 @@ form, like `meson` has.
 
 ## Recursively extract objects
 
-`recursive` keyword argument has been added to `extract_all_objects`. When set
-to `true` it will also return objects passed to the `objects` argument of this
+The `recursive:` keyword argument has been added to `extract_all_objects()`. When set
+to `true` it will also return objects passed to the `objects:` argument of this
 target. By default only objects built for this target are returned to maintain
 backward compatibility with previous versions. The default will eventually be
 changed to `true` in a future version.
@@ -89,7 +90,7 @@ lib1 = static_library('a', 'source.c', objects : 'prebuilt.o')
 lib2 = static_library('b', objects : lib1.extract_all_objects(recursive : true))
 ```
 
-## Can override find_program
+## Can override find_program()
 
 It is now possible to override the result of `find_program` to point
 to a custom program you want. The overriding is global and applies to
@@ -127,10 +128,10 @@ prog_script = configure_file(input : 'script.sh.in',
 meson.override_find_program('mycodegen', prog_script)
 ```
 
-## has_link_argument() and friends
+## New functions: has_link_argument() and friends
 
-A new set of methods has been added on compiler objects to test if the linker
-supports given arguments.
+A new set of methods has been added to [compiler objects](Reference-manual.md#compiler-object)
+to test if the linker supports given arguments.
 
 - `has_link_argument()`
 - `has_multi_link_arguments()`
@@ -164,12 +165,14 @@ meson.build for them with the dependencies of sdl2 and gl and
 immediately try to build it, overwriting any previous meson.build and
 build directory.
 
-## install_data() supports rename
+## install_data() supports `rename:`
 
-`rename` parameter is used to change names of the installed files.
-In order to install
+The `rename:` keyword argument is used to change names of the installed
+files. Here's how you install and rename the following files:
+
 - `file1.txt` into `share/myapp/dir1/data.txt`
 - `file2.txt` into `share/myapp/dir2/data.txt`
+
 ```meson
 install_data(['file1.txt', 'file2.txt'],
              rename : ['dir1/data.txt', 'dir2/data.txt'],
@@ -274,8 +277,9 @@ Now the generated file contains the needed dependencies libraries directly withi
 argument.
 
 Projects that install both a static and a shared version of a library should use
-the result of `both_libraries` to the pkg config file generator or use
-configure_file for more complicated setups.
+the result of [`both_libraries()`](Reference-manual.md#both_libraries) to the
+pkg-config file generator or use [`configure_file()`](Reference-manual.md#configure_file)
+for more complicated setups.
 
 ## Improvements to pkgconfig module
 
@@ -294,19 +298,19 @@ pkgconfig.generate(mylib)
 
 ## pkgconfig.generate() requires parameters non-string arguments
 
-`pkgconfig.generate()` `requires` and `requires_private` parameters
-accept pkgconfig-dependencies and libraries that pkgconfig-files were
+`pkgconfig.generate()` `requires:` and `requires_private:` keyword arguments
+now accept pkgconfig-dependencies and libraries that pkgconfig-files were
 generated for.
 
 ## Generic python module
 
-This is a revamped and generic (python 2 and 3) version of the python3
-module. With this new interface, projects can now fully specify the version
-of python they want to build against / install sources to, and can do so
-against multiple major or minor versions in parallel.
+Meson now has is a revamped and generic (python 2 and 3) version of the python3
+module. With [this new interface](Python-module.md), projects can now fully
+specify the version of python they want to build against / install sources to,
+and can do so against multiple major or minor versions in parallel.
 
-## test now supports depends keyword parameter
+## test() now supports the `depends:` keyword argument
 
-Build targets and custom targets can be listed in depends argument of test
-function. These targets will be built before test is run even if they have
+Build targets and custom targets can be listed in the `depends:` keyword argument
+of test function. These targets will be built before test is run even if they have
 `build_by_default : false`.
