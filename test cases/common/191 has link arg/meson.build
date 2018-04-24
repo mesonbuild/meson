@@ -40,3 +40,5 @@ assert(l2.length() == 0, 'First supported did not return empty array.')
 assert(not cc.has_multi_link_arguments([isnt_arg, is_arg]), 'Arg that should be broken is not.')
 assert(cc.has_multi_link_arguments(is_arg), 'Arg that should have worked does not work.')
 assert(cc.has_multi_link_arguments([useless, is_arg]), 'Arg that should have worked does not work.')
+
+assert(not cc.has_link_argument('-Wl,-z,nodelete42'), 'Did not detect wrong -z linker argument')
