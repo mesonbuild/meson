@@ -9,6 +9,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
 
  - [AQEMU](https://github.com/tobimensch/aqemu), a Qt GUI for QEMU virtual machines, since version 0.9.3
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
+ - [bolt](https://gitlab.freedesktop.org/bolt/bolt) Userpsace daemon to enable security levels for Thunderbolt™ 3 on Linux
  - [Budgie Desktop](https://github.com/budgie-desktop/budgie-desktop), a desktop environment built on GNOME technologies
  - [casync](https://github.com/systemd/casync), Content-Addressable Data Synchronization Tool
  - [cinnamon-desktop](https://github.com/linuxmint/cinnamon-desktop), the cinnamon desktop library
