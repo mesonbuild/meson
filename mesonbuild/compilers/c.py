@@ -59,6 +59,9 @@ class CCompiler(Compiler):
         else:
             self.exe_wrapper = exe_wrapper
 
+        # Set to None until we actually need to check this
+        self.has_fatal_warnings_link_arg = None
+
     def needs_static_linker(self):
         return True # When compiling static libraries, so yes.
 
@@ -871,6 +874,17 @@ class CCompiler(Compiler):
         return self.has_arguments(args, env, code, mode='compile')
 
     def has_multi_link_arguments(self, args, env):
+        # First time we check for link flags we need to first check if we have
+        # --fatal-warnings, otherwise some linker checks could give some
+        # false positive.
+        fatal_warnings_args = ['-Wl,--fatal-warnings']
+        if self.has_fatal_warnings_link_arg is None:
+            self.has_fatal_warnings_link_arg = False
+            self.has_fatal_warnings_link_arg = self.has_multi_link_arguments(fatal_warnings_args, env)
+
+        if self.has_fatal_warnings_link_arg:
+            args = fatal_warnings_args + args
+
         args = self.linker_to_compiler_args(args)
         code = 'int main(int argc, char **argv) { return 0; }'
         return self.has_arguments(args, env, code, mode='link')
