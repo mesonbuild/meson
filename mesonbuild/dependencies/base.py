@@ -742,6 +742,17 @@ class ExternalProgram:
             self.command = listify(command)
         else:
             self.command = self._search(name, search_dir)
+
+        # Set path to be the last item that is actually a file (in order to
+        # skip options in something like ['python', '-u', 'file.py']. If we
+        # can't find any components, default to the last component of the path.
+        self.path = self.command[-1]
+        for i in range(len(self.command) - 1, -1, -1):
+            arg = self.command[i]
+            if arg is not None and os.path.isfile(arg):
+                self.path = arg
+                break
+
         if not silent:
             if self.found():
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
@@ -889,11 +900,7 @@ class ExternalProgram:
         return self.command[:]
 
     def get_path(self):
-        if self.found():
-            # Assume that the last element is the full path to the script or
-            # binary being run
-            return self.command[-1]
-        return None
+        return self.path
 
     def get_name(self):
         return self.name
