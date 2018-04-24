@@ -28,6 +28,7 @@ from pathlib import Path
 
 from run_project_tests import gather_tests, run_tests, StopException, setup_commands
 from run_project_tests import failing_logs
+from run_tests import setup_pythonpath
 
 def runtests(cross_file):
     commontests = [('common', gather_tests(Path('test cases', 'common')), False)]
@@ -46,5 +47,6 @@ def runtests(cross_file):
 
 if __name__ == '__main__':
     setup_commands('ninja')
+    setup_pythonpath()
     cross_file = sys.argv[1]
     runtests(cross_file)
