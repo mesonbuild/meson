@@ -858,6 +858,7 @@ class CompilerHolder(InterpreterObject):
                              'first_supported_link_argument': self.first_supported_link_argument_method,
                              'unittest_args': self.unittest_args_method,
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
+                             'get_export_dynamic_link_args': self.get_export_dynamic_link_args_method,
                              })
 
     @noPosargs
@@ -1376,6 +1377,11 @@ class CompilerHolder(InterpreterObject):
                 return [i]
         mlog.log('First supported link argument:', mlog.red('None'))
         return []
+
+    @noPosargs
+    @permittedKwargs({})
+    def get_export_dynamic_link_args_method(self, args, kwargs):
+        return self.compiler.gen_export_dynamic_link_args(self.environment)
 
 ModuleState = namedtuple('ModuleState', [
     'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
