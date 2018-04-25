@@ -2778,7 +2778,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir)
         self.install()
 
-        f = os.path.join(self.installdir, 'usr', 'share', 'sub1')
+        f = os.path.join(self.installdir, 'usr', 'share', 'sub1', 'second.dat')
         statf = os.stat(f)
         found_mode = stat.filemode(statf.st_mode)
         want_mode = 'rwxr-x--t'
