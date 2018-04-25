@@ -16,6 +16,8 @@ import os
 import pickle
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
+import uuid
+from pathlib import Path, PurePath
 
 from . import backends
 from .. import build
@@ -81,6 +83,7 @@ class Vs2010Backend(backends.Backend):
         self.platform_toolset = None
         self.vs_version = '2010'
         self.windows_target_platform_version = None
+        self.subdirs = {}
 
     def generate_custom_generator_commands(self, target, parent_node):
         generator_output_files = []
@@ -225,6 +228,26 @@ class Vs2010Backend(backends.Backend):
         ret.update(all_deps)
         return ret
 
+    def generate_solution_dirs(self, ofile, parents):
+        prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
+        iterpaths = reversed(parents)
+        # Skip first path
+        next(iterpaths)
+        for path in iterpaths:
+            if path not in self.subdirs:
+                basename = path.name
+                identifier = str(uuid.uuid4()).upper()
+                # top-level directories have None as their parent_dir
+                parent_dir = path.parent
+                parent_identifier = self.subdirs[parent_dir][0] \
+                    if parent_dir != PurePath('.') else None
+                self.subdirs[path] = (identifier, parent_identifier)
+                prj_line = prj_templ % (
+                    self.environment.coredata.lang_guids['directory'],
+                    basename, basename, self.subdirs[path][0])
+                ofile.write(prj_line)
+                ofile.write('EndProject\n')
+
     def generate_solution(self, sln_filename, projlist):
         default_projlist = self.get_build_by_default_targets()
         with open(sln_filename, 'w', encoding='utf-8') as ofile:
@@ -232,16 +255,26 @@ class Vs2010Backend(backends.Backend):
                         'Version 11.00\n')
             ofile.write('# Visual Studio ' + self.vs_version + '\n')
             prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
-            for p in projlist:
-                prj_line = prj_templ % (self.environment.coredata.guid,
-                                        p[0], p[1], p[2])
+            for prj in projlist:
+                coredata = self.environment.coredata
+                if coredata.get_builtin_option('layout') == 'mirror':
+                    self.generate_solution_dirs(ofile, prj[1].parents)
+                target = self.build.targets[prj[0]]
+                lang = 'default'
+                if hasattr(target, 'compilers') and target.compilers:
+                    for (lang_out, _) in target.compilers.items():
+                        lang = lang_out
+                        break
+                prj_line = prj_templ % (
+                    self.environment.coredata.lang_guids[lang],
+                    prj[0], prj[1], prj[2])
                 ofile.write(prj_line)
-                target = self.build.targets[p[0]]
-                t = {target.get_id(): target}
+                target_dict = {target.get_id(): target}
                 # Get direct deps
-                all_deps = self.get_target_deps(t)
+                all_deps = self.get_target_deps(target_dict)
                 # Get recursive deps
-                recursive_deps = self.get_target_deps(t, recursive=True)
+                recursive_deps = self.get_target_deps(
+                    target_dict, recursive=True)
                 ofile.write('\tProjectSection(ProjectDependencies) = '
                             'postProject\n')
                 regen_guid = self.environment.coredata.regen_guid
@@ -252,14 +285,15 @@ class Vs2010Backend(backends.Backend):
                 ofile.write('EndProjectSection\n')
                 ofile.write('EndProject\n')
                 for dep, target in recursive_deps.items():
-                    if p[0] in default_projlist:
+                    if prj[0] in default_projlist:
                         default_projlist[dep] = target
-            test_line = prj_templ % (self.environment.coredata.guid,
+
+            test_line = prj_templ % (self.environment.coredata.lang_guids['default'],
                                      'RUN_TESTS', 'RUN_TESTS.vcxproj',
                                      self.environment.coredata.test_guid)
             ofile.write(test_line)
             ofile.write('EndProject\n')
-            regen_line = prj_templ % (self.environment.coredata.guid,
+            regen_line = prj_templ % (self.environment.coredata.lang_guids['default'],
                                       'REGEN', 'REGEN.vcxproj',
                                       self.environment.coredata.regen_guid)
             ofile.write(regen_line)
@@ -298,19 +332,33 @@ class Vs2010Backend(backends.Backend):
             ofile.write('\tGlobalSection(SolutionProperties) = preSolution\n')
             ofile.write('\t\tHideSolutionNode = FALSE\n')
             ofile.write('\tEndGlobalSection\n')
+            if self.subdirs:
+                ofile.write('\tGlobalSection(NestedProjects) = '
+                            'preSolution\n')
+                for p in projlist:
+                    if p[1].parent != PurePath('.'):
+                        ofile.write("\t\t{%s} = {%s}\n" % (p[2], self.subdirs[p[1].parent][0]))
+                for (_, subdir) in self.subdirs.items():
+                    if subdir[1]:
+                        ofile.write("\t\t{%s} = {%s}\n" % (subdir[0], subdir[1]))
+                ofile.write('\tEndGlobalSection\n')
             ofile.write('EndGlobal\n')
 
     def generate_projects(self):
         projlist = []
         for name, target in self.build.targets.items():
-            outdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-            os.makedirs(outdir, exist_ok=True)
+            outdir = Path(
+                self.environment.get_build_dir(),
+                self.get_target_dir(target)
+            )
+            outdir.mkdir(exist_ok=True, parents=True)
             fname = name + '.vcxproj'
-            relname = os.path.join(target.subdir, fname)
-            projfile = os.path.join(outdir, fname)
-            uuid = self.environment.coredata.target_guids[name]
-            self.gen_vcxproj(target, projfile, uuid)
-            projlist.append((name, relname, uuid))
+            target_dir = PurePath(self.get_target_dir(target))
+            relname = target_dir / fname
+            projfile_path = outdir / fname
+            proj_uuid = self.environment.coredata.target_guids[name]
+            self.gen_vcxproj(target, str(projfile_path), proj_uuid)
+            projlist.append((name, relname, proj_uuid))
         return projlist
 
     def split_sources(self, srclist):
@@ -336,10 +384,10 @@ class Vs2010Backend(backends.Backend):
         return sources, headers, objects, languages
 
     def target_to_build_root(self, target):
-        if target.subdir == '':
+        if self.get_target_dir(target) == '':
             return ''
 
-        directories = os.path.normpath(target.subdir).split(os.sep)
+        directories = os.path.normpath(self.get_target_dir(target)).split(os.sep)
         return os.sep.join(['..'] * len(directories))
 
     def quote_arguments(self, arr):
@@ -603,7 +651,7 @@ class Vs2010Backend(backends.Backend):
         # Prefix to use to access the source tree's root from the vcxproj dir
         proj_to_src_root = os.path.join(down, self.build_to_src)
         # Prefix to use to access the source tree's subdir from the vcxproj dir
-        proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
+        proj_to_src_dir = os.path.join(proj_to_src_root, self.get_target_dir(target))
         (sources, headers, objects, languages) = self.split_sources(target.sources)
         if self.is_unity(target):
             sources = self.generate_unity_files(target, sources)

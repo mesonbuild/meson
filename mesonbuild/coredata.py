@@ -166,7 +166,13 @@ This will become a hard error in the future.''')
 class CoreData:
 
     def __init__(self, options):
-        self.guid = str(uuid.uuid4()).upper()
+        self.lang_guids = {
+            'default': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
+            'c': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
+            'cpp': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
+            'test': '3AC096D0-A1C2-E12C-1390-A8335801FDAB',
+            'directory': '2150E333-8FDC-42A3-9474-1A3956D46DE8',
+        }
         self.test_guid = str(uuid.uuid4()).upper()
         self.regen_guid = str(uuid.uuid4()).upper()
         self.target_guids = {}

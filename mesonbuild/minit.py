@@ -14,7 +14,7 @@
 
 """Code that creates simple startup projects."""
 
-import os, sys, argparse, re, shutil
+import os, sys, argparse, re, shutil, subprocess
 from glob import glob
 from mesonbuild import mesonlib
 from mesonbuild.environment import detect_ninja
@@ -471,10 +471,12 @@ def run(args):
             print('Build directory already exists, deleting it.')
             shutil.rmtree(options.builddir)
         print('Building...')
-        err = os.system('{} "{}"'.format(' '.join(mesonlib.meson_command), options.builddir))
+        cmd = mesonlib.meson_command + [options.builddir]
+        err = subprocess.call(cmd)
         if err:
             sys.exit(1)
-        err = os.system('{} -C "{}"'.format(detect_ninja(), options.builddir))
+        cmd = [detect_ninja(), '-C', options.builddir]
+        err = subprocess.call(cmd)
         if err:
             sys.exit(1)
     return 0
