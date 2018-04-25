@@ -2787,6 +2787,39 @@ class LinuxlikeTests(BasePlatformTests):
             # The chown failed nonfatally if we're not root
             self.assertEqual(0, statf.st_uid)
 
+    def test_installed_modes_extended(self):
+        '''
+        Test that files are installed with correct permissions using install_mode.
+        '''
+        testdir = os.path.join(self.common_test_dir, '201 install_mode')
+        self.init(testdir)
+        self.build()
+        self.install()
+
+        for fsobj, want_mode in [
+                ('bin', 'drwxr-x---'),
+                ('bin/runscript.sh', '-rwxr-sr-x'),
+                ('bin/trivialprog', '-rwxr-sr-x'),
+                ('include', 'drwxr-x---'),
+                ('include/config.h', '-rw-rwSr--'),
+                ('include/rootdir.h', '-r--r--r-T'),
+                ('lib', 'drwxr-x---'),
+                ('lib/libstat.a', '-rw---Sr--'),
+                ('share', 'drwxr-x---'),
+                ('share/man', 'drwxr-x---'),
+                ('share/man/man1', 'drwxr-x---'),
+                ('share/man/man1/foo.1.gz', '-r--r--r-T'),
+                ('share/sub1', 'drwxr-x---'),
+                ('share/sub1/second.dat', '-rwxr-x--t'),
+                ('subdir', 'drwxr-x---'),
+                ('subdir/data.dat', '-rw-rwSr--'),
+        ]:
+            f = os.path.join(self.installdir, 'usr', *fsobj.split('/'))
+            found_mode = stat.filemode(os.stat(f).st_mode)
+            self.assertEqual(want_mode, found_mode,
+                             msg=('Expected file %s to have mode %s but found %s instead.' %
+                                  (fsobj, want_mode, found_mode)))
+
     def test_install_umask(self):
         '''
         Test that files are installed with correct permissions using default
