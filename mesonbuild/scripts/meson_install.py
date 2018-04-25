@@ -148,7 +148,7 @@ def do_copyfile(from_file, to_file):
     selinux_updates.append(to_file)
     append_to_log(to_file)
 
-def do_copydir(data, src_dir, dst_dir, exclude):
+def do_copydir(data, src_dir, dst_dir, exclude, install_mode):
     '''
     Copies the contents of directory @src_dir into @dst_dir.
 
@@ -158,7 +158,7 @@ def do_copydir(data, src_dir, dst_dir, exclude):
             excluded
             foobar
           file
-    do_copydir(..., '/foo', '/dst/dir', {'bar/excluded'}) creates
+    do_copydir(..., '/foo', '/dst/dir', {'bar/excluded'}, None) creates
         /dst/
           dir/
             bar/
@@ -170,6 +170,7 @@ def do_copydir(data, src_dir, dst_dir, exclude):
         dst_dir: str, absolute path to the destination directory
         exclude: (set(str), set(str)), tuple of (exclude_files, exclude_dirs),
                  each element of the set is a path relative to src_dir.
+        install_mode: FileMode object, or None to use defaults.
     '''
     if not os.path.isabs(src_dir):
         raise ValueError('src_dir must be absolute, got %s' % src_dir)
@@ -212,7 +213,7 @@ def do_copydir(data, src_dir, dst_dir, exclude):
                 os.mkdir(parent_dir)
                 shutil.copystat(os.path.dirname(abs_src), parent_dir)
             shutil.copy2(abs_src, abs_dst, follow_symlinks=False)
-            sanitize_permissions(abs_dst, data.install_umask)
+            set_mode(abs_dst, install_mode, data.install_umask)
             append_to_log(abs_dst)
 
 def get_destdir_path(d, path):
@@ -263,8 +264,7 @@ def install_subdirs(d):
         full_dst_dir = get_destdir_path(d, dst_dir)
         print('Installing subdir %s to %s' % (src_dir, full_dst_dir))
         d.dirmaker.makedirs(full_dst_dir, exist_ok=True)
-        do_copydir(d, src_dir, full_dst_dir, exclude)
-        set_mode(full_dst_dir, mode, d.install_umask)
+        do_copydir(d, src_dir, full_dst_dir, exclude, mode)
 
 def install_data(d):
     for i in d.data:
@@ -283,6 +283,7 @@ def install_man(d):
         outfilename = get_destdir_path(d, m[1])
         outdir = os.path.dirname(outfilename)
         d.dirmaker.makedirs(outdir, exist_ok=True)
+        install_mode = m[2]
         print('Installing %s to %s' % (full_source_filename, outdir))
         if outfilename.endswith('.gz') and not full_source_filename.endswith('.gz'):
             with open(outfilename, 'wb') as of:
@@ -294,7 +295,7 @@ def install_man(d):
             append_to_log(outfilename)
         else:
             do_copyfile(full_source_filename, outfilename)
-        sanitize_permissions(outfilename, d.install_umask)
+        set_mode(outfilename, install_mode, d.install_umask)
 
 def install_headers(d):
     for t in d.headers:
@@ -302,10 +303,11 @@ def install_headers(d):
         fname = os.path.basename(fullfilename)
         outdir = get_destdir_path(d, t[1])
         outfilename = os.path.join(outdir, fname)
+        install_mode = t[2]
         print('Installing %s to %s' % (fname, outdir))
         d.dirmaker.makedirs(outdir, exist_ok=True)
         do_copyfile(fullfilename, outfilename)
-        sanitize_permissions(outfilename, d.install_umask)
+        set_mode(outfilename, install_mode, d.install_umask)
 
 def run_install_script(d):
     env = {'MESON_SOURCE_ROOT': d.source_dir,
@@ -364,13 +366,14 @@ def install_targets(d):
         aliases = t[2]
         should_strip = t[3]
         install_rpath = t[4]
+        install_mode = t[5]
         print('Installing %s to %s' % (fname, outname))
         d.dirmaker.makedirs(outdir, exist_ok=True)
         if not os.path.exists(fname):
             raise RuntimeError('File {!r} could not be found'.format(fname))
         elif os.path.isfile(fname):
             do_copyfile(fname, outname)
-            sanitize_permissions(outname, d.install_umask)
+            set_mode(outname, install_mode, d.install_umask)
             if should_strip and d.strip_bin is not None:
                 if fname.endswith('.jar'):
                     print('Not stripping jar target:', os.path.basename(fname))
@@ -387,12 +390,11 @@ def install_targets(d):
                 pdb_outname = os.path.splitext(outname)[0] + '.pdb'
                 print('Installing pdb file %s to %s' % (pdb_filename, pdb_outname))
                 do_copyfile(pdb_filename, pdb_outname)
-                sanitize_permissions(pdb_outname, d.install_umask)
+                set_mode(pdb_outname, install_mode, d.install_umask)
         elif os.path.isdir(fname):
             fname = os.path.join(d.build_dir, fname.rstrip('/'))
             outname = os.path.join(outdir, os.path.basename(fname))
-            do_copydir(d, fname, outname, None)
-            sanitize_permissions(outname, d.install_umask)
+            do_copydir(d, fname, outname, None, install_mode)
         else:
             raise RuntimeError('Unknown file type for {!r}'.format(fname))
         printed_symlink_error = False

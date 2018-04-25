@@ -724,6 +724,7 @@ int dummy;
                     "Pass 'false' for outputs that should not be installed and 'true' for\n" \
                     'using the default installation directory for an output.'
                 raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs))
+            install_mode = t.get_custom_install_mode()
             # Install the target output(s)
             if isinstance(t, build.BuildTarget):
                 should_strip = self.get_option_for_target('strip', t)
@@ -731,7 +732,7 @@ int dummy;
                 # Done separately because of strip/aliases/rpath
                 if outdirs[0] is not False:
                     i = [self.get_target_filename(t), outdirs[0],
-                         t.get_aliases(), should_strip, t.install_rpath]
+                         t.get_aliases(), should_strip, t.install_rpath, install_mode]
                     d.targets.append(i)
                     # On toolchains/platforms that use an import library for
                     # linking (separate from the shared library with all the
@@ -749,7 +750,7 @@ int dummy;
                              implib_install_dir,
                              # It has no aliases, should not be stripped, and
                              # doesn't have an install_rpath
-                             {}, False, '']
+                             {}, False, '', install_mode]
                         d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
                 if num_outdirs > 1:
@@ -758,7 +759,7 @@ int dummy;
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        d.targets.append([f, outdir, {}, False, None])
+                        d.targets.append([f, outdir, {}, False, None, install_mode])
             elif isinstance(t, build.CustomTarget):
                 # If only one install_dir is specified, assume that all
                 # outputs will be installed into it. This is for
@@ -770,14 +771,14 @@ int dummy;
                 if num_outdirs == 1 and num_out > 1:
                     for output in t.get_outputs():
                         f = os.path.join(self.get_target_dir(t), output)
-                        d.targets.append([f, outdirs[0], {}, False, None])
+                        d.targets.append([f, outdirs[0], {}, False, None, install_mode])
                 else:
                     for output, outdir in zip(t.get_outputs(), outdirs):
                         # User requested that we not install this output
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        d.targets.append([f, outdir, {}, False, None])
+                        d.targets.append([f, outdir, {}, False, None, install_mode])
 
     def generate_custom_install_script(self, d):
         result = []
@@ -809,7 +810,7 @@ int dummy;
                     msg = 'Invalid header type {!r} can\'t be installed'
                     raise MesonException(msg.format(f))
                 abspath = f.absolute_path(srcdir, builddir)
-                i = [abspath, outdir]
+                i = [abspath, outdir, h.get_custom_install_mode()]
                 d.headers.append(i)
 
     def generate_man_install(self, d):
@@ -823,7 +824,7 @@ int dummy;
                     subdir = os.path.join(manroot, 'man' + num)
                 srcabs = f.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
                 dstabs = os.path.join(subdir, os.path.basename(f.fname) + '.gz')
-                i = [srcabs, dstabs]
+                i = [srcabs, dstabs, m.get_custom_install_mode()]
                 d.man.append(i)
 
     def generate_data_install(self, d):
