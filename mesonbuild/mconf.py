@@ -152,7 +152,7 @@ class Conf:
         print('  Build dir ', self.build.environment.build_dir)
         print('\nCore options:\n')
         carr = []
-        for key in ['buildtype', 'warning_level', 'werror', 'strip', 'unity', 'default_library']:
+        for key in ['buildtype', 'warning_level', 'werror', 'strip', 'unity', 'default_library', 'install_umask']:
             carr.append({'name': key,
                          'descr': coredata.get_builtin_option_description(key),
                          'value': self.coredata.get_builtin_option(key),
