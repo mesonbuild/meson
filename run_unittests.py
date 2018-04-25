@@ -3303,7 +3303,7 @@ class RewriterTests(unittest.TestCase):
 
 
 def unset_envs():
-    # For unit tests we must fully control all commend lines
+    # For unit tests we must fully control all command lines
     # so that there are no unexpected changes coming from the
     # environment, for example when doing a package build.
     varnames = ['CPPFLAGS', 'LDFLAGS'] + list(mesonbuild.environment.cflags_mapping.values())
