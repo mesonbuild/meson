@@ -64,6 +64,7 @@ buildtarget_kwargs = set([
     'install',
     'install_rpath',
     'install_dir',
+    'install_mode',
     'name_prefix',
     'name_suffix',
     'native',
@@ -668,6 +669,9 @@ class BuildTarget(Target):
     def get_custom_install_dir(self):
         return self.install_dir
 
+    def get_custom_install_mode(self):
+        return self.install_mode
+
     def process_kwargs(self, kwargs, environment):
         super().process_kwargs(kwargs)
         self.copy_kwargs(kwargs)
@@ -745,6 +749,7 @@ This will become a hard error in a future Meson release.''')
         # the list index of that item will not be installed
         self.install_dir = typeslistify(kwargs.get('install_dir', [None]),
                                         (str, bool))
+        self.install_mode = kwargs.get('install_mode', None)
         main_class = kwargs.get('main_class', '')
         if not isinstance(main_class, str):
             raise InvalidArguments('Main class must be a string')
@@ -1626,6 +1631,7 @@ class CustomTarget(Target):
         'capture',
         'install',
         'install_dir',
+        'install_mode',
         'build_always',
         'depends',
         'depend_files',
@@ -1774,9 +1780,11 @@ class CustomTarget(Target):
                 # If an item in this list is False, the output corresponding to
                 # the list index of that item will not be installed
                 self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
+                self.install_mode = kwargs.get('install_mode', None)
         else:
             self.install = False
             self.install_dir = [None]
+            self.install_mode = None
         self.build_always = kwargs.get('build_always', False)
         if not isinstance(self.build_always, bool):
             raise InvalidArguments('Argument build_always must be a boolean.')
@@ -1802,6 +1810,9 @@ class CustomTarget(Target):
 
     def get_custom_install_dir(self):
         return self.install_dir
+
+    def get_custom_install_mode(self):
+        return self.install_mode
 
     def get_outputs(self):
         return self.outputs

@@ -577,6 +577,7 @@ class Headers(InterpreterObject):
         self.sources = sources
         self.install_subdir = kwargs.get('subdir', '')
         self.custom_install_dir = kwargs.get('install_dir', None)
+        self.custom_install_mode = kwargs.get('install_mode', None)
         if self.custom_install_dir is not None:
             if not isinstance(self.custom_install_dir, str):
                 raise InterpreterException('Custom_install_dir must be a string.')
@@ -592,6 +593,9 @@ class Headers(InterpreterObject):
 
     def get_custom_install_dir(self):
         return self.custom_install_dir
+
+    def get_custom_install_mode(self):
+        return self.custom_install_mode
 
 class DataHolder(InterpreterObject, ObjectHolder):
     def __init__(self, data):
@@ -624,6 +628,7 @@ class Man(InterpreterObject):
         self.sources = sources
         self.validate_sources()
         self.custom_install_dir = kwargs.get('install_dir', None)
+        self.custom_install_mode = kwargs.get('install_mode', None)
         if self.custom_install_dir is not None and not isinstance(self.custom_install_dir, str):
             raise InterpreterException('Custom_install_dir must be a string.')
 
@@ -638,6 +643,9 @@ class Man(InterpreterObject):
 
     def get_custom_install_dir(self):
         return self.custom_install_dir
+
+    def get_custom_install_mode(self):
+        return self.custom_install_mode
 
     def get_sources(self):
         return self.sources
@@ -1716,8 +1724,8 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env'},
                     'benchmark': {'args', 'env', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'build_target': known_build_target_kwargs,
-                    'configure_file': {'input', 'output', 'configuration', 'command', 'copy', 'install_dir', 'capture', 'install', 'format', 'output_format'},
-                    'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
+                    'configure_file': {'input', 'output', 'configuration', 'command', 'copy', 'install_dir', 'install_mode', 'capture', 'install', 'format', 'output_format'},
+                    'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'install_mode', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
                     'dependency': {'default_options', 'fallback', 'language', 'main', 'method', 'modules', 'optional_modules', 'native', 'required', 'static', 'version', 'private_headers'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'link_whole', 'version'},
                     'executable': build.known_exe_kwargs,
@@ -1725,8 +1733,8 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'generator': {'arguments', 'output', 'depfile', 'capture', 'preserve_path_from'},
                     'include_directories': {'is_system'},
                     'install_data': {'install_dir', 'install_mode', 'rename', 'sources'},
-                    'install_headers': {'install_dir', 'subdir'},
-                    'install_man': {'install_dir'},
+                    'install_headers': {'install_dir', 'install_mode', 'subdir'},
+                    'install_man': {'install_dir', 'install_mode'},
                     'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'},
                     'jar': build.known_jar_kwargs,
                     'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
@@ -2932,6 +2940,7 @@ root and issuing %s.
         if len(args) != 1:
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
         name = args[0]
+        kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs), self)
         self.add_target(name, tg.held_object)
         return tg
@@ -3058,6 +3067,7 @@ root and issuing %s.
     @permittedKwargs(permitted_kwargs['install_headers'])
     def func_install_headers(self, node, args, kwargs):
         source_files = self.source_strings_to_files(args)
+        kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         h = Headers(source_files, kwargs)
         self.build.headers.append(h)
         return h
@@ -3065,6 +3075,7 @@ root and issuing %s.
     @permittedKwargs(permitted_kwargs['install_man'])
     def func_install_man(self, node, args, kwargs):
         fargs = self.source_strings_to_files(args)
+        kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         m = Man(fargs, kwargs)
         self.build.man.append(m)
         return m
@@ -3115,7 +3126,7 @@ root and issuing %s.
         self.subdir = prev_subdir
 
     def _get_kwarg_install_mode(self, kwargs):
-        if 'install_mode' not in kwargs:
+        if kwargs.get('install_mode', None) is None:
             return None
         install_mode = []
         mode = mesonlib.typeslistify(kwargs.get('install_mode', []), (str, int))
@@ -3358,7 +3369,8 @@ root and issuing %s.
         idir = kwargs.get('install_dir', None)
         if isinstance(idir, str) and idir:
             cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
-            self.build.data.append(build.Data([cfile], idir))
+            install_mode = self._get_kwarg_install_mode(kwargs)
+            self.build.data.append(build.Data([cfile], idir, install_mode))
         return mesonlib.File.from_built_file(self.subdir, output)
 
     @permittedKwargs(permitted_kwargs['include_directories'])
@@ -3642,6 +3654,7 @@ different subdirectory.
         sources = self.source_strings_to_files(sources)
         objs = extract_as_list(kwargs, 'objects')
         kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
+        kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         if 'extra_files' in kwargs:
             ef = extract_as_list(kwargs, 'extra_files')
             kwargs['extra_files'] = self.source_strings_to_files(ef)
