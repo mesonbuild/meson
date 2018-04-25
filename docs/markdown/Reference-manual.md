@@ -204,6 +204,8 @@ the `@variable@` syntax.
 - `install_dir` the subdirectory to install the generated file to
   (e.g. `share/myproject`), if omitted or given the value of empty
   string, the file is not installed.
+- `install_mode` *(added 0.47.0)* specify the file mode in symbolic format
+  and optionally the owner/uid and group/gid for the installed files.
 - `output` the output file name (since v0.41.0, may contain
   `@PLAINNAME@` or `@BASENAME@` substitutions). In configuration mode,
   the permissions of the input file (if it is specified) are copied to
@@ -261,6 +263,8 @@ following.
 - `input` list of source files. As of 0.41.0 the list will be flattened.
 - `install` when true, this target is installed during the install step
 - `install_dir` directory to install to
+- `install_mode` *(added 0.47.0)* the file mode and optionally the
+  owner/uid and group/gid
 - `output` list of output files
 
 The list of strings passed to the `command` keyword argument accept
@@ -472,6 +476,8 @@ be passed to [shared and static libraries](#library).
   relative to the `prefix` specified. F.ex, if you want to install
   plugins into a subdir, you'd use something like this: `install_dir :
   join_paths(get_option('libdir'), 'projectname-1.0'`).
+- `install_mode` *(added 0.47.0)* specify the file mode in symbolic format
+  and optionally the owner/uid and group/gid for the installed files.
 - `install_rpath` a string to set the target's rpath to after install
   (but *not* before that)
 - `objects` list of prebuilt object files (usually for third party
@@ -814,6 +820,11 @@ This will install `common.h` and `kola.h` into `/{prefix}/cust/myproj`:
 install_headers('common.h', 'proj/kola.h', install_dir : 'cust', subdir : 'myproj')
 ```
 
+The `install_mode` argument can be used to specify the file mode in symbolic
+format and optionally the owner/uid and group/gid for the installed files.
+An example value could be `['rwxr-sr-x', 'root', 'root']`.
+*(Added 0.47.0)*.
+
 ### install_man()
 
 ``` meson
@@ -825,6 +836,11 @@ man directory during the install step. This directory can be
 overridden by specifying it with the `install_dir` keyword
 argument. All man pages are compressed during installation and
 installed with a `.gz` suffix.
+
+The `install_mode` argument can be used to specify the file mode in symbolic
+format and optionally the owner/uid and group/gid for the installed files.
+An example value could be `['rwxr-sr-x', 'root', 'root']`.
+*(Added 0.47.0)*.
 
 ### install_subdir()
 
@@ -843,6 +859,8 @@ The following keyword arguments are supported:
 - `exclude_directories`: a list of directory names that should not be installed.
   Names are interpreted as paths relative to the `subdir_name` location.
 - `install_dir`: the location to place the installed subdirectory.
+- `install_mode`: the file mode in symbolic format and optionally
+  the owner/uid and group/gid for the installed files. *(Added 0.47.0)*
 - `strip_directory`: install directory contents. `strip_directory=false` by default.
   If `strip_directory=false` only last component of source path is used.
   Since 0.45.0
