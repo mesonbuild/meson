@@ -938,6 +938,12 @@ class Compiler:
     def openmp_flags(self):
         raise EnvironmentException('Language %s does not support OpenMP flags.' % self.get_display_language())
 
+    def language_stdlib_only_link_flags(self):
+        # The linker flags needed to link the standard library of the current
+        # language in. This is needed in cases where you e.g. combine D and C++
+        # and both of which need to link their runtime library in or otherwise
+        # building fails with undefined symbols.
+        return []
 
 GCC_STANDARD = 0
 GCC_OSX = 1

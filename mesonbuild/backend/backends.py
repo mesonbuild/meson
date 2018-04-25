@@ -318,21 +318,18 @@ class Backend:
             self.write_benchmark_file(datafile)
         return test_data, benchmark_data
 
-    def determine_linker(self, target):
+    def determine_linker_and_stdlib_args(self, target):
         '''
         If we're building a static library, there is only one static linker.
         Otherwise, we query the target for the dynamic linker.
         '''
         if isinstance(target, build.StaticLibrary):
             if target.is_cross:
-                return self.build.static_cross_linker
+                return self.build.static_cross_linker, []
             else:
-                return self.build.static_linker
-        l = target.get_clike_dynamic_linker()
-        if not l:
-            m = "Couldn't determine linker for target {!r}"
-            raise MesonException(m.format(target.name))
-        return l
+                return self.build.static_linker, []
+        l, stdlib_args = target.get_clike_dynamic_linker_and_stdlibs()
+        return l, stdlib_args
 
     def rpaths_for_bundled_shared_libraries(self, target):
         paths = []
