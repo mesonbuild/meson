@@ -1,0 +1,8 @@
+usr/bin/runscript.sh
+usr/bin/trivialprog?exe
+usr/include/config.h
+usr/include/rootdir.h
+usr/libtest/libstat.a
+usr/share/man/man1/foo.1.gz
+usr/share/sub1/second.dat
+usr/subdir/data.dat

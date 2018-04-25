@@ -303,6 +303,8 @@ def pass_libdir_to_test(dirname):
         return False
     if '39 libdir' in dirname:
         return False
+    if '201 install_mode' in dirname:
+        return False
     return True
 
 def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail):
