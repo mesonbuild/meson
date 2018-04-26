@@ -2429,8 +2429,8 @@ rule FORTRAN_DEP_HACK%s
         #   https://sourceware.org/bugzilla/show_bug.cgi?id=22843
         # * Meson optimizes libraries from the same build using the symbol extractor.
         #   Just letting ninja use ld generated dependencies would undo this optimization.
-        search_dirs = []
-        libs = []
+        search_dirs = OrderedSet()
+        libs = OrderedSet()
         absolute_libs = []
 
         build_dir = self.environment.get_build_dir()
@@ -2451,23 +2451,24 @@ rule FORTRAN_DEP_HACK%s
                         break
                 if not os.path.isabs(path):
                     path = os.path.join(build_dir, path)
-                search_dirs.append(path)
+                search_dirs.add(path)
             elif item.startswith('-l'):
                 if len(item) > 2:
-                    libs.append(item[2:])
+                    lib = item[2:]
                 else:
                     try:
-                        libs.append(next(it))
+                        lib = next(it)
                     except StopIteration:
                         mlog.warning("Generated linker command has '-l' argument without following library name")
                         break
+                libs.add(lib)
             elif os.path.isabs(item) and self.environment.is_library(item) and os.path.isfile(item):
                 absolute_libs.append(item)
 
         guessed_dependencies = []
         # TODO The get_library_naming requirement currently excludes link targets that use d or fortran as their main linker
         if hasattr(linker, 'get_library_naming'):
-            search_dirs += linker.get_library_dirs()
+            search_dirs = list(search_dirs) + linker.get_library_dirs()
             prefixes_static, suffixes_static = linker.get_library_naming(self.environment, 'static', strict=True)
             prefixes_shared, suffixes_shared = linker.get_library_naming(self.environment, 'shared', strict=True)
             for libname in libs:
