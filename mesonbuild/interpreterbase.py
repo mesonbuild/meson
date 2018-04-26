@@ -51,6 +51,22 @@ def _get_callee_args(wrapped_args):
     kwargs = kwargs if kwargs is not None else {}
     return s, node_or_state, args, kwargs
 
+def flatten(args):
+    if isinstance(args, mparser.StringNode):
+        return args.value
+    if isinstance(args, (int, str, mesonlib.File, InterpreterObject)):
+        return args
+    result = []
+    for a in args:
+        if isinstance(a, list):
+            rest = flatten(a)
+            result = result + rest
+        elif isinstance(a, mparser.StringNode):
+            result.append(a.value)
+        else:
+            result.append(a)
+    return result
+
 def noPosargs(f):
     @wraps(f)
     def wrapped(*wrapped_args, **wrapped_kwargs):
@@ -77,6 +93,10 @@ def stringArgs(f):
         check_stringlist(args)
         return f(*wrapped_args, **wrapped_kwargs)
     return wrapped
+
+def noArgsFlattening(f):
+    setattr(f, 'no-args-flattening', True)
+    return f
 
 class permittedKwargs:
 
@@ -121,7 +141,10 @@ class InterpreterObject:
 
     def method_call(self, method_name, args, kwargs):
         if method_name in self.methods:
-            return self.methods[method_name](args, kwargs)
+            method = self.methods[method_name]
+            if not getattr(method, 'no-args-flattening', False):
+                args = flatten(args)
+            return method(args, kwargs)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
 class MutableInterpreterObject(InterpreterObject):
@@ -481,7 +504,11 @@ The result of this is undefined and will become a hard error in a future Meson r
         if is_disabled(posargs, kwargs):
             return Disabler()
         if func_name in self.funcs:
-            return self.funcs[func_name](node, self.flatten(posargs), kwargs)
+            func = self.funcs[func_name]
+            if not getattr(func, 'no-args-flattening', False):
+                posargs = flatten(posargs)
+
+            return func(node, posargs, kwargs)
         else:
             self.unknown_function_called(func_name)
 
@@ -515,7 +542,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             return Disabler()
         if method_name == 'extract_objects':
             self.validate_extraction(obj.held_object)
-        return obj.method_call(method_name, self.flatten(args), kwargs)
+        return obj.method_call(method_name, args, kwargs)
 
     def bool_method_call(self, obj, method_name, args):
         (posargs, kwargs) = self.reduce_arguments(args)
@@ -674,22 +701,6 @@ The result of this is undefined and will become a hard error in a future Meson r
             reduced_kw[key] = self.evaluate_statement(a)
         self.argument_depth -= 1
         return reduced_pos, reduced_kw
-
-    def flatten(self, args):
-        if isinstance(args, mparser.StringNode):
-            return args.value
-        if isinstance(args, (int, str, mesonlib.File, InterpreterObject)):
-            return args
-        result = []
-        for a in args:
-            if isinstance(a, list):
-                rest = self.flatten(a)
-                result = result + rest
-            elif isinstance(a, mparser.StringNode):
-                result.append(a.value)
-            else:
-                result.append(a)
-        return result
 
     def assignment(self, node):
         assert(isinstance(node, mparser.AssignmentNode))
