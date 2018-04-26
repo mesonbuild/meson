@@ -127,21 +127,23 @@ class permittedKwargs:
 class FeatureNew:
     """Checks for new features"""
     # Shared across all instances
-    min_feature_versions = dict()
+    feature_versions = dict()
 
-    def __init__(self, feature_name, first_version):
+    def __init__(self, feature_name, version):
         self.feature_name = feature_name
-        self.feature_version = first_version
+        self.feature_version = version
 
     def add_called_feature(self):
-        if self.feature_version not in self.min_feature_versions:
-            self.min_feature_versions[self.feature_version] = []
-        self.min_feature_versions[self.feature_version].append(self.feature_name)
+        if self.feature_version not in self.feature_versions:
+            self.feature_versions[self.feature_version] = []
+        self.feature_versions[self.feature_version].append(self.feature_name)
 
     def called_features_report():
-        print('Minimum version of features used:')
-        for version in sorted(FeatureNew.min_feature_versions.keys()):
-            print('{}: {}'.format(version, FeatureNew.min_feature_versions[version]))
+        fv = FeatureNew.feature_versions
+        if fv:
+            print('Minimum version of features used:')
+            for version in sorted(fv.keys()):
+                print('{}: {}'.format(version, fv[version]))
 
     def use(self):
         self.add_called_feature()
@@ -163,21 +165,23 @@ class FeatureNew:
 class FeatureDeprecated:
     """Checks for deprecated features"""
     # Shared across all instances
-    max_feature_versions = dict()
+    feature_versions = dict()
 
-    def __init__(self, feature_name, first_version):
+    def __init__(self, feature_name, version):
         self.feature_name = feature_name
-        self.feature_version = first_version
+        self.feature_version = version
 
     def add_called_feature(self):
-        if self.feature_version not in self.max_feature_versions:
-            self.max_feature_versions[self.feature_version] = []
-        self.max_feature_versions[self.feature_version].append(self.feature_name)
+        if self.feature_version not in self.feature_versions:
+            self.feature_versions[self.feature_version] = []
+        self.feature_versions[self.feature_version].append(self.feature_name)
 
     def called_features_report():
-        print('Deprecated features used:')
-        for version in sorted(FeatureDeprecated.max_feature_versions.keys()):
-            print('{}: {}'.format(version, FeatureDeprecated.max_feature_versions[version]))
+        fv = FeatureDeprecated.feature_versions
+        if fv:
+            print('Deprecated features used:')
+            for version in sorted(fv.keys()):
+                print('{}: {}'.format(version, fv[version]))
 
     def use(self):
         self.add_called_feature()
