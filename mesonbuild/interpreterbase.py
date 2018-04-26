@@ -143,17 +143,20 @@ class FeatureNew:
         for version in sorted(FeatureNew.min_feature_versions.keys()):
             print('{}: {}'.format(version, FeatureNew.min_feature_versions[version]))
 
+    def use(self):
+        self.add_called_feature()
+        tv = coredata.target_version
+        if tv == '':
+            return
+        if not mesonlib.version_compare_condition_with_min(tv, self.feature_version):
+            mlog.error(
+                '''Project targetting \'{}\' but tried to use feature introduced in \'{}\': {}'''
+                .format(tv, self.feature_version, self.feature_name))
+
     def __call__(self, f):
         @wraps(f)
         def wrapped(*wrapped_args, **wrapped_kwargs):
-            self.add_called_feature()
-            tv = coredata.target_version
-            if tv == '':
-                return
-            if not mesonlib.version_compare_condition_with_min(tv, self.feature_version):
-                mlog.error(
-                    '''Project targetting \'{}\' but tried to use feature introduced in \'{}\': {}'''
-                    .format(tv, self.feature_version, self.feature_name))
+            self.use()
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
@@ -176,18 +179,20 @@ class FeatureDeprecated:
         for version in sorted(FeatureDeprecated.max_feature_versions.keys()):
             print('{}: {}'.format(version, FeatureDeprecated.max_feature_versions[version]))
 
+    def use(self):
+        self.add_called_feature()
+        tv = coredata.target_version
+        if tv == '':
+            return
+        if not mesonlib.version_compare_condition_with_max(tv, self.feature_version):
+            mlog.error(
+                '''Project targetting \'{}\' but tried to use feature deprecated since \'{}\': {}'''
+                .format(tv, self.feature_version, self.feature_name))
+
     def __call__(self, f):
         @wraps(f)
         def wrapped(*wrapped_args, **wrapped_kwargs):
-            print('deprecated:', self.feature_name, self.feature_version)
-            self.add_called_feature()
-            tv = coredata.target_version
-            if tv == '':
-                return
-            if not mesonlib.version_compare_condition_with_max(tv, self.feature_version):
-                mlog.error(
-                    '''Project targetting \'{}\' but tried to use feature deprecated since \'{}\': {}'''
-                    .format(tv, self.feature_version, self.feature_name))
+            self.use()
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
