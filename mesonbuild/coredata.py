@@ -105,6 +105,22 @@ class UserIntegerOption(UserOption):
         except ValueError:
             raise MesonException('Value string "%s" is not convertable to an integer.' % valuestring)
 
+class UserUmaskOption(UserIntegerOption):
+    def __init__(self, name, description, value, yielding=None):
+        super().__init__(name, description, 0, 0o777, value, yielding)
+
+    def set_value(self, newvalue):
+        if newvalue is None or newvalue == 'preserve':
+            self.value = None
+        else:
+            super().set_value(newvalue)
+
+    def toint(self, valuestring):
+        try:
+            return int(valuestring, 8)
+        except ValueError as e:
+            raise MesonException('Invalid mode: {}'.format(e))
+
 class UserComboOption(UserOption):
     def __init__(self, name, description, choices, value, yielding=None):
         super().__init__(name, description, choices, yielding)
@@ -351,12 +367,12 @@ def is_builtin_option(optname):
 
 def get_builtin_option_choices(optname):
     if is_builtin_option(optname):
-        if builtin_options[optname][0] == UserStringOption:
-            return None
+        if builtin_options[optname][0] == UserComboOption:
+            return builtin_options[optname][2]
         elif builtin_options[optname][0] == UserBooleanOption:
             return [True, False]
         else:
-            return builtin_options[optname][2]
+            return None
     else:
         raise RuntimeError('Tried to get the supported values for an unknown builtin option \'%s\'.' % optname)
 
@@ -385,6 +401,8 @@ def get_builtin_option_default(optname, prefix='', noneIfSuppress=False):
         o = builtin_options[optname]
         if o[0] == UserComboOption:
             return o[3]
+        if o[0] == UserIntegerOption:
+            return o[4]
         if optname in builtin_dir_noprefix_options:
             if noneIfSuppress:
                 # Return None if argparse defaulting should be suppressed for
@@ -444,6 +462,7 @@ builtin_options = {
     'backend':         [UserComboOption, 'Backend to use.', backendlist, 'ninja'],
     'stdsplit':        [UserBooleanOption, 'Split stdout and stderr in test logs.', True],
     'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests.", True],
+    'install_umask':   [UserUmaskOption, 'Default umask to apply on permissions of installed files.', '022'],
 }
 
 # Special prefix-dependent defaults for installation directories that reside in
