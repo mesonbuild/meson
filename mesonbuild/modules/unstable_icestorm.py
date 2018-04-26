@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .. import mesonlib
+from ..interpreterbase import flatten
 
 from . import ExtensionModule
 
@@ -42,7 +43,7 @@ class IceStormModule(ExtensionModule):
         kwarg_sources = kwargs.get('sources', [])
         if not isinstance(kwarg_sources, list):
             kwarg_sources = [kwarg_sources]
-        all_sources = interpreter.source_strings_to_files(interpreter.flatten(arg_sources + kwarg_sources))
+        all_sources = interpreter.source_strings_to_files(flatten(arg_sources + kwarg_sources))
         if 'constraint_file' not in kwargs:
             raise mesonlib.MesonException('Constraint file not specified.')
 
