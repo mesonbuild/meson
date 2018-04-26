@@ -25,6 +25,7 @@ from ..interpreterbase import (
     InterpreterObject, InvalidArguments
 )
 from ..interpreter import ExternalProgramHolder
+from ..interpreterbase import flatten
 from ..build import known_shmod_kwargs
 from .. import mlog
 from ..environment import detect_cpu_family
@@ -414,6 +415,9 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
             fn = getattr(self, method_name)
         except AttributeError:
             raise InvalidArguments('Python object does not have method %s.' % method_name)
+
+        if not getattr(fn, 'no-args-flattening', False):
+            args = flatten(args)
 
         if method_name in ['extension_module', 'dependency', 'install_sources']:
             value = fn(self.interpreter, None, args, kwargs)
