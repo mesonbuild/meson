@@ -2285,6 +2285,7 @@ to directly access options of other subprojects.''')
         if 'meson_version' in kwargs:
             cv = coredata.version
             pv = kwargs['meson_version']
+            coredata.target_version = pv
             if not mesonlib.version_compare(cv, pv):
                 raise InterpreterException('Meson version is %s but project requires %s.' % (cv, pv))
         self.build.projects[self.subproject] = proj_name

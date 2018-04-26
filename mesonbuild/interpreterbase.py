@@ -17,6 +17,7 @@
 
 from . import mparser, mesonlib, mlog
 from . import environment, dependencies
+from . import coredata
 
 import os, copy, re, types
 from functools import wraps
@@ -120,6 +121,22 @@ class permittedKwargs:
                 if k not in self.permitted:
                     mlog.warning('''Passed invalid keyword argument "{}".'''.format(k), location=loc)
                     mlog.warning('This will become a hard error in the future.')
+            return f(*wrapped_args, **wrapped_kwargs)
+        return wrapped
+
+class featureVersion:
+    """Checks for newer/deprecated features"""
+
+    def __init__(self, feature_name, wanted_version):
+        self.feature_name = feature_name
+        self.wanted_version = wanted_version
+
+    def __call__(self, f):
+        @wraps(f)
+        def wrapped(*wrapped_args, **wrapped_kwargs):
+            tv = coredata.target_version
+            if tv == '':
+                return
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
