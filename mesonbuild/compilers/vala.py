@@ -52,6 +52,12 @@ class ValaCompiler(Compiler):
     def get_no_warn_args(self):
         return ['--disable-warnings']
 
+    def get_generated_warn_args(self, level):
+        default_generated_warn_args = []
+        return {'1': self.get_no_warn_args(),
+                '2': default_generated_warn_args,
+                '3': default_generated_warn_args}[level]
+
     def get_werror_args(self):
         return ['--fatal-warnings']
 

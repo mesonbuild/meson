@@ -148,6 +148,10 @@ end program prog
     def get_no_warn_args(self):
         return ['-w']
 
+    def get_generated_warn_args(self, level):
+        return {'1': self.get_no_warn_args(),
+                '2': [],
+                '3': []}[level]
 
 class GnuFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):

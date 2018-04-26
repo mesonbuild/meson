@@ -96,3 +96,25 @@ custom_target('foo typelib', command: [g_ir_compiler, '--output', '@OUTPUT@', '@
               install: true,
               install_dir: join_paths(get_option('libdir'), 'girepository-1.0'))
 ```
+
+## Posix mode
+
+Vala requires both `glib-2.0` and `gobject-2.0` to function properly. In that
+perspective, the [posixvala](https://github,com/radare/posixvala) project
+provides a minimal header-only and posix-compatible stub that can be used for
+targeting embedded environment.
+
+```meson
+project('foo', 'c', 'vala')
+
+glib_dep = dependency('glib-posix-2.0')
+gobject_dep = dependency('gobject-posix-2.0')
+
+executable('foo', 'foo.vala',
+           dependencies: [glib_dep, gobject_dep])
+```
+
+If used as a subproject, `glib_posix_dep` and `gobject_posix_dep` variables can
+be imported.
+
+Not all features of the language are made available.

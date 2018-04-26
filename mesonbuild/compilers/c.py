@@ -86,6 +86,9 @@ class CCompiler(Compiler):
         # Almost every compiler uses this for disabling warnings
         return ['-w']
 
+    def get_generated_warn_args(self, level):
+        return self.generated_warn_args[level]
+
     def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, version, is_shared_module):
         return []
 
@@ -875,6 +878,11 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+        # TODO: add relevant args for this compiler
+        default_generated_warn_args = []
+        self.generated_warn_args = {'1': default_generated_warn_args + self.get_no_warn_args(),
+                                    '2': default_generated_warn_args,
+                                    '3': default_generated_warn_args}
 
     def get_options(self):
         return {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
@@ -907,6 +915,14 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+        default_generated_warn_args = ['-Wno-unused-variable',
+                                       '-Wno-unused-but-set-variable',
+                                       '-Wno-unused-function',
+                                       '-Wno-unused-parameter',
+                                       '-Wno-unused-value']
+        self.generated_warn_args = {'1': default_generated_warn_args + self.get_no_warn_args(),
+                                    '2': default_generated_warn_args,
+                                    '3': default_generated_warn_args}
 
     def get_options(self):
         opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
@@ -970,6 +986,11 @@ class IntelCCompiler(IntelCompiler, CCompiler):
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+        # TODO: add relevant args for this compiler
+        default_generated_warn_args = []
+        self.generated_warn_args = {'1': default_generated_warn_args + self.get_no_warn_args(),
+                                    '2': default_generated_warn_args,
+                                    '3': default_generated_warn_args}
 
     def get_options(self):
         c_stds = ['c89', 'c99']
@@ -1009,6 +1030,11 @@ class VisualStudioCCompiler(CCompiler):
         self.warn_args = {'1': ['/W2'],
                           '2': ['/W3'],
                           '3': ['/W4']}
+        # TODO: add relevant args for this compiler
+        default_generated_warn_args = []
+        self.generated_warn_args = {'1': default_generated_warn_args + self.get_no_warn_args(),
+                                    '2': default_generated_warn_args,
+                                    '3': default_generated_warn_args}
         self.base_options = ['b_pch', 'b_ndebug'] # FIXME add lto, pgo and the like
         self.is_64 = is_64
 
