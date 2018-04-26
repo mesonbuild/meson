@@ -28,6 +28,7 @@ from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, flatten, noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler
+from .interpreterbase import FeatureNew, FeatureDeprecated
 from .modules import ModuleReturnValue
 
 import os, sys, shutil, uuid
