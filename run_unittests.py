@@ -2073,6 +2073,45 @@ recommended as it can lead to undefined behaviour on some platforms''')
         self._test_same_option_twice_configure(
             'one', ['-Done=foo', '-Done=bar'])
 
+    def test_command_line(self):
+        testdir = os.path.join(self.unit_test_dir, '30 command line')
+
+        self.init(testdir)
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['default_library'].value, 'shared')
+        self.wipe()
+
+        self.init(testdir, extra_args=['--warnlevel=2'])
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '2')
+        self.setconf('--warnlevel=3')
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '3')
+        self.wipe()
+
+        self.init(testdir, extra_args=['-Dwarning_level=2'])
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '2')
+        self.setconf('-Dwarning_level=3')
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '3')
+        self.wipe()
+
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(testdir, extra_args=['--warnlevel=1', '-Dwarning_level=3'])
+        self.assertEqual(cm.exception.returncode, 1)
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.setconf('--warnlevel=1', '-Dwarning_level=3')
+        self.assertEqual(cm.exception.returncode, 1)
+        self.wipe()
+
+        self.init(testdir, extra_args=['--default-library=static'])
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['default_library'].value, 'static')
+        self.setconf('--default-library=shared')
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['default_library'].value, 'shared')
+        self.wipe()
 
 
 class FailureTests(BasePlatformTests):

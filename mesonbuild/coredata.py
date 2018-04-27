@@ -390,12 +390,6 @@ def get_builtin_option_action(optname):
         return 'store_true'
     return None
 
-def get_builtin_option_destination(optname):
-    optname = optname.replace('-', '_')
-    if optname == 'warnlevel':
-        return 'warning_level'
-    return optname
-
 def get_builtin_option_default(optname, prefix='', noneIfSuppress=False):
     if is_builtin_option(optname):
         o = builtin_options[optname]
@@ -415,28 +409,64 @@ def get_builtin_option_default(optname, prefix='', noneIfSuppress=False):
     else:
         raise RuntimeError('Tried to get the default value for an unknown builtin option \'%s\'.' % optname)
 
+def get_builtin_option_cmdline_name(name):
+    if name == 'warning_level':
+        return '--warnlevel'
+    else:
+        return '--' + name.replace('_', '-')
+
 def add_builtin_argument(p, name):
     kwargs = {}
-    k = get_builtin_option_destination(name)
-    c = get_builtin_option_choices(k)
-    b = get_builtin_option_action(k)
-    h = get_builtin_option_description(k)
+    c = get_builtin_option_choices(name)
+    b = get_builtin_option_action(name)
+    h = get_builtin_option_description(name)
     if not b:
-        h = h.rstrip('.') + ' (default: %s).' % get_builtin_option_default(k)
+        h = h.rstrip('.') + ' (default: %s).' % get_builtin_option_default(name)
     else:
         kwargs['action'] = b
     if c and not b:
         kwargs['choices'] = c
-    default = get_builtin_option_default(k, noneIfSuppress=True)
+    default = get_builtin_option_default(name, noneIfSuppress=True)
     if default is not None:
         kwargs['default'] = default
     else:
         kwargs['default'] = argparse.SUPPRESS
-    p.add_argument('--' + name.replace('_', '-'), help=h, **kwargs)
+    kwargs['dest'] = name
+
+    cmdline_name = get_builtin_option_cmdline_name(name)
+    p.add_argument(cmdline_name, help=h, **kwargs)
 
 def register_builtin_arguments(parser):
     for n in builtin_options:
         add_builtin_argument(parser, n)
+    parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
+                        help='Set the value of an option, can be used several times to set multiple options.')
+
+def filter_builtin_options(args, original_args):
+    """Filter out any builtin arguments passed as -- instead of -D.
+
+    Error if an argument is passed with -- and -D
+    """
+    for name in builtin_options:
+        # Check if user passed --option. Cannot use hasattr(args, name) here
+        # because they are all set with default value if user didn't pass it.
+        cmdline_name = get_builtin_option_cmdline_name(name)
+        has_dashdash = any([a.startswith(cmdline_name) for a in original_args])
+
+        # Chekc if user passed -Doption=value
+        has_dashd = any([a.startswith('{}='.format(name)) for a in args.projectoptions])
+
+        # Passing both is ambigous, abort
+        if has_dashdash and has_dashd:
+            raise MesonException(
+                'Got argument {0} as both -D{0} and {1}. Pick one.'.format(name, cmdline_name))
+
+        # Pretend --option never existed
+        if has_dashdash:
+            args.projectoptions.append('{}={}'.format(name, getattr(args, name)))
+        if hasattr(args, name):
+            delattr(args, name)
+
 
 builtin_options = {
     'buildtype':  [UserComboOption, 'Build type to use.', ['plain', 'debug', 'debugoptimized', 'release', 'minsize'], 'debug'],
