@@ -28,7 +28,7 @@ from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, flatten, noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler
-from .interpreterbase import FeatureNew, FeatureDeprecated
+from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
 from .modules import ModuleReturnValue
 
 import os, sys, shutil, uuid
@@ -2817,6 +2817,7 @@ root and issuing %s.
     def func_both_lib(self, node, args, kwargs):
         return self.build_both_libraries(node, args, kwargs)
 
+    @FeatureNew('Shared Modules', '0.37.0')
     @permittedKwargs(permitted_kwargs['shared_module'])
     def func_shared_module(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, SharedModuleHolder)

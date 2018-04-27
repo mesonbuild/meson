@@ -30,7 +30,7 @@ from . import ExtensionModule
 from . import ModuleReturnValue
 from ..mesonlib import MesonException, OrderedSet, Popen_safe, extract_as_list
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreterbase import noKwargs, permittedKwargs
+from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -95,6 +95,7 @@ class GnomeModule(ExtensionModule):
                          mlog.bold('https://github.com/mesonbuild/meson/issues/1387'))
             gdbuswarning_printed = True
 
+    @FeatureNewKwargs('gnome.compile_resources', '0.37.0', ['gresource_bundle', 'export', 'install_header'])
     @permittedKwargs({'source_dir', 'c_name', 'dependencies', 'export', 'gresource_bundle', 'install_header',
                       'install', 'install_dir', 'extra_args', 'build_by_default'})
     def compile_resources(self, state, args, kwargs):
@@ -721,6 +722,7 @@ This will become a hard error in the future.''')
         rv = [inscript, pottarget, potarget]
         return ModuleReturnValue(None, rv)
 
+    @FeatureNewKwargs('gnome.gtkdoc', '0.37.0', ['namespace', 'mode'])
     @permittedKwargs({'main_xml', 'main_sgml', 'src_dir', 'dependencies', 'install',
                       'install_dir', 'scan_args', 'scanobjs_args', 'gobject_typesfile',
                       'fixxref_args', 'html_args', 'html_assets', 'content_files',
