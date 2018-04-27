@@ -104,6 +104,8 @@ class Lexer:
             ('rparen', re.compile(r'\)')),
             ('lbracket', re.compile(r'\[')),
             ('rbracket', re.compile(r'\]')),
+            ('lcurl', re.compile(r'\{')),
+            ('rcurl', re.compile(r'\}')),
             ('dblquote', re.compile(r'"')),
             ('string', re.compile(r"'([^'\\]|(\\.))*'")),
             ('comma', re.compile(r',')),
@@ -134,6 +136,7 @@ class Lexer:
         loc = 0
         par_count = 0
         bracket_count = 0
+        curl_count = 0
         col = 0
         while loc < len(self.code):
             matched = False
@@ -160,6 +163,10 @@ class Lexer:
                         bracket_count += 1
                     elif tid == 'rbracket':
                         bracket_count -= 1
+                    elif tid == 'lcurl':
+                        curl_count += 1
+                    elif tid == 'rcurl':
+                        curl_count -= 1
                     elif tid == 'dblquote':
                         raise ParseException('Double quotes are not supported. Use single quotes.', self.getline(line_start), lineno, col)
                     elif tid == 'string':
@@ -187,7 +194,7 @@ This will become a hard error in a future Meson release.""", self.getline(line_s
                     elif tid == 'eol' or tid == 'eol_cont':
                         lineno += 1
                         line_start = loc
-                        if par_count > 0 or bracket_count > 0:
+                        if par_count > 0 or bracket_count > 0 or curl_count > 0:
                             break
                     elif tid == 'id':
                         if match_text in self.keywords:
@@ -235,6 +242,13 @@ class StringNode(ElementaryNode):
         return "String node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
 
 class ArrayNode:
+    def __init__(self, args):
+        self.subdir = args.subdir
+        self.lineno = args.lineno
+        self.colno = args.colno
+        self.args = args
+
+class DictNode:
     def __init__(self, args):
         self.subdir = args.subdir
         self.lineno = args.lineno
@@ -340,10 +354,10 @@ class PlusAssignmentNode:
         self.value = value
 
 class ForeachClauseNode:
-    def __init__(self, lineno, colno, varname, items, block):
+    def __init__(self, lineno, colno, varnames, items, block):
         self.lineno = lineno
         self.colno = colno
-        self.varname = varname
+        self.varnames = varnames
         self.items = items
         self.block = block
 
@@ -601,6 +615,10 @@ class Parser:
             args = self.args()
             self.block_expect('rbracket', block_start)
             return ArrayNode(args)
+        elif self.accept('lcurl'):
+            key_values = self.key_values()
+            self.block_expect('rcurl', block_start)
+            return DictNode(key_values)
         else:
             return self.e9()
 
@@ -617,6 +635,30 @@ class Parser:
         if self.accept('string'):
             return StringNode(t)
         return EmptyNode(self.current.lineno, self.current.colno)
+
+    def key_values(self):
+        s = self.statement()
+        a = ArgumentNode(s)
+
+        while not isinstance(s, EmptyNode):
+            potential = self.current
+            if self.accept('comma'):
+                a.commas.append(potential)
+                a.append(s)
+            elif self.accept('colon'):
+                if not isinstance(s, StringNode):
+                    raise ParseException('Key must be a string.',
+                                         self.getline(), s.lineno, s.colno)
+                a.set_kwarg(s.value, self.statement())
+                potential = self.current
+                if not self.accept('comma'):
+                    return a
+                a.commas.append(potential)
+            else:
+                a.append(s)
+                return a
+            s = self.statement()
+        return a
 
     def args(self):
         s = self.statement()
@@ -664,10 +706,17 @@ class Parser:
         t = self.current
         self.expect('id')
         varname = t
+        varnames = [t]
+
+        if (self.accept('comma')):
+            t = self.current
+            self.expect('id')
+            varnames.append(t)
+
         self.expect('colon')
         items = self.statement()
         block = self.codeblock()
-        return ForeachClauseNode(varname.lineno, varname.colno, varname, items, block)
+        return ForeachClauseNode(varname.lineno, varname.colno, varnames, items, block)
 
     def ifblock(self):
         condition = self.statement()

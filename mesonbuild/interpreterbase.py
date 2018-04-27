@@ -265,6 +265,8 @@ class InterpreterBase:
             return self.evaluate_comparison(cur)
         elif isinstance(cur, mparser.ArrayNode):
             return self.evaluate_arraystatement(cur)
+        elif isinstance(cur, mparser.DictNode):
+            return self.evaluate_dictstatement(cur)
         elif isinstance(cur, mparser.NumberNode):
             return cur.value
         elif isinstance(cur, mparser.AndNode):
@@ -295,6 +297,12 @@ class InterpreterBase:
         if len(kwargs) > 0:
             raise InvalidCode('Keyword arguments are invalid in array construction.')
         return arguments
+
+    def evaluate_dictstatement(self, cur):
+        (arguments, kwargs) = self.reduce_arguments(cur.args)
+        if len(arguments) > 0:
+            raise InvalidCode('Only key:value pairs are valid in dict construction.')
+        return kwargs
 
     def evaluate_notstatement(self, cur):
         v = self.evaluate_statement(cur.value)
@@ -444,15 +452,28 @@ The result of this is undefined and will become a hard error in a future Meson r
 
     def evaluate_foreach(self, node):
         assert(isinstance(node, mparser.ForeachClauseNode))
-        varname = node.varname.value
         items = self.evaluate_statement(node.items)
-        if is_disabler(items):
-            return items
-        if not isinstance(items, list):
-            raise InvalidArguments('Items of foreach loop is not an array')
-        for item in items:
-            self.set_variable(varname, item)
-            self.evaluate_codeblock(node.block)
+
+        if isinstance(items, list):
+            if len(node.varnames) != 1:
+                raise InvalidArguments('Foreach on array does not unpack')
+            varname = node.varnames[0].value
+            if is_disabler(items):
+                return items
+            for item in items:
+                self.set_variable(varname, item)
+                self.evaluate_codeblock(node.block)
+        elif isinstance(items, dict):
+            if len(node.varnames) != 2:
+                raise InvalidArguments('Foreach on dict unpacks key and value')
+            if is_disabler(items):
+                return items
+            for key, value in items.items():
+                self.set_variable(node.varnames[0].value, key)
+                self.set_variable(node.varnames[1].value, value)
+                self.evaluate_codeblock(node.block)
+        else:
+            raise InvalidArguments('Items of foreach loop must be an array or a dict')
 
     def evaluate_plusassign(self, node):
         assert(isinstance(node, mparser.PlusAssignmentNode))
@@ -491,12 +512,21 @@ The result of this is undefined and will become a hard error in a future Meson r
             raise InterpreterException(
                 'Tried to index an object that doesn\'t support indexing.')
         index = self.evaluate_statement(node.index)
-        if not isinstance(index, int):
-            raise InterpreterException('Index value is not an integer.')
-        try:
-            return iobject[index]
-        except IndexError:
-            raise InterpreterException('Index %d out of bounds of array of size %d.' % (index, len(iobject)))
+
+        if isinstance(iobject, dict):
+            if not isinstance(index, str):
+                raise InterpreterException('Key is not a string')
+            try:
+                return iobject[index]
+            except KeyError:
+                raise InterpreterException('Key %s is not in dict' % index)
+        else:
+            if not isinstance(index, int):
+                raise InterpreterException('Index value is not an integer.')
+            try:
+                return iobject[index]
+            except IndexError:
+                raise InterpreterException('Index %d out of bounds of array of size %d.' % (index, len(iobject)))
 
     def function_call(self, node):
         func_name = node.func_name
@@ -741,7 +771,7 @@ To specify a keyword argument, use : instead of =.''')
 
     def is_assignable(self, value):
         return isinstance(value, (InterpreterObject, dependencies.Dependency,
-                                  str, int, list, mesonlib.File))
+                                  str, int, list, dict, mesonlib.File))
 
     def is_elementary_type(self, v):
         return isinstance(v, (int, float, str, bool, list))

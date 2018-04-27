@@ -45,6 +45,8 @@ permitted_method_kwargs = {
 def stringifyUserArguments(args):
     if isinstance(args, list):
         return '[%s]' % ', '.join([stringifyUserArguments(x) for x in args])
+    elif isinstance(args, dict):
+        return '{%s}' % ', '.join(['%s : %s' % (stringifyUserArguments(k), stringifyUserArguments(v)) for k, v in args.items()])
     elif isinstance(args, int):
         return str(args)
     elif isinstance(args, str):
@@ -2272,6 +2274,8 @@ to directly access options of other subprojects.''')
 
         arg = posargs[0]
         if isinstance(arg, list):
+            argstr = stringifyUserArguments(arg)
+        elif isinstance(arg, dict):
             argstr = stringifyUserArguments(arg)
         elif isinstance(arg, str):
             argstr = arg
