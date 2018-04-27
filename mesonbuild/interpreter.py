@@ -260,6 +260,7 @@ This will become a hard error in the future''')
     def has_method(self, args, kwargs):
         return args[0] in self.held_object.values
 
+    @FeatureNew('configuration_data.get()', '0.38.0')
     @noArgsFlattening
     def get_method(self, args, kwargs):
         if len(args) < 1 or len(args) > 2:
@@ -2068,6 +2069,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_option(self, nodes, args, kwargs):
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
 
+    @FeatureNewKwargs('subproject', '0.38.0', ['default_options'])
     @permittedKwargs(permitted_kwargs['subproject'])
     @stringArgs
     def func_subproject(self, nodes, args, kwargs):
@@ -2653,6 +2655,7 @@ to directly access options of other subprojects.''')
                                       'dep {}'.format(found, dirname, wanted, name))
         return None
 
+    @FeatureNewKwargs('dependency', '0.38.0', ['default_options'])
     @permittedKwargs(permitted_kwargs['dependency'])
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
@@ -3100,6 +3103,7 @@ root and issuing %s.
                                    'permissions arg to be a string or false')
         return FileMode(*install_mode)
 
+    @FeatureNewKwargs('install_data', '0.38.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_data'])
     def func_install_data(self, node, args, kwargs):
         kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
@@ -3121,6 +3125,7 @@ root and issuing %s.
         self.build.data.append(data.held_object)
         return data
 
+    @FeatureNewKwargs('install_subdir', '0.38.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_subdir'])
     @stringArgs
     def func_install_subdir(self, node, args, kwargs):
