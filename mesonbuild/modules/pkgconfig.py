@@ -21,7 +21,7 @@ from .. import mesonlib
 from .. import mlog
 from . import ModuleReturnValue
 from . import ExtensionModule
-from ..interpreterbase import permittedKwargs
+from ..interpreterbase import permittedKwargs, FeatureNewKwargs, FeatureNew
 
 class DependenciesHelper:
     def __init__(self, name):
@@ -304,10 +304,13 @@ class PkgConfigModule(ExtensionModule):
                 ofile.write(self._escape(f))
             ofile.write('\n')
 
+    @FeatureNewKwargs('pkgconfig.generate', '0.41.0', ['variables'])
     @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
                       'subdirs', 'requires', 'requires_private', 'libraries_private',
                       'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions'})
     def generate(self, state, args, kwargs):
+        if 'variables' in kwargs:
+            FeatureNew('custom pkgconfig variables', '0.41.0').use()
         default_version = state.project_version['version']
         default_install_dir = None
         default_description = None

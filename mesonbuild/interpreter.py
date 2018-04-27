@@ -2861,6 +2861,8 @@ root and issuing %s.
     def func_vcs_tag(self, node, args, kwargs):
         if 'input' not in kwargs or 'output' not in kwargs:
             raise InterpreterException('Keyword arguments input and output must exist')
+        if 'fallback' not in kwargs:
+            FeatureNew('Optional fallback in vcs_tag', '0.41.0').use()
         fallback = kwargs.pop('fallback', self.project_version)
         if not isinstance(fallback, str):
             raise InterpreterException('Keyword argument fallback must be a string.')
@@ -3174,6 +3176,7 @@ root and issuing %s.
         self.build.install_dirs.append(idir)
         return idir
 
+    @FeatureNewKwargs('configure_file', '0.41.0', ['capture'])
     @permittedKwargs(permitted_kwargs['configure_file'])
     def func_configure_file(self, node, args, kwargs):
         if len(args) > 0:

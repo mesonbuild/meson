@@ -331,6 +331,7 @@ a hard error in the future.''' % name)
             myid = subdir_part + '@@' + myid
         return myid
 
+    @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
     @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     def process_kwargs(self, kwargs):
         if 'build_by_default' in kwargs:
