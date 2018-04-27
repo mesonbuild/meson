@@ -199,6 +199,36 @@ class FeatureDeprecated:
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
+class FeatureNewKwargs:
+    def __init__(self, feature_name, feature_version, kwargs):
+        self.feature_name = feature_name
+        self.feature_version = feature_version
+        self.kwargs = kwargs
+
+    def __call__(self, f):
+        @wraps(f)
+        def wrapped(*wrapped_args, **wrapped_kwargs):
+            for arg in self.kwargs:
+                if arg in wrapped_kwargs:
+                    FeatureNew(arg + ' arg in ' + self.feature_name, self.feature_version).use()
+            return f(*wrapped_args, **wrapped_kwargs)
+        return wrapped
+
+class FeatureDeprecatedKwargs:
+    def __init__(self, feature_name, feature_version, kwargs):
+        self.feature_name = feature_name
+        self.feature_version = feature_version
+        self.kwargs = kwargs
+
+    def __call__(self, f):
+        @wraps(f)
+        def wrapped(*wrapped_args, **wrapped_kwargs):
+            for arg in self.kwargs:
+                if arg in wrapped_kwargs:
+                    FeatureDeprecated(arg + ' arg in ' + self.feature_name, self.feature_version).use()
+            return f(*wrapped_args, **wrapped_kwargs)
+        return wrapped
+
 
 class InterpreterException(mesonlib.MesonException):
     pass
