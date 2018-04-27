@@ -272,6 +272,7 @@ This will become a hard error in the future''')
             return args[1]
         raise InterpreterException('Entry %s not in configuration data.' % name)
 
+    @FeatureNew('get_unquoted', '0.44.0')
     def get_unquoted_method(self, args, kwargs):
         if len(args) < 1 or len(args) > 2:
             raise InterpreterException('Get method takes one or two arguments.')
@@ -344,6 +345,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
             raise InterpreterException('Variable name must be a string.')
         return self.held_object.get_pkgconfig_variable(varname, kwargs)
 
+    @FeatureNew('get_configtool_variable', '0.44.0')
     @permittedKwargs({})
     def configtool_method(self, args, kwargs):
         args = listify(args)
@@ -2335,6 +2337,7 @@ to directly access options of other subprojects.''')
         argstr = self.get_message_string_arg(node)
         mlog.log(mlog.bold('Message:'), argstr)
 
+    @FeatureNew('warning()', '0.44.0')
     @noKwargs
     def func_warning(self, node, args, kwargs):
         argstr = self.get_message_string_arg(node)
@@ -2724,6 +2727,7 @@ to directly access options of other subprojects.''')
             self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)
 
+    @FeatureNew('disabler', '0.44.0')
     @noKwargs
     @noPosargs
     def func_disabler(self, node, args, kwargs):
@@ -3049,6 +3053,7 @@ root and issuing %s.
         self.build.man.append(m)
         return m
 
+    @FeatureNewKwargs('subdir', '0.44.0', ['if_found'])
     @permittedKwargs(permitted_kwargs['subdir'])
     def func_subdir(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])

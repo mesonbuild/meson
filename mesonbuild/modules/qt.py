@@ -116,6 +116,7 @@ class QtBaseModule:
         except Exception:
             return []
 
+    @FeatureNewKwargs('qt.preprocess', '0.44.0', ['moc_extra_arguments'])
     @permittedKwargs({'moc_headers', 'moc_sources', 'moc_extra_arguments', 'include_directories', 'ui_files', 'qresources', 'method'})
     def preprocess(self, state, args, kwargs):
         rcc_files, ui_files, moc_headers, moc_sources, moc_extra_arguments, sources, include_directories \

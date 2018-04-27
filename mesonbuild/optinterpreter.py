@@ -19,7 +19,7 @@ from . import mlog
 from . import mparser
 from . import coredata
 from . import mesonlib
-
+from .interpreterbase import FeatureNew
 
 forbidden_option_names = coredata.get_builtin_options()
 forbidden_prefixes = {'c_',
@@ -106,6 +106,7 @@ def IntegerParser(name, description, kwargs):
                                       kwargs['value'],
                                       kwargs.get('yield', coredata.default_yielding))
 
+@FeatureNew('array type option()', '0.44.0')
 @permitted_kwargs({'value', 'yield', 'choices'})
 def string_array_parser(name, description, kwargs):
     if 'choices' in kwargs:
