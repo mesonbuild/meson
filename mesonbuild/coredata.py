@@ -437,6 +437,8 @@ def add_builtin_argument(p, name):
 def register_builtin_arguments(parser):
     for n in builtin_options:
         add_builtin_argument(parser, n)
+    parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
+                        help='Set the value of an option, can be used several times to set multiple options.')
 
 builtin_options = {
     'buildtype':  [UserComboOption, 'Build type to use.', ['plain', 'debug', 'debugoptimized', 'release', 'minsize'], 'debug'],

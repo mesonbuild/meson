@@ -30,8 +30,6 @@ def create_parser():
     coredata.register_builtin_arguments(p)
     p.add_argument('--cross-file', default=None,
                    help='File describing cross compilation environment.')
-    p.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
-                   help='Set the value of an option, can be used several times to set multiple options.')
     p.add_argument('-v', '--version', action='version',
                    version=coredata.version)
     # See the mesonlib.WrapMode enum for documentation
