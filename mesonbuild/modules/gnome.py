@@ -959,11 +959,15 @@ This will become a hard error in the future.''')
                 self._print_gdbus_warning()
                 cmd += ['--generate-c-code', '@OUTDIR@/' + namebase, '@INPUT@']
             outputs = [namebase + '.c', namebase + '.h']
+            install = kwargs.get('install_header', False)
             custom_kwargs = {'input': xml_files,
                              'output': outputs,
                              'command': cmd,
-                             'build_by_default': build_by_default
+                             'build_by_default': build_by_default,
+                             'install': install,
                              }
+            if install and 'install_dir' in kwargs:
+                custom_kwargs['install_dir'] = [False, kwargs['install_dir']]
             ct = build.CustomTarget(target_name, state.subdir, state.subproject, custom_kwargs)
             # Ensure that the same number (and order) of arguments are returned
             # regardless of the gdbus-codegen (glib) version being used
