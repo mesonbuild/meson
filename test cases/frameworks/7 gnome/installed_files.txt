@@ -15,3 +15,4 @@ usr/share/gir-1.0/MesonDep2-1.0.gir
 usr/share/glib-2.0/schemas/com.github.meson.gschema.xml
 usr/share/simple-resources.gresource
 usr/include/simple-resources.h
+usr/include/generated-gdbus.h

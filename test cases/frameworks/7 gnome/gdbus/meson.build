@@ -14,7 +14,9 @@ gdbus_src = gnome.gdbus_codegen('generated-gdbus',
   annotations : [
     ['com.example.Hello()', 'org.freedesktop.DBus.Deprecated', 'true']
   ],
-  docbook : 'generated-gdbus-doc'
+  docbook : 'generated-gdbus-doc',
+  install_header : true,
+  install_dir : get_option('includedir')
 )
 assert(gdbus_src.length() == 3, 'expected 3 targets')
 
