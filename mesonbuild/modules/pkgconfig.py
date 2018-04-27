@@ -304,6 +304,7 @@ class PkgConfigModule(ExtensionModule):
                 ofile.write(self._escape(f))
             ofile.write('\n')
 
+    @FeatureNewKwargs('pkgconfig.generate', '0.42.0', ['extra_cflags'])
     @FeatureNewKwargs('pkgconfig.generate', '0.41.0', ['variables'])
     @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
                       'subdirs', 'requires', 'requires_private', 'libraries_private',

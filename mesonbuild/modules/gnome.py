@@ -1095,6 +1095,7 @@ This will become a hard error in the future.''')
         else:
             return ModuleReturnValue(targets, targets)
 
+    @FeatureNew('gnome.mkenums_simple', '0.42.0')
     def mkenums_simple(self, state, args, kwargs):
         hdr_filename = args[0] + '.h'
         body_filename = args[0] + '.c'

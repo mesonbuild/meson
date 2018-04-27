@@ -2805,6 +2805,7 @@ root and issuing %s.
                  mlog.bold(subproj_path), 'found:', mlog.green('YES'))
         return dep
 
+    @FeatureNewKwargs('executable', '0.42.0', 'implib')
     @permittedKwargs(permitted_kwargs['executable'])
     def func_executable(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, ExecutableHolder)
@@ -3132,6 +3133,7 @@ root and issuing %s.
         self.build.data.append(data.held_object)
         return data
 
+    @FeatureNewKwargs('install_subdir', '0.42.0', ['exclude_files', 'exclude_directories'])
     @FeatureNewKwargs('install_subdir', '0.38.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_subdir'])
     @stringArgs
