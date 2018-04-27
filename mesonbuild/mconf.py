@@ -28,19 +28,6 @@ def buildparser():
     return parser
 
 
-def filter_builtin_options(args, original_args):
-    """Filter out any args passed with -- instead of -D."""
-    for arg in original_args:
-        if not arg.startswith('--') or arg == '--clearcache':
-            continue
-        name = arg.lstrip('--').split('=', 1)[0]
-        if any([a.startswith(name + '=') for a in args.projectoptions]):
-            raise mesonlib.MesonException(
-                'Got argument {0} as both -D{0} and --{0}. Pick one.'.format(name))
-        args.projectoptions.append('{}={}'.format(name, getattr(args, name)))
-        delattr(args, name)
-
-
 class ConfException(mesonlib.MesonException):
     pass
 
@@ -242,7 +229,7 @@ def run(args):
     if not args:
         args = [os.getcwd()]
     options = buildparser().parse_args(args)
-    filter_builtin_options(options, args)
+    coredata.filter_builtin_options(options, args)
     if len(options.directory) > 1:
         print('%s <build directory>' % args[0])
         print('If you omit the build directory, the current directory is substituted.')
