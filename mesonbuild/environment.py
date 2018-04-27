@@ -373,7 +373,7 @@ class Environment:
         return is_library(fname)
 
     def had_argument_for(self, option):
-        trial1 = '--' + option
+        trial1 = coredata.get_builtin_option_cmdline_name(option)
         trial2 = '-D' + option
         previous_is_plaind = False
         for i in self.original_cmd_line_args:

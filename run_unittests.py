@@ -2077,6 +2077,7 @@ recommended as it can lead to undefined behaviour on some platforms''')
         # Verify default values when passing no args
         self.init(testdir)
         obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['default_library'].value, 'static')
         self.assertEqual(obj.builtins['warning_level'].value, '1')
         self.wipe()
 
@@ -2108,6 +2109,15 @@ recommended as it can lead to undefined behaviour on some platforms''')
             self.setconf('--warnlevel=1', '-Dwarning_level=3')
             self.assertNotEqual(0, e.returncode)
             self.assertIn('passed as both', e.stderr)
+        self.wipe()
+
+        # --default-library should override default value from project()
+        self.init(testdir, extra_args=['--default-library=both'])
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['default_library'].value, 'both')
+        self.setconf('--default-library=shared')
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['default_library'].value, 'shared')
         self.wipe()
 
 
