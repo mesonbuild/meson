@@ -1097,6 +1097,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Checking for type "', mlog.bold(typename), '": ', hadtxt, sep='')
         return had
 
+    @FeatureNew('compiler.compute_int', '0.40.0')
     @permittedKwargs({
         'prefix',
         'low',
@@ -1151,6 +1152,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Checking for size of "%s": %d' % (element, esize))
         return esize
 
+    @FeatureNew('compiler.get_define', '0.40.0')
     @permittedKwargs({
         'prefix',
         'no_builtin_args',
@@ -2655,6 +2657,7 @@ to directly access options of other subprojects.''')
                                       'dep {}'.format(found, dirname, wanted, name))
         return None
 
+    @FeatureNewKwargs('dependency', '0.40.0', ['method'])
     @FeatureNewKwargs('dependency', '0.38.0', ['default_options'])
     @permittedKwargs(permitted_kwargs['dependency'])
     def func_dependency(self, node, args, kwargs):
@@ -2833,6 +2836,7 @@ root and issuing %s.
     def func_jar(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, JarHolder)
 
+    @FeatureNewKwargs('build_target', '0.40.0', ['link_whole', 'override_options'])
     @permittedKwargs(permitted_kwargs['build_target'])
     def func_build_target(self, node, args, kwargs):
         if 'target_type' not in kwargs:
@@ -2899,6 +2903,7 @@ root and issuing %s.
         raise SubdirDoneRequest()
 
     @stringArgs
+    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @permittedKwargs(permitted_kwargs['custom_target'])
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:

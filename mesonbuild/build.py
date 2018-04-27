@@ -25,6 +25,7 @@ from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
 from .mesonlib import for_windows, for_darwin, for_cygwin, for_android, has_path_sep
 from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
+from .interpreterbase import FeatureNew, FeatureNewKwargs
 
 pch_kwargs = set(['c_pch', 'cpp_pch'])
 
@@ -330,6 +331,7 @@ a hard error in the future.''' % name)
             myid = subdir_part + '@@' + myid
         return myid
 
+    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     def process_kwargs(self, kwargs):
         if 'build_by_default' in kwargs:
             self.build_by_default = kwargs['build_by_default']
@@ -1763,6 +1765,9 @@ class CustomTarget(Target):
                 if 'install_dir' not in kwargs:
                     raise InvalidArguments('"install_dir" must be specified '
                                            'when installing a target')
+
+                if isinstance(kwargs['install_dir'], list):
+                    FeatureNew('multiple install_dir for custom_target', '0.40.0').use()
                 # If an item in this list is False, the output corresponding to
                 # the list index of that item will not be installed
                 self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))

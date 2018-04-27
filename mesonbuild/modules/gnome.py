@@ -385,6 +385,7 @@ class GnomeModule(ExtensionModule):
             ldflags = fixed_ldflags
         return cflags, ldflags, gi_includes
 
+    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
                       'export_packages', 'includes', 'dependencies', 'link_with', 'include_directories',
                       'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
@@ -636,6 +637,7 @@ class GnomeModule(ExtensionModule):
         rv = [scan_target, typelib_target]
         return ModuleReturnValue(rv, rv)
 
+    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @permittedKwargs({'build_by_default', 'depend_files'})
     def compile_schemas(self, state, args, kwargs):
         if args:
@@ -877,6 +879,7 @@ This will become a hard error in the future.''')
 
         return []
 
+    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @permittedKwargs({'interface_prefix', 'namespace', 'object_manager', 'build_by_default',
                       'annotations', 'docbook', 'install_header', 'install_dir', 'sources'})
     def gdbus_codegen(self, state, args, kwargs):
