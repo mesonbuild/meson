@@ -231,6 +231,10 @@ class OptionInterpreter:
         if func_name != 'option':
             raise OptionException('Only calls to option() are allowed in option files.')
         (posargs, kwargs) = self.reduce_arguments(node.args)
+
+        if 'yield' in kwargs:
+            FeatureNew('option yield', '0.45.0').use()
+
         if 'type' not in kwargs:
             raise OptionException('Option call missing mandatory "type" keyword argument')
         opt_type = kwargs.pop('type')

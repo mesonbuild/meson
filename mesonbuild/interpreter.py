@@ -451,6 +451,7 @@ class GeneratorHolder(InterpreterObject, ObjectHolder):
         ObjectHolder.__init__(self, build.Generator(args, kwargs))
         self.methods.update({'process': self.process_method})
 
+    @FeatureNewKwargs('generator.process', '0.45.0', ['preserve_path_from'])
     @permittedKwargs({'extra_args', 'preserve_path_from'})
     def process_method(self, args, kwargs):
         extras = mesonlib.stringlistify(kwargs.get('extra_args', []))
@@ -1652,6 +1653,7 @@ class MesonMain(InterpreterObject):
     def project_version_method(self, args, kwargs):
         return self.build.dep_manifest[self.interpreter.active_projectname]['version']
 
+    @FeatureNew('meson.project_license()', '0.45.0')
     @noPosargs
     @permittedKwargs({})
     def project_license_method(self, args, kwargs):
