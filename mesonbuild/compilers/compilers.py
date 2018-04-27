@@ -126,10 +126,10 @@ def is_library(fname):
 gnulike_buildtype_args = {'plain': [],
                           # -O0 is passed for improved debugging information with gcc
                           # See https://github.com/mesonbuild/meson/pull/509
-                          'debug': ['-O0', '-g'],
-                          'debugoptimized': ['-O2', '-g'],
-                          'release': ['-O3'],
-                          'minsize': ['-Os', '-g']}
+                          'debug': ['-g'],
+                          'debugoptimized': ['-g'],
+                          'release': [],
+                          'minsize': ['-g']}
 
 armclang_buildtype_args = {'plain': [],
                            'debug': ['-O0', '-g'],
@@ -147,8 +147,8 @@ arm_buildtype_args = {'plain': [],
 msvc_buildtype_args = {'plain': [],
                        'debug': ["/MDd", "/ZI", "/Ob0", "/Od", "/RTC1"],
                        'debugoptimized': ["/MD", "/Zi", "/O2", "/Ob1"],
-                       'release': ["/MD", "/O2", "/Ob2"],
-                       'minsize': ["/MD", "/Zi", "/Os", "/Ob1"],
+                       'release': ["/MD", "/Ob2"],
+                       'minsize': ["/MD", "/Zi", "/Ob1"],
                        }
 
 apple_buildtype_linker_args = {'plain': [],
@@ -247,6 +247,39 @@ clang_color_args = {'auto': ['-Xclang', '-fcolor-diagnostics'],
                     'always': ['-Xclang', '-fcolor-diagnostics'],
                     'never': ['-Xclang', '-fno-color-diagnostics'],
                     }
+
+clike_optimization_args = {'0': ['-O0'],
+                           'g': ['-O0'],
+                           '1': ['-O1'],
+                           '2': ['-O2'],
+                           '3': ['-O3'],
+                           's': ['-Os'],
+                           }
+
+gnu_optimization_args = {'0': ['-O0'],
+                         'g': ['-Og'],
+                         '1': ['-O1'],
+                         '2': ['-O2'],
+                         '3': ['-O3'],
+                         's': ['-Os'],
+                         }
+
+msvc_optimization_args = {'0': ['/O0'],
+                          'g': ['/O0'],
+                          '1': ['/O1'],
+                          '2': ['/O2'],
+                          '3': ['/O3'],
+                          's': ['/Os'],
+                          }
+
+rust_optimization_args = {'0': ['-C' ,'--opt-level=0'],
+                          'g': ['-C' ,'--opt-level=0'],
+                          '1': ['-C' ,'--opt-level=1'],
+                          '2': ['-C' ,'--opt-level=2'],
+                          '3': ['-C' ,'--opt-level=3'],
+                          's': ['-C' ,'--opt-level=s'],
+                          }
+
 
 base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled headers', True),
                 'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time optimization', False),
@@ -1249,6 +1282,9 @@ class GnuCompiler:
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
+
+    def get_optimization_args(self, optimization_level):
+        return gnu_optimization_args[optimization_level]
 
     def get_buildtype_linker_args(self, buildtype):
         if self.gcc_type == GCC_OSX:
