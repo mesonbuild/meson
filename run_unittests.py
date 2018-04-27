@@ -2060,10 +2060,8 @@ recommended as it can lead to undefined behaviour on some platforms''')
         raise Exception('Missing {} value?'.format(arg))
 
     def test_same_dash_option_twice_configure(self):
-        with self.assertRaises(subprocess.CalledProcessError) as e:
-            self._test_same_option_twice_configure(
-                'bindir', ['--bindir=foo', '--bindir=bar'])
-            self.assertIn('Pick one.', e.stderr)
+        self._test_same_option_twice_configure(
+            'bindir', ['--bindir=foo', '--bindir=bar'])
 
     def test_same_d_option_twice_configure(self):
         self._test_same_option_twice_configure(
