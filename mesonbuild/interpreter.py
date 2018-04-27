@@ -1356,6 +1356,7 @@ class CompilerHolder(InterpreterObject):
             h)
         return result
 
+    @FeatureNew('compiler.get_supported_arguments', '0.43.0')
     @permittedKwargs({})
     def get_supported_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)

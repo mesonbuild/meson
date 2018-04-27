@@ -1086,6 +1086,7 @@ recommended as it can lead to undefined behaviour on some platforms''')
                 return
 
 class Generator:
+    @FeatureNewKwargs('generator', '0.43.0', 'capture')
     def __init__(self, args, kwargs):
         if len(args) != 1:
             raise InvalidArguments('Generator requires exactly one positional argument: the executable')
