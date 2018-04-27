@@ -356,6 +356,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
             raise InterpreterException('Variable name must be a string.')
         return self.held_object.get_configtool_variable(varname)
 
+    @FeatureNew('dep.partial_dependency', '0.46.0')
     @noPosargs
     @permittedKwargs(permitted_method_kwargs['partial_dependency'])
     def partial_dependency_method(self, args, kwargs):
@@ -380,6 +381,7 @@ class InternalDependencyHolder(InterpreterObject, ObjectHolder):
     def version_method(self, args, kwargs):
         return self.held_object.get_version()
 
+    @FeatureNew('dep.partial_dependency', '0.46.0')
     @noPosargs
     @permittedKwargs(permitted_method_kwargs['partial_dependency'])
     def partial_dependency_method(self, args, kwargs):
@@ -439,6 +441,7 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder):
     def get_exe_args(self):
         return self.held_object.get_exe_args()
 
+    @FeatureNew('dep.partial_dependency', '0.46.0')
     @noPosargs
     @permittedKwargs(permitted_method_kwargs['partial_dependency'])
     def partial_dependency_method(self, args, kwargs):
@@ -690,6 +693,7 @@ class BuildTargetHolder(TargetHolder):
         gobjs = self.held_object.extract_objects(args)
         return GeneratedObjectsHolder(gobjs)
 
+    @FeatureNewKwargs('extract_all_objects', '0.46.0', ['recursive'])
     @noPosargs
     @permittedKwargs({'recursive'})
     def extract_all_objects_method(self, args, kwargs):
@@ -1378,6 +1382,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('First supported argument:', mlog.red('None'))
         return []
 
+    @FeatureNew('has_link_argument', '0.46.0')
     @permittedKwargs({})
     def has_link_argument_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
@@ -1385,6 +1390,7 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('has_link_argument takes exactly one argument.')
         return self.has_multi_link_arguments_method(args, kwargs)
 
+    @FeatureNew('has_multi_link_argument', '0.46.0')
     @permittedKwargs({})
     def has_multi_link_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
@@ -1399,6 +1405,7 @@ class CompilerHolder(InterpreterObject):
             h)
         return result
 
+    @FeatureNew('get_supported_link_arguments_method', '0.46.0')
     @permittedKwargs({})
     def get_supported_link_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
@@ -1408,6 +1415,7 @@ class CompilerHolder(InterpreterObject):
                 supported_args.append(arg)
         return supported_args
 
+    @FeatureNew('first_supported_link_argument_method', '0.46.0')
     @permittedKwargs({})
     def first_supported_link_argument_method(self, args, kwargs):
         for i in mesonlib.stringlistify(args):
@@ -1627,6 +1635,7 @@ class MesonMain(InterpreterObject):
             raise InterpreterException('Argument must be a string.')
         self.build.dep_manifest_name = args[0]
 
+    @FeatureNew('override_find_program', '0.46.0')
     @permittedKwargs({})
     def override_find_program_method(self, args, kwargs):
         if len(args) != 2:
@@ -1944,6 +1953,7 @@ class Interpreter(InterpreterBase):
     def func_files(self, node, args, kwargs):
         return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
 
+    @FeatureNewKwargs('declare_dependency', '0.46.0', ['link_whole'])
     @permittedKwargs(permitted_kwargs['declare_dependency'])
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
@@ -2904,6 +2914,7 @@ root and issuing %s.
         kwargs.setdefault('build_always', True)
         return self.func_custom_target(node, [kwargs['output']], kwargs)
 
+    @FeatureNew('subdir_done', '0.46.0')
     @stringArgs
     def func_subdir_done(self, node, args, kwargs):
         if len(kwargs) > 0:
@@ -2965,6 +2976,7 @@ root and issuing %s.
     def func_benchmark(self, node, args, kwargs):
         self.add_test(node, args, kwargs, False)
 
+    @FeatureNewKwargs('test', '0.46.0', ['depends'])
     @permittedKwargs(permitted_kwargs['test'])
     def func_test(self, node, args, kwargs):
         self.add_test(node, args, kwargs, True)
@@ -3119,6 +3131,7 @@ root and issuing %s.
                                    'permissions arg to be a string or false')
         return FileMode(*install_mode)
 
+    @FeatureNewKwargs('install_data', '0.46.0', ['rename'])
     @FeatureNewKwargs('install_data', '0.38.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_data'])
     def func_install_data(self, node, args, kwargs):
@@ -3186,6 +3199,7 @@ root and issuing %s.
         self.build.install_dirs.append(idir)
         return idir
 
+    @FeatureNewKwargs('configure_file', '0.46.0', ['format'])
     @FeatureNewKwargs('configure_file', '0.41.0', ['capture'])
     @permittedKwargs(permitted_kwargs['configure_file'])
     def func_configure_file(self, node, args, kwargs):
@@ -3562,6 +3576,7 @@ different subdirectory.
         if idname not in self.coredata.target_guids:
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
 
+    @FeatureNew('both_libraries', '0.46.0')
     def build_both_libraries(self, node, args, kwargs):
         shared_holder = self.build_target(node, args, kwargs, SharedLibraryHolder)
 

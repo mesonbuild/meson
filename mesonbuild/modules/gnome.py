@@ -879,6 +879,7 @@ This will become a hard error in the future.''')
 
         return []
 
+    @FeatureNewKwargs('build target', '0.46.0', ['install_header', 'install_dir', 'sources'])
     @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @permittedKwargs({'interface_prefix', 'namespace', 'object_manager', 'build_by_default',
                       'annotations', 'docbook', 'install_header', 'install_dir', 'sources'})
