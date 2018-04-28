@@ -59,6 +59,14 @@ class CCompiler(Compiler):
         else:
             self.exe_wrapper = exe_wrapper
 
+    def can_compile(self, src):
+        if hasattr(src, 'fname'):
+            src = src.fname
+        suffix = os.path.splitext(src)[1]
+        if suffix and suffix[1:] in self.can_compile_suffixes:
+            return True
+        return False
+
     def needs_static_linker(self):
         return True # When compiling static libraries, so yes.
 
