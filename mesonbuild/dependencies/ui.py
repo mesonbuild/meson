@@ -147,6 +147,46 @@ class GnuStepDependency(ConfigToolDependency):
         return version
 
 
+def _qt_get_private_includes(mod_inc_dir, module, qt_version):
+    # usually Qt5 puts private headers in /QT_INSTALL_HEADERS/module/VERSION/module/private
+    # except for at least QtWebkit and Enginio where the module version doesn't match Qt version
+    # as an example with Qt 5.10.1 on linux you would get:
+    # /usr/include/qt5/QtCore/5.10.1/QtCore/private/
+    # /usr/include/qt5/QtWidgets/5.10.1/QtWidgets/private/
+    # /usr/include/qt5/Enginio/1.6.2/Enginio/private/
+
+    # on Qt4 when available private folder is directly in module folder
+    if int(qt_version.split('.')[0]) < 5:
+        return tuple()
+
+    private_dir = os.path.join(mod_inc_dir, qt_version)
+    # fallback, let's try to find a directory with the latest version
+    if not os.path.exists(private_dir):
+        dirs = [filename for filename in os.listdir(mod_inc_dir)
+                if os.path.isdir(os.path.join(mod_inc_dir, filename))]
+        dirs.sort(reverse=True)
+
+        for dirname in dirs:
+            if len(dirname.split('.')) == 3:
+                private_dir = dirname
+                break
+    return (private_dir,
+            os.path.join(private_dir, 'Qt' + module))
+
+class QtExtraFrameworkDependency(ExtraFrameworkDependency):
+    def __init__(self, name, required, path, env, lang, kwargs):
+        super().__init__(name, required, path, env, lang, kwargs)
+        self.mod_name = name[2:]
+
+    def get_compile_args(self, with_private_headers=False, qt_version="0"):
+        if self.found():
+            mod_inc_dir = os.path.join(self.path, self.name, 'Headers')
+            args = ['-I' + mod_inc_dir]
+            if with_private_headers:
+                args += ['-I' + dirname for dirname in _qt_get_private_includes(mod_inc_dir, self.mod_name, qt_version)]
+            return args
+        return []
+
 class QtBaseDependency(ExternalDependency):
     def __init__(self, name, env, kwargs):
         super().__init__(name, env, 'cpp', kwargs)
@@ -301,7 +341,7 @@ class QtBaseDependency(ExternalDependency):
             mincdir = os.path.join(incdir, 'Qt' + module)
             self.compile_args.append('-I' + mincdir)
             if self.private_headers:
-                priv_inc = self.get_private_includes(incdir, module)
+                priv_inc = self.get_private_includes(mincdir, module)
                 for dir in priv_inc:
                     self.compile_args.append('-I' + dir)
             if for_windows(self.env.is_cross_build(), self.env):
@@ -335,11 +375,12 @@ class QtBaseDependency(ExternalDependency):
 
         for m in modules:
             fname = 'Qt' + m
-            fwdep = ExtraFrameworkDependency(fname, False, libdir, self.env,
-                                             self.language, fw_kwargs)
+            fwdep = QtExtraFrameworkDependency(fname, False, libdir, self.env,
+                                               self.language, fw_kwargs)
             self.compile_args.append('-F' + libdir)
             if fwdep.found():
-                self.compile_args += fwdep.get_compile_args()
+                self.compile_args += fwdep.get_compile_args(with_private_headers=self.private_headers,
+                                                            qt_version=self.version)
                 self.link_args += fwdep.get_link_args()
             else:
                 break
@@ -369,7 +410,7 @@ class QtBaseDependency(ExternalDependency):
         # for you, patches are welcome.
         return compiler.get_pic_args()
 
-    def get_private_includes(self, incdir, module):
+    def get_private_includes(self, mod_inc_dir, module):
         return tuple()
 
 
@@ -397,28 +438,8 @@ class Qt5Dependency(QtBaseDependency):
     def get_pkgconfig_host_bins(self, core):
         return core.get_pkgconfig_variable('host_bins', {})
 
-    def get_private_includes(self, incdir, module):
-        # usually Qt5 puts private headers in /QT_INSTALL_HEADERS/module/VERSION/module/private
-        # except for at least QtWebkit and Enginio where the module version doesn't match Qt version
-        # as an example with Qt 5.10.1 on linux you would get:
-        # /usr/include/qt5/QtCore/5.10.1/QtCore/private/
-        # /usr/include/qt5/QtWidgets/5.10.1/QtWidgets/private/
-        # /usr/include/qt5/Enginio/1.6.2/Enginio/private/
-
-        mod_inc_dir = os.path.join(incdir, 'Qt' + module)
-        private_dir = os.path.join(mod_inc_dir, self.version)
-        # fallback, let's try to find a directory with the latest version
-        if not os.path.exists(private_dir):
-            dirs = [filename for filename in os.listdir(mod_inc_dir)
-                    if os.path.isdir(os.path.join(mod_inc_dir, filename))]
-            dirs.sort(reverse=True)
-
-            for dirname in dirs:
-                if len(dirname.split('.')) == 3:
-                    private_dir = dirname
-                    break
-        return (private_dir,
-                os.path.join(private_dir, 'Qt' + module))
+    def get_private_includes(self, mod_inc_dir, module):
+        return _qt_get_private_includes(mod_inc_dir, module, self.version)
 
 
 # There are three different ways of depending on SDL2:

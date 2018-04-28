@@ -1,8 +1,10 @@
 #include <QApplication>
 #include "mainWindow.h"
-// include some random private headers
-#include <private/qobject_p.h>
 
+#if QT_VERSION > 0x050000
+// include some random private headers
+    #include <private/qobject_p.h>
+#endif
 
 int main(int argc, char **argv) {
   #ifndef UNITY_BUILD
