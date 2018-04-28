@@ -1,10 +1,10 @@
 #include <QApplication>
 #include "mainWindow.h"
 // include some random private headers
-#if QT_VERSION < 0x050000
+#if QT_VERSION > 0x050000
     #include <private/qconfig_p.h>
 #else
-    #include <private/qmetaobject_p.h>
+    #include <private/qobject_p.h>
 #endif
 
 int main(int argc, char **argv) {

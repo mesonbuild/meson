@@ -158,9 +158,8 @@ class QtBaseDependency(ExternalDependency):
             self.qtpkgname = self.qtname
         self.root = '/usr'
         self.bindir = None
-        mods = kwargs.get('modules', [])
-        if isinstance(mods, str):
-            mods = [mods]
+        self.private_headers = kwargs.get('private_headers', False)
+        mods = extract_as_list(kwargs, 'modules')
         if not mods:
             raise DependencyException('No ' + self.qtname + '  modules specified.')
         type_text = 'cross' if env.is_cross_build() else 'native'
@@ -216,6 +215,11 @@ class QtBaseDependency(ExternalDependency):
         # qmake-based fallback if pkg-config fails.
         kwargs['required'] = False
         modules = OrderedDict()
+        # Until Qt's pkg-config files provide private headers path
+        # let's just fallback to qmake method
+        if self.private_headers:
+            self.is_found = False
+            return
         for module in mods:
             modules[module] = PkgConfigDependency(self.qtpkgname + module, self.env,
                                                   kwargs, language=self.language)
@@ -296,6 +300,10 @@ class QtBaseDependency(ExternalDependency):
         for module in mods:
             mincdir = os.path.join(incdir, 'Qt' + module)
             self.compile_args.append('-I' + mincdir)
+            if self.private_headers:
+                priv_inc = self.get_private_includes(incdir, module)
+                for dir in priv_inc:
+                    self.compile_args.append('-I' + dir)
             if for_windows(self.env.is_cross_build(), self.env):
                 is_debug = self.env.cmd_line_options.buildtype.startswith('debug')
                 dbg = 'd' if is_debug else ''
@@ -361,6 +369,9 @@ class QtBaseDependency(ExternalDependency):
         # for you, patches are welcome.
         return compiler.get_pic_args()
 
+    def get_private_includes(self, incdir, module):
+        return tuple()
+
 
 class Qt4Dependency(QtBaseDependency):
     def __init__(self, env, kwargs):
@@ -385,6 +396,29 @@ class Qt5Dependency(QtBaseDependency):
 
     def get_pkgconfig_host_bins(self, core):
         return core.get_pkgconfig_variable('host_bins', {})
+
+    def get_private_includes(self, incdir, module):
+        # usually Qt5 puts private headers in /QT_INSTALL_HEADERS/module/VERSION/module/private
+        # except for at least QtWebkit and Enginio where the module version doesn't match Qt version
+        # as an example with Qt 5.10.1 on linux you would get:
+        # /usr/include/qt5/QtCore/5.10.1/QtCore/private/
+        # /usr/include/qt5/QtWidgets/5.10.1/QtWidgets/private/
+        # /usr/include/qt5/Enginio/1.6.2/Enginio/private/
+
+        mod_inc_dir = os.path.join(incdir, 'Qt' + module)
+        private_dir = os.path.join(mod_inc_dir, self.version)
+        # fallback, let's try to find a directory with the latest version
+        if not os.path.exists(private_dir):
+            dirs = [filename for filename in os.listdir(mod_inc_dir)
+                    if os.path.isdir(os.path.join(mod_inc_dir, filename))]
+            dirs.sort(reverse=True)
+
+            for dirname in dirs:
+                if len(dirname.split('.')) == 3:
+                    private_dir = dirname
+                    break
+        return (private_dir,
+                os.path.join(private_dir, 'Qt' + module))
 
 
 # There are three different ways of depending on SDL2:
