@@ -341,6 +341,7 @@ otherwise. This function supports the following keyword arguments:
   `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. (*Added 0.37.0*)
   You can also specify multiple restrictions by passing a list to this
   keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
+- `private_headers`, only available with Qt modules see [documentation](Qt5-module.md#private_headers).
 
 If dependency_name is '', the dependency is always not found.  So with
 `required: false`, this always returns a dependency object for which the
