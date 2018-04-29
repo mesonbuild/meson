@@ -347,7 +347,9 @@ def fix_elf(fname, new_rpath, verbose=True):
             e.fix_rpath(new_rpath)
 
 def get_darwin_rpaths_to_remove(fname):
-    out = subprocess.check_output(['otool', '-l', fname], universal_newlines=True)
+    out = subprocess.check_output(['otool', '-l', fname],
+                                  universal_newlines=True,
+                                  stderr=subprocess.DEVNULL)
     result = []
     current_cmd = 'FOOBAR'
     for line in out.split('\n'):
@@ -371,9 +373,13 @@ def fix_darwin(fname, new_rpath):
         return
     try:
         for rp in rpaths:
-            subprocess.check_call(['install_name_tool', '-delete_rpath', rp, fname])
-        if new_rpath != '':
-            subprocess.check_call(['install_name_tool', '-add_rpath', new_rpath, fname])
+            subprocess.check_call(['install_name_tool', '-delete_rpath', rp, fname],
+                                  stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL)
+        if new_rpath:
+            subprocess.check_call(['install_name_tool', '-add_rpath', new_rpath, fname],
+                                  stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL)
     except Exception as e:
         raise
         sys.exit(0)
