@@ -38,7 +38,7 @@ class PackageGenerator:
         self.product_name = 'Meson Build System'
         self.manufacturer = 'The Meson Development Team'
         self.version = coredata.version.replace('dev', '')
-        self.guid = 'DF5B3ECA-4A31-43E3-8CE4-97FC8A97212E'
+        self.guid = '*'
         self.update_guid = '141527EE-E28A-4D14-97A4-92E6075D28B2'
         self.main_xml = 'meson.wxs'
         self.main_o = 'meson.wixobj'
