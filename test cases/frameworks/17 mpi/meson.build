@@ -31,7 +31,7 @@ endif
 #
 # https://bugs.launchpad.net/ubuntu/+source/gcc-defaults/+bug/1727474
 
-ubudetector = find_program('is_artful.py')
+ubudetector = find_program('is_broken_ubuntu.py')
 uburesult = run_command(ubudetector)
 
 if uburesult.returncode() != 0 and add_languages('fortran', required : false)
