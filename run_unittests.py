@@ -3056,6 +3056,17 @@ endian = 'little'
             self.init(os.path.join(testdirbase, 'app'))
             self.build()
 
+    @unittest.skipIf(shutil.which('pkg-config') is None, 'Pkg-config not found.')
+    def test_pkgconfig_formatting(self):
+        testdir = os.path.join(self.unit_test_dir, '31 pkgconfig format')
+        self.init(testdir)
+        myenv = os.environ.copy()
+        myenv['PKG_CONFIG_PATH'] = self.privatedir
+        ro = subprocess.run(['pkg-config', '--libs', 'libsomething'], stdout=subprocess.PIPE,
+                            env=myenv)
+        self.assertEqual(ro.returncode, 0)
+        self.assertIn(b'-lgobject-2.0', ro.stdout)
+        self.assertIn(b'-lgio-2.0', ro.stdout)
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
