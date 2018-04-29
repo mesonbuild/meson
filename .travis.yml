@@ -37,13 +37,13 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python@2 python@3 mercurial qt; fi
   # Use a Ninja with QuLogic's patch: https://github.com/ninja-build/ninja/issues/1219
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mkdir -p $HOME/tools; curl -L http://nirbheek.in/files/binaries/ninja/macos/ninja -o $HOME/tools/ninja; chmod +x $HOME/tools/ninja; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:artful; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:bionic; fi
 
 # We need to copy the current checkout inside the Docker container,
 # because it has the MR id to be tested checked out.
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM jpakkane/mesonci:artful > Dockerfile; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM jpakkane/mesonci:bionic > Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit .; fi
   - |
