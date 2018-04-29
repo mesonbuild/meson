@@ -3,7 +3,7 @@ FROM ubuntu:artful
 RUN apt-get -y update && apt-get -y upgrade \
 && apt-get -y install git wget unzip \
 && apt-get -y build-dep meson \
-&& apt-get -y install qt5-default clang \
+&& apt-get -y install qt5-default qtbase5-private-dev clang \
 && apt-get -y install pkg-config-arm-linux-gnueabihf g++-7-arm-linux-gnueabihf \
 && apt-get -y install doxygen \
 && apt-get -y install python3-pip libxml2-dev libxslt1-dev cmake libyaml-dev \
