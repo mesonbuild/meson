@@ -2060,10 +2060,8 @@ recommended as it can lead to undefined behaviour on some platforms''')
         raise Exception('Missing {} value?'.format(arg))
 
     def test_same_dash_option_twice_configure(self):
-        with self.assertRaises(subprocess.CalledProcessError) as e:
-            self._test_same_option_twice_configure(
-                'bindir', ['--bindir=foo', '--bindir=bar'])
-            self.assertIn('Pick one.', e.stderr)
+        self._test_same_option_twice_configure(
+            'bindir', ['--bindir=foo', '--bindir=bar'])
 
     def test_same_d_option_twice_configure(self):
         self._test_same_option_twice_configure(
@@ -2073,6 +2071,54 @@ recommended as it can lead to undefined behaviour on some platforms''')
         self._test_same_option_twice_configure(
             'one', ['-Done=foo', '-Done=bar'])
 
+    def test_command_line(self):
+        testdir = os.path.join(self.unit_test_dir, '30 command line')
+
+        # Verify default values when passing no args
+        self.init(testdir)
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['default_library'].value, 'static')
+        self.assertEqual(obj.builtins['warning_level'].value, '1')
+        self.wipe()
+
+        # warning_level is special, it's --warnlevel instead of --warning-level
+        # for historical reasons
+        self.init(testdir, extra_args=['--warnlevel=2'])
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '2')
+        self.setconf('--warnlevel=3')
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '3')
+        self.wipe()
+
+        # But when using -D syntax, it should be 'warning_level'
+        self.init(testdir, extra_args=['-Dwarning_level=2'])
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '2')
+        self.setconf('-Dwarning_level=3')
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '3')
+        self.wipe()
+
+        # Mixing --option and -Doption is forbidden
+        with self.assertRaises(subprocess.CalledProcessError) as e:
+            self.init(testdir, extra_args=['--warnlevel=1', '-Dwarning_level=3'])
+            self.assertNotEqual(0, e.returncode)
+            self.assertIn('passed as both', e.stderr)
+        with self.assertRaises(subprocess.CalledProcessError) as e:
+            self.setconf('--warnlevel=1', '-Dwarning_level=3')
+            self.assertNotEqual(0, e.returncode)
+            self.assertIn('passed as both', e.stderr)
+        self.wipe()
+
+        # --default-library should override default value from project()
+        self.init(testdir, extra_args=['--default-library=both'])
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['default_library'].value, 'both')
+        self.setconf('--default-library=shared')
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['default_library'].value, 'shared')
+        self.wipe()
 
 
 class FailureTests(BasePlatformTests):

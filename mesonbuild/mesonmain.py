@@ -32,8 +32,6 @@ def create_parser():
     coredata.register_builtin_arguments(p)
     p.add_argument('--cross-file', default=None,
                    help='File describing cross compilation environment.')
-    p.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
-                   help='Set the value of an option, can be used several times to set multiple options.')
     p.add_argument('-v', '--version', action='version',
                    version=coredata.version)
     # See the mesonlib.WrapMode enum for documentation
@@ -63,11 +61,12 @@ def filter_builtin_options(args, original_args):
     if meson_opts:
         for arg in meson_opts:
             value = arguments[arg]
-            if any([a.startswith('--{}'.format(arg)) for a in original_args]):
+            cmdline_name = coredata.get_builtin_option_cmdline_name(arg)
+            if any([a.startswith(cmdline_name) for a in original_args]):
                 raise MesonException(
-                    'Argument "{0}" passed as both --{0} and -D{0}, but only '
-                    'one is allowed'.format(arg))
-            setattr(args, coredata.get_builtin_option_destination(arg), value)
+                    'Argument "{0}" passed as both {1} and -D{0}, but only '
+                    'one is allowed'.format(arg, cmdline_name))
+            setattr(args, arg, value)
 
             # Remove the builtin option from the project args values
             args.projectoptions.remove('{}={}'.format(arg, value))

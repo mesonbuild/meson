@@ -21,25 +21,10 @@ def buildparser():
     parser = argparse.ArgumentParser(prog='meson configure')
     coredata.register_builtin_arguments(parser)
 
-    parser.add_argument('-D', action='append', default=[], dest='sets',
-                        help='Set an option to the given value.')
     parser.add_argument('directory', nargs='*')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies)')
     return parser
-
-
-def filter_builtin_options(args, original_args):
-    """Filter out any args passed with -- instead of -D."""
-    for arg in original_args:
-        if not arg.startswith('--') or arg == '--clearcache':
-            continue
-        name = arg.lstrip('--').split('=', 1)[0]
-        if any([a.startswith(name + '=') for a in args.sets]):
-            raise mesonlib.MesonException(
-                'Got argument {0} as both -D{0} and --{0}. Pick one.'.format(name))
-        args.sets.append('{}={}'.format(name, getattr(args, name)))
-        delattr(args, name)
 
 
 class ConfException(mesonlib.MesonException):
@@ -243,7 +228,7 @@ def run(args):
     if not args:
         args = [os.getcwd()]
     options = buildparser().parse_args(args)
-    filter_builtin_options(options, args)
+    coredata.filter_builtin_options(options, args)
     if len(options.directory) > 1:
         print('%s <build directory>' % args[0])
         print('If you omit the build directory, the current directory is substituted.')
@@ -255,8 +240,8 @@ def run(args):
     try:
         c = Conf(builddir)
         save = False
-        if len(options.sets) > 0:
-            c.set_options(options.sets)
+        if len(options.projectoptions) > 0:
+            c.set_options(options.projectoptions)
             save = True
         elif options.clearcache:
             c.clear_cache()
