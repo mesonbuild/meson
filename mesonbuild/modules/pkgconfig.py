@@ -139,8 +139,10 @@ class DependenciesHelper:
         if version_reqs:
             if name not in self.version_reqs:
                 self.version_reqs[name] = set()
-            # We could have '>=1.0' or '>= 1.0', remove spaces to normalize
-            new_vreqs = [s.replace(' ', '') for s in mesonlib.stringlistify(version_reqs)]
+            # Note that pkg-config is picky about whitespace.
+            # 'foo > 1.2' is ok but 'foo>1.2' is not.
+            # foo, bar' is ok, but 'foo,bar' is not.
+            new_vreqs = [s for s in mesonlib.stringlistify(version_reqs)]
             self.version_reqs[name].update(new_vreqs)
 
     def split_version_req(self, s):
