@@ -559,6 +559,8 @@ The result of this is undefined and will become a hard error in a future Meson r
             return self.int_method_call(obj, method_name, args)
         if isinstance(obj, list):
             return self.array_method_call(obj, method_name, args)
+        if isinstance(obj, dict):
+            return self.dict_method_call(obj, method_name, args)
         if isinstance(obj, mesonlib.File):
             raise InvalidArguments('File object "%s" is not callable.' % obj)
         if not isinstance(obj, InterpreterObject):
@@ -716,6 +718,43 @@ The result of this is undefined and will become a hard error in a future Meson r
             return obj[index]
         m = 'Arrays do not have a method called {!r}.'
         raise InterpreterException(m.format(method_name))
+
+    def dict_method_call(self, obj, method_name, args):
+        (posargs, kwargs) = self.reduce_arguments(args)
+        if is_disabled(posargs, kwargs):
+            return Disabler()
+
+        if method_name in ('has_key', 'get'):
+            if method_name == 'has_key':
+                if len(posargs) != 1:
+                    raise InterpreterException('has_key() takes exactly one argument.')
+            else:
+                if len(posargs) not in (1, 2):
+                    raise InterpreterException('get() takes one or two arguments.')
+
+            key = posargs[0]
+            if not isinstance(key, (str)):
+                raise InvalidArguments('Dictionary key must be a string.')
+
+            has_key = key in obj
+
+            if method_name == 'has_key':
+                return has_key
+
+            if has_key:
+                return obj[key]
+
+            if len(posargs) == 2:
+                return posargs[1]
+
+            raise InterpreterException('Key {!r} is not in the dictionary.'.format(key))
+
+        if method_name == 'keys':
+            if len(posargs) != 0:
+                raise InterpreterException('keys() takes no arguments.')
+            return list(obj.keys())
+
+        raise InterpreterException('Dictionaries do not have a method called "%s".' % method_name)
 
     def reduce_arguments(self, args):
         assert(isinstance(args, mparser.ArgumentNode))
