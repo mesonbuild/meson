@@ -15,6 +15,7 @@
 import os
 import sys
 import argparse
+import shlex
 from . import (coredata, mesonlib, build)
 
 def buildparser():
@@ -134,14 +135,14 @@ class Conf:
                     raise ConfException('Unknown language %s in linkargs.' % lang)
                 # TODO, currently split on spaces, make it so that user
                 # can pass in an array string.
-                newvalue = v.split()
+                newvalue = shlex.split(v)
                 self.coredata.external_link_args[lang] = newvalue
             elif k.endswith('_args'):
                 lang = k[:-5]
                 if lang not in self.coredata.external_args:
                     raise ConfException('Unknown language %s in compile args' % lang)
                 # TODO same fix as above
-                newvalue = v.split()
+                newvalue = shlex.split(v)
                 self.coredata.external_args[lang] = newvalue
             else:
                 raise ConfException('Unknown option %s.' % k)

@@ -2274,24 +2274,21 @@ to directly access options of other subprojects.''')
             mlog.log('Native %s compiler: ' % comp.get_display_language(), mlog.bold(' '.join(comp.get_exelist())), version_string, sep='')
 
             # If <language>_args/_link_args settings are given on the
-            # command line, use them.
+            # command line, use them, otherwise take them from env.
+            (preproc_args, compile_args, link_args) = environment.get_args_from_envvars(comp)
             for optspec in self.build.environment.cmd_line_options.projectoptions:
                 (optname, optvalue) = optspec.split('=', maxsplit=1)
-                if optname.endswith('_link_args'):
-                    lang = optname[:-10]
-                    self.coredata.external_link_args.setdefault(lang, []).append(optvalue)
+                if optname == lang + '_link_args':
+                    link_args = shlex.split(optvalue)
                 elif optname.endswith('_args'):
-                    lang = optname[:-5]
-                    self.coredata.external_args.setdefault(lang, []).append(optvalue)
-            # Otherwise, look for definitions from environment
-            # variables such as CFLAGS.
-            (preproc_args, compile_args, link_args) = environment.get_args_from_envvars(comp)
-            if not comp.get_language() in self.coredata.external_preprocess_args:
-                self.coredata.external_preprocess_args[comp.get_language()] = preproc_args
-            if not comp.get_language() in self.coredata.external_args:
-                self.coredata.external_args[comp.get_language()] = compile_args
-            if not comp.get_language() in self.coredata.external_link_args:
-                self.coredata.external_link_args[comp.get_language()] = link_args
+                    compile_args = shlex.split(optvalue)
+            if lang not in self.coredata.external_preprocess_args:
+                self.coredata.external_preprocess_args[lang] = preproc_args
+            if lang not in self.coredata.external_args:
+                self.coredata.external_args[lang] = compile_args
+            if lang not in self.coredata.external_link_args:
+                self.coredata.external_link_args[lang] = link_args
+
             self.build.add_compiler(comp)
             if need_cross_compiler:
                 mlog.log('Cross %s compiler: ' % cross_comp.get_display_language(), mlog.bold(' '.join(cross_comp.get_exelist())), ' (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
