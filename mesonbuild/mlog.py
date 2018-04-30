@@ -19,8 +19,22 @@ from contextlib import contextmanager
 information about Meson runs. Some output goes to screen,
 some to logging dir and some goes to both."""
 
+def _windows_ansi():
+    from ctypes import windll, byref
+    from ctypes.wintypes import DWORD
+
+    kernel = windll.kernel32
+    stdout = kernel.GetStdHandle(-11)
+    mode = DWORD()
+    if not kernel.GetConsoleMode(stdout, byref(mode)):
+        return False
+    # ENABLE_VIRTUAL_TERMINAL_PROCESSING == 0x4
+    # If the call to enable VT processing fails (returns 0), we fallback to
+    # original behavior
+    return kernel.SetConsoleMode(stdout, mode.value | 0x4) or os.environ.get('ANSICON')
+
 if platform.system().lower() == 'windows':
-    colorize_console = os.isatty(sys.stdout.fileno()) and os.environ.get('ANSICON')
+    colorize_console = os.isatty(sys.stdout.fileno()) and _windows_ansi()
 else:
     colorize_console = os.isatty(sys.stdout.fileno()) and os.environ.get('TERM') != 'dumb'
 log_dir = None
