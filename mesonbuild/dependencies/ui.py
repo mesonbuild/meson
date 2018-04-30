@@ -147,19 +147,20 @@ class GnuStepDependency(ConfigToolDependency):
         return version
 
 
-def _qt_get_private_includes(mod_inc_dir, module, qt_version):
+def _qt_get_private_includes(mod_inc_dir, module, mod_version):
     # usually Qt5 puts private headers in /QT_INSTALL_HEADERS/module/VERSION/module/private
     # except for at least QtWebkit and Enginio where the module version doesn't match Qt version
     # as an example with Qt 5.10.1 on linux you would get:
     # /usr/include/qt5/QtCore/5.10.1/QtCore/private/
     # /usr/include/qt5/QtWidgets/5.10.1/QtWidgets/private/
-    # /usr/include/qt5/Enginio/1.6.2/Enginio/private/
+    # /usr/include/qt5/QtWebKit/5.212.0/QtWebKit/private/
 
     # on Qt4 when available private folder is directly in module folder
-    if int(qt_version.split('.')[0]) < 5:
+    # like /usr/include/QtCore/private/
+    if int(mod_version.split('.')[0]) < 5:
         return tuple()
 
-    private_dir = os.path.join(mod_inc_dir, qt_version)
+    private_dir = os.path.join(mod_inc_dir, mod_version)
     # fallback, let's try to find a directory with the latest version
     if not os.path.exists(private_dir):
         dirs = [filename for filename in os.listdir(mod_inc_dir)
@@ -255,19 +256,19 @@ class QtBaseDependency(ExternalDependency):
         # qmake-based fallback if pkg-config fails.
         kwargs['required'] = False
         modules = OrderedDict()
-        # Until Qt's pkg-config files provide private headers path
-        # let's just fallback to qmake method
-        if self.private_headers:
-            self.is_found = False
-            return
         for module in mods:
             modules[module] = PkgConfigDependency(self.qtpkgname + module, self.env,
                                                   kwargs, language=self.language)
-        for m in modules.values():
+        for m_name, m in modules.items():
             if not m.found():
                 self.is_found = False
                 return
             self.compile_args += m.get_compile_args()
+            if self.private_headers:
+                qt_inc_dir = m.get_pkgconfig_variable('includedir', dict())
+                mod_private_inc = _qt_get_private_includes(os.path.join(qt_inc_dir, 'Qt' + m_name), m_name, m.version)
+                for dir in mod_private_inc:
+                    self.compile_args.append('-I' + dir)
             self.link_args += m.get_link_args()
         self.is_found = True
         self.version = m.version

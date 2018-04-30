@@ -44,4 +44,5 @@ See the Qt documentation for the [list of modules](http://doc.qt.io/qt-5/qtmodul
 
 Some projects needs Qt's private headers to build, that's why a **private_headers** keyword argument has been added to [dependency](Reference-manual.md#dependency) method.
 Setting this optionnal argument will add private include path of the given module to the compiler flags.
-Note that this option is only compatible with qmake dependency method, using auto or pkg-config will fallback to qmake.
+
+**Note** that using private headers in your project is a bad idea, do it at your own risks.
