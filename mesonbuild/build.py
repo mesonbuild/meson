@@ -1974,7 +1974,7 @@ def get_sources_string_names(sources):
             s = s.held_object
         if isinstance(s, str):
             names.append(s)
-        elif isinstance(s, (BuildTarget, CustomTarget, GeneratedList)):
+        elif isinstance(s, (BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList)):
             names += s.get_outputs()
         elif isinstance(s, File):
             names.append(s.fname)
