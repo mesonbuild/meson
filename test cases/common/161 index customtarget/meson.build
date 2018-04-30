@@ -29,4 +29,11 @@ lib = static_library(
   ['lib.c', gen[1]],
 )
 
+custom_target(
+  'foo',
+  input: gen[0],
+  output: 'foo',
+  command: [find_program('check_args.py'), '@INPUT@'],
+)
+
 subdir('subdir')
