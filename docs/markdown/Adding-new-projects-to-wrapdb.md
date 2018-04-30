@@ -16,9 +16,9 @@ files. You may also think of them as an overlay to upstream source.
 ## Creator script
 
 The WrapDB repository has a [helper
-script](https://github.com/mesonbuild/wrapweb/blob/master/tools/repoinit.py)
-to generate new repositories. The documentation below roughly explains
-what it does using plain shell commands.
+script](https://github.com/mesonbuild/wrapweb/blob/master/mesonwrap.py)
+to generate new repositories, verify them and update them. The documentation below roughly explains
+what it does to create a new wrap repository using plain shell commands.
 
 ## Choosing the repository name
 
