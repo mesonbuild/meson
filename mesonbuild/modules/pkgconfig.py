@@ -123,10 +123,10 @@ class DependenciesHelper:
                     if not hasattr(obj, 'generated_pc'):
                         obj.generated_pc = self.name
                 if isinstance(obj, build.StaticLibrary) and public:
-                    self.add_pub_libs(obj.get_dependencies())
+                    self.add_pub_libs(obj.get_dependencies(internal=False))
                     self.add_pub_libs(obj.get_external_deps())
                 else:
-                    self.add_priv_libs(obj.get_dependencies())
+                    self.add_priv_libs(obj.get_dependencies(internal=False))
                     self.add_priv_libs(obj.get_external_deps())
             elif isinstance(obj, str):
                 processed_libs.append(obj)

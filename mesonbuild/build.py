@@ -817,16 +817,22 @@ This will become a hard error in a future Meson release.''')
     def get_extra_args(self, language):
         return self.extra_args.get(language, [])
 
-    def get_dependencies(self, exclude=None):
+    def get_dependencies(self, exclude=None, internal=True):
         transitive_deps = []
         if exclude is None:
             exclude = []
-        for t in itertools.chain(self.link_targets, self.link_whole_targets):
+        if internal:
+            link_targets = itertools.chain(self.link_targets, self.link_whole_targets)
+        else:
+            # We don't want the 'internal' libraries when generating the
+            # `Libs:` and `Libs.private:` lists in pkg-config files.
+            link_targets = self.link_targets
+        for t in link_targets:
             if t in transitive_deps or t in exclude:
                 continue
             transitive_deps.append(t)
             if isinstance(t, StaticLibrary):
-                transitive_deps += t.get_dependencies(transitive_deps + exclude)
+                transitive_deps += t.get_dependencies(transitive_deps + exclude, internal)
         return transitive_deps
 
     def get_source_subdir(self):
