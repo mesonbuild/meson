@@ -3062,11 +3062,12 @@ endian = 'little'
         self.init(testdir)
         myenv = os.environ.copy()
         myenv['PKG_CONFIG_PATH'] = self.privatedir
-        ro = subprocess.run(['pkg-config', '--libs', 'libsomething'], stdout=subprocess.PIPE,
-                            env=myenv)
-        self.assertEqual(ro.returncode, 0)
-        self.assertIn(b'-lgobject-2.0', ro.stdout)
-        self.assertIn(b'-lgio-2.0', ro.stdout)
+        stdo = subprocess.check_output(['pkg-config', '--libs-only-l', 'libsomething'], env=myenv)
+        deps = [b'-lgobject-2.0', b'-lgio-2.0', b'-lglib-2.0', b'-lsomething']
+        if is_windows() or is_cygwin():
+            # On Windows, libintl is a separate library
+            deps.append(b'-lintl')
+        self.assertEqual(set(deps), set(stdo.split()))
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
