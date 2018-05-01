@@ -8,10 +8,11 @@ endif
 
 pkgg = import('pkgconfig')
 
-l = shared_library('something', 'somelib.c')
+s = static_library('returner', 'someret.c')
+l = library('something', 'somelib.c', link_whole: s)
 
 pkgg.generate(libraries: l,
               version: '1.0',
               name: 'libsomething',
               description: 'A library that does something',
-              requires: 'gobject-2.0 >= 2.54, gio-2.0 >= 2.54')
+              requires: 'gobject-2.0 >= 2.0, gio-2.0 >= 2.0')
