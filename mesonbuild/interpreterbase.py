@@ -135,8 +135,8 @@ class FeatureNew:
 
     def add_called_feature(self):
         if self.feature_version not in self.feature_versions:
-            self.feature_versions[self.feature_version] = []
-        self.feature_versions[self.feature_version].append(self.feature_name)
+            self.feature_versions[self.feature_version] = set()
+        self.feature_versions[self.feature_version].add(self.feature_name)
 
     def called_features_report():
         fv = FeatureNew.feature_versions
@@ -173,8 +173,8 @@ class FeatureDeprecated:
 
     def add_called_feature(self):
         if self.feature_version not in self.feature_versions:
-            self.feature_versions[self.feature_version] = []
-        self.feature_versions[self.feature_version].append(self.feature_name)
+            self.feature_versions[self.feature_version] = set()
+        self.feature_versions[self.feature_version].add(self.feature_name)
 
     def called_features_report():
         fv = FeatureDeprecated.feature_versions
