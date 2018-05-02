@@ -183,12 +183,14 @@ class GnuFortranCompiler(FortranCompiler):
     def openmp_flags(self):
         return ['-fopenmp']
 
+    def language_stdlib_only_link_flags(self):
+        return ['-lgfortran', '-lm', '-lquadmath']
+
 
 class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
         GnuFortranCompiler.__init__(self, exelist, version, gcc_type, is_cross, exe_wrapper, defines, **kwargs)
         ElbrusCompiler.__init__(self, gcc_type, defines)
-
 
 class G95FortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):

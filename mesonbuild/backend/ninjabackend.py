@@ -470,8 +470,8 @@ int dummy;
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
                 obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
-        linker = self.determine_linker(target)
-        elem = self.generate_link(target, outfile, outname, obj_list, linker, pch_objects)
+        linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
+        elem = self.generate_link(target, outfile, outname, obj_list, linker, pch_objects, stdlib_args=stdlib_args)
         self.generate_shlib_aliases(target, self.get_target_dir(target))
         elem.write(outfile)
 
@@ -2485,7 +2485,7 @@ rule FORTRAN_DEP_HACK%s
 
         return guessed_dependencies + absolute_libs
 
-    def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[]):
+    def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[], stdlib_args=[]):
         if isinstance(target, build.StaticLibrary):
             linker_base = 'STATIC'
         else:
@@ -2496,7 +2496,6 @@ rule FORTRAN_DEP_HACK%s
         if target.is_cross:
             crstr = '_CROSS'
         linker_rule = linker_base + crstr + '_LINKER'
-
         # Create an empty commands list, and start adding link arguments from
         # various sources in the order in which they must override each other
         # starting from hard-coded defaults followed by build options and so on.
@@ -2602,6 +2601,7 @@ rule FORTRAN_DEP_HACK%s
         custom_target_libraries = self.get_custom_target_provided_libraries(target)
         commands += extra_args
         commands += custom_target_libraries
+        commands += stdlib_args # Standard library arguments go last, because they never depend on anything.
         # Convert from GCC-style link argument naming to the naming used by the
         # current compiler.
         commands = commands.to_native()
