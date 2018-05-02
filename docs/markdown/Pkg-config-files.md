@@ -17,3 +17,5 @@ pkg.generate(libraries : libs,
 ```
 
 This causes a file called `simple.pc` to be created and placed into the install directory during the install phase.
+
+More infromation on the pkg-config module and the parameters can be found on the [pkgconfig-module](http://mesonbuild.com/Pkgconfig-module.html) page.
