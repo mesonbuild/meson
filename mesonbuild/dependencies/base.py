@@ -399,6 +399,8 @@ class ConfigToolDependency(ExternalDependency):
                              'Falling back to searching PATH. This may find a '
                              'native version of {0}!'.format(self.tool_name))
                 tools = self.tools
+        elif self.tool_name in self.env.config_info.binaries:
+            tools = [self.env.config_info.binaries[self.tool_name]]
         else:
             tools = self.tools
 

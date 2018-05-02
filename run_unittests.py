@@ -4548,6 +4548,12 @@ class NativeFileTests(BasePlatformTests):
     def test_find_program(self):
         self._simple_test('find_program', 'bash')
 
+    def test_config_tool_dep(self):
+        # Do the skip at this level to avoid screwing up the cache
+        if not shutil.which('llvm-config'):
+            raise unittest.SkipTest('No llvm-installed, cannot test')
+        self._simple_test('config_dep', 'llvm-config')
+
 
 def unset_envs():
     # For unit tests we must fully control all command lines
