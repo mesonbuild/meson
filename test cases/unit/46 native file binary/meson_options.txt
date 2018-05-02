@@ -1,5 +1,5 @@
 option(
   'case',
   type : 'combo',
-  choices : []
+  choices : ['find_program']
 )

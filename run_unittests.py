@@ -4522,6 +4522,32 @@ class NativeFileTests(BasePlatformTests):
             f.write('py -3 {} %*'.format(filename))
         return batfile
 
+    def test_multiple_native_files_override(self):
+        wrapper = self.helper_create_binary_wrapper('bash', version='foo')
+        config = self.helper_create_native_file({'binaries': {'bash': wrapper}})
+        wrapper = self.helper_create_binary_wrapper('bash', version='12345')
+        config2 = self.helper_create_native_file({'binaries': {'bash': wrapper}})
+        self.init(self.testcase, extra_args=[
+            '--native-file', config, '--native-file', config2,
+            '-Dcase=find_program'])
+
+    def test_multiple_native_files(self):
+        wrapper = self.helper_create_binary_wrapper('bash', version='12345')
+        config = self.helper_create_native_file({'binaries': {'bash': wrapper}})
+        wrapper = self.helper_create_binary_wrapper('python')
+        config2 = self.helper_create_native_file({'binaries': {'python': wrapper}})
+        self.init(self.testcase, extra_args=[
+            '--native-file', config, '--native-file', config2,
+            '-Dcase=find_program'])
+
+    def _simple_test(self, case, binary):
+        wrapper = self.helper_create_binary_wrapper(binary, version='12345')
+        config = self.helper_create_native_file({'binaries': {binary: wrapper}})
+        self.init(self.testcase, extra_args=['--native-file', config, '-Dcase={}'.format(case)])
+
+    def test_find_program(self):
+        self._simple_test('find_program', 'bash')
+
 
 def unset_envs():
     # For unit tests we must fully control all command lines

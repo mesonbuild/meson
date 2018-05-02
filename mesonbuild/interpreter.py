@@ -2748,8 +2748,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             self.coredata. base_options[optname] = oobj
         self.emit_base_options_warnings(enabled_opts)
 
-    def program_from_cross_file(self, prognames, silent=False):
-        cross_info = self.environment.cross_info
+    def _program_from_file(self, prognames, bins, silent):
         for p in prognames:
             if hasattr(p, 'held_object'):
                 p = p.held_object
@@ -2761,6 +2760,14 @@ external dependencies (including libraries) must go to "dependencies".''')
             if prog.found():
                 return ExternalProgramHolder(prog)
         return None
+
+    def program_from_cross_file(self, prognames, silent=False):
+        bins = self.environment.cross_info.config['binaries']
+        return self._program_from_file(prognames, bins, silent)
+
+    def program_from_config_file(self, prognames, silent=False):
+        bins = self.environment.config_info.binaries
+        return self._program_from_file(prognames, bins, silent)
 
     def program_from_system(self, args, silent=False):
         # Search for scripts relative to current subdir.
@@ -2816,10 +2823,14 @@ external dependencies (including libraries) must go to "dependencies".''')
     def find_program_impl(self, args, native=False, required=True, silent=True):
         if not isinstance(args, list):
             args = [args]
+
         progobj = self.program_from_overrides(args, silent=silent)
-        if progobj is None and self.build.environment.is_cross_build():
-            if not native:
+        if progobj is None:
+            if self.build.environment.is_cross_build() and not native:
                 progobj = self.program_from_cross_file(args, silent=silent)
+            else:
+                progobj = self.program_from_config_file(args, silent=silent)
+
         if progobj is None:
             progobj = self.program_from_system(args, silent=silent)
         if required and (progobj is None or not progobj.found()):
