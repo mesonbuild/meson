@@ -183,6 +183,7 @@ class UserArrayOption(UserOption):
                     ', '.join(bad), ', '.join(self.choices)))
         return newvalue
 
+
 class UserFeatureOption(UserComboOption):
     static_choices = ['enabled', 'disabled', 'auto']
 
@@ -197,6 +198,72 @@ class UserFeatureOption(UserComboOption):
 
     def is_auto(self):
         return self.value == 'auto'
+
+
+def load_configs(filenames):
+    """Load native files."""
+    def gen():
+        for f in filenames:
+            f = os.path.expanduser(os.path.expandvars(f))
+            if os.path.exists(f):
+                yield f
+                continue
+            elif sys.platform != 'win32':
+                f = os.path.basename(f)
+                paths = [
+                    os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')),
+                ] + os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share').split(':')
+                for path in paths:
+                    path_to_try = os.path.join(path, 'meson', 'native', f)
+                    if os.path.isfile(path_to_try):
+                        yield path_to_try
+                        break
+                else:
+                    raise MesonException('Cannot find specified native file: ' + f)
+                continue
+
+            raise MesonException('Cannot find specified native file: ' + f)
+
+    config = configparser.SafeConfigParser()
+    config.read(gen())
+    return config
+
+
+def _get_section(config, section):
+    if config.has_section(section):
+        final = {}
+        for k, v in config.items(section):
+            # Windows paths...
+            v = v.replace('\\', '\\\\')
+            try:
+                final[k] = ast.literal_eval(v)
+            except SyntaxError:
+                raise MesonException(
+                    'Malformed value in native file variable: {}'.format(v))
+        return final
+    return {}
+
+
+class ConfigData:
+
+    """Contains configuration information provided by the user for the build."""
+
+    def __init__(self, config=None):
+        if config:
+            self.binaries = _get_section(config, 'binaries')
+            # global is a keyword and globals is a builtin, rather than mangle it,
+            # use a similar word
+            self.universal = _get_section(config, 'globals')
+            self.subprojects = {s: _get_section(config, s) for s in config.sections()
+                                if s not in {'binaries', 'globals'}}
+        else:
+            self.binaries = {}
+            self.universal = {}
+            self.subprojects = {}
+
+    def get_binaries(self, name):
+        return self.binaries.get(name, None)
+
 
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
@@ -229,6 +296,15 @@ class CoreData:
         self.deps = OrderedDict()
         # Only to print a warning if it changes between Meson invocations.
         self.pkgconf_envvar = os.environ.get('PKG_CONFIG_PATH', '')
+        self.config_files = self.__load_config_files(options.native_file)
+
+    @staticmethod
+    def __load_config_files(filenames):
+        if not filenames:
+            return []
+        filenames = [os.path.abspath(os.path.expanduser(os.path.expanduser(f)))
+                     for f in filenames]
+        return filenames
 
     @staticmethod
     def __load_cross_file(filename):

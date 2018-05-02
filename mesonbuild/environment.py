@@ -352,6 +352,12 @@ class Environment:
             self.cross_info = None
         self.machines.default_missing()
 
+        if self.coredata.config_files:
+            self.config_info = coredata.ConfigData(
+                coredata.load_configs(self.coredata.config_files))
+        else:
+            self.config_info = coredata.ConfigData()
+
         self.cmd_line_options = options.cmd_line_options.copy()
 
         # List of potential compilers.
