@@ -48,7 +48,7 @@ class GTestDependency(ExternalDependency):
             mlog.log('Dependency GTest found:', mlog.green('YES'), '(prebuilt)')
         elif self.detect_srcdir():
             self.is_found = True
-            self.compile_args = ['-I' + self.src_include_dir]
+            self.compile_args = ['-I' + d for d in self.src_include_dirs]
             self.link_args = []
             if self.main:
                 self.sources = [self.all_src, self.main_src]
@@ -67,7 +67,9 @@ class GTestDependency(ExternalDependency):
                     os.path.join(self.src_dir, 'gtest-all.cc'))
                 self.main_src = mesonlib.File.from_absolute_file(
                     os.path.join(self.src_dir, 'gtest_main.cc'))
-                self.src_include_dir = os.path.normpath(os.path.join(self.src_dir, '..'))
+                self.src_include_dirs = [os.path.normpath(os.path.join(self.src_dir, '..')),
+                                         os.path.normpath(os.path.join(self.src_dir, '../include')),
+                                         ]
                 return True
         return False
 
@@ -96,7 +98,7 @@ class GMockDependency(ExternalDependency):
                 # Yes, we need both because there are multiple
                 # versions of gmock that do different things.
                 d2 = os.path.normpath(os.path.join(d, '..'))
-                self.compile_args = ['-I' + d, '-I' + d2]
+                self.compile_args = ['-I' + d, '-I' + d2, '-I' + os.path.join(d2, 'include')]
                 self.link_args = []
                 all_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock-all.cc'))
                 main_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock_main.cc'))
