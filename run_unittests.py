@@ -3160,7 +3160,7 @@ class PythonTests(BasePlatformTests):
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('Skipping python tests with {} backend'.format(self.backend.name))
 
-        testdir = os.path.join(self.src_root, 'test cases', 'python', '1 extmodule')
+        testdir = os.path.join(self.src_root, 'test cases', 'unit', '32 python extmodule')
 
         # No python version specified, this will use meson's python
         self.init(testdir)
