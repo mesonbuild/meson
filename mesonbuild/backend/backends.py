@@ -503,7 +503,7 @@ class Backend:
         # Add buildtype args: optimization level, debugging, etc.
         commands += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
         # Add compile args added using add_project_arguments()
-        commands += self.build.get_project_args(compiler, target.subproject)
+        commands += self.build.get_project_args(compiler, target)
         # Add compile args added using add_global_arguments()
         # These override per-project arguments
         commands += self.build.get_global_args(compiler)

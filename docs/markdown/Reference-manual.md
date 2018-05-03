@@ -72,6 +72,9 @@ This function behaves in the same way as `add_global_arguments` except
 that the arguments are only used for the current project, they won't
 be used in any other subproject.
 
+Since 0.47.0 those flags can be ignored by by some targets by setting their
+`ignore_project_args` keyword argument to `true`.
+
 ### add_project_link_arguments()
 
 ``` meson
@@ -79,6 +82,9 @@ be used in any other subproject.
 ```
 
 Like `add_project_arguments` but the arguments are passed to the linker.
+
+Since 0.47.0 those flags can be ignored by by some targets by setting their
+`ignore_project_link_args` keyword argument to `true`.
 
 ### add_test_setup()
 
@@ -474,6 +480,10 @@ be passed to [shared and static libraries](#library).
   in the D programming language
 - `d_unittest`, when set to true, the D modules are compiled in debug mode
 - `d_module_versions` list of module versions set when compiling D sources
+- `ignore_project_args` Ignore arguments added via
+  [`add_project_arguments()`](#add_project_arguments)? Since 0.47.0.
+- `ignore_project_link_args` Ignore arguments added via
+  [`add_project_link_arguments()`](#add_project_link_arguments)? Since 0.47.0.
 
 The list of `sources`, `objects`, and `dependencies` is always
 flattened, which means you can freely nest and add lists while
