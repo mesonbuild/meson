@@ -308,6 +308,9 @@ def is_android():
 def is_haiku():
     return platform.system().lower() == 'haiku'
 
+def is_openbsd():
+    return platform.system().lower() == 'openbsd'
+
 def is_windows():
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
