@@ -20,9 +20,15 @@ gdbus_src = gnome.gdbus_codegen('generated-gdbus',
 )
 assert(gdbus_src.length() == 3, 'expected 3 targets')
 
+if not pretend_glib_old and glib.version().version_compare('>=2.51.3')
+  includes = []
+else
+  includes = include_directories('..')
+endif
+
 gdbus_exe = executable('gdbus-test', 'gdbusprog.c',
   gdbus_src,
-  include_directories : include_directories('..'),
+  include_directories : includes,
   dependencies : giounix)
 
 test('gdbus', gdbus_exe)
