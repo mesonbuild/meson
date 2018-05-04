@@ -905,9 +905,8 @@ This will become a hard error in the future.''')
             cmd += ['--annotate'] + annotation
 
         # Added in https://gitlab.gnome.org/GNOME/glib/commit/e4d68c7b3e8b01ab1a4231bf6da21d045cb5a816 (2.55.2)
-        # --body | --header is broken: https://github.com/mesonbuild/meson/issues/3488
-        # Disabled till glib is fixed.
-        if mesonlib.version_compare(self._get_native_glib_version(state), '>= 9999'):
+        # Fixed in https://gitlab.gnome.org/GNOME/glib/commit/cd1f82d8fc741a2203582c12cc21b4dacf7e1872 (2.56.2)
+        if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.56.2'):
             targets = []
             install_header = kwargs.get('install_header', False)
             install_dir = kwargs.get('install_dir', state.environment.coredata.get_builtin_option('includedir'))
