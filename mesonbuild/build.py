@@ -69,6 +69,7 @@ buildtarget_kwargs = set([
     'objects',
     'override_options',
     'sources',
+    'extra_args',
 ])
 
 known_build_target_kwargs = (
@@ -686,9 +687,9 @@ just like those detected with the dependency() function.''')
         for linktarget in lwhole:
             self.link_whole(linktarget)
 
-        c_pchlist, cpp_pchlist, clist, cpplist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist \
+        c_pchlist, cpp_pchlist, clist, cpplist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist, extra_args \
             = extract_as_list(kwargs, 'c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cs_args', 'vala_args', 'objc_args',
-                              'objcpp_args', 'fortran_args', 'rust_args')
+                              'objcpp_args', 'fortran_args', 'rust_args', 'extra_args')
 
         self.add_pch('c', c_pchlist)
         self.add_pch('cpp', cpp_pchlist)
@@ -697,6 +698,15 @@ just like those detected with the dependency() function.''')
                          }
         for key, value in compiler_args.items():
             self.add_compiler_args(key, value)
+
+        for obj in extra_args:
+            obj = obj.held_object
+            if not isinstance(obj, BuildArgs):
+                raise InvalidArguments('extra_args must be a list of build_args objects.')
+            for target_type in self.target_types:
+                compiler_args = obj.compiler_args.get(target_type, {})
+                for key, value in compiler_args.items():
+                    self.add_compiler_args(key, value)
 
         if not isinstance(self, Executable):
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
@@ -1224,6 +1234,7 @@ class GeneratedList:
 
 class Executable(BuildTarget):
     known_kwargs = known_exe_kwargs
+    target_types = ['executable']
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
@@ -1302,6 +1313,7 @@ class Executable(BuildTarget):
 
 class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
+    target_types = ['library', 'static_library']
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         if 'pic' not in kwargs and 'b_staticpic' in environment.coredata.base_options:
@@ -1355,6 +1367,7 @@ class StaticLibrary(BuildTarget):
 
 class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
+    target_types = ['library', 'shared_library']
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         self.soversion = None
@@ -1858,6 +1871,7 @@ class RunTarget(Target):
 
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
+    target_type = ['jar']
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
@@ -1978,6 +1992,20 @@ class TestSetup:
         self.gdb = gdb
         self.timeout_multiplier = timeout_multiplier
         self.env = env
+
+class BuildArgs:
+    def __init__(self):
+        self.compiler_args = {}
+
+    def __repr__(self):
+        return repr(self.compiler_args)
+
+    def add_compiler_args(self, compiler_args, target_type, language):
+        if target_type not in self.compiler_args:
+            self.compiler_args[target_type] = {}
+        if language not in self.compiler_args[target_type]:
+            self.compiler_args[target_type][language] = []
+        self.compiler_args[target_type][language] += compiler_args
 
 def get_sources_string_names(sources):
     '''
