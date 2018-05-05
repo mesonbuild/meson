@@ -1128,7 +1128,7 @@ This will become a hard error in the future.''')
             fhead += '%s\n' % body_prefix
         fhead += '#include "%s"\n' % hdr_filename
         for hdr in sources:
-            fhead += '#include "%s"\n' % hdr
+            fhead += '#include "%s"\n' % os.path.basename(str(hdr))
         fhead += '''
 #define C_ENUM(v) ((gint) v)
 #define C_FLAGS(v) ((guint) v)
