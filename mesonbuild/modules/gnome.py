@@ -793,11 +793,13 @@ This will become a hard error in the future.''')
                 s = s.held_object
             if isinstance(s, (build.CustomTarget, build.CustomTargetIndex)):
                 depends.append(s)
-                content_files.append(os.path.join(state.environment.get_build_dir(),
-                                                  state.backend.get_target_dir(s),
-                                                  s.get_outputs()[0]))
+                for o in s.get_outputs():
+                    content_files.append(os.path.join(state.environment.get_build_dir(),
+                                                      state.backend.get_target_dir(s),
+                                                      o))
             elif isinstance(s, mesonlib.File):
-                content_files.append(os.path.join(state.environment.get_build_dir(), s.subdir, s.fname))
+                content_files.append(s.absolute_path(state.environment.get_source_dir(),
+                                                     state.environment.get_build_dir()))
             elif isinstance(s, build.GeneratedList):
                 depends.append(s)
                 for gen_src in s.get_outputs():
