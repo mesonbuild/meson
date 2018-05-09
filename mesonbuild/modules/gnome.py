@@ -938,9 +938,13 @@ This will become a hard error in the future.''')
 
                 docbook_cmd = cmd + ['--output-directory', '@OUTDIR@', '--generate-docbook', docbook, '@INPUT@']
 
+                # The docbook output is always ${docbook}-${name_of_xml_file}
                 output = namebase + '-docbook'
+                outputs = []
+                for f in xml_files:
+                    outputs.append('{}-{}'.format(docbook, f))
                 custom_kwargs = {'input': xml_files,
-                                 'output': output,
+                                 'output': outputs,
                                  'command': docbook_cmd,
                                  'build_by_default': build_by_default
                                  }

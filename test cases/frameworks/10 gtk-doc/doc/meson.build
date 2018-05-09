@@ -5,8 +5,7 @@ version_xml = configure_file(input : 'version.xml.in',
                              configuration : cdata)
 
 gnome.gtkdoc('foobar',
-  version_xml,
   src_dir : inc,
   main_sgml : 'foobar-docs.sgml',
-  content_files : docbook,
+  content_files : [docbook, version_xml],
   install : true)
