@@ -2000,6 +2000,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                   'depfile',
                                   'capture',
                                   'preserve_path_from'},
+                    'include': {'if_found'},
                     'include_directories': {'is_system'},
                     'install_data': {'install_dir', 'install_mode', 'rename', 'sources'},
                     'install_headers': {'install_dir', 'install_mode', 'subdir'},
@@ -2051,6 +2052,7 @@ class Interpreter(InterpreterBase):
         self.builtin.update({'meson': MesonMain(build, self)})
         self.generators = []
         self.visited_subdirs = {}
+        self.included_files = set()
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects = {}
@@ -2122,6 +2124,7 @@ class Interpreter(InterpreterBase):
                            'files': self.func_files,
                            'find_library': self.func_find_library,
                            'find_program': self.func_find_program,
+                           'include': self.func_include,
                            'include_directories': self.func_include_directories,
                            'import': self.func_import,
                            'install_data': self.func_install_data,
@@ -3752,6 +3755,42 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             install_mode = self._get_kwarg_install_mode(kwargs)
             self.build.data.append(build.Data([cfile], idir, install_mode))
         return mesonlib.File.from_built_file(self.subdir, output)
+
+    @permittedKwargs(permitted_kwargs['include'])
+    def func_include(self, node, args, kwargs):
+        self.validate_arguments(args, 1, [str])
+        mesonlib.check_direntry_issues(args)
+        for i in mesonlib.extract_as_list(kwargs, 'if_found'):
+            if not hasattr(i, 'found_method'):
+                raise InterpreterException('Object used in if_found does not have a found method.')
+            if not i.found_method([], {}):
+                return
+        if os.path.isabs(args[0]):
+            absname = os.path.abspath(args[0])
+        else:
+            absname = os.path.abspath(os.path.join(self.environment.get_source_dir(), args[0]))
+        if absname in self.included_files:
+            raise InvalidArguments('Tried to include file "%s", which has already been included.'
+                                   % absname)
+        self.included_files.add(absname)
+        if not absname in self.build_def_files:
+            self.build_def_files.append(absname)
+        if not os.path.isfile(absname):
+            raise InterpreterException('Non-existent build file {!r}'.format(absname))
+        with open(absname, encoding='utf8') as f:
+            code = f.read()
+        assert(isinstance(code, str))
+        try:
+            codeblock = mparser.Parser(code, self.subdir).parse()
+        except mesonlib.MesonException as me:
+            me.file = absname
+            raise me
+        try:
+            self.evaluate_codeblock(codeblock)
+        except mesonlib.MesonException as me:
+            me.file = absname
+            raise me
+        self.included_files.clear()
 
     def extract_incdirs(self, kwargs):
         prospectives = listify(kwargs.get('include_directories', []), unholder=True)

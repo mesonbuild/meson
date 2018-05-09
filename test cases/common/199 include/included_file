@@ -1,0 +1,2 @@
+executable('test_include', 'main.c')
+

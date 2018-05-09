@@ -836,6 +836,23 @@ hypothetical `testmod` module.
     tmod.do_something()
 ```
 
+### include()
+
+``` meson
+    void include(file, ...)
+```
+
+Executes the `file`. Once that is done, it returns and execution continues on the
+line following this `include()` command. Variables defined in that
+`file` are then available for use in later parts of the
+current build file and in all subsequent build files executed with `subdir()`.
+
+This function has one keyword argument.
+
+ - `if_found` takes one or several dependency objects and will only
+   execute the file if they all return `true` when queried with
+   `.found()`
+
 ### include_directories()
 
 ``` meson
@@ -1396,7 +1413,7 @@ the invocation. All steps executed up to this point are valid and will
 be executed by meson. This means that all targets defined before the call
 of `subdir_done` will be build.
 
-If the current script was called by `subdir` the execution returns to the
+If the current script was called by `subdir` or `include` the execution returns to the
 calling directory and continues as if the script had reached the end.
 If the current script is the top level script meson configures the project
 as defined up to this point.
