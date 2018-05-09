@@ -3774,7 +3774,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             raise InvalidArguments('Tried to include file "%s", which has already been included.'
                                    % absname)
         self.included_files.add(absname)
-        if not absname in self.build_def_files:
+        if absname not in self.build_def_files:
             self.build_def_files.append(absname)
         if not os.path.isfile(absname):
             raise InterpreterException('Non-existent build file {!r}'.format(absname))
