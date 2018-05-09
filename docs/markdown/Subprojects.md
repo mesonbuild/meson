@@ -72,6 +72,35 @@ in the top level `subprojects` directory. Recursive use of subprojects
 is not allowed, though, so you can't have subproject `a` that uses
 subproject `b` and have `b` also use `a`.
 
+# Command-line options
+
+The usage of subprojects can be controlled by users and distros with
+the following command-line options:
+
+* **--wrap-mode=nodownload**
+
+    Meson will not use the network to download any subprojects or
+    fetch any wrap information. Only pre-existing sources will be used.
+    This is useful (mostly for distros) when you want to only use the
+    sources provided by a software release, and want to manually handle
+    or provide missing dependencies.
+    
+* **--wrap-mode=nofallback**
+
+    Meson will not use subproject fallbacks for any dependency
+    declarations in the build files, and will only look for them in the
+    system. Note that this does not apply to unconditional subproject()
+    calls, and those are meant to be used for sources that cannot be
+    provided by the system, such as copylibs.
+
+* **--wrap-mode=forcefallback**
+
+    Meson will not look at the system for any dependencies which have
+    subproject fallbacks available, and will *only* use subprojects for
+    them. This is useful when you want to test your fallback setup, or
+    want to specifically build against the library sources provided by
+    your subprojects.
+
 # Obtaining subprojects
 
 Meson ships with a dependency system to automatically obtain
