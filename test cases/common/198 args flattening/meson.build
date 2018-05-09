@@ -21,3 +21,9 @@ assert(arr == ['bar', 'baz'], 'configuration_data.get with array fallback is bro
 arr = meson.get_cross_property('does-not-exist', ['bar', 'baz'])
 
 assert(arr == ['bar', 'baz'], 'meson.get_cross_property with array fallback is broken')
+
+# Test deprecated behaviour
+
+conf.set(['foo', 'bar'])
+
+message(conf.get('foo'))
