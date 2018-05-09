@@ -1888,9 +1888,9 @@ and has the following methods:
 
 - `found()` which returns whether the executable was found
 
-- `path()` which returns an array pointing to the executable (this is
-  an array as opposed to a string because the program might be
-  `['python', 'foo.py']`, for example)
+- `path()` which returns a string pointing to the script or executable  
+  **NOTE:** You should not need to use this method. Passing the object
+  itself should work in all cases. F.ex.: `run_command(obj, arg1, arg2)`
 
 ### `environment` object
 
