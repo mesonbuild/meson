@@ -1,11 +1,11 @@
 cdata = configuration_data()
 cdata.set('VERSION', '1.0')
-configure_file(input : 'version.xml.in',
-  output : 'version.xml',
-  configuration : cdata)
+version_xml = configure_file(input : 'version.xml.in',
+                             output : 'version.xml',
+                             configuration : cdata)
 
 gnome.gtkdoc('foobar',
   src_dir : inc,
   main_sgml : 'foobar-docs.sgml',
-  content_files : docbook,
+  content_files : [docbook, version_xml],
   install : true)

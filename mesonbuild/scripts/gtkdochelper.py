@@ -93,9 +93,12 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
 
     # Copy files to build directory
     for f in content_files:
-        f_abs = os.path.join(doc_src, f)
-        shutil.copyfile(f_abs, os.path.join(
-            abs_out, os.path.basename(f_abs)))
+        # FIXME: Use mesonlib.File objects so we don't need to do this
+        if not os.path.isabs(f):
+            f = os.path.join(doc_src, f)
+        elif os.path.commonpath([f, build_root]) == build_root:
+            continue
+        shutil.copyfile(f, os.path.join(abs_out, os.path.basename(f)))
 
     shutil.rmtree(htmldir, ignore_errors=True)
     try:

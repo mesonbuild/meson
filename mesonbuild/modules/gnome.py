@@ -793,11 +793,13 @@ This will become a hard error in the future.''')
                 s = s.held_object
             if isinstance(s, (build.CustomTarget, build.CustomTargetIndex)):
                 depends.append(s)
-                content_files.append(os.path.join(state.environment.get_build_dir(),
-                                                  state.backend.get_target_dir(s),
-                                                  s.get_outputs()[0]))
+                for o in s.get_outputs():
+                    content_files.append(os.path.join(state.environment.get_build_dir(),
+                                                      state.backend.get_target_dir(s),
+                                                      o))
             elif isinstance(s, mesonlib.File):
-                content_files.append(os.path.join(state.environment.get_build_dir(), s.subdir, s.fname))
+                content_files.append(s.absolute_path(state.environment.get_source_dir(),
+                                                     state.environment.get_build_dir()))
             elif isinstance(s, build.GeneratedList):
                 depends.append(s)
                 for gen_src in s.get_outputs():
@@ -879,7 +881,7 @@ This will become a hard error in the future.''')
         if len(args) not in (1, 2):
             raise MesonException('Gdbus_codegen takes at most two arguments, name and xml file.')
         namebase = args[0]
-        xml_files = [args[1:]]
+        xml_files = args[1:]
         target_name = namebase + '-gdbus'
         cmd = [self.interpreter.find_program_impl('gdbus-codegen')]
         if 'interface_prefix' in kwargs:
@@ -936,9 +938,13 @@ This will become a hard error in the future.''')
 
                 docbook_cmd = cmd + ['--output-directory', '@OUTDIR@', '--generate-docbook', docbook, '@INPUT@']
 
+                # The docbook output is always ${docbook}-${name_of_xml_file}
                 output = namebase + '-docbook'
+                outputs = []
+                for f in xml_files:
+                    outputs.append('{}-{}'.format(docbook, f))
                 custom_kwargs = {'input': xml_files,
-                                 'output': output,
+                                 'output': outputs,
                                  'command': docbook_cmd,
                                  'build_by_default': build_by_default
                                  }

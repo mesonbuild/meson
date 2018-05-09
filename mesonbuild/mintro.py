@@ -21,6 +21,7 @@ project files and don't need this info."""
 
 import json
 from . import build, mtest, coredata as cdata
+from . import mesonlib
 from .backend import ninjabackend
 import argparse
 import sys, os
@@ -118,8 +119,12 @@ def list_target_files(target_name, coredata, builddata):
     except KeyError:
         print("Unknown target %s." % target_name)
         sys.exit(1)
-    sources = [os.path.join(i.subdir, i.fname) for i in sources]
-    print(json.dumps(sources))
+    out = []
+    for i in sources:
+        if isinstance(i, mesonlib.File):
+            i = os.path.join(i.subdir, i.fname)
+        out.append(i)
+    print(json.dumps(out))
 
 def list_buildoptions(coredata, builddata):
     optlist = []
