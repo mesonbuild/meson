@@ -686,8 +686,10 @@ class BasePlatformTests(unittest.TestCase):
         cmds = [l[len(prefix):].split() for l in log if l.startswith(prefix)]
         return cmds
 
-    def introspect(self, arg):
-        out = subprocess.check_output(self.mintro_command + [arg, self.builddir],
+    def introspect(self, args):
+        if isinstance(args, str):
+            args = [args]
+        out = subprocess.check_output(self.mintro_command + args + [self.builddir],
                                       universal_newlines=True)
         return json.loads(out)
 
@@ -2819,6 +2821,18 @@ class LinuxlikeTests(BasePlatformTests):
                 gobject_found = True
         self.assertTrue(glib_found)
         self.assertTrue(gobject_found)
+        if subprocess.call(['pkg-config', '--exists', 'glib-2.0 >= 2.56.2']) != 0:
+            raise unittest.SkipTest('glib >= 2.56.2 needed for the rest')
+        targets = self.introspect('--targets')
+        docbook_target = None
+        for t in targets:
+            if t['name'] == 'generated-gdbus-docbook':
+                docbook_target = t
+                break
+        self.assertIsInstance(docbook_target, dict)
+        ifile = self.introspect(['--target-files', 'generated-gdbus-docbook@cus'])[0]
+        self.assertEqual(t['filename'], 'gdbus/generated-gdbus-doc-' + ifile)
+
 
     def test_build_rpath(self):
         if is_cygwin():
