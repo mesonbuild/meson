@@ -290,7 +290,7 @@ class EnvironmentVariables:
         return value
 
     def get_env(self, full_env):
-        env = {}
+        env = full_env.copy()
         for method, name, values, kwargs in self.envvars:
             env[name] = method(full_env, name, values, kwargs)
         return env
