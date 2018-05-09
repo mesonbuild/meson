@@ -359,6 +359,7 @@ class InterpreterBase:
         self.funcs = {}
         self.builtin = {}
         self.subdir = subdir
+        self.current_file = ''
         self.variables = {}
         self.argument_depth = 0
         self.current_lineno = -1
@@ -368,6 +369,7 @@ class InterpreterBase:
 
     def load_root_meson_file(self):
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
+        self.current_file = mesonfile
         if not os.path.isfile(mesonfile):
             raise InvalidArguments('Missing Meson file in %s' % mesonfile)
         with open(mesonfile, encoding='utf8') as mf:
