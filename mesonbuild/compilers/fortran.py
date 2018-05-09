@@ -94,8 +94,8 @@ end program prog
     def split_shlib_to_parts(self, fname):
         return os.path.dirname(fname), fname
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, version, is_shared_module):
-        return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion, version, is_shared_module)
+    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
+        return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
 
     def get_dependency_gen_args(self, outtarget, outfile):
         # Disabled until this is fixed:
