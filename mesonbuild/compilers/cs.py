@@ -41,7 +41,7 @@ class CsCompiler(Compiler):
     def get_link_args(self, fname):
         return ['-r:' + fname]
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, version, is_shared_module):
+    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         return []
 
     def get_werror_args(self):
