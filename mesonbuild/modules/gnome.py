@@ -881,7 +881,7 @@ This will become a hard error in the future.''')
         if len(args) not in (1, 2):
             raise MesonException('Gdbus_codegen takes at most two arguments, name and xml file.')
         namebase = args[0]
-        xml_files = [args[1:]]
+        xml_files = args[1:]
         target_name = namebase + '-gdbus'
         cmd = [self.interpreter.find_program_impl('gdbus-codegen')]
         if 'interface_prefix' in kwargs:
