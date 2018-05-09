@@ -14,6 +14,9 @@ add_test_setup('valgrind',
 buggy = executable('buggy', 'buggy.c', 'impl.c')
 test('Test buggy', buggy)
 
+envcheck = find_program('envcheck.py')
+test('test-env', envcheck)
+
 add_test_setup('empty')
 add_test_setup('onlyenv', env : env)
 add_test_setup('onlyenv2', env : 'TEST_ENV=1')
