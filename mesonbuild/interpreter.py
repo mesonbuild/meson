@@ -3242,6 +3242,7 @@ root and issuing %s.
             absname = os.path.abspath(args[0])
         else:
             absname = os.path.abspath(os.path.join(self.environment.get_source_dir(), args[0]))
+        prev_current_file = self.current_file
         if absname in self.included_files:
             raise InvalidArguments('Tried to include file "%s", which has already been included.'
                                    % absname)
@@ -3256,14 +3257,16 @@ root and issuing %s.
         try:
             codeblock = mparser.Parser(code, self.subdir).parse()
         except mesonlib.MesonException as me:
-            me.file = absname
+            me.file = self.current_file
             raise me
+        self.current_file = absname
         try:
             self.evaluate_codeblock(codeblock)
         except mesonlib.MesonException as me:
-            me.file = absname
+            me.file = self.current_file
             raise me
         self.included_files.clear()
+        self.current_file = prev_current_file
 
     @permittedKwargs(permitted_kwargs['include_directories'])
     @stringArgs
