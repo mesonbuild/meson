@@ -1058,6 +1058,8 @@ int dummy;
         """
         result = OrderedSet()
         for dep in itertools.chain(target.link_targets, target.link_whole_targets):
+            if not dep.is_linkable_target():
+                continue
             for i in dep.sources:
                 if hasattr(i, 'fname'):
                     i = i.fname
@@ -1180,7 +1182,7 @@ int dummy;
         # found inside the build tree (generated sources).
         args += ['--directory', c_out_dir]
         args += ['--basedir', srcbasedir]
-        if not isinstance(target, build.Executable):
+        if target.is_linkable_target():
             # Library name
             args += ['--library', target.name]
             # Outputted header
