@@ -3768,7 +3768,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if os.path.isabs(args[0]):
             absname = os.path.abspath(args[0])
         else:
-            absname = os.path.abspath(os.path.join(self.environment.get_source_dir(), args[0]))
+            absname = os.path.abspath(os.path.join(self.environment.get_source_dir(), self.subdir, args[0]))
         prev_current_file = self.current_file
         if absname in self.included_files:
             raise InvalidArguments('Tried to include file "%s", which has already been included.'
