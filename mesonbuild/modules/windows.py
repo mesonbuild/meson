@@ -59,6 +59,14 @@ class WindowsModule(ExtensionModule):
                 rescomp = ExternalProgram('windres', command=os.environ.get('WINDRES'), silent=True)
 
         if not rescomp or not rescomp.found():
+            # Take windres from the config file after the environment, which is
+            # in keeping with the expectations on unix-like OSes that
+            # environment variables trump config files.
+            _win = state.environment.config_info.binaries.get('windres')
+            if _win:
+                rescomp = ExternalProgram('windres', command=_win, silent=True)
+
+        if not rescomp or not rescomp.found():
             comp = self.detect_compiler(state.compilers)
             if comp.id == 'msvc' or comp.id == 'clang-cl':
                 rescomp = ExternalProgram('rc', silent=True)
