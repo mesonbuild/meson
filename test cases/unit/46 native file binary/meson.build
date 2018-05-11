@@ -10,4 +10,8 @@ elif case == 'config_dep'
   add_languages('cpp')
   dep = dependency('llvm')
   assert(dep.get_configtool_variable('version').endswith('12345'), 'Didn\'t load llvm from config file')
+elif case == 'python3'
+  prog = import('python3').find_python()
+  result = run_command(prog, ['--version'])
+  assert(result.stdout().strip().endswith('12345'), 'Didn\'t load python3 from config file')
 endif

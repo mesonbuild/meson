@@ -4554,6 +4554,9 @@ class NativeFileTests(BasePlatformTests):
             raise unittest.SkipTest('No llvm-installed, cannot test')
         self._simple_test('config_dep', 'llvm-config')
 
+    def test_python3_module(self):
+        self._simple_test('python3', 'python3')
+
 
 def unset_envs():
     # For unit tests we must fully control all command lines

@@ -62,9 +62,8 @@ class WindowsModule(ExtensionModule):
             # Take windres from the config file after the environment, which is
             # in keeping with the expectations on unix-like OSes that
             # environment variables trump config files.
-            _win = state.environment.config_info.binaries.get('windres')
-            if _win:
-                rescomp = ExternalProgram('windres', command=_win, silent=True)
+            bins = state.environment.config_info.binaries
+            rescomp = ExternalProgram.from_bin_list(bins, 'windres')
 
         if not rescomp or not rescomp.found():
             comp = self.detect_compiler(state.compilers)
