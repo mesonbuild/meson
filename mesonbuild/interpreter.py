@@ -2306,7 +2306,7 @@ to directly access options of other subprojects.''')
                                                   self.build.environment.cmd_line_options.projectoptions,
                                                   )
             oi.process(self.option_file)
-            self.build.environment.merge_options(oi.options)
+            self.coredata.merge_user_options(oi.options)
         self.set_backend()
         self.active_projectname = proj_name
         self.project_version = kwargs.get('version', 'undefined')
