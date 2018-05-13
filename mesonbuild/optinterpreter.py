@@ -15,7 +15,6 @@
 import os, re
 import functools
 
-from . import mlog
 from . import mparser
 from . import coredata
 from . import mesonlib
@@ -125,48 +124,9 @@ option_types = {'string': StringParser,
                 }
 
 class OptionInterpreter:
-    def __init__(self, subproject, command_line_options):
+    def __init__(self, subproject):
         self.options = {}
         self.subproject = subproject
-        self.sbprefix = subproject + ':'
-        self.cmd_line_options = {}
-        for o in command_line_options:
-            if self.subproject != '': # Strip the beginning.
-                # Ignore options that aren't for this subproject
-                if not o.startswith(self.sbprefix):
-                    continue
-            try:
-                (key, value) = o.split('=', 1)
-            except ValueError:
-                raise OptionException('Option {!r} must have a value separated by equals sign.'.format(o))
-            # Ignore subproject options if not fetching subproject options
-            if self.subproject == '' and ':' in key:
-                continue
-            self.cmd_line_options[key] = value
-
-    def get_bad_options(self):
-        subproj_len = len(self.subproject)
-        if subproj_len > 0:
-            subproj_len += 1
-        retval = []
-        # The options need to be sorted (e.g. here) to get consistent
-        # error messages (on all platforms) which is required by some test
-        # cases that check (also) the order of these options.
-        for option in sorted(self.cmd_line_options):
-            if option in list(self.options) + forbidden_option_names:
-                continue
-            if any(option[subproj_len:].startswith(p) for p in forbidden_prefixes):
-                continue
-            retval += [option]
-        return retval
-
-    def check_for_bad_options(self):
-        bad = self.get_bad_options()
-        if bad:
-            sub = 'In subproject {}: '.format(self.subproject) if self.subproject else ''
-            mlog.warning(
-                '{}Unknown command line options: "{}"\n'
-                'This will become a hard error in a future Meson release.'.format(sub, ', '.join(bad)))
 
     def process(self, option_file):
         try:
@@ -187,7 +147,6 @@ class OptionInterpreter:
                 e.colno = cur.colno
                 e.file = os.path.join('meson_options.txt')
                 raise e
-        self.check_for_bad_options()
 
     def reduce_single(self, arg):
         if isinstance(arg, str):
@@ -243,6 +202,4 @@ class OptionInterpreter:
         opt = option_types[opt_type](opt_name, kwargs.pop('description', ''), kwargs)
         if opt.description == '':
             opt.description = opt_name
-        if opt_name in self.cmd_line_options:
-            opt.set_value(self.cmd_line_options[opt_name])
         self.options[opt_name] = opt

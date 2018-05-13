@@ -2072,6 +2072,8 @@ recommended as it can lead to undefined behaviour on some platforms''')
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.builtins['default_library'].value, 'static')
         self.assertEqual(obj.builtins['warning_level'].value, '1')
+        self.assertEqual(obj.user_options['set_sub_opt'].value, True)
+        self.assertEqual(obj.user_options['subp:subp_opt'].value, 'default3')
         self.wipe()
 
         # warning_level is special, it's --warnlevel instead of --warning-level
@@ -2112,6 +2114,45 @@ recommended as it can lead to undefined behaviour on some platforms''')
         self.setconf('--default-library=shared')
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.builtins['default_library'].value, 'shared')
+        self.wipe()
+
+        # Should fail on unknown options
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(testdir, extra_args=['-Dbad=1', '-Dfoo=2', '-Dwrong_link_args=foo'])
+        self.assertNotEqual(0, cm.exception.returncode)
+        self.assertIn('Unknown options: "bad, foo, wrong_link_args"', cm.exception.output)
+        self.wipe()
+
+        # Should fail on malformed option
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(testdir, extra_args=['-Dfoo'])
+        self.assertNotEqual(0, cm.exception.returncode)
+        self.assertIn('Option \'foo\' must have a value separated by equals sign.', cm.exception.output)
+        self.init(testdir)
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.setconf('-Dfoo')
+        self.assertNotEqual(0, cm.exception.returncode)
+        self.assertIn('Option \'foo\' must have a value separated by equals sign.', cm.exception.output)
+        self.wipe()
+
+        # It is not an error to set wrong option for unknown subprojects or
+        # language because we don't have control on which one will be selected.
+        self.init(testdir, extra_args=['-Dc_wrong=1', '-Dwrong:bad=1', '-Db_wrong=1'])
+        self.wipe()
+
+        # Test we can set subproject option
+        self.init(testdir, extra_args=['-Dsubp:subp_opt=foo'])
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.user_options['subp:subp_opt'].value, 'foo')
+        self.wipe()
+
+        # c_args value should be parsed with shlex
+        self.init(testdir, extra_args=['-Dc_args=foo bar "one two"'])
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.compiler_options['c_args'].value, ['foo', 'bar', 'one two'])
+        self.setconf('-Dc_args="foo bar" one two')
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.compiler_options['c_args'].value, ['foo bar', 'one', 'two'])
         self.wipe()
 
     def test_compiler_options_documented(self):
@@ -2270,25 +2311,6 @@ class FailureTests(BasePlatformTests):
         dep.get_configtool_variable('foo')
         '''
         self.assertMesonRaises(code, "Method.*configtool.*is invalid.*internal")
-
-    def test_bad_option(self):
-        tdir = os.path.join(self.unit_test_dir, '19 bad command line options')
-        os.environ['MESON_FORCE_BACKTRACE'] = '1'
-        self.init(tdir, extra_args=['-Dopt=bar', '-Dc_args=-Wall'], inprocess=True)
-        self.wipe()
-        out = self.init(tdir, extra_args=['-Dfoo=bar', '-Dbad=true'], inprocess=True)
-        self.assertRegex(
-            out, r'Unknown command line options: "bad, foo"')
-
-    def test_bad_option_subproject(self):
-        tdir = os.path.join(self.unit_test_dir, '19 bad command line options')
-        os.environ['MESON_FORCE_BACKTRACE'] = '1'
-        self.init(tdir, extra_args=['-Done:one=bar'], inprocess=True)
-        self.wipe()
-        out = self.init(tdir, extra_args=['-Done:two=bar'], inprocess=True)
-        self.assertRegex(
-            out,
-            r'In subproject one: Unknown command line options: "one:two"')
 
     def test_objc_cpp_detection(self):
         '''

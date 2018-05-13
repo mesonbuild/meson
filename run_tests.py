@@ -153,6 +153,7 @@ def get_fake_options(prefix):
     opts.cross_file = None
     opts.wrap_mode = None
     opts.prefix = prefix
+    opts.cmd_line_options = {}
     return opts
 
 def should_run_linux_cross_tests():
