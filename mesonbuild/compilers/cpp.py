@@ -78,10 +78,12 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
     def get_options(self):
-        return {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                    ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
-                                                     'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z'],
-                                                    'none')}
+        opts = CPPCompiler.get_options(self)
+        opts.update({'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                         ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
+                                                          'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z'],
+                                                         'none')})
+        return opts
 
     def get_option_compile_args(self, options):
         args = []
@@ -107,13 +109,14 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
     def get_options(self):
-        opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                    ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
-                                                     'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z'],
-                                                    'none'),
-                'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
-                                                           'STL debug mode',
-                                                           False)}
+        opts = CPPCompiler.get_options(self)
+        opts.update({'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                         ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
+                                                          'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z'],
+                                                         'none'),
+                     'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
+                                                                'STL debug mode',
+                                                                False)})
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'cpp_winlibs': coredata.UserArrayOption('cpp_winlibs', 'Standard Win libraries to link against',
@@ -148,7 +151,7 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
 
     # It does not support c++/gnu++ 17 and 1z, but still does support 0x, 1y, and gnu++98.
     def get_options(self):
-        opts = super().get_options()
+        opts = CPPCompiler.get_options(self)
         opts['cpp_std'] = coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                    ['none', 'c++98', 'c++03', 'c++0x', 'c++11', 'c++14', 'c++1y',
                                                     'gnu++98', 'gnu++03', 'gnu++0x', 'gnu++11', 'gnu++14', 'gnu++1y'],
@@ -176,6 +179,7 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
     def get_options(self):
+        opts = CPPCompiler.get_options(self)
         c_stds = []
         g_stds = ['gnu++98']
         if version_compare(self.version, '>=15.0.0'):
@@ -185,12 +189,12 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
             c_stds += ['c++17']
         if version_compare(self.version, '>=17.0.0'):
             g_stds += ['gnu++14']
-        opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                    ['none'] + c_stds + g_stds,
-                                                    'none'),
-                'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
-                                                           'STL debug mode',
-                                                           False)}
+        opts.update({'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                         ['none'] + c_stds + g_stds,
+                                                         'none'),
+                     'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
+                                                                'STL debug mode',
+                                                                False)})
         return opts
 
     def get_option_compile_args(self, options):
@@ -213,14 +217,15 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
     def get_options(self):
-        return {'cpp_eh': coredata.UserComboOption('cpp_eh',
-                                                   'C++ exception handling type.',
-                                                   ['none', 'a', 's', 'sc'],
-                                                   'sc'),
-                'cpp_winlibs': coredata.UserArrayOption('cpp_winlibs',
-                                                        'Windows libs to link against.',
-                                                        msvc_winlibs)
-                }
+        opts = CPPCompiler.get_options(self)
+        opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
+                                                        'C++ exception handling type.',
+                                                        ['none', 'a', 's', 'sc'],
+                                                        'sc'),
+                     'cpp_winlibs': coredata.UserArrayOption('cpp_winlibs',
+                                                             'Windows libs to link against.',
+                                                             msvc_winlibs)})
+        return opts
 
     def get_option_compile_args(self, options):
         args = []
@@ -244,9 +249,10 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
         ArmCompiler.__init__(self)
 
     def get_options(self):
-        opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                    ['none', 'c++03', 'c++11'],
-                                                    'none')}
+        opts = CPPCompiler.get_options(self)
+        opts.update({'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                         ['none', 'c++03', 'c++11'],
+                                                         'none')})
         return opts
 
     def get_option_compile_args(self, options):
