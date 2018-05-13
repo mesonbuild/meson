@@ -2155,6 +2155,33 @@ recommended as it can lead to undefined behaviour on some platforms''')
         self.assertEqual(obj.compiler_options['c_args'].value, ['foo bar', 'one', 'two'])
         self.wipe()
 
+        # Setting a 2nd time the same option should override the first value
+        try:
+            self.init(testdir, extra_args=['--bindir=foo', '--bindir=bar',
+                                           '-Dbuildtype=plain', '-Dbuildtype=release',
+                                           '-Db_sanitize=address', '-Db_sanitize=thread',
+                                           '-Dc_args=foo', '-Dc_args=bar'])
+            obj = mesonbuild.coredata.load(self.builddir)
+            self.assertEqual(obj.builtins['bindir'].value, 'bar')
+            self.assertEqual(obj.builtins['buildtype'].value, 'release')
+            self.assertEqual(obj.base_options['b_sanitize'].value, 'thread')
+            self.assertEqual(obj.compiler_options['c_args'].value, ['bar'])
+            self.setconf(['--bindir=bar', '--bindir=foo',
+                          '-Dbuildtype=release', '-Dbuildtype=plain',
+                          '-Db_sanitize=thread', '-Db_sanitize=address',
+                          '-Dc_args=bar', '-Dc_args=foo'])
+            obj = mesonbuild.coredata.load(self.builddir)
+            self.assertEqual(obj.builtins['bindir'].value, 'foo')
+            self.assertEqual(obj.builtins['buildtype'].value, 'plain')
+            self.assertEqual(obj.base_options['b_sanitize'].value, 'address')
+            self.assertEqual(obj.compiler_options['c_args'].value, ['foo'])
+            self.wipe()
+        except KeyError:
+            # Ignore KeyError, it happens on CI for compilers that does not
+            # support b_sanitize. We have to test with a base option because
+            # they used to fail this test with Meson 0.46 an earlier versions.
+            pass
+
     def test_compiler_options_documented(self):
         '''
         Test that C and C++ compiler options and base options are documented in
@@ -2175,7 +2202,6 @@ recommended as it can lead to undefined behaviour on some platforms''')
             for opt in comp.base_options:
                 self.assertIn(opt, md)
         self.assertNotIn('b_unknown', md)
-
 
 class FailureTests(BasePlatformTests):
     '''
