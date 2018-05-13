@@ -20,21 +20,10 @@ from . import mparser
 from . import coredata
 from . import mesonlib
 from .interpreterbase import FeatureNew
+from . import compilers
 
 forbidden_option_names = coredata.get_builtin_options()
-forbidden_prefixes = {'c_',
-                      'cpp_',
-                      'd_',
-                      'rust_',
-                      'fortran_',
-                      'objc_',
-                      'objcpp_',
-                      'vala_',
-                      'csharp_',
-                      'swift_',
-                      'b_',
-                      'backend_',
-                      }
+forbidden_prefixes = [lang + '_' for lang in compilers.all_languages] + ['b_', 'backend_']
 
 def is_invalid_name(name):
     if name in forbidden_option_names:

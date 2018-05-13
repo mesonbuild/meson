@@ -45,6 +45,7 @@ lang_suffixes = {
     'swift': ('swift',),
     'java': ('java',),
 }
+all_languages = lang_suffixes.keys()
 cpp_suffixes = lang_suffixes['cpp'] + ('h',)
 c_suffixes = lang_suffixes['c'] + ('h',)
 # List of languages that can be linked with C code directly by the linker
