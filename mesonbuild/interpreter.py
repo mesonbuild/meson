@@ -1754,7 +1754,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
 
 class Interpreter(InterpreterBase):
 
-    def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects',
+    def __init__(self, build, backend=None, subproject='', subdir='', subproject_dir='subprojects',
                  modules = None, default_project_options=[]):
         super().__init__(build.environment.get_source_dir(), subdir)
         self.an_unpicklable_object = mesonlib.an_unpicklable_object
@@ -2256,6 +2256,36 @@ to directly access options of other subprojects.''')
                 newoptions = [defopt] + self.environment.cmd_line_options.projectoptions
                 self.environment.cmd_line_options.projectoptions = newoptions
 
+    def set_backend(self):
+        # The backend is already set when parsing subprojects
+        if self.backend is not None:
+            return
+        backend = self.coredata.get_builtin_option('backend')
+        if backend == 'ninja':
+            from .backend import ninjabackend
+            self.backend = ninjabackend.NinjaBackend(self.build)
+        elif backend == 'vs':
+            from .backend import vs2010backend
+            self.backend = vs2010backend.autodetect_vs_version(self.build)
+            self.coredata.set_builtin_option('backend', self.backend.name)
+            mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.backend.name))
+        elif backend == 'vs2010':
+            from .backend import vs2010backend
+            self.backend = vs2010backend.Vs2010Backend(self.build)
+        elif backend == 'vs2015':
+            from .backend import vs2015backend
+            self.backend = vs2015backend.Vs2015Backend(self.build)
+        elif backend == 'vs2017':
+            from .backend import vs2017backend
+            self.backend = vs2017backend.Vs2017Backend(self.build)
+        elif backend == 'xcode':
+            from .backend import xcodebackend
+            self.backend = xcodebackend.XCodeBackend(self.build)
+        else:
+            raise InterpreterException('Unknown backend "%s".' % backend)
+
+        self.coredata.init_backend_options(backend, self.environment.cmd_line_options.projectoptions)
+
     @stringArgs
     @permittedKwargs(permitted_kwargs['project'])
     def func_project(self, node, args, kwargs):
@@ -2277,6 +2307,7 @@ to directly access options of other subprojects.''')
                                                   )
             oi.process(self.option_file)
             self.build.environment.merge_options(oi.options)
+        self.set_backend()
         self.active_projectname = proj_name
         self.project_version = kwargs.get('version', 'undefined')
         if self.build.project_version is None:

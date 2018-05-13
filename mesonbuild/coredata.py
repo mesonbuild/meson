@@ -197,7 +197,7 @@ class CoreData:
         self.target_guids = {}
         self.version = version
         self.init_builtins(options)
-        self.init_backend_options(self.builtins['backend'].value)
+        self.backend_options = {}
         self.user_options = {}
         self.compiler_options = {}
         self.base_options = {}
@@ -307,12 +307,18 @@ class CoreData:
             args = [key] + builtin_options[key][1:-1] + [value]
             self.builtins[key] = builtin_options[key][0](*args)
 
-    def init_backend_options(self, backend_name):
-        self.backend_options = {}
+    def init_backend_options(self, backend_name, options):
         if backend_name == 'ninja':
             self.backend_options['backend_max_links'] = UserIntegerOption('backend_max_links',
                                                                           'Maximum number of linker processes to run or 0 for no limit',
                                                                           0, None, 0)
+        for o in options:
+            key, value = o.split('=', 1)
+            if not key.startswith('backend_'):
+                continue
+            if key not in self.backend_options:
+                raise MesonException('Unknown backend option %s' % key)
+            self.backend_options[key].set_value(value)
 
     def get_builtin_option(self, optname):
         if optname in self.builtins:
