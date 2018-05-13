@@ -72,15 +72,6 @@ from .compilers import (
 
 build_filename = 'meson.build'
 
-# Environment variables that each lang uses.
-cflags_mapping = {'c': 'CFLAGS',
-                  'cpp': 'CXXFLAGS',
-                  'objc': 'OBJCFLAGS',
-                  'objcpp': 'OBJCXXFLAGS',
-                  'fortran': 'FFLAGS',
-                  'd': 'DFLAGS',
-                  'vala': 'VALAFLAGS'}
-
 def detect_gcovr(version='3.1', log=False):
     gcovr_exe = 'gcovr'
     try:
@@ -943,50 +934,6 @@ class Environment:
             raise mesonlib.MesonException('Could not calculate system search dirs')
         out = out.split('\n')[index].lstrip('libraries: =').split(':')
         return [os.path.normpath(p) for p in out]
-
-def get_args_from_envvars(compiler):
-    """
-    @compiler: Compiler to fetch environment flags for
-
-    Returns a tuple of (compile_flags, link_flags) for the specified language
-    from the inherited environment
-    """
-    def log_var(var, val):
-        if val:
-            mlog.log('Appending {} from environment: {!r}'.format(var, val))
-
-    lang = compiler.get_language()
-    compiler_is_linker = False
-    if hasattr(compiler, 'get_linker_exelist'):
-        compiler_is_linker = (compiler.get_exelist() == compiler.get_linker_exelist())
-
-    if lang not in cflags_mapping:
-        return [], [], []
-
-    compile_flags = os.environ.get(cflags_mapping[lang], '')
-    log_var(cflags_mapping[lang], compile_flags)
-    compile_flags = shlex.split(compile_flags)
-
-    # Link flags (same for all languages)
-    link_flags = os.environ.get('LDFLAGS', '')
-    log_var('LDFLAGS', link_flags)
-    link_flags = shlex.split(link_flags)
-    if compiler_is_linker:
-        # When the compiler is used as a wrapper around the linker (such as
-        # with GCC and Clang), the compile flags can be needed while linking
-        # too. This is also what Autotools does. However, we don't want to do
-        # this when the linker is stand-alone such as with MSVC C/C++, etc.
-        link_flags = compile_flags + link_flags
-
-    # Pre-processor flags (not for fortran or D)
-    preproc_flags = ''
-    if lang in ('c', 'cpp', 'objc', 'objcpp'):
-        preproc_flags = os.environ.get('CPPFLAGS', '')
-    log_var('CPPFLAGS', preproc_flags)
-    preproc_flags = shlex.split(preproc_flags)
-    compile_flags += preproc_flags
-
-    return preproc_flags, compile_flags, link_flags
 
 class CrossBuildInfo:
     def __init__(self, filename):

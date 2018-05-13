@@ -2471,7 +2471,7 @@ to directly access options of other subprojects.''')
 
             # If <language>_args/_link_args settings are given on the
             # command line, use them, otherwise take them from env.
-            (preproc_args, compile_args, link_args) = environment.get_args_from_envvars(comp)
+            (preproc_args, compile_args, link_args) = comp.get_args_from_envvars()
             for optspec in self.build.environment.cmd_line_options.projectoptions:
                 (optname, optvalue) = optspec.split('=', maxsplit=1)
                 if optname == lang + '_link_args':
