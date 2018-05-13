@@ -2218,18 +2218,8 @@ to directly access options of other subprojects.''')
             if coredata.is_builtin_option(key):
                 if self.subproject != '':
                     continue # Only the master project is allowed to set global options.
-                # If this was set on the command line, do not override.
-                if not self.environment.had_argument_for(key):
-                    self.coredata.set_builtin_option(key, value)
-                    # If we are setting the prefix, then other options which
-                    # have prefix-dependent defaults need their value updating,
-                    # if they haven't been explicitly set (i.e. have their
-                    # default value)
-                    if key == 'prefix':
-                        for option in coredata.builtin_dir_noprefix_options:
-                            if not (self.environment.had_argument_for(option) or
-                                    any([k.startswith(option + '=') for k in default_options])):
-                                self.coredata.set_builtin_option(option, coredata.get_builtin_option_default(option, value))
+                newoptions = [option] + self.environment.cmd_line_options.projectoptions
+                self.environment.cmd_line_options.projectoptions = newoptions
             else:
                 # Option values set with subproject() default_options override those
                 # set in project() default_options.
@@ -2255,6 +2245,14 @@ to directly access options of other subprojects.''')
                 defopt = self.subproject + ':' + defopt
                 newoptions = [defopt] + self.environment.cmd_line_options.projectoptions
                 self.environment.cmd_line_options.projectoptions = newoptions
+
+    def set_builtin_options(self):
+        # Create a dict containing only builtin options, then use
+        # coredata.set_options() because it already has code to set the prefix
+        # option first to sanitize all other options.
+        options = coredata.create_options_dict(self.environment.cmd_line_options.projectoptions)
+        options = {k: v for k, v in options.items() if coredata.is_builtin_option(k)}
+        self.coredata.set_options(options)
 
     def set_backend(self):
         # The backend is already set when parsing subprojects
@@ -2301,6 +2299,7 @@ to directly access options of other subprojects.''')
             self.parse_default_options(default_options)
         if not self.is_subproject():
             self.build.project_name = proj_name
+            self.set_builtin_options()
         if os.path.exists(self.option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject,
                                                   self.build.environment.cmd_line_options.projectoptions,
