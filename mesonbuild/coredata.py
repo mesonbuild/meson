@@ -360,7 +360,8 @@ class CoreData:
                 if type(oldval) != type(value):
                     self.user_options[name] = value
 
-    def set_options(self, options):
+    def set_options(self, options, subproject=''):
+        unknown_options = []
         for o in options:
             if '=' not in o:
                 raise MesonException('Value "%s" not of type "a=b".' % o)
@@ -380,7 +381,12 @@ class CoreData:
                 tgt = self.base_options[k]
                 tgt.set_value(v)
             else:
-                raise MesonException('Unknown option %s.' % k)
+                unknown_options.append(k)
+
+        if unknown_options:
+            unknown_options = ', '.join(sorted(unknown_options))
+            sub = 'In subproject {}: '.format(subproject) if subproject else ''
+            raise MesonException('{}Unknown options: "{}"'.format(sub, unknown_options))
 
 def load(build_dir):
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
