@@ -351,6 +351,37 @@ class CoreData:
     def get_external_preprocess_args(self, lang):
         return self.external_preprocess_args[lang]
 
+    def merge_user_options(self, options):
+        for (name, value) in options.items():
+            if name not in self.user_options:
+                self.user_options[name] = value
+            else:
+                oldval = self.user_options[name]
+                if type(oldval) != type(value):
+                    self.user_options[name] = value
+
+    def set_options(self, options):
+        for o in options:
+            if '=' not in o:
+                raise MesonException('Value "%s" not of type "a=b".' % o)
+            (k, v) = o.split('=', 1)
+            if is_builtin_option(k):
+                self.set_builtin_option(k, v)
+            elif k in self.backend_options:
+                tgt = self.backend_options[k]
+                tgt.set_value(v)
+            elif k in self.user_options:
+                tgt = self.user_options[k]
+                tgt.set_value(v)
+            elif k in self.compiler_options:
+                tgt = self.compiler_options[k]
+                tgt.set_value(v)
+            elif k in self.base_options:
+                tgt = self.base_options[k]
+                tgt.set_value(v)
+            else:
+                raise MesonException('Unknown option %s.' % k)
+
 def load(build_dir):
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
     load_fail_msg = 'Coredata file {!r} is corrupted. Try with a fresh build tree.'.format(filename)

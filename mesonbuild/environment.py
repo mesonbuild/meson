@@ -378,15 +378,6 @@ class Environment:
             previous_is_plaind = i == '-D'
         return False
 
-    def merge_options(self, options):
-        for (name, value) in options.items():
-            if name not in self.coredata.user_options:
-                self.coredata.user_options[name] = value
-            else:
-                oldval = self.coredata.user_options[name]
-                if type(oldval) != type(value):
-                    self.coredata.user_options[name] = value
-
     @staticmethod
     def get_gnu_compiler_defines(compiler):
         """

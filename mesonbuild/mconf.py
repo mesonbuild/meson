@@ -42,6 +42,9 @@ class Conf:
     def clear_cache(self):
         self.coredata.deps = {}
 
+    def set_options(self, options):
+        self.coredata.set_options(options)
+
     def save(self):
         # Only called if something has changed so overwrite unconditionally.
         coredata.save(self.coredata, self.build_dir)
@@ -93,28 +96,6 @@ class Conf:
                 print('  {0:{width[0]}} {1:{width[1]}} {2:{width[2]}} {3:{width[3]}}'.format(*line, width=col_widths))
             else:
                 print('  {0:{width[0]}} {1:{width[1]}} {3:{width[3]}}'.format(*line, width=col_widths))
-
-    def set_options(self, options):
-        for o in options:
-            if '=' not in o:
-                raise ConfException('Value "%s" not of type "a=b".' % o)
-            (k, v) = o.split('=', 1)
-            if coredata.is_builtin_option(k):
-                self.coredata.set_builtin_option(k, v)
-            elif k in self.coredata.backend_options:
-                tgt = self.coredata.backend_options[k]
-                tgt.set_value(v)
-            elif k in self.coredata.user_options:
-                tgt = self.coredata.user_options[k]
-                tgt.set_value(v)
-            elif k in self.coredata.compiler_options:
-                tgt = self.coredata.compiler_options[k]
-                tgt.set_value(v)
-            elif k in self.coredata.base_options:
-                tgt = self.coredata.base_options[k]
-                tgt.set_value(v)
-            else:
-                raise ConfException('Unknown option %s.' % k)
 
     def print_conf(self):
         print('Core properties:')
