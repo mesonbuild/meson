@@ -25,6 +25,7 @@ __all__ = [
     'ICC_STANDARD',
     'ICC_WIN',
 
+    'all_languages',
     'base_options',
     'clike_langs',
     'c_suffixes',
@@ -99,6 +100,7 @@ from .compilers import (
     ICC_OSX,
     ICC_WIN,
     ICC_STANDARD,
+    all_languages,
     base_options,
     clike_langs,
     c_suffixes,
