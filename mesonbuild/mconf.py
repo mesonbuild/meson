@@ -110,6 +110,8 @@ class Conf:
             d = o.description
             v = o.value
             c = o.choices
+            if isinstance(o, coredata.UserUmaskOption):
+                v = format(v, '04o')
             arr.append({'name': k, 'descr': d, 'value': v, 'choices': c})
         self.print_aligned(arr)
 
