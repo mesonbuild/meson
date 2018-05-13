@@ -725,6 +725,11 @@ class Compiler:
         """
         return []
 
+    def get_preproc_flags(self):
+        if self.get_language() in ('c', 'cpp', 'objc', 'objcpp'):
+            return os.environ.get('CPPFLAGS', '')
+        return ''
+
     def get_args_from_envvars(self):
         """
         Returns a tuple of (compile_flags, link_flags) for the specified language
@@ -740,7 +745,7 @@ class Compiler:
             compiler_is_linker = (self.get_exelist() == self.get_linker_exelist())
 
         if lang not in cflags_mapping:
-            return [], [], []
+            return [], []
 
         compile_flags = os.environ.get(cflags_mapping[lang], '')
         log_var(cflags_mapping[lang], compile_flags)
@@ -758,17 +763,31 @@ class Compiler:
             link_flags = compile_flags + link_flags
 
         # Pre-processor flags (not for fortran or D)
-        preproc_flags = ''
-        if lang in ('c', 'cpp', 'objc', 'objcpp'):
-            preproc_flags = os.environ.get('CPPFLAGS', '')
+        preproc_flags = self.get_preproc_flags()
         log_var('CPPFLAGS', preproc_flags)
         preproc_flags = shlex.split(preproc_flags)
         compile_flags += preproc_flags
 
-        return preproc_flags, compile_flags, link_flags
+        return compile_flags, link_flags
 
     def get_options(self):
-        return {} # build afresh every time
+        opts = {} # build afresh every time
+
+        # Take default values from env variables.
+        compile_args, link_args = self.get_args_from_envvars()
+        description = 'Extra arguments passed to the {}'.format(self.get_display_language())
+        opts.update({
+            self.language + '_args': coredata.UserArrayOption(
+                self.language + '_args',
+                description + ' compiler',
+                compile_args, shlex_split=True, user_input=True),
+            self.language + '_link_args': coredata.UserArrayOption(
+                self.language + '_link_args',
+                description + ' linker',
+                link_args, shlex_split=True, user_input=True),
+        })
+
+        return opts
 
     def get_option_compile_args(self, options):
         return []

@@ -114,21 +114,6 @@ class Conf:
             elif k in self.coredata.base_options:
                 tgt = self.coredata.base_options[k]
                 tgt.set_value(v)
-            elif k.endswith('_link_args'):
-                lang = k[:-10]
-                if lang not in self.coredata.external_link_args:
-                    raise ConfException('Unknown language %s in linkargs.' % lang)
-                # TODO, currently split on spaces, make it so that user
-                # can pass in an array string.
-                newvalue = shlex.split(v)
-                self.coredata.external_link_args[lang] = newvalue
-            elif k.endswith('_args'):
-                lang = k[:-5]
-                if lang not in self.coredata.external_args:
-                    raise ConfException('Unknown language %s in compile args' % lang)
-                # TODO same fix as above
-                newvalue = shlex.split(v)
-                self.coredata.external_args[lang] = newvalue
             else:
                 raise ConfException('Unknown option %s.' % k)
 
@@ -161,12 +146,6 @@ class Conf:
                 o = self.coredata.base_options[k]
                 coarr.append({'name': k, 'descr': o.description, 'value': o.value, 'choices': o.choices})
             self.print_aligned(coarr)
-        print('\nCompiler arguments:')
-        for (lang, args) in self.coredata.external_args.items():
-            print('  ' + lang + '_args', str(args))
-        print('\nLinker args:')
-        for (lang, args) in self.coredata.external_link_args.items():
-            print('  ' + lang + '_link_args', str(args))
         print('\nCompiler options:')
         if not self.coredata.compiler_options:
             print('  No compiler options\n')

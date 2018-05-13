@@ -793,9 +793,10 @@ class Vs2010Backend(backends.Backend):
         if not target.is_cross:
             # Compile args added from the env: CFLAGS/CXXFLAGS, etc. We want these
             # to override all the defaults, but not the per-target compile args.
-            for l, args in self.environment.coredata.external_args.items():
-                if l in file_args:
-                    file_args[l] += args
+            for key, opt in self.environment.coredata.compiler_options.items():
+                l, suffix = key.split('_', 1)
+                if suffix == 'args' and l in file_args:
+                    file_args[l] += opt.value
         for args in file_args.values():
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
@@ -960,7 +961,7 @@ class Vs2010Backend(backends.Backend):
             if not target.is_cross:
                 # Link args added from the env: LDFLAGS. We want these to
                 # override all the defaults but not the per-target link args.
-                extra_link_args += self.environment.coredata.external_link_args[compiler.get_language()]
+                extra_link_args += self.environment.coredata.get_external_link_args(compiler.get_language())
             # Only non-static built targets need link args and link dependencies
             extra_link_args += target.link_args
             # External deps must be last because target link libraries may depend on them.

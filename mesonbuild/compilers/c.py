@@ -351,13 +351,13 @@ class CCompiler(Compiler):
         if not self.is_cross:
             if mode == 'preprocess':
                 # Add CPPFLAGS from the env.
-                args += env.coredata.external_preprocess_args[self.language]
+                args += env.coredata.get_external_preprocess_args(self.language)
             elif mode == 'compile':
                 # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
-                args += env.coredata.external_args[self.language]
+                args += env.coredata.get_external_args(self.language)
             elif mode == 'link':
                 # Add LDFLAGS from the env
-                args += env.coredata.external_link_args[self.language]
+                args += env.coredata.get_external_link_args(self.language)
         args += self.get_compiler_check_args()
         # extra_args must override all other arguments, so we add them last
         args += extra_args
