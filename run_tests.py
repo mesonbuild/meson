@@ -181,7 +181,7 @@ def run_mtest_inprocess(commandlist):
     old_stderr = sys.stderr
     sys.stderr = mystderr = StringIO()
     try:
-        returncode = mtest.run(commandlist)
+        returncode = mtest.run_with_args(commandlist)
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr

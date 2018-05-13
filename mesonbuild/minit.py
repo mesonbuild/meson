@@ -14,7 +14,7 @@
 
 """Code that creates simple startup projects."""
 
-import os, sys, argparse, re, shutil, subprocess
+import os, sys, re, shutil, subprocess
 from glob import glob
 from mesonbuild import mesonlib
 from mesonbuild.environment import detect_ninja
@@ -425,8 +425,7 @@ def create_meson_build(options):
     open('meson.build', 'w').write(content)
     print('Generated meson.build file:\n\n' + content)
 
-def run(args):
-    parser = argparse.ArgumentParser(prog='meson')
+def add_arguments(parser):
     parser.add_argument("srcfiles", metavar="sourcefile", nargs="*",
                         help="source files. default: all recognized files in current directory")
     parser.add_argument("-n", "--name", help="project name. default: name of current directory")
@@ -441,7 +440,8 @@ def run(args):
     parser.add_argument('--type', default='executable',
                         choices=['executable', 'library'])
     parser.add_argument('--version', default='0.1')
-    options = parser.parse_args(args)
+
+def run(options):
     if len(glob('*')) == 0:
         autodetect_options(options, sample=True)
         if not options.language:

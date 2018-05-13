@@ -15,11 +15,97 @@
 import sys
 import os.path
 import importlib
+import traceback
+import argparse
 
 from . import mesonlib
 from . import mlog
+from . import mconf, minit, minstall, mintro, msetup, mtest, rewriter
 from .mesonlib import MesonException
 from .environment import detect_msys2_arch
+from .wrap import wraptool
+
+
+class CommandLineParser:
+    def __init__(self):
+        self.commands = {}
+        self.parser = argparse.ArgumentParser(prog='meson')
+        self.subparsers = self.parser.add_subparsers(title='Commands',
+                                                     description='If no command is specified it defaults to setup command.')
+        self.add_command('setup', msetup.add_arguments, msetup.run,
+                         help='Configure the project')
+        self.add_command('configure', mconf.add_arguments, mconf.run,
+                         help='Change project options',)
+        self.add_command('install', minstall.add_arguments, minstall.run,
+                         help='Install the project')
+        self.add_command('introspect', mintro.add_arguments, mintro.run,
+                         help='Introspect project')
+        self.add_command('init', minit.add_arguments, minit.run,
+                         help='Create a new project')
+        self.add_command('test', mtest.add_arguments, mtest.run,
+                         help='Run tests')
+        self.add_command('rewrite', rewriter.add_arguments, rewriter.run,
+                         help='Edit project files')
+        self.add_command('wrap', wraptool.add_arguments, wraptool.run,
+                         help='Wrap tools')
+        self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,
+                         help='Run a python script')
+        self.add_command('help', self.add_help_arguments, self.run_help_command,
+                         help='Print help of a subcommand')
+
+    def add_command(self, name, add_arguments_func, run_func, help):
+        p = self.subparsers.add_parser(name, help=help)
+        add_arguments_func(p)
+        p.set_defaults(run_func=run_func)
+        self.commands[name] = p
+
+    def add_runpython_arguments(self, parser):
+        parser.add_argument('script_file')
+        parser.add_argument('script_args', nargs=argparse.REMAINDER)
+
+    def run_runpython_command(self, options):
+        import runpy
+        sys.argv[1:] = options.script_args
+        runpy.run_path(options.script_file, run_name='__main__')
+        return 0
+
+    def add_help_arguments(self, parser):
+        parser.add_argument('command', nargs='?')
+
+    def run_help_command(self, options):
+        if options.command:
+            self.commands[options.command].print_help()
+        else:
+            self.parser.print_help()
+        return 0
+
+    def run(self, args):
+        # If first arg is not a known command, assume user wants to run the setup
+        # command.
+        known_commands = list(self.commands.keys()) + ['-h', '--help']
+        if len(args) == 0 or args[0] not in known_commands:
+            args = ['setup'] + args
+
+        args = mesonlib.expand_arguments(args)
+        options = self.parser.parse_args(args)
+
+        try:
+            return options.run_func(options)
+        except MesonException as e:
+            mlog.exception(e)
+            logfile = mlog.shutdown()
+            if logfile is not None:
+                mlog.log("\nA full log can be found at", mlog.bold(logfile))
+            if os.environ.get('MESON_FORCE_BACKTRACE'):
+                raise
+            return 1
+        except Exception as e:
+            if os.environ.get('MESON_FORCE_BACKTRACE'):
+                raise
+            traceback.print_exc()
+            return 2
+        finally:
+            mlog.shutdown()
 
 def run_script_command(script_name, script_args):
     # Map script name to module name for those that doesn't match
@@ -50,6 +136,7 @@ def run(original_args, mainfile):
         print('You have python %s.' % sys.version)
         print('Please update your environment')
         return 1
+
     # https://github.com/mesonbuild/meson/issues/3653
     if sys.platform.lower() == 'msys':
         mlog.error('This python3 seems to be msys/python on MSYS2 Windows, which is known to have path semantics incompatible with Meson')
@@ -75,57 +162,7 @@ def run(original_args, mainfile):
         else:
             return run_script_command(args[1], args[2:])
 
-    if len(args) > 0:
-        # First check if we want to run a subcommand.
-        cmd_name = args[0]
-        remaining_args = args[1:]
-        # "help" is a special case: Since printing of the help may be
-        # delegated to a subcommand, we edit cmd_name before executing
-        # the rest of the logic here.
-        if cmd_name == 'help':
-            remaining_args += ['--help']
-            args = remaining_args
-            cmd_name = args[0]
-        if cmd_name == 'test':
-            from . import mtest
-            return mtest.run(remaining_args)
-        elif cmd_name == 'install':
-            from . import minstall
-            return minstall.run(remaining_args)
-        elif cmd_name == 'introspect':
-            from . import mintro
-            return mintro.run(remaining_args)
-        elif cmd_name == 'rewrite':
-            from . import rewriter
-            return rewriter.run(remaining_args)
-        elif cmd_name == 'configure':
-            try:
-                from . import mconf
-                return mconf.run(remaining_args)
-            except MesonException as e:
-                mlog.exception(e)
-                sys.exit(1)
-        elif cmd_name == 'wrap':
-            from .wrap import wraptool
-            return wraptool.run(remaining_args)
-        elif cmd_name == 'init':
-            from . import minit
-            return minit.run(remaining_args)
-        elif cmd_name == 'runpython':
-            import runpy
-            script_file = remaining_args[0]
-            sys.argv[1:] = remaining_args[1:]
-            runpy.run_path(script_file, run_name='__main__')
-            sys.exit(0)
-        else:
-            # If cmd_name is not a known command, assume user wants to run the
-            # setup command.
-            from . import msetup
-            if cmd_name != 'setup':
-                remaining_args = args
-            return msetup.run(remaining_args)
-
-    return 0
+    return CommandLineParser().run(args)
 
 def main():
     # Always resolve the command path so Ninja can find it for regen, tests, etc.

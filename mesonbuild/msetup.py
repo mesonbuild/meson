@@ -19,7 +19,6 @@ import os.path
 import platform
 import cProfile as profile
 import argparse
-import traceback
 
 from . import environment, interpreter, mesonlib
 from . import build
@@ -27,8 +26,7 @@ from . import mlog, coredata
 from .mesonlib import MesonException
 from .wrap import WrapMode
 
-def buildparser():
-    parser = argparse.ArgumentParser(prog='meson')
+def add_arguments(parser):
     coredata.register_builtin_arguments(parser)
     parser.add_argument('--cross-file', default=None,
                         help='File describing cross compilation environment.')
@@ -48,7 +46,6 @@ def buildparser():
                              'is not working.')
     parser.add_argument('builddir', nargs='?', default=None)
     parser.add_argument('sourcedir', nargs='?', default=None)
-    return parser
 
 def wrapmodetype(string):
     try:
@@ -193,35 +190,8 @@ class MesonApp:
                     os.unlink(cdf)
             raise
 
-def run(args):
-    args = mesonlib.expand_arguments(args)
-    options = buildparser().parse_args(args)
+def run(options):
     coredata.parse_cmd_line_options(options)
-    try:
-        app = MesonApp(options)
-    except Exception as e:
-        # Log directory does not exist, so just print
-        # to stdout.
-        print('Error during basic setup:\n')
-        print(e)
-        return 1
-    try:
-        app.generate()
-    except Exception as e:
-        if isinstance(e, MesonException):
-            mlog.exception(e)
-            # Path to log file
-            mlog.shutdown()
-            logfile = os.path.join(app.build_dir, environment.Environment.log_dir, mlog.log_fname)
-            mlog.log("\nA full log can be found at", mlog.bold(logfile))
-            if os.environ.get('MESON_FORCE_BACKTRACE'):
-                raise
-            return 1
-        else:
-            if os.environ.get('MESON_FORCE_BACKTRACE'):
-                raise
-            traceback.print_exc()
-            return 2
-    finally:
-        mlog.shutdown()
+    app = MesonApp(options)
+    app.generate()
     return 0
