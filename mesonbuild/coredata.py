@@ -148,15 +148,10 @@ class UserArrayOption(UserOption):
         # options). Users can put their input in as a comma separated
         # string, but for defining options in meson_options.txt the format
         # should match that of a combo
-        if not user_input:
-            if isinstance(value, str):
-                if not value.startswith('['):
-                    raise MesonException('Valuestring does not define an array: ' + value)
-                newvalue = ast.literal_eval(value)
-            else:
-                newvalue = value
-        else:
-            assert isinstance(value, str)
+        if not user_input and isinstance(value, str) and not value.startswith('['):
+            raise MesonException('Value does not define an array: ' + value)
+
+        if isinstance(value, str):
             if value.startswith('['):
                 newvalue = ast.literal_eval(value)
             else:
@@ -164,11 +159,15 @@ class UserArrayOption(UserOption):
                     newvalue = shlex.split(value)
                 else:
                     newvalue = [v.strip() for v in value.split(',')]
-                if len(set(newvalue)) != len(newvalue):
-                    mlog.log(mlog.red('DEPRECATION:'), '''Duplicated values in an array type is deprecated.
-This will become a hard error in the future.''')
-        if not isinstance(newvalue, list):
+        elif isinstance(value, list):
+            newvalue = value
+        else:
             raise MesonException('"{0}" should be a string array, but it is not'.format(str(newvalue)))
+
+        if len(set(newvalue)) != len(newvalue):
+            msg = 'Duplicated values in array option "%s" is deprecated. ' \
+                  'This will become a hard error in the future.' % (self.name)
+            mlog.log(mlog.red('DEPRECATION:'), msg)
         for i in newvalue:
             if not isinstance(i, str):
                 raise MesonException('String array element "{0}" is not a string.'.format(str(newvalue)))
