@@ -213,6 +213,4 @@ def run(args):
     add_arguments(parser)
     options = parser.parse_args(args)
     options.wrap_func(options)
-
-if __name__ == '__main__':
-    sys.exit(run(sys.argv[1:]))
+    return 0

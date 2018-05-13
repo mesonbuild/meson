@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import sys
 import argparse
 from . import (coredata, mesonlib, build)
 
@@ -172,7 +171,3 @@ def run(args):
         print('Meson configurator encountered an error:')
         raise e
     return 0
-
-
-if __name__ == '__main__':
-    sys.exit(run(sys.argv[1:]))
