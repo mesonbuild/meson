@@ -22,6 +22,7 @@ from .mesonlib import default_libdir, default_libexecdir, default_prefix
 from .wrap import WrapMode
 import ast
 import argparse
+import configparser
 
 version = '0.47.0.dev1'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']
@@ -395,6 +396,49 @@ class CoreData:
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
             raise MesonException('{}Unknown options: "{}"'.format(sub, unknown_options))
 
+def get_cmd_line_file(build_dir):
+    return os.path.join(build_dir, 'meson-private', 'cmd_line.txt')
+
+def read_cmd_line_file(build_dir, options):
+    filename = get_cmd_line_file(build_dir)
+    config = configparser.ConfigParser()
+    config.read(filename)
+
+    # Do a copy because config is not really a dict. options.cmd_line_options
+    # overrides values from the file.
+    d = dict(config['options'])
+    d.update(options.cmd_line_options)
+    options.cmd_line_options = d
+
+    properties = config['properties']
+    if options.cross_file is None:
+        options.cross_file = properties.get('cross_file', None)
+    if options.wrap_mode is None:
+        options.wrap_mode = properties.get('wrap_mode', None)
+
+def write_cmd_line_file(build_dir, options):
+    filename = get_cmd_line_file(build_dir)
+    config = configparser.ConfigParser()
+
+    properties = {}
+    if options.wrap_mode is not None:
+        properties['wrap_mode'] = options.wrap_mode
+    if options.cross_file is not None:
+        properties['cross_file'] = options.cross_file
+
+    config['options'] = options.cmd_line_options
+    config['properties'] = properties
+    with open(filename, 'w') as f:
+        config.write(f)
+
+def update_cmd_line_file(build_dir, options):
+    filename = get_cmd_line_file(build_dir)
+    config = configparser.ConfigParser()
+    config.read(filename)
+    config['options'].update(options.cmd_line_options)
+    with open(filename, 'w') as f:
+        config.write(f)
+
 def load(build_dir):
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
     load_fail_msg = 'Coredata file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
@@ -406,7 +450,8 @@ def load(build_dir):
     if not isinstance(obj, CoreData):
         raise MesonException(load_fail_msg)
     if obj.version != version:
-        raise MesonException('Build directory has been generated with Meson version %s, which is incompatible with current version %s.\nPlease delete this build directory AND create a new one.' %
+        raise MesonException('Build directory has been generated with Meson version %s, which is incompatible with current version %s.\n'
+                             'Please use "meson setup --wipe" to reconfigure from scratch' %
                              (obj.version, version))
     return obj
 
