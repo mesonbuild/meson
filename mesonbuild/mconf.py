@@ -120,7 +120,7 @@ class Conf:
         print('Core properties:')
         print('  Source dir', self.build.environment.source_dir)
         print('  Build dir ', self.build.environment.build_dir)
-        print('\nCore options:\n')
+        print('\nCore options:')
         carr = []
         for key in ['buildtype', 'warning_level', 'werror', 'strip', 'unity', 'default_library', 'install_umask']:
             carr.append({'name': key,
@@ -128,6 +128,7 @@ class Conf:
                          'value': self.coredata.get_builtin_option(key),
                          'choices': coredata.get_builtin_option_choices(key)})
         self.print_aligned(carr)
+        print('\nBackend options:')
         if not self.coredata.backend_options:
             print('  No backend options\n')
         else:
