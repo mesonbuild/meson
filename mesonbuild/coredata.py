@@ -108,6 +108,7 @@ class UserIntegerOption(UserOption):
 class UserUmaskOption(UserIntegerOption):
     def __init__(self, name, description, value, yielding=None):
         super().__init__(name, description, 0, 0o777, value, yielding)
+        self.choices = ['preserve', '0000-0777']
 
     def validate_value(self, value):
         if value is None or value == 'preserve':
