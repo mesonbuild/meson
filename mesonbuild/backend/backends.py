@@ -21,7 +21,7 @@ from .. import compilers
 import json
 import subprocess
 from ..mesonlib import MesonException, OrderedSet
-from ..mesonlib import get_compiler_for_source, classify_unity_sources
+from ..mesonlib import classify_unity_sources
 from ..mesonlib import File
 from ..compilers import CompilerArgs
 from collections import OrderedDict

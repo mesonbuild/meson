@@ -41,6 +41,8 @@ __all__ = [
     'sanitizer_compile_args',
     'sort_clike',
 
+    'ArmCCompiler',
+    'ArmCPPCompiler',
     'CCompiler',
     'ClangCCompiler',
     'ClangCompiler',

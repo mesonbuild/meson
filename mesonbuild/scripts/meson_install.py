@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, pickle, os, shutil, subprocess, gzip, platform, errno
+import sys, pickle, os, shutil, subprocess, gzip, errno
 import shlex
 from glob import glob
 from . import depfixer

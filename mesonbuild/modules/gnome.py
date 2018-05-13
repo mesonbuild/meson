@@ -1382,7 +1382,6 @@ G_END_DECLS'''
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes = self._extract_vapi_packages(state, kwargs)
-        target_name = 'generate_vapi({})'.format(library)
         if 'VAPIGEN' in os.environ:
             cmd = [self.interpreter.find_program_impl(os.environ['VAPIGEN'])]
         else:

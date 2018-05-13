@@ -14,7 +14,6 @@
 
 import os.path
 
-from .. import mlog
 from .. import coredata
 from ..mesonlib import version_compare
 
