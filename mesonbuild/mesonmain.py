@@ -34,7 +34,7 @@ def add_setup_arguments(p):
     p.add_argument('-v', '--version', action='version',
                    version=coredata.version)
     # See the mesonlib.WrapMode enum for documentation
-    p.add_argument('--wrap-mode', default=WrapMode.default,
+    p.add_argument('--wrap-mode', default=None,
                    type=wrapmodetype, choices=WrapMode,
                    help='Special wrap mode to use')
     p.add_argument('--profile-self', action='store_true', dest='profile',

@@ -19,6 +19,7 @@ from pathlib import PurePath
 from collections import OrderedDict
 from .mesonlib import MesonException
 from .mesonlib import default_libdir, default_libexecdir, default_prefix
+from .wrap import WrapMode
 import ast
 import argparse
 
@@ -203,7 +204,7 @@ class CoreData:
         self.base_options = {}
         self.external_preprocess_args = {} # CPPFLAGS only
         self.cross_file = self.__load_cross_file(options.cross_file)
-        self.wrap_mode = options.wrap_mode
+        self.wrap_mode = options.wrap_mode if options.wrap_mode is not None else WrapMode.default
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
         self.deps = OrderedDict()
