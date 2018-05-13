@@ -1755,7 +1755,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
 class Interpreter(InterpreterBase):
 
     def __init__(self, build, backend=None, subproject='', subdir='', subproject_dir='subprojects',
-                 modules = None, default_project_options=[]):
+                 modules = None, default_project_options=None):
         super().__init__(build.environment.get_source_dir(), subdir)
         self.an_unpicklable_object = mesonlib.an_unpicklable_object
         self.build = build
@@ -1781,7 +1781,11 @@ class Interpreter(InterpreterBase):
         self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects = {}
         self.subproject_stack = []
-        self.default_project_options = default_project_options[:] # Passed from the outside, only used in subprojects.
+        # Passed from the outside, only used in subprojects.
+        if default_project_options:
+            self.default_project_options = default_project_options.copy()
+        else:
+            self.default_project_options = {}
         self.build_func_dict()
         # build_def_files needs to be defined before parse_project is called
         self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
@@ -2106,6 +2110,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self.do_subproject(dirname, kwargs)
 
     def do_subproject(self, dirname, kwargs):
+        default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
+        default_options = coredata.create_options_dict(default_options)
         if dirname == '':
             raise InterpreterException('Subproject dir name must not be empty.')
         if dirname[0] == '.':
@@ -2142,7 +2148,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         with mlog.nested():
             mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
             subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
-                               self.modules, mesonlib.stringlistify(kwargs.get('default_options', [])))
+                               self.modules, default_options)
             subi.subprojects = self.subprojects
 
             subi.subproject_stack = self.subproject_stack + [dirname]
@@ -2206,53 +2212,34 @@ to directly access options of other subprojects.''')
             raise InterpreterException('configuration_data takes no arguments')
         return ConfigurationDataHolder()
 
-    def parse_default_options(self, default_options):
-        default_options = listify(default_options)
-        for option in default_options:
-            if not isinstance(option, str):
-                mlog.debug(option)
-                raise InterpreterException('Default options must be strings')
-            if '=' not in option:
-                raise InterpreterException('All default options must be of type key=value.')
-            key, value = option.split('=', 1)
-            if coredata.is_builtin_option(key):
-                if self.subproject != '':
-                    continue # Only the master project is allowed to set global options.
-                newoptions = [option] + self.environment.cmd_line_options.projectoptions
-                self.environment.cmd_line_options.projectoptions = newoptions
-            else:
-                # Option values set with subproject() default_options override those
-                # set in project() default_options.
-                pref = key + '='
-                for i in self.default_project_options:
-                    if i.startswith(pref):
-                        option = i
-                        break
-                # If we are in a subproject, add the subproject prefix to option
-                # name.
-                if self.subproject != '':
-                    option = self.subproject + ':' + option
-                newoptions = [option] + self.environment.cmd_line_options.projectoptions
-                self.environment.cmd_line_options.projectoptions = newoptions
-        # Add options that are only in default_options.
-        for defopt in self.default_project_options:
-            key, value = defopt.split('=')
-            pref = key + '='
-            for i in default_options:
-                if i.startswith(pref):
-                    break
-            else:
-                defopt = self.subproject + ':' + defopt
-                newoptions = [defopt] + self.environment.cmd_line_options.projectoptions
-                self.environment.cmd_line_options.projectoptions = newoptions
+    def set_options(self, default_options):
+        # Set default options as if they were passed to the command line.
+        # Subprojects can only define default for user options.
+        for k, v in default_options.items():
+            if self.subproject:
+                if optinterpreter.is_invalid_name(k):
+                    continue
+                k = self.subproject + ':' + k
+            self.environment.cmd_line_options.setdefault(k, v)
 
-    def set_builtin_options(self):
-        # Create a dict containing only builtin options, then use
-        # coredata.set_options() because it already has code to set the prefix
-        # option first to sanitize all other options.
-        options = coredata.create_options_dict(self.environment.cmd_line_options.projectoptions)
-        options = {k: v for k, v in options.items() if coredata.is_builtin_option(k)}
-        self.coredata.set_options(options)
+        # Create a subset of cmd_line_options, keeping only options for this
+        # subproject. Also take builtin options if it's the main project.
+        # Language and backend specific options will be set later when adding
+        # languages and setting the backend (builtin options must be set first
+        # to know which backend we'll use).
+        options = {}
+        for k, v in self.environment.cmd_line_options.items():
+            if self.subproject:
+                if not k.startswith(self.subproject + ':'):
+                    continue
+            elif k not in coredata.get_builtin_options():
+                if ':' in k:
+                    continue
+                if optinterpreter.is_invalid_name(k):
+                    continue
+            options[k] = v
+
+        self.coredata.set_options(options, self.subproject)
 
     def set_backend(self):
         # The backend is already set when parsing subprojects
@@ -2282,7 +2269,10 @@ to directly access options of other subprojects.''')
         else:
             raise InterpreterException('Unknown backend "%s".' % backend)
 
-        self.coredata.init_backend_options(backend, self.environment.cmd_line_options.projectoptions)
+        self.coredata.init_backend_options(backend)
+
+        options = {k: v for k, v in self.environment.cmd_line_options.items() if k.startswith('backend_')}
+        self.coredata.set_options(options)
 
     @stringArgs
     @permittedKwargs(permitted_kwargs['project'])
@@ -2293,20 +2283,20 @@ to directly access options of other subprojects.''')
         proj_langs = args[1:]
         if ':' in proj_name:
             raise InvalidArguments("Project name {!r} must not contain ':'".format(proj_name))
-        default_options = kwargs.get('default_options', [])
-        if self.environment.first_invocation and (len(default_options) > 0 or
-                                                  len(self.default_project_options) > 0):
-            self.parse_default_options(default_options)
-        if not self.is_subproject():
-            self.build.project_name = proj_name
-            self.set_builtin_options()
+
         if os.path.exists(self.option_file):
-            oi = optinterpreter.OptionInterpreter(self.subproject,
-                                                  self.build.environment.cmd_line_options.projectoptions,
-                                                  )
+            oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(self.option_file)
             self.coredata.merge_user_options(oi.options)
+
+        default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
+        default_options = coredata.create_options_dict(default_options)
+        default_options.update(self.default_project_options)
+        self.set_options(default_options)
         self.set_backend()
+
+        if not self.is_subproject():
+            self.build.project_name = proj_name
         self.active_projectname = proj_name
         self.project_version = kwargs.get('version', 'undefined')
         if self.build.project_version is None:
@@ -2450,17 +2440,14 @@ to directly access options of other subprojects.''')
             cross_comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
             self.coredata.cross_compilers[lang] = cross_comp
             new_options.update(cross_comp.get_options())
+
         optprefix = lang + '_'
-        for i in new_options:
-            if not i.startswith(optprefix):
-                raise InterpreterException('Internal error, %s has incorrect prefix.' % i)
-            cmd_prefix = i + '='
-            for cmd_arg in self.environment.cmd_line_options.projectoptions:
-                if cmd_arg.startswith(cmd_prefix):
-                    value = cmd_arg.split('=', 1)[1]
-                    new_options[i].set_value(value)
-        new_options.update(self.coredata.compiler_options)
-        self.coredata.compiler_options = new_options
+        for k, o in new_options.items():
+            if not k.startswith(optprefix):
+                raise InterpreterException('Internal error, %s has incorrect prefix.' % k)
+            if k in self.environment.cmd_line_options:
+                o.set_value(self.environment.cmd_line_options[k])
+            self.coredata.compiler_options.setdefault(k, o)
 
         # Unlike compiler and linker flags, preprocessor flags are not in
         # compiler_options because they are not visible to user.
@@ -2510,19 +2497,14 @@ to directly access options of other subprojects.''')
 
     def add_base_options(self, compiler):
         enabled_opts = []
-        proj_opt = self.environment.cmd_line_options.projectoptions
         for optname in compiler.base_options:
             if optname in self.coredata.base_options:
                 continue
             oobj = compilers.base_options[optname]
-            for po in proj_opt:
-                if po.startswith(optname + '='):
-                    opt, value = po.split('=', 1)
-                    oobj.set_value(value)
-                    if oobj.value:
-                        enabled_opts.append(opt)
-                    break
-            self.coredata.base_options[optname] = oobj
+            if optname in self.environment.cmd_line_options:
+                oobj.set_value(self.environment.cmd_line_options[optname])
+                enabled_opts.append(optname)
+            self.coredata. base_options[optname] = oobj
         self.emit_base_options_warnings(enabled_opts)
 
     def program_from_cross_file(self, prognames, silent=False):

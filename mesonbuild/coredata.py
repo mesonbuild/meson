@@ -301,18 +301,11 @@ class CoreData:
             args = [key] + builtin_options[key][1:-1] + [value]
             self.builtins[key] = builtin_options[key][0](*args)
 
-    def init_backend_options(self, backend_name, options):
+    def init_backend_options(self, backend_name):
         if backend_name == 'ninja':
             self.backend_options['backend_max_links'] = UserIntegerOption('backend_max_links',
                                                                           'Maximum number of linker processes to run or 0 for no limit',
                                                                           0, None, 0)
-        for o in options:
-            key, value = o.split('=', 1)
-            if not key.startswith('backend_'):
-                continue
-            if key not in self.backend_options:
-                raise MesonException('Unknown backend option %s' % key)
-            self.backend_options[key].set_value(value)
 
     def get_builtin_option(self, optname):
         if optname in self.builtins:
@@ -497,27 +490,6 @@ def register_builtin_arguments(parser):
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
 
-def filter_builtin_options(args):
-    """Filter out any builtin arguments passed as -- instead of -D.
-
-    Error if an argument is passed with -- and -D
-    """
-    for name in builtin_options:
-        cmdline_name = get_builtin_option_cmdline_name(name)
-        # Chekc if user passed -Doption=value or --option=value
-        has_dashdash = hasattr(args, name)
-        has_dashd = any([a.startswith('{}='.format(name)) for a in args.projectoptions])
-
-        # Passing both is ambigous, abort
-        if has_dashdash and has_dashd:
-            raise MesonException(
-                'Got argument {0} as both -D{0} and {1}. Pick one.'.format(name, cmdline_name))
-
-        # Pretend --option never existed
-        if has_dashdash:
-            args.projectoptions.append('{}={}'.format(name, getattr(args, name)))
-            delattr(args, name)
-
 def create_options_dict(options):
     result = {}
     for o in options:
@@ -529,9 +501,18 @@ def create_options_dict(options):
     return result
 
 def parse_cmd_line_options(args):
-    filter_builtin_options(args)
     args.cmd_line_options = create_options_dict(args.projectoptions)
 
+    # Merge builtin options set with --option into the dict.
+    for name in builtin_options:
+        value = getattr(args, name, None)
+        if value is not None:
+            if name in args.cmd_line_options:
+                cmdline_name = get_builtin_option_cmdline_name(name)
+                raise MesonException(
+                    'Got argument {0} as both -D{0} and {1}. Pick one.'.format(name, cmdline_name))
+            args.cmd_line_options[name] = value
+            delattr(args, name)
 
 builtin_options = {
     'buildtype':  [UserComboOption, 'Build type to use.', ['plain', 'debug', 'debugoptimized', 'release', 'minsize'], 'debug'],

@@ -1,5 +1,5 @@
 project('mainproj', 'c',
-  default_options : ['wrap_mode=forcefallback'])
+  default_options : [])
 
 zlib_dep = dependency('zlib', fallback: ['notzlib', 'zlib_dep'])
 notfound_dep = dependency('cannotabletofind', fallback: ['definitelynotfound', 'some_var'], required : false)
