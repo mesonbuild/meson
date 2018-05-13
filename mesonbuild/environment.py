@@ -280,7 +280,7 @@ class Environment:
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)
         else:
             self.cross_info = None
-        self.cmd_line_options = options.cmd_line_options
+        self.cmd_line_options = options.cmd_line_options.copy()
 
         # List of potential compilers.
         if mesonlib.is_windows():
