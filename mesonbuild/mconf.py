@@ -21,7 +21,7 @@ def buildparser():
     parser = argparse.ArgumentParser(prog='meson configure')
     coredata.register_builtin_arguments(parser)
 
-    parser.add_argument('directory', nargs='*')
+    parser.add_argument('builddir', nargs='?', default='.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies)')
     return parser
@@ -152,18 +152,9 @@ class Conf:
 
 def run(args):
     args = mesonlib.expand_arguments(args)
-    if not args:
-        args = [os.getcwd()]
     options = buildparser().parse_args(args)
     coredata.parse_cmd_line_options(options)
-    if len(options.directory) > 1:
-        print('%s <build directory>' % args[0])
-        print('If you omit the build directory, the current directory is substituted.')
-        return 1
-    if not options.directory:
-        builddir = os.getcwd()
-    else:
-        builddir = options.directory[0]
+    builddir = os.path.abspath(os.path.realpath(options.builddir))
     try:
         c = Conf(builddir)
         save = False
