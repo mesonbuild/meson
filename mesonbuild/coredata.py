@@ -109,11 +109,10 @@ class UserUmaskOption(UserIntegerOption):
     def __init__(self, name, description, value, yielding=None):
         super().__init__(name, description, 0, 0o777, value, yielding)
 
-    def set_value(self, newvalue):
-        if newvalue is None or newvalue == 'preserve':
-            self.value = None
-        else:
-            super().set_value(newvalue)
+    def validate_value(self, value):
+        if value is None or value == 'preserve':
+            return None
+        return super().validate_value(value)
 
     def toint(self, valuestring):
         try:
