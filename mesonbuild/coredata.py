@@ -361,13 +361,22 @@ class CoreData:
                     self.user_options[name] = value
 
     def set_options(self, options, subproject=''):
+        # Set prefix first because it's needed to sanitize other options
+        prefix = self.builtins['prefix'].value
+        if 'prefix' in options:
+            prefix = self.sanitize_prefix(options['prefix'])
+            self.builtins['prefix'].set_value(prefix)
+            for key in builtin_dir_noprefix_options:
+                if key not in options:
+                    self.builtins[key].set_value(get_builtin_option_default(key, prefix))
+
         unknown_options = []
-        for o in options:
-            if '=' not in o:
-                raise MesonException('Value "%s" not of type "a=b".' % o)
-            (k, v) = o.split('=', 1)
-            if is_builtin_option(k):
-                self.set_builtin_option(k, v)
+        for k, v in options.items():
+            if k == 'prefix':
+                pass
+            elif k in self.builtins:
+                tgt = self.builtins[k]
+                tgt.set_value(self.sanitize_dir_option_value(prefix, k, v))
             elif k in self.backend_options:
                 tgt = self.backend_options[k]
                 tgt.set_value(v)
@@ -526,6 +535,20 @@ def filter_builtin_options(args, original_args):
             args.projectoptions.append('{}={}'.format(name, getattr(args, name)))
         if hasattr(args, name):
             delattr(args, name)
+
+def create_options_dict(options):
+    result = {}
+    for o in options:
+        try:
+            (key, value) = o.split('=', 1)
+        except ValueError:
+            raise MesonException('Option {!r} must have a value separated by equals sign.'.format(o))
+        result[key] = value
+    return result
+
+def parse_cmd_line_options(args, original_args):
+    filter_builtin_options(args, original_args)
+    args.cmd_line_options = create_options_dict(args.projectoptions)
 
 
 builtin_options = {
