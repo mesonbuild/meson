@@ -563,7 +563,7 @@ class BasePlatformTests(unittest.TestCase):
         if p.returncode != 0:
             if 'MESON_SKIP_TEST' in p.stdout:
                 raise unittest.SkipTest('Project requested skipping.')
-            raise subprocess.CalledProcessError(p.returncode, command)
+            raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
         return p.stdout
 
     def init(self, srcdir, extra_args=None, default_args=True, inprocess=False):
@@ -2094,14 +2094,15 @@ recommended as it can lead to undefined behaviour on some platforms''')
         self.wipe()
 
         # Mixing --option and -Doption is forbidden
-        with self.assertRaises(subprocess.CalledProcessError) as e:
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.init(testdir, extra_args=['--warnlevel=1', '-Dwarning_level=3'])
-            self.assertNotEqual(0, e.returncode)
-            self.assertIn('passed as both', e.stderr)
-        with self.assertRaises(subprocess.CalledProcessError) as e:
-            self.setconf('--warnlevel=1', '-Dwarning_level=3')
-            self.assertNotEqual(0, e.returncode)
-            self.assertIn('passed as both', e.stderr)
+        self.assertNotEqual(0, cm.exception.returncode)
+        self.assertIn('as both', cm.exception.output)
+        self.init(testdir)
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.setconf(['--warnlevel=1', '-Dwarning_level=3'])
+        self.assertNotEqual(0, cm.exception.returncode)
+        self.assertIn('as both', cm.exception.output)
         self.wipe()
 
         # --default-library should override default value from project()
