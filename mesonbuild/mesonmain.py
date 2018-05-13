@@ -54,10 +54,9 @@ def wrapmodetype(string):
 
 class MesonApp:
 
-    def __init__(self, dir1, dir2, handshake, options, original_cmd_line_args):
+    def __init__(self, dir1, dir2, handshake, options):
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2, handshake)
         self.options = options
-        self.original_cmd_line_args = original_cmd_line_args
 
     def has_build_file(self, dirname):
         fname = os.path.join(dirname, environment.build_filename)
@@ -109,7 +108,7 @@ class MesonApp:
             env.coredata.pkgconf_envvar = curvar
 
     def generate(self):
-        env = environment.Environment(self.source_dir, self.build_dir, self.options, self.original_cmd_line_args)
+        env = environment.Environment(self.source_dir, self.build_dir, self.options)
         mlog.initialize(env.get_log_dir())
         with mesonlib.BuildDirLock(self.build_dir):
             self._generate(env)
@@ -334,7 +333,7 @@ def run(original_args, mainfile):
         else:
             dir2 = '.'
     try:
-        app = MesonApp(dir1, dir2, handshake, options, original_args)
+        app = MesonApp(dir1, dir2, handshake, options)
     except Exception as e:
         # Log directory does not exist, so just print
         # to stdout.

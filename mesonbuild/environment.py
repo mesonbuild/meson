@@ -266,7 +266,7 @@ class Environment:
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
 
-    def __init__(self, source_dir, build_dir, options, original_cmd_line_args):
+    def __init__(self, source_dir, build_dir, options):
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.scratch_dir = os.path.join(build_dir, Environment.private_dir)
@@ -289,7 +289,6 @@ class Environment:
         else:
             self.cross_info = None
         self.cmd_line_options = options
-        self.original_cmd_line_args = original_cmd_line_args
 
         # List of potential compilers.
         if mesonlib.is_windows():
@@ -373,18 +372,6 @@ class Environment:
 
     def is_library(self, fname):
         return is_library(fname)
-
-    def had_argument_for(self, option):
-        trial1 = coredata.get_builtin_option_cmdline_name(option)
-        trial2 = '-D' + option
-        previous_is_plaind = False
-        for i in self.original_cmd_line_args:
-            if i.startswith(trial1) or i.startswith(trial2):
-                return True
-            if previous_is_plaind and i.startswith(option):
-                return True
-            previous_is_plaind = i == '-D'
-        return False
 
     @staticmethod
     def get_gnu_compiler_defines(compiler):
