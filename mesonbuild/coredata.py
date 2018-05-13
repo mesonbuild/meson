@@ -138,8 +138,9 @@ class UserComboOption(UserOption):
         return value
 
 class UserArrayOption(UserOption):
-    def __init__(self, name, description, value, **kwargs):
+    def __init__(self, name, description, value, shlex_split=False, **kwargs):
         super().__init__(name, description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
+        self.shlex_split = shlex_split
         self.value = self.validate_value(value, user_input=False)
 
     def validate_value(self, value, user_input=True):
@@ -159,7 +160,10 @@ class UserArrayOption(UserOption):
             if value.startswith('['):
                 newvalue = ast.literal_eval(value)
             else:
-                newvalue = [v.strip() for v in value.split(',')]
+                if self.shlex_split:
+                    newvalue = shlex.split(value)
+                else:
+                    newvalue = [v.strip() for v in value.split(',')]
                 if len(set(newvalue)) != len(newvalue):
                     mlog.log(mlog.red('DEPRECATION:'), '''Duplicated values in an array type is deprecated.
 This will become a hard error in the future.''')
