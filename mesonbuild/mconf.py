@@ -189,7 +189,7 @@ def run(args):
     if not args:
         args = [os.getcwd()]
     options = buildparser().parse_args(args)
-    coredata.filter_builtin_options(options, args)
+    coredata.parse_cmd_line_options(options, args)
     if len(options.directory) > 1:
         print('%s <build directory>' % args[0])
         print('If you omit the build directory, the current directory is substituted.')
@@ -201,8 +201,8 @@ def run(args):
     try:
         c = Conf(builddir)
         save = False
-        if len(options.projectoptions) > 0:
-            c.set_options(options.projectoptions)
+        if len(options.cmd_line_options) > 0:
+            c.set_options(options.cmd_line_options)
             save = True
         elif options.clearcache:
             c.clear_cache()
