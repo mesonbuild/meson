@@ -2193,18 +2193,6 @@ to directly access options of other subprojects.''')
             return opt.value
         except KeyError:
             pass
-        if optname.endswith('_link_args'):
-            try:
-                lang = optname[:-10]
-                return self.coredata.external_link_args[lang]
-            except KeyError:
-                pass
-        if optname.endswith('_args'):
-            try:
-                lang = optname[:-5]
-                return self.coredata.external_args[lang]
-            except KeyError:
-                pass
         # Some base options are not defined in some environments, return the default value.
         try:
             return compilers.base_options[optname].value
@@ -2443,6 +2431,13 @@ to directly access options of other subprojects.''')
                     new_options[i].set_value(value)
         new_options.update(self.coredata.compiler_options)
         self.coredata.compiler_options = new_options
+
+        # Unlike compiler and linker flags, preprocessor flags are not in
+        # compiler_options because they are not visible to user.
+        preproc_flags = comp.get_preproc_flags()
+        preproc_flags = shlex.split(preproc_flags)
+        self.coredata.external_preprocess_args.setdefault(lang, preproc_flags)
+
         return comp, cross_comp
 
     def add_languages(self, args, required):
@@ -2468,22 +2463,6 @@ to directly access options of other subprojects.''')
             else:
                 version_string = ' (%s %s)' % (comp.id, comp.version)
             mlog.log('Native %s compiler: ' % comp.get_display_language(), mlog.bold(' '.join(comp.get_exelist())), version_string, sep='')
-
-            # If <language>_args/_link_args settings are given on the
-            # command line, use them, otherwise take them from env.
-            (preproc_args, compile_args, link_args) = comp.get_args_from_envvars()
-            for optspec in self.build.environment.cmd_line_options.projectoptions:
-                (optname, optvalue) = optspec.split('=', maxsplit=1)
-                if optname == lang + '_link_args':
-                    link_args = shlex.split(optvalue)
-                elif optname.endswith('_args'):
-                    compile_args = shlex.split(optvalue)
-            if lang not in self.coredata.external_preprocess_args:
-                self.coredata.external_preprocess_args[lang] = preproc_args
-            if lang not in self.coredata.external_args:
-                self.coredata.external_args[lang] = compile_args
-            if lang not in self.coredata.external_link_args:
-                self.coredata.external_link_args[lang] = link_args
 
             self.build.add_compiler(comp)
             if need_cross_compiler:

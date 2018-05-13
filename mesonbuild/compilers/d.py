@@ -180,10 +180,10 @@ class DCompiler(Compiler):
 
         if mode == 'compile':
             # Add DFLAGS from the env
-            args += env.coredata.external_args[self.language]
+            args += env.coredata.get_external_args(self.language)
         elif mode == 'link':
             # Add LDFLAGS from the env
-            args += env.coredata.external_link_args[self.language]
+            args += env.coredata.get_external_link_args(self.language)
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args

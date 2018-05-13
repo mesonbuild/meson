@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from . import mlog
-import pickle, os, uuid
+import pickle, os, uuid, shlex
 import sys
 from pathlib import PurePath
 from collections import OrderedDict
@@ -138,10 +138,10 @@ class UserComboOption(UserOption):
         return value
 
 class UserArrayOption(UserOption):
-    def __init__(self, name, description, value, shlex_split=False, **kwargs):
+    def __init__(self, name, description, value, shlex_split=False, user_input=False, **kwargs):
         super().__init__(name, description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
         self.shlex_split = shlex_split
-        self.value = self.validate_value(value, user_input=False)
+        self.value = self.validate_value(value, user_input=user_input)
 
     def validate_value(self, value, user_input=True):
         # User input is for options defined on the command line (via -D
@@ -201,11 +201,7 @@ class CoreData:
         self.user_options = {}
         self.compiler_options = {}
         self.base_options = {}
-        # These external_*args, are set via env vars CFLAGS, LDFLAGS, etc
-        # but only when not cross-compiling.
         self.external_preprocess_args = {} # CPPFLAGS only
-        self.external_args = {} # CPPFLAGS + CFLAGS
-        self.external_link_args = {} # CFLAGS + LDFLAGS (with MSVC: only LDFLAGS)
         self.cross_file = self.__load_cross_file(options.cross_file)
         self.wrap_mode = options.wrap_mode
         self.compilers = OrderedDict()
@@ -339,6 +335,15 @@ class CoreData:
                 opt = opts[option_name]
                 return opt.validate_value(override_value)
         raise MesonException('Tried to validate unknown option %s.' % option_name)
+
+    def get_external_args(self, lang):
+        return self.compiler_options[lang + '_args'].value
+
+    def get_external_link_args(self, lang):
+        return self.compiler_options[lang + '_link_args'].value
+
+    def get_external_preprocess_args(self, lang):
+        return self.external_preprocess_args[lang]
 
 def load(build_dir):
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
