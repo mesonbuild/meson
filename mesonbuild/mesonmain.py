@@ -41,7 +41,8 @@ def create_parser():
                    help='Special wrap mode to use')
     p.add_argument('--profile-self', action='store_true', dest='profile',
                    help=argparse.SUPPRESS)
-    p.add_argument('directories', nargs='*')
+    p.add_argument('builddir', nargs='?', default='..')
+    p.add_argument('sourcedir', nargs='?', default='.')
     return p
 
 def wrapmodetype(string):
@@ -314,24 +315,8 @@ def run(original_args, mainfile):
     args = mesonlib.expand_arguments(args)
     options = parser.parse_args(args)
     coredata.parse_cmd_line_options(options)
-    args = options.directories
-    if not args or len(args) > 2:
-        # if there's a meson.build in the dir above, and not in the current
-        # directory, assume we're in the build directory
-        if not args and not os.path.exists('meson.build') and os.path.exists('../meson.build'):
-            dir1 = '..'
-            dir2 = '.'
-        else:
-            print('{} <source directory> <build directory>'.format(sys.argv[0]))
-            print('If you omit either directory, the current directory is substituted.')
-            print('Run {} --help for more information.'.format(sys.argv[0]))
-            return 1
-    else:
-        dir1 = args[0]
-        if len(args) > 1:
-            dir2 = args[1]
-        else:
-            dir2 = '.'
+    dir1 = options.builddir
+    dir2 = options.sourcedir
     try:
         app = MesonApp(dir1, dir2, handshake, options)
     except Exception as e:
