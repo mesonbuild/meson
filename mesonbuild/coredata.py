@@ -196,7 +196,7 @@ class CoreData:
         self.regen_guid = str(uuid.uuid4()).upper()
         self.target_guids = {}
         self.version = version
-        self.init_builtins(options)
+        self.init_builtins()
         self.backend_options = {}
         self.user_options = {}
         self.compiler_options = {}
@@ -292,18 +292,12 @@ class CoreData:
             value = value[skip:]
         return value
 
-    def init_builtins(self, options):
+    def init_builtins(self):
+        # Create builtin options with default values
         self.builtins = {}
-        # Sanitize prefix
-        options.prefix = self.sanitize_prefix(options.prefix)
-        # Initialize other builtin options
+        prefix = get_builtin_option_default('prefix')
         for key in get_builtin_options():
-            if hasattr(options, key):
-                value = getattr(options, key)
-                value = self.sanitize_dir_option_value(options.prefix, key, value)
-                setattr(options, key, value)
-            else:
-                value = get_builtin_option_default(key, prefix=options.prefix)
+            value = get_builtin_option_default(key, prefix)
             args = [key] + builtin_options[key][1:-1] + [value]
             self.builtins[key] = builtin_options[key][0](*args)
 
@@ -459,21 +453,17 @@ def get_builtin_option_action(optname):
         return 'store_true'
     return None
 
-def get_builtin_option_default(optname, prefix='', noneIfSuppress=False):
+def get_builtin_option_default(optname, prefix=''):
     if is_builtin_option(optname):
         o = builtin_options[optname]
         if o[0] == UserComboOption:
             return o[3]
         if o[0] == UserIntegerOption:
             return o[4]
-        if optname in builtin_dir_noprefix_options:
-            if noneIfSuppress:
-                # Return None if argparse defaulting should be suppressed for
-                # this option (so we can determine the default later based on
-                # prefix)
-                return None
-            elif prefix in builtin_dir_noprefix_options[optname]:
-                return builtin_dir_noprefix_options[optname][prefix]
+        try:
+            return builtin_dir_noprefix_options[optname][prefix]
+        except KeyError:
+            pass
         return o[2]
     else:
         raise RuntimeError('Tried to get the default value for an unknown builtin option \'%s\'.' % optname)
@@ -495,11 +485,7 @@ def add_builtin_argument(p, name):
         kwargs['action'] = b
     if c and not b:
         kwargs['choices'] = c
-    default = get_builtin_option_default(name, noneIfSuppress=True)
-    if default is not None:
-        kwargs['default'] = default
-    else:
-        kwargs['default'] = argparse.SUPPRESS
+    kwargs['default'] = argparse.SUPPRESS
     kwargs['dest'] = name
 
     cmdline_name = get_builtin_option_cmdline_name(name)
@@ -511,18 +497,15 @@ def register_builtin_arguments(parser):
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
 
-def filter_builtin_options(args, original_args):
+def filter_builtin_options(args):
     """Filter out any builtin arguments passed as -- instead of -D.
 
     Error if an argument is passed with -- and -D
     """
     for name in builtin_options:
-        # Check if user passed --option. Cannot use hasattr(args, name) here
-        # because they are all set with default value if user didn't pass it.
         cmdline_name = get_builtin_option_cmdline_name(name)
-        has_dashdash = any([a.startswith(cmdline_name) for a in original_args])
-
-        # Chekc if user passed -Doption=value
+        # Chekc if user passed -Doption=value or --option=value
+        has_dashdash = hasattr(args, name)
         has_dashd = any([a.startswith('{}='.format(name)) for a in args.projectoptions])
 
         # Passing both is ambigous, abort
@@ -533,7 +516,6 @@ def filter_builtin_options(args, original_args):
         # Pretend --option never existed
         if has_dashdash:
             args.projectoptions.append('{}={}'.format(name, getattr(args, name)))
-        if hasattr(args, name):
             delattr(args, name)
 
 def create_options_dict(options):
@@ -546,8 +528,8 @@ def create_options_dict(options):
         result[key] = value
     return result
 
-def parse_cmd_line_options(args, original_args):
-    filter_builtin_options(args, original_args)
+def parse_cmd_line_options(args):
+    filter_builtin_options(args)
     args.cmd_line_options = create_options_dict(args.projectoptions)
 
 

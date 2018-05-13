@@ -155,7 +155,7 @@ def run(args):
     if not args:
         args = [os.getcwd()]
     options = buildparser().parse_args(args)
-    coredata.parse_cmd_line_options(options, args)
+    coredata.parse_cmd_line_options(options)
     if len(options.directory) > 1:
         print('%s <build directory>' % args[0])
         print('If you omit the build directory, the current directory is substituted.')
