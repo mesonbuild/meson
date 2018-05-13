@@ -412,7 +412,7 @@ def have_d_compiler():
 
 def have_objc_compiler():
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
-        env = environment.Environment(None, build_dir, get_fake_options('/'), [])
+        env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
             objc_comp = env.detect_objc_compiler(False)
         except mesonlib.MesonException:
@@ -427,7 +427,7 @@ def have_objc_compiler():
 
 def have_objcpp_compiler():
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
-        env = environment.Environment(None, build_dir, get_fake_options('/'), [])
+        env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
             objcpp_comp = env.detect_objcpp_compiler(False)
         except mesonlib.MesonException:
