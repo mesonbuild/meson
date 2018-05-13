@@ -82,7 +82,10 @@ class Conf:
                 value_col.append(make_lower_case(opt['value']))
             if opt['choices']:
                 choices_found = True
-                choices_col.append('[{0}]'.format(', '.join(make_lower_case(opt['choices']))))
+                if isinstance(opt['choices'], list):
+                    choices_col.append('[{0}]'.format(', '.join(make_lower_case(opt['choices']))))
+                else:
+                    choices_col.append(make_lower_case(opt['choices']))
             else:
                 choices_col.append('')
 
