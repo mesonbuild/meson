@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib, os.path, re, tempfile
+import contextlib, os.path, re, tempfile, shlex
 import subprocess
 
 from ..linkers import StaticLinker
@@ -56,6 +56,15 @@ for _l in clike_langs:
 clike_suffixes += ('h', 'll', 's')
 
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
+
+# Environment variables that each lang uses.
+cflags_mapping = {'c': 'CFLAGS',
+                  'cpp': 'CXXFLAGS',
+                  'objc': 'OBJCFLAGS',
+                  'objcpp': 'OBJCXXFLAGS',
+                  'fortran': 'FFLAGS',
+                  'd': 'DFLAGS',
+                  'vala': 'VALAFLAGS'}
 
 # All these are only for C-like languages; see `clike_langs` above.
 
@@ -715,6 +724,48 @@ class Compiler:
         This currently means C, C++, Fortran.
         """
         return []
+
+    def get_args_from_envvars(self):
+        """
+        Returns a tuple of (compile_flags, link_flags) for the specified language
+        from the inherited environment
+        """
+        def log_var(var, val):
+            if val:
+                mlog.log('Appending {} from environment: {!r}'.format(var, val))
+
+        lang = self.get_language()
+        compiler_is_linker = False
+        if hasattr(self, 'get_linker_exelist'):
+            compiler_is_linker = (self.get_exelist() == self.get_linker_exelist())
+
+        if lang not in cflags_mapping:
+            return [], [], []
+
+        compile_flags = os.environ.get(cflags_mapping[lang], '')
+        log_var(cflags_mapping[lang], compile_flags)
+        compile_flags = shlex.split(compile_flags)
+
+        # Link flags (same for all languages)
+        link_flags = os.environ.get('LDFLAGS', '')
+        log_var('LDFLAGS', link_flags)
+        link_flags = shlex.split(link_flags)
+        if compiler_is_linker:
+            # When the compiler is used as a wrapper around the linker (such as
+            # with GCC and Clang), the compile flags can be needed while linking
+            # too. This is also what Autotools does. However, we don't want to do
+            # this when the linker is stand-alone such as with MSVC C/C++, etc.
+            link_flags = compile_flags + link_flags
+
+        # Pre-processor flags (not for fortran or D)
+        preproc_flags = ''
+        if lang in ('c', 'cpp', 'objc', 'objcpp'):
+            preproc_flags = os.environ.get('CPPFLAGS', '')
+        log_var('CPPFLAGS', preproc_flags)
+        preproc_flags = shlex.split(preproc_flags)
+        compile_flags += preproc_flags
+
+        return preproc_flags, compile_flags, link_flags
 
     def get_options(self):
         return {} # build afresh every time
