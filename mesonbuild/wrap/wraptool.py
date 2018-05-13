@@ -16,6 +16,7 @@ import json
 import sys, os
 import configparser
 import shutil
+import argparse
 
 from glob import glob
 
@@ -23,30 +24,35 @@ from .wrap import API_ROOT, open_wrapdburl
 
 from .. import mesonlib
 
-help_templ = '''This program allows you to manage your Wrap dependencies
-using the online wrap database http://wrapdb.mesonbuild.com.
+def add_arguments(parser):
+    subparsers = parser.add_subparsers(title='Commands', dest='command')
+    subparsers.required = True
 
-Run this command in your top level source directory.
+    p = subparsers.add_parser('list', help='show all available projects')
+    p.set_defaults(wrap_func=list_projects)
 
-Usage:
+    p = subparsers.add_parser('search', help='search the db by name')
+    p.add_argument('name')
+    p.set_defaults(wrap_func=search)
 
-%s <command> [options]
+    p = subparsers.add_parser('install', help='install the specified project')
+    p.add_argument('name')
+    p.set_defaults(wrap_func=install)
 
-Commands:
+    p = subparsers.add_parser('update', help='update the project to its newest available release')
+    p.add_argument('name')
+    p.set_defaults(wrap_func=update)
 
- list - show all available projects
- search - search the db by name
- install - install the specified project
- update - update the project to its newest available release
- info - show available versions of a project
- status - show installed and available versions of your projects
- promote - bring a subsubproject up to the master project
+    p = subparsers.add_parser('info', help='show available versions of a project')
+    p.add_argument('name')
+    p.set_defaults(wrap_func=info)
 
-'''
+    p = subparsers.add_parser('status', help='show installed and available versions of your projects')
+    p.set_defaults(wrap_func=status)
 
-
-def print_help():
-    print(help_templ % sys.argv[0])
+    p = subparsers.add_parser('promote', help='bring a subsubproject up to the master project')
+    p.add_argument('project_path')
+    p.set_defaults(wrap_func=promote)
 
 def get_result(urlstring):
     u = open_wrapdburl(urlstring)
@@ -63,12 +69,13 @@ def get_projectlist():
     projects = jd['projects']
     return projects
 
-def list_projects():
+def list_projects(options):
     projects = get_projectlist()
     for p in projects:
         print(p)
 
-def search(name):
+def search(options):
+    name = options.name
     jd = get_result(API_ROOT + 'query/byname/' + name)
     for p in jd['projects']:
         print(p)
@@ -79,7 +86,8 @@ def get_latest_version(name):
     revision = jd['revision']
     return branch, revision
 
-def install(name):
+def install(options):
+    name = options.name
     if not os.path.isdir('subprojects'):
         print('Subprojects dir not found. Run this script in your source root directory.')
         sys.exit(1)
@@ -107,7 +115,8 @@ def get_current_version(wrapfile):
     revision = int(arr[-2])
     return branch, revision, cp['directory'], cp['source_filename'], cp['patch_filename']
 
-def update(name):
+def update(options):
+    name = options.name
     if not os.path.isdir('subprojects'):
         print('Subprojects dir not found. Run this command in your source root directory.')
         sys.exit(1)
@@ -135,7 +144,8 @@ def update(name):
         f.write(data)
     print('Updated', name, 'to branch', new_branch, 'revision', new_revision)
 
-def info(name):
+def info(options):
+    name = options.name
     jd = get_result(API_ROOT + 'projects/' + name)
     versions = jd['versions']
     if not versions:
@@ -156,7 +166,8 @@ def do_promotion(from_path, spdir_name):
             sys.exit('Output dir %s already exists. Will not overwrite.' % outputdir)
         shutil.copytree(from_path, outputdir, ignore=shutil.ignore_patterns('subprojects'))
 
-def promote(argument):
+def promote(options):
+    argument = options.project_path
     path_segment, subproject_name = os.path.split(argument)
     spdir_name = 'subprojects'
     sprojs = mesonlib.detect_subprojects(spdir_name)
@@ -175,7 +186,7 @@ def promote(argument):
     if system_native_path_argument in matches:
         do_promotion(argument, spdir_name)
 
-def status():
+def status(options):
     print('Subproject status')
     for w in glob('subprojects/*.wrap'):
         name = os.path.basename(w)[:-5]
@@ -195,44 +206,10 @@ def status():
             print('', name, 'not up to date. Have %s %d, but %s %d is available.' % (current_branch, current_revision, latest_branch, latest_revision))
 
 def run(args):
-    if not args or args[0] == '-h' or args[0] == '--help':
-        print_help()
-        return 0
-    command = args[0]
-    args = args[1:]
-    if command == 'list':
-        list_projects()
-    elif command == 'search':
-        if len(args) != 1:
-            print('Search requires exactly one argument.')
-            return 1
-        search(args[0])
-    elif command == 'install':
-        if len(args) != 1:
-            print('Install requires exactly one argument.')
-            return 1
-        install(args[0])
-    elif command == 'update':
-        if len(args) != 1:
-            print('update requires exactly one argument.')
-            return 1
-        update(args[0])
-    elif command == 'info':
-        if len(args) != 1:
-            print('info requires exactly one argument.')
-            return 1
-        info(args[0])
-    elif command == 'promote':
-        if len(args) != 1:
-            print('promote requires exactly one argument.')
-            return 1
-        promote(args[0])
-    elif command == 'status':
-        status()
-    else:
-        print('Unknown command', command)
-        return 1
-    return 0
+    parser = argparse.ArgumentParser(prog='wraptool')
+    add_arguments(parser)
+    options = parser.parse_args(args)
+    options.wrap_func(options)
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))
