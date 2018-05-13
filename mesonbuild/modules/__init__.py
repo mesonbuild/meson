@@ -1,9 +1,7 @@
 import os
 
 from .. import build
-from .. import dependencies
 from .. import mlog
-from ..mesonlib import MesonException
 
 class permittedSnippetKwargs:
 

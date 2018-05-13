@@ -1281,7 +1281,6 @@ class ElbrusCompiler(GnuCompiler):
                 break
         return paths
 
-
 class ClangCompiler:
     def __init__(self, clang_type):
         self.id = 'clang'

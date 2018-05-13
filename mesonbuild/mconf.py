@@ -15,7 +15,6 @@
 import os
 import sys
 import argparse
-import shlex
 from . import (coredata, mesonlib, build)
 
 def buildparser():

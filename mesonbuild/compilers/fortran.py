@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os.path, subprocess
-
 from .c import CCompiler
 from .compilers import (
     ICC_STANDARD,
