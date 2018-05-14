@@ -694,6 +694,9 @@ class Compiler:
     def get_linker_always_args(self):
         return []
 
+    def gen_export_dynamic_link_args(self, env):
+        return []
+
     def gen_import_library_args(self, implibname):
         """
         Used only on Windows for libraries that need an import library.

@@ -1527,6 +1527,11 @@ the following methods:
 - `get_id()` returns a string identifying the compiler. For example,
   `gcc`, `msvc`, [and more](Compiler-properties.md#compiler-id).
 
+- `get_export_dynamic_link_args` *(added 0.47.0)* returns link flags needed to
+  causes the target's symbols to be dynamically exported. The
+  [executable](#executable)'s `export_dynamic` argument should usually be used
+  instead of passing these link args to a target.
+
 - `get_supported_arguments(list_of_string)` *(added 0.43.0)* returns
   an array containing only the arguments supported by the compiler,
   as if `has_argument` were called on them individually.
