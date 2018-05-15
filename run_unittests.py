@@ -2389,6 +2389,16 @@ class WindowsTests(BasePlatformTests):
         for l in cc.ignore_libs:
             self.assertEqual(cc.find_library(l, env, []), [])
 
+    def test_rc_depends_files(self):
+        testdir = os.path.join(self.platform_test_dir, '5 resources')
+        self.init(testdir)
+        self.build()
+        # Immediately rebuilding should not do anything
+        self.assertBuildIsNoop()
+        # Changing mtime of sample.ico should rebuild everything
+        self.utime(os.path.join(testdir, 'res', 'sample.ico'))
+        self.assertRebuiltTarget('prog')
+
 
 class LinuxlikeTests(BasePlatformTests):
     '''
