@@ -261,7 +261,6 @@ def search_version(text):
 class Environment:
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
-    coredata_file = os.path.join(private_dir, 'coredata.dat')
 
     def __init__(self, source_dir, build_dir, main_script_launcher, options, original_cmd_line_args):
         self.source_dir = source_dir
@@ -335,8 +334,7 @@ class Environment:
         return self.cross_info is not None
 
     def dump_coredata(self):
-        coredata.save(self.coredata, self.get_build_dir())
-        return os.path.join(self.get_build_dir(), Environment.coredata_file)
+        return coredata.save(self.coredata, self.get_build_dir())
 
     def get_script_dir(self):
         import mesonbuild.scripts
