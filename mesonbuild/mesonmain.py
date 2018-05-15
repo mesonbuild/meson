@@ -20,7 +20,6 @@ import cProfile as profile
 
 from . import environment, interpreter, mesonlib
 from . import build
-from . import mconf, mintro, mtest, rewriter, minit
 from . import mlog, coredata
 from .mesonlib import MesonException
 from .environment import detect_msys2_arch
@@ -178,9 +177,6 @@ def run_script_command(args):
     elif cmdname == 'cleantrees':
         import mesonbuild.scripts.cleantrees as abc
         cmdfunc = abc.run
-    elif cmdname == 'install':
-        import mesonbuild.scripts.meson_install as abc
-        cmdfunc = abc.run
     elif cmdname == 'commandrunner':
         import mesonbuild.scripts.commandrunner as abc
         cmdfunc = abc.run
@@ -270,23 +266,32 @@ def run(original_args, mainfile):
             args = remaining_args
             cmd_name = args[0]
         if cmd_name == 'test':
+            from . import mtest
             return mtest.run(remaining_args)
         elif cmd_name == 'setup':
             args = remaining_args
             # FALLTHROUGH like it's 1972.
+        elif cmd_name == 'install':
+            from . import minstall
+            return minstall.run(remaining_args)
         elif cmd_name == 'introspect':
+            from . import mintro
             return mintro.run(remaining_args)
         elif cmd_name == 'rewrite':
+            from . import rewriter
             return rewriter.run(remaining_args)
         elif cmd_name == 'configure':
             try:
+                from . import mconf
                 return mconf.run(remaining_args)
             except MesonException as e:
                 mlog.exception(e)
                 sys.exit(1)
         elif cmd_name == 'wrap':
+            from .wrap import wraptool
             return wraptool.run(remaining_args)
         elif cmd_name == 'init':
+            from . import minit
             return minit.run(remaining_args)
         elif cmd_name == 'runpython':
             import runpy
