@@ -204,7 +204,11 @@ class MesonApp:
             g.run_postconf_scripts()
         except:
             if 'cdf' in locals():
-                os.unlink(cdf)
+                old_cdf = cdf + '.prev'
+                if os.path.exists(old_cdf):
+                    os.replace(old_cdf, cdf)
+                else:
+                    os.unlink(cdf)
             raise
 
 def run_script_command(args):
