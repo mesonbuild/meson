@@ -29,6 +29,7 @@ argument which is the name of the gettext module.
   [source](https://github.com/mesonbuild/meson/blob/master/mesonbuild/modules/i18n.py)
   for for their value
 * `install`: (*Added 0.43.0*) if false, do not install the built translations.
+* `install_dir`: (*Added 0.50.0*) override default install location, default is `localedir`
 
 This function also defines targets for maintainers to use:
 **Note**: These output to the source directory
