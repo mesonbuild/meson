@@ -1,5 +1,7 @@
 #include<windows.h>
 
+// deliberately don't get MY_ICON from resource.h so that depfile generation can
+// be exercised in the WindowsTests.test_rc_depends_files unit test
 #define MY_ICON 1
 
 int APIENTRY

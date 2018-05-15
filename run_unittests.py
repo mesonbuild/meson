@@ -2397,9 +2397,15 @@ class WindowsTests(BasePlatformTests):
         self.build()
         # Immediately rebuilding should not do anything
         self.assertBuildIsNoop()
-        # Changing mtime of sample.ico should rebuild everything
+        # Changing mtime of sample.ico should rebuild prog
         self.utime(os.path.join(testdir, 'res', 'sample.ico'))
         self.assertRebuiltTarget('prog')
+        # Changing mtime of resource.h should rebuild myres.rc and then prog
+        # (resource compiler depfile generation is not yet implemented for msvc)
+        env = Environment(testdir, self.builddir, get_fake_options(self.prefix), [])
+        if env.detect_c_compiler(False).get_id() != 'msvc':
+            self.utime(os.path.join(testdir, 'inc', 'resource', 'resource.h'))
+            self.assertRebuiltTarget('prog')
 
 
 class LinuxlikeTests(BasePlatformTests):
