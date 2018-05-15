@@ -100,6 +100,11 @@ class WindowsModule(ExtensionModule):
             # Path separators are not allowed in target names
             name = name.replace('/', '_').replace('\\', '_')
 
+            # instruct binutils windres to generate a preprocessor depfile
+            if comp.id != 'msvc':
+                res_kwargs['depfile'] = res_kwargs['output'] + '.d'
+                res_kwargs['command'] += ['--preprocessor-arg=-MD', '--preprocessor-arg=-MQ@OUTPUT@', '--preprocessor-arg=-MF@DEPFILE@']
+
             res_targets.append(build.CustomTarget('Windows resource for ' + name, state.subdir, state.subproject, res_kwargs))
 
         add_target(args)
