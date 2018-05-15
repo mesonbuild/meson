@@ -2337,6 +2337,7 @@ class WindowsTests(BasePlatformTests):
         super().setUp()
         self.platform_test_dir = os.path.join(self.src_root, 'test cases/windows')
 
+    @unittest.skipIf(is_cygwin(), 'Test only applicable to Windows')
     def test_find_program(self):
         '''
         Test that Windows-specific edge-cases in find_program are functioning
@@ -3314,7 +3315,7 @@ if __name__ == '__main__':
         cases += ['LinuxlikeTests']
         if should_run_linux_cross_tests():
             cases += ['LinuxArmCrossCompileTests']
-    elif is_windows():
+    if is_windows() or is_cygwin():
         cases += ['WindowsTests']
 
     unittest.main(defaultTest=cases, buffer=True)
