@@ -102,7 +102,8 @@ class I18nModule(ExtensionModule):
         return ModuleReturnValue(ct, [ct])
 
     @FeatureNewKwargs('i18n.gettext', '0.37.0', ['preset'])
-    @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages', 'args', 'preset', 'install'})
+    @FeatureNewKwargs('i18n.gettext', '0.50.0', ['install_dir'])
+    @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages', 'args', 'preset', 'install', 'install_dir'})
     def gettext(self, state, args, kwargs):
         if len(args) != 1:
             raise coredata.MesonException('Gettext requires one positional argument (package name).')
@@ -151,10 +152,11 @@ class I18nModule(ExtensionModule):
 
         install = kwargs.get('install', True)
         if install:
+            install_dir = kwargs.get('install_dir', state.environment.coredata.get_builtin_option('localedir'))
             script = state.environment.get_build_command()
             args = ['--internal', 'gettext', 'install',
                     '--subdir=' + state.subdir,
-                    '--localedir=' + state.environment.coredata.get_builtin_option('localedir'),
+                    '--localedir=' + install_dir,
                     pkg_arg]
             if lang_arg:
                 args.append(lang_arg)
