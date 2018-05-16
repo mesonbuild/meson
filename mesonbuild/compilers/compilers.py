@@ -65,7 +65,8 @@ cflags_mapping = {'c': 'CFLAGS',
                   'objcpp': 'OBJCXXFLAGS',
                   'fortran': 'FFLAGS',
                   'd': 'DFLAGS',
-                  'vala': 'VALAFLAGS'}
+                  'vala': 'VALAFLAGS',
+                  'rust': 'RUSTFLAGS'}
 
 # All these are only for C-like languages; see `clike_langs` above.
 
