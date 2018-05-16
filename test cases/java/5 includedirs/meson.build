@@ -10,6 +10,5 @@ javaprog = jar('myprog',
  'com/mesonbuild/TextPrinter.java',
   main_class : 'com.mesonbuild.Simple',
   include_directories : [ include_directories('com'),
-                          include_directories('.'),
                           include_directories('com/mesonbuild') ])
 test('subdirtest', javaprog)
