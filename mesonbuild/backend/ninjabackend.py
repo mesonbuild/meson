@@ -2404,7 +2404,8 @@ rule FORTRAN_DEP_HACK%s
             commands += linker.get_pic_args()
             # Add -Wl,-soname arguments on Linux, -install_name on OS X
             commands += linker.get_soname_args(target.prefix, target.name, target.suffix,
-                                               abspath, target.soversion,
+                                               abspath, target.soversion, target.ltversion,
+                                               os.path.join(self.environment.get_prefix(), self.environment.get_libdir()),
                                                isinstance(target, build.SharedModule))
             # This is only visited when building for Windows using either GCC or Visual Studio
             if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
