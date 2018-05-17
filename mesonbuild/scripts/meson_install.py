@@ -230,10 +230,6 @@ def do_install(log_dir, datafilename):
     d.destdir = os.environ.get('DESTDIR', '')
     d.fullprefix = destdir_join(d.destdir, d.prefix)
 
-    if not os.access(d.fullprefix, os.W_OK) and shutil.which('pkexec') is not None:
-        os.execlp('pkexec', 'pkexec', sys.executable, main_file, *sys.argv[1:],
-                  os.getcwd())
-
     if d.install_umask is not None:
         os.umask(d.install_umask)
 
@@ -242,15 +238,23 @@ def do_install(log_dir, datafilename):
         append_to_log('# List of files installed by Meson')
         append_to_log('# Does not contain files installed by custom scripts.')
 
-        d.dirmaker = DirMaker()
-        with d.dirmaker:
-            install_subdirs(d) # Must be first, because it needs to delete the old subtree.
-            install_targets(d)
-            install_headers(d)
-            install_man(d)
-            install_data(d)
-            restore_selinux_contexts()
-            run_install_script(d)
+        try:
+            d.dirmaker = DirMaker()
+            with d.dirmaker:
+                install_subdirs(d) # Must be first, because it needs to delete the old subtree.
+                install_targets(d)
+                install_headers(d)
+                install_man(d)
+                install_data(d)
+                restore_selinux_contexts()
+                run_install_script(d)
+        except PermissionError:
+            if shutil.which('pkexec') is not None and 'PKEXEC_UID' not in os.environ:
+                os.execlp('pkexec', 'pkexec', sys.executable, main_file, *sys.argv[1:],
+                          os.getcwd())
+            else:
+                raise
+
 
 def install_subdirs(d):
     for (src_dir, dst_dir, mode, exclude) in d.install_subdirs:
