@@ -27,12 +27,12 @@ environment:
     - arch: x86
       compiler: msvc2015
       backend: ninja
-      BOOST_ROOT: C:\Libraries\Boost_1_59_0
+      BOOST_ROOT: C:\Libraries\Boost_1_60_0
 
     - arch: x86
       compiler: msvc2015
       backend: vs2015
-      BOOST_ROOT: C:\Libraries\Boost_1_59_0
+      BOOST_ROOT: C:\Libraries\Boost_1_60_0
 
     - arch: x64
       compiler: msvc2017
@@ -94,8 +94,8 @@ install:
   - cmd: python ./skip_ci.py --base-branch-env=APPVEYOR_REPO_BRANCH --is-pull-env=APPVEYOR_PULL_REQUEST_NUMBER
 
   # Set paths for BOOST dll files
-  - cmd: if %compiler%==msvc2015 ( if %arch%==x86 ( set "PATH=%PATH%;C:\Libraries\boost_1_59_0\lib32-msvc-14.0" ) else ( set "PATH=%PATH%;C:\Libraries\boost_1_59_0\lib64-msvc-14.0" ) )
-  - cmd: if %compiler%==msvc2017 ( if %arch%==x86 ( set "PATH=%PATH%;C:\Libraries\boost_1_64_0\lib32-msvc-14.1" ) else ( set "PATH=%PATH%;C:\Libraries\boost_1_64_0\lib64-msvc-14.1" ) )
+  - cmd: if %compiler%==msvc2015 ( if %arch%==x86 ( set "PATH=%PATH%;%BOOST_ROOT%\lib32-msvc-14.0" ) else ( set "PATH=%PATH%;%BOOST_ROOT%\lib64-msvc-14.0" ) )
+  - cmd: if %compiler%==msvc2017 ( if %arch%==x86 ( set "PATH=%PATH%;%BOOST_ROOT%\lib32-msvc-14.1" ) else ( set "PATH=%PATH%;%BOOST_ROOT%\lib64-msvc-14.1" ) )
 
   # Set paths and config for each build type.
   - cmd: if %compiler%==msvc2010 ( call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" %arch% )
