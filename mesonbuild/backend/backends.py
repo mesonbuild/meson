@@ -625,6 +625,8 @@ class Backend:
             for a in t.cmd_args:
                 if hasattr(a, 'held_object'):
                     a = a.held_object
+                if isinstance(a, build.Executable):
+                    extra_paths += self.determine_windows_extra_paths(a, [])
                 if isinstance(a, mesonlib.File):
                     a = os.path.join(self.environment.get_build_dir(), a.rel_to_builddir(self.build_to_src))
                     cmd_args.append(a)
