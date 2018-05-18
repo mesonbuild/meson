@@ -45,7 +45,7 @@ class GTestDependency(ExternalDependency):
             if self.main:
                 self.link_args += gtest_main_detect
             self.sources = []
-            mlog.log('Dependency GTest found:', mlog.green('YES'), '(prebuilt)')
+            self.prebuilt = True
         elif self.detect_srcdir():
             self.is_found = True
             self.compile_args = ['-I' + d for d in self.src_include_dirs]
@@ -54,9 +54,8 @@ class GTestDependency(ExternalDependency):
                 self.sources = [self.all_src, self.main_src]
             else:
                 self.sources = [self.all_src]
-            mlog.log('Dependency GTest found:', mlog.green('YES'), '(building self)')
+            self.prebuilt = False
         else:
-            mlog.log('Dependency GTest found:', mlog.red('NO'))
             self.is_found = False
 
     def detect_srcdir(self):
@@ -76,6 +75,12 @@ class GTestDependency(ExternalDependency):
     def need_threads(self):
         return True
 
+    def log_info(self):
+        if self.prebuilt:
+            return 'prebuilt'
+        else:
+            return 'building self'
+
 
 class GMockDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
@@ -89,7 +94,7 @@ class GMockDependency(ExternalDependency):
             self.compile_args = []
             self.link_args = gmock_detect
             self.sources = []
-            mlog.log('Dependency GMock found:', mlog.green('YES'), '(prebuilt)')
+            self.prebuilt = True
             return
 
         for d in ['/usr/src/googletest/googlemock/src', '/usr/src/gmock/src', '/usr/src/gmock']:
@@ -106,10 +111,16 @@ class GMockDependency(ExternalDependency):
                     self.sources = [all_src, main_src]
                 else:
                     self.sources = [all_src]
-                mlog.log('Dependency GMock found:', mlog.green('YES'), '(building self)')
+                self.prebuilt = False
                 return
-        mlog.log('Dependency GMock found:', mlog.red('NO'))
+
         self.is_found = False
+
+    def log_info(self):
+        if self.prebuilt:
+            return 'prebuilt'
+        else:
+            return 'building self'
 
 
 class LLVMDependency(ConfigToolDependency):
@@ -145,6 +156,7 @@ class LLVMDependency(ConfigToolDependency):
         super().__init__('LLVM', environment, 'cpp', kwargs)
         self.provided_modules = []
         self.required_modules = set()
+        self.module_details = []
         if not self.is_found:
             return
         self.static = kwargs.get('static', False)
@@ -237,20 +249,29 @@ class LLVMDependency(ConfigToolDependency):
         is required.
         """
         for mod in sorted(set(modules)):
+            status = ''
+
             if mod not in self.provided_modules:
-                mlog.log('LLVM module', mlog.bold(mod), 'found:', mlog.red('NO'),
-                         '(optional)' if not required else '')
                 if required:
                     self.is_found = False
                     if self.required:
                         raise DependencyException(
                             'Could not find required LLVM Component: {}'.format(mod))
+                    status = '(missing)'
+                else:
+                    status = '(missing but optional)'
             else:
                 self.required_modules.add(mod)
-                mlog.log('LLVM module', mlog.bold(mod), 'found:', mlog.green('YES'))
+
+            self.module_details.append(mod + status)
 
     def need_threads(self):
         return True
+
+    def log_details(self):
+        if self.module_details:
+            return 'modules: ' + ', '.join(self.module_details)
+        return ''
 
 
 class ValgrindDependency(PkgConfigDependency):

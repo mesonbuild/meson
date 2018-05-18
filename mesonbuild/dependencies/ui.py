@@ -204,12 +204,10 @@ class QtBaseDependency(ExternalDependency):
         self.bindir = None
         self.private_headers = kwargs.get('private_headers', False)
         mods = extract_as_list(kwargs, 'modules')
+        self.requested_modules = mods
         if not mods:
             raise DependencyException('No ' + self.qtname + '  modules specified.')
-        type_text = 'cross' if env.is_cross_build() else 'native'
-        found_msg = '{} {} {{}} dependency (modules: {}) found:' \
-                    ''.format(self.qtname, type_text, ', '.join(mods))
-        from_text = 'pkg-config'
+        self.from_text = 'pkg-config'
 
         # Keep track of the detection methods used, for logging purposes.
         methods = []
@@ -218,21 +216,15 @@ class QtBaseDependency(ExternalDependency):
             self._pkgconfig_detect(mods, kwargs)
             methods.append('pkgconfig')
         if not self.is_found and DependencyMethods.QMAKE in self.methods:
-            from_text = self._qmake_detect(mods, kwargs)
+            self.from_text = self._qmake_detect(mods, kwargs)
             methods.append('qmake-' + self.name)
             methods.append('qmake')
         if not self.is_found:
             # Reset compile args and link args
             self.compile_args = []
             self.link_args = []
-            from_text = '(checked {})'.format(mlog.format_list(methods))
+            self.from_text = mlog.format_list(methods)
             self.version = 'none'
-            if not self.silent:
-                mlog.log(found_msg.format(from_text), mlog.red('NO'))
-            return
-        from_text = '`{}`'.format(from_text)
-        if not self.silent:
-            mlog.log(found_msg.format(from_text), mlog.green('YES'))
 
     def compilers_detect(self):
         "Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"
@@ -412,6 +404,16 @@ class QtBaseDependency(ExternalDependency):
 
     def get_private_includes(self, mod_inc_dir, module):
         return tuple()
+
+    def log_details(self):
+        module_str = ', '.join(self.requested_modules)
+        return 'modules: ' + module_str
+
+    def log_info(self):
+        return '`{}`'.format(self.from_text)
+
+    def log_tried(self):
+        return self.from_text
 
 
 class Qt4Dependency(QtBaseDependency):

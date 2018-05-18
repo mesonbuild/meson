@@ -103,11 +103,6 @@ class MPIDependency(ExternalDependency):
                 self.is_found = True
                 self.version, self.compile_args, self.link_args = result
 
-        if self.is_found:
-            mlog.log('Dependency', mlog.bold(self.name), 'for', self.language, 'found:', mlog.green('YES'), self.version)
-        else:
-            mlog.log('Dependency', mlog.bold(self.name), 'for', self.language, 'found:', mlog.red('NO'))
-
     def _filter_compile_args(self, args):
         """
         MPI wrappers return a bunch of garbage args.
@@ -265,10 +260,6 @@ class OpenMPDependency(ExternalDependency):
                 self.is_found = True
             else:
                 mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
-        if self.is_found:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'), self.version)
-        else:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
 
     def need_openmp(self):
         return True
@@ -324,10 +315,6 @@ class Python3Dependency(ExternalDependency):
                     self.compile_args = fw.get_compile_args()
                     self.link_args = fw.get_link_args()
                     self.is_found = True
-        if self.is_found:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
-        else:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
 
     @staticmethod
     def get_windows_python_arch():
