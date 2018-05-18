@@ -3313,27 +3313,41 @@ different subdirectory.
                                                              timeout_multiplier=timeout_multiplier,
                                                              env=env)
 
+    def _extract_langs(self, node, kwargs, optional):
+        langs = mesonlib.stringlistify(kwargs.get('language', []))
+        if not langs and not optional:
+            raise InvalidCode('Missing language definition in {}'.format(node.func_name))
+
+        # For linker arguments the language kwarg is optional. When omitted it
+        # means flags apply to all languages. Use empty string here for that
+        # case.
+        return langs if langs else ['']
+
     @permittedKwargs(permitted_kwargs['add_global_arguments'])
     @stringArgs
     def func_add_global_arguments(self, node, args, kwargs):
-        self.add_global_arguments(node, self.build.global_args, args, kwargs)
+        langs = self._extract_langs(node, kwargs, optional=False)
+        self.add_global_arguments(node, self.build.global_args, args, langs)
 
     @permittedKwargs(permitted_kwargs['add_global_link_arguments'])
     @stringArgs
     def func_add_global_link_arguments(self, node, args, kwargs):
-        self.add_global_arguments(node, self.build.global_link_args, args, kwargs)
+        langs = self._extract_langs(node, kwargs, optional=True)
+        self.add_global_arguments(node, self.build.global_link_args, args, langs)
 
     @permittedKwargs(permitted_kwargs['add_project_arguments'])
     @stringArgs
     def func_add_project_arguments(self, node, args, kwargs):
-        self.add_project_arguments(node, self.build.projects_args, args, kwargs)
+        langs = self._extract_langs(node, kwargs, optional=False)
+        self.add_project_arguments(node, self.build.projects_args, args, langs)
 
     @permittedKwargs(permitted_kwargs['add_project_link_arguments'])
     @stringArgs
     def func_add_project_link_arguments(self, node, args, kwargs):
-        self.add_project_arguments(node, self.build.projects_link_args, args, kwargs)
+        langs = self._extract_langs(node, kwargs, optional=True)
+        self.add_project_arguments(node, self.build.projects_link_args, args, langs)
 
-    def add_global_arguments(self, node, argsdict, args, kwargs):
+    def add_global_arguments(self, node, argsdict, args, langs):
         if self.subproject != '':
             msg = 'Function \'{}\' cannot be used in subprojects because ' \
                   'there is no way to make that reliable.\nPlease only call ' \
@@ -3343,27 +3357,24 @@ different subdirectory.
                   'in each target.'.format(node.func_name)
             raise InvalidCode(msg)
         frozen = self.project_args_frozen or self.global_args_frozen
-        self.add_arguments(node, argsdict, frozen, args, kwargs)
+        self.add_arguments(node, argsdict, frozen, args, langs)
 
-    def add_project_arguments(self, node, argsdict, args, kwargs):
+    def add_project_arguments(self, node, argsdict, args, langs):
         if self.subproject not in argsdict:
             argsdict[self.subproject] = {}
         self.add_arguments(node, argsdict[self.subproject],
-                           self.project_args_frozen, args, kwargs)
+                           self.project_args_frozen, args, langs)
 
-    def add_arguments(self, node, argsdict, args_frozen, args, kwargs):
+    def add_arguments(self, node, argsdict, args_frozen, args, langs):
         if args_frozen:
             msg = 'Tried to use \'{}\' after a build target has been declared.\n' \
                   'This is not permitted. Please declare all ' \
                   'arguments before your targets.'.format(node.func_name)
             raise InvalidCode(msg)
 
-        if 'language' not in kwargs:
-            raise InvalidCode('Missing language definition in {}'.format(node.func_name))
-
-        for lang in mesonlib.stringlistify(kwargs['language']):
+        for lang in langs:
             lang = lang.lower()
-            argsdict[lang] = argsdict.get(lang, []) + args
+            argsdict.setdefault(lang, []).extend(args)
 
     @noKwargs
     @noPosargs

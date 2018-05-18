@@ -10,7 +10,8 @@ afterwards](#returned-objects).
 ### add_global_arguments()
 
 ``` meson
-  void add_global_arguments(arg1, arg2, ...)
+  void add_global_arguments(arg1, arg2, ...,
+                            language : [*lang1*, *lang2*, ...])
 ```
 
 Adds the positional arguments to the compiler command line for the
@@ -35,10 +36,49 @@ arguments explicitly specified are used during compile tests.
 ### add_global_link_arguments()
 
 ``` meson
-    void add_global_link_arguments(*arg1*, *arg2*, ...)
+    void add_global_link_arguments(*arg1*, *arg2*, ...,
+                                   language : [*lang1*, *lang2*, ...])
 ```
 
 Like `add_global_arguments` but the arguments are passed to the linker.
+
+If a target is built with sources from multiple languages (e.g. file1.c,
+file2.m, file3.cpp, ...) that are linked together, the linker of one of those
+languages is chosen and only link arguments for that language are passed.
+
+In the following example it is *undefined* whether or not '-Wl,something' will
+be passed to the linker.
+
+```meson
+project('example', 'c', 'objc')
+add_global_link_arguments('-Wl,something', language : 'c')
+app = executable('myapp', 'file1.c', 'file2.m')
+```
+
+To solve this ambiguity both languages must be passed to
+`add_global_link_arguments()`. This has the disadvantage of being complicated
+to manage when some languages are optional.
+
+```meson
+project('example', 'c', 'objc')
+add_global_link_arguments('-Wl,something', language : ['c', 'objc'])
+app = executable('myapp', 'file1.c', 'file2.m')
+```
+
+Since 0.47.0 the `language` keyword argument can be omitted in which case they
+are used for all languages, in addition to linker arguments for the specific
+language of the target.
+
+```meson
+project('example', 'c', 'objc')
+add_global_link_arguments('-Wl,flag1')
+add_global_link_arguments('-Wl,flag2', language : ['c', 'objc'])
+add_global_link_arguments('-Wl,flag3', language : ['c'])
+
+# '-Wl,flag1' and '-Wl,flag2' are guaranteed to be passed to linker, but
+# it is undefined whether '-Wl,flag3' will be used.
+app = executable('myapp', 'file1.c', 'file2.m')
+```
 
 ### add_languages()
 
@@ -65,7 +105,8 @@ otherwise.
 ### add_project_arguments()
 
 ``` meson
-  void add_project_arguments(arg1, arg2, ...)
+  void add_project_arguments(arg1, arg2, ...,
+                             language : [*lang1*, *lang2*, ...])
 ```
 
 This function behaves in the same way as `add_global_arguments` except
@@ -75,10 +116,13 @@ be used in any other subproject.
 ### add_project_link_arguments()
 
 ``` meson
-  void add_project_link_arguments(*arg1*, *arg2*, ...)
+  void add_project_link_arguments(*arg1*, *arg2*, ...,
+                                  language : [*lang1*, *lang2*, ...])
 ```
 
-Like `add_project_arguments` but the arguments are passed to the linker.
+This function behaves in the same way as `add_global_link_arguments` except
+that the arguments are only used for the current project, they won't
+be used in any other subproject.
 
 ### add_test_setup()
 

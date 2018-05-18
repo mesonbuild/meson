@@ -563,7 +563,7 @@ class BasePlatformTests(unittest.TestCase):
         if p.returncode != 0:
             if 'MESON_SKIP_TEST' in p.stdout:
                 raise unittest.SkipTest('Project requested skipping.')
-            raise subprocess.CalledProcessError(p.returncode, command)
+            raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
         return p.stdout
 
     def init(self, srcdir, extra_args=None, default_args=True, inprocess=False):
@@ -2327,6 +2327,19 @@ class FailureTests(BasePlatformTests):
             self.init(tdir, inprocess=False)
         self.assertEqual(cm.exception.returncode, 2)
         self.wipe()
+
+    def test_add_link_arguments(self):
+        '''
+        Test flags added with add_project_link_arguments() are passed to the
+        linker. The test adds broken flags and check that it fails to link.
+        '''
+        testdir = os.path.join(self.unit_test_dir, '33 add link arguments')
+        self.init(testdir)
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.build()
+        self.assertIn('broken1', cm.exception.output)
+        self.assertIn('broken2', cm.exception.output)
+        self.assertNotIn('broken3', cm.exception.output)
 
 
 class WindowsTests(BasePlatformTests):

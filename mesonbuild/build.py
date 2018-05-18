@@ -169,20 +169,21 @@ class Build:
         return self.global_args.get(compiler.get_language(), [])
 
     def get_project_args(self, compiler, project):
-        args = self.projects_args.get(project)
-        if not args:
-            return []
+        args = self.projects_args.get(project, {})
         return args.get(compiler.get_language(), [])
 
     def get_global_link_args(self, compiler):
-        return self.global_link_args.get(compiler.get_language(), [])
+        # Args with empty string key apply to all languages
+        args = self.global_link_args.get('', [])
+        args += self.global_link_args.get(compiler.get_language(), [])
+        return args
 
     def get_project_link_args(self, compiler, project):
-        link_args = self.projects_link_args.get(project)
-        if not link_args:
-            return []
-
-        return link_args.get(compiler.get_language(), [])
+        link_args = self.projects_link_args.get(project, {})
+        # Args with empty string key apply to all languages
+        args = link_args.get('', [])
+        args += link_args.get(compiler.get_language(), [])
+        return args
 
 class IncludeDirs:
     def __init__(self, curdir, dirs, is_system, extra_build_dirs=None):
