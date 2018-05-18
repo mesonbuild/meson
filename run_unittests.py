@@ -735,9 +735,7 @@ class BasePlatformTests(unittest.TestCase):
             self.assertIn('Linking target {}'.format(target), ret)
         elif self.backend is Backend.vs:
             # Ensure that this target was rebuilt
-            clre = re.compile('ClCompile:\n [^\n]*cl[^\n]*' + target, flags=re.IGNORECASE)
             linkre = re.compile('Link:\n [^\n]*link[^\n]*' + target, flags=re.IGNORECASE)
-            self.assertRegex(ret, clre)
             self.assertRegex(ret, linkre)
         elif self.backend is Backend.xcode:
             raise unittest.SkipTest('Please help us fix this test on the xcode backend')
