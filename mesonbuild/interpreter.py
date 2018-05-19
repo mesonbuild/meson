@@ -2939,6 +2939,8 @@ root and issuing %s.
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
+        if 'depfile' in kwargs and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
+            FeatureNew('substitutions in custom_target depfile', '0.47.0').use()
         name = args[0]
         kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs), self)

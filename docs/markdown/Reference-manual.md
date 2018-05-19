@@ -285,6 +285,9 @@ the following special string substitutions:
 - `@PLAINNAME@`: the input filename, without a path
 - `@BASENAME@`: the input filename, with extension removed
 
+The `depfile` keyword argument also accepts the `@BASENAME@` and `@PLAINNAME@`
+substitutions. *(since 0.47)*
+
 The returned object also has methods that are documented in the
 [object methods section](#custom-target-object) below.
 
