@@ -546,7 +546,8 @@ int dummy;
         else:
             cmd_type = 'custom'
         if target.depfile is not None:
-            rel_dfile = os.path.join(self.get_target_dir(target), target.depfile)
+            depfile = target.get_dep_outname(elem.infilenames)
+            rel_dfile = os.path.join(self.get_target_dir(target), depfile)
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)
             elem.add_item('DEPFILE', rel_dfile)
