@@ -23,7 +23,7 @@ from . import build
 from . import mlog, coredata
 from .mesonlib import MesonException
 from .environment import detect_msys2_arch
-from .wrap import WrapMode, wraptool
+from .wrap import WrapMode
 
 default_warning = '1'
 
