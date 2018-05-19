@@ -282,6 +282,8 @@ the following special string substitutions:
 - `@OUTPUT0@` `@OUTPUT1@` `...` the full path to the output with the specified array index in `output`
 - `@OUTDIR@` the full path to the directory where the output(s) must be written
 - `@DEPFILE@` the full path to the dependency file passed to `depfile`
+- `@PLAINNAME@`: the input filename, without a path
+- `@BASENAME@`: the input filename, with extension removed
 
 The returned object also has methods that are documented in the
 [object methods section](#custom-target-object) below.
