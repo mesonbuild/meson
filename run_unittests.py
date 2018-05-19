@@ -2393,19 +2393,35 @@ class WindowsTests(BasePlatformTests):
 
     def test_rc_depends_files(self):
         testdir = os.path.join(self.platform_test_dir, '5 resources')
+
+        # resource compiler depfile generation is not yet implemented for msvc
+        env = Environment(testdir, self.builddir, get_fake_options(self.prefix), [])
+        depfile_works = env.detect_c_compiler(False).get_id() != 'msvc'
+
         self.init(testdir)
         self.build()
         # Immediately rebuilding should not do anything
         self.assertBuildIsNoop()
+        # Test compile_resources(depend_file:)
         # Changing mtime of sample.ico should rebuild prog
         self.utime(os.path.join(testdir, 'res', 'sample.ico'))
         self.assertRebuiltTarget('prog')
+        # Test depfile generation by compile_resources
         # Changing mtime of resource.h should rebuild myres.rc and then prog
-        # (resource compiler depfile generation is not yet implemented for msvc)
-        env = Environment(testdir, self.builddir, get_fake_options(self.prefix), [])
-        if env.detect_c_compiler(False).get_id() != 'msvc':
+        if depfile_works:
             self.utime(os.path.join(testdir, 'inc', 'resource', 'resource.h'))
             self.assertRebuiltTarget('prog')
+        self.wipe()
+
+        if depfile_works:
+            testdir = os.path.join(self.platform_test_dir, '13 resources with custom targets')
+            self.init(testdir)
+            self.build()
+            # Immediately rebuilding should not do anything
+            self.assertBuildIsNoop()
+            # Changing mtime of resource.h should rebuild myres_1.rc and then prog_1
+            self.utime(os.path.join(testdir, 'res', 'resource.h'))
+            self.assertRebuiltTarget('prog_1')
 
 
 class LinuxlikeTests(BasePlatformTests):

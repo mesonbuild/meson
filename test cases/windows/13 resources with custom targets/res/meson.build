@@ -10,9 +10,10 @@ foreach id : [1, 2]
         output : 'myres_@0@.rc'.format(id),
         command : [rc_writer, '@INPUT@', '@OUTPUT@', files('sample.ico')],
         install : false,
-        build_always : true)
+        build_always : false)
 endforeach
 
 rc_sources += files('myres_static.rc')
 
-res = win.compile_resources(rc_sources)
+res = win.compile_resources(rc_sources,
+    include_directories: include_directories('.'))
