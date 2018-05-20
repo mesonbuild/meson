@@ -300,8 +300,7 @@ class InterpreterBase:
 
     def evaluate_dictstatement(self, cur):
         (arguments, kwargs) = self.reduce_arguments(cur.args)
-        if len(arguments) > 0:
-            raise InvalidCode('Only key:value pairs are valid in dict construction.')
+        assert (not arguments, 'parser bug, arguments should be empty')
         return kwargs
 
     def evaluate_notstatement(self, cur):

@@ -10,3 +10,9 @@ foreach key, value : dict
   test('dict test @0@'.format(key), exe,
     args : [dict[key], value])
 endforeach
+
+empty_dict = {}
+
+foreach key, value : empty_dict
+  assert(false, 'This dict should be empty')
+endforeach

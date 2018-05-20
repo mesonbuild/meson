@@ -642,21 +642,22 @@ class Parser:
 
         while not isinstance(s, EmptyNode):
             potential = self.current
-            if self.accept('comma'):
-                a.commas.append(potential)
-                a.append(s)
-            elif self.accept('colon'):
+            if self.accept('colon'):
                 if not isinstance(s, StringNode):
                     raise ParseException('Key must be a string.',
                                          self.getline(), s.lineno, s.colno)
+                if s.value in a.kwargs:
+                    # + 1 to colno to point to the actual string, not the opening quote
+                    raise ParseException('Duplicate dictionary key: {}'.format(s.value),
+                                         self.getline(), s.lineno, s.colno + 1)
                 a.set_kwarg(s.value, self.statement())
                 potential = self.current
                 if not self.accept('comma'):
                     return a
                 a.commas.append(potential)
             else:
-                a.append(s)
-                return a
+                raise ParseException('Only key:value pairs are valid in dict construction.',
+                    self.getline(), s.lineno, s.colno)
             s = self.statement()
         return a
 
@@ -671,7 +672,7 @@ class Parser:
                 a.append(s)
             elif self.accept('colon'):
                 if not isinstance(s, IdNode):
-                    raise ParseException('Keyword argument must be a plain identifier.',
+                    raise ParseException('Dictionary key must be a plain identifier.',
                                          self.getline(), s.lineno, s.colno)
                 a.set_kwarg(s.value, self.statement())
                 potential = self.current
@@ -708,7 +709,7 @@ class Parser:
         varname = t
         varnames = [t]
 
-        if (self.accept('comma')):
+        if self.accept('comma'):
             t = self.current
             self.expect('id')
             varnames.append(t)
