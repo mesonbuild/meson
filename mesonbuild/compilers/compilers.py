@@ -124,12 +124,10 @@ def is_library(fname):
     return suffix in lib_suffixes
 
 gnulike_buildtype_args = {'plain': [],
-                          # -O0 is passed for improved debugging information with gcc
-                          # See https://github.com/mesonbuild/meson/pull/509
-                          'debug': ['-g'],
-                          'debugoptimized': ['-g'],
+                          'debug': [],
+                          'debugoptimized': [],
                           'release': [],
-                          'minsize': ['-g']}
+                          'minsize': []}
 
 armclang_buildtype_args = {'plain': [],
                            'debug': ['-O0', '-g'],
@@ -145,10 +143,10 @@ arm_buildtype_args = {'plain': [],
                       }
 
 msvc_buildtype_args = {'plain': [],
-                       'debug': ["/MDd", "/ZI", "/Ob0", "/Od", "/RTC1"],
-                       'debugoptimized': ["/MD", "/Zi", "/O2", "/Ob1"],
-                       'release': ["/MD", "/Ob2"],
-                       'minsize': ["/MD", "/Zi", "/Ob1"],
+                       'debug': ["/ZI", "/Ob0", "/Od", "/RTC1"],
+                       'debugoptimized': ["/Zi", "/O2", "/Ob1"],
+                       'release': ["/Ob2"],
+                       'minsize': ["/Zi", "/Ob1"],
                        }
 
 apple_buildtype_linker_args = {'plain': [],
@@ -191,9 +189,9 @@ java_buildtype_args = {'plain': [],
 
 rust_buildtype_args = {'plain': [],
                        'debug': ['-C', 'debuginfo=2'],
-                       'debugoptimized': ['-C', 'debuginfo=2', '-C', 'opt-level=2'],
-                       'release': ['-C', 'opt-level=3'],
-                       'minsize': [], # In a future release: ['-C', 'opt-level=s'],
+                       'debugoptimized': ['-C', 'debuginfo=2'],
+                       'release': [],
+                       'minsize': [], 
                        }
 
 d_gdc_buildtype_args = {'plain': [],
@@ -280,6 +278,12 @@ rust_optimization_args = {'0': ['-C' ,'--opt-level=0'],
                           's': ['-C' ,'--opt-level=s'],
                           }
 
+clike_debug_args = {False: [],
+                    True: ['-g']}
+
+# FIXME, MSVC's debug args are more complicated than this.
+msvc_debug_args = {False: ['/MD'],
+                   True: ['/MDd']}
 
 base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled headers', True),
                 'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time optimization', False),
@@ -1285,6 +1289,9 @@ class GnuCompiler:
 
     def get_optimization_args(self, optimization_level):
         return gnu_optimization_args[optimization_level]
+
+    def get_debug_args(self, is_debug):
+        return clike_debug_args[is_debug]
 
     def get_buildtype_linker_args(self, buildtype):
         if self.gcc_type == GCC_OSX:

@@ -1225,10 +1225,10 @@ class VisualStudioCCompiler(CCompiler):
         return ['/MDd']
 
     def get_buildtype_args(self, buildtype):
-        return msvc_buildtype_args[buildtype]
+        return compilers.compilers.msvc_buildtype_args[buildtype]
 
     def get_buildtype_linker_args(self, buildtype):
-        return msvc_buildtype_linker_args[buildtype]
+        return compilers.compilers.msvc_buildtype_linker_args[buildtype]
 
     def get_pch_suffix(self):
         return 'pch'
@@ -1257,6 +1257,12 @@ class VisualStudioCCompiler(CCompiler):
         if target.endswith('.exe'):
             return ['/Fe' + target]
         return ['/Fo' + target]
+
+    def get_optimization_args(self, optimization_level):
+        return msvc_optimization_args[optimization_level]
+
+    def get_debug_args(self, is_debug):
+        return msvc_debug_args[is_debug]
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
