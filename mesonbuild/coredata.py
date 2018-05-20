@@ -303,9 +303,19 @@ class CoreData:
 
     def init_backend_options(self, backend_name):
         if backend_name == 'ninja':
-            self.backend_options['backend_max_links'] = UserIntegerOption('backend_max_links',
-                                                                          'Maximum number of linker processes to run or 0 for no limit',
-                                                                          0, None, 0)
+            self.backend_options['backend_max_links'] = \
+                UserIntegerOption(
+                    'backend_max_links',
+                    'Maximum number of linker processes to run or 0 for no '
+                    'limit',
+                    0, None, 0)
+        elif backend_name.startswith('vs'):
+            self.backend_options['backend_startup_project'] = \
+                UserStringOption(
+                    'backend_startup_project',
+                    'Default project to execute in Visual Studio',
+                    '')
+
 
     def get_builtin_option(self, optname):
         if optname in self.builtins:

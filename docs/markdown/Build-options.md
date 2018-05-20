@@ -21,6 +21,8 @@ option('free_array_opt', type : 'array', value : ['one', 'two'])
 option('array_opt', type : 'array', choices : ['one', 'two', 'three'], value : ['one', 'two'])
 ```
 
+## Build option types
+
 All types allow a `description` value to be set describing the option,
 if no option is set then the name of the option will be used instead.
 
@@ -40,7 +42,7 @@ A combo allows any one of the values in the `choices` parameter to be
 selected.  If no default value is set then the first value will be the
 default.
 
-## Integers
+### Integers
 
 An integer option contains a single integer with optional upper and
 lower values that are specified with the `min` and `max` keyword
@@ -135,3 +137,29 @@ project which also has an option called `some_option`, then calling
 `get_option` returns the value of the superproject. If the value of
 `yield` is `false`, `get_option` returns the value of the subproject's
 option.
+
+
+## Built-in build options
+
+There are a number of built-in options. To get the current list execute `meson
+configure` in the build directory.
+
+### Visual Studio
+
+#### Startup project
+
+The backend\_startup\_project option can be set to define the default project
+that will be executed with the "Start debugging F5" action in visual studio.
+It should be the same name as an executable target name.
+
+```meson
+project('my_project', 'c', default_options: ['backend_startup_project=my_exe'])
+executable('my_exe', ...)
+```
+
+### Ninja
+
+#### Max links
+
+The backend\_max\_links can be set to limit the number of processes that ninja
+will use to link.
