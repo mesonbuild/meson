@@ -300,7 +300,7 @@ class InterpreterBase:
 
     def evaluate_dictstatement(self, cur):
         (arguments, kwargs) = self.reduce_arguments(cur.args)
-        assert (not arguments, 'parser bug, arguments should be empty')
+        assert (not arguments)
         return kwargs
 
     def evaluate_notstatement(self, cur):

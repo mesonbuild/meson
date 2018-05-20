@@ -582,7 +582,6 @@ class BasePlatformTests(unittest.TestCase):
         if inprocess:
             try:
                 (returncode, out, err) = run_configure(self.meson_mainfile, self.meson_args + args + extra_args)
-                print (out)
                 if 'MESON_SKIP_TEST' in out:
                     raise unittest.SkipTest('Project requested skipping.')
                 if returncode != 0:
@@ -2331,13 +2330,13 @@ class FailureTests(BasePlatformTests):
 
     def test_dict_requires_key_value_pairs(self):
         self.assertMesonRaises("dict = {3, 'foo': 'bar'}",
-            'Only key:value pairs are valid in dict construction.')
+                               'Only key:value pairs are valid in dict construction.')
         self.assertMesonRaises("{'foo': 'bar', 3}",
-            'Only key:value pairs are valid in dict construction.')
+                               'Only key:value pairs are valid in dict construction.')
 
     def test_dict_forbids_duplicate_keys(self):
         self.assertMesonRaises("dict = {'a': 41, 'a': 42}",
-            'Duplicate dictionary key: a.*')
+                               'Duplicate dictionary key: a.*')
 
 
 class WindowsTests(BasePlatformTests):

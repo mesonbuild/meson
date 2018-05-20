@@ -14,6 +14,6 @@ foo = dict.get('foo')
 foobar = dict.get('foobar', 'fallback-value')
 
 foreach key, value : dict
-  # Do something with key and value
-#endforeach
+  Do something with key and value
+endforeach
 ```

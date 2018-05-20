@@ -657,7 +657,7 @@ class Parser:
                 a.commas.append(potential)
             else:
                 raise ParseException('Only key:value pairs are valid in dict construction.',
-                    self.getline(), s.lineno, s.colno)
+                                     self.getline(), s.lineno, s.colno)
             s = self.statement()
         return a
 
