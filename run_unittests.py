@@ -2338,6 +2338,10 @@ class FailureTests(BasePlatformTests):
         self.assertMesonRaises("dict = {'a': 41, 'a': 42}",
                                'Duplicate dictionary key: a.*')
 
+    def test_dict_forbids_integer_key(self):
+        self.assertMesonRaises("dict = {3: 'foo'}",
+                               'Key must be a string.*')
+
 
 class WindowsTests(BasePlatformTests):
     '''
