@@ -282,7 +282,7 @@ class Vs2010Backend(backends.Backend):
                 for dep in all_deps.keys():
                     guid = self.environment.coredata.target_guids[dep]
                     ofile.write('\t\t{%s} = {%s}\n' % (guid, guid))
-                ofile.write('EndProjectSection\n')
+                ofile.write('\tEndProjectSection\n')
                 ofile.write('EndProject\n')
                 for dep, target in recursive_deps.items():
                     if prj[0] in default_projlist:
@@ -345,8 +345,12 @@ class Vs2010Backend(backends.Backend):
             ofile.write('EndGlobal\n')
 
     def generate_projects(self):
+        startup_project = self.environment.coredata.backend_options['backend_startup_project'].value
         projlist = []
-        for name, target in self.build.targets.items():
+        startup_idx = 0
+        for (i, (name, target)) in enumerate(self.build.targets.items()):
+            if startup_project and startup_project == target.get_basename():
+                startup_idx = i
             outdir = Path(
                 self.environment.get_build_dir(),
                 self.get_target_dir(target)
@@ -359,6 +363,11 @@ class Vs2010Backend(backends.Backend):
             proj_uuid = self.environment.coredata.target_guids[name]
             self.gen_vcxproj(target, str(projfile_path), proj_uuid)
             projlist.append((name, relname, proj_uuid))
+
+        # Put the startup project first in the project list
+        if startup_idx:
+            projlist = [projlist[startup_idx]] + projlist[0:startup_idx] + projlist[startup_idx + 1:-1]
+
         return projlist
 
     def split_sources(self, srclist):
