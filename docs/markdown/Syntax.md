@@ -284,6 +284,29 @@ The following methods are defined for all arrays:
  - `contains`, returns `true` if the array contains the object given as argument, `false` otherwise
  - `get`, returns the object at the given index, negative indices count from the back of the array, indexing out of bounds is a fatal error. Provided for backwards-compatibility, it is identical to array indexing.
 
+Dictionaries
+--
+
+Dictionaries are delimited by curly braces. A dictionary can contain an
+arbitrary number of key value pairs. Keys are required to be literal
+strings, values can be objects of any type.
+
+```meson
+my_dict = {'foo': 42, 'bar': 'baz'}
+```
+
+Keys must be unique:
+
+```meson
+# This will fail
+my_dict = {'foo': 42, 'foo': 43}
+```
+
+Dictionaries are immutable.
+
+Visit the [Reference Manual](Reference-manual.md#dictionary-object) to read
+about the methods exposed by dictionaries.
+
 Function calls
 --
 
@@ -329,9 +352,17 @@ endif
 
 ## Foreach statements
 
-To do an operation on all elements of an array, use the `foreach`
-command. As an example, here's how you would define two executables
-with corresponding tests.
+To do an operation on all elements of an iterable, use the `foreach`
+command.
+
+> Note that Meson variables are immutable. Trying to assign a new value
+> to the iterated object inside a foreach loop will not affect foreach's
+> control flow.
+
+### Foreach with an array
+
+Here's an example of how you could define two executables
+with corresponding tests using arrays and foreach.
 
 ```meson
 progs = [['prog1', ['prog1.c', 'foo.c']],
@@ -343,9 +374,30 @@ foreach p : progs
 endforeach
 ```
 
-Note that Meson variables are immutable. Trying to assign a new value
-to `progs` inside a foreach loop will not affect foreach's control
-flow.
+### Foreach with a dictionary
+
+Here's an example of you could iterate a set of components that
+should be compiled in according to some configuration.
+
+```meson
+components = {
+  'foo': ['foo.c'],
+  'bar': ['bar.c'],
+  'baz:' ['baz.c'],
+}
+
+# compute a configuration based on system dependencies, custom logic
+conf = configuration_data()
+conf.set('USE_FOO', 1)
+
+# Determine the sources to compile
+sources_to_compile = []
+foreach name, sources : components
+  if conf.get('USE_@0@'.format(name.to_upper()), 0) == 1
+    sources_to_compile += sources
+  endif
+endforeach
+```
 
 Logical operations
 --

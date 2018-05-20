@@ -1730,6 +1730,21 @@ The following methods are defined for all [arrays](Syntax.md#arrays):
 You can also iterate over arrays with the [`foreach`
 statement](Syntax.md#foreach-statements).
 
+### `dictionary` object
+
+The following methods are defined for all [dictionaries](Syntax.md#dictionaries):
+
+- `has_key(key)` returns `true` if the dictionary contains the key
+  given as argument, `false` otherwise
+
+- `get(key, fallback)`, returns the value for the key given as first argument
+  if it is present in the dictionary, or the optional fallback value given
+  as the second argument. If a single argument was given and the key was not
+  found, causes a fatal error
+
+You can also iterate over dictionaries with the [`foreach`
+statement](Syntax.md#foreach-statements).
+
 ## Returned objects
 
 These are objects returned by the [functions listed above](#functions).
