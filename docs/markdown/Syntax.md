@@ -304,6 +304,8 @@ my_dict = {'foo': 42, 'foo': 43}
 
 Dictionaries are immutable.
 
+Dictionaries are available since 0.47.0.
+
 Visit the [Reference Manual](Reference-manual.md#dictionary-object) to read
 about the methods exposed by dictionaries.
 
@@ -377,7 +379,8 @@ endforeach
 ### Foreach with a dictionary
 
 Here's an example of you could iterate a set of components that
-should be compiled in according to some configuration.
+should be compiled in according to some configuration. This uses
+a [dictionary][dictionaries], which is available since 0.47.0.
 
 ```meson
 components = {

@@ -1745,6 +1745,8 @@ The following methods are defined for all [dictionaries](Syntax.md#dictionaries)
 You can also iterate over dictionaries with the [`foreach`
 statement](Syntax.md#foreach-statements).
 
+Dictionaries are available since 0.47.0.
+
 ## Returned objects
 
 These are objects returned by the [functions listed above](#functions).
