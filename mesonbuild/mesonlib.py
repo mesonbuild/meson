@@ -373,7 +373,7 @@ def for_darwin(is_cross, env):
     if not is_cross:
         return is_osx()
     elif env.cross_info.has_host():
-        return env.cross_info.config['host_machine']['system'] == 'darwin'
+        return env.cross_info.config['host_machine']['system'] in ('darwin', 'ios')
     return False
 
 def for_android(is_cross, env):
