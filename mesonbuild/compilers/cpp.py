@@ -28,6 +28,7 @@ from .compilers import (
     ElbrusCompiler,
     IntelCompiler,
     ArmCompiler,
+    ArmclangCompiler,
 )
 
 class CPPCompiler(CCompiler):
@@ -95,6 +96,32 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
 
     def language_stdlib_only_link_flags(self):
         return ['-lstdc++']
+
+
+class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+        ArmclangCompiler.__init__(self)
+        default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+
+    def get_options(self):
+        return {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                    ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17'
+                                                     'gnu++98', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17'],
+                                                    'none')}
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['cpp_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
+    def get_option_link_args(self, options):
+        return []
 
 
 class GnuCPPCompiler(GnuCompiler, CPPCompiler):

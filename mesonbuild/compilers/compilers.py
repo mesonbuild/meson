@@ -116,6 +116,12 @@ gnulike_buildtype_args = {'plain': [],
                           'release': ['-O3'],
                           'minsize': ['-Os', '-g']}
 
+armclang_buildtype_args = {'plain': [],
+                           'debug': ['-O0', '-g'],
+                           'debugoptimized': ['-O1', '-g'],
+                           'release': ['-Os'],
+                           'minsize': ['-Oz']}
+
 arm_buildtype_args = {'plain': [],
                       'debug': ['-O0', '--debug'],
                       'debugoptimized': ['-O1', '--debug'],
@@ -1280,6 +1286,80 @@ class ClangCompiler:
         else:
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
+
+
+class ArmclangCompiler:
+    def __init__(self):
+        if not self.is_cross:
+            raise EnvironmentException('armclang supports only cross-compilation.')
+        # Check whether 'armlink.exe' is available in path
+        self.linker_exe = 'armlink.exe'
+        args = '--vsn'
+        try:
+            p, stdo, stderr = Popen_safe(self.linker_exe, args)
+        except OSError as e:
+            err_msg = 'Unknown linker\nRunning "{0}" gave \n"{1}"'.format(' '.join([self.linker_exe] + [args]), e)
+            raise EnvironmentException(err_msg)
+        # Verify the armlink version
+        ver_str = re.search('.*Component.*', stdo)
+        if ver_str:
+            ver_str = ver_str.group(0)
+        else:
+            EnvironmentException('armlink version string not found')
+        # Using the regular expression from environment.search_version,
+        # which is used for searching compiler version
+        version_regex = '(?<!(\d|\.))(\d{1,2}(\.\d+)+(-[a-zA-Z0-9]+)?)'
+        linker_ver = re.search(version_regex, ver_str)
+        if linker_ver:
+            linker_ver = linker_ver.group(0)
+        if not version_compare(self.version, '==' + linker_ver):
+            raise EnvironmentException('armlink version does not match with compiler version')
+        self.id = 'armclang'
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+                             'b_ndebug', 'b_staticpic', 'b_colorout']
+        # Assembly
+        self.can_compile_suffixes.update('s')
+
+    def can_linker_accept_rsp(self):
+        return False
+
+    def get_pic_args(self):
+        # PIC support is not enabled by default for ARM,
+        # if users want to use it, they need to add the required arguments explicitly
+        return []
+
+    def get_colorout_args(self, colortype):
+        return clang_color_args[colortype][:]
+
+    def get_buildtype_args(self, buildtype):
+        return armclang_buildtype_args[buildtype]
+
+    def get_buildtype_linker_args(self, buildtype):
+        return arm_buildtype_linker_args[buildtype]
+
+    # Override CCompiler.get_std_shared_lib_link_args
+    def get_std_shared_lib_link_args(self):
+        return []
+
+    def get_pch_suffix(self):
+        return 'gch'
+
+    def get_pch_use_args(self, pch_dir, header):
+        # Workaround for Clang bug http://llvm.org/bugs/show_bug.cgi?id=15136
+        # This flag is internal to Clang (or at least not documented on the man page)
+        # so it might change semantics at any time.
+        return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
+
+    # Override CCompiler.get_dependency_gen_args
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return []
+
+    # Override CCompiler.build_rpath_args
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+        return []
+
+    def get_linker_exelist(self):
+        return [self.linker_exe]
 
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
