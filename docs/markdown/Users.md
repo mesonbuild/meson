@@ -47,6 +47,8 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [Libhttpseverywhere](https://git.gnome.org/browse/libhttpseverywhere), a library to enable httpseverywhere on any desktop app
  - [Libosmscout](https://github.com/Framstag/libosmscout), a C++ library for offline map rendering, routing and location  
 lookup based on OpenStreetMap data
+ - [libspng](https://gitlab.com/randy408/libspng), a C library for reading and writing Portable Network Graphics (PNG) 
+format files
  - [Libva](https://github.com/intel/libva), an implementation for the VA (VIdeo Acceleration) API
  - [Libzim](https://github.com/openzim/libzim), the reference implementation for the ZIM file format
  - [Kiwix libraries](https://github.com/kiwix/kiwix-lib)
