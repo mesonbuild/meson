@@ -249,6 +249,9 @@ base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled he
                 'b_staticpic': coredata.UserBooleanOption('b_staticpic',
                                                           'Build static libraries as position independent',
                                                           True),
+                'b_bitcode': coredata.UserBooleanOption('b_bitcode',
+                                                        'Generate and embed bitcode (only macOS and iOS)',
+                                                        False),
                 }
 
 gnulike_instruction_set_args = {'mmx': ['-mmmx'],
@@ -287,7 +290,6 @@ vs64_instruction_set_args = {'mmx': ['/arch:AVX'],
                              'neon': None,
                              }
 
-
 def sanitizer_compile_args(value):
     if value == 'none':
         return []
@@ -301,6 +303,14 @@ def sanitizer_link_args(value):
         return []
     args = ['-fsanitize=' + value]
     return args
+
+def option_enabled(boptions, options, option):
+    try:
+        if option not in boptions:
+            return False
+        return options[option].value
+    except KeyError:
+        return False
 
 def get_base_compile_args(options, compiler):
     args = []
@@ -338,6 +348,9 @@ def get_base_compile_args(options, compiler):
             args += ['-DNDEBUG']
     except KeyError:
         pass
+    # This does not need a try...except
+    if option_enabled(compiler.base_options, options, 'b_bitcode'):
+        args.append('-fembed-bitcode')
     return args
 
 def get_base_link_args(options, linker, is_shared_module):
@@ -361,20 +374,22 @@ def get_base_link_args(options, linker, is_shared_module):
     except KeyError:
         pass
     try:
-        if not is_shared_module and 'b_lundef' in linker.base_options and options['b_lundef'].value:
-            args.append('-Wl,--no-undefined')
-    except KeyError:
-        pass
-    try:
-        if 'b_asneeded' in linker.base_options and options['b_asneeded'].value:
-            args.append(linker.get_asneeded_args())
-    except KeyError:
-        pass
-    try:
         if options['b_coverage'].value:
             args += linker.get_coverage_link_args()
     except KeyError:
         pass
+    # These do not need a try...except
+    if not is_shared_module and option_enabled(linker.base_options, options, 'b_lundef'):
+        args.append('-Wl,--no-undefined')
+    as_needed = option_enabled(linker.base_options, options, 'b_asneeded')
+    bitcode = option_enabled(linker.base_options, options, 'b_bitcode')
+    # Shared modules cannot be built with bitcode_bundle because
+    # -bitcode_bundle is incompatible with -undefined and -bundle
+    if bitcode and not is_shared_module:
+        args.append('-Wl,-bitcode_bundle')
+    elif as_needed:
+        # -Wl,-dead_strip_dylibs is incompatible with bitcode
+        args.append(linker.get_asneeded_args())
     return args
 
 class CrossNoRunException(MesonException):
@@ -862,7 +877,7 @@ class Compiler:
     def get_std_shared_lib_link_args(self):
         return []
 
-    def get_std_shared_module_link_args(self):
+    def get_std_shared_module_link_args(self, options):
         return self.get_std_shared_lib_link_args()
 
     def get_link_whole_for(self, args):
@@ -1071,7 +1086,9 @@ class GnuCompiler:
         self.defines = defines or {}
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_colorout', 'b_ndebug', 'b_staticpic']
-        if self.gcc_type != GCC_OSX:
+        if self.gcc_type == GCC_OSX:
+            self.base_options.append('b_bitcode')
+        else:
             self.base_options.append('b_lundef')
         self.base_options.append('b_asneeded')
         # All GCC backends can do assembly
@@ -1201,7 +1218,9 @@ class ClangCompiler:
         self.clang_type = clang_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_ndebug', 'b_staticpic', 'b_colorout']
-        if self.clang_type != CLANG_OSX:
+        if self.clang_type == CLANG_OSX:
+            self.base_options.append('b_bitcode')
+        else:
             self.base_options.append('b_lundef')
         self.base_options.append('b_asneeded')
         # All Clang backends can do assembly and LLVM IR
@@ -1270,7 +1289,7 @@ class ClangCompiler:
             extra_args.append('-Wl,-no_weak_imports')
         return super().has_function(funcname, prefix, env, extra_args, dependencies)
 
-    def get_std_shared_module_link_args(self):
+    def get_std_shared_module_link_args(self, options):
         if self.clang_type == CLANG_OSX:
             return ['-bundle', '-Wl,-undefined,dynamic_lookup']
         return ['-shared']

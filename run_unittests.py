@@ -3195,6 +3195,49 @@ endian = 'little'
             deps.append(b'-lintl')
         self.assertEqual(set(deps), set(stdo.split()))
 
+    def test_apple_bitcode(self):
+        '''
+        Test that -fembed-bitcode is correctly added while compiling and
+        -bitcode_bundle is added while linking when b_bitcode is true and not
+        when it is false.  This can't be an ordinary test case because we need
+        to inspect the compiler database.
+        '''
+        if not is_osx():
+            raise unittest.SkipTest('Apple bitcode not relevant')
+        testdir = os.path.join(self.common_test_dir, '4 shared')
+        # Try with bitcode enabled
+        self.init(testdir, extra_args='-Db_bitcode=true')
+        compdb = self.get_compdb()
+        self.assertIn('-fembed-bitcode', compdb[0]['command'])
+        build_ninja = os.path.join(self.builddir, 'build.ninja')
+        with open(build_ninja, 'r', encoding='utf-8') as f:
+            contents = f.read()
+            m = re.search('LINK_ARGS =.*-bitcode_bundle', contents)
+        self.assertIsNotNone(m, msg=contents)
+        # Try with bitcode disabled
+        self.setconf('-Db_bitcode=false')
+        # Regenerate build
+        self.build()
+        compdb = self.get_compdb()
+        self.assertNotIn('-fembed-bitcode', compdb[0]['command'])
+        build_ninja = os.path.join(self.builddir, 'build.ninja')
+        with open(build_ninja, 'r', encoding='utf-8') as f:
+            contents = f.read()
+            m = re.search('LINK_ARGS =.*-bitcode_bundle', contents)
+        self.assertIsNone(m, msg=contents)
+
+    def test_apple_bitcode_modules(self):
+        '''
+        Same as above, just for shared_module()
+        '''
+        if not is_osx():
+            raise unittest.SkipTest('Apple bitcode not relevant')
+        testdir = os.path.join(self.common_test_dir, '156 shared module resolving symbol in executable')
+        # Ensure that it builds even with bitcode enabled
+        self.init(testdir, extra_args='-Db_bitcode=true')
+        self.build()
+        self.run_tests()
+
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
     Tests that verify cross-compilation to Linux/ARM
