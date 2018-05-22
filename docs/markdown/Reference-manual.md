@@ -1016,7 +1016,7 @@ Project supports the following keyword arguments.
 ### run_command()
 
 ``` meson
-    runresult run_command(command, list_of_args)
+    runresult run_command(command, list_of_args, ...)
 ```
 
 Runs the command specified in positional arguments.
@@ -1030,6 +1030,13 @@ Meson will set three environment variables `MESON_SOURCE_ROOT`,
 `MESON_BUILD_ROOT` and `MESON_SUBDIR` that specify the source
 directory, build directory and subdirectory the target was defined in,
 respectively.
+
+This function has one keyword argument.
+
+ - `check` takes a boolean. If `true`, the exit status code of the command will
+   be checked, and the configuration will fail if it is non-zero. The default is
+   `false`.
+   Since 0.47.0
 
 See also [External commands](External-commands.md).
 
