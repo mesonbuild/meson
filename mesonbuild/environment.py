@@ -467,10 +467,11 @@ class Environment:
             else:
                 exe_wrap = []
         elif evar in os.environ:
-            compilers = shlex.split(os.environ[evar])
-            # Ensure ccache exists and remove it if it doesn't
-            if compilers[0] == 'ccache':
-                compilers = compilers[1:]
+            compilers = os.environ[evar]
+            ccache_idx = compilers.find('ccache')
+            if ccache_idx > -1:
+                # Strip ccache from compiler variable
+                compilers = compilers[ccache_idx + len('ccache'):].strip()
                 ccache = self.detect_ccache()
             else:
                 ccache = []
