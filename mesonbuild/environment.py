@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import configparser, os, platform, re, shlex, shutil, subprocess
+from pathlib import Path
 
 from . import coredata
 from .linkers import ArLinker, VisualStudioLinker
@@ -469,12 +470,17 @@ class Environment:
             else:
                 exe_wrap = []
         elif evar in os.environ:
-            compilers = shlex.split(os.environ[evar])
-            # Ensure ccache exists and remove it if it doesn't
-            if compilers[0] == 'ccache':
-                compilers = compilers[1:]
-                ccache = self.detect_ccache()
+            # Don't remove escape characters (posix=False) they are valid
+            # characters in windows.
+            # Detect ccache in case of 'ccache gcc' or `/opt/my dir/ccache gcc`.
+            compilers = shlex.split(os.environ[evar], posix=False)
+            for i in range(len(compilers)):
+                if Path(' '.join(compilers[0:i])).name == 'ccache':
+                    compilers = ' '.join(compilers[i:-1])
+                    ccache = self.detect_ccache()
+                    break
             else:
+                compilers = ' '.join(compilers)
                 ccache = []
             # Return value has to be a list of compiler 'choices'
             compilers = [compilers]
