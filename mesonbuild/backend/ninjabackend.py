@@ -2397,7 +2397,8 @@ rule FORTRAN_DEP_HACK%s
                 commands += linker.gen_import_library_args(os.path.join(self.get_target_dir(target), target.import_filename))
         elif isinstance(target, build.SharedLibrary):
             if isinstance(target, build.SharedModule):
-                commands += linker.get_std_shared_module_link_args()
+                options = self.environment.coredata.base_options
+                commands += linker.get_std_shared_module_link_args(options)
             else:
                 commands += linker.get_std_shared_lib_link_args()
             # All shared libraries are PIC

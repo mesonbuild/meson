@@ -950,7 +950,8 @@ class Vs2010Backend(backends.Backend):
             self.generate_debug_information(link)
         if not isinstance(target, build.StaticLibrary):
             if isinstance(target, build.SharedModule):
-                extra_link_args += compiler.get_std_shared_module_link_args()
+                options = self.environment.coredata.base_options
+                extra_link_args += compiler.get_std_shared_module_link_args(options)
             # Add link args added using add_project_link_arguments()
             extra_link_args += self.build.get_project_link_args(compiler, target.subproject)
             # Add link args added using add_global_link_arguments()
