@@ -183,6 +183,13 @@ are not in your path, they can be specified by setting the standard
 environment variables `MPICC`, `MPICXX`, `MPIFC`, `MPIF90`, or
 `MPIF77`, during configuration.
 
+## OpenMP
+
+This dependency selects the appropriate compiler flags and/or libraries to use
+for OpenMP support.
+
+The `language` keyword may used.
+
 ## Qt4 & Qt5
 
 Meson has native Qt support. Its usage is best demonstrated with an
@@ -220,6 +227,13 @@ subparts of Qt the program uses.
 
 SDL2 can be located using `pkg-confg`, the `sdl2-config` config tool, or as an
 OSX framework.
+
+## Threads
+
+This dependency selects the appropriate compiler flags and/or libraries to use
+for thread support.
+
+See [threads](Threads.md).
 
 ## Valgrind
 
