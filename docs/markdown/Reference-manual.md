@@ -310,8 +310,9 @@ keyword arguments.
 ```
 
 Finds an external dependency (usually a library installed on your
-system) with the given name with `pkg-config` if possible and with
-[library-specific fallback detection logic](Dependencies.md)
+system) with the given name with `pkg-config` if possible, as a
+framework (OSX only), and with
+[library-specific fallback detection logic](Dependencies.md#dependencies-with-custom-lookup-functionality)
 otherwise. This function supports the following keyword arguments:
 
 - `default_options` *(added 0.37.0)* an array of default option values
@@ -331,8 +332,6 @@ otherwise. This function supports the following keyword arguments:
   `auto` but can be overridden to be e.g. `qmake` for Qt development,
   and different dependencies support different values for this (though
   `auto` will work on all of them)
-- `modules` specifies submodules to use for dependencies such as Qt5
-  or Boost.
 - `native` if set to `true`, causes Meson to find the dependency on
   the build machine system rather than the host system (i.e. where the
   cross compiled binary will run on), usually only needed if you build
@@ -347,9 +346,12 @@ otherwise. This function supports the following keyword arguments:
   `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. (*Added 0.37.0*)
   You can also specify multiple restrictions by passing a list to this
   keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
-- `private_headers`, only available with Qt modules see [documentation](Qt5-module.md#private_headers).
+- other
+[library-specific](Dependencies.md#dependencies-with-custom-lookup-functionality)
+keywords may also be accepted (e.g. `modules` specifies submodules to use for
+dependencies such as Qt5 or Boost. )
 
-If dependency_name is '', the dependency is always not found.  So with
+If dependency_name is `''`, the dependency is always not found.  So with
 `required: false`, this always returns a dependency object for which the
 `found()` method returns `false`, and which can be passed like any other
 dependency to the `dependencies:` keyword argument of a `build_target`.  This
