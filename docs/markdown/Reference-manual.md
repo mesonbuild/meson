@@ -166,7 +166,7 @@ finally use it in a call to `configure_file`.
     generated_file = configure_file(...)
 ```
 
-This function can run in two modes depending on the keyword arguments
+This function can run in three modes depending on the keyword arguments
 passed to it.
 
 When a [`configuration_data()`](#configuration_data) object is passed
@@ -179,6 +179,10 @@ When a list of strings is passed to the `command:` keyword argument,
 it takes any source or configured file as the `input:` and assumes
 that the `output:` is produced when the specified command is run.
 
+Since *0.47.0*, when the `copy:` keyword argument is set to `true`,
+this function will copy the file provided in `input:` to a file in the
+build directory with the name `output:` in the current directory.
+
 These are all the supported keyword arguments:
 
 - `capture` when this argument is set to true, Meson captures `stdout`
@@ -187,6 +191,8 @@ These are all the supported keyword arguments:
 - `command` as explained above, if specified, Meson does not create
   the file itself but rather runs the specified command, which allows
   you to do fully custom file generation.
+- `copy` *(added 0.47.0)* as explained above, if specified Meson only
+  copies the file from input to output.
 - `format` *(added 0.46.0)* the format of defines. It defaults to `meson`, and so substitutes
 `#mesondefine` statements and variables surrounded by `@` characters, you can also use `cmake`
 to replace `#cmakedefine` statements and variables with the `${variable}` syntax. Finally you can use

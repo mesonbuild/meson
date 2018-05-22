@@ -7,4 +7,5 @@ warning('a warning of some sort')
 import('unstable-simd')
 
 conf_data = configuration_data()
+conf_data.set('NOTMISSING', 1)
 configure_file(input: 'conf.in' , output: 'conf', configuration: conf_data)
