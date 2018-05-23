@@ -530,7 +530,11 @@ int dummy;
         # the project, we need to set PATH so the DLLs are found. We use
         # a serialized executable wrapper for that and check if the
         # CustomTarget command needs extra paths first.
-        if mesonlib.is_windows() or mesonlib.is_cygwin():
+        is_cross = self.environment.is_cross_build() and \
+            self.environment.cross_info.need_cross_compiler() and \
+            self.environment.cross_info.need_exe_wrapper()
+        if mesonlib.for_windows(is_cross, self.environment) or \
+           mesonlib.for_cygwin(is_cross, self.environment):
             extra_bdeps = target.get_transitive_build_target_deps()
             extra_paths = self.determine_windows_extra_paths(target.command[0], extra_bdeps)
             if extra_paths:

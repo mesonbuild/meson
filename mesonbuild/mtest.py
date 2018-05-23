@@ -231,11 +231,27 @@ class SingleTestRunner:
                 self.test.timeout = None
             return self._run_cmd(wrap + cmd + self.test.cmd_args + self.options.test_args)
 
+    @staticmethod
+    def _substring_in_list(substr, strlist):
+        for s in strlist:
+            if substr in s:
+                return True
+        return False
+
     def _run_cmd(self, cmd):
         starttime = time.time()
 
         if len(self.test.extra_paths) > 0:
             self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
+            if self._substring_in_list('wine', cmd):
+                wine_paths = ['Z:' + p for p in self.test.extra_paths]
+                wine_path = ';'.join(wine_paths)
+                # Don't accidentally end with an `;` because that will add the
+                # current directory and might cause unexpected behaviour
+                if 'WINEPATH' in self.env:
+                    self.env['WINEPATH'] = wine_path + ';' + self.env['WINEPATH']
+                else:
+                    self.env['WINEPATH'] = wine_path
 
         # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
         # (i.e., the test or the environment don't explicitly set it), set

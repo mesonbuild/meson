@@ -617,8 +617,12 @@ class Backend:
                 exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
             else:
                 exe_wrapper = None
-            if mesonlib.is_windows() or mesonlib.is_cygwin():
-                extra_paths = self.determine_windows_extra_paths(exe, [])
+            if mesonlib.for_windows(is_cross, self.environment) or \
+               mesonlib.for_cygwin(is_cross, self.environment):
+                extra_bdeps = []
+                if isinstance(exe, build.CustomTarget):
+                    extra_bdeps = exe.get_transitive_build_target_deps()
+                extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps)
             else:
                 extra_paths = []
             cmd_args = []

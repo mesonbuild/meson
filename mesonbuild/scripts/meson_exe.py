@@ -57,6 +57,15 @@ def run_exe(exe):
     if len(exe.extra_paths) > 0:
         child_env['PATH'] = (os.pathsep.join(exe.extra_paths + ['']) +
                              child_env['PATH'])
+        if exe.exe_runner and 'wine' in exe.exe_runner:
+            wine_paths = ['Z:' + p for p in exe.extra_paths]
+            wine_path = ';'.join(wine_paths)
+            # Don't accidentally end with an `;` because that will add the
+            # current directory and might cause unexpected behaviour
+            if 'WINEPATH' in child_env:
+                child_env['WINEPATH'] = wine_path + ';' + child_env['WINEPATH']
+            else:
+                child_env['WINEPATH'] = wine_path
 
     p = subprocess.Popen(cmd + exe.cmd_args, env=child_env, cwd=exe.workdir,
                          close_fds=False,
