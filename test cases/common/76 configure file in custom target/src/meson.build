@@ -12,7 +12,7 @@ endif
 
 compiler = configure_file(input : 'mycompiler.py',
   output : 'mycompiler2.py',
-  configuration : configuration_data())
+  copy: true)
 
 custom_target('thing2',
 output : 'final2.dat',

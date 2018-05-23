@@ -45,6 +45,8 @@ permitted_method_kwargs = {
 def stringifyUserArguments(args):
     if isinstance(args, list):
         return '[%s]' % ', '.join([stringifyUserArguments(x) for x in args])
+    elif isinstance(args, dict):
+        return '{%s}' % ', '.join(['%s : %s' % (stringifyUserArguments(k), stringifyUserArguments(v)) for k, v in args.items()])
     elif isinstance(args, int):
         return str(args)
     elif isinstance(args, str):
@@ -92,18 +94,18 @@ class TryRunResultHolder(InterpreterObject):
 
 class RunProcess(InterpreterObject):
 
-    def __init__(self, cmd, args, source_dir, build_dir, subdir, mesonintrospect, in_builddir=False):
+    def __init__(self, cmd, args, source_dir, build_dir, subdir, mesonintrospect, in_builddir=False, check=False):
         super().__init__()
         if not isinstance(cmd, ExternalProgram):
             raise AssertionError('BUG: RunProcess must be passed an ExternalProgram')
-        pc, self.stdout, self.stderr = self.run_command(cmd, args, source_dir, build_dir, subdir, mesonintrospect, in_builddir)
+        pc, self.stdout, self.stderr = self.run_command(cmd, args, source_dir, build_dir, subdir, mesonintrospect, in_builddir, check)
         self.returncode = pc.returncode
         self.methods.update({'returncode': self.returncode_method,
                              'stdout': self.stdout_method,
                              'stderr': self.stderr_method,
                              })
 
-    def run_command(self, cmd, args, source_dir, build_dir, subdir, mesonintrospect, in_builddir):
+    def run_command(self, cmd, args, source_dir, build_dir, subdir, mesonintrospect, in_builddir, check=False):
         command_array = cmd.get_command() + args
         env = {'MESON_SOURCE_ROOT': source_dir,
                'MESON_BUILD_ROOT': build_dir,
@@ -124,6 +126,10 @@ class RunProcess(InterpreterObject):
             mlog.debug('----stderr----')
             mlog.debug(e)
             mlog.debug('')
+
+            if check and p.returncode != 0:
+                raise InterpreterException('Command "{}" failed with status {}.'.format(' '.join(command_array), p.returncode))
+
             return p, o, e
         except FileNotFoundError:
             raise InterpreterException('Could not execute command "%s".' % ' '.join(command_array))
@@ -1665,7 +1671,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env'},
                     'benchmark': {'args', 'env', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'build_target': known_build_target_kwargs,
-                    'configure_file': {'input', 'output', 'configuration', 'command', 'install_dir', 'capture', 'install', 'format'},
+                    'configure_file': {'input', 'output', 'configuration', 'command', 'copy', 'install_dir', 'capture', 'install', 'format'},
                     'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
                     'dependency': {'default_options', 'fallback', 'language', 'main', 'method', 'modules', 'optional_modules', 'native', 'required', 'static', 'version'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'link_whole', 'version'},
@@ -1679,6 +1685,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'},
                     'jar': build.known_jar_kwargs,
                     'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
+                    'run_command': {'check'},
                     'run_target': {'command', 'depends'},
                     'shared_library': build.known_shlib_kwargs,
                     'shared_module': build.known_shmod_kwargs,
@@ -1957,7 +1964,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
 
-    @noKwargs
+    @permittedKwargs(permitted_kwargs['run_command'])
     def func_run_command(self, node, args, kwargs):
         return self.run_command_impl(node, args, kwargs)
 
@@ -1968,6 +1975,11 @@ external dependencies (including libraries) must go to "dependencies".''')
         cargs = args[1:]
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
+
+        check = kwargs.get('check', False)
+        if not isinstance(check, bool):
+            raise InterpreterException('Check must be boolean.')
+
         m = 'must be a string, or the output of find_program(), files() '\
             'or configure_file(), or a compiler object; not {!r}'
         if isinstance(cmd, ExternalProgramHolder):
@@ -2020,7 +2032,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                     if a not in self.build_def_files:
                         self.build_def_files.append(a)
         return RunProcess(cmd, expanded_args, srcdir, builddir, self.subdir,
-                          self.environment.get_build_command() + ['introspect'], in_builddir)
+                          self.environment.get_build_command() + ['introspect'], in_builddir, check)
 
     @stringArgs
     def func_gettext(self, nodes, args, kwargs):
@@ -2272,6 +2284,8 @@ to directly access options of other subprojects.''')
 
         arg = posargs[0]
         if isinstance(arg, list):
+            argstr = stringifyUserArguments(arg)
+        elif isinstance(arg, dict):
             argstr = stringifyUserArguments(arg)
         elif isinstance(arg, str):
             argstr = arg
@@ -3126,10 +3140,19 @@ root and issuing %s.
             raise InterpreterException("configure_file takes only keyword arguments.")
         if 'output' not in kwargs:
             raise InterpreterException('Required keyword argument "output" not defined.')
-        if 'configuration' in kwargs and 'command' in kwargs:
-            raise InterpreterException('Must not specify both "configuration" '
-                                       'and "command" keyword arguments since '
-                                       'they are mutually exclusive.')
+        actions = set(['configuration', 'command', 'copy']).intersection(kwargs.keys())
+        if len(actions) == 0:
+            raise InterpreterException('Must specify an action with one of these '
+                                       'keyword arguments: \'configuration\', '
+                                       '\'command\', or \'copy\'.')
+        elif len(actions) == 2:
+            raise InterpreterException('Must not specify both {!r} and {!r} '
+                                       'keyword arguments since they are '
+                                       'mutually exclusive.'.format(*actions))
+        elif len(actions) == 3:
+            raise InterpreterException('Must specify one of {!r}, {!r}, and '
+                                       '{!r} keyword arguments since they are '
+                                       'mutually exclusive.'.format(*actions))
         if 'capture' in kwargs:
             if not isinstance(kwargs['capture'], bool):
                 raise InterpreterException('"capture" keyword must be a boolean.')
@@ -3137,13 +3160,13 @@ root and issuing %s.
                 raise InterpreterException('"capture" keyword requires "command" keyword.')
 
         if 'format' in kwargs:
-            format = kwargs['format']
-            if not isinstance(format, str):
+            fmt = kwargs['format']
+            if not isinstance(fmt, str):
                 raise InterpreterException('"format" keyword must be a string.')
         else:
-            format = 'meson'
+            fmt = 'meson'
 
-        if format not in ('meson', 'cmake', 'cmake@'):
+        if fmt not in ('meson', 'cmake', 'cmake@'):
             raise InterpreterException('"format" possible values are "meson", "cmake" or "cmake@".')
 
         # Validate input
@@ -3177,6 +3200,20 @@ root and issuing %s.
             raise InterpreterException('Output file name must not contain a subdirectory.')
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
+        # Optimize copies by not doing substitution if there's nothing to
+        # substitute, and warn about this legacy hack
+        if 'configuration' in kwargs:
+            conf = kwargs['configuration']
+            if not isinstance(conf, ConfigurationDataHolder):
+                raise InterpreterException('Argument "configuration" must be of type configuration_data')
+            if ifile_abs and not conf.keys():
+                del kwargs['configuration']
+                kwargs['copy'] = True
+                mlog.warning('Got an empty configuration_data() object: '
+                             'optimizing copy automatically; if you want to '
+                             'copy a file to the build dir, use the \'copy:\' '
+                             'keyword argument added in 0.46.0', location=node)
+        # Perform the appropriate action
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
             if not isinstance(conf, ConfigurationDataHolder):
@@ -3185,7 +3222,7 @@ root and issuing %s.
             if inputfile is not None:
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
                 missing_variables = mesonlib.do_conf_file(ifile_abs, ofile_abs,
-                                                          conf.held_object, format)
+                                                          conf.held_object, fmt)
                 if missing_variables:
                     var_list = ", ".join(map(repr, sorted(missing_variables)))
                     mlog.warning(
@@ -3217,8 +3254,13 @@ root and issuing %s.
                 if ifile_abs:
                     shutil.copymode(ifile_abs, dst_tmp)
                 mesonlib.replace_if_different(ofile_abs, dst_tmp)
+        elif 'copy' in kwargs:
+            os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
+            shutil.copyfile(ifile_abs, ofile_abs)
+            shutil.copymode(ifile_abs, ofile_abs)
         else:
-            raise InterpreterException('Configure_file must have either "configuration" or "command".')
+            # Not reachable
+            raise AssertionError
         # If the input is a source file, add it to the list of files that we
         # need to reconfigure on when they change. FIXME: Do the same for
         # files() objects in the command: kwarg.

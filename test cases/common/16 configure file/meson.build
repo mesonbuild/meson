@@ -35,21 +35,27 @@ ofile = '@0@/config2.h'.format(meson.current_build_dir())
 
 check_file = find_program('check_file.py')
 # Configure in source root with command and absolute paths
-configure_file(input : 'dummy.dat',
+outf = configure_file(input : 'dummy.dat',
   output : 'config2.h',
   command : [genprog, scriptfile,  ifile, ofile],
   install_dir : 'share/appdir')
-run_command(check_file, join_paths(meson.current_build_dir(), 'config2.h'))
+ret = run_command(check_file, outf)
+if ret.returncode() != 0
+  error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
+endif
 
 # Same again as before, but an input file should not be required in
 # this case where we use a command/script to generate the output file.
 genscript2b = '@0@/generator-without-input-file.py'.format(meson.current_source_dir())
 ofile2b = '@0@/config2b.h'.format(meson.current_build_dir())
-configure_file(
+outf = configure_file(
   output : 'config2b.h',
   command : [genprog, genscript2b, ofile2b],
   install_dir : 'share/appdir')
-run_command(check_file, join_paths(meson.current_build_dir(), 'config2b.h'))
+ret = run_command(check_file, outf)
+if ret.returncode() != 0
+  error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
+endif
 
 found_script = find_program('generator.py')
 # More configure_file tests in here
@@ -149,3 +155,22 @@ configure_file(
   configuration : conf7
 )
 test('test7', executable('prog7', 'prog7.c'))
+
+# Test empty configuration data object on invalid utf8 file
+inf = 'invalid-utf8.bin.in'
+outf = configure_file(input : inf,
+  output : 'invalid-utf8.bin',
+  configuration : configuration_data())
+ret = run_command(check_file, inf, outf)
+if ret.returncode() != 0
+  error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
+endif
+
+# Test copy of a binary file
+outf = configure_file(input : inf,
+  output : 'somebinary.bin',
+  copy : true)
+ret = run_command(check_file, inf, outf)
+if ret.returncode() != 0
+  error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
+endif

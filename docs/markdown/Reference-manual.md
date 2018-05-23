@@ -166,7 +166,7 @@ finally use it in a call to `configure_file`.
     generated_file = configure_file(...)
 ```
 
-This function can run in two modes depending on the keyword arguments
+This function can run in three modes depending on the keyword arguments
 passed to it.
 
 When a [`configuration_data()`](#configuration_data) object is passed
@@ -179,6 +179,10 @@ When a list of strings is passed to the `command:` keyword argument,
 it takes any source or configured file as the `input:` and assumes
 that the `output:` is produced when the specified command is run.
 
+Since *0.47.0*, when the `copy:` keyword argument is set to `true`,
+this function will copy the file provided in `input:` to a file in the
+build directory with the name `output:` in the current directory.
+
 These are all the supported keyword arguments:
 
 - `capture` when this argument is set to true, Meson captures `stdout`
@@ -187,6 +191,8 @@ These are all the supported keyword arguments:
 - `command` as explained above, if specified, Meson does not create
   the file itself but rather runs the specified command, which allows
   you to do fully custom file generation.
+- `copy` *(added 0.47.0)* as explained above, if specified Meson only
+  copies the file from input to output.
 - `format` *(added 0.46.0)* the format of defines. It defaults to `meson`, and so substitutes
 `#mesondefine` statements and variables surrounded by `@` characters, you can also use `cmake`
 to replace `#cmakedefine` statements and variables with the `${variable}` syntax. Finally you can use
@@ -1016,7 +1022,7 @@ Project supports the following keyword arguments.
 ### run_command()
 
 ``` meson
-    runresult run_command(command, list_of_args)
+    runresult run_command(command, list_of_args, ...)
 ```
 
 Runs the command specified in positional arguments.
@@ -1030,6 +1036,13 @@ Meson will set three environment variables `MESON_SOURCE_ROOT`,
 `MESON_BUILD_ROOT` and `MESON_SUBDIR` that specify the source
 directory, build directory and subdirectory the target was defined in,
 respectively.
+
+This function has one keyword argument.
+
+ - `check` takes a boolean. If `true`, the exit status code of the command will
+   be checked, and the configuration will fail if it is non-zero. The default is
+   `false`.
+   Since 0.47.0
 
 See also [External commands](External-commands.md).
 
@@ -1729,6 +1742,23 @@ The following methods are defined for all [arrays](Syntax.md#arrays):
 
 You can also iterate over arrays with the [`foreach`
 statement](Syntax.md#foreach-statements).
+
+### `dictionary` object
+
+The following methods are defined for all [dictionaries](Syntax.md#dictionaries):
+
+- `has_key(key)` returns `true` if the dictionary contains the key
+  given as argument, `false` otherwise
+
+- `get(key, fallback)`, returns the value for the key given as first argument
+  if it is present in the dictionary, or the optional fallback value given
+  as the second argument. If a single argument was given and the key was not
+  found, causes a fatal error
+
+You can also iterate over dictionaries with the [`foreach`
+statement](Syntax.md#foreach-statements).
+
+Dictionaries are available since 0.47.0.
 
 ## Returned objects
 

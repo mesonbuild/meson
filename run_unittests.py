@@ -1827,7 +1827,7 @@ int main(int argc, char **argv) {
             r'meson.build:6: WARNING: a warning of some sort',
             r'sub' + os.path.sep + r'meson.build:4: WARNING: subdir warning',
             r'meson.build:7: WARNING: Module unstable-simd has no backwards or forwards compatibility and might not exist in future releases.',
-            r"meson.build:10: WARNING: The variable(s) 'MISSING' in the input file conf.in are not present in the given configuration data.",
+            r"meson.build:11: WARNING: The variable(s) 'MISSING' in the input file conf.in are not present in the given configuration data.",
             r'meson.build:1: WARNING: Passed invalid keyword argument "invalid".',
         ]:
             self.assertRegex(out, re.escape(expected))
@@ -2327,6 +2327,20 @@ class FailureTests(BasePlatformTests):
             self.init(tdir, inprocess=False)
         self.assertEqual(cm.exception.returncode, 2)
         self.wipe()
+
+    def test_dict_requires_key_value_pairs(self):
+        self.assertMesonRaises("dict = {3, 'foo': 'bar'}",
+                               'Only key:value pairs are valid in dict construction.')
+        self.assertMesonRaises("{'foo': 'bar', 3}",
+                               'Only key:value pairs are valid in dict construction.')
+
+    def test_dict_forbids_duplicate_keys(self):
+        self.assertMesonRaises("dict = {'a': 41, 'a': 42}",
+                               'Duplicate dictionary key: a.*')
+
+    def test_dict_forbids_integer_key(self):
+        self.assertMesonRaises("dict = {3: 'foo'}",
+                               'Key must be a string.*')
 
 
 class WindowsTests(BasePlatformTests):

@@ -4,8 +4,8 @@ subdir('subdir')
 
 configure_file(input : 'subdir/someinput.in',
   output : 'outputhere',
-  configuration : configuration_data())
+  copy: true)
 
 configure_file(input : cfile1,
                output : '@BASENAME@',
-               configuration : configuration_data())
+               copy: true)
