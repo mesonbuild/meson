@@ -574,7 +574,7 @@ class Backend:
         tests.'''
         result = []
         prospectives = []
-        if isinstance(target, build.Executable):
+        if isinstance(target, build.BuildTarget):
             prospectives = target.get_transitive_link_deps()
             # External deps
             for deppath in self.rpaths_for_bundled_shared_libraries(target):
@@ -625,7 +625,7 @@ class Backend:
             for a in t.cmd_args:
                 if hasattr(a, 'held_object'):
                     a = a.held_object
-                if isinstance(a, build.Executable):
+                if isinstance(a, build.BuildTarget):
                     extra_paths += self.determine_windows_extra_paths(a, [])
                 if isinstance(a, mesonlib.File):
                     a = os.path.join(self.environment.get_build_dir(), a.rel_to_builddir(self.build_to_src))
