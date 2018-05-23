@@ -334,23 +334,25 @@ class Backend:
     def rpaths_for_bundled_shared_libraries(self, target):
         paths = []
         for dep in target.external_deps:
-            if isinstance(dep, (dependencies.ExternalLibrary, dependencies.PkgConfigDependency)):
-                la = dep.link_args
-                if len(la) == 1 and os.path.isabs(la[0]):
-                    # The only link argument is an absolute path to a library file.
-                    libpath = la[0]
-                    if libpath.startswith(('/usr/lib', '/lib')):
-                        # No point in adding system paths.
-                        continue
-                    if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so']:
-                        continue
-                    absdir = os.path.dirname(libpath)
-                    if absdir.startswith(self.environment.get_source_dir()):
-                        rel_to_src = absdir[len(self.environment.get_source_dir()) + 1:]
-                        assert not os.path.isabs(rel_to_src), 'rel_to_src: {} is absolute'.format(rel_to_src)
-                        paths.append(os.path.join(self.build_to_src, rel_to_src))
-                    else:
-                        paths.append(absdir)
+            if not isinstance(dep, (dependencies.ExternalLibrary, dependencies.PkgConfigDependency)):
+                continue
+            la = dep.link_args
+            if len(la) != 1 or not os.path.isabs(la[0]):
+                continue
+            # The only link argument is an absolute path to a library file.
+            libpath = la[0]
+            if libpath.startswith(('/usr/lib', '/lib')):
+                # No point in adding system paths.
+                continue
+            if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so']:
+                continue
+            absdir = os.path.dirname(libpath)
+            if absdir.startswith(self.environment.get_source_dir()):
+                rel_to_src = absdir[len(self.environment.get_source_dir()) + 1:]
+                assert not os.path.isabs(rel_to_src), 'rel_to_src: {} is absolute'.format(rel_to_src)
+                paths.append(os.path.join(self.build_to_src, rel_to_src))
+            else:
+                paths.append(absdir)
         return paths
 
     def determine_rpath_dirs(self, target):
