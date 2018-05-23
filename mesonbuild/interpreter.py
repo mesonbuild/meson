@@ -2263,6 +2263,7 @@ to directly access options of other subprojects.''')
                 raise InterpreterException('Meson version is %s but project requires %s.' % (cv, pv))
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name: ', mlog.bold(proj_name), sep='')
+        mlog.log('Project version: ', mlog.bold(self.project_version), sep='')
         self.add_languages(proj_langs, True)
         langs = self.coredata.compilers.keys()
         if 'vala' in langs:
