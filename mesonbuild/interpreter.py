@@ -3212,7 +3212,7 @@ root and issuing %s.
                 mlog.warning('Got an empty configuration_data() object: '
                              'optimizing copy automatically; if you want to '
                              'copy a file to the build dir, use the \'copy:\' '
-                             'keyword argument added in 0.46.0', location=node)
+                             'keyword argument added in 0.47.0', location=node)
         # Perform the appropriate action
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
