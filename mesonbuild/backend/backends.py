@@ -344,7 +344,9 @@ class Backend:
             if libpath.startswith(('/usr/lib', '/lib')):
                 # No point in adding system paths.
                 continue
-            if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so']:
+            # Windows doesn't support rpaths, but we use this function to
+            # emulate rpaths by setting PATH, so also accept DLLs here
+            if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so', '.dylib']:
                 continue
             absdir = os.path.dirname(libpath)
             if absdir.startswith(self.environment.get_source_dir()):
