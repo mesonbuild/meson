@@ -372,8 +372,11 @@ def fix_darwin(fname, new_rpath):
         # non-executable target. Just return.
         return
     try:
-        for rp in rpaths:
-            subprocess.check_call(['install_name_tool', '-delete_rpath', rp, fname],
+        if rpaths:
+            args = []
+            for rp in rpaths:
+                args += ['-delete_rpath', rp]
+            subprocess.check_call(['install_name_tool', fname] + args,
                                   stdout=subprocess.DEVNULL,
                                   stderr=subprocess.DEVNULL)
         if new_rpath:
