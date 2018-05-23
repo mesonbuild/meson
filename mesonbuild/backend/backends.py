@@ -355,17 +355,13 @@ class Backend:
 
     def determine_rpath_dirs(self, target):
         link_deps = target.get_all_link_deps()
-        result = []
+        result = set()
         for ld in link_deps:
             if ld is target:
                 continue
-            prospective = self.get_target_dir(ld)
-            if prospective not in result:
-                result.append(prospective)
-        for rp in self.rpaths_for_bundled_shared_libraries(target):
-            if rp not in result:
-                result += [rp]
-        return result
+            result.add(self.get_target_dir(ld))
+        result.update(self.rpaths_for_bundled_shared_libraries(target))
+        return list(result)
 
     def object_filename_from_source(self, target, source):
         assert isinstance(source, mesonlib.File)
