@@ -132,14 +132,25 @@ enumexe5 = executable('enumprog5', main, enums5, dependencies : gobj)
 
 # Simple trick to copy the file without substitutions, can be
 # removed when https://github.com/mesonbuild/meson/pull/3383 is fixed
-gen_h_template = configure_file(input: 'enums2.h.in',
-  output: 'enums2-tmp.h.in',
+gen_h_template = configure_file(input: 'enums.h.in',
+  output: 'enums6.h.in',
   configuration: configuration_data(),
   format: 'cmake')
 
-enums_h3 = gnome.mkenums('abc3',
+enums_h6 = gnome.mkenums('enums6',
   sources : 'meson-sample.h',
   h_template : gen_h_template,
   ftail : '/* trailing header file info */',
   install_header : true,
   install_dir : get_option('includedir'))
+
+conf = configuration_data()
+conf.set('ENUM_FILE', 'enums6.h')
+main = configure_file(
+  input : 'main.c',
+  output : 'main6.c',
+  configuration : conf)
+
+enumexe6 = executable('enumprog6', main, enums_c2, enums_h6,
+dependencies : gobj)
+test('enum test 4', enumexe6)
