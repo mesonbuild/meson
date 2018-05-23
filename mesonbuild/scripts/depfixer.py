@@ -396,16 +396,3 @@ def fix_rpath(fname, new_rpath, verbose=True):
     if shutil.which('install_name_tool'):
         fix_darwin(fname, new_rpath)
     return 0
-
-def run(args):
-    if len(args) < 1 or len(args) > 2:
-        print('This application resets target rpath.')
-        print('Don\'t run this unless you know what you are doing.')
-        print('%s: <binary file> <prefix>' % sys.argv[0])
-        sys.exit(1)
-    fname = args[0]
-    new_rpath = None if len(args) == 1 else args[1]
-    return fix_rpath(fname, new_rpath)
-
-if __name__ == '__main__':
-    sys.exit(run(sys.argv[1:]))

@@ -652,10 +652,6 @@ class Environment:
     def get_scratch_dir(self):
         return self.scratch_dir
 
-    def get_depfixer(self):
-        path = os.path.dirname(__file__)
-        return os.path.join(path, 'depfixer.py')
-
     def detect_objc_compiler(self, want_cross):
         popen_exceptions = {}
         compilers, ccache, is_cross, exe_wrap = self._get_compilers('objc', 'OBJC', want_cross)

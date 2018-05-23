@@ -229,9 +229,6 @@ def run_script_command(args):
     elif cmdname == 'delsuffix':
         import mesonbuild.scripts.delwithsuffix as abc
         cmdfunc = abc.run
-    elif cmdname == 'depfixer':
-        import mesonbuild.scripts.depfixer as abc
-        cmdfunc = abc.run
     elif cmdname == 'dirchanger':
         import mesonbuild.scripts.dirchanger as abc
         cmdfunc = abc.run
