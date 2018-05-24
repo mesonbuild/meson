@@ -409,7 +409,7 @@ class SDL2Dependency(ExternalDependency):
                     'sdl2', environment, None, kwargs, ['sdl2-config'], 'sdl2-config')
                 if ctdep.found():
                     ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-                    ctdep.links_args = ctdep.get_config_value(['--libs'], 'link_args')
+                    ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
                     return ctdep
             except Exception as e:
                 mlog.debug('SDL 2 not found via sdl2-config. Trying next, error was:', str(e))
