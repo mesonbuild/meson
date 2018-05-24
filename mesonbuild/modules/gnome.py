@@ -1014,12 +1014,16 @@ This will become a hard error in the future.''')
                 raise AssertionError("sources should've already been handled")
             elif arg == 'c_template':
                 c_template = value
+                if isinstance(c_template, mesonlib.File):
+                    c_template = c_template.absolute_path(state.environment.source_dir, state.environment.build_dir)
                 if 'template' in kwargs:
                     raise MesonException('Mkenums does not accept both '
                                          'c_template and template keyword '
                                          'arguments at the same time.')
             elif arg == 'h_template':
                 h_template = value
+                if isinstance(h_template, mesonlib.File):
+                    h_template = h_template.absolute_path(state.environment.source_dir, state.environment.build_dir)
                 if 'template' in kwargs:
                     raise MesonException('Mkenums does not accept both '
                                          'h_template and template keyword '
@@ -1040,7 +1044,7 @@ This will become a hard error in the future.''')
         targets = []
 
         if h_template is not None:
-            h_output = os.path.splitext(h_template)[0]
+            h_output = os.path.basename(os.path.splitext(h_template)[0])
             # We always set template as the first element in the source array
             # so --template consumes it.
             h_cmd = cmd + ['--template', '@INPUT@']
@@ -1055,7 +1059,7 @@ This will become a hard error in the future.''')
             targets.append(h_target)
 
         if c_template is not None:
-            c_output = os.path.splitext(c_template)[0]
+            c_output = os.path.basename(os.path.splitext(c_template)[0])
             # We always set template as the first element in the source array
             # so --template consumes it.
             c_cmd = cmd + ['--template', '@INPUT@']
