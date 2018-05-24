@@ -146,3 +146,6 @@ on_finish:
 
 cache:
   - C:\cache
+
+matrix:
+  fast_finish: true
