@@ -226,6 +226,7 @@ def main():
     parser.add_argument('--backend', default=None, dest='backend',
                         choices=backendlist)
     parser.add_argument('--cross', default=False, dest='cross', action='store_true')
+    parser.add_argument('--failfast', action='store_true')
     (options, _) = parser.parse_known_args()
     # Enable coverage early...
     enable_coverage = options.cov
@@ -286,9 +287,17 @@ def main():
             env['PYTHONPATH'] = os.pathsep.join([temp_dir] + env.get('PYTHONPATH', []))
         if not cross:
             cmd = mesonlib.python_command + ['run_meson_command_tests.py', '-v']
+            if options.failfast:
+                cmd += ['--failfast']
             returncode += subprocess.call(cmd, env=env)
+            if options.failfast and returncode != 0:
+                return returncode
             cmd = mesonlib.python_command + ['run_unittests.py', '-v']
+            if options.failfast:
+                cmd += ['--failfast']
             returncode += subprocess.call(cmd, env=env)
+            if options.failfast and returncode != 0:
+                return returncode
             cmd = mesonlib.python_command + ['run_project_tests.py'] + sys.argv[1:]
             returncode += subprocess.call(cmd, env=env)
         else:
@@ -296,11 +305,17 @@ def main():
             print(mlog.bold('Running armhf cross tests.').get_text(mlog.colorize_console))
             print()
             cmd = cross_test_args + ['cross/ubuntu-armhf.txt']
+            if options.failfast:
+                cmd += ['--failfast']
             returncode += subprocess.call(cmd, env=env)
+            if options.failfast and returncode != 0:
+                return returncode
             print(mlog.bold('Running mingw-w64 64-bit cross tests.')
                   .get_text(mlog.colorize_console))
             print()
             cmd = cross_test_args + ['cross/linux-mingw-w64-64bit.txt']
+            if options.failfast:
+                cmd += ['--failfast']
             returncode += subprocess.call(cmd, env=env)
     return returncode
 

@@ -36,7 +36,7 @@ import argparse
 import xml.etree.ElementTree as ET
 import time
 import multiprocessing
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, CancelledError
 import re
 from run_tests import get_fake_options, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
@@ -523,14 +523,14 @@ def detect_tests_to_run():
     gathered_tests = [(name, gather_tests(Path('test cases', subdir)), skip) for name, subdir, skip in all_tests]
     return gathered_tests
 
-def run_tests(all_tests, log_name_base, extra_args):
+def run_tests(all_tests, log_name_base, failfast, extra_args):
     global logfile
     txtname = log_name_base + '.txt'
     with open(txtname, 'w', encoding='utf-8', errors='ignore') as lf:
         logfile = lf
-        return _run_tests(all_tests, log_name_base, extra_args)
+        return _run_tests(all_tests, log_name_base, failfast, extra_args)
 
-def _run_tests(all_tests, log_name_base, extra_args):
+def _run_tests(all_tests, log_name_base, failfast, extra_args):
     global stop, executor, futures, system_compiler
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
@@ -578,7 +578,10 @@ def _run_tests(all_tests, log_name_base, extra_args):
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             sys.stdout.flush()
-            result = result.result()
+            try:
+                result = result.result()
+            except CancelledError:
+                continue
             if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(name, t.as_posix()))):
                 print(yellow('Skipping:'), t.as_posix())
                 current_test = ET.SubElement(current_suite, 'testcase', {'name': testname,
@@ -599,6 +602,10 @@ def _run_tests(all_tests, log_name_base, extra_args):
                     else:
                         failing_logs.append(result.stdo)
                     failing_logs.append(result.stde)
+                    if failfast:
+                        print("Cancelling the rest of the tests")
+                        for (_, _, res) in futures:
+                            res.cancel()
                 else:
                     print('Succeeded test%s: %s' % (without_install, t.as_posix()))
                     passing_tests += 1
@@ -616,6 +623,10 @@ def _run_tests(all_tests, log_name_base, extra_args):
                 stdoel.text = result.stdo
                 stdeel = ET.SubElement(current_test, 'system-err')
                 stdeel.text = result.stde
+
+        if failfast and failing_tests > 0:
+            break
+
     print("\nTotal configuration time: %.2fs" % conf_time)
     print("Total build time: %.2fs" % build_time)
     print("Total test time: %.2fs" % test_time)
@@ -709,6 +720,8 @@ if __name__ == '__main__':
                         help='arguments that are passed directly to Meson (remember to have -- before these).')
     parser.add_argument('--backend', default=None, dest='backend',
                         choices=backendlist)
+    parser.add_argument('--failfast', action='store_true',
+                        help='Stop running if test case fails')
     options = parser.parse_args()
     setup_commands(options.backend)
 
@@ -720,7 +733,7 @@ if __name__ == '__main__':
     check_meson_commands_work()
     try:
         all_tests = detect_tests_to_run()
-        (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.extra_args)
+        (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args)
     except StopException:
         pass
     print('\nTotal passed tests:', green(str(passing_tests)))
