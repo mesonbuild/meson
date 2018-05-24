@@ -62,3 +62,15 @@ hex2_255 = 0XFF
 
 assert(hex_255 == 255, 'Hex parsing is broken.')
 assert(hex2_255 == 255, 'Uppercase hex parsing is broken.')
+
+bin_123 = 0b1111011
+bin2_123 = 0B1111011
+
+assert(bin_123 == 123, 'Bin number parsing is broken.')
+assert(bin2_123 == 123, 'Uppercase bin number parsing is broken.')
+
+oct_493 = 0o755
+oct2_493 = 0O755
+
+assert(oct_493 == 493, 'Oct number parsing is broken.')
+assert(oct2_493 == 493, 'Uppercase oct number parsing is broken.')

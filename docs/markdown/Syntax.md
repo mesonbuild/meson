@@ -64,6 +64,13 @@ Hexadecimal literals are supported since version 0.45.0:
 int_255 = 0xFF
 ```
 
+Octal and binary literals are supported since version 0.47.0:
+
+```meson
+int_493 = 0o755
+int_1365 = 0b10101010101
+```
+
 Strings can be converted to a number like this:
 
 ```meson
