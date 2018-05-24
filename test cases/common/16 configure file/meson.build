@@ -27,6 +27,10 @@ configure_file(input : files('config.h.in'),
                output : 'config2.h',
                configuration : conf)
 
+# Test that copy is mutable
+conf_copy = conf
+conf_copy.set('var', 'somethingelse')
+
 # Now generate a header file with an external script.
 genprog = import('python3').find_python()
 scriptfile = '@0@/generator.py'.format(meson.current_source_dir())

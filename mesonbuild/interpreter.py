@@ -199,7 +199,6 @@ class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder):
 class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
     def __init__(self):
         MutableInterpreterObject.__init__(self)
-        self.used = False # These objects become immutable after use in configure_file.
         ObjectHolder.__init__(self, build.ConfigurationData())
         self.methods.update({'set': self.set_method,
                              'set10': self.set10_method,
@@ -209,12 +208,6 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
                              'get_unquoted': self.get_unquoted_method,
                              'merge_from': self.merge_from_method,
                              })
-
-    def is_used(self):
-        return self.used
-
-    def mark_used(self):
-        self.used = True
 
     def validate_args(self, args, kwargs):
         if len(args) == 1 and isinstance(args[0], list) and len(args[0]) == 2:
