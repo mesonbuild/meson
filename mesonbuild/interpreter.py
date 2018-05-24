@@ -3214,6 +3214,7 @@ root and issuing %s.
                              'optimizing copy automatically; if you want to '
                              'copy a file to the build dir, use the \'copy:\' '
                              'keyword argument added in 0.47.0', location=node)
+                conf.mark_used()
         # Perform the appropriate action
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
