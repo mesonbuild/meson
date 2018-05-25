@@ -304,7 +304,8 @@ class SingleTestRunner:
                 subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
             else:
                 try:
-                    os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+                    # Kill the process group that setsid() created.
+                    os.killpg(p.pid, signal.SIGKILL)
                 except ProcessLookupError:
                     # Sometimes (e.g. with Wine) this happens.
                     # There's nothing we can do (maybe the process
