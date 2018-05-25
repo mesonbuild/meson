@@ -2113,6 +2113,27 @@ recommended as it can lead to undefined behaviour on some platforms''')
         self.assertEqual(obj.builtins['default_library'].value, 'shared')
         self.wipe()
 
+    def test_compiler_options_documented(self):
+        '''
+        Test that C and C++ compiler options and base options are documented in
+        Builtin-Options.md. Only tests the default compiler for the current
+        platform on the CI.
+        '''
+        md = None
+        with open('docs/markdown/Builtin-options.md') as f:
+            md = f.read()
+        self.assertIsNotNone(md)
+        env = Environment('.', self.builddir, get_fake_options(self.prefix), [])
+        # FIXME: Support other compilers
+        cc = env.detect_c_compiler(False)
+        cpp = env.detect_cpp_compiler(False)
+        for comp in (cc, cpp):
+            for opt in comp.get_options().keys():
+                self.assertIn(opt, md)
+            for opt in comp.base_options:
+                self.assertIn(opt, md)
+        self.assertNotIn('b_unknown', md)
+
 
 class FailureTests(BasePlatformTests):
     '''
