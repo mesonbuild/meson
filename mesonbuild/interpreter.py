@@ -3208,6 +3208,8 @@ root and issuing %s.
             if not isinstance(conf, ConfigurationDataHolder):
                 raise InterpreterException('Argument "configuration" must be of type configuration_data')
             if ifile_abs and not conf.keys():
+                # Mark configuration used to keep behavior consistent regardless of optimizations.
+                conf.mark_used()
                 del kwargs['configuration']
                 kwargs['copy'] = True
                 mlog.warning('Got an empty configuration_data() object: '
