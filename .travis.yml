@@ -29,6 +29,20 @@ matrix:
   # On OS X gcc is just a wrapper around clang, so don't waste time testing that
   - os: osx
     compiler: gcc
+  include:
+  # Test cross builds separately, they do not use the global compiler
+  - os: linux
+    compiler: gcc
+    env: RUN_TESTS_ARGS="--cross=arm"
+  - os: linux
+    compiler: gcc
+    env: RUN_TESTS_ARGS="--cross=arm" MESON_ARGS="--unity=on"
+  - os: linux
+    compiler: gcc
+    env: RUN_TESTS_ARGS="--cross=mingw"
+  - os: linux
+    compiler: gcc
+    env: RUN_TESTS_ARGS="--cross=mingw" MESON_ARGS="--unity=on"
 
 before_install:
   - python ./skip_ci.py --base-branch-env=TRAVIS_BRANCH --is-pull-env=TRAVIS_PULL_REQUEST
@@ -51,6 +65,6 @@ script:
       ci_env=`bash <(curl -s https://codecov.io/env)`
       docker run $ci_env -v ${PWD}/.coverage:/root/.coverage \
         withgit \
-          /bin/sh -c "cd /root && mkdir -p tools; wget -c http://nirbheek.in/files/binaries/ninja/linux-amd64/ninja -O /root/tools/ninja; chmod +x /root/tools/ninja; CC=$CC CXX=$CXX OBJC=$CC OBJCXX=$CXX PATH=/root/tools:$PATH MESON_FIXED_NINJA=1 ./run_tests.py -- $MESON_ARGS && chmod -R a+rwX .coverage"
+          /bin/sh -c "cd /root && mkdir -p tools; wget -c http://nirbheek.in/files/binaries/ninja/linux-amd64/ninja -O /root/tools/ninja; chmod +x /root/tools/ninja; CC=$CC CXX=$CXX OBJC=$CC OBJCXX=$CXX PATH=/root/tools:$PATH MESON_FIXED_NINJA=1 ./run_tests.py $RUN_TESTS_ARGS -- $MESON_ARGS && chmod -R a+rwX .coverage"
     fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib OBJC=$CC OBJCXX=$CXX PATH=$HOME/tools:/usr/local/opt/qt/bin:$PATH MESON_FIXED_NINJA=1 ./run_tests.py --backend=ninja -- $MESON_ARGS ; fi
