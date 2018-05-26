@@ -536,7 +536,8 @@ int dummy;
         if mesonlib.for_windows(is_cross, self.environment) or \
            mesonlib.for_cygwin(is_cross, self.environment):
             extra_bdeps = target.get_transitive_build_target_deps()
-            extra_paths = self.determine_windows_extra_paths(target.command[0], extra_bdeps)
+            extra_paths = self.determine_windows_extra_paths(target.command[0],
+                                                             extra_bdeps, is_cross)
             if extra_paths:
                 serialize = True
         if serialize:

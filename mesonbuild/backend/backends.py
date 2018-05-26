@@ -567,28 +567,41 @@ class Backend:
             args.append(d_arg)
         return args
 
-    def determine_windows_extra_paths(self, target, extra_bdeps):
+    def get_mingw_extra_paths(self):
+        paths = []
+        # The cross bindir
+        root = self.environment.cross_info.get_root()
+        if root:
+            paths.append(os.path.join(root, 'bin'))
+        # The toolchain bindir
+        sys_root = self.environment.cross_info.get_sys_root()
+        if sys_root:
+            paths.append(os.path.join(sys_root, 'bin'))
+        return paths
+
+    def determine_windows_extra_paths(self, target, extra_bdeps, is_cross=False):
         '''On Windows there is no such thing as an rpath.
         We must determine all locations of DLLs that this exe
         links to and return them so they can be used in unit
         tests.'''
-        result = []
-        prospectives = []
+        result = set()
+        prospectives = set()
         if isinstance(target, build.BuildTarget):
-            prospectives = target.get_transitive_link_deps()
+            prospectives.update(target.get_transitive_link_deps())
             # External deps
             for deppath in self.rpaths_for_bundled_shared_libraries(target):
-                result.append(os.path.normpath(os.path.join(self.environment.get_build_dir(), deppath)))
+                result.add(os.path.normpath(os.path.join(self.environment.get_build_dir(), deppath)))
         for bdep in extra_bdeps:
-            prospectives += bdep.get_transitive_link_deps()
+            prospectives.update(bdep.get_transitive_link_deps())
         # Internal deps
         for ld in prospectives:
             if ld == '' or ld == '.':
                 continue
             dirseg = os.path.join(self.environment.get_build_dir(), self.get_target_dir(ld))
-            if dirseg not in result:
-                result.append(dirseg)
-        return result
+            result.add(dirseg)
+        if is_cross:
+            result.update(self.get_mingw_extra_paths())
+        return list(result)
 
     def write_benchmark_file(self, datafile):
         self.write_test_serialisation(self.build.get_benchmarks(), datafile)
@@ -622,7 +635,7 @@ class Backend:
                 extra_bdeps = []
                 if isinstance(exe, build.CustomTarget):
                     extra_bdeps = exe.get_transitive_build_target_deps()
-                extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps)
+                extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps, is_cross)
             else:
                 extra_paths = []
             cmd_args = []
