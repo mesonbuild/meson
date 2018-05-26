@@ -242,7 +242,7 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap, is_64)
-        self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
+        self.base_options = ['b_pch', 'b_crtlib'] # FIXME add lto, pgo and the like
 
     def get_options(self):
         opts = CPPCompiler.get_options(self)
