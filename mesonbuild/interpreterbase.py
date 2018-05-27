@@ -597,6 +597,11 @@ The result of this is undefined and will become a hard error in a future Meson r
                 return 1
             else:
                 return 0
+        elif method_name == 'to_array':
+            if obj:
+                return posargs
+            else:
+                return []
         else:
             raise InterpreterException('Unknown method "%s" for a boolean.' % method_name)
 

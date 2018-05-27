@@ -44,3 +44,31 @@ endif
 if not combined.contains('ghi')
   error('Combined claims not to contain ghi.')
 endif
+
+if true.to_array() != empty
+  error('Incorrect value for true.to_array')
+endif
+
+if true.to_array(two) != [two]
+  error('Incorrect value for true.to_array')
+endif
+
+if true.to_array('def', 'ghi') != two
+  error('Incorrect value for true.to_array')
+endif
+
+if true.to_array(two) != [two]
+  error('Incorrect value for true.to_array')
+endif
+
+if false.to_array() != empty
+  error('Incorrect value for true.to_array')
+endif
+
+if false.to_array('def', 'ghi') != empty
+  error('Incorrect value for false.to_array')
+endif
+
+if false.to_array(two) != empty
+  error('Incorrect value for false.to_array')
+endif
