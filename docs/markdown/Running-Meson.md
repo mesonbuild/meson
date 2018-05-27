@@ -132,6 +132,9 @@ Installing the built software is just as simple.
 
     ninja install
 
+Note that Meson will only install build targets explicitly tagged as
+installable, as detailed in the [installing targets documentation](Installing.md).
+
 By default Meson installs to `/usr/local`. This can be changed by
 passing the command line argument `--prefix /your/prefix` to Meson
 during configure time. Meson also supports the `DESTDIR` variable used
