@@ -1,6 +1,11 @@
 #include <QApplication>
 #include "mainWindow.h"
 
+#if QT_VERSION > 0x050000
+// include some random private headers
+    #include <private/qobject_p.h>
+#endif
+
 int main(int argc, char **argv) {
   #ifndef UNITY_BUILD
   Q_INIT_RESOURCE(stuff);
