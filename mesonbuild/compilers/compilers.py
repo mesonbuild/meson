@@ -796,7 +796,7 @@ class Compiler:
                 mlog.debug('Cached compiler stdout:\n', p.stdo)
                 mlog.debug('Cached compiler stderr:\n', p.stde)
                 yield p
-                raise StopIteration
+                return
         try:
             with tempfile.TemporaryDirectory() as tmpdirname:
                 if isinstance(code, str):
