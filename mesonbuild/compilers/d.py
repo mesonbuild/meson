@@ -23,6 +23,8 @@ from .compilers import (
     d_ldc_buildtype_args,
     get_gcc_soname_args,
     gnu_color_args,
+    gnu_optimization_args,
+    clike_debug_args,
     Compiler,
     CompilerArgs,
 )
@@ -288,6 +290,11 @@ class GnuDCompiler(DCompiler):
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
+    def get_optimization_args(self, optimization_level):
+        return gnu_optimization_args[optimization_level]
+
+    def get_debug_args(self, is_debug):
+        return clike_debug_args[is_debug]
 
 class LLVMDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross, **kwargs):
