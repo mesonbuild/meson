@@ -881,7 +881,8 @@ This will become a hard error in the future.''')
 
     @FeatureNewKwargs('build target', '0.46.0', ['install_header', 'install_dir', 'sources'])
     @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
-    @permittedKwargs({'interface_prefix', 'namespace', 'object_manager', 'build_by_default',
+    @FeatureNewKwargs('build target', '0.47.0', ['extra_args'])
+    @permittedKwargs({'interface_prefix', 'namespace', 'extra_args', 'object_manager', 'build_by_default',
                       'annotations', 'docbook', 'install_header', 'install_dir', 'sources'})
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) not in (1, 2):
@@ -890,6 +891,8 @@ This will become a hard error in the future.''')
         xml_files = args[1:]
         target_name = namebase + '-gdbus'
         cmd = [self.interpreter.find_program_impl('gdbus-codegen')]
+        extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
+        cmd += extra_args
         if 'interface_prefix' in kwargs:
             cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
         if 'namespace' in kwargs:
