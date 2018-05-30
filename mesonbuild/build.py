@@ -789,6 +789,10 @@ This will become a hard error in a future Meson release.''')
             else:
                 if not isinstance(name_suffix, str):
                     raise InvalidArguments('name_suffix must be a string.')
+                if name_suffix == '':
+                    raise InvalidArguments('name_suffix should not be an empty string. '
+                                           'If you want meson to use the default behaviour '
+                                           'for each platform pass `[]` (empty array)')
                 self.suffix = name_suffix
                 self.name_suffix_set = True
         if isinstance(self, StaticLibrary):
