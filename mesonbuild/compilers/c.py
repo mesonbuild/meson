@@ -266,6 +266,12 @@ class CCompiler(Compiler):
         code = 'int main(int argc, char **argv) { int class=0; return class; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
+    def check_header(self, hname, prefix, env, extra_args=None, dependencies=None):
+        fargs = {'prefix': prefix, 'header': hname}
+        code = '''{prefix}
+        #include <{header}>'''
+        return self.compiles(code.format(**fargs), env, extra_args, dependencies)
+
     def has_header(self, hname, prefix, env, extra_args=None, dependencies=None):
         fargs = {'prefix': prefix, 'header': hname}
         code = '''{prefix}
