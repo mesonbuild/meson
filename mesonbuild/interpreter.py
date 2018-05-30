@@ -843,6 +843,7 @@ class CompilerHolder(InterpreterObject):
                              'compute_int': self.compute_int_method,
                              'sizeof': self.sizeof_method,
                              'get_define': self.get_define_method,
+                             'check_header': self.check_header_method,
                              'has_header': self.has_header_method,
                              'has_header_symbol': self.has_header_symbol_method,
                              'run': self.run_method,
@@ -1228,6 +1229,31 @@ class CompilerHolder(InterpreterObject):
                 h = mlog.red('NO')
             mlog.log('Checking if "', mlog.bold(testname), '" links: ', h, sep='')
         return result
+
+    @permittedKwargs({
+        'prefix',
+        'no_builtin_args',
+        'include_directories',
+        'args',
+        'dependencies',
+    })
+    def check_header_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('check_header method takes exactly one argument.')
+        check_stringlist(args)
+        hname = args[0]
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of has_header must be a string.')
+        extra_args = self.determine_args(kwargs)
+        deps = self.determine_dependencies(kwargs)
+        haz = self.compiler.check_header(hname, prefix, self.environment, extra_args, deps)
+        if haz:
+            h = mlog.green('YES')
+        else:
+            h = mlog.red('NO')
+        mlog.log('Check usable header "%s":' % hname, h)
+        return haz
 
     @permittedKwargs({
         'prefix',

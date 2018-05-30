@@ -710,6 +710,9 @@ class Compiler:
     def get_option_link_args(self, options):
         return []
 
+    def check_header(self, *args, **kwargs):
+        raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
+
     def has_header(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
