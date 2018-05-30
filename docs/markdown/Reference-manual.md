@@ -1567,8 +1567,18 @@ the following methods:
   `args` keyword, you can specify external dependencies to use with
   `dependencies` keyword argument.
 
-- `has_header` returns true if the specified header can be included,
-  you can specify external dependencies to use with `dependencies`
+- `check_header` returns true if the specified header is *usable* with
+  the specified prefix, dependencies, and arguments.
+  You can specify external dependencies to use with `dependencies`
+  keyword argument and extra code to put above the header test with
+  the `prefix` keyword. In order to look for headers in a specific
+  directory you can use `args : '-I/extra/include/dir`, but this
+  should only be used in exceptional cases for includes that can't be
+  detected via pkg-config and passed via `dependencies`.
+
+- `has_header` returns true if the specified header *exists*, and is
+  faster than `check_header()` since it only does a pre-processor check.
+  You can specify external dependencies to use with `dependencies`
   keyword argument and extra code to put above the header test with
   the `prefix` keyword. In order to look for headers in a specific
   directory you can use `args : '-I/extra/include/dir`, but this
@@ -1651,7 +1661,7 @@ The following keyword arguments can be used:
   some symbols to be exposed on Linux, and it should be passed via
   `args` keyword argument, see below). Supported by the methods
   `sizeof`, `has_type`, `has_function`, `has_member`, `has_members`,
-  `has_header_symbol`.
+  `check_header`, `has_header`, `has_header_symbol`.
 
 **Note:** These compiler checks do not use compiler arguments added with 
 `add_*_arguments()`, via `-Dlang_args` on the command-line, or through
