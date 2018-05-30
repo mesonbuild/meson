@@ -473,7 +473,8 @@ be passed to [shared and static libraries](#library).
   target, **never** use this for object files that you build yourself.
 - `name_suffix` the string that will be used as the extension for the
   target by overriding the default. By default on Windows this is
-  `exe` and on other platforms it is omitted.
+  `exe` and on other platforms it is omitted. Set this to `[]`, or omit
+  the keyword argument for the default behaviour.
 - `override_options` takes an array of strings in the same format as
   `project`'s `default_options` overriding the values of these options
   for this target only, since 0.40.0
@@ -944,6 +945,8 @@ The keyword arguments for this are the same as for [`executable`](#executable) w
 
 `static_library`, `shared_library` and `both_libraries` also accept these keyword
 arguments.
+
+Note: You can set `name_prefix` and `name_suffix` to `[]`, or omit them for the default behaviour for each platform.
 
 ### message()
 
