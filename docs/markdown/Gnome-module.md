@@ -235,6 +235,7 @@ one XML file.
 * `interface_prefix`: prefix for the interface
 * `namespace`: namespace of the interface
 * `extra_args`: (*Added 0.47.0*) additional command line arguments to pass
+* `autocleanup`: *(Added 0.47.0)* if set generates autocleanup code. Can be one of `none`, `objects` or `all`
 * `object_manager`: *(Added 0.40.0)* if true generates object manager code
 * `annotations`: *(Added 0.43.0)* list of lists of 3 strings for the annotation for `'ELEMENT', 'KEY', 'VALUE'`
 * `docbook`: *(Added 0.43.0)* prefix to generate `'PREFIX'-NAME.xml` docbooks
