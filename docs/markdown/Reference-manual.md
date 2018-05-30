@@ -1720,7 +1720,7 @@ are immutable, all operations return their results as a new string.
 
 ### `boolean` object
 
-A [boolean](Syntax.md#booleans) object has two simple methods:
+A [boolean](Syntax.md#booleans) object has three simple methods:
 
 - `to_int()` as above, but returns either `1` or `0`
 
@@ -1729,6 +1729,10 @@ A [boolean](Syntax.md#booleans) object has two simple methods:
   arguments to specify what to return for true/false. For instance,
   `bool.to_string('yes', 'no')` will return `yes` if the boolean is
   true and `no` if it is false.
+
+- `to_array(arg0, arg1, ...)` *(added 0.47.0)* places all the arguments
+  in array and returns it if the boolean is true, or returns an empty array
+  otherwise.
 
 ### `array` object
 
