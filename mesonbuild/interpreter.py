@@ -3450,6 +3450,8 @@ different subdirectory.
     def run(self):
         super().run()
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
+        FeatureNew.called_features_report()
+        FeatureDeprecated.called_features_report()
 
     def evaluate_subproject_info(self, path_from_source_root, subproject_dirname):
         depth = 0
