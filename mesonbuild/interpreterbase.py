@@ -17,7 +17,6 @@
 
 from . import mparser, mesonlib, mlog
 from . import environment, dependencies
-from . import coredata
 
 import os, copy, re, types
 from functools import wraps
@@ -147,7 +146,7 @@ class FeatureNew:
 
     def use(self):
         self.add_called_feature()
-        tv = coredata.target_version
+        tv = mesonlib.target_version
         if tv == '':
             return
         if not mesonlib.version_compare_condition_with_min(tv, self.feature_version):
@@ -185,7 +184,7 @@ class FeatureDeprecated:
 
     def use(self):
         self.add_called_feature()
-        tv = coredata.target_version
+        tv = mesonlib.target_version
         if tv == '':
             return
         if not mesonlib.version_compare_condition_with_max(tv, self.feature_version):
