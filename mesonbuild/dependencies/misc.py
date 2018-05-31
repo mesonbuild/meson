@@ -459,10 +459,7 @@ class PcapDependency(ExternalDependency):
 
     @staticmethod
     def get_methods():
-        if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
-        else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
     @staticmethod
     def get_pcap_lib_version(ctdep):
@@ -542,7 +539,4 @@ class LibWmfDependency(ExternalDependency):
 
     @staticmethod
     def get_methods():
-        if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
-        else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
