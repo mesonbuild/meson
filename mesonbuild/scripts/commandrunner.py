@@ -59,27 +59,9 @@ def run(args):
     subdir = args[2]
     meson_command = args[3]
     if 'python' in meson_command: # Hack.
-        # Handle any of these:
-        # python meson.py ...
-        # python -m mesonbuild.mesonmain ...
-        # python ARGS -m mesonbuild.mesonmain ...
-        # python -m mesonbuild.mesonmain ARGS ...
-        i = 4
-        while i < len(args):
-            arg = args[i]
-            # Skip past optional arguments.
-            if arg[0] == '-':
-                if arg == '-m':
-                    # Skip past -m PYTHONFILE.
-                    i += 2
-                else:
-                    i += 1
-            else:
-                break
-        end = i
-        meson_command = args[3:end]
-        command = args[end]
-        arguments = args[end + 1:]
+        meson_command = [meson_command, args[4]]
+        command = args[5]
+        arguments = args[6:]
     else:
         meson_command = [meson_command]
         command = args[4]
