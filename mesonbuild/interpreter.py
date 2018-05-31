@@ -1241,6 +1241,7 @@ class CompilerHolder(InterpreterObject):
             mlog.log('Checking if "', mlog.bold(testname), '" links: ', h, sep='')
         return result
 
+    @FeatureNew('check_header', '0.47.0')
     @permittedKwargs({
         'prefix',
         'no_builtin_args',
@@ -2009,6 +2010,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
 
+    @FeatureNewKwargs('run_command', '0.47.0', ['check'])
     @permittedKwargs(permitted_kwargs['run_command'])
     def func_run_command(self, node, args, kwargs):
         return self.run_command_impl(node, args, kwargs)
@@ -3199,6 +3201,7 @@ root and issuing %s.
         self.build.install_dirs.append(idir)
         return idir
 
+    @FeatureNewKwargs('configure_file', '0.47.0', ['copy'])
     @FeatureNewKwargs('configure_file', '0.46.0', ['format'])
     @FeatureNewKwargs('configure_file', '0.41.0', ['capture'])
     @permittedKwargs(permitted_kwargs['configure_file'])

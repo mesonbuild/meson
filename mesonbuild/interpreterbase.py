@@ -405,6 +405,7 @@ class InterpreterBase:
             raise InvalidCode('Keyword arguments are invalid in array construction.')
         return arguments
 
+    @FeatureNew('dict', '0.47.0')
     def evaluate_dictstatement(self, cur):
         (arguments, kwargs) = self.reduce_arguments(cur.args)
         assert (not arguments)
