@@ -43,6 +43,7 @@ set in the cross file.
 | -----               | -------                         |
 | x86                 | 32 bit x86 processor  |
 | x86_64              | 64 bit x86 processor  |
+| ia64                | Itanium processor     |
 | arm                 | 32 bit ARM processor  |
 | aarch64             | 64 bit ARM processor  |
 | ppc64               | 64 bit PPC processors (Big Endian) |
