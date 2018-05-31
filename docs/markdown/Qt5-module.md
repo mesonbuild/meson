@@ -20,6 +20,16 @@ This method generates the necessary targets to build translation files with lrel
  - `install_dir` directory to install to (optional).
  - `build_by_default` when set to true, to have this target be built by default, that is, when invoking plain ninja; the default value is false (optional).
 
+## Dependencies
+
+See [Qt dependencies](Dependencies.md#qt4-qt5)
+
+The 'modules' argument is used to include Qt modules in the project.
+See the Qt documentation for the [list of modules](http://doc.qt.io/qt-5/qtmodules.html).
+
+The 'private_headers' argument allows usage of Qt's modules private headers.
+(since v0.47.0)
+
 ## Example
 A simple example would look like this:
 
@@ -35,14 +45,3 @@ executable('myprog', 'main.cpp', 'myclass.cpp', moc_files,
            include_directories: inc,
            dependencies : qt5_dep)
 ```
-
-
-The 'modules' argument is used to include Qt modules in the project.
-See the Qt documentation for the [list of modules](http://doc.qt.io/qt-5/qtmodules.html).
-
-## private headers (since v0.47.0)
-
-**private_headers** keyword argument has been added to [dependency](Reference-manual.md#dependency) method to allow Qt's modules private headers usage.
-Setting this optional argument to true will add private include path of the given module to the compiler flags.
-
-**Note** that using private headers in your project is a bad idea, do it at your own risks.
