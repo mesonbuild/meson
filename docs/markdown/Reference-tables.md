@@ -43,7 +43,8 @@ set in the cross file.
 | -----               | -------                         |
 | x86                 | 32 bit x86 processor  |
 | x86_64              | 64 bit x86 processor  |
-| arm                 | 32 bit ARM processor |
+| arm                 | 32 bit ARM processor  |
+| aarch64             | 64 bit ARM processor  |
 | e2k                 | MCST Elbrus processor |
 
 Any cpu family not listed in the above list is not guaranteed to
