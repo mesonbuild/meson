@@ -15,7 +15,12 @@
 # limitations under the License.
 
 from mesonbuild import mesonmain
-import sys
+import sys, os
+
+def main():
+    # Always resolve the command path so Ninja can find it for regen, tests, etc.
+    launcher = os.path.realpath(sys.argv[0])
+    return mesonmain.run(sys.argv[1:], launcher)
 
 if __name__ == '__main__':
-    sys.exit(mesonmain.main())
+    sys.exit(main())

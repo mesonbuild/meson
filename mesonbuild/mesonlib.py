@@ -38,12 +38,58 @@ except Exception:
 
 from glob import glob
 
+def detect_meson_py_location():
+    c = sys.argv[0]
+    c_dir, c_fname = os.path.split(c)
+
+    # get the absolute path to the <mesontool> folder
+    m_dir = None
+    if os.path.isabs(c):
+        # $ /foo/<mesontool>.py <args>
+        m_dir = c_dir
+    elif c_dir == '':
+        # $ <mesontool> <args> (gets run from /usr/bin/<mesontool>)
+        in_path_exe = shutil.which(c_fname)
+        if in_path_exe:
+            if not os.path.isabs(in_path_exe):
+                m_dir = os.getcwd()
+                c_fname = in_path_exe
+            else:
+                m_dir, c_fname = os.path.split(in_path_exe)
+    else:
+        m_dir = os.path.abspath(c_dir)
+
+    # find meson in m_dir
+    if m_dir is not None:
+        for fname in ['meson', 'meson.py']:
+            m_path = os.path.join(m_dir, fname)
+            if os.path.exists(m_path):
+                return m_path
+
+    # No meson found, which means that either:
+    # a) meson is not installed
+    # b) meson is installed to a non-standard location
+    # c) the script that invoked mesonlib is not the one of meson tools (e.g. run_unittests.py)
+    fname = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'meson.py'))
+    if os.path.exists(fname):
+        return fname
+    # If meson is still not found, we might be imported by out-of-source tests
+    # https://github.com/mesonbuild/meson/issues/3015
+    exe = shutil.which('meson')
+    if exe is None:
+        exe = shutil.which('meson.py')
+    if exe is not None:
+        return exe
+    # Give up.
+    raise RuntimeError('Could not determine how to run Meson. Please file a bug with details.')
+
 if os.path.basename(sys.executable) == 'meson.exe':
     # In Windows and using the MSI installed executable.
+    meson_command = [sys.executable]
     python_command = [sys.executable, 'runpython']
 else:
     python_command = [sys.executable]
-meson_command = python_command + ['-m', 'mesonbuild.mesonmain']
+    meson_command = python_command + [detect_meson_py_location()]
 
 def is_ascii_string(astring):
     try:

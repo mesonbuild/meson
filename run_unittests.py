@@ -47,7 +47,7 @@ import mesonbuild.modules.pkgconfig
 from run_tests import exe_suffix, get_fake_options
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
 from run_tests import ensure_backend_detects_changes, run_configure, meson_exe
-from run_tests import should_run_linux_cross_tests, setup_pythonpath
+from run_tests import should_run_linux_cross_tests
 
 
 def get_dynamic_section_entry(fname, entry):
@@ -3313,7 +3313,6 @@ def unset_envs():
 
 if __name__ == '__main__':
     unset_envs()
-    setup_pythonpath()
     cases = ['InternalTests', 'AllPlatformTests', 'FailureTests', 'PythonTests']
     if not is_windows():
         cases += ['LinuxlikeTests']

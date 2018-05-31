@@ -42,28 +42,6 @@ if mesonlib.is_windows() or mesonlib.is_cygwin():
 else:
     exe_suffix = ''
 
-def setup_pythonpath():
-    # Make sure python can import mesonbuild, even if we change directories as
-    # some tests do. Since sys.path is the final product of fairly complex code
-    # in site.py, it's hard to tell where each entry came from just by looking
-    # at sys.path, so we don't know if a given entry was set from a relative or
-    # absolute path. If an entry was set from a relative path, it won't
-    # continue to work if we change directories.  Instead of trying to guess
-    # where a given entry came from, just add the known-good mesonbuild to
-    # PYTHONPATH so that it will continue to be importable from other
-    # directories.
-    import mesonbuild
-    meson_dir = os.path.dirname(os.path.abspath(mesonbuild.__file__))
-    meson_root = os.path.realpath(os.path.join(meson_dir, os.pardir))
-    try:
-        python_path = os.environ['PYTHONPATH']
-    except KeyError:
-        python_path = meson_root
-    else:
-        paths = python_path.split(os.pathsep) + [meson_root]
-        python_path = os.pathsep.join(paths)
-    os.environ['PYTHONPATH'] = python_path
-
 def get_backend_args_for_dir(backend, builddir):
     '''
     Visual Studio backend needs to be given the solution to build
