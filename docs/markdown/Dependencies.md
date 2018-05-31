@@ -223,6 +223,12 @@ the list of sources for the target. The `modules` keyword of
 `dependency` works just like it does with Boost. It tells which
 subparts of Qt the program uses.
 
+Setting the optional `private_headers` keyword to true adds the private header
+include path of the given module(s) to the compiler flags.  (since v0.47.0)
+
+**Note** using private headers in your project is a bad idea, do so at your own
+risk.
+
 ## SDL2
 
 SDL2 can be located using `pkg-confg`, the `sdl2-config` config tool, or as an
