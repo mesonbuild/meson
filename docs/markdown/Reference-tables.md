@@ -50,6 +50,7 @@ set in the cross file.
 | ppc64le             | 64 bit PPC processors (Little Endian) |
 | e2k                 | MCST Elbrus processor |
 | parisc              | HP PA-RISC processor  |
+| sparc64             | SPARC v9 processor    |
 
 Any cpu family not listed in the above list is not guaranteed to
 remain stable in future releases.
