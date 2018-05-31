@@ -45,6 +45,8 @@ set in the cross file.
 | x86_64              | 64 bit x86 processor  |
 | arm                 | 32 bit ARM processor  |
 | aarch64             | 64 bit ARM processor  |
+| ppc64               | 64 bit PPC processors (Big Endian) |
+| ppc64le             | 64 bit PPC processors (Little Endian) |
 | e2k                 | MCST Elbrus processor |
 
 Any cpu family not listed in the above list is not guaranteed to
