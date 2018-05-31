@@ -16,6 +16,7 @@
 # Custom logic for several other packages are in separate files.
 
 import copy
+import functools
 import os
 import re
 import stat
@@ -1279,47 +1280,79 @@ def find_external_dependency(name, env, kwargs):
         raise DependencyException('Keyword "required" must be a boolean.')
     if not isinstance(kwargs.get('method', ''), str):
         raise DependencyException('Keyword "method" must be a string.')
-    method = kwargs.get('method', '')
+    if name.lower() not in _packages_accept_language and 'language' in kwargs:
+        raise DependencyException('%s dependency does not accept "language" keyword argument' % (name, ))
+
+    # build a list of dependency methods to try
+    candidates = _build_external_dependency_list(name, env, kwargs)
+
+    pkg_exc = None
+    pkgdep = []
+    for c in candidates:
+        # try this dependency method
+        try:
+            d = c()
+            pkgdep.append(d)
+        except Exception as e:
+            mlog.debug(str(e))
+            # store the first exception we see
+            if not pkg_exc:
+                pkg_exc = e
+        else:
+            # if the dependency was found
+            if d.found():
+                return d
+
+    # otherwise, the dependency could not be found
+    if required:
+        # if exception(s) occurred, re-raise the first one (on the grounds that
+        # it came from a preferred dependency detection method)
+        if pkg_exc:
+            raise pkg_exc
+
+        # we have a list of failed ExternalDependency objects, so we can report
+        # the methods we tried to find the dependency
+        tried_methods = ','.join([d.type_name for d in pkgdep])
+        raise DependencyException('Dependency "%s" not found, tried %s' % (name, tried_methods))
+
+    # return the last failed dependency object
+    if pkgdep:
+        return pkgdep[-1]
+
+    # this should never happen
+    raise DependencyException('Dependency "%s" not found, but no dependency object to return' % (name))
+
+
+def _build_external_dependency_list(name, env, kwargs):
+    # Is there a specific dependency detector for this dependency?
     lname = name.lower()
     if lname in packages:
-        if lname not in _packages_accept_language and 'language' in kwargs:
-            raise DependencyException('%s dependency does not accept "language" keyword argument' % (lname, ))
-        # Create the dependency object using a factory class method, if one
-        # exists, otherwise it is just constructed directly.
+        # Create the list of dependency object constructors using a factory
+        # class method, if one exists, otherwise the list just consists of the
+        # constructor
         if getattr(packages[lname], '_factory', None):
             dep = packages[lname]._factory(env, kwargs)
         else:
-            dep = packages[lname](env, kwargs)
-        if required and not dep.found():
-            raise DependencyException('Dependency "%s" not found' % name)
+            dep = [functools.partial(packages[lname], env, kwargs)]
         return dep
-    if 'language' in kwargs:
-        # Remove check when PkgConfigDependency supports language.
-        raise DependencyException('%s dependency does not accept "language" keyword argument' % (lname, ))
-    if 'dub' == method:
-        dubdep = DubDependency(name, env, kwargs)
-        if required and not dubdep.found():
-            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
-        return dubdep
-    pkg_exc = None
-    pkgdep = None
-    try:
-        pkgdep = PkgConfigDependency(name, env, kwargs)
-        if pkgdep.found():
-            return pkgdep
-    except Exception as e:
-        pkg_exc = e
+
+    candidates = []
+
+    # If it's explicitly requested, use the dub detection method (only)
+    if 'dub' == kwargs.get('method', ''):
+        candidates.append(functools.partial(DubDependency, name, env, kwargs))
+        return candidates
+    # TBD: other values of method should control what method(s) are used
+
+    # Otherwise, just use the pkgconfig dependency detector
+    candidates.append(functools.partial(PkgConfigDependency, name, env, kwargs))
+
+    # On OSX, also try framework dependency detector
     if mesonlib.is_osx():
-        fwdep = ExtraFrameworkDependency(name, False, None, env, None, kwargs)
-        if required and not fwdep.found():
-            m = 'Dependency {!r} not found, tried Extra Frameworks ' \
-                'and Pkg-Config:\n\n' + str(pkg_exc)
-            raise DependencyException(m.format(name))
-        return fwdep
-    if pkg_exc is not None:
-        raise pkg_exc
-    mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
-    return pkgdep
+        candidates.append(functools.partial(ExtraFrameworkDependency, name,
+                                            False, None, env, None, kwargs))
+
+    return candidates
 
 
 def strip_system_libdirs(environment, link_args):
