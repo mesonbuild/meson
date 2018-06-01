@@ -20,7 +20,7 @@ from ..mesonlib import MesonException, extract_as_list
 from . import get_include_args
 from . import ModuleReturnValue
 from . import ExtensionModule
-from ..interpreterbase import permittedKwargs
+from ..interpreterbase import permittedKwargs, FeatureNewKwargs
 
 class WindowsModule(ExtensionModule):
 
@@ -30,6 +30,7 @@ class WindowsModule(ExtensionModule):
                 return compilers[l]
         raise MesonException('Resource compilation requires a C or C++ compiler.')
 
+    @FeatureNewKwargs('windows.compile_resources', '0.47.0', ['depend_files'])
     @permittedKwargs({'args', 'include_directories', 'depend_files'})
     def compile_resources(self, state, args, kwargs):
         comp = self.detect_compiler(state.compilers)
