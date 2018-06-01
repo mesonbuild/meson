@@ -2939,11 +2939,12 @@ class LinuxlikeTests(BasePlatformTests):
             raise unittest.SkipTest('Qt not found with pkg-config')
         testdir = os.path.join(self.framework_test_dir, '4 qt')
         self.init(testdir, ['-Dmethod=pkg-config'])
-        # Confirm that the dependency was found with qmake
-        msg = 'Qt4 native `pkg-config` dependency (modules: Core, Gui) found: YES\n'
-        msg2 = 'Qt5 native `pkg-config` dependency (modules: Core, Gui) found: YES\n'
+        # Confirm that the dependency was found with pkg-config
         mesonlog = self.get_meson_log()
-        self.assertTrue(msg in mesonlog or msg2 in mesonlog)
+        self.assertRegex('\n'.join(mesonlog),
+                         r'Dependency qt4 \(modules: Core\) found: YES .*, `pkg-config`\n')
+        self.assertRegex('\n'.join(mesonlog),
+                         r'Dependency qt5 \(modules: Core\) found: YES .*, `pkg-config`\n')
 
     def test_qt5dependency_qmake_detection(self):
         '''
@@ -2961,10 +2962,9 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.framework_test_dir, '4 qt')
         self.init(testdir, ['-Dmethod=qmake'])
         # Confirm that the dependency was found with qmake
-        msg = 'Qt5 native `qmake-qt5` dependency (modules: Core) found: YES\n'
-        msg2 = 'Qt5 native `qmake` dependency (modules: Core) found: YES\n'
         mesonlog = self.get_meson_log()
-        self.assertTrue(msg in mesonlog or msg2 in mesonlog)
+        self.assertRegex('\n'.join(mesonlog),
+                         r'Dependency qt5 \(modules: Core\) found: YES .*, `(qmake|qmake-qt5)`\n')
 
     def _test_soname_impl(self, libpath, install):
         if is_cygwin() or is_osx():
