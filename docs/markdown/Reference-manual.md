@@ -1542,7 +1542,7 @@ the following methods:
   value as a string or empty string if it is not defined.
 
 - `get_id()` returns a string identifying the compiler. For example,
-  `gcc`, `msvc`, [and more](Compiler-properties.md#compiler-id).
+  `gcc`, `msvc`, [and more](Reference-tables.html#compiler-ids).
 
 - `get_supported_arguments(list_of_string)` *(added 0.43.0)* returns
   an array containing only the arguments supported by the compiler,
