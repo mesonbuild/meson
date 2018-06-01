@@ -19,7 +19,7 @@ from . import mlog
 from . import mparser
 from . import coredata
 from . import mesonlib
-
+from .interpreterbase import FeatureNew
 
 forbidden_option_names = coredata.get_builtin_options()
 forbidden_prefixes = {'c_',
@@ -106,6 +106,7 @@ def IntegerParser(name, description, kwargs):
                                       kwargs['value'],
                                       kwargs.get('yield', coredata.default_yielding))
 
+@FeatureNew('array type option()', '0.44.0')
 @permitted_kwargs({'value', 'yield', 'choices'})
 def string_array_parser(name, description, kwargs):
     if 'choices' in kwargs:
@@ -230,6 +231,10 @@ class OptionInterpreter:
         if func_name != 'option':
             raise OptionException('Only calls to option() are allowed in option files.')
         (posargs, kwargs) = self.reduce_arguments(node.args)
+
+        if 'yield' in kwargs:
+            FeatureNew('option yield', '0.45.0').use()
+
         if 'type' not in kwargs:
             raise OptionException('Option call missing mandatory "type" keyword argument')
         opt_type = kwargs.pop('type')

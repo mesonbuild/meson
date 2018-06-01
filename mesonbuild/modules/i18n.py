@@ -19,7 +19,7 @@ from .. import coredata, mesonlib, build
 from ..mesonlib import MesonException
 from . import ModuleReturnValue
 from . import ExtensionModule
-from ..interpreterbase import permittedKwargs
+from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
 
 PRESET_ARGS = {
     'glib': [
@@ -55,6 +55,7 @@ class I18nModule(ExtensionModule):
         src_dir = path.join(state.environment.get_source_dir(), state.subdir)
         return [path.join(src_dir, d) for d in dirs]
 
+    @FeatureNew('i18n.merge_file', '0.37.0')
     @permittedKwargs({'languages', 'data_dirs', 'preset', 'args', 'po_dir', 'type',
                       'input', 'output', 'install', 'install_dir'})
     def merge_file(self, state, args, kwargs):
@@ -82,6 +83,7 @@ class I18nModule(ExtensionModule):
         ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, state.subproject, kwargs)
         return ModuleReturnValue(ct, [ct])
 
+    @FeatureNewKwargs('i18n.gettext', '0.37.0', ['preset'])
     @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages', 'args', 'preset', 'install'})
     def gettext(self, state, args, kwargs):
         if len(args) != 1:

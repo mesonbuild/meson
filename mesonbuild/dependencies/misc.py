@@ -31,8 +31,11 @@ from .base import (
     ConfigToolDependency,
 )
 
+from ..interpreterbase import FeatureNew
 
 class MPIDependency(ExternalDependency):
+
+    @FeatureNew('MPI Dependency', '0.42.0')
     def __init__(self, environment, kwargs):
         language = kwargs.get('language', 'c')
         super().__init__('mpi', environment, language, kwargs)
@@ -249,6 +252,7 @@ class OpenMPDependency(ExternalDependency):
         '199810': '1.0',
     }
 
+    @FeatureNew('OpenMP Dependency', '0.46.0')
     def __init__(self, environment, kwargs):
         language = kwargs.get('language')
         super().__init__('openmp', environment, language, kwargs)
@@ -428,6 +432,8 @@ class Python3Dependency(ExternalDependency):
 
 
 class PcapDependency(ExternalDependency):
+
+    @FeatureNew('Pcap Dependency', '0.42.0')
     def __init__(self, environment, kwargs):
         super().__init__('pcap', environment, None, kwargs)
 

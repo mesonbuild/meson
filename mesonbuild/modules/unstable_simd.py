@@ -16,8 +16,11 @@ from .. import mesonlib, compilers, mlog
 
 from . import ExtensionModule
 
+from ..interpreterbase import FeatureNew
+
 class SimdModule(ExtensionModule):
 
+    @FeatureNew('SIMD module', '0.42.0')
     def __init__(self, interpreter):
         super().__init__(interpreter)
         self.snippets.add('check')

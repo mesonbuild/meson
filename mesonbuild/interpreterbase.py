@@ -123,6 +123,113 @@ class permittedKwargs:
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
+class FeatureNew:
+    """Checks for new features"""
+    # Shared across all instances
+    feature_versions = dict()
+
+    def __init__(self, feature_name, version):
+        self.feature_name = feature_name
+        self.feature_version = version
+
+    def add_called_feature(self):
+        if self.feature_version not in self.feature_versions:
+            self.feature_versions[self.feature_version] = set()
+        self.feature_versions[self.feature_version].add(self.feature_name)
+
+    def called_features_report():
+        fv = FeatureNew.feature_versions
+        if fv:
+            print('Minimum version of features used:')
+            for version in sorted(fv.keys()):
+                print('{}: {}'.format(version, fv[version]))
+
+    def use(self):
+        self.add_called_feature()
+        tv = mesonlib.target_version
+        if tv == '':
+            return
+        if not mesonlib.version_compare_condition_with_min(tv, self.feature_version):
+            mlog.error(
+                '''Project targetting \'{}\' but tried to use feature introduced in \'{}\': {}'''
+                .format(tv, self.feature_version, self.feature_name))
+
+    def __call__(self, f):
+        @wraps(f)
+        def wrapped(*wrapped_args, **wrapped_kwargs):
+            self.use()
+            return f(*wrapped_args, **wrapped_kwargs)
+        return wrapped
+
+class FeatureDeprecated:
+    """Checks for deprecated features"""
+    # Shared across all instances
+    feature_versions = dict()
+
+    def __init__(self, feature_name, version):
+        self.feature_name = feature_name
+        self.feature_version = version
+
+    def add_called_feature(self):
+        if self.feature_version not in self.feature_versions:
+            self.feature_versions[self.feature_version] = set()
+        self.feature_versions[self.feature_version].add(self.feature_name)
+
+    def called_features_report():
+        fv = FeatureDeprecated.feature_versions
+        if fv:
+            print('Deprecated features used:')
+            for version in sorted(fv.keys()):
+                print('{}: {}'.format(version, fv[version]))
+
+    def use(self):
+        self.add_called_feature()
+        tv = mesonlib.target_version
+        if tv == '':
+            return
+        if not mesonlib.version_compare_condition_with_max(tv, self.feature_version):
+            mlog.error(
+                '''Project targetting \'{}\' but tried to use feature deprecated since \'{}\': {}'''
+                .format(tv, self.feature_version, self.feature_name))
+
+    def __call__(self, f):
+        @wraps(f)
+        def wrapped(*wrapped_args, **wrapped_kwargs):
+            self.use()
+            return f(*wrapped_args, **wrapped_kwargs)
+        return wrapped
+
+class FeatureNewKwargs:
+    def __init__(self, feature_name, feature_version, kwargs):
+        self.feature_name = feature_name
+        self.feature_version = feature_version
+        self.kwargs = kwargs
+
+    def __call__(self, f):
+        @wraps(f)
+        def wrapped(*wrapped_args, **wrapped_kwargs):
+            for arg in self.kwargs:
+                if arg in wrapped_kwargs:
+                    FeatureNew(arg + ' arg in ' + self.feature_name, self.feature_version).use()
+            return f(*wrapped_args, **wrapped_kwargs)
+        return wrapped
+
+class FeatureDeprecatedKwargs:
+    def __init__(self, feature_name, feature_version, kwargs):
+        self.feature_name = feature_name
+        self.feature_version = feature_version
+        self.kwargs = kwargs
+
+    def __call__(self, f):
+        @wraps(f)
+        def wrapped(*wrapped_args, **wrapped_kwargs):
+            for arg in self.kwargs:
+                if arg in wrapped_kwargs:
+                    FeatureDeprecated(arg + ' arg in ' + self.feature_name, self.feature_version).use()
+            return f(*wrapped_args, **wrapped_kwargs)
+        return wrapped
+
+
 class InterpreterException(mesonlib.MesonException):
     pass
 
@@ -298,6 +405,7 @@ class InterpreterBase:
             raise InvalidCode('Keyword arguments are invalid in array construction.')
         return arguments
 
+    @FeatureNew('dict', '0.47.0')
     def evaluate_dictstatement(self, cur):
         (arguments, kwargs) = self.reduce_arguments(cur.args)
         assert (not arguments)

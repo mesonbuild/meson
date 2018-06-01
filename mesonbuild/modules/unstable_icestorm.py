@@ -14,11 +14,13 @@
 
 from .. import mesonlib
 from ..interpreterbase import flatten
+from ..interpreterbase import FeatureNew
 
 from . import ExtensionModule
 
 class IceStormModule(ExtensionModule):
 
+    @FeatureNew('FPGA/Icestorm Module', '0.45.0')
     def __init__(self, interpreter):
         super().__init__(interpreter)
         self.snippets.add('project')

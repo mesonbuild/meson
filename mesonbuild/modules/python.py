@@ -22,7 +22,8 @@ from mesonbuild.modules import ModuleReturnValue
 from . import permittedSnippetKwargs
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
-    InterpreterObject, InvalidArguments
+    InterpreterObject, InvalidArguments,
+    FeatureNew
 )
 from ..interpreter import ExternalProgramHolder
 from ..interpreterbase import flatten
@@ -49,6 +50,8 @@ def run_command(python, command):
 
 
 class PythonDependency(ExternalDependency):
+
+    @FeatureNew('Python Module', '0.46.0')
     def __init__(self, python_holder, environment, kwargs):
         super().__init__('python', environment, None, kwargs)
         self.name = 'python'

@@ -23,6 +23,8 @@ from mesonbuild import mlog
 
 have_fcntl = False
 have_msvcrt = False
+# Used to report conflicts between meson_version and new features used
+target_version = ''
 
 try:
     import fcntl
@@ -440,6 +442,74 @@ def version_compare_many(vstr1, conditions):
         else:
             found.append(req)
     return not_found == [], not_found, found
+
+
+def version_compare_condition_with_min(condition, minimum):
+    match = numpart.match(minimum.strip())
+    if match is None:
+        msg = 'Uncomparable version string {!r}.'
+        raise MesonException(msg.format(minimum))
+    minimum = match.group(0)
+    if condition.startswith('>='):
+        cmpop = operator.lt
+        condition = condition[2:]
+    elif condition.startswith('<='):
+        return True
+        condition = condition[2:]
+    elif condition.startswith('!='):
+        return True
+        condition = condition[2:]
+    elif condition.startswith('=='):
+        cmpop = operator.lt
+        condition = condition[2:]
+    elif condition.startswith('='):
+        cmpop = operator.lt
+        condition = condition[1:]
+    elif condition.startswith('>'):
+        cmpop = operator.lt
+        condition = condition[1:]
+    elif condition.startswith('<'):
+        return True
+        condition = condition[2:]
+    else:
+        cmpop = operator.eq
+    varr1 = grab_leading_numbers(minimum, True)
+    varr2 = grab_leading_numbers(condition, True)
+    return cmpop(varr1, varr2)
+
+def version_compare_condition_with_max(condition, maximum):
+    match = numpart.match(maximum.strip())
+    if match is None:
+        msg = 'Uncomparable version string {!r}.'
+        raise MesonException(msg.format(maximum))
+    maximum = match.group(0)
+    if condition.startswith('>='):
+        return False
+        condition = condition[2:]
+    elif condition.startswith('<='):
+        cmpop = operator.lt
+        condition = condition[2:]
+    elif condition.startswith('!='):
+        return False
+        condition = condition[2:]
+    elif condition.startswith('=='):
+        cmpop = operator.lt
+        condition = condition[2:]
+    elif condition.startswith('='):
+        cmpop = operator.lt
+        condition = condition[1:]
+    elif condition.startswith('>'):
+        return False
+        condition = condition[1:]
+    elif condition.startswith('<'):
+        cmpop = operator.lt
+        condition = condition[2:]
+    else:
+        cmpop = operator.eq
+    varr1 = grab_leading_numbers(maximum, True)
+    varr2 = grab_leading_numbers(condition, True)
+    return cmpop(varr1, varr2)
+
 
 def default_libdir():
     if is_debianlike():

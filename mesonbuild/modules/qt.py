@@ -19,7 +19,7 @@ from ..mesonlib import MesonException, Popen_safe, extract_as_list, File
 from ..dependencies import Qt4Dependency, Qt5Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args
-from ..interpreterbase import permittedKwargs
+from ..interpreterbase import permittedKwargs, FeatureNewKwargs
 
 _QT_DEPS_LUT = {
     4: Qt4Dependency,
@@ -116,6 +116,7 @@ class QtBaseModule:
         except Exception:
             return []
 
+    @FeatureNewKwargs('qt.preprocess', '0.44.0', ['moc_extra_arguments'])
     @permittedKwargs({'moc_headers', 'moc_sources', 'moc_extra_arguments', 'include_directories', 'ui_files', 'qresources', 'method'})
     def preprocess(self, state, args, kwargs):
         rcc_files, ui_files, moc_headers, moc_sources, moc_extra_arguments, sources, include_directories \
@@ -181,6 +182,7 @@ class QtBaseModule:
             sources.append(moc_output)
         return ModuleReturnValue(sources, sources)
 
+    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @permittedKwargs({'ts_files', 'install', 'install_dir', 'build_by_default', 'method'})
     def compile_translations(self, state, args, kwargs):
         ts_files, install_dir = extract_as_list(kwargs, 'ts_files', 'install_dir', pop=True)

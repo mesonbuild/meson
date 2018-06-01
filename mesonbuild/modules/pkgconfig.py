@@ -21,7 +21,7 @@ from .. import mesonlib
 from .. import mlog
 from . import ModuleReturnValue
 from . import ExtensionModule
-from ..interpreterbase import permittedKwargs
+from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
 
 class DependenciesHelper:
     def __init__(self, name):
@@ -304,16 +304,21 @@ class PkgConfigModule(ExtensionModule):
                 ofile.write(self._escape(f))
             ofile.write('\n')
 
+    @FeatureNewKwargs('pkgconfig.generate', '0.42.0', ['extra_cflags'])
+    @FeatureNewKwargs('pkgconfig.generate', '0.41.0', ['variables'])
     @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
                       'subdirs', 'requires', 'requires_private', 'libraries_private',
                       'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions'})
     def generate(self, state, args, kwargs):
+        if 'variables' in kwargs:
+            FeatureNew('custom pkgconfig variables', '0.41.0').use()
         default_version = state.project_version['version']
         default_install_dir = None
         default_description = None
         default_name = None
         mainlib = None
         if len(args) == 1:
+            FeatureNew('pkgconfig.generate optional positional argument', '0.46.0').use()
             mainlib = getattr(args[0], 'held_object', args[0])
             if not isinstance(mainlib, (build.StaticLibrary, build.SharedLibrary)):
                 raise mesonlib.MesonException('Pkgconfig_gen first positional argument must be a library object')
