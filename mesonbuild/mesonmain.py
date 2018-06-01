@@ -73,9 +73,8 @@ def filter_builtin_options(args, original_args):
 
 class MesonApp:
 
-    def __init__(self, dir1, dir2, script_launcher, handshake, options, original_cmd_line_args):
+    def __init__(self, dir1, dir2, handshake, options, original_cmd_line_args):
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2, handshake)
-        self.meson_script_launcher = script_launcher
         self.options = options
         self.original_cmd_line_args = original_cmd_line_args
 
@@ -129,7 +128,7 @@ class MesonApp:
             env.coredata.pkgconf_envvar = curvar
 
     def generate(self):
-        env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_launcher, self.options, self.original_cmd_line_args)
+        env = environment.Environment(self.source_dir, self.build_dir, self.options, self.original_cmd_line_args)
         mlog.initialize(env.get_log_dir())
         with mesonlib.BuildDirLock(self.build_dir):
             self._generate(env)
@@ -269,12 +268,27 @@ def run_script_command(args):
         raise MesonException('Unknown internal command {}.'.format(cmdname))
     return cmdfunc(cmdargs)
 
-def run(original_args, mainfile=None):
+def set_meson_command(mainfile):
+    if mainfile.endswith('.exe'):
+        mesonlib.meson_command = [mainfile]
+    elif os.path.isabs(mainfile) and mainfile.endswith('mesonmain.py'):
+        # Can't actually run meson with an absolute path to mesonmain.py, it must be run as -m mesonbuild.mesonmain
+        mesonlib.meson_command = mesonlib.python_command + ['-m', 'mesonbuild.mesonmain']
+    else:
+        mesonlib.meson_command = mesonlib.python_command + [mainfile]
+    # This won't go into the log file because it's not initialized yet, and we
+    # need this value for unit tests.
+    if 'MESON_COMMAND_TESTS' in os.environ:
+        mlog.log('meson_command is {!r}'.format(mesonlib.meson_command))
+
+def run(original_args, mainfile):
     if sys.version_info < (3, 5):
         print('Meson works correctly only with python 3.5+.')
         print('You have python %s.' % sys.version)
         print('Please update your environment')
         return 1
+    # Set the meson command that will be used to run scripts and so on
+    set_meson_command(mainfile)
     args = original_args[:]
     if len(args) > 0:
         # First check if we want to run a subcommand.
@@ -352,9 +366,7 @@ def run(original_args, mainfile=None):
         else:
             dir2 = '.'
     try:
-        if mainfile is None:
-            raise AssertionError('I iz broken. Sorry.')
-        app = MesonApp(dir1, dir2, mainfile, handshake, options, original_args)
+        app = MesonApp(dir1, dir2, handshake, options, original_args)
     except Exception as e:
         # Log directory does not exist, so just print
         # to stdout.
@@ -382,3 +394,11 @@ def run(original_args, mainfile=None):
         mlog.shutdown()
 
     return 0
+
+def main():
+    # Always resolve the command path so Ninja can find it for regen, tests, etc.
+    launcher = os.path.realpath(sys.argv[0])
+    return run(sys.argv[1:], launcher)
+
+if __name__ == '__main__':
+    sys.exit(main())

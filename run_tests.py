@@ -21,13 +21,16 @@ import shutil
 import subprocess
 import tempfile
 import platform
+from io import StringIO
+from enum import Enum
+from glob import glob
+from pathlib import Path
+
+import mesonbuild
 from mesonbuild import mesonlib
 from mesonbuild import mesonmain
 from mesonbuild import mlog
 from mesonbuild.environment import detect_ninja
-from io import StringIO
-from enum import Enum
-from glob import glob
 
 Backend = Enum('Backend', 'ninja vs xcode')
 
@@ -41,6 +44,28 @@ if mesonlib.is_windows() or mesonlib.is_cygwin():
     exe_suffix = '.exe'
 else:
     exe_suffix = ''
+
+def get_meson_script():
+    '''
+    Guess the meson that corresponds to the `mesonbuild` that has been imported
+    so we can run configure and other commands in-process, since mesonmain.run
+    needs to know the meson_command to use.
+
+    Also used by run_unittests.py to determine what meson to run when not
+    running in-process (which is the default).
+    '''
+    # Is there a meson.py next to the mesonbuild currently in use?
+    mesonbuild_dir = Path(mesonbuild.__file__).resolve().parent.parent
+    meson_script = mesonbuild_dir / 'meson.py'
+    if meson_script.is_file():
+        return str(meson_script)
+    # Then if mesonbuild is in PYTHONPATH, meson must be in PATH
+    mlog.warning('Could not find meson.py next to the mesonbuild module. '
+                 'Trying system meson...')
+    meson_cmd = shutil.which('meson')
+    if meson_cmd:
+        return meson_cmd
+    raise RuntimeError('Could not find {!r} or a meson in PATH'.format(meson_script))
 
 def get_backend_args_for_dir(backend, builddir):
     '''
@@ -133,13 +158,13 @@ def get_fake_options(prefix):
 def should_run_linux_cross_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
 
-def run_configure_inprocess(meson_command, commandlist):
+def run_configure_inprocess(commandlist):
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
     old_stderr = sys.stderr
     sys.stderr = mystderr = StringIO()
     try:
-        returncode = mesonmain.run(commandlist, meson_command)
+        returncode = mesonmain.run(commandlist, get_meson_script())
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr
@@ -149,11 +174,11 @@ def run_configure_external(full_command):
     pc, o, e = mesonlib.Popen_safe(full_command)
     return pc.returncode, o, e
 
-def run_configure(meson_command, commandlist):
+def run_configure(commandlist):
     global meson_exe
     if meson_exe:
         return run_configure_external(meson_exe + commandlist)
-    return run_configure_inprocess(meson_command, commandlist)
+    return run_configure_inprocess(commandlist)
 
 def print_system_info():
     print(mlog.bold('System information.').get_text(mlog.colorize_console))
@@ -214,6 +239,9 @@ if __name__ == '__main__':
                         'coverage.process_startup()\n')
             env['COVERAGE_PROCESS_START'] = '.coveragerc'
             env['PYTHONPATH'] = os.pathsep.join([td] + env.get('PYTHONPATH', []))
+        # Meson command tests
+        returncode += subprocess.call(mesonlib.python_command + ['run_meson_command_tests.py', '-v'], env=env)
+        # Unit tests
         returncode += subprocess.call(mesonlib.python_command + ['run_unittests.py', '-v'], env=env)
         # Ubuntu packages do not have a binary without -6 suffix.
         if should_run_linux_cross_tests():
@@ -221,5 +249,6 @@ if __name__ == '__main__':
             print()
             returncode += subprocess.call(mesonlib.python_command + ['run_cross_test.py', 'cross/ubuntu-armhf.txt'],
                                           env=env)
+        # Project tests
         returncode += subprocess.call(mesonlib.python_command + ['run_project_tests.py'] + sys.argv[1:], env=env)
     sys.exit(returncode)

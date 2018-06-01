@@ -36,7 +36,7 @@ import mesonbuild.modules.gnome
 from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import (
     is_windows, is_osx, is_cygwin, is_dragonflybsd,
-    windows_proof_rmtree, python_command, meson_command, version_compare,
+    windows_proof_rmtree, python_command, version_compare,
     BuildDirLock
 )
 from mesonbuild.environment import Environment, detect_ninja
@@ -44,9 +44,9 @@ from mesonbuild.mesonlib import MesonException, EnvironmentException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 import mesonbuild.modules.pkgconfig
 
-from run_tests import exe_suffix, get_fake_options
+from run_tests import exe_suffix, get_fake_options, get_meson_script
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
-from run_tests import ensure_backend_detects_changes, run_configure, meson_exe
+from run_tests import ensure_backend_detects_changes, run_configure_inprocess
 from run_tests import should_run_linux_cross_tests
 
 
@@ -488,13 +488,13 @@ class BasePlatformTests(unittest.TestCase):
         # Get the backend
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
-        self.meson_mainfile = os.path.join(src_root, 'meson.py')
         self.meson_args = ['--backend=' + self.backend.name]
         self.meson_cross_file = None
-        self.meson_command = meson_command + self.meson_args
-        self.mconf_command = meson_command + ['configure']
-        self.mintro_command = meson_command + ['introspect']
-        self.wrap_command = meson_command + ['wrap']
+        self.meson_command = python_command + [get_meson_script()]
+        self.setup_command = self.meson_command + self.meson_args
+        self.mconf_command = self.meson_command + ['configure']
+        self.mintro_command = self.meson_command + ['introspect']
+        self.wrap_command = self.meson_command + ['wrap']
         # Backend-specific build commands
         self.build_command, self.clean_command, self.test_command, self.install_command, \
             self.uninstall_command = get_backend_commands(self.backend)
@@ -521,7 +521,7 @@ class BasePlatformTests(unittest.TestCase):
         self.logdir = os.path.join(self.builddir, 'meson-logs')
         self.installdir = os.path.join(self.builddir, 'install')
         self.distdir = os.path.join(self.builddir, 'meson-dist')
-        self.mtest_command = meson_command + ['test', '-C', self.builddir]
+        self.mtest_command = self.meson_command + ['test', '-C', self.builddir]
         self.builddirs.append(self.builddir)
 
     def new_builddir(self):
@@ -581,7 +581,7 @@ class BasePlatformTests(unittest.TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                (returncode, out, err) = run_configure(self.meson_mainfile, self.meson_args + args + extra_args)
+                (returncode, out, err) = run_configure_inprocess(self.meson_args + args + extra_args)
                 if 'MESON_SKIP_TEST' in out:
                     raise unittest.SkipTest('Project requested skipping.')
                 if returncode != 0:
@@ -601,7 +601,7 @@ class BasePlatformTests(unittest.TestCase):
                 mesonbuild.mlog.log_file = None
         else:
             try:
-                out = self._run(self.meson_command + args + extra_args)
+                out = self._run(self.setup_command + args + extra_args)
             except unittest.SkipTest:
                 raise unittest.SkipTest('Project requested skipping: ' + srcdir)
             except:
@@ -902,8 +902,7 @@ class AllPlatformTests(BasePlatformTests):
         https://github.com/mesonbuild/meson/issues/1355
         '''
         testdir = os.path.join(self.common_test_dir, '3 static')
-        env = Environment(testdir, self.builddir, self.meson_command,
-                          get_fake_options(self.prefix), [])
+        env = Environment(testdir, self.builddir, get_fake_options(self.prefix), [])
         cc = env.detect_c_compiler(False)
         static_linker = env.detect_static_linker(cc)
         if is_windows():
@@ -1184,8 +1183,7 @@ class AllPlatformTests(BasePlatformTests):
         if not is_windows():
             langs += [('objc', 'OBJC'), ('objcpp', 'OBJCXX')]
         testdir = os.path.join(self.unit_test_dir, '5 compiler detection')
-        env = Environment(testdir, self.builddir, self.meson_command,
-                          get_fake_options(self.prefix), [])
+        env = Environment(testdir, self.builddir, get_fake_options(self.prefix), [])
         for lang, evar in langs:
             # Detect with evar and do sanity checks on that
             if evar in os.environ:
@@ -1287,8 +1285,7 @@ class AllPlatformTests(BasePlatformTests):
     def test_always_prefer_c_compiler_for_asm(self):
         testdir = os.path.join(self.common_test_dir, '141 c cpp and asm')
         # Skip if building with MSVC
-        env = Environment(testdir, self.builddir, self.meson_command,
-                          get_fake_options(self.prefix), [])
+        env = Environment(testdir, self.builddir, get_fake_options(self.prefix), [])
         if env.detect_c_compiler(False).get_id() == 'msvc':
             raise unittest.SkipTest('MSVC can\'t compile assembly')
         self.init(testdir)
@@ -1546,8 +1543,7 @@ int main(int argc, char **argv) {
             self.assertPathExists(os.path.join(testdir, i))
 
     def detect_prebuild_env(self):
-        env = Environment('', self.builddir, self.meson_command,
-                          get_fake_options(self.prefix), [])
+        env = Environment('', self.builddir, get_fake_options(self.prefix), [])
         cc = env.detect_c_compiler(False)
         stlinker = env.detect_static_linker(cc)
         if mesonbuild.mesonlib.is_windows():
@@ -1715,8 +1711,7 @@ int main(int argc, char **argv) {
                                        '--libdir=' + libdir])
         # Find foo dependency
         os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
-        env = Environment(testdir, self.builddir, self.meson_command,
-                          get_fake_options(self.prefix), [])
+        env = Environment(testdir, self.builddir, get_fake_options(self.prefix), [])
         kwargs = {'required': True, 'silent': True}
         foo_dep = PkgConfigDependency('libfoo', env, kwargs)
         # Ensure link_args are properly quoted
@@ -1849,16 +1844,16 @@ int main(int argc, char **argv) {
         for lang in ('c', 'cpp'):
             for type in ('executable', 'library'):
                 with tempfile.TemporaryDirectory() as tmpdir:
-                    self._run(meson_command + ['init', '--language', lang, '--type', type],
+                    self._run(self.meson_command + ['init', '--language', lang, '--type', type],
                               workdir=tmpdir)
-                    self._run(self.meson_command + ['--backend=ninja', 'builddir'],
+                    self._run(self.setup_command + ['--backend=ninja', 'builddir'],
                               workdir=tmpdir)
                     self._run(ninja,
                               workdir=os.path.join(tmpdir, 'builddir'))
             with tempfile.TemporaryDirectory() as tmpdir:
                 with open(os.path.join(tmpdir, 'foo.' + lang), 'w') as f:
                     f.write('int main() {}')
-                self._run(meson_command + ['init', '-b'], workdir=tmpdir)
+                self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
 
     # The test uses mocking and thus requires that
     # the current process is the one to run the Meson steps.
@@ -1983,8 +1978,7 @@ recommended as it can lead to undefined behaviour on some platforms''')
         testdirbase = os.path.join(self.unit_test_dir, '26 guessed linker dependencies')
         testdirlib = os.path.join(testdirbase, 'lib')
         extra_args = None
-        env = Environment(testdirlib, self.builddir, self.meson_command,
-                          get_fake_options(self.prefix), [])
+        env = Environment(testdirlib, self.builddir, get_fake_options(self.prefix), [])
         if env.detect_c_compiler(False).get_id() != 'msvc':
             # static libraries are not linkable with -l with msvc because meson installs them
             # as .a files which unix_args_to_native will not know as it expects libraries to use
@@ -2146,9 +2140,6 @@ class FailureTests(BasePlatformTests):
         Assert that running meson configure on the specified @contents raises
         a error message matching regex @match.
         '''
-        if meson_exe is not None:
-            # Because the exception happens in a different process.
-            raise unittest.SkipTest('Can not test assert raise tests with an external Meson command.')
         if langs is None:
             langs = []
         with open(self.mbuild, 'w') as f:
@@ -2283,8 +2274,7 @@ class FailureTests(BasePlatformTests):
         '''
         Test that when we can't detect objc or objcpp, we fail gracefully.
         '''
-        env = Environment('', self.builddir, self.meson_command,
-                          get_fake_options(self.prefix), [])
+        env = Environment('', self.builddir, get_fake_options(self.prefix), [])
         try:
             env.detect_objc_compiler(False)
             env.detect_objcpp_compiler(False)
@@ -2393,8 +2383,7 @@ class WindowsTests(BasePlatformTests):
         ExternalLibraryHolder from build files.
         '''
         testdir = os.path.join(self.platform_test_dir, '1 basic')
-        env = Environment(testdir, self.builddir, self.meson_command,
-                          get_fake_options(self.prefix), [])
+        env = Environment(testdir, self.builddir, get_fake_options(self.prefix), [])
         cc = env.detect_c_compiler(False)
         if cc.id != 'msvc':
             raise unittest.SkipTest('Not using MSVC')
@@ -2464,8 +2453,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.common_test_dir, '51 pkgconfig-gen')
         self.init(testdir)
-        env = Environment(testdir, self.builddir, self.meson_command,
-                          get_fake_options(self.prefix), [])
+        env = Environment(testdir, self.builddir, get_fake_options(self.prefix), [])
         kwargs = {'required': True, 'silent': True}
         os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
         foo_dep = PkgConfigDependency('libfoo', env, kwargs)
@@ -2715,8 +2703,7 @@ class LinuxlikeTests(BasePlatformTests):
         an ordinary test because it requires passing options to meson.
         '''
         testdir = os.path.join(self.common_test_dir, '1 trivial')
-        env = Environment(testdir, self.builddir, self.meson_command,
-                          get_fake_options(self.prefix), [])
+        env = Environment(testdir, self.builddir, get_fake_options(self.prefix), [])
         cc = env.detect_c_compiler(False)
         self._test_stds_impl(testdir, cc, 'c')
 
@@ -2726,8 +2713,7 @@ class LinuxlikeTests(BasePlatformTests):
         be an ordinary test because it requires passing options to meson.
         '''
         testdir = os.path.join(self.common_test_dir, '2 cpp')
-        env = Environment(testdir, self.builddir, self.meson_command,
-                          get_fake_options(self.prefix), [])
+        env = Environment(testdir, self.builddir, get_fake_options(self.prefix), [])
         cpp = env.detect_cpp_compiler(False)
         self._test_stds_impl(testdir, cpp, 'cpp')
 

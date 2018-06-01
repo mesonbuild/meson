@@ -14,13 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild import mesonmain
-import sys, os
+import sys
+from pathlib import Path
 
-def main():
-    # Always resolve the command path so Ninja can find it for regen, tests, etc.
-    launcher = os.path.realpath(sys.argv[0])
-    return mesonmain.run(sys.argv[1:], launcher)
+# If we're run uninstalled, add the script directory to sys.path to ensure that
+# we always import the correct mesonbuild modules even if PYTHONPATH is mangled
+meson_exe = Path(sys.argv[0]).resolve()
+if (meson_exe.parent / 'mesonbuild').is_dir():
+    sys.path.insert(0, meson_exe.parent)
+
+from mesonbuild import mesonmain
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(mesonmain.main())
