@@ -2824,7 +2824,7 @@ root and issuing %s.
                  mlog.bold(subproj_path), 'found:', mlog.green('YES'))
         return dep
 
-    @FeatureNewKwargs('executable', '0.42.0', 'implib')
+    @FeatureNewKwargs('executable', '0.42.0', ['implib'])
     @permittedKwargs(permitted_kwargs['executable'])
     def func_executable(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, ExecutableHolder)
