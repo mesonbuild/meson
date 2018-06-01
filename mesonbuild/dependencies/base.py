@@ -1250,6 +1250,13 @@ def find_external_dependency(name, env, kwargs):
     if name.lower() not in _packages_accept_language and 'language' in kwargs:
         raise DependencyException('%s dependency does not accept "language" keyword argument' % (name, ))
 
+    # if this isn't a cross-build, it's uninteresting if native: is used or not
+    if not env.is_cross_build():
+        type_text = 'Dependency'
+    else:
+        type_text = 'Native' if kwargs.get('native', False) else 'Cross'
+        type_text += ' dependency'
+
     # build a list of dependency methods to try
     candidates = _build_external_dependency_list(name, env, kwargs)
 
@@ -1281,7 +1288,7 @@ def find_external_dependency(name, env, kwargs):
                 if info:
                     info = ', ' + info
 
-                mlog.log('Dependency', mlog.bold(name), details + 'found:', mlog.green('YES'), d.version + info)
+                mlog.log(type_text, mlog.bold(name), details + 'found:', mlog.green('YES'), d.version + info)
 
                 return d
 
@@ -1292,7 +1299,7 @@ def find_external_dependency(name, env, kwargs):
     else:
         tried = ''
 
-    mlog.log('Dependency', mlog.bold(name), details + 'found:', mlog.red('NO'),
+    mlog.log(type_text, mlog.bold(name), details + 'found:', mlog.red('NO'),
              '(tried {})'.format(tried) if tried else '')
 
     if required:
