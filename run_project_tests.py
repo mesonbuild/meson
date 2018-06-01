@@ -38,8 +38,7 @@ import time
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 import re
-from run_unittests import get_fake_options, run_configure
-
+from run_tests import get_fake_options, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
 
@@ -87,12 +86,6 @@ do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
 system_compiler = None
-
-meson_command = os.path.join(os.getcwd(), 'meson')
-if not os.path.exists(meson_command):
-    meson_command += '.py'
-    if not os.path.exists(meson_command):
-        raise RuntimeError('Could not find main Meson script to run.')
 
 class StopException(Exception):
     def __init__(self):
@@ -324,7 +317,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     if pass_libdir_to_test(testdir):
         gen_args += ['--libdir', 'lib']
     gen_args += [testdir, test_build_dir] + flags + test_args + extra_args
-    (returncode, stdo, stde) = run_configure(meson_command, gen_args)
+    (returncode, stdo, stde) = run_configure(gen_args)
     try:
         logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
         mesonlog = logfile.open(errors='ignore', encoding='utf-8').read()
@@ -417,7 +410,7 @@ def have_d_compiler():
 
 def have_objc_compiler():
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
-        env = environment.Environment(None, build_dir, None, get_fake_options('/'), [])
+        env = environment.Environment(None, build_dir, get_fake_options('/'), [])
         try:
             objc_comp = env.detect_objc_compiler(False)
         except mesonlib.MesonException:
@@ -432,7 +425,7 @@ def have_objc_compiler():
 
 def have_objcpp_compiler():
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
-        env = environment.Environment(None, build_dir, None, get_fake_options('/'), [])
+        env = environment.Environment(None, build_dir, get_fake_options('/'), [])
         try:
             objcpp_comp = env.detect_objcpp_compiler(False)
         except mesonlib.MesonException:
@@ -647,11 +640,12 @@ def check_format():
                 check_file(fullname)
 
 def check_meson_commands_work():
-    global backend, meson_command, compile_commands, test_commands, install_commands
+    global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
+    meson_commands = mesonlib.python_command + [get_meson_script()]
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         print('Checking that configuring works...')
-        gen_cmd = mesonlib.meson_command + [testdir, build_dir] + backend_flags
+        gen_cmd = meson_commands + [testdir, build_dir] + backend_flags
         pc, o, e = Popen_safe(gen_cmd)
         if pc.returncode != 0:
             raise RuntimeError('Failed to configure {!r}:\n{}\n{}'.format(testdir, e, o))

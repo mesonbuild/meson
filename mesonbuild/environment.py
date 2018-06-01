@@ -262,10 +262,9 @@ class Environment:
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
 
-    def __init__(self, source_dir, build_dir, main_script_launcher, options, original_cmd_line_args):
+    def __init__(self, source_dir, build_dir, options, original_cmd_line_args):
         self.source_dir = source_dir
         self.build_dir = build_dir
-        self.meson_script_launcher = main_script_launcher
         self.scratch_dir = os.path.join(build_dir, Environment.private_dir)
         self.log_dir = os.path.join(build_dir, Environment.log_dir)
         os.makedirs(self.scratch_dir, exist_ok=True)
@@ -278,7 +277,8 @@ class Environment:
             # re-initialized with project options by the interpreter during
             # build file parsing.
             self.coredata = coredata.CoreData(options)
-            self.coredata.meson_script_launcher = self.meson_script_launcher
+            # Used by the regenchecker script, which runs meson
+            self.coredata.meson_command = mesonlib.meson_command
             self.first_invocation = True
         if self.coredata.cross_file:
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)
