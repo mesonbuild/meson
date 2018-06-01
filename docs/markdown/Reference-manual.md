@@ -1423,7 +1423,7 @@ the following methods.
   the string to an array if needed.
 
 - `override_find_program(progname, program)` [*(Added
-  0.46.0)*](Release-notes-for-0-46-0.html#Can-override-find_program)
+  0.46.0)*](Release-notes-for-0-46-0.html#can-override-find_program)
   specifies that whenever `find_program` is used to find a program
   named `progname`, Meson should not not look it up on the system but
   instead return `program`, which may either be the result of
