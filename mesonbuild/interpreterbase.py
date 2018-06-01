@@ -150,7 +150,7 @@ class FeatureNew:
         if tv == '':
             return
         if not mesonlib.version_compare_condition_with_min(tv, self.feature_version):
-            mlog.error(
+            mlog.warning(
                 '''Project targetting \'{}\' but tried to use feature introduced in \'{}\': {}'''
                 .format(tv, self.feature_version, self.feature_name))
 
@@ -188,7 +188,7 @@ class FeatureDeprecated:
         if tv == '':
             return
         if not mesonlib.version_compare_condition_with_max(tv, self.feature_version):
-            mlog.error(
+            mlog.warning(
                 '''Project targetting \'{}\' but tried to use feature deprecated since \'{}\': {}'''
                 .format(tv, self.feature_version, self.feature_name))
 
