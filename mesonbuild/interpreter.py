@@ -1697,7 +1697,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env'},
                     'benchmark': {'args', 'env', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'build_target': known_build_target_kwargs,
-                    'configure_file': {'input', 'output', 'configuration', 'command', 'copy', 'install_dir', 'capture', 'install', 'format'},
+                    'configure_file': {'input', 'output', 'configuration', 'command', 'copy', 'install_dir', 'capture', 'install', 'format', 'output_format'},
                     'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
                     'dependency': {'default_options', 'fallback', 'language', 'main', 'method', 'modules', 'optional_modules', 'native', 'required', 'static', 'version', 'private_headers'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'link_whole', 'version'},
@@ -3196,6 +3196,16 @@ root and issuing %s.
         if fmt not in ('meson', 'cmake', 'cmake@'):
             raise InterpreterException('"format" possible values are "meson", "cmake" or "cmake@".')
 
+        if 'output_format' in kwargs:
+            output_format = kwargs['output_format']
+            if not isinstance(output_format, str):
+                raise InterpreterException('"output_format" keyword must be a string.')
+        else:
+            output_format = 'c'
+
+        if output_format not in ('c', 'nasm'):
+            raise InterpreterException('"format" possible values are "c" or "nasm".')
+
         # Validate input
         inputfile = None
         ifile_abs = None
@@ -3258,7 +3268,7 @@ root and issuing %s.
                         "present in the given configuration data." % (
                             var_list, inputfile), location=node)
             else:
-                mesonlib.dump_conf_header(ofile_abs, conf.held_object)
+                mesonlib.dump_conf_header(ofile_abs, conf.held_object, output_format)
             conf.mark_used()
         elif 'command' in kwargs:
             # We use absolute paths for input and output here because the cwd

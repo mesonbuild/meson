@@ -523,6 +523,7 @@ def detect_tests_to_run():
         ('python3', 'python3', backend is not Backend.ninja),
         ('fpga', 'fpga', shutil.which('yosys') is None),
         ('frameworks', 'frameworks', False),
+        ('nasm', 'nasm', False),
     ]
     gathered_tests = [(name, gather_tests(Path('test cases', subdir)), skip) for name, subdir, skip in all_tests]
     return gathered_tests
