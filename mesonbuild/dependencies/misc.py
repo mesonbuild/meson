@@ -38,7 +38,6 @@ class MPIDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         language = kwargs.get('language', 'c')
         super().__init__('mpi', environment, language, kwargs)
-        required = kwargs.pop('required', True)
         kwargs['required'] = False
         kwargs['silent'] = True
         self.is_found = False
@@ -108,8 +107,6 @@ class MPIDependency(ExternalDependency):
             mlog.log('Dependency', mlog.bold(self.name), 'for', self.language, 'found:', mlog.green('YES'), self.version)
         else:
             mlog.log('Dependency', mlog.bold(self.name), 'for', self.language, 'found:', mlog.red('NO'))
-            if required:
-                raise DependencyException('MPI dependency {!r} not found'.format(self.name))
 
     def _filter_compile_args(self, args):
         """

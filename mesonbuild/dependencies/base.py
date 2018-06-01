@@ -392,8 +392,6 @@ class ConfigToolDependency(ExternalDependency):
                 mlog.log('Found', mlog.bold(self.tool_name), repr(req_version),
                          mlog.red('NO'))
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
-            if self.required:
-                raise DependencyException('Dependency {} not found'.format(self.name))
             return False
         mlog.log('Found {}:'.format(self.tool_name), mlog.bold(shutil.which(self.config)),
                  '({})'.format(version))
@@ -475,9 +473,6 @@ class PkgConfigDependency(ExternalDependency):
                    '{!r}'.format(name, self.pkgbin.get_path()))
         ret, self.version = self._call_pkgbin(['--modversion', name])
         if ret != 0:
-            if self.required:
-                raise DependencyException('{} dependency {!r} not found'
-                                          ''.format(self.type_string, name))
             return
         found_msg = [self.type_string + ' dependency', mlog.bold(name), 'found:']
         if self.version_reqs is None:
@@ -826,8 +821,6 @@ class DubDependency(ExternalDependency):
         ret, res = self._call_dubbin(['describe', name])
 
         if ret != 0:
-            if self.required:
-                raise DependencyException('Dependency {!r} not found'.format(name))
             self.is_found = False
             mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
             return
@@ -840,8 +833,6 @@ class DubDependency(ExternalDependency):
                     msg = ['Dependency', mlog.bold(name), 'found but it was compiled with']
                     msg += [mlog.bold(j['compiler']), 'and we are using', mlog.bold(comp)]
                     mlog.error(*msg)
-                    if self.required:
-                        raise DependencyException('Dependency {!r} not found'.format(name))
                     self.is_found = False
                     mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
                     return
@@ -897,11 +888,9 @@ class DubDependency(ExternalDependency):
             self.link_args.append(file)
 
         if not found:
-            if self.required:
-                raise DependencyException('Dependency {!r} not found'.format(name))
-                self.is_found = False
-                mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
-                return
+            self.is_found = False
+            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
+            return
 
         if not self.silent:
             mlog.log(*found_msg)
@@ -1249,8 +1238,6 @@ class ExtraFrameworkDependency(ExternalDependency):
                 self.name = d
                 self.is_found = True
                 return
-        if not self.found() and self.required:
-            raise DependencyException('Framework dependency %s not found.' % (name, ))
 
     def get_version(self):
         return 'unknown'

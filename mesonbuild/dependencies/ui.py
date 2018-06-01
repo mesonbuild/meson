@@ -227,10 +227,6 @@ class QtBaseDependency(ExternalDependency):
             self.link_args = []
             from_text = '(checked {})'.format(mlog.format_list(methods))
             self.version = 'none'
-            if self.required:
-                err_msg = '{} {} dependency not found {}' \
-                          ''.format(self.qtname, type_text, from_text)
-                raise DependencyException(err_msg)
             if not self.silent:
                 mlog.log(found_msg.format(from_text), mlog.red('NO'))
             return
