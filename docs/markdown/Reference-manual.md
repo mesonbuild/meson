@@ -1423,7 +1423,7 @@ the following methods.
   the string to an array if needed.
 
 - `override_find_program(progname, program)` [*(Added
-  0.46.0)*](Release-notes-for-0-46-0.html#Can-override-find_program)
+  0.46.0)*](Release-notes-for-0-46-0.html#can-override-find_program)
   specifies that whenever `find_program` is used to find a program
   named `progname`, Meson should not not look it up on the system but
   instead return `program`, which may either be the result of
@@ -1444,17 +1444,15 @@ doing the actual compilation. See
 [Cross-compilation](Cross-compilation.md). It has the following
 methods:
 
-- `cpu_family()` returns the CPU family name. Guaranteed to return
-  `x86` for 32-bit userland on x86 CPUs, `x86_64` for 64-bit userland
-  on x86 CPUs, `arm` for 32-bit userland on all ARM CPUs, etc.
+- `cpu_family()` returns the CPU family name. [This table](Reference-tables.md#cpu-families)
+  contains all known CPU families. These are guaranteed to continue working.
 
 - `cpu()` returns a more specific CPU name, such as `i686`, `amd64`,
   etc.
 
-- `system()` returns the operating system name, such as `windows` (all
-  versions of Windows), `linux` (all Linux distros), `darwin` (all
-  versions of OS X/macOS), `cygwin` (for Cygwin), and `bsd` (all *BSD
-  OSes).
+- `system()` returns the operating system name.
+  [This table](Reference-tables.html#operating-system-names) Lists all of the
+  currently known Operating System names, these are guaranteed to continue working.
 
 - `endian()` returns `big` on big-endian systems and `little` on
   little-endian systems.
@@ -1464,7 +1462,7 @@ Currently, these values are populated using
 and
 [`platform.machine()`](https://docs.python.org/3.4/library/platform.html#platform.machine). If
 you think the returned values for any of these are incorrect for your
-system or CPU, or if your OS is not in the above list, please file [a
+system or CPU, or if your OS is not in the linked table, please file [a
 bug report](https://github.com/mesonbuild/meson/issues/new) with
 details and we'll look into it.
 
@@ -1544,7 +1542,7 @@ the following methods:
   value as a string or empty string if it is not defined.
 
 - `get_id()` returns a string identifying the compiler. For example,
-  `gcc`, `msvc`, [and more](Compiler-properties.md#compiler-id).
+  `gcc`, `msvc`, [and more](Reference-tables.html#compiler-ids).
 
 - `get_supported_arguments(list_of_string)` *(added 0.43.0)* returns
   an array containing only the arguments supported by the compiler,
