@@ -208,7 +208,7 @@ the `@variable@` syntax.
   `@PLAINNAME@` or `@BASENAME@` substitutions). In configuration mode,
   the permissions of the input file (if it is specified) are copied to
   the output file.
-- `output_format` the format of the output to generate when no input
+- `output_format` *(added 0.47.0)* the format of the output to generate when no input
   was specified. It defaults to `c`, in which case preprocessor directives
   will be prefixed with `#`, you can also use `nasm`, in which case the
   prefix will be `%`.
