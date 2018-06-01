@@ -297,6 +297,8 @@ class ConfigToolDependency(ExternalDependency):
             self.config = None
             return
         self.version = version
+        if getattr(self, 'finish_init', None):
+            self.finish_init(self)
 
     def _sanitize_version(self, version):
         """Remove any non-numeric, non-point version suffixes."""
@@ -308,7 +310,7 @@ class ConfigToolDependency(ExternalDependency):
         return version
 
     @classmethod
-    def factory(cls, name, environment, language, kwargs, tools, tool_name):
+    def factory(cls, name, environment, language, kwargs, tools, tool_name, finish_init=None):
         """Constructor for use in dependencies that can be found multiple ways.
 
         In addition to the standard constructor values, this constructor sets
@@ -323,7 +325,7 @@ class ConfigToolDependency(ExternalDependency):
         def reduce(self):
             return (cls._unpickle, (), self.__dict__)
         sub = type('{}Dependency'.format(name.capitalize()), (cls, ),
-                   {'tools': tools, 'tool_name': tool_name, '__reduce__': reduce})
+                   {'tools': tools, 'tool_name': tool_name, '__reduce__': reduce, 'finish_init': staticmethod(finish_init)})
 
         return sub(name, environment, language, kwargs)
 

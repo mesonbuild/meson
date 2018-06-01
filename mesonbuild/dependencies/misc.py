@@ -444,14 +444,18 @@ class PcapDependency(ExternalDependency):
 
         if DependencyMethods.CONFIG_TOOL in methods:
             candidates.append(functools.partial(ConfigToolDependency.factory,
-                    'pcap', environment, None, kwargs, ['pcap-config'], 'pcap-config'))
-#                if ctdep.found():
-#                    ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-#                    ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
-#                    ctdep.version = cls.get_pcap_lib_version(ctdep)
-#                    return ctdep
+                                                'pcap', environment, None,
+                                                kwargs, ['pcap-config'],
+                                                'pcap-config',
+                                                PcapDependency.tool_finish_init))
 
         return candidates
+
+    @staticmethod
+    def tool_finish_init(ctdep):
+        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+        ctdep.version = PcapDependency.get_pcap_lib_version(ctdep)
 
     @staticmethod
     def get_methods():
@@ -479,10 +483,7 @@ class CupsDependency(ExternalDependency):
             candidates.append(functools.partial(ConfigToolDependency.factory,
                                                 'cups', environment, None,
                                                 kwargs, ['cups-config'],
-                                                'cups-config'))
-#                if ctdep.found():
-#                    ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-#                    ctdep.link_args = ctdep.get_config_value(['--ldflags', '--libs'], 'link_args')
+                                                'cups-config', CupsDependency.tool_finish_init))
 
         if DependencyMethods.EXTRAFRAMEWORK in methods:
             if mesonlib.is_osx():
@@ -491,6 +492,11 @@ class CupsDependency(ExternalDependency):
                     kwargs.get('language', None), kwargs))
 
         return candidates
+
+    @staticmethod
+    def tool_finish_init(ctdep):
+        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+        ctdep.link_args = ctdep.get_config_value(['--ldflags', '--libs'], 'link_args')
 
     @staticmethod
     def get_methods():
@@ -514,14 +520,14 @@ class LibWmfDependency(ExternalDependency):
 
         if DependencyMethods.CONFIG_TOOL in methods:
             candidates.append(functools.partial(ConfigToolDependency.factory,
-                    'libwmf', environment, None, kwargs, ['libwmf-config'], 'libwmf-config'))
-
-#                if ctdep.found():
-#                    ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-#                    ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
-#                    return ctdep
+                                                'libwmf', environment, None, kwargs, ['libwmf-config'], 'libwmf-config', LibWmfDependency.tool_finish_init))
 
         return candidates
+
+    @staticmethod
+    def tool_finish_init(ctdep):
+        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
 
     @staticmethod
     def get_methods():

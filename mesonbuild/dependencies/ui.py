@@ -464,10 +464,7 @@ class SDL2Dependency(ExternalDependency):
             candidates.append(functools.partial(ConfigToolDependency.factory,
                                                 'sdl2', environment, None,
                                                 kwargs, ['sdl2-config'],
-                                                'sdl2-config'))
-#                if ctdep.found():
-#                    ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-#                    ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+                                                'sdl2-config', SDL2Dependency.tool_finish_init))
 
         if DependencyMethods.EXTRAFRAMEWORK in methods:
             if mesonlib.is_osx():
@@ -476,6 +473,11 @@ class SDL2Dependency(ExternalDependency):
                                                     kwargs.get('language', None), kwargs))
                 # fwdep.version = '2'  # FIXME
         return candidates
+
+    @staticmethod
+    def tool_finish_init(ctdep):
+        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
 
     @staticmethod
     def get_methods():
