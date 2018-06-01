@@ -1240,6 +1240,16 @@ def get_dep_identifier(name, kwargs, want_cross):
         identifier += (key, value)
     return identifier
 
+display_name_map = {
+    'boost': 'Boost',
+    'dub': 'DUB',
+    'gmock': 'GMock',
+    'gtest': 'GTest',
+    'llvm': 'LLVM',
+    'mpi': 'MPI',
+    'openmp': 'OpenMP',
+    'wxwidgets': 'WxWidgets',
+}
 
 def find_external_dependency(name, env, kwargs):
     required = kwargs.get('required', True)
@@ -1247,8 +1257,12 @@ def find_external_dependency(name, env, kwargs):
         raise DependencyException('Keyword "required" must be a boolean.')
     if not isinstance(kwargs.get('method', ''), str):
         raise DependencyException('Keyword "method" must be a string.')
-    if name.lower() not in _packages_accept_language and 'language' in kwargs:
+    lname = name.lower()
+    if lname not in _packages_accept_language and 'language' in kwargs:
         raise DependencyException('%s dependency does not accept "language" keyword argument' % (name, ))
+
+    # display the dependency name with correct casing
+    display_name = display_name_map.get(lname, lname)
 
     # if this isn't a cross-build, it's uninteresting if native: is used or not
     if not env.is_cross_build():
@@ -1288,7 +1302,7 @@ def find_external_dependency(name, env, kwargs):
                 if info:
                     info = ', ' + info
 
-                mlog.log(type_text, mlog.bold(name), details + 'found:', mlog.green('YES'), d.version + info)
+                mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.green('YES'), d.version + info)
 
                 return d
 
@@ -1299,7 +1313,7 @@ def find_external_dependency(name, env, kwargs):
     else:
         tried = ''
 
-    mlog.log(type_text, mlog.bold(name), details + 'found:', mlog.red('NO'),
+    mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.red('NO'),
              '(tried {})'.format(tried) if tried else '')
 
     if required:
