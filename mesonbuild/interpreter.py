@@ -2926,7 +2926,8 @@ root and issuing %s.
         raise SubdirDoneRequest()
 
     @stringArgs
-    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
+    @FeatureNewKwargs('custom_target', '0.47.0', ['install_mode'])
+    @FeatureNewKwargs('custom_target', '0.40.0', ['build_by_default'])
     @permittedKwargs(permitted_kwargs['custom_target'])
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:
@@ -3055,6 +3056,7 @@ root and issuing %s.
             self.build.benchmarks.append(t)
             mlog.debug('Adding benchmark "', mlog.bold(args[0]), '".', sep='')
 
+    @FeatureNewKwargs('install_headers', '0.47.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_headers'])
     def func_install_headers(self, node, args, kwargs):
         source_files = self.source_strings_to_files(args)
@@ -3062,6 +3064,7 @@ root and issuing %s.
         self.build.headers.append(h)
         return h
 
+    @FeatureNewKwargs('install_man', '0.47.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_man'])
     def func_install_man(self, node, args, kwargs):
         fargs = self.source_strings_to_files(args)
@@ -3201,7 +3204,7 @@ root and issuing %s.
         self.build.install_dirs.append(idir)
         return idir
 
-    @FeatureNewKwargs('configure_file', '0.47.0', ['copy', 'output_format'])
+    @FeatureNewKwargs('configure_file', '0.47.0', ['copy', 'output_format', 'install_mode'])
     @FeatureNewKwargs('configure_file', '0.46.0', ['format'])
     @FeatureNewKwargs('configure_file', '0.41.0', ['capture'])
     @permittedKwargs(permitted_kwargs['configure_file'])
