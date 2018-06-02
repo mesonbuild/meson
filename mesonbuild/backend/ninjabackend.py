@@ -1256,7 +1256,7 @@ int dummy;
         element.add_item('cratetype', cratetype)
         element.write(outfile)
         if isinstance(target, build.SharedLibrary):
-            self.generate_shsym(outfile, target)
+            self.generate_shsym('rust' + crstr, outfile, target)
         self.create_target_source_introspection(target, rustc, args, [main_rust_file], [])
 
     def swift_module_file_name(self, target):
@@ -1445,6 +1445,34 @@ int dummy;
             outfile.write(' pool = link_pool\n')
         outfile.write(description)
 
+    def generate_symbol_extraction_rule(self, outfile, rulename, script, description, extra_args=[]):
+        args = [ninja_quote(quote_func(x)) for x in self.environment.get_build_command()] + \
+            ['--internal', script, '$in', '$out'] + \
+            [ninja_quote(quote_func(x)) for x in extra_args]
+        symrule = 'rule ' + rulename + '\n'
+        symcmd = ' command = ' + ' '.join(args) + '\n'
+        symstat = ' restat = 1\n'
+        symdesc = ' description = ' + description + '\n'
+        outfile.write(symrule)
+        outfile.write(symcmd)
+        outfile.write(symstat)
+        outfile.write(symdesc)
+        outfile.write('\n')
+
+    def generate_symbol_extraction_rules(self, compiler, outfile, is_cross):
+        crstr = ''
+        if is_cross:
+            crstr = '_CROSS'
+        prefix = compiler.get_language() + crstr
+
+        shsym_cross_args = []
+        if is_cross:
+            shsym_cross_args = ['--cross-host=' + self.environment.machines.host.system]
+        self.generate_symbol_extraction_rule(outfile, prefix + '_SHSYM',
+                                             'symbolextractor',
+                                             'Generating symbol file $out.',
+                                             shsym_cross_args)
+
     def generate_dynamic_link_rules(self, outfile):
         num_pools = self.environment.coredata.backend_options['backend_max_links'].value
         ctypes = [(self.build.compilers, False)]
@@ -1483,20 +1511,9 @@ int dummy;
                     outfile.write(' pool = link_pool\n')
                 outfile.write(description)
                 outfile.write('\n')
-        outfile.write('\n')
-        args = [ninja_quote(quote_func(x)) for x in self.environment.get_build_command()] + \
-            ['--internal',
-             'symbolextractor',
-             '$in',
-             '$out']
-        symrule = 'rule SHSYM\n'
-        symcmd = ' command = ' + ' '.join(args) + ' $CROSS\n'
-        synstat = ' restat = 1\n'
-        syndesc = ' description = Generating symbol file $out.\n'
-        outfile.write(symrule)
-        outfile.write(symcmd)
-        outfile.write(synstat)
-        outfile.write(syndesc)
+
+                self.generate_symbol_extraction_rules(compiler, outfile, is_cross)
+
         outfile.write('\n')
 
     def generate_java_compile_rule(self, compiler, outfile):
@@ -1556,6 +1573,7 @@ int dummy;
         outfile.write(depfile)
         outfile.write(depstyle)
         outfile.write('\n')
+        self.generate_symbol_extraction_rules(compiler, outfile, is_cross)
 
     def generate_swift_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
@@ -2287,14 +2305,12 @@ rule FORTRAN_DEP_HACK%s
             elem.write(outfile)
         return pch_objects
 
-    def generate_shsym(self, outfile, target):
+    def generate_shsym(self, prefix, outfile, target):
         target_name = target.get_filename()
         target_file = self.get_target_filename(target)
         targetdir = self.get_target_private_dir(target)
         symname = os.path.join(targetdir, target_name + '.symbols')
-        elem = NinjaBuildElement(self.all_outputs, symname, 'SHSYM', target_file)
-        if self.environment.is_cross_build():
-            elem.add_item('CROSS', '--cross-host=' + self.environment.machines.host.system)
+        elem = NinjaBuildElement(self.all_outputs, symname, prefix + '_SHSYM', target_file)
         elem.write(outfile)
 
     def get_cross_stdlib_link_args(self, target, linker):
@@ -2428,11 +2444,11 @@ rule FORTRAN_DEP_HACK%s
             linker_base = 'STATIC'
         else:
             linker_base = linker.get_language() # Fixme.
-        if isinstance(target, build.SharedLibrary):
-            self.generate_shsym(outfile, target)
         crstr = ''
         if target.is_cross:
             crstr = '_CROSS'
+        if isinstance(target, build.SharedLibrary):
+            self.generate_shsym(linker_base + crstr, outfile, target)
         linker_rule = linker_base + crstr + '_LINKER'
         # Create an empty commands list, and start adding link arguments from
         # various sources in the order in which they must override each other
