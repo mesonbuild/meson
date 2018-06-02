@@ -698,25 +698,29 @@ int dummy;
             if not t.should_install():
                 continue
             # Find the installation directory.
-            outdirs = t.get_custom_install_dir()
-            custom_install_dir = False
-            if outdirs[0] is not None and outdirs[0] is not True:
-                # Either the value is set, or is set to False which means
-                # we want this specific output out of many outputs to not
-                # be installed.
-                custom_install_dir = True
-            elif isinstance(t, build.SharedModule):
-                outdirs[0] = self.environment.get_shared_module_dir()
+            if isinstance(t, build.SharedModule):
+                default_install_dir = self.environment.get_shared_module_dir()
             elif isinstance(t, build.SharedLibrary):
-                outdirs[0] = self.environment.get_shared_lib_dir()
+                default_install_dir = self.environment.get_shared_lib_dir()
             elif isinstance(t, build.StaticLibrary):
-                outdirs[0] = self.environment.get_static_lib_dir()
+                default_install_dir = self.environment.get_static_lib_dir()
             elif isinstance(t, build.Executable):
-                outdirs[0] = self.environment.get_bindir()
+                default_install_dir = self.environment.get_bindir()
+            elif isinstance(t, build.CustomTarget):
+                default_install_dir = None
             else:
                 assert(isinstance(t, build.BuildTarget))
                 # XXX: Add BuildTarget-specific install dir cases here
-                outdirs[0] = self.environment.get_libdir()
+                default_install_dir = self.environment.get_libdir()
+            outdirs = t.get_custom_install_dir()
+            if outdirs[0] is not None and outdirs[0] != default_install_dir and outdirs[0] is not True:
+                # Either the value is set to a non-default value, or is set to
+                # False (which means we want this specific output out of many
+                # outputs to not be installed).
+                custom_install_dir = True
+            else:
+                custom_install_dir = False
+                outdirs[0] = default_install_dir
             # Sanity-check the outputs and install_dirs
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs != 1 and num_outdirs != num_out:
