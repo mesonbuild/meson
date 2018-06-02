@@ -1943,14 +1943,17 @@ int main(int argc, char **argv) {
                     exception_raised = True
         self.assertTrue(exception_raised, 'Double locking did not raise exception.')
 
+    @unittest.skipIf(is_osx(), 'Test not applicable to OSX')
     def test_check_module_linking(self):
         """
-        Test that shared modules are not linked with targets(link_with:) #2865
+        Test that link_with: a shared module issues a warning
+        https://github.com/mesonbuild/meson/issues/2865
+        (That an error is raised on OSX is exercised by test failing/78)
         """
         tdir = os.path.join(self.unit_test_dir, '26 shared_mod linking')
         out = self.init(tdir)
         msg = ('''WARNING: target links against shared modules. This is not
-recommended as it can lead to undefined behaviour on some platforms''')
+recommended as it is not supported on some platforms''')
         self.assertIn(msg, out)
 
     def test_ndebug_if_release_disabled(self):
