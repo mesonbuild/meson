@@ -1086,8 +1086,12 @@ You probably should put it in link_with instead.''')
         '''
         for link_target in self.link_targets:
             if isinstance(link_target, SharedModule):
-                mlog.warning('''target links against shared modules. This is not
-recommended as it can lead to undefined behaviour on some platforms''')
+                if for_darwin(self.is_cross, self.environment):
+                    raise MesonException('''target links against shared modules.
+This is not permitted on OSX''')
+                else:
+                    mlog.warning('''target links against shared modules. This is not
+recommended as it is not supported on some platforms''')
                 return
 
 class Generator:

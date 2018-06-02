@@ -1161,6 +1161,10 @@ variables defined in the [`executable`](#executable) it is loaded by,
 you will need to set the `export_dynamic` argument of the executable to
 `true`.
 
+**Note:** Linking to a shared module is not supported on some platforms, notably
+OSX.  Consider using a [`shared_library`](#shared_library) instead, if you need
+to both `dlopen()` and link with a library.
+
 *Added 0.37.0*
 
 ### static_library()
