@@ -1405,6 +1405,8 @@ class Executable(BuildTarget):
         self.vs_import_filename = None
         # The import library that GCC would generate (and prefer)
         self.gcc_import_filename = None
+        # The modules that will be loaded at runtime into this target
+        self.modules = []
 
         # Check for export_dynamic
         self.export_dynamic = False
@@ -1826,6 +1828,11 @@ class SharedLibrary(BuildTarget):
 class SharedModule(SharedLibrary):
     known_kwargs = known_shmod_kwargs
 
+    def reverse_module_to_executable_deps(self):
+        for link_target in self.link_targets:
+            if isinstance(link_target, Executable) and link_target.export_dynamic:
+                link_target.modules.append(self)
+
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
@@ -1833,6 +1840,7 @@ class SharedModule(SharedLibrary):
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
         self.typename = 'shared module'
+        self.reverse_module_to_executable_deps()
 
     def get_default_install_dir(self, environment):
         return environment.get_shared_module_dir()
