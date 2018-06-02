@@ -105,6 +105,32 @@ def buildparser():
     return parser
 
 
+def returncode_to_status(retcode):
+    # Note: We can't use `os.WIFSIGNALED(result.returncode)` and the related
+    # functions here because the status returned by subprocess is munged. It
+    # returns a negative value if the process was killed by a signal rather than
+    # the raw status returned by `wait()`. Also, If a shell sits between Meson
+    # the the actual unit test that shell is likely to convert a termination due
+    # to a signal into an exit status of 128 plus the signal number.
+    if retcode < 0:
+        signum = -retcode
+        try:
+            signame = signal.Signals(signum).name
+        except ValueError:
+            signame = 'SIGinvalid'
+        return '(killed by signal %d %s)' % (signum, signame)
+
+    if retcode <= 128:
+        return '(exit status %d)' % (retcode,)
+
+    signum = retcode - 128
+    try:
+        signame = signal.Signals(signum).name
+    except ValueError:
+        signame = 'SIGinvalid'
+    return '(exit status %d or signal %d %s)' % (retcode, signum, signame)
+
+
 class TestException(mesonlib.MesonException):
     pass
 
@@ -421,11 +447,16 @@ class TestHarness:
         num = '%s%d/%d' % (startpad, i + 1, len(tests))
         padding1 = ' ' * (38 - len(name))
         padding2 = ' ' * (8 - len(result.res.value))
-        result_str = '%s %s  %s%s%s%5.2f s' % \
-            (num, name, padding1, result.res.value, padding2, result.duration)
+        status = ''
+
+        if result.res is TestResult.FAIL:
+            status = returncode_to_status(result.returncode)
+        result_str = '%s %s  %s%s%s%5.2f s %s' % \
+            (num, name, padding1, result.res.value, padding2, result.duration,
+             status)
         if not self.options.quiet or result.res is not TestResult.OK:
             if result.res is not TestResult.OK and mlog.colorize_console:
-                if result.res is TestResult.FAIL or result.res is TestResult.TIMEOUT:
+                if result.res in (TestResult.FAIL, TestResult.TIMEOUT):
                     decorator = mlog.red
                 elif result.res is TestResult.SKIP:
                     decorator = mlog.yellow
