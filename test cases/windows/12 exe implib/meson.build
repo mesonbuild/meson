@@ -4,4 +4,4 @@ project('wintest', 'c')
 # name can be set, and that it is installed along with the executable
 
 executable('prog', 'prog.c', install: true, implib: true)
-executable('prog2', 'prog.c', install: true, implib: 'burble')
+executable('prog2', 'prog.c', install: true, implib: 'burble', install_dir: get_option('bindir'))
