@@ -2153,7 +2153,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if 'version' in kwargs:
             pv = subi.project_version
             wanted = kwargs['version']
-            if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted):
+            if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                 raise InterpreterException('Subproject %s version is %s but %s required.' % (dirname, pv, wanted))
         self.active_projectname = current_active
         self.build.subprojects[dirname] = subi.project_version
