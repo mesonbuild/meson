@@ -604,7 +604,7 @@ def do_replacement(regex, line, format, confdata):
 def do_mesondefine(line, confdata):
     arr = line.split()
     if len(arr) != 2:
-        raise MesonException('#mesondefine does not contain exactly two tokens: %s', line.strip())
+        raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
     varname = arr[1]
     try:
         (v, desc) = confdata.get(varname)
