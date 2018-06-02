@@ -2494,7 +2494,13 @@ to directly access options of other subprojects.''')
             self.add_base_options(comp)
         return success
 
+    def emit_base_options_warnings(self, enabled_opts):
+        if 'b_bitcode' in enabled_opts:
+            mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as such as \'b_asneeded\' have been disabled.')
+            mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.')
+
     def add_base_options(self, compiler):
+        enabled_opts = []
         proj_opt = self.environment.cmd_line_options.projectoptions
         for optname in compiler.base_options:
             if optname in self.coredata.base_options:
@@ -2502,9 +2508,13 @@ to directly access options of other subprojects.''')
             oobj = compilers.base_options[optname]
             for po in proj_opt:
                 if po.startswith(optname + '='):
-                    oobj.set_value(po.split('=', 1)[1])
+                    opt, value = po.split('=', 1)
+                    oobj.set_value(value)
+                    if oobj.value:
+                        enabled_opts.append(opt)
                     break
             self.coredata.base_options[optname] = oobj
+        self.emit_base_options_warnings(enabled_opts)
 
     def program_from_cross_file(self, prognames, silent=False):
         bins = self.environment.cross_info.config['binaries']

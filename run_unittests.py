@@ -3224,13 +3224,17 @@ endian = 'little'
         to inspect the compiler database.
         '''
         if not is_osx():
-            raise unittest.SkipTest('Apple bitcode not relevant')
+            raise unittest.SkipTest('Apple bitcode only works on macOS')
         testdir = os.path.join(self.common_test_dir, '4 shared')
         # Try with bitcode enabled
-        self.init(testdir, extra_args='-Db_bitcode=true')
+        out = self.init(testdir, extra_args='-Db_bitcode=true')
+        # Warning was printed
+        self.assertRegex(out, 'WARNING:.*b_bitcode')
+        # Compiler options were added
         compdb = self.get_compdb()
         self.assertIn('-fembed-bitcode', compdb[0]['command'])
         build_ninja = os.path.join(self.builddir, 'build.ninja')
+        # Linker options were added
         with open(build_ninja, 'r', encoding='utf-8') as f:
             contents = f.read()
             m = re.search('LINK_ARGS =.*-bitcode_bundle', contents)
