@@ -422,7 +422,7 @@ class TestHarness:
                 signum = result.returncode - 128
                 try:
                     signame = signal.Signals(signum).name
-                except:
+                except ValueError:
                     signame = 'SIGinvalid'
                 status = ' (killed by signal %d %s)' % (signum, signame)
         result_str = '%s %s  %s%s%s%5.2f s%s' % \
