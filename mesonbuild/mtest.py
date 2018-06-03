@@ -15,7 +15,7 @@
 # A tool to run tests in many different ways.
 
 import shlex
-import subprocess, sys, os, argparse
+import subprocess, sys, os, argparse, signal
 import pickle
 from mesonbuild import build
 from mesonbuild import environment
@@ -405,11 +405,32 @@ class TestHarness:
         num = '%s%d/%d' % (startpad, i + 1, len(tests))
         padding1 = ' ' * (38 - len(name))
         padding2 = ' ' * (8 - len(result.res.value))
-        result_str = '%s %s  %s%s%s%5.2f s' % \
-            (num, name, padding1, result.res.value, padding2, result.duration)
+        status = ''
+        if result.res is TestResult.FAIL:
+            # Note: We can't use `os.WIFSIGNALED(result.returncode)` and the
+            # related functions here because the status returned by subprocess
+            # is munged. It is supposed to return a negative value if the
+            # process was killed by a signal but in reality it returns a
+            # positive value with 128 added to the signal number. Which is the
+            # opposite of the usual UNIX exit status semantics. That is, a
+            # process killed by a signal typically has a returncode < 128 while
+            # a termination due to an `exit()` call has a returncode > 128. So
+            # assume the usual UNIX semantics as munged by subprocess.
+            if result.returncode < 128:
+                status = ' (exit status %d)' % (result.returncode,)
+            else:
+                signum = result.returncode - 128
+                try:
+                    signame = signal.Signals(signum).name
+                except ValueError:
+                    signame = 'SIGinvalid'
+                status = ' (killed by signal %d %s)' % (signum, signame)
+        result_str = '%s %s  %s%s%s%5.2f s%s' % \
+            (num, name, padding1, result.res.value, padding2, result.duration,
+             status)
         if not self.options.quiet or result.res is not TestResult.OK:
             if result.res is not TestResult.OK and mlog.colorize_console:
-                if result.res is TestResult.FAIL or result.res is TestResult.TIMEOUT:
+                if result.res in (TestResult.FAIL, TestResult.TIMEOUT):
                     decorator = mlog.red
                 elif result.res is TestResult.SKIP:
                     decorator = mlog.yellow
