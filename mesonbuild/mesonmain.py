@@ -295,7 +295,7 @@ def run(original_args, mainfile):
         if msys2_arch:
             mlog.error('Please install and use mingw-w64-i686-python3 and/or mingw-w64-x86_64-python3 with Pacman')
         else:
-            mlog.error('Please download and use Python from www.python.org')
+            mlog.error('Please download and use Python as detailed at: https://mesonbuild.com/Getting-meson.html')
         return 2
     # Set the meson command that will be used to run scripts and so on
     set_meson_command(mainfile)
