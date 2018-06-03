@@ -22,13 +22,22 @@ a pull-request process that runs CI and tests several platforms.
 
 ## Installing Meson with pip
 
-Meson is also available in the [Python Package Index] and can be
-installed with `pip3 install meson` to install it system-wide and requires root.
+Meson is available in the [Python Package Index] and can be installed with
+`pip3 install meson` which requires root and will install it system-wide.
 
 Alternatively, you can use `pip3 install --user meson` which will install it
 for your user and does not require any special privileges. This will install
 the package in `~/.local/`, so you will have to add `~/.local/bin` to your
 `PATH`.
+
+## Installing Meson and Ninja with the MSI installer
+
+We provide an MSI installer on the [GitHub release page] that can be used to
+install both Meson and Ninja at once for Windows. It also contains an embedded
+copy of Python, so scripts that use the [Python module](Python-module.md) and
+do not have any external dependencies will continue to work as expected.
+
+Please note that this is a new feature, so bug reports are expected and welcome!
 
 ## Dependencies
 
