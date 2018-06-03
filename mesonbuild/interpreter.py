@@ -1281,6 +1281,7 @@ class CompilerHolder(InterpreterObject):
         'include_directories',
         'args',
         'dependencies',
+        'use',
     })
     def has_header_method(self, args, kwargs):
         if len(args) != 1:
@@ -1290,9 +1291,15 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header must be a string.')
+        use = kwargs.get('use', False)
+        if not isinstance(use, bool):
+            raise InterpreterException('use must be boolean.')
         extra_args = self.determine_args(kwargs)
         deps = self.determine_dependencies(kwargs)
-        haz = self.compiler.has_header(hname, prefix, self.environment, extra_args, deps)
+        if use:
+            haz = self.compiler.check_header(hname, prefix, self.environment, extra_args, deps)
+        else:
+            haz = self.compiler.has_header(hname, prefix, self.environment, extra_args, deps)
         if haz:
             h = mlog.green('YES')
         else:
