@@ -678,7 +678,10 @@ class CCompiler(Compiler):
             head, main = self._no_prototype_templ()
         templ = head + stubs_fail + main
 
-        if self.links(templ.format(**fargs), env, extra_args, dependencies):
+        # Don't run the ordinary test for functions that are known to be
+        # built-ins because it will always fail to detect them.
+        if not funcname.startswith('__builtin_') and \
+           self.links(templ.format(**fargs), env, extra_args, dependencies):
             return True
 
         # MSVC does not have compiler __builtin_-s.
@@ -692,6 +695,7 @@ class CCompiler(Compiler):
         # need to look for them differently. On nice compilers like clang, we
         # can just directly use the __has_builtin() macro.
         fargs['no_includes'] = '#include' not in prefix
+        fargs['func_is_builtin'] = funcname.startswith('__builtin_')
         t = '''{prefix}
         #include <limits.h>
         int main() {{
@@ -705,7 +709,7 @@ class CCompiler(Compiler):
              * We would always check for this, but we get false positives on
              * MSYS2 if we do. Their toolchain is broken, but we can at least
              * give them a workaround. */
-            #if {no_includes:d}
+            #if {no_includes:d} && !{func_is_builtin:d}
                 __builtin_{func};
             // See above for why this is needed
             #elif defined(__stub_{func}) || defined(_stub__{func})
