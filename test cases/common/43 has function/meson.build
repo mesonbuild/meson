@@ -8,9 +8,11 @@ defines_has_builtin = '''#ifndef __has_builtin
 #error "no __has_builtin"
 #endif
 '''
-compilers = [meson.get_compiler('c'), meson.get_compiler('cpp')]
+langs = ['c', 'cpp']
 
-foreach cc : compilers
+foreach lang : langs
+  message('Running tests with @0@ compiler'.format(lang))
+  cc = meson.get_compiler(lang)
   if not cc.has_function('printf', prefix : '#include<stdio.h>',
                          args : unit_test_args)
     error('"printf" function not found (should always exist).')
@@ -71,10 +73,10 @@ foreach cc : compilers
            args : unit_test_args),
            'built-in alloca must be found with #include')
     if not cc.compiles(defines_has_builtin, args : unit_test_args)
-      assert(not cc.has_function('alloca',
+      assert(cc.has_function('alloca',
              prefix : '#include <alloca.h>\n#undef alloca',
              args : unit_test_args),
-             'built-in alloca must not be found with #include and #undef')
+             'built-in alloca must be found with #include and #undef')
     endif
   endif
 
@@ -87,5 +89,28 @@ foreach cc : compilers
     # We assume that if recvmmsg exists sendmmsg does too
     assert (cc.has_function('sendmmsg', args : unit_test_args),
             'Failed to detect function "sendmmsg" (should always exist).')
+  endif
+
+  # On MinGW, strndup was incorrectly detected as available with has_function
+  # even though it is not, so if it is detected by has_function, assert that it
+  # can actually be found by the linker.
+  if cc.has_function('strndup', args : unit_test_args)
+    assert(cc.has_function('strndup', prefix: '#include <string.h>', args : unit_test_args),
+           'strndup not found with prefix')
+    assert(cc.links('#include <string.h>\nint main() { char *s = strndup ("string", 1); }',
+                    args : unit_test_args),
+           'strndup incorrectly detected')
+  endif
+
+  # This is meant to be used as __builtin_smul_overflow, so we shouldn't find the unbuiltin version
+  if ['gcc', 'clang'].contains(cc.get_id())
+    assert(cc.has_function('__builtin_smul_overflow', args : unit_test_args),
+           '__builtin_smul_overflow must be found')
+    # FIXME: this fails on gcc, and we can't fix it without breaking builtin
+    # detection without headers for things like alloca()
+    if cc.get_id() == 'clang'
+      assert(not cc.has_function('smul_overflow', args : unit_test_args),
+             'smul_overflow is __builtin_smul_overflow and must not be found')
+    endif
   endif
 endforeach
