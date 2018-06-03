@@ -678,10 +678,7 @@ class CCompiler(Compiler):
             head, main = self._no_prototype_templ()
         templ = head + stubs_fail + main
 
-        # Don't run the ordinary test for functions that are known to be
-        # built-ins because it will always fail to detect them.
-        if not funcname.startswith('__builtin_') and \
-           self.links(templ.format(**fargs), env, extra_args, dependencies):
+        if self.links(templ.format(**fargs), env, extra_args, dependencies):
             return True
 
         # MSVC does not have compiler __builtin_-s.
