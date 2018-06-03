@@ -656,7 +656,7 @@ class CCompiler(Compiler):
         # glibc defines functions that are not available on Linux as stubs that
         # fail with ENOSYS (such as e.g. lchmod). In this case we want to fail
         # instead of detecting the stub as a valid symbol.
-        # We already included limits.h earlier to ensure that these are defined
+        # We also include limits.h to ensure that these are defined
         # for stub functions.
         stubs_fail = '''
         #if defined __stub_{func} || defined __stub___{func}
@@ -693,9 +693,10 @@ class CCompiler(Compiler):
         # can just directly use the __has_builtin() macro.
         fargs['no_includes'] = '#include' not in prefix
         t = '''{prefix}
+        #include <limits.h>
         int main() {{
         #ifdef __has_builtin
-            #if !__has_builtin(__builtin_{func})
+            #if !__has_builtin({func})
                 #error "__builtin_{func} not found"
             #endif
         #elif ! defined({func})
@@ -706,8 +707,11 @@ class CCompiler(Compiler):
              * give them a workaround. */
             #if {no_includes:d}
                 __builtin_{func};
+            // See above for why this is needed
+            #elif defined(__stub_{func}) || defined(_stub__{func})
+                #error "unusable function {func}"
             #else
-                #error "No definition for __builtin_{func} found in the prefix"
+                {func};
             #endif
         #endif
         }}'''
