@@ -240,6 +240,11 @@ def detect_system():
         return 'cygwin'
     return system
 
+def detect_msys2_arch():
+    if 'MSYSTEM_CARCH' in os.environ:
+        return os.environ['MSYSTEM_CARCH']
+    return None
+
 def search_version(text):
     # Usually of the type 4.1.4 but compiler output may contain
     # stuff like this:

@@ -23,6 +23,7 @@ from . import build
 from . import mconf, mintro, mtest, rewriter, minit
 from . import mlog, coredata
 from .mesonlib import MesonException
+from .environment import detect_msys2_arch
 from .wrap import WrapMode, wraptool
 
 default_warning = '1'
@@ -287,6 +288,15 @@ def run(original_args, mainfile):
         print('You have python %s.' % sys.version)
         print('Please update your environment')
         return 1
+    # https://github.com/mesonbuild/meson/issues/3653
+    if sys.platform.lower() == 'msys':
+        mlog.error('This python3 seems to be msys/python on MSYS2 Windows, which is known to have path semantics incompatible with Meson')
+        msys2_arch = detect_msys2_arch()
+        if msys2_arch:
+            mlog.error('Please install and use mingw-w64-i686-python3 and/or mingw-w64-x86_64-python3 with Pacman')
+        else:
+            mlog.error('Please download and use Python from www.python.org')
+        return 2
     # Set the meson command that will be used to run scripts and so on
     set_meson_command(mainfile)
     args = original_args[:]
