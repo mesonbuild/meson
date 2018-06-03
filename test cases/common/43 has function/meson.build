@@ -102,8 +102,9 @@ foreach lang : langs
            'strndup incorrectly detected')
   endif
 
-  # This is meant to be used as __builtin_smul_overflow, so we shouldn't find the unbuiltin version
+  # Test various builtins
   if ['gcc', 'clang'].contains(cc.get_id())
+    # This is meant to be used as __builtin_smul_overflow, so we shouldn't find the unbuiltin version
     assert(cc.has_function('__builtin_smul_overflow', args : unit_test_args),
            '__builtin_smul_overflow must be found')
     # FIXME: this fails on gcc, and we can't fix it without breaking builtin
@@ -112,5 +113,26 @@ foreach lang : langs
       assert(not cc.has_function('smul_overflow', args : unit_test_args),
              'smul_overflow is __builtin_smul_overflow and must not be found')
     endif
+    # Math builtins
+    if lang == 'c'
+      foreach bf: ['fpclassify', 'isfinite', 'isnormal', 'isgreater', 'isnan',
+                   'isgreaterequal', 'isless', 'islessequal', 'islessgreater',
+                   'isunordered']
+        assert(cc.has_function(bf, prefix : '#include <math.h>', args : unit_test_args),
+               '@0@ must be found'.format(bf))
+      endforeach
+    endif
+    # String builtins
+    foreach bf: ['strncpy', 'strncat', 'strcspn', 'strspn']
+      assert(cc.has_function(bf, args : unit_test_args),
+             '@0@ must be found'.format(bf))
+    endforeach
+    # Other builtins
+    assert(cc.has_function('offsetof', prefix : '#include <stddef.h>', args : unit_test_args),
+           'offsetof must be found')
+    foreach bf: ['va_start', 'va_end', 'va_arg']
+      assert(cc.has_function(bf, prefix : '#include <stdarg.h>', args : unit_test_args),
+             '@0@ must be found'.format(bf))
+    endforeach
   endif
 endforeach

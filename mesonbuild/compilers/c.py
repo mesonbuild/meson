@@ -575,60 +575,64 @@ class CCompiler(Compiler):
                 raise EnvironmentException(m.format(fname))
 
     @staticmethod
-    def _no_prototype_templ():
-        """
-        Try to find the function without a prototype from a header by defining
-        our own dummy prototype and trying to link with the C library (and
-        whatever else the compiler links in by default). This is very similar
-        to the check performed by Autoconf for AC_CHECK_FUNCS.
-        """
-        # Define the symbol to something else since it is defined by the
-        # includes or defines listed by the user or by the compiler. This may
-        # include, for instance _GNU_SOURCE which must be defined before
-        # limits.h, which includes features.h
-        # Then, undef the symbol to get rid of it completely.
-        head = '''
-        #define {func} meson_disable_define_of_{func}
-        {prefix}
-        #include <limits.h>
-        #undef {func}
-        '''
-        # Override any GCC internal prototype and declare our own definition for
-        # the symbol. Use char because that's unlikely to be an actual return
-        # value for a function which ensures that we override the definition.
-        head += '''
-        #ifdef __cplusplus
-        extern "C"
-        #endif
-        char {func} ();
-        '''
-        # The actual function call
-        main = '''
-        int main () {{
-          return {func} ();
-        }}'''
-        return head, main
-
-    @staticmethod
-    def _have_prototype_templ():
+    def _get_has_function_templ():
         """
         Returns a head-er and main() call that uses the headers listed by the
-        user for the function prototype while checking if a function exists.
+        user for the function prototype while checking if a pre-processor
+        define of that name exists, or a function by that name exists.
+
+        If headers are not provided, it will try to find the function without
+        a prototype from a header by defining our own dummy prototype and
+        trying to link with the C library (and whatever else the compiler links
+        in by default). This is very similar to the check performed by Autoconf
+        for AC_CHECK_FUNCS.
         """
-        # Add the 'prefix', aka defines, includes, etc that the user provides
-        # This may include, for instance _GNU_SOURCE which must be defined
-        # before limits.h, which includes features.h
-        head = '{prefix}\n#include <limits.h>\n'
-        # We don't know what the function takes or returns, so return it as an int.
-        # Just taking the address or comparing it to void is not enough because
-        # compilers are smart enough to optimize it away. The resulting binary
-        # is not run so we don't care what the return value is.
-        main = '''\nint main() {{
+        templ = '''
+        // Define the symbol to something else since it may be defined by the compiler.
+        #if {no_includes}
+            #define {func} meson_disable_define_of_{func}
+        #endif
+        // Include prefix first since it may include, for instance _GNU_SOURCE
+        // which must be defined before limits.h, which includes features.h
+        {prefix}
+        #include <limits.h>
+        #if {no_includes}
+            // Undef the symbol to get rid of it completely.
+            #undef {func}
+            // Override any GCC internal prototype and declare our own definition for
+            // the symbol. Use char because that's unlikely to be an actual return
+            //value for a function which ensures that we override the definition.
+            #ifdef __cplusplus
+            extern "C"
+            #endif
+            char {func} ();
+        #endif
+        // glibc defines functions that are not available on Linux as stubs that
+        // fail with ENOSYS (such as e.g. lchmod). In this case we want to fail
+        // instead of detecting the stub as a valid symbol.
+        // We also include limits.h to ensure that these are defined
+        // for stub functions.
+        #if defined __stub_{func} || defined __stub___{func}
+        fail fail fail this function is not going to work
+        #endif
+
+        int main () {{
+        #if {no_includes}
+            return {func} ();
+        #elif defined({func})
+            // Assume that the definition is a function
+        #else
+        // We don't know what the function takes or returns, so return it as an
+        // int.  Just taking the address or comparing it to void is not enough
+        // because the compiler might optimize it away (although we now pass -O0
+        // to compiler checks, so this shouldn't happen). The resulting binary
+        // is not run so we don't care what the return value is.
             void *a = (void*) &{func};
             long b = (long) a;
             return (int) b;
+        #endif
         }}'''
-        return head, main
+        return templ
 
     def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
         """
@@ -651,18 +655,8 @@ class CCompiler(Compiler):
                     return val
                 raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
 
-        fargs = {'prefix': prefix, 'func': funcname}
-
-        # glibc defines functions that are not available on Linux as stubs that
-        # fail with ENOSYS (such as e.g. lchmod). In this case we want to fail
-        # instead of detecting the stub as a valid symbol.
-        # We also include limits.h to ensure that these are defined
-        # for stub functions.
-        stubs_fail = '''
-        #if defined __stub_{func} || defined __stub___{func}
-        fail fail fail this function is not going to work
-        #endif
-        '''
+        fargs = {'prefix': prefix, 'func': funcname,
+                 'no_includes': int('#include' not in prefix)}
 
         # If we have any includes in the prefix supplied by the user, assume
         # that the user wants us to use the symbol prototype defined in those
@@ -672,11 +666,7 @@ class CCompiler(Compiler):
         # SDK based on the prototype in the header provided by the SDK.
         # Ignoring this prototype would result in the symbol always being
         # marked as available.
-        if '#include' in prefix:
-            head, main = self._have_prototype_templ()
-        else:
-            head, main = self._no_prototype_templ()
-        templ = head + stubs_fail + main
+        templ = self._get_has_function_templ()
 
         if self.links(templ.format(**fargs), env, extra_args, dependencies):
             return True
@@ -691,22 +681,21 @@ class CCompiler(Compiler):
         # are inlined by the compiler and you can't take their address, so we
         # need to look for them differently. On nice compilers like clang, we
         # can just directly use the __has_builtin() macro.
-        fargs['no_includes'] = '#include' not in prefix
-        fargs['func_is_builtin'] = funcname.startswith('__builtin_')
+        fargs['func_is_builtin'] = int(funcname.startswith('__builtin_'))
         t = '''{prefix}
         #include <limits.h>
         int main() {{
-        #ifdef __has_builtin
+        #if defined(__has_builtin)
             #if !__has_builtin({func})
                 #error "__builtin_{func} not found"
             #endif
-        #elif ! defined({func})
+        #else
             /* Check for __builtin_{func} only if no includes were added to the
              * prefix above, which means no definition of {func} can be found.
              * We would always check for this, but we get false positives on
              * MSYS2 if we do. Their toolchain is broken, but we can at least
              * give them a workaround. */
-            #if {no_includes:d} && !{func_is_builtin:d}
+            #if {no_includes} && !{func_is_builtin}
                 __builtin_{func};
             // See above for why this is needed
             #elif defined(__stub_{func}) || defined(_stub__{func})
