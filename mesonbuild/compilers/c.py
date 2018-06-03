@@ -45,6 +45,7 @@ from .compilers import (
 
 class CCompiler(Compiler):
     library_dirs_cache = {}
+    program_dirs_cache = {}
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
@@ -166,17 +167,39 @@ class CCompiler(Compiler):
         env = os.environ.copy()
         env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=env)[1]
+        paths = []
         for line in stdo.split('\n'):
             if line.startswith('libraries:'):
                 libstr = line.split('=', 1)[1]
-                return libstr.split(':')
-        return []
+                paths = [os.path.realpath(p) for p in libstr.split(':')]
+        return paths
 
     def get_library_dirs(self):
         key = tuple(self.exelist)
         if key not in self.library_dirs_cache:
             self.library_dirs_cache[key] = self.get_library_dirs_real()
         return self.library_dirs_cache[key][:]
+
+    def get_program_dirs_real(self):
+        env = os.environ.copy()
+        env['LC_ALL'] = 'C'
+        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=env)[1]
+        paths = []
+        for line in stdo.split('\n'):
+            if line.startswith('programs:'):
+                libstr = line.split('=', 1)[1]
+                paths = [os.path.realpath(p) for p in libstr.split(':')]
+        return paths
+
+    def get_program_dirs(self):
+        '''
+        Programs used by the compiler. Also where toolchain DLLs such as
+        libstdc++-6.dll are found with MinGW.
+        '''
+        key = tuple(self.exelist)
+        if key not in self.program_dirs_cache:
+            self.program_dirs_cache[key] = self.get_program_dirs_real()
+        return self.program_dirs_cache[key][:]
 
     def get_pic_args(self):
         return ['-fPIC']
