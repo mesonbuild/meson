@@ -20,7 +20,7 @@ from .. import mlog
 from .. import compilers
 import json
 import subprocess
-from ..mesonlib import MesonException
+from ..mesonlib import MesonException, OrderedSet
 from ..mesonlib import get_compiler_for_source, classify_unity_sources
 from ..mesonlib import File
 from ..compilers import CompilerArgs
@@ -567,17 +567,22 @@ class Backend:
             args.append(d_arg)
         return args
 
-    def get_mingw_extra_paths(self):
-        paths = []
+    def get_mingw_extra_paths(self, target):
+        paths = OrderedSet()
         # The cross bindir
         root = self.environment.cross_info.get_root()
         if root:
-            paths.append(os.path.join(root, 'bin'))
+            paths.add(os.path.join(root, 'bin'))
         # The toolchain bindir
         sys_root = self.environment.cross_info.get_sys_root()
         if sys_root:
-            paths.append(os.path.join(sys_root, 'bin'))
-        return paths
+            paths.add(os.path.join(sys_root, 'bin'))
+        # Get program and library dirs from all target compilers
+        if isinstance(target, build.BuildTarget):
+            for cc in target.compilers.values():
+                paths.update(cc.get_program_dirs())
+                paths.update(cc.get_library_dirs())
+        return list(paths)
 
     def determine_windows_extra_paths(self, target, extra_bdeps, is_cross=False):
         '''On Windows there is no such thing as an rpath.
@@ -600,7 +605,7 @@ class Backend:
             dirseg = os.path.join(self.environment.get_build_dir(), self.get_target_dir(ld))
             result.add(dirseg)
         if is_cross:
-            result.update(self.get_mingw_extra_paths())
+            result.update(self.get_mingw_extra_paths(target))
         return list(result)
 
     def write_benchmark_file(self, datafile):
