@@ -347,7 +347,7 @@ class QtBaseDependency(ExternalDependency):
                 for dir in priv_inc:
                     self.compile_args.append('-I' + dir)
             if for_windows(self.env.is_cross_build(), self.env):
-                is_debug = self.env.cmd_line_options.buildtype.startswith('debug')
+                is_debug = self.env.cmd_line_options.buildtype == 'debug'
                 dbg = 'd' if is_debug else ''
                 if self.qtver == '4':
                     base_name = 'Qt' + module + dbg + '4'
