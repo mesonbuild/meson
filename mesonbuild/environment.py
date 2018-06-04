@@ -331,7 +331,7 @@ class Environment:
             self.object_suffix = 'o'
             self.win_libdir_layout = False
         if 'STRIP' in os.environ:
-            self.native_strip_bin = shlex.split('STRIP')
+            self.native_strip_bin = shlex.split(os.environ['STRIP'])
         else:
             self.native_strip_bin = ['strip']
 
