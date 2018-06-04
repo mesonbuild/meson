@@ -504,6 +504,7 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder):
         return DependencyHolder(self.held_object.get_partial_dependency(**kwargs))
 
 class GeneratorHolder(InterpreterObject, ObjectHolder):
+    @FeatureNewKwargs('generator', '0.43.0', ['capture'])
     def __init__(self, interpreter, args, kwargs):
         InterpreterObject.__init__(self)
         self.interpreter = interpreter
@@ -3790,6 +3791,14 @@ Try setting b_lundef to false instead.''')
             raise InterpreterException('Unknown default_library value: %s.', default_library)
 
     def build_target(self, node, args, kwargs, targetholder):
+        @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
+        @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
+        @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
+        def build_target_decorator_caller(self, node, args, kwargs):
+            return True
+
+        build_target_decorator_caller(self, node, args, kwargs)
+
         if not args:
             raise InterpreterException('Target does not have a name.')
         name = args[0]

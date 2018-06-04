@@ -396,6 +396,12 @@ def grab_leading_numbers(vstr, strict=False):
             break
     return result
 
+def make_same_len(listA, listB):
+    maxlen = max(len(listA), len(listB))
+    for i in listA, listB:
+        for n in range(len(i), maxlen):
+            i.append(0)
+
 numpart = re.compile('[0-9.]+')
 
 def version_compare(vstr1, vstr2, strict=False):
@@ -429,6 +435,7 @@ def version_compare(vstr1, vstr2, strict=False):
         cmpop = operator.eq
     varr1 = grab_leading_numbers(vstr1, strict)
     varr2 = grab_leading_numbers(vstr2, strict)
+    make_same_len(varr1, varr2)
     return cmpop(varr1, varr2)
 
 def version_compare_many(vstr1, conditions):
@@ -451,7 +458,7 @@ def version_compare_condition_with_min(condition, minimum):
         raise MesonException(msg.format(minimum))
     minimum = match.group(0)
     if condition.startswith('>='):
-        cmpop = operator.lt
+        cmpop = operator.le
         condition = condition[2:]
     elif condition.startswith('<='):
         return True
@@ -460,10 +467,10 @@ def version_compare_condition_with_min(condition, minimum):
         return True
         condition = condition[2:]
     elif condition.startswith('=='):
-        cmpop = operator.lt
+        cmpop = operator.le
         condition = condition[2:]
     elif condition.startswith('='):
-        cmpop = operator.lt
+        cmpop = operator.le
         condition = condition[1:]
     elif condition.startswith('>'):
         cmpop = operator.lt
@@ -472,9 +479,10 @@ def version_compare_condition_with_min(condition, minimum):
         return True
         condition = condition[2:]
     else:
-        cmpop = operator.eq
+        cmpop = operator.le
     varr1 = grab_leading_numbers(minimum, True)
     varr2 = grab_leading_numbers(condition, True)
+    make_same_len(varr1, varr2)
     return cmpop(varr1, varr2)
 
 def version_compare_condition_with_max(condition, maximum):
@@ -487,27 +495,28 @@ def version_compare_condition_with_max(condition, maximum):
         return False
         condition = condition[2:]
     elif condition.startswith('<='):
-        cmpop = operator.lt
+        cmpop = operator.ge
         condition = condition[2:]
     elif condition.startswith('!='):
         return False
         condition = condition[2:]
     elif condition.startswith('=='):
-        cmpop = operator.lt
+        cmpop = operator.ge
         condition = condition[2:]
     elif condition.startswith('='):
-        cmpop = operator.lt
+        cmpop = operator.ge
         condition = condition[1:]
     elif condition.startswith('>'):
         return False
         condition = condition[1:]
     elif condition.startswith('<'):
-        cmpop = operator.lt
+        cmpop = operator.gt
         condition = condition[2:]
     else:
-        cmpop = operator.eq
+        cmpop = operator.ge
     varr1 = grab_leading_numbers(maximum, True)
     varr2 = grab_leading_numbers(condition, True)
+    make_same_len(varr1, varr2)
     return cmpop(varr1, varr2)
 
 
