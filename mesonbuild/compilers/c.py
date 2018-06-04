@@ -298,6 +298,16 @@ class CCompiler(Compiler):
         else:
             return ['-Wl,-export-dynamic']
 
+    def get_undefsymbols_args(self, env):
+        nm_bin = env.binaries.host.lookup_entry('nm')
+        if nm_bin is None:
+            if env.is_cross_build():
+                mlog.warning('Cross file does not specify nm binary, symbols used by modules will not be added from static libraries.')
+            else:
+                # TODO go through all candidates, like others
+                nm_bin = [env.default_nm[0]]
+        return ['--prefix=-Wl,-u -Wl,', '--nm'] + nm_bin if nm_bin else []
+
     def gen_import_library_args(self, implibname):
         """
         The name of the outputted import library
@@ -1499,6 +1509,11 @@ class VisualStudioCCompiler(CCompiler):
     def gen_pch_args(self, header, source, pchname):
         objname = os.path.splitext(pchname)[0] + '.obj'
         return objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname]
+
+    def get_undefsymbols_args(self, env):
+        # Could be something like ['--dumpbin', '--prefix=/INCLUDE:'] if
+        # undefsymbols could parse dumpbin output.
+        return []
 
     def gen_import_library_args(self, implibname):
         "The name of the outputted import library"

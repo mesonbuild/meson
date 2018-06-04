@@ -1,6 +1,8 @@
 project('shared module', 'c')
+backend = meson.backend()
 compiler = meson.get_compiler('c')
-have_undefsymbols = false
+cpp_id = compiler.get_id()
+have_undefsymbols = (backend == 'ninja') and (cpp_id == 'gcc' or cpp_id == 'clang')
 
 if not have_undefsymbols
   error('MESON_SKIP_TEST undefsymbols not supported on this platform.')

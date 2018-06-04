@@ -428,6 +428,7 @@ class Environment:
         self.default_vala = ['valac']
         self.default_static_linker = ['ar']
         self.default_strip = ['strip']
+        self.default_nm = ['nm']
         self.vs_static_linker = ['lib']
         self.clang_cl_static_linker = ['llvm-lib']
         self.cuda_static_linker = ['nvlink']
@@ -1505,6 +1506,7 @@ class BinaryTable:
         # Binutils
         'strip': 'STRIP',
         'ar': 'AR',
+        'nm': 'NM',
         'windres': 'WINDRES',
 
         'cmake': 'CMAKE',

@@ -2,6 +2,7 @@
 c = '/usr/bin/i686-w64-mingw32-gcc'
 cpp = '/usr/bin/i686-w64-mingw32-g++'
 ar = '/usr/bin/i686-w64-mingw32-ar'
+nm = '/usr/bin/i686-w64-mingw32-nm'
 strip = '/usr/bin/i686-w64-mingw32-strip'
 pkgconfig = '/usr/bin/i686-w64-mingw32-pkg-config'
 windres = '/usr/bin/i686-w64-mingw32-windres'

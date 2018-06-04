@@ -5,6 +5,7 @@ c = '/usr/bin/arm-linux-gnueabihf-gcc'
 cpp = '/usr/bin/arm-linux-gnueabihf-g++'
 rust = ['rustc', '--target', 'arm-unknown-linux-gnueabihf', '-C', 'linker=/usr/bin/arm-linux-gnueabihf-gcc-7']
 ar = '/usr/arm-linux-gnueabihf/bin/ar'
+nm = '/usr/arm-linux-gnueabihf/bin/nm'
 strip = '/usr/arm-linux-gnueabihf/bin/strip'
 pkgconfig = '/usr/bin/arm-linux-gnueabihf-pkg-config'
 
