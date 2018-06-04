@@ -25,7 +25,7 @@ from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
 from .mesonlib import for_windows, for_darwin, for_cygwin, for_android, has_path_sep
 from .compilers import is_object, clink_langs, sort_clink, lang_suffixes
-from .interpreterbase import FeatureNew, FeatureNewKwargs
+from .interpreterbase import FeatureNew
 
 pch_kwargs = set(['c_pch', 'cpp_pch'])
 
@@ -332,9 +332,6 @@ a hard error in the future.''' % name)
             myid = subdir_part + '@@' + myid
         return myid
 
-    @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
-    @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
-    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     def process_kwargs(self, kwargs):
         if 'build_by_default' in kwargs:
             self.build_by_default = kwargs['build_by_default']
@@ -1095,7 +1092,6 @@ recommended as it is not supported on some platforms''')
                 return
 
 class Generator:
-    @FeatureNewKwargs('generator', '0.43.0', ['capture'])
     def __init__(self, args, kwargs):
         if len(args) != 1:
             raise InvalidArguments('Generator requires exactly one positional argument: the executable')

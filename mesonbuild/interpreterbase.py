@@ -127,6 +127,7 @@ class FeatureNew:
     """Checks for new features"""
     # Shared across all instances
     feature_versions = dict()
+    feature_warnings = False
 
     def __init__(self, feature_name, version):
         self.feature_name = feature_name
@@ -135,24 +136,33 @@ class FeatureNew:
     def add_called_feature(self):
         if self.feature_version not in self.feature_versions:
             self.feature_versions[self.feature_version] = set()
-        self.feature_versions[self.feature_version].add(self.feature_name)
+
+        if self.feature_name in self.feature_versions[self.feature_version]:
+            return False
+        else:
+            self.feature_versions[self.feature_version].add(self.feature_name)
+            return True
 
     def called_features_report():
-        fv = FeatureNew.feature_versions
-        if fv:
-            print('Minimum version of features used:')
+        if FeatureNew.feature_warnings:
+            warning_str = 'Invalid minimum meson_version \'{}\' conflicts with:'\
+                .format(mesonlib.target_version)
+            fv = FeatureNew.feature_versions
             for version in sorted(fv.keys()):
-                print('{}: {}'.format(version, fv[version]))
+                warning_str += '\n * {}: {}'.format(version, fv[version])
+            mlog.warning(warning_str)
 
     def use(self):
-        self.add_called_feature()
         tv = mesonlib.target_version
         if tv == '':
             return
         if not mesonlib.version_compare_condition_with_min(tv, self.feature_version):
-            mlog.warning(
-                '''Project targetting \'{}\' but tried to use feature introduced in \'{}\': {}'''
-                .format(tv, self.feature_version, self.feature_name))
+            FeatureNew.feature_warnings = True
+            if self.add_called_feature():
+                mlog.warning(
+                    '''Project targetting \'{}\' but tried to use feature introduced in \'{}\': {}'''
+                    .format(tv, self.feature_version, self.feature_name)
+                )
 
     def __call__(self, f):
         @wraps(f)
@@ -165,6 +175,7 @@ class FeatureDeprecated:
     """Checks for deprecated features"""
     # Shared across all instances
     feature_versions = dict()
+    feature_warnings = False
 
     def __init__(self, feature_name, version):
         self.feature_name = feature_name
@@ -173,24 +184,33 @@ class FeatureDeprecated:
     def add_called_feature(self):
         if self.feature_version not in self.feature_versions:
             self.feature_versions[self.feature_version] = set()
-        self.feature_versions[self.feature_version].add(self.feature_name)
+
+        if self.feature_name in self.feature_versions[self.feature_version]:
+            return False
+        else:
+            self.feature_versions[self.feature_version].add(self.feature_name)
+            return True
 
     def called_features_report():
-        fv = FeatureDeprecated.feature_versions
-        if fv:
-            print('Deprecated features used:')
+        if FeatureDeprecated.feature_warnings:
+            warning_str = 'Deprecated features used:'\
+                .format(mesonlib.target_version)
+            fv = FeatureDeprecated.feature_versions
             for version in sorted(fv.keys()):
-                print('{}: {}'.format(version, fv[version]))
+                warning_str += '\n * {}: {}'.format(version, fv[version])
+            mlog.warning(warning_str)
 
     def use(self):
-        self.add_called_feature()
         tv = mesonlib.target_version
         if tv == '':
             return
         if not mesonlib.version_compare_condition_with_max(tv, self.feature_version):
-            mlog.warning(
-                '''Project targetting \'{}\' but tried to use feature deprecated since \'{}\': {}'''
-                .format(tv, self.feature_version, self.feature_name))
+            FeatureDeprecated.feature_warnings = True
+            if self.add_called_feature():
+                mlog.warning(
+                    '''Project targetting \'{}\' but tried to use feature deprecated since \'{}\': {}'''
+                    .format(tv, self.feature_version, self.feature_name)
+                )
 
     def __call__(self, f):
         @wraps(f)
@@ -208,8 +228,9 @@ class FeatureNewKwargs:
     def __call__(self, f):
         @wraps(f)
         def wrapped(*wrapped_args, **wrapped_kwargs):
+            s, node_or_state, args, call_kwargs = _get_callee_args(wrapped_args)
             for arg in self.kwargs:
-                if arg in wrapped_kwargs:
+                if arg in call_kwargs:
                     FeatureNew(arg + ' arg in ' + self.feature_name, self.feature_version).use()
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
@@ -223,8 +244,9 @@ class FeatureDeprecatedKwargs:
     def __call__(self, f):
         @wraps(f)
         def wrapped(*wrapped_args, **wrapped_kwargs):
+            s, node_or_state, args, call_kwargs = _get_callee_args(wrapped_args)
             for arg in self.kwargs:
-                if arg in wrapped_kwargs:
+                if arg in call_kwargs:
                     FeatureDeprecated(arg + ' arg in ' + self.feature_name, self.feature_version).use()
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
