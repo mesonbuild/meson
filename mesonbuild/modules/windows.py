@@ -30,13 +30,14 @@ class WindowsModule(ExtensionModule):
                 return compilers[l]
         raise MesonException('Resource compilation requires a C or C++ compiler.')
 
-    @FeatureNewKwargs('windows.compile_resources', '0.47.0', ['depend_files'])
-    @permittedKwargs({'args', 'include_directories', 'depend_files'})
+    @FeatureNewKwargs('windows.compile_resources', '0.47.0', ['depend_files', 'depends'])
+    @permittedKwargs({'args', 'include_directories', 'depend_files', 'depends'})
     def compile_resources(self, state, args, kwargs):
         comp = self.detect_compiler(state.compilers)
 
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
-        wrc_deps = extract_as_list(kwargs, 'depend_files', pop = True)
+        wrc_depend_files = extract_as_list(kwargs, 'depend_files', pop = True)
+        wrc_depends = extract_as_list(kwargs, 'depends', pop = True)
         inc_dirs = extract_as_list(kwargs, 'include_directories', pop = True)
         for incd in inc_dirs:
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
@@ -85,7 +86,8 @@ class WindowsModule(ExtensionModule):
                 'output': '@BASENAME@.' + suffix,
                 'input': [src],
                 'command': [rescomp] + res_args,
-                'depend_files': wrc_deps,
+                'depend_files': wrc_depend_files,
+                'depends': wrc_depends,
             }
 
             if isinstance(src, (str, mesonlib.File)):
