@@ -20,6 +20,7 @@ from ..mesonlib import MesonException, extract_as_list
 from . import get_include_args
 from . import ModuleReturnValue
 from . import ExtensionModule
+from ..interpreter import CustomTargetHolder
 from ..interpreterbase import permittedKwargs, FeatureNewKwargs
 
 class WindowsModule(ExtensionModule):
@@ -38,6 +39,9 @@ class WindowsModule(ExtensionModule):
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
         wrc_depend_files = extract_as_list(kwargs, 'depend_files', pop = True)
         wrc_depends = extract_as_list(kwargs, 'depends', pop = True)
+        for d in wrc_depends:
+            if isinstance(d, CustomTargetHolder):
+                extra_args += get_include_args([d.outdir_include()])
         inc_dirs = extract_as_list(kwargs, 'include_directories', pop = True)
         for incd in inc_dirs:
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
