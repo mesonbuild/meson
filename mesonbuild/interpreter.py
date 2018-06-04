@@ -854,6 +854,10 @@ class CustomTargetHolder(TargetHolder):
     def __delitem__(self, index):
         raise InterpreterException('Cannot delete a member of a CustomTarget')
 
+    def outdir_include(self):
+        return IncludeDirsHolder(build.IncludeDirs('', [], False,
+                                                   [self.interpreter.backend.get_target_dir(self.held_object)]))
+
 class RunTargetHolder(InterpreterObject, ObjectHolder):
     def __init__(self, name, command, args, dependencies, subdir, subproject):
         InterpreterObject.__init__(self)
