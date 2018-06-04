@@ -1258,11 +1258,17 @@ int dummy;
 
     def generate_rust_target(self, target, outfile):
         rustc = target.compilers['rust']
-        relsrc = []
+        # Rust compiler takes only the main file as input and
+        # figures out what other files are needed via import
+        # statements and magic.
+        main_rust_file = None
         for i in target.get_sources():
             if not rustc.can_compile(i):
                 raise InvalidArguments('Rust target %s contains a non-rust source file.' % target.get_basename())
-            relsrc.append(i.rel_to_builddir(self.build_to_src))
+            if main_rust_file is None:
+                main_rust_file = i.rel_to_builddir(self.build_to_src)
+        if main_rust_file is None:
+            raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
         target_name = os.path.join(target.subdir, target.get_filename())
         args = ['--crate-type']
         if isinstance(target, build.Executable):
@@ -1329,7 +1335,7 @@ int dummy;
         if target.is_cross:
             crstr = '_CROSS'
         compiler_name = 'rust%s_COMPILER' % crstr
-        element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, relsrc)
+        element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, main_rust_file)
         if len(orderdeps) > 0:
             element.add_orderdep(orderdeps)
         element.add_item('ARGS', args)
