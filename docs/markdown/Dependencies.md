@@ -111,6 +111,26 @@ of all the work behind the scenes to make this work.
 
 # Dependencies with custom lookup functionality
 
+## Dependencies using config tools
+
+CUPS, [LLVM](#llvm), PCAP, [WxWidgets](#wxwidgets), libwmf, and GnuStep either do not
+provide pkg-config modules or additionally can be detected via a config tool
+(cups-config, llvm-config, etc). Meson has native support for these tools, and
+they can be found like other dependencies:
+
+```meson
+pcap_dep = dependency('pcap', version : '>=1.0')
+cups_dep = dependency('cups', version : '>=1.4')
+llvm_dep = dependency('llvm', version : '>=4.0')
+```
+
+Some of these tools (like wmf and cups) provide both pkg-config and config
+tools support. You can force one or another via the method keyword:
+
+```meson
+wmf_dep = dependency('libwmf', method : 'config-tool')
+```
+
 ## AppleFrameworks
 
 Use the `modules` keyword to list frameworks required, e.g.
@@ -167,6 +187,36 @@ gtest_dep = dependency('gtest', main : true, required : false)
 e = executable('testprog', 'test.cc', dependencies : gtest_dep)
 test('gtest test', e)
 ```
+
+## LLVM
+
+Meson has native support for LLVM going back to version LLVM version 3.5.
+It supports a few additional features compared to other config-tool based
+dependencies.
+
+As of 0.44.0 Meson supports the `static` keyword argument for LLVM. Before this
+LLVM >= 3.9 would always dynamically link, while older versions would
+statically link, due to a quirk in `llvm-config`.
+
+### Modules, a.k.a. Components
+
+Meson wraps LLVM's concept of components in it's own modules concept.
+When you need specific components you add them as modules as meson will do the
+right thing:
+
+```meson
+llvm_dep = dependency('llvm', version : '>= 4.0', modules : ['amdgpu'])
+```
+
+As of 0.44.0 it can also take optional modules (these will affect the arguments
+generated for a static link):
+
+```meson
+llvm_dep = dependency(
+  'llvm', version : '>= 4.0', modules : ['amdgpu'], optional_modules : ['inteljitevents'],
+)
+```
+
 ## MPI
 
 MPI is supported for C, C++ and Fortran. Because dependencies are
@@ -189,6 +239,18 @@ This dependency selects the appropriate compiler flags and/or libraries to use
 for OpenMP support.
 
 The `language` keyword may used.
+
+## Python3
+
+Python3 is handled specially by meson:
+1. Meson tries to use `pkg-config`.
+1. If `pkg-config` fails meson uses a fallback:
+    - On Windows the fallback is the current `python3` interpreter.
+    - On OSX the fallback is a framework dependency from `/Library/Frameworks`.
+
+Note that `python3` found by this dependency might differ from the one used in
+`python3` module because modules uses the current interpreter, but dependency tries
+`pkg-config` first.
 
 ## Qt4 & Qt5
 
@@ -250,26 +312,6 @@ and avoids trying to link with it's non-PIC static libs.
 
 Vulkan can be located using `pkg-config`, or the `VULKAN_SDK` environment variable.
 
-## Dependencies using config tools
-
-CUPS, LLVM, PCAP, [WxWidgets](#wxwidgets), libwmf, and GnuStep either do not
-provide pkg-config modules or additionally can be detected via a config tool
-(cups-config, llvm-config, etc). Meson has native support for these tools, and
-they can be found like other dependencies:
-
-```meson
-pcap_dep = dependency('pcap', version : '>=1.0')
-cups_dep = dependency('cups', version : '>=1.4')
-llvm_dep = dependency('llvm', version : '>=4.0')
-```
-
-Some of these tools (like wmf and cups) provide both pkg-config and config
-tools support. You can force one or another via the method keyword:
-
-```meson
-wmf_dep = dependency('libwmf', method : 'config-tool')
-```
-
 ## WxWidgets
 
 Similar to [Boost](#boost), WxWidgets is not a single library but rather
@@ -293,44 +335,3 @@ $ wx-config --cxxflags std stc
 # link_args:
 $ wx-config --libs std stc
 ```
-
-## LLVM
-
-Meson has native support for LLVM going back to version LLVM version 3.5. 
-It supports a few additional features compared to other config-tool based
-dependencies.
-
-As of 0.44.0 Meson supports the `static` keyword argument for LLVM. Before this
-LLVM >= 3.9 would always dynamically link, while older versions would
-statically link, due to a quirk in `llvm-config`.
-
-### Modules, a.k.a. Components
-
-Meson wraps LLVM's concept of components in it's own modules concept.
-When you need specific components you add them as modules as meson will do the
-right thing:
-
-```meson
-llvm_dep = dependency('llvm', version : '>= 4.0', modules : ['amdgpu'])
-```
-
-As of 0.44.0 it can also take optional modules (these will affect the arguments
-generated for a static link):
-
-```meson
-llvm_dep = dependency(
-  'llvm', version : '>= 4.0', modules : ['amdgpu'], optional_modules : ['inteljitevents'],
-)
-```
-
-## Python3
-
-Python3 is handled specially by meson:
-1. Meson tries to use `pkg-config`.
-1. If `pkg-config` fails meson uses a fallback:
-    - On Windows the fallback is the current `python3` interpreter.
-    - On OSX the fallback is a framework dependency from `/Library/Frameworks`.
-
-Note that `python3` found by this dependency might differ from the one used in
-`python3` module because modules uses the current interpreter, but dependency tries
-`pkg-config` first.
