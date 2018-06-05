@@ -267,7 +267,7 @@ Some of these tools (like wmf and cups) provide both pkg-config and config
 tools support. You can force one or another via the method keyword:
 
 ```meson
-wmf_dep = dependency('wmf', method : 'config-tool')
+wmf_dep = dependency('libwmf', method : 'config-tool')
 ```
 
 ## WxWidgets
