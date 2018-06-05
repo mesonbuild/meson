@@ -154,6 +154,8 @@ class UserArrayOption(UserOption):
         if isinstance(value, str):
             if value.startswith('['):
                 newvalue = ast.literal_eval(value)
+            elif value == '':
+                newvalue = []
             else:
                 if self.shlex_split:
                     newvalue = shlex.split(value)

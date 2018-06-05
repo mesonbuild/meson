@@ -1786,6 +1786,26 @@ int main(int argc, char **argv) {
         changed = get_opt()
         self.assertDictEqual(changed, expected)
 
+    def test_array_option_empty_equivalents(self):
+        """Array options treat -Dopt=[] and -Dopt= as equivalent."""
+        def get_opt():
+            opts = self.introspect('--buildoptions')
+            for x in opts:
+                if x.get('name') == 'list':
+                    return x
+            raise Exception(opts)
+
+        expected = {
+            'name': 'list',
+            'description': 'list',
+            'type': 'array',
+            'value': [],
+        }
+        tdir = os.path.join(self.unit_test_dir, '18 array option')
+        self.init(tdir, extra_args='-Dlist=')
+        original = get_opt()
+        self.assertDictEqual(original, expected)
+
     def opt_has(self, name, value):
         res = self.introspect('--buildoptions')
         found = False
