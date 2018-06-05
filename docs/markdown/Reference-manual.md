@@ -346,8 +346,9 @@ otherwise. This function supports the following keyword arguments:
   dependency to find if it's available for multiple languages.
 - `method` defines the way the dependency is detected, the default is
   `auto` but can be overridden to be e.g. `qmake` for Qt development,
-  and different dependencies support different values for this (though
-  `auto` will work on all of them)
+  and [different dependencies support different values]
+  (Dependencies.md#dependencies-with-custom-lookup-functionality)
+  for this (though `auto` will work on all of them)
 - `native` if set to `true`, causes Meson to find the dependency on
   the build machine system rather than the host system (i.e. where the
   cross compiled binary will run on), usually only needed if you build

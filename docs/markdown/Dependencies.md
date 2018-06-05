@@ -111,24 +111,31 @@ of all the work behind the scenes to make this work.
 
 # Dependencies with custom lookup functionality
 
+Some dependencies have specific detection logic.
+
+In some cases, more than one detection method exists, and the `method` keyword
+may be used to select a detection method to use.  The `auto` method uses any
+checking mechanisms in whatever order meson thinks is best.
+
+e.g. libwmf and CUPS provide both pkg-config and config-tool support. You can
+force one or another via the `method` keyword:
+
+```meson
+cups_dep = dependency('cups', method : 'pkg-config')
+wmf_dep = dependency('libwmf', method : 'config-tool')
+```
+
 ## Dependencies using config tools
 
-CUPS, [LLVM](#llvm), PCAP, [WxWidgets](#wxwidgets), libwmf, and GnuStep either do not
-provide pkg-config modules or additionally can be detected via a config tool
-(cups-config, llvm-config, etc). Meson has native support for these tools, and
-they can be found like other dependencies:
+[CUPS](#cups), [LLVM](#llvm), PCAP, [WxWidgets](#wxwidgets), libwmf, and GnuStep
+either do not provide pkg-config modules or additionally can be detected via a
+config tool (cups-config, llvm-config, etc). Meson has native support for these
+tools, and they can be found like other dependencies:
 
 ```meson
 pcap_dep = dependency('pcap', version : '>=1.0')
 cups_dep = dependency('cups', version : '>=1.4')
 llvm_dep = dependency('llvm', version : '>=4.0')
-```
-
-Some of these tools (like wmf and cups) provide both pkg-config and config
-tools support. You can force one or another via the method keyword:
-
-```meson
-wmf_dep = dependency('libwmf', method : 'config-tool')
 ```
 
 ## AppleFrameworks
@@ -138,6 +145,8 @@ Use the `modules` keyword to list frameworks required, e.g.
 ```meson
 dep = find_dep('appleframeworks', modules : 'foundation')
 ```
+
+These dependencies can never be found for non-OSX hosts.
 
 ## Boost
 
@@ -168,9 +177,15 @@ environment variables.
 You can set the argument `threading` to `single` to use boost libraries that
 have been compiled for single-threaded use instead.
 
+## CUPS
+
+`method` may be `auto`, `config-tool`, `pkg-config` or `extraframework`.
+
 ## GL
 
 This finds the OpenGL library in a way appropriate to the platform.
+
+`method` may be `auto`, `pkg-config` or `system`.
 
 ## GTest and GMock
 
@@ -252,6 +267,8 @@ Note that `python3` found by this dependency might differ from the one used in
 `python3` module because modules uses the current interpreter, but dependency tries
 `pkg-config` first.
 
+`method` may be `auto`, `extraframework`, `pkg-config` or `sysconfig`
+
 ## Qt4 & Qt5
 
 Meson has native Qt support. Its usage is best demonstrated with an
@@ -291,10 +308,14 @@ include path of the given module(s) to the compiler flags.  (since v0.47.0)
 **Note** using private headers in your project is a bad idea, do so at your own
 risk.
 
+`method` may be `auto`, `pkgconfig` or `qmake`.
+
 ## SDL2
 
 SDL2 can be located using `pkg-confg`, the `sdl2-config` config tool, or as an
 OSX framework.
+
+`method` may be `auto`, `config-tool`, `extraframework` or `pkg-config`.
 
 ## Threads
 
@@ -311,6 +332,8 @@ and avoids trying to link with it's non-PIC static libs.
 ## Vulkan
 
 Vulkan can be located using `pkg-config`, or the `VULKAN_SDK` environment variable.
+
+`method` may be `auto`, `pkg-config` or `system`.
 
 ## WxWidgets
 
