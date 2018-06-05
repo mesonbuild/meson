@@ -81,9 +81,11 @@ def do_install(src_sub, bld_sub, dest, pkgname, langs):
         srcfile = os.path.join(bld_sub, l + '.gmo')
         outfile = os.path.join(dest, l, 'LC_MESSAGES',
                                pkgname + '.mo')
+        tempfile = outfile + '.tmp'
         os.makedirs(os.path.dirname(outfile), exist_ok=True)
-        shutil.copyfile(srcfile, outfile)
-        shutil.copystat(srcfile, outfile)
+        shutil.copyfile(srcfile, tempfile)
+        shutil.copystat(srcfile, tempfile)
+        os.replace(tempfile, outfile)
         print('Installing %s to %s' % (srcfile, outfile))
     return 0
 
