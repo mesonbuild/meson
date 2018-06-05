@@ -842,7 +842,7 @@ class CCompiler(Compiler):
         # First try if we can just add the library as -l.
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
-        if not extra_dirs and libtype == 'default':
+        if not extra_dirs:
             args = ['-l' + libname]
             if self.links(code, env, extra_args=args):
                 return args
@@ -860,6 +860,7 @@ class CCompiler(Compiler):
                     trial = os.path.join(d, prefix + libname + '.' + suffix)
                     if os.path.isfile(trial):
                         return [trial]
+        # XXX: For OpenBSD and macOS we (may) need to search for libfoo.x.y.z.dylib
         return None
 
     def find_library_impl(self, libname, env, extra_dirs, code, libtype):
