@@ -46,6 +46,7 @@ from .compilers import (
 class CCompiler(Compiler):
     library_dirs_cache = {}
     program_dirs_cache = {}
+    find_library_cache = {}
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
@@ -837,13 +838,8 @@ class CCompiler(Compiler):
             raise AssertionError('BUG: unknown libtype {!r}'.format(libtype))
         return prefixes, suffixes
 
-    def find_library_impl(self, libname, env, extra_dirs, code, libtype='default'):
-        # These libraries are either built-in or invalid
-        if libname in self.ignore_libs:
-            return []
+    def find_library_real(self, libname, env, extra_dirs, code, libtype):
         # First try if we can just add the library as -l.
-        if extra_dirs and isinstance(extra_dirs, str):
-            extra_dirs = [extra_dirs]
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
         if not extra_dirs and libtype == 'default':
@@ -865,6 +861,22 @@ class CCompiler(Compiler):
                     if os.path.isfile(trial):
                         return [trial]
         return None
+
+    def find_library_impl(self, libname, env, extra_dirs, code, libtype):
+        # These libraries are either built-in or invalid
+        if libname in self.ignore_libs:
+            return []
+        if isinstance(extra_dirs, str):
+            extra_dirs = [extra_dirs]
+        key = (tuple(self.exelist), libname, tuple(extra_dirs), code, libtype)
+        if key not in self.find_library_cache:
+            value = self.find_library_real(libname, env, extra_dirs, code, libtype)
+            self.find_library_cache[key] = value
+        else:
+            value = self.find_library_cache[key]
+        if value is None:
+            return None
+        return value[:]
 
     def find_library(self, libname, env, extra_dirs, libtype='default'):
         code = 'int main(int argc, char **argv) { return 0; }'

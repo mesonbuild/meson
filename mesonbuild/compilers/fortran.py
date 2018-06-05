@@ -23,6 +23,8 @@ from .compilers import (
 
 class FortranCompiler(Compiler):
     library_dirs_cache = CCompiler.library_dirs_cache
+    program_dirs_cache = CCompiler.library_dirs_cache
+    find_library_cache = CCompiler.library_dirs_cache
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
         self.language = 'fortran'
@@ -174,11 +176,17 @@ class FortranCompiler(Compiler):
     def get_library_naming(self, env, libtype, strict=False):
         return CCompiler.get_library_naming(self, env, libtype, strict)
 
+    def find_library_real(self, *args):
+        return CCompiler.find_library_real(self, *args)
+
+    def find_library_impl(self, *args):
+        return CCompiler.find_library_impl(self, *args)
+
     def find_library(self, libname, env, extra_dirs, libtype='default'):
         code = '''program main
             call exit(0)
         end program main'''
-        return CCompiler.find_library_impl(self, libname, env, extra_dirs, code, libtype)
+        return self.find_library_impl(libname, env, extra_dirs, code, libtype)
 
     def thread_flags(self, env):
         return CCompiler.thread_flags(self, env)
