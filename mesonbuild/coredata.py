@@ -158,6 +158,8 @@ class UserArrayOption(UserOption):
             assert isinstance(value, str)
             if value.startswith('['):
                 newvalue = ast.literal_eval(value)
+            elif value == '':
+                newvalue = []
             else:
                 newvalue = [v.strip() for v in value.split(',')]
                 if len(set(newvalue)) != len(newvalue):

@@ -58,6 +58,9 @@ empty. The `value` parameter specifies the default value of the option
 and if it is unset then the values of `choices` will be used as the
 default.
 
+As of 0.47.0 -Dopt= and -Dopt=[] both pass an empty list, before this -Dopt=
+would pass a list with an empty string.
+
 This type is available since version 0.44.0
 
 
