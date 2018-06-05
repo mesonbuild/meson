@@ -74,6 +74,19 @@ def get_soname(fname):
 def get_rpath(fname):
     return get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
 
+def skipIfNoPkgconfig(f):
+    '''
+    Skip this test if no pkg-config is found, unless we're on Travis CI
+    This allows users to run our test suite without having pkg-config installed
+    on, f.ex., macOS, while ensuring that our Travis CI does not silently skip
+    the test because of misconfiguration.
+    '''
+    def wrapped(*args, **kwargs):
+        if 'TRAVIS' not in os.environ and shutil.which('pkg-config') is None:
+            raise unittest.SkipTest('pkg-config not found')
+        return f(*args, **kwargs)
+    return wrapped
+
 
 class InternalTests(unittest.TestCase):
 
@@ -484,7 +497,7 @@ class BasePlatformTests(unittest.TestCase):
         src_root = os.path.join(os.getcwd(), src_root)
         self.src_root = src_root
         self.prefix = '/usr'
-        self.libdir = os.path.join(self.prefix, 'lib')
+        self.libdir = 'lib'
         # Get the backend
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
@@ -1656,6 +1669,7 @@ int main(int argc, char **argv) {
                     if os.path.splitext(fname)[1] not in ['.c', '.h']:
                         os.unlink(fname)
 
+    @skipIfNoPkgconfig
     def test_pkgconfig_static(self):
         '''
         Test that the we prefer static libraries when `static: true` is
@@ -1666,8 +1680,6 @@ int main(int argc, char **argv) {
         since system libraries -lm will never be found statically.
         https://github.com/mesonbuild/meson/issues/2785
         '''
-        if not shutil.which('pkg-config'):
-            raise unittest.SkipTest('pkg-config not found')
         (cc, stlinker, objext, shext) = self.detect_prebuild_env()
         testdir = os.path.join(self.unit_test_dir, '17 pkgconfig static')
         source = os.path.join(testdir, 'foo.c')
@@ -1699,9 +1711,8 @@ int main(int argc, char **argv) {
                     if os.path.splitext(fname)[1] not in ['.c', '.h', '.in']:
                         os.unlink(fname)
 
+    @skipIfNoPkgconfig
     def test_pkgconfig_gen_escaping(self):
-        if not shutil.which('pkg-config'):
-            raise unittest.SkipTest('pkg-config not found')
         testdir = os.path.join(self.common_test_dir, '51 pkgconfig-gen')
         prefix = '/usr/with spaces'
         libdir = 'lib'
@@ -2259,9 +2270,8 @@ class FailureTests(BasePlatformTests):
         out = self.init(self.srcdir, extra_args=extra_args, inprocess=True)
         self.assertRegex(out, match)
 
+    @skipIfNoPkgconfig
     def test_dependency(self):
-        if not shutil.which('pkg-config'):
-            raise unittest.SkipTest('pkg-config not found')
         if subprocess.call(['pkg-config', '--exists', 'zlib']) != 0:
             raise unittest.SkipTest('zlib not found with pkg-config')
         a = (("dependency('zlib', method : 'fail')", "'fail' is invalid"),
@@ -2655,13 +2665,12 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertIn(" -Werror ", vala_command)
         self.assertIn(" -Werror ", c_command)
 
+    @skipIfNoPkgconfig
     def test_qt5dependency_pkgconfig_detection(self):
         '''
         Test that qt4 and qt5 detection with pkgconfig works.
         '''
         # Verify Qt4 or Qt5 can be found with pkg-config
-        if not shutil.which('pkg-config'):
-            raise unittest.SkipTest('pkg-config not found')
         qt4 = subprocess.call(['pkg-config', '--exists', 'QtCore'])
         qt5 = subprocess.call(['pkg-config', '--exists', 'Qt5Core'])
         if qt4 != 0 or qt5 != 0:
@@ -3198,7 +3207,7 @@ endian = 'little'
         self.build()
         mesonbuild.modules.gnome.native_glib_version = None
 
-    @unittest.skipIf(shutil.which('pkg-config') is None, 'Pkg-config not found.')
+    @skipIfNoPkgconfig
     def test_pkgconfig_usage(self):
         testdir1 = os.path.join(self.unit_test_dir, '24 pkgconfig usage/dependency')
         testdir2 = os.path.join(self.unit_test_dir, '24 pkgconfig usage/dependee')
@@ -3234,7 +3243,7 @@ endian = 'little'
             self.assertTrue(os.path.isfile(test_exe))
             subprocess.check_call(test_exe, env=myenv)
 
-    @unittest.skipIf(shutil.which('pkg-config') is None, 'Pkg-config not found.')
+    @skipIfNoPkgconfig
     def test_pkgconfig_internal_libraries(self):
         '''
         '''
@@ -3255,7 +3264,7 @@ endian = 'little'
             self.init(os.path.join(testdirbase, 'app'))
             self.build()
 
-    @unittest.skipIf(shutil.which('pkg-config') is None, 'Pkg-config not found.')
+    @skipIfNoPkgconfig
     def test_pkgconfig_formatting(self):
         testdir = os.path.join(self.unit_test_dir, '31 pkgconfig format')
         self.init(testdir)
@@ -3263,7 +3272,7 @@ endian = 'little'
         myenv['PKG_CONFIG_PATH'] = self.privatedir
         stdo = subprocess.check_output(['pkg-config', '--libs-only-l', 'libsomething'], env=myenv)
         deps = [b'-lgobject-2.0', b'-lgio-2.0', b'-lglib-2.0', b'-lsomething']
-        if is_windows() or is_cygwin():
+        if is_windows() or is_cygwin() or is_osx():
             # On Windows, libintl is a separate library
             deps.append(b'-lintl')
         self.assertEqual(set(deps), set(stdo.split()))
@@ -3314,6 +3323,36 @@ endian = 'little'
         self.init(testdir, extra_args='-Db_bitcode=true')
         self.build()
         self.run_tests()
+
+    @skipIfNoPkgconfig
+    def test_uninstalled_usage_external_library(self):
+        '''
+        Test that uninstalled usage of an external library (from the system or
+        PkgConfigDependency) works. On Linux/BSD/macOS it tests if RPATHs are
+        set correctly.
+
+        TODO: On Windows, this can test whether PATH is set properly
+
+        The system library is found with cc.find_library() and pkg-config deps.
+        '''
+        oldprefix = self.prefix
+        # Install external library so we can find it
+        testdir = os.path.join(self.unit_test_dir, '33 external, internal library rpath', 'external library')
+        installdir = self.installdir
+        self.prefix = installdir
+        self.init(testdir)
+        self.build()
+        self.install(use_destdir=False)
+        self.prefix = oldprefix
+        # New builddir for the consumer
+        self.new_builddir()
+        os.environ['LIBRARY_PATH'] = os.path.join(installdir, self.libdir)
+        os.environ['PKG_CONFIG_PATH'] = os.path.join(installdir, self.libdir, 'pkgconfig')
+        testdir = os.path.join(self.unit_test_dir, '33 external, internal library rpath', 'built library')
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''

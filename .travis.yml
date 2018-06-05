@@ -48,7 +48,7 @@ before_install:
   - python ./skip_ci.py --base-branch-env=TRAVIS_BRANCH --is-pull-env=TRAVIS_PULL_REQUEST
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew uninstall python mercurial; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python@2 python@3 mercurial qt; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python@2 python@3 mercurial qt pkg-config; fi
   # Use a Ninja with QuLogic's patch: https://github.com/ninja-build/ninja/issues/1219
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mkdir -p $HOME/tools; curl -L http://nirbheek.in/files/binaries/ninja/macos/ninja -o $HOME/tools/ninja; chmod +x $HOME/tools/ninja; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:bionic; fi
