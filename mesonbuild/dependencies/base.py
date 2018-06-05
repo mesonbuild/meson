@@ -27,9 +27,8 @@ from pathlib import PurePath
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import (
-    MesonException, Popen_safe, version_compare_many, version_compare, listify
-)
+from ..mesonlib import MesonException, OrderedSet
+from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
 
 
 # These must be defined in this file to avoid cyclical references.
@@ -579,38 +578,57 @@ class PkgConfigDependency(ExternalDependency):
         libcmd = [self.name, '--libs']
         if self.static:
             libcmd.append('--static')
-            # Force pkg-config to output -L fields even if they are system
-            # paths so we can do manual searching with cc.find_library() later.
-            env = os.environ.copy()
-            env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
+        # Force pkg-config to output -L fields even if they are system
+        # paths so we can do manual searching with cc.find_library() later.
+        env = os.environ.copy()
+        env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
         ret, out = self._call_pkgbin(libcmd, env=env)
         if ret != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' %
                                       (self.name, out))
-        self.link_args = []
-        libpaths = []
-        static_libs_notfound = []
+        # These libraries should be safe to de-dup
+        link_args = OrderedSet()
+        libpaths = OrderedSet()
+        libs_notfound = []
+        libtype = 'static' if self.static else 'default'
+        # We always look for the file ourselves instead of depending on the
+        # compiler to find it with -lfoo or foo.lib (if possible) because:
+        # 1. We want to be able to select static or shared
+        # 2. We need the full path of the library to calculate RPATH values
+        #
+        # Libraries that are provided by the toolchain or are not found by
+        # find_library() will be added with -L -l pairs.
         for lib in self._convert_mingw_paths(shlex.split(out)):
-            # If we want to use only static libraries, we have to look for the
-            # file ourselves instead of depending on the compiler to find it
-            # with -lfoo or foo.lib. However, we can only do this if we already
-            # have some library paths gathered.
-            if self.static:
-                if lib.startswith('-L'):
-                    libpaths.append(lib[2:])
-                    continue
-                # FIXME: try to handle .la files in static mode too?
-                elif lib.startswith('-l'):
-                    args = self.compiler.find_library(lib[2:], self.env, libpaths, libtype='static')
-                    if not args or len(args) < 1:
-                        if lib in static_libs_notfound:
-                            continue
+            if lib.startswith('-L'):
+                libpaths.add(lib[2:])
+                continue
+            elif lib.startswith('-l'):
+                if self.compiler:
+                    args = self.compiler.find_library(lib[2:], self.env,
+                                                      list(libpaths), libtype)
+                # If no compiler is set on the dependency, the project only
+                # uses a non-clike language such as Rust, C#, Python, etc. In
+                # this case, all we can do is limp along.
+                else:
+                    args = None
+                if args:
+                    # Replace -l arg with full path to library if available
+                    if not args[0].startswith('-l'):
+                        lib = args[0]
+                    # else, library is provided by the compiler and can't be resolved
+                else:
+                    # Library wasn't found, maybe we're looking in the wrong
+                    # places or the library will be provided with LDFLAGS or
+                    # LIBRARY_PATH from the environment (on macOS), and many
+                    # other edge cases that we can't account for.
+                    #
+                    # Add all -L paths and use it as -lfoo
+                    if lib in libs_notfound:
+                        continue
+                    if self.static:
                         mlog.warning('Static library {!r} not found for dependency {!r}, may '
                                      'not be statically linked'.format(lib[2:], self.name))
-                        static_libs_notfound.append(lib)
-                    else:
-                        # Replace -l arg with full path to static library
-                        lib = args[0]
+                    libs_notfound.append(lib)
             elif lib.endswith(".la"):
                 shared_libname = self.extract_libtool_shlib(lib)
                 shared_lib = os.path.join(os.path.dirname(lib), shared_libname)
@@ -623,9 +641,10 @@ class PkgConfigDependency(ExternalDependency):
                                               'library path' % lib)
                 lib = shared_lib
                 self.is_libtool = True
-            self.link_args.append(lib)
+            link_args.add(lib)
+        self.link_args = list(link_args)
         # Add all -Lbar args if we have -lfoo args in link_args
-        if static_libs_notfound:
+        if libs_notfound:
             # Order of -L flags doesn't matter with ld, but it might with other
             # linkers such as MSVC, so prepend them.
             self.link_args = ['-L' + lp for lp in libpaths] + self.link_args
