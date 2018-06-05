@@ -331,6 +331,13 @@ class Backend:
         l, stdlib_args = target.get_clike_dynamic_linker_and_stdlibs()
         return l, stdlib_args
 
+    @staticmethod
+    def _libdir_is_system(libdir, compilers):
+        for cc in compilers.values():
+            if libdir in cc.get_library_dirs():
+                return True
+        return False
+
     def rpaths_for_bundled_shared_libraries(self, target):
         paths = []
         for dep in target.external_deps:
@@ -341,20 +348,20 @@ class Backend:
                 continue
             # The only link argument is an absolute path to a library file.
             libpath = la[0]
-            if libpath.startswith(('/usr/lib', '/lib')):
+            libdir = os.path.dirname(libpath)
+            if self._libdir_is_system(libdir, target.compilers):
                 # No point in adding system paths.
                 continue
             # Windows doesn't support rpaths, but we use this function to
             # emulate rpaths by setting PATH, so also accept DLLs here
             if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so', '.dylib']:
                 continue
-            absdir = os.path.dirname(libpath)
-            if absdir.startswith(self.environment.get_source_dir()):
-                rel_to_src = absdir[len(self.environment.get_source_dir()) + 1:]
+            if libdir.startswith(self.environment.get_source_dir()):
+                rel_to_src = libdir[len(self.environment.get_source_dir()) + 1:]
                 assert not os.path.isabs(rel_to_src), 'rel_to_src: {} is absolute'.format(rel_to_src)
                 paths.append(os.path.join(self.build_to_src, rel_to_src))
             else:
-                paths.append(absdir)
+                paths.append(libdir)
         return paths
 
     def determine_rpath_dirs(self, target):
