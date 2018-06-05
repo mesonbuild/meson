@@ -2956,6 +2956,10 @@ class LinuxlikeTests(BasePlatformTests):
         env = os.environ.copy()
         env['LD_LIBRARY_PATH'] = installed_libdir
         self.assertEqual(subprocess.call(installed_exe, env=env), 0)
+        # Ensure that introspect --installed works
+        installed = self.introspect('--installed')
+        for v in installed.values():
+            self.assertTrue('prog' in v or 'foo' in v)
 
     def test_order_of_l_arguments(self):
         testdir = os.path.join(self.unit_test_dir, '9 -L -l order')
@@ -3014,7 +3018,6 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertIsInstance(docbook_target, dict)
         ifile = self.introspect(['--target-files', 'generated-gdbus-docbook@cus'])[0]
         self.assertEqual(t['filename'], 'gdbus/generated-gdbus-doc-' + ifile)
-
 
     def test_build_rpath(self):
         if is_cygwin():
