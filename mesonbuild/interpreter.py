@@ -3128,7 +3128,10 @@ root and issuing %s.
         except mesonlib.MesonException as me:
             me.file = buildfilename
             raise me
-        self.evaluate_codeblock(codeblock)
+        try:
+            self.evaluate_codeblock(codeblock)
+        except SubdirDoneRequest:
+            pass
         self.subdir = prev_subdir
 
     def _get_kwarg_install_mode(self, kwargs):

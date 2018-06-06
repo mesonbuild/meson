@@ -3,7 +3,9 @@
 
 project('example exit', 'cpp')
 
-subdir_done()
+if true
+  subdir_done()
+endif
 
 executable('main', 'main.cpp')
 error('Unreachable')
