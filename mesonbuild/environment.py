@@ -171,9 +171,17 @@ def detect_windows_arch(compilers):
     for compiler in compilers.values():
         # Check if we're using and inside an MSVC toolchain environment
         if compiler.id == 'msvc' and 'VCINSTALLDIR' in os.environ:
-            # 'Platform' is only set when the target arch is not 'x86'.
-            # It's 'x64' when targeting x86_64 and 'arm' when targeting ARM.
-            platform = os.environ.get('Platform', 'x86').lower()
+            if float(compiler.get_toolset_version()) < 10.0:
+                # On MSVC 2008 and earlier, check 'BUILD_PLAT', where
+                # 'Win32' means 'x86'
+                platform = os.environ.get('BUILD_PLAT', 'x86')
+                if platform == 'Win32':
+                    return 'x86'
+            else:
+                # On MSVC 2010 and later 'Platform' is only set when the
+                # target arch is not 'x86'.  It's 'x64' when targeting
+                # x86_64 and 'arm' when targeting ARM.
+                platform = os.environ.get('Platform', 'x86').lower()
             if platform == 'x86':
                 return platform
         if compiler.id == 'gcc' and compiler.has_builtin_define('__i386__'):
