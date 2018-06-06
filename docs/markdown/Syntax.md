@@ -393,7 +393,7 @@ a [dictionary][dictionaries], which is available since 0.47.0.
 components = {
   'foo': ['foo.c'],
   'bar': ['bar.c'],
-  'baz:' ['baz.c'],
+  'baz': ['baz.c'],
 }
 
 # compute a configuration based on system dependencies, custom logic
