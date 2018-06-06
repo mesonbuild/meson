@@ -338,7 +338,7 @@ class Backend:
                 return True
         return False
 
-    def rpaths_for_bundled_shared_libraries(self, target):
+    def rpaths_for_bundled_shared_libraries(self, target, exclude_system=True):
         paths = []
         for dep in target.external_deps:
             if not isinstance(dep, (dependencies.ExternalLibrary, dependencies.PkgConfigDependency)):
@@ -349,7 +349,7 @@ class Backend:
             # The only link argument is an absolute path to a library file.
             libpath = la[0]
             libdir = os.path.dirname(libpath)
-            if self._libdir_is_system(libdir, target.compilers):
+            if exclude_system and self._libdir_is_system(libdir, target.compilers):
                 # No point in adding system paths.
                 continue
             # Windows doesn't support rpaths, but we use this function to
@@ -601,7 +601,7 @@ class Backend:
         if isinstance(target, build.BuildTarget):
             prospectives.update(target.get_transitive_link_deps())
             # External deps
-            for deppath in self.rpaths_for_bundled_shared_libraries(target):
+            for deppath in self.rpaths_for_bundled_shared_libraries(target, exclude_system=False):
                 result.add(os.path.normpath(os.path.join(self.environment.get_build_dir(), deppath)))
         for bdep in extra_bdeps:
             prospectives.update(bdep.get_transitive_link_deps())
