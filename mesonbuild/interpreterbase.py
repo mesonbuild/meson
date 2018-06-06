@@ -326,7 +326,10 @@ class InterpreterBase:
     def run(self):
         # Evaluate everything after the first line, which is project() because
         # we already parsed that in self.parse_project()
-        self.evaluate_codeblock(self.ast, start=1)
+        try:
+            self.evaluate_codeblock(self.ast, start=1)
+        except SubdirDoneRequest:
+            pass
 
     def evaluate_codeblock(self, node, start=0, end=None):
         if node is None:
@@ -343,8 +346,6 @@ class InterpreterBase:
             try:
                 self.current_lineno = cur.lineno
                 self.evaluate_statement(cur)
-            except SubdirDoneRequest:
-                break
             except Exception as e:
                 if not(hasattr(e, 'lineno')):
                     e.lineno = cur.lineno
