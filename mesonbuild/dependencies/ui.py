@@ -215,7 +215,7 @@ class QtBaseDependency(ExternalDependency):
         if DependencyMethods.PKGCONFIG in self.methods:
             self._pkgconfig_detect(mods, kwargs)
             methods.append('pkgconfig')
-        if not self.is_found or DependencyMethods.QMAKE in self.methods:
+        if not self.is_found and DependencyMethods.QMAKE in self.methods:
             from_text = self._qmake_detect(mods, kwargs)
             methods.append('qmake-' + self.name)
             methods.append('qmake')
