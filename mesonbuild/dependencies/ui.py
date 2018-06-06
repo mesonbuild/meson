@@ -238,7 +238,7 @@ class QtBaseDependency(ExternalDependency):
 
     def compilers_detect(self):
         "Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"
-        if self.bindir:
+        if self.bindir or for_windows(self.env.is_cross_build(), self.env):
             moc = ExternalProgram(os.path.join(self.bindir, 'moc'), silent=True)
             uic = ExternalProgram(os.path.join(self.bindir, 'uic'), silent=True)
             rcc = ExternalProgram(os.path.join(self.bindir, 'rcc'), silent=True)
