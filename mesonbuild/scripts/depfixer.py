@@ -364,7 +364,7 @@ def get_darwin_rpaths_to_remove(fname):
             result.append(rp)
     return result
 
-def fix_darwin(fname, new_rpath):
+def fix_darwin(fname, new_rpath, final_path):
     try:
         rpaths = get_darwin_rpaths_to_remove(fname)
     except subprocess.CalledProcessError:
@@ -372,30 +372,38 @@ def fix_darwin(fname, new_rpath):
         # non-executable target. Just return.
         return
     try:
+        args = []
         if rpaths:
-            args = []
             for rp in rpaths:
                 args += ['-delete_rpath', rp]
             subprocess.check_call(['install_name_tool', fname] + args,
                                   stdout=subprocess.DEVNULL,
                                   stderr=subprocess.DEVNULL)
+        args = []
         if new_rpath:
-            subprocess.check_call(['install_name_tool', '-add_rpath', new_rpath, fname],
+            args += ['-add_rpath', new_rpath]
+        # Rewrite -install_name @rpath/libfoo.dylib to /path/to/libfoo.dylib
+        if fname.endswith('dylib'):
+            args += ['-id', final_path]
+        if args:
+            subprocess.check_call(['install_name_tool', fname] + args,
                                   stdout=subprocess.DEVNULL,
                                   stderr=subprocess.DEVNULL)
     except Exception as e:
         raise
         sys.exit(0)
 
-def fix_rpath(fname, new_rpath, verbose=True):
+def fix_rpath(fname, new_rpath, final_path, verbose=True):
+    # Static libraries never have rpaths
+    if fname.endswith('.a'):
+        return
     try:
         fix_elf(fname, new_rpath, verbose)
-        return 0
+        return
     except SystemExit as e:
         if isinstance(e.code, int) and e.code == 0:
             pass
         else:
             raise
     if shutil.which('install_name_tool'):
-        fix_darwin(fname, new_rpath)
-    return 0
+        fix_darwin(fname, new_rpath, final_path, install_name_mappings)
