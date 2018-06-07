@@ -577,41 +577,47 @@ class PkgConfigDependency(ExternalDependency):
     def _set_libs(self):
         env = None
         libcmd = [self.name, '--libs']
+        libtype = 'default'
+        libtype_for_message = 'Library'
         if self.static:
             libcmd.append('--static')
+            libtype = 'static'
+            libtype_for_message = 'Static library'
             # Force pkg-config to output -L fields even if they are system
             # paths so we can do manual searching with cc.find_library() later.
             env = os.environ.copy()
             env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
+            if not self.compiler:
+                raise MesonException('Can\'t determine compiler to use to resolve static dependency')
+
         ret, out = self._call_pkgbin(libcmd, env=env)
         if ret != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' %
                                       (self.name, out))
         self.link_args = []
         libpaths = []
-        static_libs_notfound = []
+        libs_notresolved = []
         for lib in self._convert_mingw_paths(shlex.split(out)):
             # If we want to use only static libraries, we have to look for the
             # file ourselves instead of depending on the compiler to find it
             # with -lfoo or foo.lib. However, we can only do this if we already
             # have some library paths gathered.
-            if self.static:
-                if lib.startswith('-L'):
-                    libpaths.append(lib[2:])
-                    continue
+            if lib.startswith('-L') and self.compiler:
+                libpaths.append(lib[2:])
+                continue
+            elif lib.startswith('-l') and self.compiler:
+                args = self.compiler.find_library(lib[2:], self.env, libpaths, libtype=libtype)
+                if not args or len(args) < 1:
+                    if lib in libs_notresolved:
+                        continue
+                    mlog.warning('{} {!r} not found for dependency {!r}, may '
+                                 'not be statically linked'.format(libtype_for_message, lib[2:], self.name))
+                    libs_notresolved.append(lib)
+                else:
+                    # Replace -l arg with full path to static library
+                    lib = args[0]
+            elif lib.endswith(".la") and not self.static:
                 # FIXME: try to handle .la files in static mode too?
-                elif lib.startswith('-l'):
-                    args = self.compiler.find_library(lib[2:], self.env, libpaths, libtype='static')
-                    if not args or len(args) < 1:
-                        if lib in static_libs_notfound:
-                            continue
-                        mlog.warning('Static library {!r} not found for dependency {!r}, may '
-                                     'not be statically linked'.format(lib[2:], self.name))
-                        static_libs_notfound.append(lib)
-                    else:
-                        # Replace -l arg with full path to static library
-                        lib = args[0]
-            elif lib.endswith(".la"):
                 shared_libname = self.extract_libtool_shlib(lib)
                 shared_lib = os.path.join(os.path.dirname(lib), shared_libname)
                 if not os.path.exists(shared_lib):
@@ -625,7 +631,7 @@ class PkgConfigDependency(ExternalDependency):
                 self.is_libtool = True
             self.link_args.append(lib)
         # Add all -Lbar args if we have -lfoo args in link_args
-        if static_libs_notfound:
+        if libs_notresolved:
             # Order of -L flags doesn't matter with ld, but it might with other
             # linkers such as MSVC, so prepend them.
             self.link_args = ['-L' + lp for lp in libpaths] + self.link_args
