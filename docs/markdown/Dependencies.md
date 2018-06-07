@@ -148,10 +148,6 @@ environment variables.
 You can set the argument `threading` to `single` to use boost libraries that
 have been compiled for single-threaded use instead.
 
-## GL
-
-This finds the OpenGL library in a way appropriate to the platform.
-
 ## GTest and GMock
 
 GTest and GMock come as sources that must be compiled as part of your
