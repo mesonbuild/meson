@@ -2754,7 +2754,8 @@ class LinuxlikeTests(BasePlatformTests):
         self._test_soname_impl(self.builddir, False)
 
     def test_installed_soname(self):
-        self._test_soname_impl(self.installdir + self.libdir, True)
+        libdir = self.installdir + os.path.join(self.prefix, self.libdir)
+        self._test_soname_impl(libdir, True)
 
     def test_compiler_check_flags_order(self):
         '''
@@ -3325,33 +3326,45 @@ endian = 'little'
         self.run_tests()
 
     @skipIfNoPkgconfig
-    def test_uninstalled_usage_external_library(self):
+    def test_usage_external_library(self):
         '''
         Test that uninstalled usage of an external library (from the system or
-        PkgConfigDependency) works. On Linux/BSD/macOS it tests if RPATHs are
-        set correctly.
-
-        TODO: On Windows, this can test whether PATH is set properly
+        PkgConfigDependency) works. On macOS, this workflow works out of the
+        box. On Linux, BSDs, Windows, etc, you need to set extra arguments such
+        as LD_LIBRARY_PATH, etc, so this test is skipped.
 
         The system library is found with cc.find_library() and pkg-config deps.
         '''
+        if not is_osx():
+            raise unittest.SkipTest('workflow currently only works on macOS')
         oldprefix = self.prefix
         # Install external library so we can find it
         testdir = os.path.join(self.unit_test_dir, '33 external, internal library rpath', 'external library')
+        # install into installdir without using DESTDIR
         installdir = self.installdir
         self.prefix = installdir
         self.init(testdir)
+        self.prefix = oldprefix
         self.build()
         self.install(use_destdir=False)
-        self.prefix = oldprefix
         # New builddir for the consumer
         self.new_builddir()
         os.environ['LIBRARY_PATH'] = os.path.join(installdir, self.libdir)
         os.environ['PKG_CONFIG_PATH'] = os.path.join(installdir, self.libdir, 'pkgconfig')
         testdir = os.path.join(self.unit_test_dir, '33 external, internal library rpath', 'built library')
+        # install into installdir without using DESTDIR
+        self.prefix = self.installdir
         self.init(testdir)
+        self.prefix = oldprefix
         self.build()
+        # test uninstalled
         self.run_tests()
+        # test running after installation
+        self.install(use_destdir=False)
+        prog = os.path.join(self.installdir, 'bin', 'prog')
+        self._run([prog])
+        out = self._run(['otool', '-L', prog])
+        self.assertNotIn('@rpath', out)
 
 
 class LinuxArmCrossCompileTests(BasePlatformTests):

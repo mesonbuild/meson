@@ -364,7 +364,7 @@ def get_darwin_rpaths_to_remove(fname):
             result.append(rp)
     return result
 
-def fix_darwin(fname, new_rpath, final_path):
+def fix_darwin(fname, new_rpath, final_path, install_name_mappings):
     try:
         rpaths = get_darwin_rpaths_to_remove(fname)
     except subprocess.CalledProcessError:
@@ -385,6 +385,9 @@ def fix_darwin(fname, new_rpath, final_path):
         # Rewrite -install_name @rpath/libfoo.dylib to /path/to/libfoo.dylib
         if fname.endswith('dylib'):
             args += ['-id', final_path]
+        if install_name_mappings:
+            for old, new in install_name_mappings.items():
+                args += ['-change', old, new]
         if args:
             subprocess.check_call(['install_name_tool', fname] + args,
                                   stdout=subprocess.DEVNULL,
@@ -393,7 +396,7 @@ def fix_darwin(fname, new_rpath, final_path):
         raise
         sys.exit(0)
 
-def fix_rpath(fname, new_rpath, final_path, verbose=True):
+def fix_rpath(fname, new_rpath, final_path, install_name_mappings, verbose=True):
     # Static libraries never have rpaths
     if fname.endswith('.a'):
         return

@@ -58,14 +58,14 @@ class FortranCompiler(Compiler):
     def get_no_warn_args(self):
         return CCompiler.get_no_warn_args(self)
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
-        return CCompiler.get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module)
+    def get_soname_args(self, *args):
+        return CCompiler.get_soname_args(self, *args)
 
     def split_shlib_to_parts(self, fname):
         return CCompiler.split_shlib_to_parts(self, fname)
 
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        return CCompiler.build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
+    def build_rpath_args(self, *args):
+        return CCompiler.build_rpath_args(self, *args)
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return []

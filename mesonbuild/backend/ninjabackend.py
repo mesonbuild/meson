@@ -24,11 +24,11 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..compilers import CompilerArgs
+from ..compilers import CompilerArgs, get_macos_dylib_install_name
 from ..linkers import ArLinker
 from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_compiler_for_source, has_path_sep
-from .backends import CleanTrees, InstallData
+from .backends import CleanTrees, InstallData, TargetInstallData
 from ..build import InvalidArguments
 
 if mesonlib.is_windows():
@@ -699,34 +699,61 @@ int dummy;
         with open(install_data_file, 'wb') as ofile:
             pickle.dump(d, ofile)
 
+    def get_target_install_dirs(self, t):
+        # Find the installation directory.
+        if isinstance(t, build.SharedModule):
+            default_install_dir = self.environment.get_shared_module_dir()
+        elif isinstance(t, build.SharedLibrary):
+            default_install_dir = self.environment.get_shared_lib_dir()
+        elif isinstance(t, build.StaticLibrary):
+            default_install_dir = self.environment.get_static_lib_dir()
+        elif isinstance(t, build.Executable):
+            default_install_dir = self.environment.get_bindir()
+        elif isinstance(t, build.CustomTarget):
+            default_install_dir = None
+        else:
+            assert(isinstance(t, build.BuildTarget))
+            # XXX: Add BuildTarget-specific install dir cases here
+            default_install_dir = self.environment.get_libdir()
+        outdirs = t.get_custom_install_dir()
+        if outdirs[0] is not None and outdirs[0] != default_install_dir and outdirs[0] is not True:
+            # Either the value is set to a non-default value, or is set to
+            # False (which means we want this specific output out of many
+            # outputs to not be installed).
+            custom_install_dir = True
+        else:
+            custom_install_dir = False
+            outdirs[0] = default_install_dir
+        return outdirs, custom_install_dir
+
+    def get_target_link_deps_mappings(self, t, prefix):
+        '''
+        On macOS, we need to change the install names of all built libraries
+        that a target depends on using install_name_tool so that the target
+        continues to work after installation. For this, we need a dictionary
+        mapping of the install_name value to the new one, so we can change them
+        on install.
+        '''
+        result = {}
+        if isinstance(t, build.StaticLibrary):
+            return result
+        for ld in t.get_all_link_deps():
+            if ld is t or not isinstance(ld, build.SharedLibrary):
+                continue
+            old = get_macos_dylib_install_name(ld.prefix, ld.name, ld.suffix, ld.soversion)
+            if old in result:
+                continue
+            fname = ld.get_filename()
+            outdirs, _ = self.get_target_install_dirs(ld)
+            new = os.path.join(prefix, outdirs[0], fname)
+            result.update({old: new})
+        return result
+
     def generate_target_install(self, d):
         for t in self.build.get_targets().values():
             if not t.should_install():
                 continue
-            # Find the installation directory.
-            if isinstance(t, build.SharedModule):
-                default_install_dir = self.environment.get_shared_module_dir()
-            elif isinstance(t, build.SharedLibrary):
-                default_install_dir = self.environment.get_shared_lib_dir()
-            elif isinstance(t, build.StaticLibrary):
-                default_install_dir = self.environment.get_static_lib_dir()
-            elif isinstance(t, build.Executable):
-                default_install_dir = self.environment.get_bindir()
-            elif isinstance(t, build.CustomTarget):
-                default_install_dir = None
-            else:
-                assert(isinstance(t, build.BuildTarget))
-                # XXX: Add BuildTarget-specific install dir cases here
-                default_install_dir = self.environment.get_libdir()
-            outdirs = t.get_custom_install_dir()
-            if outdirs[0] is not None and outdirs[0] != default_install_dir and outdirs[0] is not True:
-                # Either the value is set to a non-default value, or is set to
-                # False (which means we want this specific output out of many
-                # outputs to not be installed).
-                custom_install_dir = True
-            else:
-                custom_install_dir = False
-                outdirs[0] = default_install_dir
+            outdirs, custom_install_dir = self.get_target_install_dirs(t)
             # Sanity-check the outputs and install_dirs
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs != 1 and num_outdirs != num_out:
@@ -741,8 +768,10 @@ int dummy;
                 # Install primary build output (library/executable/jar, etc)
                 # Done separately because of strip/aliases/rpath
                 if outdirs[0] is not False:
-                    i = [self.get_target_filename(t), outdirs[0],
-                         t.get_aliases(), should_strip, t.install_rpath, install_mode]
+                    mappings = self.get_target_link_deps_mappings(t, d.prefix)
+                    i = TargetInstallData(self.get_target_filename(t), outdirs[0],
+                                          t.get_aliases(), should_strip, mappings,
+                                          t.install_rpath, install_mode)
                     d.targets.append(i)
                     # On toolchains/platforms that use an import library for
                     # linking (separate from the shared library with all the
@@ -756,11 +785,8 @@ int dummy;
                         else:
                             implib_install_dir = self.environment.get_import_lib_dir()
                         # Install the import library.
-                        i = [self.get_target_filename_for_linking(t),
-                             implib_install_dir,
-                             # It has no aliases, should not be stripped, and
-                             # doesn't have an install_rpath
-                             {}, False, '', install_mode]
+                        i = TargetInstallData(self.get_target_filename_for_linking(t),
+                                              implib_install_dir, {}, False, {}, '', install_mode)
                         d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
                 if num_outdirs > 1:
@@ -769,7 +795,8 @@ int dummy;
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        d.targets.append([f, outdir, {}, False, None, install_mode])
+                        i = TargetInstallData(f, outdir, {}, False, {}, None, install_mode)
+                        d.targets.append(i)
             elif isinstance(t, build.CustomTarget):
                 # If only one install_dir is specified, assume that all
                 # outputs will be installed into it. This is for
@@ -781,14 +808,16 @@ int dummy;
                 if num_outdirs == 1 and num_out > 1:
                     for output in t.get_outputs():
                         f = os.path.join(self.get_target_dir(t), output)
-                        d.targets.append([f, outdirs[0], {}, False, None, install_mode])
+                        i = TargetInstallData(f, outdirs[0], {}, False, {}, None, install_mode)
+                        d.targets.append(i)
                 else:
                     for output, outdir in zip(t.get_outputs(), outdirs):
                         # User requested that we not install this output
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        d.targets.append([f, outdir, {}, False, None, install_mode])
+                        i = TargetInstallData(f, outdir, {}, False, {}, None, install_mode)
+                        d.targets.append(i)
 
     def generate_custom_install_script(self, d):
         result = []
@@ -2392,7 +2421,6 @@ rule FORTRAN_DEP_HACK%s
         return linker.get_no_stdlib_link_args()
 
     def get_target_type_link_args(self, target, linker):
-        abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
         commands = []
         if isinstance(target, build.Executable):
             # Currently only used with the Swift compiler to add '-emit-executable'
@@ -2416,8 +2444,7 @@ rule FORTRAN_DEP_HACK%s
             commands += linker.get_pic_args()
             # Add -Wl,-soname arguments on Linux, -install_name on OS X
             commands += linker.get_soname_args(target.prefix, target.name, target.suffix,
-                                               abspath, target.soversion,
-                                               isinstance(target, build.SharedModule))
+                                               target.soversion, isinstance(target, build.SharedModule))
             # This is only visited when building for Windows using either GCC or Visual Studio
             if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
                 commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
