@@ -73,9 +73,9 @@ def list_installed(installdata):
             res[os.path.join(installdata.build_dir, path)] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
         for path, installpath, unused_prefix in installdata.data:
             res[path] = os.path.join(installdata.prefix, installpath)
-        for path, installdir in installdata.headers:
+        for path, installdir, unused_custom_install_mode in installdata.headers:
             res[path] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
-        for path, installpath in installdata.man:
+        for path, installpath, unused_custom_install_mode in installdata.man:
             res[path] = os.path.join(installdata.prefix, installpath)
     print(json.dumps(res))
 
