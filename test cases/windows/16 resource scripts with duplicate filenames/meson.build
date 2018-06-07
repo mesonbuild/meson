@@ -8,9 +8,12 @@ subdir('c')
 
 main = win.compile_resources('rsrc.rc')
 
-# these make the resource compilation a dependency of something which is built
-# by default
-static_library('libmain', main)
-static_library('liba', a)
-static_library('libb', b)
-static_library('libc', c)
+testa = executable('testa', 'verify.c', a)
+testb = executable('testb', 'verify.c', b)
+testc = executable('testc', 'verify.c', c)
+testmain = executable('testmain', 'verify.c', main)
+
+test('a', testa, args: 'a')
+test('b', testb, args: 'b')
+test('c', testc, args: 'c')
+test('main', testmain, args: 'main')
