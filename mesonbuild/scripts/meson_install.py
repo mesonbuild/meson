@@ -363,6 +363,7 @@ def install_targets(d):
         fname = check_for_stampfile(t[0])
         outdir = get_destdir_path(d, t[1])
         outname = os.path.join(outdir, os.path.basename(fname))
+        final_path = os.path.join(d.prefix, outname)
         aliases = t[2]
         should_strip = t[3]
         install_rpath = t[4]
@@ -414,7 +415,8 @@ def install_targets(d):
                     printed_symlink_error = True
         if os.path.isfile(outname):
             try:
-                depfixer.fix_rpath(outname, install_rpath, False)
+                depfixer.fix_rpath(outname, install_rpath, final_path,
+                                   verbose=False)
             except SystemExit as e:
                 if isinstance(e.code, int) and e.code == 0:
                     pass
