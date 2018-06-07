@@ -360,14 +360,16 @@ def check_for_stampfile(fname):
 
 def install_targets(d):
     for t in d.targets:
-        fname = check_for_stampfile(t[0])
-        outdir = get_destdir_path(d, t[1])
+        fname = check_for_stampfile(t.fname)
+        outdir = get_destdir_path(d, t.outdir)
+        final_path = os.path.join(d.prefix, t.outdir, fname)
         outname = os.path.join(outdir, os.path.basename(fname))
         final_path = os.path.join(d.prefix, outname)
-        aliases = t[2]
-        should_strip = t[3]
-        install_rpath = t[4]
-        install_mode = t[5]
+        aliases = t.aliases
+        should_strip = t.strip
+        install_name_mappings = t.install_name_mappings
+        install_rpath = t.install_rpath
+        install_mode = t.install_mode
         print('Installing %s to %s' % (fname, outname))
         d.dirmaker.makedirs(outdir, exist_ok=True)
         if not os.path.exists(fname):
@@ -416,7 +418,7 @@ def install_targets(d):
         if os.path.isfile(outname):
             try:
                 depfixer.fix_rpath(outname, install_rpath, final_path,
-                                   verbose=False)
+                                   install_name_mappings, verbose=False)
             except SystemExit as e:
                 if isinstance(e.code, int) and e.code == 0:
                     pass
