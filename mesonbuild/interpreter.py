@@ -2269,7 +2269,10 @@ to directly access options of other subprojects.''')
         else:
             raise InterpreterException('Unknown backend "%s".' % backend)
 
-        self.coredata.init_backend_options(backend)
+        # Only init backend options on first invocation otherwise it would
+        # override values previously set from command line.
+        if self.environment.first_invocation:
+            self.coredata.init_backend_options(backend)
 
         options = {k: v for k, v in self.environment.cmd_line_options.items() if k.startswith('backend_')}
         self.coredata.set_options(options)
@@ -2289,9 +2292,16 @@ to directly access options of other subprojects.''')
             oi.process(self.option_file)
             self.coredata.merge_user_options(oi.options)
 
-        default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
-        default_options = coredata.create_options_dict(default_options)
-        default_options.update(self.default_project_options)
+        # Do not set default_options on reconfigure otherwise it would override
+        # values previously set from command line. That means that changing
+        # default_options in a project will trigger a reconfigure but won't
+        # have any effect.
+        if self.environment.first_invocation:
+            default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
+            default_options = coredata.create_options_dict(default_options)
+            default_options.update(self.default_project_options)
+        else:
+            default_options = {}
         self.set_options(default_options)
         self.set_backend()
 

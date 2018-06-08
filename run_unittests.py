@@ -2117,6 +2117,11 @@ recommended as it is not supported on some platforms''')
         self.setconf('--default-library=shared')
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.builtins['default_library'].value, 'shared')
+        if self.backend is Backend.ninja:
+            # reconfigure target works only with ninja backend
+            self.build('reconfigure')
+            obj = mesonbuild.coredata.load(self.builddir)
+            self.assertEqual(obj.builtins['default_library'].value, 'shared')
         self.wipe()
 
         # Should fail on unknown options
