@@ -2914,6 +2914,9 @@ class LinuxlikeTests(BasePlatformTests):
             self.assertEqual(want_mode, found_mode,
                              msg=('Expected file %s to have mode %s but found %s instead.' %
                                   (fsobj, want_mode, found_mode)))
+        # Ensure that introspect --installed works on all types of files
+        # FIXME: also verify the files list
+        self.introspect('--installed')
 
     def test_install_umask(self):
         '''
