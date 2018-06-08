@@ -236,7 +236,7 @@ class CoreData:
         if os.path.isabs(filename):
             return filename
         path_to_try = os.path.abspath(filename)
-        if os.path.exists(path_to_try):
+        if os.path.isfile(path_to_try):
             return path_to_try
         if sys.platform != 'win32':
             paths = [
@@ -244,7 +244,7 @@ class CoreData:
             ] + os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share').split(':')
             for path in paths:
                 path_to_try = os.path.join(path, 'meson', 'cross', filename)
-                if os.path.exists(path_to_try):
+                if os.path.isfile(path_to_try):
                     return path_to_try
             raise MesonException('Cannot find specified cross file: ' + filename)
 
