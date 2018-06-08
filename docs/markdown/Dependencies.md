@@ -127,10 +127,11 @@ wmf_dep = dependency('libwmf', method : 'config-tool')
 
 ## Dependencies using config tools
 
-[CUPS](#cups), [LLVM](#llvm), PCAP, [WxWidgets](#wxwidgets), libwmf, and GnuStep
-either do not provide pkg-config modules or additionally can be detected via a
-config tool (cups-config, llvm-config, etc). Meson has native support for these
-tools, and they can be found like other dependencies:
+[CUPS](#cups), [LLVM](#llvm), [pcap](#pcap), [WxWidgets](#wxwidgets),
+[libwmf](#libwmf), and GnuStep either do not provide pkg-config modules or
+additionally can be detected via a config tool (cups-config, llvm-config,
+etc). Meson has native support for these tools, and they can be found like other
+dependencies:
 
 ```meson
 pcap_dep = dependency('pcap', version : '>=1.0')
@@ -203,6 +204,12 @@ e = executable('testprog', 'test.cc', dependencies : gtest_dep)
 test('gtest test', e)
 ```
 
+## libwmf
+
+*(added 0.44.0)*
+
+`method` may be `auto`, `config-tool` or `pkg-config`.
+
 ## LLVM
 
 Meson has native support for LLVM going back to version LLVM version 3.5.
@@ -234,6 +241,8 @@ llvm_dep = dependency(
 
 ## MPI
 
+*(added 0.42.0)*
+
 MPI is supported for C, C++ and Fortran. Because dependencies are
 language-specific, you must specify the requested language using the
 `language` keyword argument, i.e.,
@@ -250,10 +259,18 @@ environment variables `MPICC`, `MPICXX`, `MPIFC`, `MPIF90`, or
 
 ## OpenMP
 
+*(added 0.46.0)*
+
 This dependency selects the appropriate compiler flags and/or libraries to use
 for OpenMP support.
 
 The `language` keyword may used.
+
+# pcap
+
+*(added 0.42.0)*
+
+`method` may be `auto`, `config-tool` or `pkg-config`.
 
 ## Python3
 
@@ -330,6 +347,8 @@ Meson will find valgrind using `pkg-config`, but only uses the compilation flags
 and avoids trying to link with it's non-PIC static libs.
 
 ## Vulkan
+
+*(added 0.42.0)*
 
 Vulkan can be located using `pkg-config`, or the `VULKAN_SDK` environment variable.
 
