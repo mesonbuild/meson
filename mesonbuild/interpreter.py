@@ -3231,7 +3231,7 @@ root and issuing %s.
         self.build.install_dirs.append(idir)
         return idir
 
-    @FeatureNewKwargs('configure_file', '0.47.0', ['copy', 'output_format', 'install_mode'])
+    @FeatureNewKwargs('configure_file', '0.47.0', ['copy', 'output_format', 'install_mode', 'encoding'])
     @FeatureNewKwargs('configure_file', '0.46.0', ['format'])
     @FeatureNewKwargs('configure_file', '0.41.0', ['capture'])
     @permittedKwargs(permitted_kwargs['configure_file'])
