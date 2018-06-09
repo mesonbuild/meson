@@ -33,6 +33,7 @@ lib_suffixes = ('a', 'lib', 'dll', 'dylib', 'so')
 lang_suffixes = {
     'c': ('c',),
     'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx'),
+    'cuda': ('cu',),
     # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
     # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
     'fortran': ('f90', 'f95', 'f03', 'f08', 'f', 'for', 'ftn', 'fpp'),
@@ -50,7 +51,7 @@ cpp_suffixes = lang_suffixes['cpp'] + ('h',)
 c_suffixes = lang_suffixes['c'] + ('h',)
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
-clike_langs = ('d', 'objcpp', 'cpp', 'objc', 'c', 'fortran',)
+clike_langs = ('d', 'cuda', 'objcpp', 'cpp', 'objc', 'c', 'fortran',)
 clike_suffixes = ()
 for _l in clike_langs:
     clike_suffixes += lang_suffixes[_l]
@@ -61,6 +62,7 @@ soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 # Environment variables that each lang uses.
 cflags_mapping = {'c': 'CFLAGS',
                   'cpp': 'CXXFLAGS',
+                  'cuda': 'CUFLAGS',
                   'objc': 'OBJCFLAGS',
                   'objcpp': 'OBJCXXFLAGS',
                   'fortran': 'FFLAGS',
@@ -126,6 +128,13 @@ gnulike_buildtype_args = {'plain': [],
                           'debugoptimized': ['-O2', '-g'],
                           'release': ['-O3'],
                           'minsize': ['-Os', '-g']}
+
+cuda_buildtype_args = {'plain': [],
+                      'debug': ['-O0', '-g'],
+                      'debugoptimized': ['-O1', '--debug'],
+                      'release': ['-O3', '-Otime'],
+                      'minsize': ['-O3', '-Ospace'],
+                      }
 
 arm_buildtype_args = {'plain': [],
                       'debug': ['-O0', '--debug'],
