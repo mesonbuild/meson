@@ -35,44 +35,6 @@ from .base import ConfigToolDependency
 
 from ..interpreterbase import FeatureNew
 
-class GLDependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
-        super().__init__('gl', environment, None, kwargs)
-        if DependencyMethods.SYSTEM in self.methods:
-            if mesonlib.is_osx():
-                self.is_found = True
-                # FIXME: Use AppleFrameworks dependency
-                self.link_args = ['-framework', 'OpenGL']
-                # FIXME: Detect version using self.compiler
-                self.version = '1'
-                return
-            if mesonlib.is_windows():
-                self.is_found = True
-                # FIXME: Use self.compiler.find_library()
-                self.link_args = ['-lopengl32']
-                # FIXME: Detect version using self.compiler
-                self.version = '1'
-                return
-
-    @classmethod
-    def _factory(cls, environment, kwargs):
-        if DependencyMethods.PKGCONFIG in cls._process_method_kw(kwargs):
-            try:
-                pcdep = PkgConfigDependency('gl', environment, kwargs)
-                if pcdep.found():
-                    return pcdep
-            except Exception:
-                pass
-        return GLDependency(environment, kwargs)
-
-    @staticmethod
-    def get_methods():
-        if mesonlib.is_osx() or mesonlib.is_windows():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
-        else:
-            return [DependencyMethods.PKGCONFIG]
-
-
 class GnuStepDependency(ConfigToolDependency):
 
     tools = ['gnustep-config']

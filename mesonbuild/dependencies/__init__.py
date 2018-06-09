@@ -20,7 +20,7 @@ from .base import (  # noqa: F401
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
 from .misc import (MPIDependency, OpenMPDependency, Python3Dependency, ThreadDependency, PcapDependency, CupsDependency, LibWmfDependency)
 from .platform import AppleFrameworks
-from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, VulkanDependency
+from .ui import GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, VulkanDependency
 
 
 packages.update({
@@ -44,7 +44,6 @@ packages.update({
     'appleframeworks': AppleFrameworks,
 
     # From ui:
-    'gl': GLDependency,
     'gnustep': GnuStepDependency,
     'qt4': Qt4Dependency,
     'qt5': Qt5Dependency,
