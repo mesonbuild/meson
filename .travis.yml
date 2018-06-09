@@ -33,16 +33,10 @@ matrix:
   # Test cross builds separately, they do not use the global compiler
   - os: linux
     compiler: gcc
-    env: RUN_TESTS_ARGS="--cross=arm"
+    env: RUN_TESTS_ARGS="--cross"
   - os: linux
     compiler: gcc
-    env: RUN_TESTS_ARGS="--cross=arm" MESON_ARGS="--unity=on"
-  - os: linux
-    compiler: gcc
-    env: RUN_TESTS_ARGS="--cross=mingw"
-  - os: linux
-    compiler: gcc
-    env: RUN_TESTS_ARGS="--cross=mingw" MESON_ARGS="--unity=on"
+    env: RUN_TESTS_ARGS="--cross" MESON_ARGS="--unity=on"
 
 before_install:
   - python ./skip_ci.py --base-branch-env=TRAVIS_BRANCH --is-pull-env=TRAVIS_PULL_REQUEST

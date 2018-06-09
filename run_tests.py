@@ -211,12 +211,7 @@ if __name__ == '__main__':
             elif arg == '--backend=xcode':
                 backend = Backend.xcode
         if arg.startswith('--cross'):
-            if arg == '--cross=arm':
-                cross = 'arm'
-            elif arg == '--cross=mingw':
-                cross = 'mingw'
-            else:
-                raise RuntimeError('Unknown cross tests selected')
+            cross = True
     # Running on a developer machine? Be nice!
     if not mesonlib.is_windows() and not mesonlib.is_haiku() and 'TRAVIS' not in os.environ:
         os.nice(20)
@@ -254,12 +249,10 @@ if __name__ == '__main__':
             returncode += subprocess.call(mesonlib.python_command + ['run_project_tests.py'] + sys.argv[1:], env=env)
         else:
             cross_test_args = mesonlib.python_command + ['run_cross_test.py']
-            if cross == 'arm':
-                print(mlog.bold('Running armhf cross tests.').get_text(mlog.colorize_console))
-                print()
-                returncode += subprocess.call(cross_test_args + ['cross/ubuntu-armhf.txt'], env=env)
-            elif cross == 'mingw':
-                print(mlog.bold('Running mingw-w64 64-bit cross tests.').get_text(mlog.colorize_console))
-                print()
-                returncode += subprocess.call(cross_test_args + ['cross/linux-mingw-w64-64bit.txt'], env=env)
+            print(mlog.bold('Running armhf cross tests.').get_text(mlog.colorize_console))
+            print()
+            returncode += subprocess.call(cross_test_args + ['cross/ubuntu-armhf.txt'], env=env)
+            print(mlog.bold('Running mingw-w64 64-bit cross tests.').get_text(mlog.colorize_console))
+            print()
+            returncode += subprocess.call(cross_test_args + ['cross/linux-mingw-w64-64bit.txt'], env=env)
     sys.exit(returncode)
