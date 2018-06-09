@@ -2397,6 +2397,10 @@ to directly access options of other subprojects.''')
             comp = self.environment.detect_objc_compiler(False)
             if need_cross_compiler:
                 cross_comp = self.environment.detect_objc_compiler(True)
+        elif lang == 'cuda':
+            comp = self.environment.detect_cuda_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.environment.detect_cuda_compiler(True)
         elif lang == 'objcpp':
             comp = self.environment.detect_objcpp_compiler(False)
             if need_cross_compiler:
