@@ -21,7 +21,7 @@ from pathlib import Path
 # we always import the correct mesonbuild modules even if PYTHONPATH is mangled
 meson_exe = Path(sys.argv[0]).resolve()
 if (meson_exe.parent / 'mesonbuild').is_dir():
-    sys.path.insert(0, meson_exe.parent)
+    sys.path.insert(0, str(meson_exe.parent))
 
 from mesonbuild import mesonmain
 
