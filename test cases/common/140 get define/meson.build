@@ -80,4 +80,8 @@ foreach lang : ['c', 'cpp']
     have = cc.get_define('MESON_TEST_ISSUE_1665')
     assert(have == '1', 'MESON_TEST_ISSUE_1665 value is "@0@" instead of "1"'.format(have))
   endif
+
+  have = cc.get_define('TEST_VERSION_STR',
+        prefix : '#include <concat.h>', include_directories: include_directories('.'))
+  assert(have == '"6.0.0"', 'TEST_VERSION_STR value is "@0@" instead of ""6.0.0""'.format(have))
 endforeach
