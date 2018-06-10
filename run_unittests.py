@@ -74,15 +74,22 @@ def get_soname(fname):
 def get_rpath(fname):
     return get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
 
+def is_ci():
+    if 'TRAVIS' in os.environ or 'APPVEYOR' in os.environ:
+        return True
+    return False
+
 def skipIfNoPkgconfig(f):
     '''
-    Skip this test if no pkg-config is found, unless we're on Travis CI
-    This allows users to run our test suite without having pkg-config installed
-    on, f.ex., macOS, while ensuring that our Travis CI does not silently skip
-    the test because of misconfiguration.
+    Skip this test if no pkg-config is found, unless we're on Travis or
+    Appveyor CI.  This allows users to run our test suite without having
+    pkg-config installed on, f.ex., macOS, while ensuring that our CI does not
+    silently skip the test because of misconfiguration.
+
+    Note: Yes, we provide pkg-config even while running Windows CI
     '''
     def wrapped(*args, **kwargs):
-        if 'TRAVIS' not in os.environ and shutil.which('pkg-config') is None:
+        if is_ci() and shutil.which('pkg-config') is None:
             raise unittest.SkipTest('pkg-config not found')
         return f(*args, **kwargs)
     return wrapped
