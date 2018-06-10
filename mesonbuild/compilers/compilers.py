@@ -1426,6 +1426,12 @@ class ClangCompiler:
             return apple_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
 
+    def get_optimization_args(self, optimization_level):
+        return clike_optimization_args[optimization_level]
+
+    def get_debug_args(self, is_debug):
+        return clike_debug_args[is_debug]
+
     def get_pch_suffix(self):
         return 'pch'
 
