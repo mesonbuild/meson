@@ -677,6 +677,7 @@ class Vs2010Backend(backends.Backend):
         compiler = self._get_cl_compiler(target)
         buildtype_args = compiler.get_buildtype_args(self.buildtype)
         buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
+        crtlib_type = self.environment.coredata.base_options['b_crtlib']
         project_name = target.name
         target_name = target.name
         root = ET.Element('Project', {'DefaultTargets': "Build",
@@ -730,9 +731,17 @@ class Vs2010Backend(backends.Backend):
         if '/INCREMENTAL:NO' in buildtype_link_args:
             ET.SubElement(type_config, 'LinkIncremental').text = 'false'
         # CRT type; debug or release
-        if '/MDd' in buildtype_args:
+        if crtlib_type == 'mdd' or (crtlib_type == 'from_buildtype' and self.buildtype == 'debug'):
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
+        elif crtlib_type == 'mt':
+            # FIXME, wrong
+            ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+            ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreaded'
+        elif crtlib_type == 'mtd':
+            # FIXME, wrong
+            ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
+            ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebug'
         else:
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
             ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDLL'
