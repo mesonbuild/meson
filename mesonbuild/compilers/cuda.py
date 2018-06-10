@@ -16,8 +16,6 @@ import subprocess, os.path
 
 from .. import mlog
 from ..mesonlib import EnvironmentException, Popen_safe
-
-from .c import Compiler
 from .compilers import Compiler, cuda_buildtype_args
 
 class CudaCompiler(Compiler):
@@ -41,7 +39,6 @@ class CudaCompiler(Compiler):
         return ['']
 
     def sanity_check(self, work_dir, environment):
-        code = 'class breakCCompiler;int main(int argc, char **argv) { return 0; }\n'
         return True
 
     def get_compiler_check_args(self):
@@ -110,7 +107,7 @@ class CudaCompiler(Compiler):
             raise EnvironmentException('Executables created by {0} compiler {1} are not runnable.'.format(self.language, self.name_string()))
 
     def get_output_args(self, target):
-        return ['-o',target]
+        return ['-o', target]
 
     def name_string(self):
         return ' '.join(self.exelist)
@@ -161,4 +158,3 @@ class CudaCompiler(Compiler):
 
     def linker_to_compiler_args(self, args):
         return ['/link'] + args
-

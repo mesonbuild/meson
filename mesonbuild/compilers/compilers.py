@@ -130,10 +130,10 @@ gnulike_buildtype_args = {'plain': [],
                           'minsize': ['-Os', '-g']}
 
 cuda_buildtype_args = {'plain': [],
-                      'debug': ['-O0', '-g'],
-                      'debugoptimized': ['-O1', '--debug'],
-                      'release': ['-O3', '-Otime'],
-                      'minsize': ['-O3', '-Ospace'],
+                       'debug': ['-O0', '-g'],
+                       'debugoptimized': ['-O1', '--debug'],
+                       'release': ['-O3', '-Otime'],
+                       'minsize': ['-O3', '-Ospace'],
                       }
 
 arm_buildtype_args = {'plain': [],

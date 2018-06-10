@@ -593,7 +593,7 @@ class Environment:
             if isinstance(compiler, str):
                 compiler = [compiler]
             else:
-                raise EnvironmentException(m.format(err))
+                raise EnvironmentException()
             arg = '--version'
             try:
                 p, out, err = Popen_safe(compiler + [arg])
@@ -601,7 +601,6 @@ class Environment:
                 popen_exceptions[' '.join(compiler + [arg])] = e
                 continue
             version = search_version(out)
-            full_version = out.split('\n', 1)[0]
             cls = CudaCompiler
             return cls(ccache + compiler, version, is_cross, exe_wrap)
 
@@ -841,7 +840,7 @@ class Environment:
             linkers = [linker]
         else:
             evar = 'AR'
-            if isinstance(compiler,compilers.CudaCompiler):
+            if isinstance(compiler, compilers.CudaCompiler):
                 linkers = [self.cuda_static_linker, self.default_static_linker]
             elif evar in os.environ:
                 linkers = [shlex.split(os.environ[evar])]
