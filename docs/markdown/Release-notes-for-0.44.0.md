@@ -145,3 +145,9 @@ myprog = find_program('myscript.py')
 ```
 
 Then Meson will run the script with its internal Python version if necessary.
+
+## Libwmf dependency now supports libwmf-config
+
+Earlier, `dependency('libwmf')` could only detect the library with pkg-config
+files. Now, if pkg-config files are not found, Meson will look for
+`libwmf-config` and if it's found, will use that to find the library.
