@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess, os.path
+import subprocess, os.path, re
 
 from .. import mlog
 from .. import coredata
@@ -933,6 +933,15 @@ class CCompiler(Compiler):
         args = self.linker_to_compiler_args(args)
         code = 'int main(int argc, char **argv) { return 0; }'
         return self.has_arguments(args, env, code, mode='link')
+
+    def concatenate_string_literals(self, s):
+        pattern = re.compile(r'(?P<pre>.*([^\\]")|^")(?P<str1>([^\\"]|\\.)*)"\s+"(?P<str2>([^\\"]|\\.)*)(?P<post>".*)')
+        ret = s
+        m = pattern.match(ret)
+        while m:
+            ret = ''.join(m.group('pre', 'str1', 'str2', 'post'))
+            m = pattern.match(ret)
+        return ret
 
 class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None, **kwargs):
