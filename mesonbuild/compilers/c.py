@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess, os.path, ast
+import subprocess, os.path
 
 from .. import mlog
 from .. import coredata
@@ -569,7 +569,7 @@ class CCompiler(Compiler):
         # Get the preprocessed value after the delimiter,
         # minus the extra newline at the end and
         # merge string literals.
-        return ast.literal_eval(p.stdo.split(delim + '\n')[-1][:-1])
+        return p.stdo.split(delim + '\n')[-1][:-1]
 
     def get_return_value(self, fname, rtype, prefix, env, extra_args, dependencies):
         if rtype == 'string':
