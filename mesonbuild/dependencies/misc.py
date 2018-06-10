@@ -517,6 +517,7 @@ class CupsDependency(ExternalDependency):
 
 
 class LibWmfDependency(ExternalDependency):
+    @FeatureNew('LibWMF Dependency', '0.44.0')
     def __init__(self, environment, kwargs):
         super().__init__('libwmf', environment, None, kwargs)
 
