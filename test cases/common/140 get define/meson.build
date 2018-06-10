@@ -82,6 +82,6 @@ foreach lang : ['c', 'cpp']
   endif
 
   have = cc.get_define('TEST_VERSION_STR',
-        prefix : '#include <concat.h>', include_directories: include_directories('.'))
+        prefix : '#include <concat.h>', include_directories: include_directories('.'), concatenate_string_literals: true)
   assert(have == '"6.0.0"', 'TEST_VERSION_STR value is "@0@" instead of ""6.0.0""'.format(have))
 endforeach

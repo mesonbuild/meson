@@ -1174,6 +1174,7 @@ class CompilerHolder(InterpreterObject):
         'include_directories',
         'args',
         'dependencies',
+        'concatenate_string_literals',
     })
     def get_define_method(self, args, kwargs):
         if len(args) != 1:
@@ -1181,12 +1182,15 @@ class CompilerHolder(InterpreterObject):
         check_stringlist(args)
         element = args[0]
         prefix = kwargs.get('prefix', '')
+        concatenate = kwargs.pop('concatenate_string_literals', False)
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of get_define() must be a string.')
         extra_args = self.determine_args(kwargs)
         deps = self.determine_dependencies(kwargs)
         value = self.compiler.get_define(element, prefix, self.environment, extra_args, deps)
         mlog.log('Fetching value of define "%s": %s' % (element, value))
+        if concatenate:
+            value = self.compiler.concatenate_string_literals(value)
         return value
 
     @permittedKwargs({
