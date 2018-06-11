@@ -13,7 +13,8 @@
 #define TEST_CONCAT_1 \
     "ab"              \
     "cd"              \
-    "ef"
+    "ef"              \
+    ""
 #define TEST_CONCAT_2 1
 #define TEST_CONCAT_3 1 2 3
 #define TEST_CONCAT_4 "ab" 1 "cd"
