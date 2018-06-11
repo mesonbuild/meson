@@ -21,3 +21,9 @@ Added the function `subdir_done()`. Its invocation exits the current script at
 the point of invocation. All previously invoked build targets and commands are
 build/executed. All following ones are ignored. If the current script was
 invoked via `subdir()` the parent script continues normally.
+
+## Concatenate string literals returned from get_define
+
+After obtaining the value of a preprocessor symbol consecutive string literals
+are merged into a single string literal.
+For example a preprocessor symbol's value `"ab" "cd"` is returned as `"abcd"`.

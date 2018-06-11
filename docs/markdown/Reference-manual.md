@@ -1575,8 +1575,8 @@ the following methods:
 
 - `get_define(definename)` returns the given preprocessor symbol's
   value as a string or empty string if it is not defined.
-  The method will concatenate string literals as the compiler would.
-  E.g. `"a" "b"` will become `"ab"`.
+  Starting with 0.47.0, this method will concatenate string literals as
+  the compiler would. E.g. `"a" "b"` will become `"ab"`.
 
 - `get_id()` returns a string identifying the compiler. For example,
   `gcc`, `msvc`, [and more](Reference-tables.html#compiler-ids).
