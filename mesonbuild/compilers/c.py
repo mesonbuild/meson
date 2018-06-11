@@ -934,7 +934,8 @@ class CCompiler(Compiler):
         code = 'int main(int argc, char **argv) { return 0; }'
         return self.has_arguments(args, env, code, mode='link')
 
-    def concatenate_string_literals(self, s):
+    @staticmethod
+    def concatenate_string_literals(s):
         pattern = re.compile(r'(?P<pre>.*([^\\]")|^")(?P<str1>([^\\"]|\\.)*)"\s+"(?P<str2>([^\\"]|\\.)*)(?P<post>".*)')
         ret = s
         m = pattern.match(ret)
