@@ -81,6 +81,8 @@ class PackageDefinition:
                 self.type = 'hg'
             elif first == '[wrap-svn]':
                 self.type = 'svn'
+            elif first == '[wrap-maven]':
+                self.type = 'maven'
             else:
                 raise RuntimeError('Invalid format of package file')
             for line in ifile:
@@ -150,6 +152,8 @@ class Resolver:
             self.get_hg(p)
         elif p.type == "svn":
             self.get_svn(p)
+        elif p.type == "maven":
+            self.get_maven(p)
         else:
             raise AssertionError('Unreachable code.')
         return p.get('directory')
@@ -260,6 +264,31 @@ class Resolver:
         else:
             subprocess.check_call(['svn', 'checkout', '-r', revno, p.get('url'),
                                    p.get('directory')], cwd=self.subdir_root)
+
+    def get_maven(self, p):
+        if not os.path.isdir(self.cachedir):
+            os.mkdir(self.cachedir)
+
+        ofname = os.path.join(self.cachedir, p.get('artifact'))
+        if os.path.exists(ofname):
+            mlog.log('Using', mlog.bold(p.get('artifact')), 'from cache.')
+        else:
+            group, artifact, version = p.get('artifact').split(':')
+            baseurl = '/'.join([p.get('repository')] + group.split('.') + [artifact] + [version])
+            jarname = '%s-%s.jar' % (artifact, version)
+            srcurl = '%s/%s' % (baseurl, jarname)
+            mlog.log('Downloading', mlog.bold(p.get('artifact')), 'from', mlog.bold(srcurl))
+            dhash, jarfile = self.get_data(srcurl)
+
+        target_dir = os.path.join(self.subdir_root, p.get('directory'))
+        if not os.path.exists(target_dir):
+            os.mkdir(target_dir)
+        shutil.copyfile(jarfile, os.path.join(target_dir, jarname))
+        with open(os.path.join(target_dir, 'meson.build'), 'w') as file:
+            file.write('project(\'%s\', \'java\')\n' % p.get('directory'))
+            file.write('javac = meson.get_compiler(\'java\')\n')
+            file.write('lib = javac.find_library(\'%s\', dirs: [\'%s\'])\n' % (jarname, target_dir))
+            file.write('%s_dep = declare_dependency(dependencies: lib)' % p.get('directory'))
 
     def get_data(self, url):
         blocksize = 10 * 1024

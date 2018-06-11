@@ -113,3 +113,10 @@ class JavaCompiler(Compiler):
 
     def needs_static_linker(self):
         return False
+
+    def find_library(self, libname, env, extra_dirs):
+        for d in extra_dirs:
+            trial = os.path.join(d, libname)
+            if os.path.isfile(trial):
+                return ['-cp', trial]
+        return None
