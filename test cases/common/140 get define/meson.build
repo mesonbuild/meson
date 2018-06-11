@@ -82,7 +82,7 @@ foreach lang : ['c', 'cpp']
   endif
 
   have = cc.get_define('TEST_VERSION_STR',
-        prefix : '#include <concat.h>', include_directories: include_directories('.'), concatenate_string_literals: true)
+        prefix : '#include <concat.h>', include_directories: include_directories('.'))
   assert(have == '"6.0.0"', 'TEST_VERSION_STR value is "@0@" instead of ""6.0.0""'.format(have))
 
   concat_examples = {
@@ -95,7 +95,7 @@ foreach lang : ['c', 'cpp']
   }
   foreach def,expected : concat_examples
     have = cc.get_define(def,
-          prefix : '#include <concat.h>', include_directories: include_directories('.'), concatenate_string_literals: true)
+          prefix : '#include <concat.h>', include_directories: include_directories('.'))
     assert(have == expected, '@0@ value is "@1@" instead of "@2@"'.format(def, have, expected))
   endforeach
 endforeach

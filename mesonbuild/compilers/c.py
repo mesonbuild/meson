@@ -569,7 +569,7 @@ class CCompiler(Compiler):
         # Get the preprocessed value after the delimiter,
         # minus the extra newline at the end and
         # merge string literals.
-        return p.stdo.split(delim + '\n')[-1][:-1]
+        return CCompiler.concatenate_string_literals(p.stdo.split(delim + '\n')[-1][:-1])
 
     def get_return_value(self, fname, rtype, prefix, env, extra_args, dependencies):
         if rtype == 'string':
