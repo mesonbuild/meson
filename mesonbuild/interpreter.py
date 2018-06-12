@@ -1234,10 +1234,7 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Prefix argument of get_define() must be a string.')
         extra_args = self.determine_args(kwargs)
         deps = self.determine_dependencies(kwargs)
-        if hasattr(self.compiler, 'get_define'):
-            value = self.compiler.get_define(element, prefix, self.environment, extra_args, deps)
-        else:
-            raise InterpreterException('get_define is not supported for compiler ' + self.compiler.language)
+        value = self.compiler.get_define(element, prefix, self.environment, extra_args, deps)
         mlog.log('Fetching value of define "%s": %s' % (element, value))
         return value
 
