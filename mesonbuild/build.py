@@ -1902,6 +1902,9 @@ class Jar(BuildTarget):
         for s in self.sources:
             if not s.endswith('.java'):
                 raise InvalidArguments('Jar source %s is not a java file.' % s)
+        for t in self.link_targets:
+            if not isinstance(t, Jar):
+                raise InvalidArguments('Link target %s is not a jar target.' % t)
         self.filename = self.name + '.jar'
         self.outputs = [self.filename]
         self.java_args = kwargs.get('java_args', [])
