@@ -981,8 +981,9 @@ int dummy;
             class_list.append(plain_class_path)
         class_dep_list = [os.path.join(self.get_target_private_dir(target), i) for i in class_list]
         manifest_path = os.path.join(self.get_target_private_dir(target), 'Manifest.txt')
-        os.makedirs(os.path.dirname(os.path.join(self.environment.get_build_dir(), manifest_path)), exist_ok=True)
-        with open(manifest_path, 'w') as manifest:
+        manifest_fullpath = os.path.join(self.environment.get_build_dir(), manifest_path)
+        os.makedirs(os.path.dirname(manifest_fullpath), exist_ok=True)
+        with open(manifest_fullpath, 'w') as manifest:
             if any(target.link_targets):
                 manifest.write('Class-Path: ')
                 cp_paths = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
@@ -994,7 +995,6 @@ int dummy;
         if e != '':
             commands.append(main_class)
         commands.append(self.get_target_filename(target))
-        commands.append(manifest_path)
         # Java compilation can produce an arbitrary number of output
         # class files for a single source file. Thus tell jar to just
         # grab everything in the final package.
