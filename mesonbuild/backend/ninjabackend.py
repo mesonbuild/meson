@@ -1046,7 +1046,7 @@ int dummy;
             link_args = ''
             for l in target.link_targets:
                 lname = os.path.join(self.get_target_dir(l), l.get_filename())
-                link_args += lname + ':'
+                link_args += lname + os.pathsep
                 deps.append(lname)
             args.append(link_args)
         curdir = target.get_subdir()
