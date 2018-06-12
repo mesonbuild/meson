@@ -699,6 +699,9 @@ class Compiler:
     def get_default_suffix(self):
         return self.default_suffix
 
+    def get_define(self, dname, prefix, env, extra_args, dependencies):
+        raise EnvironmentException('%s does not support get_define ' % self.get_id())
+
     def get_exelist(self):
         return self.exelist[:]
 
