@@ -1855,6 +1855,7 @@ class Interpreter(InterpreterBase):
             self.default_project_options = default_project_options.copy()
         else:
             self.default_project_options = {}
+        self.project_default_options = {}
         self.build_func_dict()
         # build_def_files needs to be defined before parse_project is called
         self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
@@ -1873,6 +1874,18 @@ class Interpreter(InterpreterBase):
                 self.builtin['target_machine'] = CrossMachineInfo(cross_info.config['target_machine'])
             else:
                 self.builtin['target_machine'] = self.builtin['host_machine']
+
+    def get_non_matching_default_options(self):
+        env = self.environment
+        for def_opt_name, def_opt_value in self.project_default_options.items():
+            for option_type in [
+                    env.coredata.builtins, env.coredata.compiler_options,
+                    env.coredata.backend_options, env.coredata.base_options,
+                    env.coredata.user_options]:
+                for cur_opt_name, cur_opt_value in option_type.items():
+                    if (def_opt_name == cur_opt_name and
+                            def_opt_value != cur_opt_value.value):
+                        yield (def_opt_name, def_opt_value, cur_opt_value.value)
 
     def build_func_dict(self):
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
@@ -2377,9 +2390,10 @@ external dependencies (including libraries) must go to "dependencies".''')
         # values previously set from command line. That means that changing
         # default_options in a project will trigger a reconfigure but won't
         # have any effect.
+        self.project_default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
+        self.project_default_options = coredata.create_options_dict(self.project_default_options)
         if self.environment.first_invocation:
-            default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
-            default_options = coredata.create_options_dict(default_options)
+            default_options = self.project_default_options
             default_options.update(self.default_project_options)
         else:
             default_options = {}
