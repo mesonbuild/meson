@@ -1922,6 +1922,9 @@ class Jar(BuildTarget):
         # All jar targets are installable.
         pass
 
+    def is_linkable_target(self):
+        return True
+
 class CustomTargetIndex:
 
     """A special opaque object returned by indexing a CustomTarget. This object
