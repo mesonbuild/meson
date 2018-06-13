@@ -1043,6 +1043,8 @@ class CompilerHolder(InterpreterObject):
         'dependencies',
     })
     def has_members_method(self, args, kwargs):
+        if len(args) < 2:
+            raise InterpreterException('Has_members needs at least two arguments.')
         check_stringlist(args)
         typename = args[0]
         membernames = args[1:]
