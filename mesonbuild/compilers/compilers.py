@@ -702,6 +702,18 @@ class Compiler:
     def get_define(self, dname, prefix, env, extra_args, dependencies):
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
+    def compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies):
+        raise EnvironmentException('%s does not support compute_int ' % self.get_id())
+
+    def has_members(self, typename, membernames, prefix, env, extra_args=None, dependencies=None):
+        raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
+
+    def has_type(self, typename, prefix, env, extra_args, dependencies=None):
+        raise EnvironmentException('%s does not support has_type ' % self.get_id())
+
+    def symbols_have_underscore_prefix(self, env):
+        raise EnvironmentException('%s does not support symbols_have_underscore_prefix ' % self.get_id())
+
     def get_exelist(self):
         return self.exelist[:]
 
