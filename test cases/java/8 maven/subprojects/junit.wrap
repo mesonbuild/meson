@@ -1,0 +1,4 @@
+[wrap-maven]
+directory = junit
+repository = http://central.maven.org/maven2
+artifact = junit:junit:4.12
