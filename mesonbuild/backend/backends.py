@@ -820,7 +820,7 @@ class Backend:
         outdir = self.get_target_dir(target)
         if absolute_outputs:
             source_root = self.environment.get_source_dir()
-            build_root = self.environment.get_source_dir()
+            build_root = self.environment.get_build_dir()
             outdir = os.path.join(self.environment.get_build_dir(), outdir)
         outputs = []
         for i in target.get_outputs():
