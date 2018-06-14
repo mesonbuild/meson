@@ -113,6 +113,10 @@ of all the work behind the scenes to make this work.
 
 Some dependencies have specific detection logic.
 
+Generic dependency names are case-sensitive<sup>[1](#footnote1)</sup>, but these
+dependency names are matched case-insensitively.  The recommended style is to
+write them in all lower-case.
+
 In some cases, more than one detection method exists, and the `method` keyword
 may be used to select a detection method to use.  The `auto` method uses any
 checking mechanisms in whatever order meson thinks is best.
@@ -377,3 +381,7 @@ $ wx-config --cxxflags std stc
 # link_args:
 $ wx-config --libs std stc
 ```
+
+<hr>
+<a name="footnote1">1</a>: They may appear to be case-insensitive, if the
+    underlying file system happens to be case-insensitive.
