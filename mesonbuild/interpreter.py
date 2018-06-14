@@ -800,7 +800,7 @@ class CustomTargetHolder(TargetHolder):
 
     def outdir_include(self):
         return IncludeDirsHolder(build.IncludeDirs('', [], False,
-                                                   [self.interpreter.backend.get_target_dir(self.held_object)]))
+                                                   [os.path.join('@BUILD_ROOT@', self.interpreter.backend.get_target_dir(self.held_object))]))
 
 class RunTargetHolder(InterpreterObject, ObjectHolder):
     def __init__(self, name, command, args, dependencies, subdir, subproject):
