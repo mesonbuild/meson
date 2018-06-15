@@ -122,7 +122,8 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                                                               '--module=' + module,
                                                               '--cflags=' + cflags,
                                                               '--ldflags=' + ldflags,
-                                                              '--ld=' + ld]
+                                                              '--ld=' + ld,
+                                                              '--output-dir=' + abs_out]
 
         library_paths = []
         for ldflag in shlex.split(ldflags):
@@ -132,7 +133,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
             library_paths.append(os.environ['LD_LIBRARY_PATH'])
         library_path = ':'.join(library_paths)
 
-        gtkdoc_run_check(scanobjs_cmd, abs_out, library_path)
+        gtkdoc_run_check(scanobjs_cmd, build_root, library_path)
 
     # Make docbook files
     if mode == 'auto':
