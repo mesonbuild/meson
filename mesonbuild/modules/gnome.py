@@ -920,51 +920,19 @@ This will become a hard error in the future.''')
                 raise MesonException('Annotations must be made up of 3 strings for ELEMENT, KEY, and VALUE')
             cmd += ['--annotate'] + annotation
 
+        targets = []
+        install_header = kwargs.get('install_header', False)
+        install_dir = kwargs.get('install_dir', state.environment.coredata.get_builtin_option('includedir'))
+
+        output = namebase + '.c'
         # Added in https://gitlab.gnome.org/GNOME/glib/commit/e4d68c7b3e8b01ab1a4231bf6da21d045cb5a816 (2.55.2)
         # Fixed in https://gitlab.gnome.org/GNOME/glib/commit/cd1f82d8fc741a2203582c12cc21b4dacf7e1872 (2.56.2)
         if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.56.2'):
-            targets = []
-            install_header = kwargs.get('install_header', False)
-            install_dir = kwargs.get('install_dir', state.environment.coredata.get_builtin_option('includedir'))
-
-            output = namebase + '.c'
             custom_kwargs = {'input': xml_files,
                              'output': output,
                              'command': cmd + ['--body', '--output', '@OUTPUT@', '@INPUT@'],
                              'build_by_default': build_by_default
                              }
-            targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
-
-            output = namebase + '.h'
-            custom_kwargs = {'input': xml_files,
-                             'output': output,
-                             'command': cmd + ['--header', '--output', '@OUTPUT@', '@INPUT@'],
-                             'build_by_default': build_by_default,
-                             'install': install_header,
-                             'install_dir': install_dir
-                             }
-            targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
-
-            if 'docbook' in kwargs:
-                docbook = kwargs['docbook']
-                if not isinstance(docbook, str):
-                    raise MesonException('docbook value must be a string.')
-
-                docbook_cmd = cmd + ['--output-directory', '@OUTDIR@', '--generate-docbook', docbook, '@INPUT@']
-
-                # The docbook output is always ${docbook}-${name_of_xml_file}
-                output = namebase + '-docbook'
-                outputs = []
-                for f in xml_files:
-                    outputs.append('{}-{}'.format(docbook, f))
-                custom_kwargs = {'input': xml_files,
-                                 'output': outputs,
-                                 'command': docbook_cmd,
-                                 'build_by_default': build_by_default
-                                 }
-                targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
-
-            objects = targets
         else:
             if 'docbook' in kwargs:
                 docbook = kwargs['docbook']
@@ -979,24 +947,67 @@ This will become a hard error in the future.''')
             else:
                 self._print_gdbus_warning()
                 cmd += ['--generate-c-code', '@OUTDIR@/' + namebase, '@INPUT@']
-            outputs = [namebase + '.c', namebase + '.h']
-            install = kwargs.get('install_header', False)
+
             custom_kwargs = {'input': xml_files,
-                             'output': outputs,
+                             'output': output,
+                             'command': cmd,
+                             'build_by_default': build_by_default
+                             }
+
+        base_custom_target = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs)
+        targets.append(base_custom_target)
+
+        output = namebase + '.h'
+        if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.56.2'):
+            custom_kwargs = {'input': xml_files,
+                             'output': output,
+                             'command': cmd + ['--header', '--output', '@OUTPUT@', '@INPUT@'],
+                             'build_by_default': build_by_default,
+                             'install': install_header,
+                             'install_dir': install_dir
+                             }
+        else:
+            custom_kwargs = {'input': xml_files,
+                             'output': output,
                              'command': cmd,
                              'build_by_default': build_by_default,
-                             'install': install,
+                             'install': install_header,
+                             'install_dir': install_dir,
+                             'depends': base_custom_target
                              }
-            if install and 'install_dir' in kwargs:
-                custom_kwargs['install_dir'] = [False, kwargs['install_dir']]
-            ct = build.CustomTarget(target_name, state.subdir, state.subproject, custom_kwargs)
-            # Ensure that the same number (and order) of arguments are returned
-            # regardless of the gdbus-codegen (glib) version being used
-            targets = [ct, ct]
-            if 'docbook' in kwargs:
-                targets.append(ct)
-            objects = [ct]
-        return ModuleReturnValue(targets, objects)
+
+        targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
+
+        if 'docbook' in kwargs:
+            docbook = kwargs['docbook']
+            if not isinstance(docbook, str):
+                raise MesonException('docbook value must be a string.')
+
+            docbook_cmd = cmd + ['--output-directory', '@OUTDIR@', '--generate-docbook', docbook, '@INPUT@']
+
+            # The docbook output is always ${docbook}-${name_of_xml_file}
+            output = namebase + '-docbook'
+            outputs = []
+            for f in xml_files:
+                outputs.append('{}-{}'.format(docbook, f))
+
+            if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.56.2'):
+                custom_kwargs = {'input': xml_files,
+                                 'output': outputs,
+                                 'command': docbook_cmd,
+                                 'build_by_default': build_by_default
+                                 }
+            else:
+                custom_kwargs = {'input': xml_files,
+                                 'output': outputs,
+                                 'command': cmd,
+                                 'build_by_default': build_by_default,
+                                 'depends': base_custom_target
+                                 }
+
+            targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
+
+        return ModuleReturnValue(targets, targets)
 
     @permittedKwargs({'sources', 'c_template', 'h_template', 'install_header', 'install_dir',
                       'comments', 'identifier_prefix', 'symbol_prefix', 'eprod', 'vprod',
