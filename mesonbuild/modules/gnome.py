@@ -446,9 +446,10 @@ class GnomeModule(ExtensionModule):
                 if hasattr(s, 'held_object'):
                     s = s.held_object
                 if isinstance(s, (build.CustomTarget, build.CustomTargetIndex)):
-                    gir_filelist.write(os.path.join(state.environment.get_build_dir(),
-                                                    state.backend.get_target_dir(s),
-                                                    s.get_outputs()[0]) + '\n')
+                    for custom_output in s.get_outputs():
+                        gir_filelist.write(os.path.join(state.environment.get_build_dir(),
+                                                        state.backend.get_target_dir(s),
+                                                        custom_output) + '\n')
                 elif isinstance(s, mesonlib.File):
                     gir_filelist.write(s.rel_to_builddir(state.build_to_src) + '\n')
                 elif isinstance(s, build.GeneratedList):
