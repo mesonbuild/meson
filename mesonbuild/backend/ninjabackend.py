@@ -1041,14 +1041,9 @@ int dummy;
         args += self.build.get_project_args(compiler, target.subproject)
         args += target.get_java_args()
         args += compiler.get_output_args(self.get_target_private_dir(target))
-        if any(target.link_targets):
-            args.append('-cp')
-            link_args = ''
-            for l in target.link_targets:
-                lname = os.path.join(self.get_target_dir(l), l.get_filename())
-                link_args += lname + os.pathsep
-                deps.append(lname)
-            args.append(link_args)
+        args += target.get_classpath_args()
+        for l in target.link_targets:
+            deps.append(os.path.join(self.get_target_dir(l), l.get_filename()))
         curdir = target.get_subdir()
         sourcepath = os.path.join(self.build_to_src, curdir) + os.pathsep
         sourcepath += os.path.normpath(curdir) + os.pathsep

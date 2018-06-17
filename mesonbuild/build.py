@@ -1925,6 +1925,13 @@ class Jar(BuildTarget):
     def is_linkable_target(self):
         return True
 
+    def get_classpath_args(self):
+        cp_args = os.path.join(self.get_subdir(), self.get_filename())
+        for l in self.link_targets:
+            cp_args += os.pathsep + os.path.join(l.get_subdir(), l.get_filename())
+        return ['-cp', cp_args]
+
+
 class CustomTargetIndex:
 
     """A special opaque object returned by indexing a CustomTarget. This object

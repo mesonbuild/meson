@@ -665,6 +665,9 @@ class Backend:
                     cmd_args.append(self.get_target_filename(a))
                 else:
                     raise MesonException('Bad object in test command.')
+            if isinstance(exe, build.Jar):
+                cmd_args += exe.get_classpath_args()
+                cmd_args.append(exe.get_main_class())
             ts = TestSerialisation(t.get_name(), t.project_name, t.suite, cmd, is_cross,
                                    exe_wrapper, t.is_parallel, cmd_args, t.env,
                                    t.should_fail, t.timeout, t.workdir, extra_paths)
