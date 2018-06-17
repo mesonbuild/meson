@@ -87,3 +87,8 @@ executable('myapp', myapp_src, dependencies: [mylib_dep])
 
 Please keep in mind that the library and executable would both need to be built with the exact same D compiler and D compiler version. The D ABI is not
 stable across compilers and their versions, and mixing compilers will lead to problems.
+
+# Integrating with DUB
+
+DUB is a fully integrated build system for D, but it is also a way to provide dependencies. Adding dependencies from the [D package registry](https://code.dlang.org/) is pretty straight forward.
+You can find how to do this in [Dependencies](Dependencies.md#Dub). You can also automatically generate a `dub.json` file as explained in [Dlang](Dlang-module.md#generatedubfile).

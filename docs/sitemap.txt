@@ -39,6 +39,7 @@ index.md
 			RPM-module.md
 			Simd-module.md
 			Windows-module.md
+			Dlang-module.md
 		Java.md
 		Vala.md
 		D.md

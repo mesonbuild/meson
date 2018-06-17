@@ -186,6 +186,25 @@ have been compiled for single-threaded use instead.
 
 `method` may be `auto`, `config-tool`, `pkg-config` or `extraframework`.
 
+## Dub
+
+Use `method` to find dependencies with Dub. Just create a dependency as you would normally, but add `dub` as the dependency method.
+```meson
+urld_dep = dependency('urld', method: 'dub')
+```
+If the dependency is not resolved using Dub, meson will still try to find it with Pkg-Config.
+
+Please understand that meson is only able to find existing dependencies. You still need to manually fetch and build them with Dub.
+```
+dub fetch urld
+dub build urld
+```
+Other thing you need to keep in mind is that both meson and Dub need to be using the same compiler. This can be achieved using Dub's   `-compiler` argument and/or manually setting the `DC` environment variable when running meson.
+```
+dub build urld --compiler=dmd
+DC="dmd" meson builddir
+```
+
 ## GL
 
 This finds the OpenGL library in a way appropriate to the platform.
