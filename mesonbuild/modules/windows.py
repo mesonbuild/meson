@@ -88,8 +88,10 @@ class WindowsModule(ExtensionModule):
                 'depend_files': wrc_deps,
             }
 
-            if isinstance(src, (str, mesonlib.File)):
-                name = 'file {!r}'.format(str(src))
+            if isinstance(src, str):
+                name = 'file {!r}'.format(os.path.join(state.subdir, src))
+            elif isinstance(src, mesonlib.File):
+                name = 'file {!r}'.format(src.relative_name())
             elif isinstance(src, build.CustomTarget):
                 if len(src.get_outputs()) > 1:
                     raise MesonException('windows.compile_resources does not accept custom targets with more than 1 output.')
