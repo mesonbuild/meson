@@ -48,3 +48,8 @@ subdir('sh_func2_transdep_func1')
 subdir('exe4')
 # Test that both func1 and func2 are accessible from shared library
 test('prog4', exe4)
+
+# Test static library with no source files. Used to fail on MacOSX.
+st_lib = static_library('st_lib_func1_and_func2', link_whole : [st_func1, st_func2])
+exe5 = executable('prog5', 'prog.c', link_with : st_lib)
+test('prog5', exe5)
