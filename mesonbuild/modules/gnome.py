@@ -288,7 +288,7 @@ class GnomeModule(ExtensionModule):
                 dep_files.append(f)
         return dep_files, depends, subdirs
 
-    def _get_link_args(self, state, lib, depends=None, include_rpath=False,
+    def _get_link_args(self, state, lib, depends, include_rpath=False,
                        use_gir_args=False):
         link_command = []
         # Construct link args
@@ -306,15 +306,14 @@ class GnomeModule(ExtensionModule):
                     link_command.append('-Wl,-rpath,' + d)
             if include_rpath:
                 link_command.append('-Wl,-rpath,' + libdir)
-            if depends:
-                depends.append(lib)
+            depends.append(lib)
         if gir_has_extra_lib_arg(self.interpreter) and use_gir_args:
             link_command.append('--extra-library=' + lib.name)
         else:
             link_command.append('-l' + lib.name)
         return link_command
 
-    def _get_dependencies_flags(self, deps, state, depends=None, include_rpath=False,
+    def _get_dependencies_flags(self, deps, state, depends, include_rpath=False,
                                 use_gir_args=False):
         cflags = OrderedSet()
         ldflags = OrderedSet()
@@ -371,6 +370,7 @@ class GnomeModule(ExtensionModule):
                         gi_includes.update([girdir])
             elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
                 cflags.update(get_include_args(dep.get_include_dirs()))
+                depends.append(dep)
             else:
                 mlog.log('dependency {!r} not handled to build gir files'.format(dep))
                 continue
@@ -823,16 +823,16 @@ This will become a hard error in the future.''')
         args += self._unpack_args('--expand-content-files=', 'expand_content_files', kwargs, state)
         args += self._unpack_args('--ignore-headers=', 'ignore_headers', kwargs)
         args += self._unpack_args('--installdir=', 'install_dir', kwargs, state)
-        args += self._get_build_args(kwargs, state)
+        args += self._get_build_args(kwargs, state, depends)
         res = [build.RunTarget(targetname, command[0], command[1:] + args, depends, state.subdir, state.subproject)]
         if kwargs.get('install', True):
             res.append(build.RunScript(command, args))
         return ModuleReturnValue(None, res)
 
-    def _get_build_args(self, kwargs, state):
+    def _get_build_args(self, kwargs, state, depends):
         args = []
         deps = extract_as_list(kwargs, 'dependencies', unholder=True)
-        cflags, ldflags, gi_includes = self._get_dependencies_flags(deps, state, include_rpath=True)
+        cflags, ldflags, gi_includes = self._get_dependencies_flags(deps, state, depends, include_rpath=True)
         inc_dirs = mesonlib.extract_as_list(kwargs, 'include_directories')
         for incd in inc_dirs:
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
