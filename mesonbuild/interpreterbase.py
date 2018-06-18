@@ -135,7 +135,12 @@ class FeatureNew:
     def add_called_feature(self):
         if self.feature_version not in self.feature_versions:
             self.feature_versions[self.feature_version] = set()
-        self.feature_versions[self.feature_version].add(self.feature_name)
+
+        if self.feature_name in self.feature_versions[self.feature_version]:
+            return False
+        else:
+            self.feature_versions[self.feature_version].add(self.feature_name)
+            return True
 
     def called_features_report():
         fv = FeatureNew.feature_versions
@@ -145,7 +150,8 @@ class FeatureNew:
                 print('{}: {}'.format(version, fv[version]))
 
     def use(self):
-        self.add_called_feature()
+        if not self.add_called_feature():
+            return
         tv = mesonlib.target_version
         if tv == '':
             return
@@ -173,7 +179,12 @@ class FeatureDeprecated:
     def add_called_feature(self):
         if self.feature_version not in self.feature_versions:
             self.feature_versions[self.feature_version] = set()
-        self.feature_versions[self.feature_version].add(self.feature_name)
+
+        if self.feature_name in self.feature_versions[self.feature_version]:
+            return False
+        else:
+            self.feature_versions[self.feature_version].add(self.feature_name)
+            return True
 
     def called_features_report():
         fv = FeatureDeprecated.feature_versions
@@ -183,7 +194,8 @@ class FeatureDeprecated:
                 print('{}: {}'.format(version, fv[version]))
 
     def use(self):
-        self.add_called_feature()
+        if not self.add_called_feature():
+            return
         tv = mesonlib.target_version
         if tv == '':
             return
