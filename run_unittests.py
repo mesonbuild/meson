@@ -37,7 +37,7 @@ from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import (
     is_windows, is_osx, is_cygwin, is_dragonflybsd,
     windows_proof_rmtree, python_command, version_compare,
-    BuildDirLock
+    grab_leading_numbers, BuildDirLock
 )
 from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -2266,21 +2266,34 @@ class FailureTests(BasePlatformTests):
             # Must run in-process or we'll get a generic CalledProcessError
             self.init(self.srcdir, extra_args=extra_args, inprocess=True)
 
-    def assertMesonOutputs(self, contents, match, extra_args=None, langs=None):
-        '''
-        Assert that running meson configure on the specified @contents outputs
-        something that matches regex @match.
-        '''
+    def obtainMesonOutput(self, contents, match, extra_args, langs, meson_version):
         if langs is None:
             langs = []
         with open(self.mbuild, 'w') as f:
-            f.write("project('output test', 'c', 'cpp')\n")
+            core_version = '.'.join([str(component) for component in grab_leading_numbers(mesonbuild.coredata.version)])
+            meson_version = meson_version or core_version
+            f.write("project('output test', 'c', 'cpp', meson_version: '{}')\n".format(meson_version))
             for lang in langs:
                 f.write("add_languages('{}', required : false)\n".format(lang))
             f.write(contents)
         # Run in-process for speed and consistency with assertMesonRaises
-        out = self.init(self.srcdir, extra_args=extra_args, inprocess=True)
+        return self.init(self.srcdir, extra_args=extra_args, inprocess=True)
+
+    def assertMesonOutputs(self, contents, match, extra_args=None, langs=None, meson_version=None):
+        '''
+        Assert that running meson configure on the specified @contents outputs
+        something that matches regex @match.
+        '''
+        out = self.obtainMesonOutput(contents, match, extra_args, langs, meson_version)
         self.assertRegex(out, match)
+
+    def assertMesonDoesNotOutput(self, contents, match, extra_args=None, langs=None, meson_version=None):
+        '''
+        Assert that running meson configure on the specified @contents does not output
+        something that matches regex @match.
+        '''
+        out = self.obtainMesonOutput(contents, match, extra_args, langs, meson_version)
+        self.assertNotRegex(out, match)
 
     @skipIfNoPkgconfig
     def test_dependency(self):
@@ -2424,6 +2437,18 @@ class FailureTests(BasePlatformTests):
     def test_dict_forbids_integer_key(self):
         self.assertMesonRaises("dict = {3: 'foo'}",
                                'Key must be a string.*')
+
+    def test_using_too_recent_feature(self):
+        # Here we use a dict, which was introduced in 0.47.0
+        self.assertMesonOutputs("dict = {}",
+                                ".*WARNING.*Project targetting.*but.*",
+                                meson_version='>= 0.46.0')
+
+    def test_using_recent_feature(self):
+        # Same as above, except the meson version is now appropriate
+        self.assertMesonDoesNotOutput("dict = {}",
+                                      ".*WARNING.*Project targetting.*but.*",
+                                      meson_version='>= 0.47.0')
 
 
 class WindowsTests(BasePlatformTests):
