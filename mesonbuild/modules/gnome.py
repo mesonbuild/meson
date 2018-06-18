@@ -957,8 +957,8 @@ This will become a hard error in the future.''')
                              'build_by_default': build_by_default
                              }
 
-        base_custom_target = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs)
-        targets.append(base_custom_target)
+        cfile_custom_target = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs)
+        targets.append(cfile_custom_target)
 
         output = namebase + '.h'
         if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.56.2'):
@@ -976,10 +976,11 @@ This will become a hard error in the future.''')
                              'build_by_default': build_by_default,
                              'install': install_header,
                              'install_dir': install_dir,
-                             'depends': base_custom_target
+                             'depends': cfile_custom_target
                              }
 
-        targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
+        hfile_custom_target = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs)
+        targets.append(hfile_custom_target)
 
         if 'docbook' in kwargs:
             docbook = kwargs['docbook']
@@ -1005,10 +1006,11 @@ This will become a hard error in the future.''')
                                  'output': outputs,
                                  'command': cmd,
                                  'build_by_default': build_by_default,
-                                 'depends': base_custom_target
+                                 'depends': cfile_custom_target
                                  }
 
-            targets.append(build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs))
+            docbook_custom_target = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs)
+            targets.append(docbook_custom_target)
 
         return ModuleReturnValue(targets, targets)
 
