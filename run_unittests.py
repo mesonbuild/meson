@@ -2206,6 +2206,7 @@ recommended as it is not supported on some platforms''')
             # they used to fail this test with Meson 0.46 an earlier versions.
             pass
 
+    @unittest.skipIf(not os.path.isdir('docs'), 'Doc dir not found, presumably because this is a tarball release.')
     def test_compiler_options_documented(self):
         '''
         Test that C and C++ compiler options and base options are documented in
