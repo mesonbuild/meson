@@ -2227,6 +2227,24 @@ recommended as it is not supported on some platforms''')
                 self.assertIn(opt, md)
         self.assertNotIn('b_unknown', md)
 
+    @unittest.skipIf(not os.path.isdir('docs'), 'Doc dir not found, presumably because this is a tarball release.')
+    def test_cpu_families_documented(self):
+        with open("docs/markdown/Reference-tables.md") as f:
+            md = f.read()
+        self.assertIsNotNone(md)
+
+        sections = list(re.finditer(r"^## (.+)$", md, re.MULTILINE))
+        for s1, s2 in zip(sections[::2], sections[1::2]):
+            if s1.group(1) == "CPU families":
+                # Extract the content for this section
+                content = md[s1.end():s2.start()]
+                # Find the list entries
+                arches = [m.group(1) for m in re.finditer(r"^\| (\w+) +\|", content, re.MULTILINE)]
+                # Drop the header
+                arches = set(arches[1:])
+                self.assertEqual(arches, set(mesonbuild.environment.known_cpu_families))
+
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically
