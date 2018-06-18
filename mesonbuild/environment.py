@@ -225,6 +225,10 @@ def detect_cpu_family(compilers):
                 pass
         return 'x86_64'
     # Add fixes here as bugs are reported.
+
+    if trial not in known_cpu_families:
+        mlog.warning('Unknown CPU family %s, please report this at https://github.com/mesonbuild/meson/issues/new' % trial)
+
     return trial
 
 def detect_cpu(compilers):
