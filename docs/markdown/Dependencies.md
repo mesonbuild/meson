@@ -192,7 +192,6 @@ Use `method` to find dependencies with Dub. Just create a dependency as you woul
 ```meson
 urld_dep = dependency('urld', method: 'dub')
 ```
-If the dependency is not resolved using Dub, meson will still try to find it with Pkg-Config.
 
 Please understand that meson is only able to find existing dependencies. You still need to manually fetch and build them with Dub.
 ```

@@ -1205,8 +1205,9 @@ def find_external_dependency(name, env, kwargs):
         raise DependencyException('%s dependency does not accept "language" keyword argument' % (lname, ))
     if 'dub' == method:
         dubdep = DubDependency(name, env, kwargs)
-        if dubdep.found():
-            return dubdep
+        if required and not dubdep.found():
+            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
+        return dubdep
     pkg_exc = None
     pkgdep = None
     try:
