@@ -89,7 +89,7 @@ def skipIfNoPkgconfig(f):
     Note: Yes, we provide pkg-config even while running Windows CI
     '''
     def wrapped(*args, **kwargs):
-        if is_ci() and shutil.which('pkg-config') is None:
+        if not is_ci() and shutil.which('pkg-config') is None:
             raise unittest.SkipTest('pkg-config not found')
         return f(*args, **kwargs)
     return wrapped
@@ -3362,7 +3362,7 @@ endian = 'little'
         self.prefix = oldprefix
         self.build()
         self.install(use_destdir=False)
-        # New builddir for the consumer
+        ## New builddir for the consumer
         self.new_builddir()
         os.environ['LIBRARY_PATH'] = os.path.join(installdir, self.libdir)
         os.environ['PKG_CONFIG_PATH'] = os.path.join(installdir, self.libdir, 'pkgconfig')
@@ -3380,6 +3380,19 @@ endian = 'little'
         self._run([prog])
         out = self._run(['otool', '-L', prog])
         self.assertNotIn('@rpath', out)
+        ## New builddir for testing that DESTDIR is not added to install_name
+        self.new_builddir()
+        # install into installdir with DESTDIR
+        self.init(testdir)
+        self.build()
+        # test running after installation
+        self.install()
+        prog = self.installdir + os.path.join(self.prefix, 'bin', 'prog')
+        lib = self.installdir + os.path.join(self.prefix, 'lib', 'libbar_built.dylib')
+        for f in prog, lib:
+            out = self._run(['otool', '-L', f])
+            # Ensure that the otool output does not contain self.installdir
+            self.assertNotRegex(out, self.installdir + '.*dylib ')
 
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
