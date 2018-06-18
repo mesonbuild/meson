@@ -362,9 +362,8 @@ def install_targets(d):
     for t in d.targets:
         fname = check_for_stampfile(t.fname)
         outdir = get_destdir_path(d, t.outdir)
-        final_path = os.path.join(d.prefix, t.outdir, fname)
         outname = os.path.join(outdir, os.path.basename(fname))
-        final_path = os.path.join(d.prefix, outname)
+        final_path = os.path.join(d.prefix, t.outdir, os.path.basename(fname))
         aliases = t.aliases
         should_strip = t.strip
         install_name_mappings = t.install_name_mappings
