@@ -1717,7 +1717,7 @@ rule FORTRAN_DEP_HACK%s
         if compiler.can_linker_accept_rsp():
             command_template = ' command = {executable} @$out.rsp\n' \
                                ' rspfile = $out.rsp\n' \
-                               ' rspfile_content =  $ARGS{cross_args} {output_args} {compile_only_args} $in\n'
+                               ' rspfile_content =  $ARGS {cross_args} {output_args} {compile_only_args} $in\n'
         else:
             command_template = ' command = {executable} $ARGS {cross_args} {output_args} {compile_only_args} $in\n'
         command = command_template.format(
