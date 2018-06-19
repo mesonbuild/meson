@@ -230,7 +230,7 @@ class SingleTestRunner:
 
     def _get_cmd(self):
         if self.test.fname[0].endswith('.jar'):
-            return ['java', '-jar'] + self.test.fname
+            return ['java']
         elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
             return ['mono'] + self.test.fname
         else:

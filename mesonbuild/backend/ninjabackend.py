@@ -1063,12 +1063,16 @@ int dummy;
         self.generate_generator_list_rules(target, outfile)
 
     def generate_single_java_compile(self, src, target, compiler, outfile):
+        deps = []
         args = []
         args += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
         args += self.build.get_global_args(compiler)
         args += self.build.get_project_args(compiler, target.subproject)
         args += target.get_java_args()
         args += compiler.get_output_args(self.get_target_private_dir(target))
+        args += target.get_classpath_args()
+        for l in target.link_targets:
+            deps.append(os.path.join(self.get_target_dir(l), l.get_filename()))
         curdir = target.get_subdir()
         sourcepath = os.path.join(self.build_to_src, curdir) + os.pathsep
         sourcepath += os.path.normpath(curdir) + os.pathsep
@@ -1080,6 +1084,7 @@ int dummy;
         plain_class_path = src.fname[:-4] + 'class'
         rel_obj = os.path.join(self.get_target_private_dir(target), plain_class_path)
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler.get_language() + '_COMPILER', rel_src)
+        element.add_dep(deps)
         element.add_item('ARGS', args)
         element.write(outfile)
         return plain_class_path
