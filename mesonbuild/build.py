@@ -24,7 +24,7 @@ from .mesonlib import File, MesonException, listify, extract_as_list
 from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
 from .mesonlib import for_windows, for_darwin, for_cygwin, for_android, has_path_sep
-from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
+from .compilers import is_object, clink_langs, sort_clink, lang_suffixes
 from .interpreterbase import FeatureNew, FeatureNewKwargs
 
 pch_kwargs = set(['c_pch', 'cpp_pch'])
@@ -490,16 +490,16 @@ class BuildTarget(Target):
             extra = set()
             for t in itertools.chain(self.link_targets, self.link_whole_targets):
                 for name, compiler in t.compilers.items():
-                    if name in clike_langs:
+                    if name in clink_langs:
                         extra.add((name, compiler))
-            for name, compiler in sorted(extra, key=lambda p: sort_clike(p[0])):
+            for name, compiler in sorted(extra, key=lambda p: sort_clink(p[0])):
                 self.compilers[name] = compiler
 
         if not self.compilers:
             # No source files or parent targets, target consists of only object
-            # files of unknown origin. Just add the first clike compiler
+            # files of unknown origin. Just add the first clink compiler
             # that we have and hope that it can link these objects
-            for lang in clike_langs:
+            for lang in clink_langs:
                 if lang in compilers:
                     self.compilers[lang] = compilers[lang]
                     break
@@ -556,9 +556,9 @@ class BuildTarget(Target):
                         if lang not in self.compilers:
                             self.compilers[lang] = compiler
                         break
-            # Re-sort according to clike_langs
+            # Re-sort according to clink_langs
             self.compilers = OrderedDict(sorted(self.compilers.items(),
-                                                key=lambda t: sort_clike(t[0])))
+                                                key=lambda t: sort_clink(t[0])))
 
         # If all our sources are Vala, our target also needs the C compiler but
         # it won't get added above.
@@ -995,7 +995,7 @@ You probably should put it in link_with instead.''')
         Sometimes you want to link to a C++ library that exports C API, which
         means the linker must link in the C++ stdlib, and we must use a C++
         compiler for linking. The same is also applicable for objc/objc++, etc,
-        so we can keep using clike_langs for the priority order.
+        so we can keep using clink_langs for the priority order.
 
         See: https://github.com/mesonbuild/meson/issues/1653
         '''
@@ -1014,9 +1014,9 @@ You probably should put it in link_with instead.''')
                     langs.append(language)
         return langs
 
-    def get_clike_dynamic_linker_and_stdlibs(self):
+    def get_clink_dynamic_linker_and_stdlibs(self):
         '''
-        We use the order of languages in `clike_langs` to determine which
+        We use the order of languages in `clink_langs` to determine which
         linker to use in case the target has sources compiled with multiple
         compilers. All languages other than those in this list have their own
         linker.
@@ -1033,7 +1033,7 @@ You probably should put it in link_with instead.''')
         # Languages used by dependencies
         dep_langs = self.get_langs_used_by_deps()
         # Pick a compiler based on the language priority-order
-        for l in clike_langs:
+        for l in clink_langs:
             if l in self.compilers or l in dep_langs:
                 try:
                     linker = all_compilers[l]
@@ -1071,7 +1071,7 @@ You probably should put it in link_with instead.''')
         2. If the target contains only objects, process_compilers guesses and
            picks the first compiler that smells right.
         '''
-        linker, _ = self.get_clike_dynamic_linker_and_stdlibs()
+        linker, _ = self.get_clink_dynamic_linker_and_stdlibs()
         # Mixing many languages with MSVC is not supported yet so ignore stdlibs.
         if linker and linker.get_id() == 'msvc':
             return True

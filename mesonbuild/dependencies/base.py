@@ -27,7 +27,7 @@ from pathlib import PurePath
 
 from .. import mlog
 from .. import mesonlib
-from ..compilers import clib_langs, clike_langs
+from ..compilers import clib_langs
 from ..mesonlib import MesonException, OrderedSet
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
 

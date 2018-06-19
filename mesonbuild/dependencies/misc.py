@@ -470,8 +470,8 @@ class PcapDependency(ExternalDependency):
 
     @staticmethod
     def get_pcap_lib_version(ctdep):
-        return ctdep.compiler.get_return_value('pcap_lib_version', 'string',
-                                               '#include <pcap.h>', ctdep.env, [], [ctdep])
+        return ctdep.clib_compiler.get_return_value('pcap_lib_version', 'string',
+                                                    '#include <pcap.h>', ctdep.env, [], [ctdep])
 
 
 class CupsDependency(ExternalDependency):

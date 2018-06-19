@@ -338,7 +338,7 @@ class Backend:
                 return self.build.static_cross_linker, []
             else:
                 return self.build.static_linker, []
-        l, stdlib_args = target.get_clike_dynamic_linker_and_stdlibs()
+        l, stdlib_args = target.get_clink_dynamic_linker_and_stdlibs()
         return l, stdlib_args
 
     @staticmethod
