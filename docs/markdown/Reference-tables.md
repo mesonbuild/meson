@@ -46,6 +46,9 @@ set in the cross file.
 | ia64                | Itanium processor     |
 | arm                 | 32 bit ARM processor  |
 | aarch64             | 64 bit ARM processor  |
+| mips                | 32 bit MIPS processor |
+| mips64              | 64 bit MIPS processor |
+| ppc                 | 32 bit PPC processors (Big Endian) |
 | ppc64               | 64 bit PPC processors (Big Endian) |
 | ppc64le             | 64 bit PPC processors (Little Endian) |
 | e2k                 | MCST Elbrus processor |
