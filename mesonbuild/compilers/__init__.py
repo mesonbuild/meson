@@ -27,6 +27,7 @@ __all__ = [
 
     'all_languages',
     'base_options',
+    'clib_langs',
     'clike_langs',
     'c_suffixes',
     'cpp_suffixes',
@@ -103,6 +104,7 @@ from .compilers import (
     ICC_STANDARD,
     all_languages,
     base_options,
+    clib_langs,
     clike_langs,
     c_suffixes,
     cpp_suffixes,

@@ -29,7 +29,7 @@ class AppleFrameworks(ExternalDependency):
         if not modules:
             raise DependencyException("AppleFrameworks dependency requires at least one module.")
         self.frameworks = modules
-        # FIXME: Use self.compiler to check if the frameworks are available
+        # FIXME: Use self.clib_compiler to check if the frameworks are available
         for f in self.frameworks:
             self.link_args += ['-framework', f]
 

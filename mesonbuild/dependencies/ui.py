@@ -43,14 +43,14 @@ class GLDependency(ExternalDependency):
                 self.is_found = True
                 # FIXME: Use AppleFrameworks dependency
                 self.link_args = ['-framework', 'OpenGL']
-                # FIXME: Detect version using self.compiler
+                # FIXME: Detect version using self.clib_compiler
                 self.version = '1'
                 return
             if mesonlib.is_windows():
                 self.is_found = True
-                # FIXME: Use self.compiler.find_library()
+                # FIXME: Use self.clib_compiler.find_library()
                 self.link_args = ['-lopengl32']
-                # FIXME: Detect version using self.compiler
+                # FIXME: Detect version using self.clib_compiler
                 self.version = '1'
                 return
 
@@ -547,7 +547,7 @@ class VulkanDependency(ExternalDependency):
                 inc_path = os.path.join(self.vulkan_sdk, inc_dir)
                 header = os.path.join(inc_path, 'vulkan', 'vulkan.h')
                 lib_path = os.path.join(self.vulkan_sdk, lib_dir)
-                find_lib = self.compiler.find_library(lib_name, environment, lib_path)
+                find_lib = self.clib_compiler.find_library(lib_name, environment, lib_path)
 
                 if not find_lib:
                     raise DependencyException('VULKAN_SDK point to invalid directory (no lib)')
@@ -567,8 +567,8 @@ class VulkanDependency(ExternalDependency):
                 return
             else:
                 # simply try to guess it, usually works on linux
-                libs = self.compiler.find_library('vulkan', environment, [])
-                if libs is not None and self.compiler.has_header('vulkan/vulkan.h', '', environment):
+                libs = self.clib_compiler.find_library('vulkan', environment, [])
+                if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', environment):
                     self.type_name = 'system'
                     self.is_found = True
                     self.version = 1 # TODO
