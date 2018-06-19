@@ -48,9 +48,13 @@ lang_suffixes = {
 all_languages = lang_suffixes.keys()
 cpp_suffixes = lang_suffixes['cpp'] + ('h',)
 c_suffixes = lang_suffixes['c'] + ('h',)
+# List of languages that by default consume and output libraries following the
+# C ABI; these can generally be used interchangebly
+clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran',)
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
-clike_langs = ('d', 'objcpp', 'cpp', 'objc', 'c', 'fortran', )
+# XXX: Add Rust to this?
+clike_langs = ('d',) + clib_langs
 clike_suffixes = ()
 for _l in clike_langs + ('vala',):
     clike_suffixes += lang_suffixes[_l]

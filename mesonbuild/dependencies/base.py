@@ -27,6 +27,7 @@ from pathlib import PurePath
 
 from .. import mlog
 from .. import mesonlib
+from ..compilers import clib_langs, clike_langs
 from ..mesonlib import MesonException, OrderedSet
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
 
@@ -219,6 +220,7 @@ class ExternalDependency(Dependency):
             self.want_cross = not kwargs['native']
         else:
             self.want_cross = self.env.is_cross_build()
+        self.clib_compiler = None
         # Set the compiler that will be used by this dependency
         # This is only used for configuration checks
         if self.want_cross:
@@ -229,19 +231,20 @@ class ExternalDependency(Dependency):
         # else try to pick something that looks usable.
         if self.language:
             if self.language not in compilers:
-                m = self.name.capitalize() + ' requires a {} compiler'
+                m = self.name.capitalize() + ' requires a {0} compiler, but ' \
+                    '{0} is not in the list of project languages'
                 raise DependencyException(m.format(self.language.capitalize()))
-            self.compiler = compilers[self.language]
+            self.clib_compiler = compilers[self.language]
         else:
-            # Try to find a compiler that this dependency can use for compiler
-            # checks. It's ok if we don't find one.
-            for lang in ('c', 'cpp', 'objc', 'objcpp', 'fortran', 'd'):
-                self.compiler = compilers.get(lang, None)
-                if self.compiler:
+            # Try to find a compiler that can find C libraries for
+            # running compiler.find_library()
+            for lang in clib_langs:
+                self.clib_compiler = compilers.get(lang, None)
+                if self.clib_compiler:
                     break
 
     def get_compiler(self):
-        return self.compiler
+        return self.clib_compiler
 
     def get_partial_dependency(self, *, compile_args=False, link_args=False,
                                links=False, includes=False, sources=False):
@@ -603,12 +606,11 @@ class PkgConfigDependency(ExternalDependency):
                 libpaths.add(lib[2:])
                 continue
             elif lib.startswith('-l'):
-                if self.compiler:
-                    args = self.compiler.find_library(lib[2:], self.env,
-                                                      list(libpaths), libtype)
-                # If no compiler is set on the dependency, the project only
-                # uses a non-clike language such as Rust, C#, Python, etc. In
-                # this case, all we can do is limp along.
+                if self.clib_compiler:
+                    args = self.clib_compiler.find_library(lib[2:], self.env,
+                                                           list(libpaths), libtype)
+                # If the project only uses a non-clib language such as D, Rust,
+                # C#, Python, etc, all we can do is limp along.
                 else:
                     args = None
                 if args:

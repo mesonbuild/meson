@@ -185,7 +185,7 @@ class BoostDependency(ExternalDependency):
 
     def detect_nix_roots(self):
         return [os.path.abspath(os.path.join(x, '..'))
-                for x in self.compiler.get_default_include_dirs()]
+                for x in self.clib_compiler.get_default_include_dirs()]
 
     def detect_win_roots(self):
         res = []
@@ -243,8 +243,8 @@ class BoostDependency(ExternalDependency):
         # and http://stackoverflow.com/questions/37218953/isystem-on-a-system-include-directory-causes-errors
         # for more details
 
-        if include_dir and include_dir not in self.compiler.get_default_include_dirs():
-            args.append("".join(self.compiler.get_include_args(include_dir, True)))
+        if include_dir and include_dir not in self.clib_compiler.get_default_include_dirs():
+            args.append("".join(self.clib_compiler.get_include_args(include_dir, True)))
         return args
 
     def get_requested(self, kwargs):
@@ -256,7 +256,7 @@ class BoostDependency(ExternalDependency):
 
     def detect_headers_and_version(self):
         try:
-            version = self.compiler.get_define('BOOST_LIB_VERSION', '#include <boost/version.hpp>', self.env, self.get_compile_args(), [])
+            version = self.clib_compiler.get_define('BOOST_LIB_VERSION', '#include <boost/version.hpp>', self.env, self.get_compile_args(), [])
         except mesonlib.EnvironmentException:
             return
         except TypeError:
@@ -361,7 +361,7 @@ class BoostDependency(ExternalDependency):
         for module in self.requested_modules:
             libname = 'boost_' + module + tag
 
-            args = self.compiler.find_library(libname, self.env, self.extra_lib_dirs())
+            args = self.clib_compiler.find_library(libname, self.env, self.extra_lib_dirs())
             if args is None:
                 mlog.debug("Couldn\'t find library '{}' for boost module '{}'  (ABI tag = '{}')".format(libname, module, tag))
                 all_found = False
@@ -476,7 +476,7 @@ class BoostDependency(ExternalDependency):
     def get_link_args(self):
         args = []
         for dir in self.extra_lib_dirs():
-            args += self.compiler.get_linker_search_args(dir)
+            args += self.clib_compiler.get_linker_search_args(dir)
         for lib in self.requested_modules:
             args += self.lib_modules['boost_' + lib]
         return args
