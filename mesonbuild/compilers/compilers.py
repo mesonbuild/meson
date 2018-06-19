@@ -54,11 +54,11 @@ clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran',)
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
 # XXX: Add Rust to this?
-clike_langs = ('d',) + clib_langs
-clike_suffixes = ()
-for _l in clike_langs + ('vala',):
-    clike_suffixes += lang_suffixes[_l]
-clike_suffixes += ('h', 'll', 's')
+clink_langs = ('d',) + clib_langs
+clink_suffixes = ()
+for _l in clink_langs + ('vala',):
+    clink_suffixes += lang_suffixes[_l]
+clink_suffixes += ('h', 'll', 's')
 
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
@@ -72,18 +72,18 @@ cflags_mapping = {'c': 'CFLAGS',
                   'vala': 'VALAFLAGS',
                   'rust': 'RUSTFLAGS'}
 
-# All these are only for C-like languages; see `clike_langs` above.
+# All these are only for C-linkable languages; see `clink_langs` above.
 
-def sort_clike(lang):
+def sort_clink(lang):
     '''
     Sorting function to sort the list of languages according to
-    reversed(compilers.clike_langs) and append the unknown langs in the end.
+    reversed(compilers.clink_langs) and append the unknown langs in the end.
     The purpose is to prefer C over C++ for files that can be compiled by
     both such as assembly, C, etc. Also applies to ObjC, ObjC++, etc.
     '''
-    if lang not in clike_langs:
+    if lang not in clink_langs:
         return 1
-    return -clike_langs.index(lang)
+    return -clink_langs.index(lang)
 
 def is_header(fname):
     if hasattr(fname, 'fname'):
@@ -95,7 +95,7 @@ def is_source(fname):
     if hasattr(fname, 'fname'):
         fname = fname.fname
     suffix = fname.split('.')[-1].lower()
-    return suffix in clike_suffixes
+    return suffix in clink_suffixes
 
 def is_assembly(fname):
     if hasattr(fname, 'fname'):

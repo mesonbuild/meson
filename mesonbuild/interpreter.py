@@ -2433,7 +2433,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_add_languages(self, node, args, kwargs):
         disabled, required, feature = extract_required_kwarg(kwargs)
         if disabled:
-            for lang in sorted(args, key=compilers.sort_clike):
+            for lang in sorted(args, key=compilers.sort_clink):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
         return self.add_languages(args, required)
@@ -2556,7 +2556,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def add_languages(self, args, required):
         success = True
         need_cross_compiler = self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler()
-        for lang in sorted(args, key=compilers.sort_clike):
+        for lang in sorted(args, key=compilers.sort_clink):
             lang = lang.lower()
             if lang in self.coredata.compilers:
                 comp = self.coredata.compilers[lang]
