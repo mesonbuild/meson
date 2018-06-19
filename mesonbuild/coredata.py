@@ -407,7 +407,7 @@ class CoreData:
         if unknown_options:
             unknown_options = ', '.join(sorted(unknown_options))
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
-            raise MesonException('{}Unknown options: "{}"'.format(sub, unknown_options))
+            mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options))
 
 def load(build_dir):
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')

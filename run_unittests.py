@@ -2142,11 +2142,9 @@ recommended as it is not supported on some platforms''')
             self.assertEqual(obj.builtins['default_library'].value, 'shared')
         self.wipe()
 
-        # Should fail on unknown options
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.init(testdir, extra_args=['-Dbad=1', '-Dfoo=2', '-Dwrong_link_args=foo'])
-        self.assertNotEqual(0, cm.exception.returncode)
-        self.assertIn('Unknown options: "bad, foo, wrong_link_args"', cm.exception.output)
+        # Should warn on unknown options
+        out = self.init(testdir, extra_args=['-Dbad=1', '-Dfoo=2', '-Dwrong_link_args=foo'])
+        self.assertIn('Unknown options: "bad, foo, wrong_link_args"', out)
         self.wipe()
 
         # Should fail on malformed option
