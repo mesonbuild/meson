@@ -60,8 +60,7 @@ def determine_worker_count():
             num_workers = 1
     return num_workers
 
-def buildparser():
-    parser = argparse.ArgumentParser(prog='meson test')
+def add_arguments(parser):
     parser.add_argument('--repeat', default=1, dest='repeat', type=int,
                         help='Number of times to run the tests.')
     parser.add_argument('--no-rebuild', default=False, action='store_true',
@@ -102,7 +101,6 @@ def buildparser():
                         help='Arguments to pass to the specified test(s) or all tests')
     parser.add_argument('args', nargs='*',
                         help='Optional list of tests to run')
-    return parser
 
 
 def returncode_to_status(retcode):
@@ -720,9 +718,7 @@ def rebuild_all(wd):
 
     return True
 
-def run(args):
-    options = buildparser().parse_args(args)
-
+def run(options):
     if options.benchmark:
         options.num_processes = 1
 
@@ -763,3 +759,9 @@ def run(args):
         print('Meson test encountered an error:\n')
         print(e)
         return 1
+
+def run_with_args(args):
+    parser = argparse.ArgumentParser(prog='meson test')
+    add_arguments(parser)
+    options = parser.parse_args(args)
+    return run(options)

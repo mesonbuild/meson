@@ -13,18 +13,13 @@
 # limitations under the License.
 
 import os
-import sys
-import argparse
 from . import (coredata, mesonlib, build)
 
-def buildparser():
-    parser = argparse.ArgumentParser(prog='meson configure')
+def add_arguments(parser):
     coredata.register_builtin_arguments(parser)
-
     parser.add_argument('builddir', nargs='?', default='.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies)')
-    return parser
 
 
 class ConfException(mesonlib.MesonException):
@@ -150,9 +145,7 @@ class Conf:
         self.print_options('Testing options', test_options)
 
 
-def run(args):
-    args = mesonlib.expand_arguments(args)
-    options = buildparser().parse_args(args)
+def run(options):
     coredata.parse_cmd_line_options(options)
     builddir = os.path.abspath(os.path.realpath(options.builddir))
     try:
@@ -160,6 +153,7 @@ def run(args):
         save = False
         if len(options.cmd_line_options) > 0:
             c.set_options(options.cmd_line_options)
+            coredata.update_cmd_line_file(builddir, options)
             save = True
         elif options.clearcache:
             c.clear_cache()
@@ -172,7 +166,3 @@ def run(args):
         print('Meson configurator encountered an error:')
         raise e
     return 0
-
-
-if __name__ == '__main__':
-    sys.exit(run(sys.argv[1:]))

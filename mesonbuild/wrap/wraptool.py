@@ -16,7 +16,6 @@ import json
 import sys, os
 import configparser
 import shutil
-import argparse
 
 from glob import glob
 
@@ -205,11 +204,6 @@ def status(options):
         else:
             print('', name, 'not up to date. Have %s %d, but %s %d is available.' % (current_branch, current_revision, latest_branch, latest_revision))
 
-def run(args):
-    parser = argparse.ArgumentParser(prog='wraptool')
-    add_arguments(parser)
-    options = parser.parse_args(args)
+def run(options):
     options.wrap_func(options)
-
-if __name__ == '__main__':
-    sys.exit(run(sys.argv[1:]))
+    return 0

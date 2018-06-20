@@ -23,12 +23,10 @@ import json
 from . import build, mtest, coredata as cdata
 from . import mesonlib
 from .backend import ninjabackend
-import argparse
 import sys, os
 import pathlib
 
-def buildparser():
-    parser = argparse.ArgumentParser(prog='meson introspect')
+def add_arguments(parser):
     parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
                         help='List top level targets.')
     parser.add_argument('--installed', action='store_true', dest='list_installed', default=False,
@@ -48,7 +46,6 @@ def buildparser():
     parser.add_argument('--projectinfo', action='store_true', dest='projectinfo', default=False,
                         help='Information about projects.')
     parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
-    return parser
 
 def determine_installed_path(target, installdata):
     install_target = None
@@ -206,9 +203,8 @@ def list_projinfo(builddata):
     result['subprojects'] = subprojects
     print(json.dumps(result))
 
-def run(args):
+def run(options):
     datadir = 'meson-private'
-    options = buildparser().parse_args(args)
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
     if not os.path.isdir(datadir):
@@ -249,6 +245,3 @@ def run(args):
         print('No command specified')
         return 1
     return 0
-
-if __name__ == '__main__':
-    sys.exit(run(sys.argv[1:]))
