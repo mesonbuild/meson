@@ -882,6 +882,20 @@ This will become a hard error in the future.''')
 
         return []
 
+    def _get_autocleanup_args(self, kwargs, glib_version):
+        if not mesonlib.version_compare(glib_version, '>= 2.49.1'):
+            # Warn if requested, silently disable if not
+            if 'autocleanup' in kwargs:
+                mlog.warning('Glib version ({}) is too old to support the \'autocleanup\' '
+                             'kwarg, need 2.49.1 or newer'.format(glib_version))
+            return []
+        autocleanup = kwargs.pop('autocleanup', 'all')
+        values = ('none', 'objects', 'all')
+        if autocleanup not in values:
+            raise MesonException('gdbus_codegen does not support {!r} as an autocleanup value, '
+                                 'must be one of: {!r}'.format(autocleanup, ', '.join(values)))
+        return ['--c-generate-autocleanup', autocleanup]
+
     @FeatureNewKwargs('build target', '0.46.0', ['install_header', 'install_dir', 'sources'])
     @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @FeatureNewKwargs('build target', '0.47.0', ['extra_args', 'autocleanup'])
@@ -889,18 +903,16 @@ This will become a hard error in the future.''')
                       'annotations', 'docbook', 'install_header', 'install_dir', 'sources'})
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) not in (1, 2):
-            raise MesonException('Gdbus_codegen takes at most two arguments, name and xml file.')
+            raise MesonException('gdbus_codegen takes at most two arguments, name and xml file.')
         namebase = args[0]
         xml_files = args[1:]
         target_name = namebase + '-gdbus'
         cmd = [self.interpreter.find_program_impl('gdbus-codegen')]
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         cmd += extra_args
-        autocleanup = kwargs.pop('autocleanup', 'all')
-        if autocleanup not in ['none', 'objects', 'all']:
-            raise MesonException(
-                'Gdbus_codegen does not support %s as an autocleanup value.' % (autocleanup, ))
-        cmd += ['--c-generate-autocleanup', autocleanup]
+        # Autocleanup supported?
+        glib_version = self._get_native_glib_version(state)
+        cmd += self._get_autocleanup_args(kwargs, glib_version)
         if 'interface_prefix' in kwargs:
             cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
         if 'namespace' in kwargs:
@@ -930,7 +942,7 @@ This will become a hard error in the future.''')
         output = namebase + '.c'
         # Added in https://gitlab.gnome.org/GNOME/glib/commit/e4d68c7b3e8b01ab1a4231bf6da21d045cb5a816 (2.55.2)
         # Fixed in https://gitlab.gnome.org/GNOME/glib/commit/cd1f82d8fc741a2203582c12cc21b4dacf7e1872 (2.56.2)
-        if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.56.2'):
+        if mesonlib.version_compare(glib_version, '>= 2.56.2'):
             custom_kwargs = {'input': xml_files,
                              'output': output,
                              'command': cmd + ['--body', '--output', '@OUTPUT@', '@INPUT@'],
@@ -945,7 +957,7 @@ This will become a hard error in the future.''')
                 cmd += ['--generate-docbook', docbook]
 
             # https://git.gnome.org/browse/glib/commit/?id=ee09bb704fe9ccb24d92dd86696a0e6bb8f0dc1a
-            if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.51.3'):
+            if mesonlib.version_compare(glib_version, '>= 2.51.3'):
                 cmd += ['--output-directory', '@OUTDIR@', '--generate-c-code', namebase, '@INPUT@']
             else:
                 self._print_gdbus_warning()
@@ -961,7 +973,7 @@ This will become a hard error in the future.''')
         targets.append(cfile_custom_target)
 
         output = namebase + '.h'
-        if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.56.2'):
+        if mesonlib.version_compare(glib_version, '>= 2.56.2'):
             custom_kwargs = {'input': xml_files,
                              'output': output,
                              'command': cmd + ['--header', '--output', '@OUTPUT@', '@INPUT@'],
@@ -995,7 +1007,7 @@ This will become a hard error in the future.''')
             for f in xml_files:
                 outputs.append('{}-{}'.format(docbook, f))
 
-            if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.56.2'):
+            if mesonlib.version_compare(glib_version, '>= 2.56.2'):
                 custom_kwargs = {'input': xml_files,
                                  'output': outputs,
                                  'command': docbook_cmd,
