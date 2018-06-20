@@ -40,6 +40,8 @@ from .compilers import (
 from .compilers import (
     ArmCCompiler,
     ArmCPPCompiler,
+    ArmclangCCompiler,
+    ArmclangCPPCompiler,
     ClangCCompiler,
     ClangCPPCompiler,
     ClangObjCCompiler,
@@ -553,6 +555,22 @@ class Environment:
                     cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
                 return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version)
 
+            if 'armclang' in out:
+                # The compiler version is not present in the first line of output,
+                # instead it is present in second line, startswith 'Component:'.
+                # So, searching for the 'Component' in out although we know it is
+                # present in second line, as we are not sure about the
+                # output format in future versions
+                arm_ver_str = re.search('.*Component.*', out)
+                if arm_ver_str is None:
+                    popen_exceptions[' '.join(compiler)] = 'version string not found'
+                    continue
+                arm_ver_str = arm_ver_str.group(0)
+                # Override previous values
+                version = search_version(arm_ver_str)
+                full_version = arm_ver_str
+                cls = ArmclangCCompiler if lang == 'c' else ArmclangCPPCompiler
+                return cls(ccache + compiler, version, is_cross, exe_wrap, full_version=full_version)
             if 'clang' in out:
                 if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
                     cltype = CLANG_OSX

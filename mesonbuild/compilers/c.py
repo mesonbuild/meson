@@ -32,6 +32,7 @@ from .compilers import (
     vs32_instruction_set_args,
     vs64_instruction_set_args,
     ArmCompiler,
+    ArmclangCompiler,
     ClangCompiler,
     Compiler,
     CompilerArgs,
@@ -977,6 +978,34 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         if self.clang_type == compilers.CLANG_OSX:
             return basic + ['-Wl,-headerpad_max_install_names']
         return basic
+
+
+class ArmclangCCompiler(ArmclangCompiler, CCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+        ArmclangCompiler.__init__(self)
+        default_warn_args = ['-Wall', '-Winvalid-pch']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+
+    def get_options(self):
+        opts = CCompiler.get_options(self)
+        opts.update({'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
+                                                       ['none', 'c90', 'c99', 'c11',
+                                                        'gnu90', 'gnu99', 'gnu11'],
+                                                       'none')})
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['c_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
+    def get_option_link_args(self, options):
+        return []
 
 
 class GnuCCompiler(GnuCompiler, CCompiler):

@@ -23,6 +23,7 @@ These are return values of the `get_id` method in a compiler object.
 | nagfor    | The NAG Fortran compiler       |
 | lcc       | Elbrus C/C++/Fortran Compiler  |
 | arm       | ARM compiler                   |
+| armclang  | ARMCLANG compiler              |
 
 ## Script environment variables
 

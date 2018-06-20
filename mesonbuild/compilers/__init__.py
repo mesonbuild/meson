@@ -126,8 +126,9 @@ from .compilers import (
     IntelCompiler,
 )
 from .c import (
-    ArmCCompiler,
     CCompiler,
+    ArmCCompiler,
+    ArmclangCCompiler,
     ClangCCompiler,
     GnuCCompiler,
     ElbrusCCompiler,
@@ -135,8 +136,9 @@ from .c import (
     VisualStudioCCompiler,
 )
 from .cpp import (
-    ArmCPPCompiler,
     CPPCompiler,
+    ArmCPPCompiler,
+    ArmclangCPPCompiler,
     ClangCPPCompiler,
     GnuCPPCompiler,
     ElbrusCPPCompiler,
