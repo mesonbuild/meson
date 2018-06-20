@@ -1991,20 +1991,23 @@ detailed information about how environment variables should be set
 during tests. It should be passed as the `env` keyword argument to
 tests. It has the following methods.
 
-- `append(varname, value)` appends the given value to the old value of
-  the environment variable, e.g.  `env.append('FOO', 'BAR', separator
-  : ';')` produces `BOB;BAR` if `FOO` had the value `BOB` and plain
-  `BAR` if the value was not defined. If the separator is not
-  specified explicitly, the default path separator for the host
-  operating system will be used, i.e. ';' for Windows and ':' for
-  UNIX/POSIX systems.
+- `append(varname, value1, value2, ...)` appends the given values to the old
+  value of the environment variable, e.g.  `env.append('FOO', 'BAR', 'BAZ',
+  separator : ';')` produces `BOB;BAR;BAZ` if `FOO` had the value `BOB` and
+  plain `BAR;BAZ` if the value was not defined. If the separator is not
+  specified explicitly, the default path separator for the host operating
+  system will be used, i.e. ';' for Windows and ':' for UNIX/POSIX systems.
 
-- `prepend(varname, value)` is the same as `append` except that it
+- `prepend(varname, value1, value2, ...)` is the same as `append` except that it
   writes to the beginning of the variable
 
-- `set(varname, value)` sets environment variable in the first
-  argument to the value in the second argument, e.g.
-  `env.set('FOO', 'BAR')` sets envvar `FOO` to value `BAR`
+- `set(varname, value1, value2)` sets the environment variable specified in the
+  first argument to the values in the second argument joined by the separator,
+  e.g.  `env.set('FOO', 'BAR'),` sets envvar `FOO` to value `BAR`. See
+  `append()` above for how separators work.
+
+**Note:** All these methods overwrite the previously-defined value(s) if called
+twice with the same `varname`.
 
 ### `external library` object
 
