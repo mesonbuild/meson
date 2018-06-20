@@ -3645,6 +3645,25 @@ different subdirectory.
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
         FeatureNew.called_features_report()
         FeatureDeprecated.called_features_report()
+        if self.subproject == '':
+            self.print_extra_warnings()
+
+    def print_extra_warnings(self):
+        for c in self.build.compilers.values():
+            if c.get_id() == 'clang':
+                self.check_clang_asan_lundef()
+                break
+
+    def check_clang_asan_lundef(self):
+        if 'b_lundef' not in self.coredata.base_options:
+            return
+        if 'b_sanitize' not in self.coredata.base_options:
+            return
+        if 'address' in self.coredata.base_options['b_sanitize'].value:
+            if self.coredata.base_options['b_lundef'].value:
+                mlog.warning('''Trying to use address sanitizer on Clang with b_lundef.
+This will probably not work.
+Try setting b_lundef to false instead.''')
 
     def evaluate_subproject_info(self, path_from_source_root, subproject_dirname):
         depth = 0
