@@ -122,6 +122,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                                                               '--module=' + module,
                                                               '--cflags=' + cflags,
                                                               '--ldflags=' + ldflags,
+                                                              '--cc=' + cc,
                                                               '--ld=' + ld,
                                                               '--output-dir=' + abs_out]
 
