@@ -72,6 +72,22 @@ from .compilers import (
 
 build_filename = 'meson.build'
 
+known_cpu_families = (
+    'aarch64',
+    'arm',
+    'e2k',
+    'ia64',
+    'mips',
+    'mips64',
+    'parisc',
+    'ppc',
+    'ppc64',
+    'ppc64le',
+    'sparc64',
+    'x86',
+    'x86_64'
+)
+
 def detect_gcovr(version='3.1', log=False):
     gcovr_exe = 'gcovr'
     try:
@@ -209,6 +225,10 @@ def detect_cpu_family(compilers):
                 pass
         return 'x86_64'
     # Add fixes here as bugs are reported.
+
+    if trial not in known_cpu_families:
+        mlog.warning('Unknown CPU family %s, please report this at https://github.com/mesonbuild/meson/issues/new' % trial)
+
     return trial
 
 def detect_cpu(compilers):
@@ -953,6 +973,10 @@ class CrossBuildInfo:
                     res = eval(value, {'__builtins__': None}, {'true': True, 'false': False})
                 except Exception:
                     raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
+
+                if entry == 'cpu_family' and res not in known_cpu_families:
+                    mlog.warning('Unknown CPU family %s, please report this at https://github.com/mesonbuild/meson/issues/new' % value)
+
                 if self.ok_type(res):
                     self.config[s][entry] = res
                 elif isinstance(res, list):
