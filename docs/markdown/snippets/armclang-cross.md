@@ -1,9 +1,11 @@
 ## ARM compiler(version 6) for C and CPP
 
 Cross-compilation is now supported for ARM targets using ARM compiler version 6 - ARMCLANG.
-This current Meson implementation for ARMCLANG support can not build shareable libraries.
+The required ARMCLANG compiler options for building a shareable library are not included in the
+current Meson implementation for ARMCLANG support, so it can not build shareable libraries.
 This current Meson implementation for ARMCLANG support can not build assembly files with
-arm syntax and only supports gnu syntax.
+arm syntax(we need to use armasm instead of ARMCLANG for the .s files with this syntax)
+and only supports gnu syntax.
 The default extension of the executable output is .axf.
 The environment path should be set properly for the ARM compiler executables.
 The '--target', '-mcpu' options with the appropriate values should be mentioned
