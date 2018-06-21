@@ -233,9 +233,10 @@ following.
   have this target be built by default, that is, when invoking plain
   `ninja`; the default value is false
 - `build_always` (deprecated) if `true` this target is always considered out of
-  date and is rebuilt every time, useful for things such as build
-  timestamps or revision control tags.
+  date and is rebuilt every time.  Equivalent to setting both
+  `build_always_stale` and `build_by_default` to true.
 - `build_always_stale` if `true` the target is always considered out of date.
+  Useful for things such as build timestamps or revision control tags.
   The associated command is run even if the outputs are up to date.
 - `capture`, there are some compilers that can't be told to write
   their output to a file but instead write it to standard output. When
