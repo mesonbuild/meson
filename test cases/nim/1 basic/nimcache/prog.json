@@ -1,8 +1,0 @@
-{"compile":[
-],
-"link":[
-"'/home/bartoc/Source/meson/test cases/nim/1 basic/nimcache/prog.o'",
-"'/home/bartoc/Source/meson/test cases/nim/1 basic/nimcache/stdlib_system.o'"
-],
-"linkcmd": "gcc   -o '/home/bartoc/Source/meson/test cases/nim/1 basic/builddir/program'  '/home/bartoc/Source/meson/test cases/nim/1 basic/nimcache/prog.o' '/home/bartoc/Source/meson/test cases/nim/1 basic/nimcache/stdlib_system.o'    -ldl"
-}
