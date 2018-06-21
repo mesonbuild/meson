@@ -211,7 +211,7 @@ nim_buildtype_args = {
     'plain': [],
     'debug': ['--debugger:native'],
     'debugoptimized': ['--debugger:native', '-d:release'],
-    'release': ['-d:release',],
+    'release': ['-d:release', ],
     'minsize': ['-d:quick', '--opt:size']
 }
 

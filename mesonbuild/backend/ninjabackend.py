@@ -1116,7 +1116,6 @@ int dummy;
         element.add_item('ARGS', args)
         element.write(outfile)
 
-
     def generate_rust_target(self, target, outfile):
         rustc = target.compilers['rust']
         # Rust compiler takes only the main file as input and

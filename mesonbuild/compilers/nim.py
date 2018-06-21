@@ -1,12 +1,10 @@
 import os.path
 import subprocess
-from ..mesonlib import EnvironmentException, version_compare
+from ..mesonlib import EnvironmentException
 
 from .compilers import (
-    GCC_STANDARD,
     nim_buildtype_args,
-    Compiler,
-    CompilerArgs
+    Compiler
 )
 
 
@@ -20,7 +18,7 @@ class NimCompiler(Compiler):
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanity.nim')
         output_name = os.path.join(work_dir, 'nimtest')
-        with open(source_name, 'w') as ofile:
+        with open(source_name, 'w'):
             pass
         pc = subprocess.Popen(
             self.exelist + ['c'] + self.get_output_args(output_name) + [source_name], cwd=work_dir)
