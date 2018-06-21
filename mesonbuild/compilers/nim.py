@@ -30,7 +30,7 @@ class NimCompiler(Compiler):
         return ['--out:' + target]
 
     def get_outdir_args(self, outdir):
-        return ['--nimcache:"{}"'.format(os.path.join(outdir, 'nimcache'))]
+        return ['--nimcache:{}'.format(os.path.join(outdir, 'nimcache'))]
     def needs_static_linker(self):
         return False
 
