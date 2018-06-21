@@ -1106,7 +1106,12 @@ int dummy;
         args += nim.get_buildtype_args(self.get_option_for_target('buildtype', target))
 
         args += target.get_extra_args('nim')
+        args += nim.get_outdir_args(self.get_target_private_dir(target))
         args += nim.get_output_args(target.get_filename())
+        if isinstance(target, build.SharedLibrary):
+            args += nim.get_compiler_shared_lib_args()
+        elif isinstance(target, build.StaticLibrary):
+            args += nim.get_compiler_static_lib_args()
         element = NinjaBuildElement(self.all_outputs, target_name, 'nim_COMPILER', relsrc)
         element.add_item('ARGS', args)
         element.write(outfile)

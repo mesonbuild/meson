@@ -29,6 +29,8 @@ class NimCompiler(Compiler):
     def get_output_args(self, target):
         return ['--out:' + target]
 
+    def get_outdir_args(self, outdir):
+        return ['--nimcache:"{}"'.format(os.path.join(outdir, 'nimcache'))]
     def needs_static_linker(self):
         return False
 
@@ -55,6 +57,13 @@ class NimCompiler(Compiler):
 
     def get_warn_args(self, warninglevel):
         return []
+
+    def get_compiler_shared_lib_args(self):
+        return ['--app:lib']
+    
+    def get_compiler_static_lib_args(self):
+        return ['--app:staticlib']
+        
         
 
 

@@ -827,8 +827,8 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             p, out, err = Popen_safe(exelist + ['--version'])
         except OSError:
             raise EnvironmentException('Could not execute Nim compiler "%s"' % ' '.join(exelist))
-        version = search_version(err)
-        if 'Nim' in err:
+        version = search_version(out)
+        if 'Nim' in out:
             return NimCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
