@@ -117,6 +117,11 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
     scan_cmd += scan_args
     gtkdoc_run_check(scan_cmd, abs_out)
 
+    # Use the generated types file when available, otherwise gobject_typesfile
+    # would often be a path to source dir instead of build dir.
+    if '--rebuild-types' in scan_args:
+        gobject_typesfile = os.path.join(abs_out, module + '.types')
+
     if gobject_typesfile:
         scanobjs_cmd = ['gtkdoc-scangobj'] + scanobjs_args + ['--types=' + gobject_typesfile,
                                                               '--module=' + module,
