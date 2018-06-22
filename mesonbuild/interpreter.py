@@ -2811,10 +2811,9 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.log('Dependency', mlog.bold(name), 'skipped: feature', mlog.bold(feature), 'disabled')
             return DependencyHolder(NotFoundDependency(self.environment))
 
-        if name == '':
-            if required:
-                raise InvalidArguments('Dependency is both required and not-found')
-            return DependencyHolder(NotFoundDependency(self.environment))
+        # writing just "dependency('')" is an error, because it can only fail
+        if name == '' and required and 'fallback' not in kwargs:
+            raise InvalidArguments('Dependency is both required and not-found')
 
         if '<' in name or '>' in name or '=' in name:
             raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
@@ -2840,14 +2839,15 @@ external dependencies (including libraries) must go to "dependencies".''')
             exception = None
             dep = NotFoundDependency(self.environment)
 
-            # Search for it outside the project
-            if self.coredata.wrap_mode != WrapMode.forcefallback or 'fallback' not in kwargs:
+            # Unless a fallback exists and is forced ...
+            if self.coredata.wrap_mode == WrapMode.forcefallback and 'fallback' in kwargs:
+                exception = DependencyException("fallback for %s not found" % name)
+            # ... search for it outside the project
+            elif name != '':
                 try:
                     dep = dependencies.find_external_dependency(name, self.environment, kwargs)
                 except DependencyException as e:
                     exception = e
-            else:
-                exception = DependencyException("fallback for %s not found" % name)
 
             # Search inside the projects list
             if not dep.found():
