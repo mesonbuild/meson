@@ -2805,10 +2805,11 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         name = args[0]
+        display_name = name if name else '(anonymous)'
 
         disabled, required, feature = extract_required_kwarg(kwargs)
         if disabled:
-            mlog.log('Dependency', mlog.bold(name), 'skipped: feature', mlog.bold(feature), 'disabled')
+            mlog.log('Dependency', mlog.bold(display_name), 'skipped: feature', mlog.bold(feature), 'disabled')
             return DependencyHolder(NotFoundDependency(self.environment))
 
         # writing just "dependency('')" is an error, because it can only fail
@@ -2823,7 +2824,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if cached_dep:
             if required and not cached_dep.found():
                 m = 'Dependency {!r} was already checked and was not found'
-                raise DependencyException(m.format(name))
+                raise DependencyException(m.format(display_name))
             dep = cached_dep
         else:
             # If the dependency has already been configured, possibly by
@@ -2905,17 +2906,18 @@ root and issuing %s.
         return fbinfo
 
     def dependency_fallback(self, name, kwargs):
+        display_name = name if name else '(anonymous)'
         if self.coredata.wrap_mode in (WrapMode.nofallback, WrapMode.nodownload):
             mlog.log('Not looking for a fallback subproject for the dependency',
-                     mlog.bold(name), 'because:\nUse of fallback'
+                     mlog.bold(display_name), 'because:\nUse of fallback'
                      'dependencies is disabled.')
             return None
         elif self.coredata.wrap_mode == WrapMode.forcefallback:
             mlog.log('Looking for a fallback subproject for the dependency',
-                     mlog.bold(name), 'because:\nUse of fallback dependencies is forced.')
+                     mlog.bold(display_name), 'because:\nUse of fallback dependencies is forced.')
         else:
             mlog.log('Looking for a fallback subproject for the dependency',
-                     mlog.bold(name))
+                     mlog.bold(display_name))
         dirname, varname = self.get_subproject_infos(kwargs)
         # Try to execute the subproject
         try:
@@ -2933,7 +2935,7 @@ root and issuing %s.
         except Exception as e:
             mlog.log('Couldn\'t use fallback subproject in',
                      mlog.bold(os.path.join(self.subproject_dir, dirname)),
-                     'for the dependency', mlog.bold(name), '\nReason:', str(e))
+                     'for the dependency', mlog.bold(display_name), '\nReason:', str(e))
             return None
         dep = self.get_subproject_dep(name, dirname, varname, kwargs.get('required', True))
         if not dep:
@@ -2945,10 +2947,10 @@ root and issuing %s.
             found = dep.version_method([], {})
             if not self.check_subproject_version(wanted, found):
                 mlog.log('Subproject', mlog.bold(subproj_path), 'dependency',
-                         mlog.bold(varname), 'version is', mlog.bold(found),
+                         mlog.bold(display_name), 'version is', mlog.bold(found),
                          'but', mlog.bold(wanted), 'is required.')
                 return None
-        mlog.log('Dependency', mlog.bold(name), 'from subproject',
+        mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
                  mlog.bold(subproj_path), 'found:', mlog.green('YES'))
         return dep
 
