@@ -9,3 +9,5 @@ assert(dep.type_name() == 'not-found', 'dependency should be of type "not-found"
 
 library('testlib', 'testlib.c', dependencies: [dep])
 subdir('sub', if_found: dep)
+
+subdep = dependency('', fallback: ['trivial', 'trivial_dep'])
