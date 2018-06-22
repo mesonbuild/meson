@@ -519,8 +519,12 @@ class PkgConfigDependency(ExternalDependency):
                         self.version_reqs)
 
     def _call_pkgbin_real(self, args, env):
-        p, out = Popen_safe(self.pkgbin.get_command() + args, env=env)[0:2]
-        return p.returncode, out.strip()
+        cmd = self.pkgbin.get_command() + args
+        p, out = Popen_safe(cmd, env=env)[0:2]
+        rc, out = p.returncode, out.strip()
+        call = ' '.join(cmd)
+        mlog.debug("Called `{}` -> {}\n{}".format(call, rc, out))
+        return rc, out
 
     def _call_pkgbin(self, args, env=None):
         if env is None:
