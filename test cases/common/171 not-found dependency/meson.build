@@ -11,3 +11,4 @@ library('testlib', 'testlib.c', dependencies: [dep])
 subdir('sub', if_found: dep)
 
 subdep = dependency('', fallback: ['trivial', 'trivial_dep'])
+missing = dependency('', fallback: ['missing', 'missing_dep'], required: false)

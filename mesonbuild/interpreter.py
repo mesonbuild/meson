@@ -2841,7 +2841,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
             # Unless a fallback exists and is forced ...
             if self.coredata.wrap_mode == WrapMode.forcefallback and 'fallback' in kwargs:
-                exception = DependencyException("fallback for %s not found" % name)
+                pass
             # ... search for it outside the project
             elif name != '':
                 try:
@@ -2852,6 +2852,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             # Search inside the projects list
             if not dep.found():
                 if 'fallback' in kwargs:
+                    if not exception:
+                        exception = DependencyException("fallback for %s not found" % display_name)
                     fallback_dep = self.dependency_fallback(name, kwargs)
                     if fallback_dep:
                         # Never add fallback deps to self.coredata.deps since we
