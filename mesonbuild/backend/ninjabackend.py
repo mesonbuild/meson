@@ -2460,8 +2460,11 @@ rule FORTRAN_DEP_HACK%s
         return commands
 
     def get_link_whole_args(self, linker, target):
-        target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
-        return linker.get_link_whole_for(target_args) if len(target_args) else []
+        target_args_static = self.build_target_link_arguments(linker, [t for t in target.link_whole_targets if isinstance(t, build.StaticLibrary)])
+        target_args_shared = self.build_target_link_arguments(linker, [t for t in target.link_whole_targets if isinstance(t, build.SharedLibrary)])
+
+        return (linker.get_link_no_as_needed_for(target_args_shared) if len(target_args_shared) else []) \
+                + (linker.get_link_whole_for(target_args_static) if len(target_args_static) else [])
 
     def guess_library_absolute_path(self, libname, search_dirs, prefixes, suffixes):
         for directory in search_dirs:

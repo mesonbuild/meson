@@ -1253,6 +1253,9 @@ class GnuCompiler:
     def get_link_whole_for(self, args):
         return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
 
+    def get_link_no_as_needed_for(self, args):
+        return ['-Wl,--no-as-needed'] + args + ['-Wl,--as-needed']
+
     def gen_vs_module_defs_args(self, defsfile):
         if not isinstance(defsfile, str):
             raise RuntimeError('Module definitions file should be str')
@@ -1403,6 +1406,14 @@ class ClangCompiler:
                 result += ['-Wl,-force_load', a]
             return result
         return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
+
+    def get_link_no_as_needed_for(self, args):
+        if self.clang_type == CLANG_OSX:
+            result = []
+            for a in args:
+                result += ['-Wl,-force_load', a]
+            return result
+        return ['-Wl,--no-as-needed'] + args + ['-Wl,--as-needed']
 
     def get_instruction_set_args(self, instruction_set):
         return gnulike_instruction_set_args.get(instruction_set, None)
