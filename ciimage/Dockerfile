@@ -16,6 +16,7 @@ RUN apt-get -y update && apt-get -y upgrade \
 && apt-get -y install libgcrypt11-dev \
 && apt-get -y install gdc ldc \
 && python3 -m pip install hotdoc codecov \
+&& apt-get -y install nim \
 && dub fetch urld \
 && dub build urld --compiler=gdc \
 && dub fetch dubtestproject \
