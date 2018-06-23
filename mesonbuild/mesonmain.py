@@ -359,7 +359,11 @@ def run(original_args, mainfile):
 
 def main():
     # Always resolve the command path so Ninja can find it for regen, tests, etc.
-    launcher = os.path.realpath(sys.argv[0])
+    if 'meson.exe' in sys.executable:
+        assert(os.path.isabs(sys.executable))
+        launcher = sys.executable
+    else:
+        launcher = os.path.realpath(sys.argv[0])
     return run(sys.argv[1:], launcher)
 
 if __name__ == '__main__':
