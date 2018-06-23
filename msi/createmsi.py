@@ -85,6 +85,7 @@ class PackageGenerator:
         main_stage, ninja_stage = self.staging_dirs
         modules = [os.path.splitext(os.path.split(x)[1])[0] for x in glob(os.path.join('mesonbuild/modules/*'))]
         modules = ['mesonbuild.modules.' + x for x in modules if not x.startswith('_')]
+        modules += ['distutils.version']
         modulestr = ','.join(modules)
         python = shutil.which('python')
         cxfreeze = os.path.join(os.path.dirname(python), "Scripts", "cxfreeze")
