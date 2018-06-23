@@ -1526,14 +1526,10 @@ int dummy;
         if static_linker is None:
             return
         rule = 'rule STATIC%s_LINKER\n' % crstr
-        # We don't use @file.rsp on Windows with ArLinker because llvm-ar and
-        # gcc-ar blindly pass the --plugin argument to `ar` and you cannot pass
-        # options as arguments while using the @file.rsp syntax.
-        # See: https://github.com/mesonbuild/meson/issues/1646
         if static_linker.can_linker_accept_rsp():
-            command_template = ''' command = {executable} @$out.rsp
+            command_template = ''' command = {executable} $LINK_ARGS {output_args} @$out.rsp
  rspfile = $out.rsp
- rspfile_content = $LINK_ARGS {output_args} $in
+ rspfile_content = $in
 '''
         else:
             command_template = ' command = {executable} $LINK_ARGS {output_args} $in\n'
