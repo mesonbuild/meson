@@ -88,7 +88,7 @@ class ArLinker(StaticLinker):
             self.std_args = ['-csr']
 
     def can_linker_accept_rsp(self):
-        return False
+        return mesonlib.is_windows()
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return []
