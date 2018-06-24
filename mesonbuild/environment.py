@@ -450,6 +450,12 @@ class Environment:
             return GCC_CYGWIN
         return GCC_STANDARD
 
+    def warn_about_lang_pointing_to_cross(self, compiler_exe, evar):
+        evar_str = os.environ.get(evar, 'WHO_WOULD_CALL_THEIR_COMPILER_WITH_THIS_NAME')
+        if evar_str == compiler_exe:
+            mlog.warning('''Env var %s seems to point to the cross compiler.
+This is probably wrong, it should always point to the native compiler.''' % evar)
+
     def _get_compilers(self, lang, evar, want_cross):
         '''
         The list of compilers is detected in the exact same way for
@@ -463,6 +469,7 @@ class Environment:
                 ccache = self.detect_ccache()
             else:
                 ccache = []
+            self.warn_about_lang_pointing_to_cross(compilers[0], evar)
             # Return value has to be a list of compiler 'choices'
             compilers = [compilers]
             is_cross = True
