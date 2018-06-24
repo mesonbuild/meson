@@ -22,13 +22,13 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [fwupd](https://github.com/hughsie/fwupd), a simple daemon to allow session software to update firmware
  - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop.
  - [GLib](https://gitlab.gnome.org/GNOME/glib), cross-platform C library used by GTK+ and GStreamer (not the default yet)
- - [Gnome Boxes](https://gitlab.gnome.org/GNOME/gnome-boxes), a Gnome hypervisor
- - [Gnome Builder](https://gitlab.gnome.org/GNOME/gnome-builder), an IDE for the Gnome platform
- - [Gnome MPV](https://github.com/gnome-mpv/gnome-mpv), Gnome frontend to the mpv video player
- - [Gnome Recipes](https://gitlab.gnome.org/GNOME/recipes), application for cooking recipes
- - [Gnome Software](https://gitlab.gnome.org/GNOME/gnome-software), an app store for Gnome
- - [Gnome Twitch](https://github.com/vinszent/gnome-twitch), an app for viewing Twitch streams on Gnome desktop
- - [Gnome Usage](https://gitlab.gnome.org/GNOME/gnome-usage), a Gnome application for visualizing system resources
+ - [GNOME Boxes](https://gitlab.gnome.org/GNOME/gnome-boxes), a GNOME hypervisor
+ - [GNOME Builder](https://gitlab.gnome.org/GNOME/gnome-builder), an IDE for the GNOME platform
+ - [GNOME MPV](https://github.com/gnome-mpv/gnome-mpv), GNOME frontend to the mpv video player
+ - [GNOME Recipes](https://gitlab.gnome.org/GNOME/recipes), application for cooking recipes
+ - [GNOME Software](https://gitlab.gnome.org/GNOME/gnome-software), an app store for GNOME
+ - [GNOME Twitch](https://github.com/vinszent/gnome-twitch), an app for viewing Twitch streams on GNOME desktop
+ - [GNOME Usage](https://gitlab.gnome.org/GNOME/gnome-usage), a GNOME application for visualizing system resources
  - [Graphene](https://ebassi.github.io/graphene/), a thin type library for graphics
  - [Grilo](https://git.gnome.org/browse/grilo) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins), the Grilo multimedia framework
  - [GStreamer](https://cgit.freedesktop.org/gstreamer/gstreamer/), multimedia framework (not the default yet)
@@ -55,7 +55,7 @@ format files
  - [Kiwix libraries](https://github.com/kiwix/kiwix-lib)
  - [Mesa](https://cgit.freedesktop.org/mesa/mesa/), An open source graphics driver project
  - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via Wifi-Display specification aka Miracast
- - [Nautilus](https://gitlab.gnome.org/GNOME/nautilus), the Gnome file manager
+ - [Nautilus](https://gitlab.gnome.org/GNOME/nautilus), the GNOME file manager
  - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
  - [Orc](http://cgit.freedesktop.org/gstreamer/orc/), the Optimized Inner Loop Runtime Compiler (not the default yet)
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style meson example project
