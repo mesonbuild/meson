@@ -1252,6 +1252,7 @@ display_name_map = {
 }
 
 def find_external_dependency(name, env, kwargs):
+    assert(name)
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
         raise DependencyException('Keyword "required" must be a boolean.')
