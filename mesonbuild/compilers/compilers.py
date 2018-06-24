@@ -982,6 +982,11 @@ class Compiler:
             return []
         raise EnvironmentException('Language %s does not support linking whole archives.' % self.get_display_language())
 
+    def get_link_no_as_needed_for(self, args):
+        if isinstance(args, list) and not args:
+            return []
+        raise EnvironmentException('Language %s does not support forced linking of shared libraries.' % self.get_display_language())
+
     # Compiler arguments needed to enable the given instruction set.
     # May be [] meaning nothing needed or None meaning the given set
     # is not supported.
@@ -1411,7 +1416,7 @@ class ClangCompiler:
         if self.clang_type == CLANG_OSX:
             result = []
             for a in args:
-                result += ['-Wl,-force_load', a]
+                result += ['-Wl,-force_load', a] # TODO: not sure about this
             return result
         return ['-Wl,--no-as-needed'] + args + ['-Wl,--as-needed']
 

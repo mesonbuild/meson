@@ -462,12 +462,14 @@ be passed to [shared and static libraries](#library).
   depends on such as a symbol visibility map. The purpose is to
   automatically trigger a re-link (but not a re-compile) of the target
   when this file changes.
-- `link_whole` links all contents of the given static libraries
-  whether they are used by not, equivalent to the
-  `-Wl,--whole-archive` argument flag of GCC, available since
+- `link_whole` links all contents of the given static or shared
+  libraries whether they are used by not. Equivalent to the
+  `-Wl,--whole-archive` argument flag of GCC for static libraries,
+  and `-Wl,--no-as-needed` for shared libraries. Available since
   0.40.0. As of 0.41.0 if passed a list that list will be flattened.
+  Shared libraries are only accepted since 0.47.0.
 - `link_with`, one or more shared or static libraries (built by this
-  project) that this target should be linked with, If passed a list
+  project) that this target should be linked with. If passed a list
   this list will be flattened as of 0.41.0.
 - `export_dynamic` when set to true causes the target's symbols to be
   dynamically exported, allowing modules built using the

@@ -30,7 +30,7 @@ exe2 = executable('exe2',
 
 test('test2', exe2)
 
-# third test: ths also works if another shared lib (middle) loads the plugin
+# third test: this also works if another shared lib (middle) loads the plugin
 
 middle_lib = shared_module('middlelib',
   'middlelib.cpp',

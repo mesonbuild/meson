@@ -2460,11 +2460,18 @@ rule FORTRAN_DEP_HACK%s
         return commands
 
     def get_link_whole_args(self, linker, target):
-        target_args_static = self.build_target_link_arguments(linker, [t for t in target.link_whole_targets if isinstance(t, build.StaticLibrary)])
-        target_args_shared = self.build_target_link_arguments(linker, [t for t in target.link_whole_targets if isinstance(t, build.SharedLibrary)])
+        # We have to separate the static and shared library targets because they need to be
+        # passed with different compiler arguments to the compiler.
+        static_link_whole_targets = [t for t in target.link_whole_targets if isinstance(t, build.StaticLibrary)]
+        target_args_static = self.build_target_link_arguments(linker, static_link_whole_targets)
 
-        return (linker.get_link_no_as_needed_for(target_args_shared) if len(target_args_shared) else []) \
-                + (linker.get_link_whole_for(target_args_static) if len(target_args_static) else [])
+        shared_link_whole_targets = [t for t in target.link_whole_targets if isinstance(t, build.SharedLibrary)]
+        target_args_shared = self.build_target_link_arguments(linker, shared_link_whole_targets)
+
+        args_static = linker.get_link_whole_for(target_args_static) if len(target_args_static) else []
+        args_shared = linker.get_link_no_as_needed_for(target_args_shared) if len(target_args_shared) else []
+
+        return args_static + args_shared
 
     def guess_library_absolute_path(self, libname, search_dirs, prefixes, suffixes):
         for directory in search_dirs:

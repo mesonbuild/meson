@@ -1319,6 +1319,10 @@ class VisualStudioCCompiler(CCompiler):
         args = listify(args)
         return ['/WHOLEARCHIVE:' + x for x in args]
 
+    def get_link_no_as_needed_for(self, args):
+        args = listify(args)
+        return [args] # TODO: I have no idea what arguments VS has to achieve this
+
     def get_instruction_set_args(self, instruction_set):
         if self.is_64:
             return vs64_instruction_set_args.get(instruction_set, None)
