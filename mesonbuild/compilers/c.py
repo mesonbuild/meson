@@ -281,7 +281,10 @@ class CCompiler(Compiler):
         else:
             cmdlist = [binary_name]
         mlog.debug('Running test binary command: ' + ' '.join(cmdlist))
-        pe = subprocess.Popen(cmdlist)
+        try:
+            pe = subprocess.Popen(cmdlist)
+        except Exception as e:
+            raise EnvironmentException('Could not invoke sanity test executable: %s.' % str(e))
         pe.wait()
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by {0} compiler {1} are not runnable.'.format(self.language, self.name_string()))
