@@ -1,6 +1,8 @@
 # How do I do X in Meson?
 
-This page lists code snippets for common tasks. These are written mostly using the C compiler, but the same approach should work on almost all other compilers.
+This page lists code snippets for common tasks. These are written
+mostly using the C compiler, but the same approach should work on
+almost all other compilers.
 
 ## Set compiler
 
@@ -9,6 +11,20 @@ When first running Meson, set it in an environment variable.
 ```console
 $ CC=mycc meson <options>
 ```
+
+Note that environment variables like `CC` _always_ refer to the native
+compiler. That is, the compiler used to compile programs that run on
+the current machine. The compiler used in cross compilation is set
+with the cross file.
+
+This behaviour is different from e.g. Autotools, where cross
+compilation is done by setting `CC` to point to the cross compiler
+(such as `/usr/bin/arm-linux-gnueabihf-gcc`). The reason for this is
+that Meson supports natively the case where you compile helper tools
+(such as code generators) and use the results during the
+build. Because of this Meson needs to know both the native and the
+cross compiler. The former is set via the environment variables and
+the latter via the cross file only.
 
 ## Set default C/C++ language version
 
@@ -25,7 +41,9 @@ executable(..., override_options : ['c_std=c11'])
 
 ## Enable threads
 
-Lots of people seem to do this manually with `find_library('pthread')` or something similar. Do not do that. It is not portable. Instead do this.
+Lots of people seem to do this manually with `find_library('pthread')`
+or something similar. Do not do that. It is not portable. Instead do
+this.
 
 ```meson
 thread_dep = dependency('threads')
@@ -77,7 +95,8 @@ configure_file(...)
 
 ## Generate a runnable script with `configure_file`
 
-`configure_file` preserves metadata so if your template file has execute permissions, the generated file will have them too.
+`configure_file` preserves metadata so if your template file has
+execute permissions, the generated file will have them too.
 
 ## Producing a coverage report
 
@@ -99,7 +118,11 @@ The coverage report can be found in the meson-logs subdirectory.
 
 ## Add some optimization to debug builds
 
-By default the debug build does not use any optimizations. This is the desired approach most of the time. However some projects benefit from having some minor optimizations enabled. GCC even has a specific compiler flag `-Og` for this. To enable its use, just issue the following command.
+By default the debug build does not use any optimizations. This is the
+desired approach most of the time. However some projects benefit from
+having some minor optimizations enabled. GCC even has a specific
+compiler flag `-Og` for this. To enable its use, just issue the
+following command.
 
 ```console
 $ meson configure -Dc_args=-Og
@@ -109,13 +132,17 @@ This causes all subsequent builds to use this command line argument.
 
 ## Use address sanitizer
 
-Clang comes with a selection of analysis tools such as the [address sanitizer](https://clang.llvm.org/docs/AddressSanitizer.html). Meson has native support for these with the `b_sanitize` option.
+Clang comes with a selection of analysis tools such as the [address
+sanitizer](https://clang.llvm.org/docs/AddressSanitizer.html). Meson
+has native support for these with the `b_sanitize` option.
 
 ```console
 $ meson <other options> -Db_sanitize=address
 ```
 
-After this you just compile your code and run the test suite. Address sanitizer will abort executables which have bugs so they show up as test failures.
+After this you just compile your code and run the test suite. Address
+sanitizer will abort executables which have bugs so they show up as
+test failures.
 
 ## Use Clang static analyzer
 
@@ -125,7 +152,9 @@ Install scan-build and configure your project. Then do this:
 $ ninja scan-build
 ```
 
-You can use the `SCANBUILD` environment variable to choose the scan-build executable.
+You can use the `SCANBUILD` environment variable to choose the
+scan-build executable.
+
 ```console
 $ SCANBUILD=<your exe> ninja scan-build
 ```
@@ -133,16 +162,20 @@ $ SCANBUILD=<your exe> ninja scan-build
 
 ## Use profile guided optimization
 
-Using profile guided optimization with GCC is a two phase operation. First we set up the project with profile measurements enabled and compile it.
+Using profile guided optimization with GCC is a two phase
+operation. First we set up the project with profile measurements
+enabled and compile it.
 
 ```console
 $ meson  <Meson options, such as --buildtype=debugoptimized> -Db_pgo=generate
 $ ninja -C builddir
 ```
 
-Then we need to run the program with some representative input. This step depends on your project.
+Then we need to run the program with some representative input. This
+step depends on your project.
 
-Once that is done we change the compiler flags to use the generated information and rebuild.
+Once that is done we change the compiler flags to use the generated
+information and rebuild.
 
 ```console
 $ meson configure -Db_pgo=use
@@ -153,7 +186,9 @@ After these steps the resulting binary is fully optimized.
 
 ## Add math library (`-lm`) portably
 
-Some platforms (e.g. Linux) have a standalone math library. Other platforms (pretty much everyone else) do not. How to specify that `m` is used only when needed?
+Some platforms (e.g. Linux) have a standalone math library. Other
+platforms (pretty much everyone else) do not. How to specify that `m`
+is used only when needed?
 
 ```meson
 cc = meson.get_compiler('c')
