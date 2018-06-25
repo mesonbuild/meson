@@ -1414,11 +1414,9 @@ class ClangCompiler:
 
     def get_link_no_as_needed_for(self, args):
         if self.clang_type == CLANG_OSX:
-            result = []
-            for a in args:
-                result += ['-Wl,-force_load', a] # TODO: not sure about this
-            return result
-        return ['-Wl,--no-as-needed'] + args + ['-Wl,--as-needed']
+            return ['-Wl,-no_dead_strip_inits_and_terms'] + args + ['-Wl,-dead_strip']
+        else:
+            return ['-Wl,--no-as-needed'] + args + ['-Wl,--as-needed']
 
     def get_instruction_set_args(self, instruction_set):
         return gnulike_instruction_set_args.get(instruction_set, None)

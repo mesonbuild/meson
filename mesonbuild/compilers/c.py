@@ -1321,7 +1321,7 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_link_no_as_needed_for(self, args):
         args = listify(args)
-        return [args] # TODO: I have no idea what arguments VS has to achieve this
+        return ['/OPT:NOREF'] + args + ['/OPT:REF']
 
     def get_instruction_set_args(self, instruction_set):
         if self.is_64:
