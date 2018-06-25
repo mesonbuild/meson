@@ -212,6 +212,14 @@ class DCompiler(Compiler):
                 for la in linkargs:
                     dcargs.append('-L' + la.strip())
                 continue
+            elif arg.startswith('-link-defaultlib') or arg.startswith('-linker'):
+                # these are special arguments to the LDC linker call,
+                # arguments like "-link-defaultlib-shared" do *not*
+                # denote a library to be linked, but change the default
+                # Phobos/DRuntime linking behavior, while "-linker" sets the
+                # default linker.
+                dcargs.append(arg)
+                continue
             elif arg.startswith('-l'):
                 # translate library link flag
                 dcargs.append('-L' + arg)
