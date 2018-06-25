@@ -9,7 +9,7 @@
   #endif
 #endif
 
-bool plugin_was_loaded = false;
+bool DLL_PUBLIC plugin_was_loaded = false;
 
 bool DLL_PUBLIC was_plugin_loaded() {
   return plugin_was_loaded;
