@@ -1257,6 +1257,8 @@ int dummy;
         element.write(outfile)
         if isinstance(target, build.SharedLibrary):
             self.generate_shsym('rust' + crstr, outfile, target)
+        if isinstance(target, build.SharedModule):
+            self.generate_undefsym('rust' + crstr, outfile, target)
         self.create_target_source_introspection(target, rustc, args, [main_rust_file], [])
 
     def swift_module_file_name(self, target):
@@ -1473,6 +1475,12 @@ int dummy;
                                              'Generating symbol file $out.',
                                              shsym_cross_args)
 
+        undefsymbols_args = compiler.get_undefsymbols_args(self.environment)
+        self.generate_symbol_extraction_rule(outfile, prefix + '_UNDEFSYM',
+                                             'undefsymbols',
+                                             'Generating undefined symbol list $out.',
+                                             undefsymbols_args)
+
     def generate_dynamic_link_rules(self, outfile):
         num_pools = self.environment.coredata.backend_options['backend_max_links'].value
         ctypes = [(self.build.compilers, False)]
@@ -1493,12 +1501,12 @@ int dummy;
                     crstr = '_CROSS'
                 rule = 'rule %s%s_LINKER\n' % (langname, crstr)
                 if compiler.can_linker_accept_rsp():
-                    command_template = ''' command = {executable} @$out.rsp
+                    command_template = ''' command = {executable} @$out.rsp $UNDEFSYM
  rspfile = $out.rsp
  rspfile_content = $ARGS  {output_args} $in $LINK_ARGS {cross_args} $aliasing
 '''
                 else:
-                    command_template = ' command = {executable} $ARGS {output_args} $in $LINK_ARGS {cross_args} $aliasing\n'
+                    command_template = ' command = {executable} $ARGS {output_args} $in $LINK_ARGS {cross_args} $aliasing $UNDEFSYM\n'
                 command = command_template.format(
                     executable=' '.join(compiler.get_linker_exelist()),
                     cross_args=' '.join([quote_func(i) for i in cross_args]),
@@ -2305,13 +2313,27 @@ rule FORTRAN_DEP_HACK%s
             elem.write(outfile)
         return pch_objects
 
-    def generate_shsym(self, prefix, outfile, target):
+    def generate_symbols(self, outfile, target, rulename, suffix, infiles):
         target_name = target.get_filename()
-        target_file = self.get_target_filename(target)
         targetdir = self.get_target_private_dir(target)
-        symname = os.path.join(targetdir, target_name + '.symbols')
-        elem = NinjaBuildElement(self.all_outputs, symname, prefix + '_SHSYM', target_file)
+        symname = os.path.join(targetdir, target_name + suffix)
+        elem = NinjaBuildElement(self.all_outputs, symname, rulename, infiles)
+        if self.environment.is_cross_build():
+            elem.add_item('CROSS', '--cross-host=' + self.environment.machines.host.system)
         elem.write(outfile)
+
+    def generate_shsym(self, prefix, outfile, target):
+        target_file = self.get_target_filename(target)
+        self.generate_symbols(outfile, target, prefix + '_SHSYM', '.symbols', target_file)
+
+    def generate_undefsym(self, prefix, outfile, target):
+        # When ninja executes the UNDEFSYM rule the module has not been linked
+        # yet, because the .undef file is a prerequisite for linking the
+        # executable and thus building the import library.  Therefore, the
+        # rule has to operate on the object files.
+        obj_list = target.extract_all_objects(True)
+        infiles = self._flatten_object_list(target, [obj_list], '')
+        self.generate_symbols(outfile, target, prefix + '_UNDEFSYM', '.undef', infiles)
 
     def get_cross_stdlib_link_args(self, target, linker):
         if isinstance(target, build.StaticLibrary) or not target.is_cross:
@@ -2319,6 +2341,14 @@ rule FORTRAN_DEP_HACK%s
         if not self.environment.properties.host.has_stdlib(linker.language):
             return []
         return linker.get_no_stdlib_link_args()
+
+    def get_undefsym_response_file_args(self, target):
+        response_files = []
+        if isinstance(target, build.Executable):
+            for t in target.modules:
+                undefsym_filename = self.get_undefsym_filename(t)
+                response_files += ['@' + undefsym_filename]
+        return response_files
 
     def get_target_type_link_args(self, target, linker):
         commands = []
@@ -2449,6 +2479,8 @@ rule FORTRAN_DEP_HACK%s
             crstr = '_CROSS'
         if isinstance(target, build.SharedLibrary):
             self.generate_shsym(linker_base + crstr, outfile, target)
+        if isinstance(target, build.SharedModule):
+            self.generate_undefsym(linker_base + crstr, outfile, target)
         linker_rule = linker_base + crstr + '_LINKER'
         # Create an empty commands list, and start adding link arguments from
         # various sources in the order in which they must override each other
@@ -2570,9 +2602,14 @@ rule FORTRAN_DEP_HACK%s
         dep_targets.extend([self.get_dependency_filename(t) for t in dependencies])
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])
+        undefsym_response_file_args = self.get_undefsym_response_file_args(target)
+        dep_targets.extend([item[1:] for item in undefsym_response_file_args])
+
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
+        if undefsym_response_file_args:
+            elem.add_item('UNDEFSYM', undefsym_response_file_args)
         return elem
 
     def get_dependency_filename(self, t):
@@ -2585,6 +2622,9 @@ rule FORTRAN_DEP_HACK%s
                 return t.absolute_path(self.environment.get_source_dir(),
                                        self.environment.get_build_dir())
         return self.get_target_filename(t)
+
+    def get_undefsym_filename(self, t):
+        return os.path.join(self.get_target_private_dir(t), t.get_filename() + '.undef')
 
     def generate_shlib_aliases(self, target, outdir):
         aliases = target.get_aliases()

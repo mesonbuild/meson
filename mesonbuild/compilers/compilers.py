@@ -955,6 +955,9 @@ class Compiler:
     def get_linker_lib_prefix(self):
         return ''
 
+    def get_undefsymbols_args(self, env):
+        return []
+
     def gen_import_library_args(self, implibname):
         """
         Used only on Windows for libraries that need an import library.
