@@ -27,3 +27,5 @@
   (setq-local comment-end ""))
 
 (add-to-list 'auto-mode-alist '("meson.build" . meson-mode))
+(provide 'meson)
+;;; meson.el ends here
