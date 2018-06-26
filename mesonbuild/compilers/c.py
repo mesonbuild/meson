@@ -863,7 +863,17 @@ class CCompiler(Compiler):
             for suffix in suffixes:
                 for prefix in prefixes:
                     trial = os.path.join(d, prefix + libname + '.' + suffix)
-                    if os.path.isfile(trial):
+                    # as well as checking the path, we need to check compilation
+                    # with link-whole, as static libs (.a) need to be checked
+                    # to ensure they are the right architecture, e.g. 32bit or
+                    # 64-bit. Just a normal test link won't work as the .a file
+                    # doesn't seem to be checked by linker if there are no
+                    # unresolved symbols from the main C file.
+                    extra_link_args = self.get_link_whole_for([trial])
+                    extra_link_args = self.linker_to_compiler_args(extra_link_args)
+                    if (os.path.isfile(trial) and
+                            self.links(code, env,
+                                       extra_args=extra_link_args)):
                         return [trial]
         # XXX: For OpenBSD and macOS we (may) need to search for libfoo.x.y.z.dylib
         return None
