@@ -1,14 +1,3 @@
-;; command to comment/uncomment text
-(defun meson-comment-dwim (arg)
-  "Comment or uncomment current line or region in a smart way.
-For detail, see `comment-dwim'."
-  (interactive "*P")
-  (require 'newcomment)
-  (let (
-        (comment-start "#") (comment-end "")
-        )
-    (comment-dwim arg)))
-
 ;; keywords for syntax coloring
 (setq meson-keywords
       `(
@@ -34,9 +23,7 @@ For detail, see `comment-dwim'."
 
   (setq font-lock-defaults '(meson-keywords))
   (setq mode-name "meson")
-
-  ;; modify the keymap
-  (define-key meson-mode-map [remap comment-dwim] 'meson-comment-dwim)
-)
+  (setq-local comment-start "# ")
+  (setq-local comment-end ""))
 
 (add-to-list 'auto-mode-alist '("meson.build" . meson-mode))
