@@ -45,6 +45,7 @@ parser.add_argument('--ignore-headers', dest='ignore_headers', default='')
 parser.add_argument('--namespace', dest='namespace', default='')
 parser.add_argument('--mode', dest='mode', default='')
 parser.add_argument('--installdir', dest='install_dir')
+parser.add_argument('--run', dest='run', default='')
 
 def gtkdoc_run_check(cmd, cwd, library_path=None):
     env = dict(os.environ)
@@ -64,7 +65,7 @@ def gtkdoc_run_check(cmd, cwd, library_path=None):
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                  main_file, module,
                  html_args, scan_args, fixxref_args, mkdb_args,
-                 gobject_typesfile, scanobjs_args, ld, cc, ldflags, cflags,
+                 gobject_typesfile, scanobjs_args, run, ld, cc, ldflags, cflags,
                  html_assets, content_files, ignore_headers, namespace,
                  expand_content_files, mode):
     print("Building documentation for %s" % module)
@@ -117,9 +118,15 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
     scan_cmd += scan_args
     gtkdoc_run_check(scan_cmd, abs_out)
 
+    # Use the generated types file when available, otherwise gobject_typesfile
+    # would often be a path to source dir instead of build dir.
+    if '--rebuild-types' in scan_args:
+        gobject_typesfile = os.path.join(abs_out, module + '.types')
+
     if gobject_typesfile:
         scanobjs_cmd = ['gtkdoc-scangobj'] + scanobjs_args + ['--types=' + gobject_typesfile,
                                                               '--module=' + module,
+                                                              '--run=' + run,
                                                               '--cflags=' + cflags,
                                                               '--ldflags=' + ldflags,
                                                               '--cc=' + cc,
@@ -226,6 +233,7 @@ def run(args):
         mkdbargs,
         options.gobject_typesfile,
         scanobjsargs,
+        options.run,
         options.ld,
         options.cc,
         options.ldflags,
