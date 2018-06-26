@@ -1003,9 +1003,13 @@ class ExtraFrameworkDependency(ExternalDependency):
         for p in paths:
             for d in os.listdir(p):
                 fullpath = os.path.join(p, d)
+                headerpath = os.path.join(fullpath, 'Headers')
                 if lname != d.split('.')[0].lower():
                     continue
                 if not stat.S_ISDIR(os.stat(fullpath).st_mode):
+                    continue
+                # framework folder needs to contain the "Headers" subdir
+                if not os.path.exists(headerpath):
                     continue
                 self.path = p
                 self.name = d
@@ -1021,7 +1025,7 @@ class ExtraFrameworkDependency(ExternalDependency):
 
     def get_link_args(self):
         if self.found():
-            return ['-F' + self.path, '-framework', self.name.split('.')[0]]
+            return ['-F' + self.path, '-framework', self.name.split('.')[0], '-Wl,-rpath,' + self.path]
         return []
 
     def get_version(self):
