@@ -131,6 +131,9 @@ class PackageGenerator:
             'SummaryCodepage': '1252',
         })
 
+        ET.SubElement(product, 'MajorUpgrade',
+                      {'DowngradeErrorMessage': 'A newer version of Meson is already installed.'})
+
         if self.bytesize == 64:
             package.set('Platform', 'x64')
         ET.SubElement(product, 'Media', {
