@@ -345,13 +345,11 @@ class Environment:
         # static libraries, and executables.
         # Versioning is added to these names in the backends as-needed.
         cross = self.is_cross_build()
-        if (not cross and mesonlib.is_windows()) \
-                or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'windows'):
+        if mesonlib.for_windows(cross, self):
             self.exe_suffix = 'exe'
             self.object_suffix = 'obj'
             self.win_libdir_layout = True
-        elif (not cross and mesonlib.is_cygwin()) \
-                or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'cygwin'):
+        elif mesonlib.for_cygwin(cross, self):
             self.exe_suffix = 'exe'
             self.object_suffix = 'o'
             self.win_libdir_layout = True
@@ -1038,6 +1036,12 @@ class CrossBuildInfo:
 
     def get_stdlib(self, language):
         return self.config['properties'][language + '_stdlib']
+
+    def get_host_system(self):
+        "Name of host system like 'linux', or None"
+        if self.has_host():
+            return self.config['host_machine']['system']
+        return None
 
     def get_properties(self):
         return self.config['properties']
