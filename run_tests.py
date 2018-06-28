@@ -284,7 +284,10 @@ def main():
                 'import coverage\n'
                 'coverage.process_startup()\n')
             env['COVERAGE_PROCESS_START'] = '.coveragerc'
-            env['PYTHONPATH'] = os.pathsep.join([temp_dir] + env.get('PYTHONPATH', []))
+            if 'PYTHONPATH' in env:
+                env['PYTHONPATH'] = os.pathsep.join([temp_dir, env.get('PYTHONPATH')])
+            else:
+                env['PYTHONPATH'] = temp_dir
         if not cross:
             cmd = mesonlib.python_command + ['run_meson_command_tests.py', '-v']
             if options.failfast:
