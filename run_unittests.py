@@ -3207,7 +3207,8 @@ class LinuxlikeTests(BasePlatformTests):
 c = '/usr/bin/cc'
 ar = '/usr/bin/ar'
 strip = '/usr/bin/ar'
-sometool.py = '%s'
+sometool.py = ['{0}']
+someothertool.py = '{0}'
 
 [properties]
 
@@ -3216,7 +3217,7 @@ system = 'linux'
 cpu_family = 'arm'
 cpu = 'armv7' # Not sure if correct.
 endian = 'little'
-''' % os.path.join(testdir, 'some_cross_tool.py'))
+'''.format(os.path.join(testdir, 'some_cross_tool.py')))
         crossfile.flush()
         self.meson_cross_file = crossfile.name
         self.init(testdir)
