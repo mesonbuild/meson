@@ -2627,8 +2627,12 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not isinstance(p, str):
                 raise InterpreterException('Executable name must be a string.')
             if p in bins:
-                exename = bins[p]
-                extprog = dependencies.ExternalProgram(exename, silent=silent)
+                command = bins[p]
+                if isinstance(command, (list, str)):
+                    extprog = dependencies.ExternalProgram(p, command=command, silent=silent)
+                else:
+                    raise InterpreterException('Invalid type {!r} for binary {!r} in cross file'
+                                               ''.format(command, p))
                 progobj = ExternalProgramHolder(extprog)
                 return progobj
 
