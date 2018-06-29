@@ -18,6 +18,17 @@ Github](https://github.com/mesonbuild/meson/pulls). This causes them
 to be run through the CI system. All submissions must pass a full CI
 test run before they are even considered for submission.
 
+## Keeping pull requests up to date
+
+It is possible that while your pull request is being reviewed, other
+changes are committed to master that cause merge conflicts that must
+be resolved. The basic rule for this is very simple: keep your pull
+request up to date using rebase _only_.
+
+Do not merge head back to your branch. Any merge commits in your pull
+request make it not acceptable for merging into master and you must
+remove them.
+
 ## Acceptance and merging
 
 The kind of review and acceptance any merge proposal gets depends on
@@ -56,6 +67,32 @@ In a simplified list form the split would look like the following:
    - syntax changes for Meson files
    - changes breaking backwards compatibility
    - support for new languages
+
+## Strategy for merging pull requests to trunk
+
+Meson's merge strategy should fullfill the following guidelines:
+
+- preserve as much history as possible
+
+- have as little junk in the repo as possible
+
+- everything in the "master lineage" should always pass all tests
+
+These goals are slightly contradictory so the correct thing to do
+often requires some judgement on part of the person doing the
+merge. Github provides three different merge options, The rules of
+thumb for choosing between them goes like this:
+
+ - single commit pull requests should always be rebased
+
+ - a pull request with one commit and one "fixup" commit (such as
+   testing something to see if it passes CI) should be squashed
+
+ - large branches with many commits should be merged with a merge
+   commit, especially if one of the commits does not pass all tests
+   (which happens in e.g. large and difficult refactorings)
+
+If in doubt, ask for guidance on IRC.
 
 ## Tests
 
