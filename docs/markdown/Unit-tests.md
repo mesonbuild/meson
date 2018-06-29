@@ -113,6 +113,12 @@ $ meson test --gdb --repeat=10000 testname
 
 This runs the test up to 10 000 times under GDB automatically. If the program crashes, GDB will halt and the user can debug the application. Note that testing timeouts are disabled in this case so `meson test` will not kill `gdb` while the developer is still debugging it. The downside is that if the test binary freezes, the test runner will wait forever.
 
+```console
+$ meson test --print-errorlogs
+```
+
+Meson will report the output produced by the failing tests along with other useful informations as the environmental variables. This is useful, for example, when you run the tests on Travis-CI, Jenkins and the like.
+
 For further information see the command line help of Meson by running `meson test -h`.
 
 **NOTE:** If `meson test` does not work for you, you likely have a old version of Meson. In that case you should call `mesontest` instead. If `mesontest` doesn't work either you have a very old version prior to 0.37.0 and should upgrade.
