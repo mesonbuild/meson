@@ -2618,23 +2618,18 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.emit_base_options_warnings(enabled_opts)
 
     def program_from_cross_file(self, prognames, silent=False):
-        bins = self.environment.cross_info.config['binaries']
+        cross_info = self.environment.cross_info
         for p in prognames:
             if hasattr(p, 'held_object'):
                 p = p.held_object
             if isinstance(p, mesonlib.File):
                 continue # Always points to a local (i.e. self generated) file.
             if not isinstance(p, str):
-                raise InterpreterException('Executable name must be a string.')
-            if p in bins:
-                command = bins[p]
-                if isinstance(command, (list, str)):
-                    extprog = dependencies.ExternalProgram(p, command=command, silent=silent)
-                else:
-                    raise InterpreterException('Invalid type {!r} for binary {!r} in cross file'
-                                               ''.format(command, p))
-                progobj = ExternalProgramHolder(extprog)
-                return progobj
+                raise InterpreterException('Executable name must be a string')
+            prog = ExternalProgram.from_cross_info(cross_info, p)
+            if prog.found():
+                return ExternalProgramHolder(prog)
+        return None
 
     def program_from_system(self, args, silent=False):
         # Search for scripts relative to current subdir.

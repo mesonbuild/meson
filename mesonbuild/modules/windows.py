@@ -15,13 +15,14 @@
 import os
 
 from .. import mlog
-from .. import mesonlib, dependencies, build
+from .. import mesonlib, build
 from ..mesonlib import MesonException, extract_as_list
 from . import get_include_args
 from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreter import CustomTargetHolder
 from ..interpreterbase import permittedKwargs, FeatureNewKwargs
+from ..dependencies import ExternalProgram
 
 class WindowsModule(ExtensionModule):
 
@@ -49,7 +50,7 @@ class WindowsModule(ExtensionModule):
         extra_args += get_include_args(inc_dirs)
 
         if comp.id == 'msvc':
-            rescomp = dependencies.ExternalProgram('rc', silent=True)
+            rescomp = ExternalProgram('rc', silent=True)
             res_args = extra_args + ['/nologo', '/fo@OUTPUT@', '@INPUT@']
             suffix = 'res'
         else:
@@ -58,22 +59,23 @@ class WindowsModule(ExtensionModule):
             for arg in extra_args:
                 if ' ' in arg:
                     mlog.warning(m.format(arg))
-            rescomp_name = None
+            rescomp = None
             # FIXME: Does not handle `native: true` executables, see
             # https://github.com/mesonbuild/meson/issues/1531
             if state.environment.is_cross_build():
                 # If cross compiling see if windres has been specified in the
                 # cross file before trying to find it another way.
-                rescomp_name = state.environment.cross_info.config['binaries'].get('windres')
-            if rescomp_name is None:
+                cross_info = state.environment.cross_info
+                rescomp = ExternalProgram.from_cross_info(cross_info, 'windres')
+            if not rescomp or not rescomp.found():
                 # Pick-up env var WINDRES if set. This is often used for
                 # specifying an arch-specific windres.
-                rescomp_name = os.environ.get('WINDRES', 'windres')
-            rescomp = dependencies.ExternalProgram(rescomp_name, silent=True)
+                rescomp = ExternalProgram(os.environ.get('WINDRES', 'windres'), silent=True)
             res_args = extra_args + ['@INPUT@', '@OUTPUT@']
             suffix = 'o'
         if not rescomp.found():
-            raise MesonException('Could not find Windows resource compiler "%s".' % rescomp_name)
+            raise MesonException('Could not find Windows resource compiler {!r}'
+                                 ''.format(rescomp.get_path()))
 
         res_targets = []
 

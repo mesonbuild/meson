@@ -438,8 +438,7 @@ class PkgConfigDependency(ExternalDependency):
                 if self.required:
                     raise DependencyException('Pkg-config binary missing from cross file')
             else:
-                pkgname = environment.cross_info.config['binaries']['pkgconfig']
-                potential_pkgbin = ExternalProgram(pkgname, silent=True)
+                potential_pkgbin = ExternalProgram.from_cross_info(environment.cross_info, 'pkgconfig')
                 if potential_pkgbin.found():
                     self.pkgbin = potential_pkgbin
                     PkgConfigDependency.class_pkgbin = self.pkgbin
@@ -797,6 +796,24 @@ class ExternalProgram:
     def __repr__(self):
         r = '<{} {!r} -> {!r}>'
         return r.format(self.__class__.__name__, self.name, self.command)
+
+    @staticmethod
+    def from_cross_info(cross_info, name):
+        if name not in cross_info.config['binaries']:
+            return NonExistingExternalProgram()
+        command = cross_info.config['binaries'][name]
+        if not isinstance(command, (list, str)):
+            raise MesonException('Invalid type {!r} for binary {!r} in cross file'
+                                 ''.format(command, name))
+        if isinstance(command, list):
+            if len(command) == 1:
+                command = command[0]
+        # We cannot do any searching if the command is a list, and we don't
+        # need to search if the path is an absolute path.
+        if isinstance(command, list) or os.path.isabs(command):
+            return ExternalProgram(name, command=command, silent=True)
+        # Search for the command using the specified string!
+        return ExternalProgram(command, silent=True)
 
     @staticmethod
     def _shebang_to_cmd(script):
