@@ -3451,9 +3451,9 @@ root and issuing %s.
         if not isinstance(output, str):
             raise InterpreterException('Output file name must be a string')
         if output in self.configure_file_outputs:
-            mlog.warning('Output file', mlog.bold(output), 'for configure_file overwritten.')
+            mlog.warning('Output file', mlog.bold(output), 'for configure_file overwritten. First time written in line', self.configure_file_outputs[output], 'now in line', self.current_lineno)
         else:
-            self.configure_file_outputs[output] = None
+            self.configure_file_outputs[output] = self.current_lineno
         if ifile_abs:
             values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
             outputs = mesonlib.substitute_values([output], values)
