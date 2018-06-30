@@ -1862,6 +1862,7 @@ class Interpreter(InterpreterBase):
         self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects = {}
         self.subproject_stack = []
+        self.configure_file_outputs = {}
         # Passed from the outside, only used in subprojects.
         if default_project_options:
             self.default_project_options = default_project_options.copy()
@@ -3449,6 +3450,10 @@ root and issuing %s.
         output = kwargs['output']
         if not isinstance(output, str):
             raise InterpreterException('Output file name must be a string')
+        if output in self.configure_file_outputs:
+            mlog.warning('Output file', mlog.bold(output), 'for configure_file overwritten.')
+        else:
+            self.configure_file_outputs[output] = None
         if ifile_abs:
             values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
             outputs = mesonlib.substitute_values([output], values)
