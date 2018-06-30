@@ -41,6 +41,7 @@ import re
 from run_tests import get_fake_options, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
+from run_tests import guess_backend
 
 
 class BuildStep(Enum):
@@ -101,26 +102,7 @@ signal.signal(signal.SIGTERM, stop_handler)
 def setup_commands(optbackend):
     global do_debug, backend, backend_flags
     global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands
-    backend = optbackend
-    msbuild_exe = shutil.which('msbuild')
-    # Auto-detect backend if unspecified
-    if backend is None:
-        if msbuild_exe is not None:
-            backend = 'vs' # Meson will auto-detect VS version to use
-        else:
-            backend = 'ninja'
-    # Set backend arguments for Meson
-    if backend.startswith('vs'):
-        backend_flags = ['--backend=' + backend]
-        backend = Backend.vs
-    elif backend == 'xcode':
-        backend_flags = ['--backend=xcode']
-        backend = Backend.xcode
-    elif backend == 'ninja':
-        backend_flags = ['--backend=ninja']
-        backend = Backend.ninja
-    else:
-        raise RuntimeError('Unknown backend: {!r}'.format(backend))
+    backend, backend_flags = guess_backend(optbackend, shutil.which('msbuild'))
     compile_commands, clean_commands, test_commands, install_commands, \
         uninstall_commands = get_backend_commands(backend, do_debug)
 

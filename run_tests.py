@@ -34,6 +34,28 @@ from mesonbuild import mlog
 from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.coredata import backendlist
 
+def guess_backend(backend, msbuild_exe):
+    # Auto-detect backend if unspecified
+    backend_flags = []
+    if backend is None:
+        if msbuild_exe is not None:
+            backend = 'vs' # Meson will auto-detect VS version to use
+        else:
+            backend = 'ninja'
+    # Set backend arguments for Meson
+    if backend.startswith('vs'):
+        backend_flags = ['--backend=' + backend]
+        backend = Backend.vs
+    elif backend == 'xcode':
+        backend_flags = ['--backend=xcode']
+        backend = Backend.xcode
+    elif backend == 'ninja':
+        backend_flags = ['--backend=ninja']
+        backend = Backend.ninja
+    else:
+        raise RuntimeError('Unknown backend: {!r}'.format(backend))
+    return (backend, backend_flags)
+
 
 # Fake classes and objects for mocking
 class FakeBuild:
@@ -236,24 +258,8 @@ def main():
         import coverage
         coverage.process_startup()
     returncode = 0
-    backend = options.backend
     cross = options.cross
-    msbuild_exe = shutil.which('msbuild')
-    # Auto-detect backend if unspecified
-    if backend is None:
-        if msbuild_exe is not None:
-            backend = 'vs' # Meson will auto-detect VS version to use
-        else:
-            backend = 'ninja'
-    # Set backend arguments for Meson
-    if backend.startswith('vs'):
-        backend = Backend.vs
-    elif backend == 'xcode':
-        backend = Backend.xcode
-    elif backend == 'ninja':
-        backend = Backend.ninja
-    else:
-        raise RuntimeError('Unknown backend: {!r}'.format(backend))
+    backend, _ = guess_backend(options.backend, shutil.which('msbuild'))
     # Running on a developer machine? Be nice!
     if not mesonlib.is_windows() and not mesonlib.is_haiku() and 'TRAVIS' not in os.environ:
         os.nice(20)
