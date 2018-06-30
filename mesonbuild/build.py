@@ -1713,7 +1713,11 @@ class CustomTarget(Target):
                 if not c.found():
                     m = 'Tried to use not-found external program {!r} in "command"'
                     raise InvalidArguments(m.format(c.name))
-                self.depend_files.append(File.from_absolute_file(c.get_path()))
+                path = c.get_path()
+                if os.path.isabs(path):
+                    # Can only add a dependency on an external program which we
+                    # know the absolute path of
+                    self.depend_files.append(File.from_absolute_file(path))
                 final_cmd += c.get_command()
             elif isinstance(c, (BuildTarget, CustomTarget)):
                 self.dependencies.append(c)
