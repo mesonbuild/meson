@@ -1697,7 +1697,7 @@ class MesonMain(InterpreterObject):
     @permittedKwargs({})
     def is_unity_method(self, args, kwargs):
         optval = self.interpreter.environment.coredata.get_builtin_option('unity')
-        if optval == 'on' or (optval == 'subprojects' and self.interpreter.subproject != ''):
+        if optval == 'on' or (optval == 'subprojects' and self.interpreter.is_subproject()):
             return True
         return False
 
@@ -3605,7 +3605,7 @@ different subdirectory.
         self.add_project_arguments(node, self.build.projects_link_args, args, kwargs)
 
     def add_global_arguments(self, node, argsdict, args, kwargs):
-        if self.subproject != '':
+        if self.is_subproject():
             msg = 'Function \'{}\' cannot be used in subprojects because ' \
                   'there is no way to make that reliable.\nPlease only call ' \
                   'this if is_subproject() returns false. Alternatively, ' \
@@ -3710,7 +3710,7 @@ Try setting b_lundef to false instead.''')
         (num_sps, sproj_name) = self.evaluate_subproject_info(norm, self.subproject_dir)
         plain_filename = os.path.basename(norm)
         if num_sps == 0:
-            if self.subproject == '':
+            if not self.is_subproject():
                 return
             raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % plain_filename)
         if num_sps > 1:
