@@ -32,18 +32,26 @@ def check_stringlist(a, msg='Arguments must be strings.'):
         raise InvalidArguments(msg)
 
 def _get_callee_args(wrapped_args):
-    # Functions have 4 positional args and methods have 3.
     s = wrapped_args[0]
-    if len(wrapped_args) == 3:
+    n = len(wrapped_args)
+    if n == 3:
+        # Methods on objects (Holder, MesonMain, etc) have 3 args: self, args, kwargs
         node_or_state = None
         args = wrapped_args[1]
         kwargs = wrapped_args[2]
-    elif len(wrapped_args) == 4:
+    elif n == 4:
+        # Meson functions have 4 args: self, node, args, kwargs
+        # Module functions have 4 args: self, state, args, kwargs
         node_or_state = wrapped_args[1]
         args = wrapped_args[2]
         kwargs = wrapped_args[3]
+    elif n == 5:
+        # Module snippets have 5 args: self, interpreter, state, args, kwargs
+        node_or_state = wrapped_args[2]
+        args = wrapped_args[3]
+        kwargs = wrapped_args[4]
     else:
-        raise InvalidArguments('Expecting 3 or 4 args, got {}'.format(len(wrapped_args)))
+        raise AssertionError('Expecting 3, 4, or 5 args, got: {!r}'.format(wrapped_args))
 
     # Sometimes interpreter methods are called internally with None instead of
     # empty list/dict

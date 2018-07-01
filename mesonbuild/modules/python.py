@@ -19,7 +19,6 @@ from pathlib import Path
 from .. import mesonlib
 from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue
-from . import permittedSnippetKwargs
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
     InterpreterObject, InvalidArguments,
@@ -284,7 +283,7 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         self.platform = run_command(python, "import sysconfig; print (sysconfig.get_platform())")
         self.is_pypy = json.loads(run_command(python, IS_PYPY_COMMAND))
 
-    @permittedSnippetKwargs(mod_kwargs)
+    @permittedKwargs(mod_kwargs)
     def extension_module(self, interpreter, state, args, kwargs):
         if 'subdir' in kwargs and 'install_dir' in kwargs:
             raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
@@ -312,7 +311,7 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         dep = PythonDependency(self, interpreter.environment, kwargs)
         return interpreter.holderify(dep)
 
-    @permittedSnippetKwargs(['pure', 'subdir'])
+    @permittedKwargs(['pure', 'subdir'])
     def install_sources(self, interpreter, state, args, kwargs):
         pure = kwargs.pop('pure', False)
         if not isinstance(pure, bool):
@@ -450,7 +449,7 @@ class PythonModule(ExtensionModule):
         else:
             return None
 
-    @permittedSnippetKwargs(['required'])
+    @permittedKwargs(['required'])
     def find_installation(self, interpreter, state, args, kwargs):
         required = kwargs.get('required', True)
         if not isinstance(required, bool):
