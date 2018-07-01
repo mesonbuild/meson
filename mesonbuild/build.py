@@ -1793,7 +1793,8 @@ class CustomTarget(Target):
             raise InvalidArguments('build_always and build_always_stale are mutually exclusive. Combine build_by_default and build_always_stale.')
         elif 'build_always' in kwargs:
             mlog.warning('build_always is deprecated. Combine build_by_default and build_always_stale instead.')
-            self.build_by_default = kwargs['build_always']
+            if 'build_by_default' not in kwargs:
+                self.build_by_default = kwargs['build_always']
             self.build_always_stale = kwargs['build_always']
         elif 'build_always_stale' in kwargs:
             self.build_always_stale = kwargs['build_always_stale']
