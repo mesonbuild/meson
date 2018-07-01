@@ -328,7 +328,7 @@ This will become a hard error in the future''')
             return args[1]
         raise InterpreterException('Entry %s not in configuration data.' % name)
 
-    @FeatureNew('get_unquoted', '0.44.0')
+    @FeatureNew('configuration_data.get_unquoted', '0.44.0')
     def get_unquoted_method(self, args, kwargs):
         if len(args) < 1 or len(args) > 2:
             raise InterpreterException('Get method takes one or two arguments.')
@@ -401,7 +401,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
             raise InterpreterException('Variable name must be a string.')
         return self.held_object.get_pkgconfig_variable(varname, kwargs)
 
-    @FeatureNew('get_configtool_variable', '0.44.0')
+    @FeatureNew('dep.get_configtool_variable', '0.44.0')
     @permittedKwargs({})
     def configtool_method(self, args, kwargs):
         args = listify(args)
@@ -1312,7 +1312,7 @@ class CompilerHolder(InterpreterObject):
             mlog.log('Checking if "', mlog.bold(testname), '" links: ', h, sep='')
         return result
 
-    @FeatureNew('check_header', '0.47.0')
+    @FeatureNew('compiler.check_header', '0.47.0')
     @permittedKwargs({
         'prefix',
         'no_builtin_args',
@@ -1461,7 +1461,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log('First supported argument:', mlog.red('None'))
         return []
 
-    @FeatureNew('has_link_argument', '0.46.0')
+    @FeatureNew('compiler.has_link_argument', '0.46.0')
     @permittedKwargs({})
     def has_link_argument_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
@@ -1469,7 +1469,7 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('has_link_argument takes exactly one argument.')
         return self.has_multi_link_arguments_method(args, kwargs)
 
-    @FeatureNew('has_multi_link_argument', '0.46.0')
+    @FeatureNew('compiler.has_multi_link_argument', '0.46.0')
     @permittedKwargs({})
     def has_multi_link_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
@@ -1484,7 +1484,7 @@ class CompilerHolder(InterpreterObject):
             h)
         return result
 
-    @FeatureNew('get_supported_link_arguments_method', '0.46.0')
+    @FeatureNew('compiler.get_supported_link_arguments_method', '0.46.0')
     @permittedKwargs({})
     def get_supported_link_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
@@ -1494,7 +1494,7 @@ class CompilerHolder(InterpreterObject):
                 supported_args.append(arg)
         return supported_args
 
-    @FeatureNew('first_supported_link_argument_method', '0.46.0')
+    @FeatureNew('compiler.first_supported_link_argument_method', '0.46.0')
     @permittedKwargs({})
     def first_supported_link_argument_method(self, args, kwargs):
         for i in mesonlib.stringlistify(args):
@@ -1714,7 +1714,7 @@ class MesonMain(InterpreterObject):
             raise InterpreterException('Argument must be a string.')
         self.build.dep_manifest_name = args[0]
 
-    @FeatureNew('override_find_program', '0.46.0')
+    @FeatureNew('meson.override_find_program', '0.46.0')
     @permittedKwargs({})
     def override_find_program_method(self, args, kwargs):
         if len(args) != 2:
@@ -2478,7 +2478,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         argstr = self.get_message_string_arg(node)
         mlog.log(mlog.bold('Message:'), argstr)
 
-    @FeatureNew('warning()', '0.44.0')
+    @FeatureNew('warning', '0.44.0')
     @noKwargs
     def func_warning(self, node, args, kwargs):
         argstr = self.get_message_string_arg(node)
@@ -2973,7 +2973,7 @@ root and issuing %s.
     def func_both_lib(self, node, args, kwargs):
         return self.build_both_libraries(node, args, kwargs)
 
-    @FeatureNew('Shared Modules', '0.37.0')
+    @FeatureNew('shared_module', '0.37.0')
     @permittedKwargs(permitted_kwargs['shared_module'])
     def func_shared_module(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, SharedModuleHolder)

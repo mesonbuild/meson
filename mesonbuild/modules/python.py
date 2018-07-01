@@ -50,7 +50,6 @@ def run_command(python, command):
 
 class PythonDependency(ExternalDependency):
 
-    @FeatureNew('Python Module', '0.46.0')
     def __init__(self, python_holder, environment, kwargs):
         super().__init__('python', environment, None, kwargs)
         self.name = 'python'
@@ -432,6 +431,8 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
 
 
 class PythonModule(ExtensionModule):
+
+    @FeatureNew('Python Module', '0.46.0')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.snippets.add('find_installation')
