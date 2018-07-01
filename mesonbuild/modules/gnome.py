@@ -349,7 +349,7 @@ class GnomeModule(ExtensionModule):
             # This should be any dependency other than an internal one.
             elif isinstance(dep, Dependency):
                 cflags.update(dep.get_compile_args())
-                for lib in dep.get_link_args():
+                for lib in dep.get_link_args(raw=True):
                     if (os.path.isabs(lib) and
                             # For PkgConfigDependency only:
                             getattr(dep, 'is_libtool', False)):

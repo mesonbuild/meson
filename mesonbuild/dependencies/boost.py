@@ -473,10 +473,10 @@ class BoostDependency(ExternalDependency):
             return [os.path.join(self.boost_root, 'lib')]
         return []
 
-    def get_link_args(self):
+    def get_link_args(self, **kwargs):
         args = []
-        for dir in self.extra_lib_dirs():
-            args += self.clib_compiler.get_linker_search_args(dir)
+        for d in self.extra_lib_dirs():
+            args += self.clib_compiler.get_linker_search_args(d)
         for lib in self.requested_modules:
             args += self.lib_modules['boost_' + lib]
         return args

@@ -261,5 +261,5 @@ class ValgrindDependency(PkgConfigDependency):
     def __init__(self, env, kwargs):
         super().__init__('valgrind', env, kwargs)
 
-    def get_link_args(self):
+    def get_link_args(self, **kwargs):
         return []
