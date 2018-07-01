@@ -170,16 +170,18 @@ class DependenciesHelper:
         return ', '.join(result)
 
     def remove_dups(self):
-        def _fn(xs):
+        def _fn(xs, libs=False):
             # Remove duplicates whilst preserving original order
             result = []
             for x in xs:
-                if x not in result:
+                # Don't de-dup unknown strings to avoid messing up arguments like:
+                # ['-framework', 'CoreAudio', '-framework', 'CoreMedia']
+                if x not in result or (libs and (isinstance(x, str) and not x.endswith(('-l', '-L')))):
                     result.append(x)
             return result
-        self.pub_libs = _fn(self.pub_libs)
+        self.pub_libs = _fn(self.pub_libs, True)
         self.pub_reqs = _fn(self.pub_reqs)
-        self.priv_libs = _fn(self.priv_libs)
+        self.priv_libs = _fn(self.priv_libs, True)
         self.priv_reqs = _fn(self.priv_reqs)
         self.cflags = _fn(self.cflags)
 

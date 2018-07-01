@@ -5,5 +5,5 @@ l = shared_library('faa_pkg', 'faa.c', install: true)
 
 pkg = import('pkgconfig')
 pkg.generate(name: 'faa_pkg',
-             libraries: l,
+             libraries: [l, '-framework', 'CoreFoundation', '-framework', 'CoreMedia'],
              description: 'FAA, a pkg-config test library')

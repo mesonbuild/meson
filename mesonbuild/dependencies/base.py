@@ -589,9 +589,12 @@ class PkgConfigDependency(ExternalDependency):
         if ret != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' %
                                       (self.name, out))
-        # These libraries should be safe to de-dup
-        link_args = OrderedSet()
+        link_args = []
+        # Library paths should be safe to de-dup
         libpaths = OrderedSet()
+        # Track -lfoo libraries to avoid duplicate work
+        libs_found = OrderedSet()
+        # Track not-found libraries to know whether to add library paths
         libs_notfound = []
         libtype = 'static' if self.static else 'default'
         # We always look for the file ourselves instead of depending on the
@@ -609,6 +612,9 @@ class PkgConfigDependency(ExternalDependency):
                 libpaths.add(lib[2:])
                 continue
             elif lib.startswith('-l'):
+                # Don't resolve the same -lfoo argument again
+                if lib in libs_found:
+                    continue
                 if self.clib_compiler:
                     args = self.clib_compiler.find_library(lib[2:], self.env,
                                                            list(libpaths), libtype)
@@ -618,10 +624,11 @@ class PkgConfigDependency(ExternalDependency):
                 else:
                     args = None
                 if args:
+                    libs_found.add(lib)
                     # Replace -l arg with full path to library if available
+                    # else, library is provided by the compiler and can't be resolved
                     if not args[0].startswith('-l'):
                         lib = args[0]
-                    # else, library is provided by the compiler and can't be resolved
                 else:
                     # Library wasn't found, maybe we're looking in the wrong
                     # places or the library will be provided with LDFLAGS or
@@ -645,10 +652,12 @@ class PkgConfigDependency(ExternalDependency):
                     raise DependencyException('Got a libtools specific "%s" dependencies'
                                               'but we could not compute the actual shared'
                                               'library path' % lib)
-                lib = shared_lib
                 self.is_libtool = True
-            link_args.add(lib)
-        self.link_args = list(link_args)
+                lib = shared_lib
+                if lib in link_args:
+                    continue
+            link_args.append(lib)
+        self.link_args = link_args
         # Add all -Lbar args if we have -lfoo args in link_args
         if libs_notfound:
             # Order of -L flags doesn't matter with ld, but it might with other
