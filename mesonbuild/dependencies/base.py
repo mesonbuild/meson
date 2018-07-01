@@ -101,6 +101,9 @@ class Dependency:
         self.type_name = type_name
         self.compile_args = []
         self.link_args = []
+        # Raw -L and -l arguments without manual library searching
+        # If None, self.link_args will be used
+        self.raw_link_args = None
         self.sources = []
         self.methods = self._process_method_kw(kwargs)
 
@@ -111,7 +114,9 @@ class Dependency:
     def get_compile_args(self):
         return self.compile_args
 
-    def get_link_args(self):
+    def get_link_args(self, raw=False):
+        if raw and self.raw_link_args is not None:
+            return self.raw_link_args
         return self.link_args
 
     def found(self):
@@ -588,9 +593,18 @@ class PkgConfigDependency(ExternalDependency):
         if ret != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' %
                                       (self.name, out))
+        # Also get the 'raw' output without -Lfoo system paths for usage when
+        # a library can't be found, and also in gnome.generate_gir
+        # + gnome.gtkdoc which need -L -l arguments.
+        ret, out_raw = self._call_pkgbin(libcmd)
+        if ret != 0:
+            raise DependencyException('Could not generate libs for %s:\n\n%s' %
+                                      (self.name, out_raw))
         link_args = []
+        raw_link_args = []
         # Library paths should be safe to de-dup
         libpaths = OrderedSet()
+        raw_libpaths = OrderedSet()
         # Track -lfoo libraries to avoid duplicate work
         libs_found = OrderedSet()
         # Track not-found libraries to know whether to add library paths
@@ -656,12 +670,19 @@ class PkgConfigDependency(ExternalDependency):
                 if lib in link_args:
                     continue
             link_args.append(lib)
+        # Also store the raw link arguments, and store raw_libpaths
+        for lib in self._convert_mingw_paths(shlex.split(out_raw)):
+            if lib.startswith('-L') and not lib.startswith(('-L-l', '-L-L')):
+                raw_libpaths.add(lib[2:])
+            raw_link_args.append(lib)
+        # Set everything
         self.link_args = link_args
+        self.raw_link_args = raw_link_args
         # Add all -Lbar args if we have -lfoo args in link_args
         if libs_notfound:
             # Order of -L flags doesn't matter with ld, but it might with other
             # linkers such as MSVC, so prepend them.
-            self.link_args = ['-L' + lp for lp in libpaths] + self.link_args
+            self.link_args = ['-L' + lp for lp in raw_libpaths] + self.link_args
 
     def get_pkgconfig_variable(self, variable_name, kwargs):
         options = ['--variable=' + variable_name, self.name]
@@ -983,7 +1004,7 @@ class ExternalLibrary(ExternalDependency):
             else:
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.red('NO'))
 
-    def get_link_args(self, language=None):
+    def get_link_args(self, language=None, **kwargs):
         '''
         External libraries detected using a compiler must only be used with
         compatible code. For instance, Vala libraries (.vapi files) cannot be
@@ -996,7 +1017,7 @@ class ExternalLibrary(ExternalDependency):
         if (self.language == 'vala' and language != 'vala') or \
            (language == 'vala' and self.language != 'vala'):
             return []
-        return self.link_args
+        return super().get_link_args(**kwargs)
 
     def get_partial_dependency(self, *, compile_args=False, link_args=False,
                                links=False, includes=False, sources=False):
@@ -1015,6 +1036,8 @@ class ExtraFrameworkDependency(ExternalDependency):
         self.required = required
         self.detect(name, path)
         if self.found():
+            self.compile_args = ['-I' + os.path.join(self.path, self.name, 'Headers')]
+            self.link_args = ['-F' + self.path, '-framework', self.name.split('.')[0]]
             mlog.log('Dependency', mlog.bold(name), 'found:', mlog.green('YES'),
                      os.path.join(self.path, self.name))
         else:
@@ -1039,16 +1062,6 @@ class ExtraFrameworkDependency(ExternalDependency):
                 return
         if not self.found() and self.required:
             raise DependencyException('Framework dependency %s not found.' % (name, ))
-
-    def get_compile_args(self):
-        if self.found():
-            return ['-I' + os.path.join(self.path, self.name, 'Headers')]
-        return []
-
-    def get_link_args(self):
-        if self.found():
-            return ['-F' + self.path, '-framework', self.name.split('.')[0]]
-        return []
 
     def get_version(self):
         return 'unknown'
