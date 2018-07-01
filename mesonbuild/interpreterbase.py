@@ -883,8 +883,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             if not isinstance(reduced_dict, dict):
                 raise InvalidArguments("Keyword argument expansion is not a dictionary.")
 
-            for key, value in reduced_dict.items():
-                reduced_kw[key] = value
+            reduced_kw.update(reduced_dict)
 
         self.argument_depth -= 1
         return reduced_pos, reduced_kw
