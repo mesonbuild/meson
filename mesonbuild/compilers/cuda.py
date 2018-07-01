@@ -39,7 +39,32 @@ class CudaCompiler(Compiler):
         return ['']
 
     def sanity_check(self, work_dir, environment):
-        return True
+        source_name = os.path.join(work_dir, 'sanitycheckobjc.m')
+        binary_name = os.path.join(work_dir, 'sanitycheckobjc')
+        extra_flags = self.get_cross_extra_flags(environment, link=False)
+        if self.is_cross:
+            extra_flags += self.get_compile_only_args()
+
+        code = '''
+        #include <stdio.h>
+        int main(int argc,char** argv){
+            return 0;
+        }
+        '''
+
+        with open(source_name, 'w') as ofile:
+            ofile.write(code)
+        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
+        pc.wait()
+        if pc.returncode != 0:
+            raise EnvironmentException('Cuda compiler %s can not compile programs.' % self.name_string())
+        if self.is_cross:
+            # Can't check if the binaries run so we have to assume they do
+            return
+        pe = subprocess.Popen(binary_name)
+        pe.wait()
+        if pe.returncode != 0:
+            raise EnvironmentException('Executables created by ObjC compiler %s are not runnable.' % self.name_string())
 
     def get_compiler_check_args(self):
         return super().get_compiler_check_args() + []

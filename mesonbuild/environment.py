@@ -603,6 +603,7 @@ class Environment:
             version = search_version(out)
             cls = CudaCompiler
             return cls(ccache + compiler, version, is_cross, exe_wrap)
+        raise EnvironmentException('Could not find suitable CUDA compiler: "' + ' '.join(compilers) + '"')
 
     def detect_fortran_compiler(self, want_cross):
         popen_exceptions = {}
