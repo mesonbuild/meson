@@ -3087,6 +3087,8 @@ root and issuing %s.
             if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, dependencies.ExternalProgram, mesonlib.File)):
                 mlog.debug('Wrong type:', str(i))
                 raise InterpreterException('Invalid argument to run_target.')
+            if isinstance(i, dependencies.ExternalProgram) and not i.found():
+                raise InterpreterException('Tried to use non-existing executable {!r}'.format(i.name))
             cleaned_args.append(i)
         name = args[0]
         if not isinstance(name, str):
