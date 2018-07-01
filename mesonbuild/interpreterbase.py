@@ -876,6 +876,16 @@ The result of this is undefined and will become a hard error in a future Meson r
                 raise InvalidArguments('Keyword argument name is not a string.')
             a = args.kwargs[key]
             reduced_kw[key] = self.evaluate_statement(a)
+
+        if args.kwargs_dict is not None:
+            reduced_dict = self.evaluate_statement(args.kwargs_dict)
+
+            if not isinstance(reduced_dict, dict):
+                raise InvalidArguments("Keyword argument expansion is not a dictionary.")
+
+            for key, value in reduced_dict.items():
+                reduced_kw[key] = value
+
         self.argument_depth -= 1
         return reduced_pos, reduced_kw
 

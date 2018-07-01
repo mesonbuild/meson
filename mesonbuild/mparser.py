@@ -394,6 +394,7 @@ class ArgumentNode:
         self.arguments = []
         self.commas = []
         self.kwargs = {}
+        self.kwargs_dict = None
         self.order_error = False
 
     def prepend(self, statement):
@@ -663,6 +664,7 @@ class Parser:
 
         while not isinstance(s, EmptyNode):
             potential = self.current
+
             if self.accept('comma'):
                 a.commas.append(potential)
                 a.append(s)
@@ -678,6 +680,12 @@ class Parser:
             else:
                 a.append(s)
                 return a
+
+            if self.accept('star'):
+                dict_expr = self.statement()
+                a.kwargs_dict = dict_expr
+                return a
+
             s = self.statement()
         return a
 
