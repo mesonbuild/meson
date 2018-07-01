@@ -32,6 +32,9 @@ class CudaCompiler(Compiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
+    def needs_static_linker(self):
+        return False
+
     def get_display_language(self):
         return 'Cuda'
 
