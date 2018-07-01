@@ -39,8 +39,8 @@ class CudaCompiler(Compiler):
         return ['']
 
     def sanity_check(self, work_dir, environment):
-        source_name = os.path.join(work_dir, 'sanitycheckobjc.m')
-        binary_name = os.path.join(work_dir, 'sanitycheckobjc')
+        source_name = os.path.join(work_dir, 'sanitycheckcuda.cu')
+        binary_name = os.path.join(work_dir, 'sanitycheckcuda')
         extra_flags = self.get_cross_extra_flags(environment, link=False)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
