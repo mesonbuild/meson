@@ -451,26 +451,23 @@ def version_compare_condition_with_min(condition, minimum):
         raise MesonException(msg.format(minimum))
     minimum = match.group(0)
     if condition.startswith('>='):
-        cmpop = operator.lt
+        cmpop = operator.le
         condition = condition[2:]
     elif condition.startswith('<='):
         return True
-        condition = condition[2:]
     elif condition.startswith('!='):
         return True
-        condition = condition[2:]
     elif condition.startswith('=='):
-        cmpop = operator.lt
+        cmpop = operator.le
         condition = condition[2:]
     elif condition.startswith('='):
-        cmpop = operator.lt
+        cmpop = operator.le
         condition = condition[1:]
     elif condition.startswith('>'):
         cmpop = operator.lt
         condition = condition[1:]
     elif condition.startswith('<'):
         return True
-        condition = condition[2:]
     else:
         cmpop = operator.eq
     varr1 = grab_leading_numbers(minimum, True)
