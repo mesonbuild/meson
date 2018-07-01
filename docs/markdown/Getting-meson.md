@@ -63,7 +63,7 @@ select the installer options as follows:
 
 ![installer step 1](images/py3-install-1.png "Enable 'Add Python 3.6 to PATH' and click 'Customize installation'")
 ![installer step 2](images/py3-install-2.png "Optional Features: ensure 'pip' is enabled")
-![installer step 3](images/py3-install-2.png "Advanced Options: enable 'Install for all users'")
+![installer step 3](images/py3-install-3.png "Advanced Options: enable 'Install for all users'")
 
 With this, you will have `python` and `pip` in `PATH`, and you can install
 Meson with pip. You will also be able to directly run `meson` in any shell on
