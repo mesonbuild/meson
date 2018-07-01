@@ -131,6 +131,8 @@ class permittedKwargs:
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
+# TODO: Share code between FeatureNew, FeatureDeprecated, FeatureNewKwargs,
+# and FeatureDeprecatedKwargs
 class FeatureNew:
     """Checks for new features"""
     # Shared across all instances
@@ -149,12 +151,13 @@ class FeatureNew:
         self.feature_versions[self.feature_version].add(self.feature_name)
         return True
 
-    def called_features_report():
-        if not FeatureNew.feature_warnings:
+    @classmethod
+    def called_features_report(cls):
+        if not cls.feature_warnings:
             return
         warning_str = 'Invalid minimum meson_version \'{}\' conflicts with:'\
             .format(mesonlib.target_version)
-        fv = FeatureNew.feature_versions
+        fv = cls.feature_versions
         for version in sorted(fv.keys()):
             warning_str += '\n * {}: {}'.format(version, fv[version])
         mlog.warning(warning_str)
@@ -196,11 +199,12 @@ class FeatureDeprecated:
         self.feature_versions[self.feature_version].add(self.feature_name)
         return True
 
-    def called_features_report():
-        if not FeatureDeprecated.feature_warnings:
+    @classmethod
+    def called_features_report(cls):
+        if not cls.feature_warnings:
             return
         warning_str = 'Deprecated features used:'.format(mesonlib.target_version)
-        fv = FeatureDeprecated.feature_versions
+        fv = cls.feature_versions
         for version in sorted(fv.keys()):
             warning_str += '\n * {}: {}'.format(version, fv[version])
         mlog.warning(warning_str)
