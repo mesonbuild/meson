@@ -36,7 +36,8 @@ exe1_output = join_paths(meson.build_root(), 'fooprog')
 exe2_output = join_paths(meson.build_root(), 'barprog')
 
 if host_machine.system() == 'windows'
-  exe_output += '.exe'
+  exe1_output += '.exe'
+  exe2_output += '.exe'
 endif
 
 test('check-build-by-default', py3,
