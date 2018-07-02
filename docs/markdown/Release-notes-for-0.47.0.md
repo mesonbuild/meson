@@ -1,6 +1,6 @@
 ---
 title: Release 0.47
-short-description: Release notes for 0.47 (preliminary)
+short-description: Release notes for 0.47
 ...
 
 # New features
@@ -12,7 +12,7 @@ the point of invocation. All previously invoked build targets and commands are
 build/executed. All following ones are ignored. If the current script was
 invoked via `subdir()` the parent script continues normally.
 
-## Concatenate string literals returned from get_define
+## Concatenate string literals returned from `get_define()`
 
 After obtaining the value of a preprocessor symbol consecutive string literals
 are merged into a single string literal.
@@ -25,13 +25,13 @@ version 6 - ARMCLANG.  The required ARMCLANG compiler options for
 building a shareable library are not included in the current Meson
 implementation for ARMCLANG support, so it can not build shareable
 libraries.  This current Meson implementation for ARMCLANG support can
-not build assembly files with arm syntax(we need to use armasm instead
-of ARMCLANG for the .s files with this syntax) and only supports gnu
+not build assembly files with arm syntax (we need to use armasm instead
+of ARMCLANG for the `.s` files with this syntax) and only supports GNU
 syntax.
 
-The default extension of the executable output is .axf.
+The default extension of the executable output is `.axf`.
 The environment path should be set properly for the ARM compiler executables.
-The '--target', '-mcpu' options with the appropriate values should be mentioned
+The `--target`, `-mcpu` options with the appropriate values should be mentioned
 in the cross file as shown in the snippet below.
 
 ```
@@ -45,7 +45,7 @@ Note:
 - The current changes are tested on Windows only.
 - PIC support is not enabled by default for ARM,
   if users want to use it, they need to add the required arguments
-  explicitly from cross-file(c_args/c++_args) or some other way.
+  explicitly from cross-file(`c_args`/`cpp_args`) or some other way.
 
 ## New base build option for LLVM (Apple) bitcode support
 
@@ -63,7 +63,7 @@ Since this requires support in the linker, it is currently only enabled when
 using Apple ld. In the future it can be extended to clang on other platforms
 too.
 
-## New compiler check: check_header()
+## New compiler check: `check_header()`
 
 The existing compiler check `has_header()` only checks if the header exists,
 either with the `__has_include` C++11 builtin, or by running the pre-processor.
@@ -76,31 +76,31 @@ run a full compile.
 Note that `has_header()` is much faster than `check_header()`, so it should be
 used whenever possible.
 
-## New action 'copy' for configure_file()
+## New action `copy:` for `configure_file()`
 
-In addition to `configuration:` and `command:`,
+In addition to the existing actions `configuration:` and `command:`,
 [`configure_file()`](#Reference-manual.md#configure_file) now accepts a keyword
-argument `copy:` which specifies a new action: copying the file specified with
+argument `copy:` which specifies a new action to copy the file specified with
 the `input:` keyword argument to a file in the build directory with the name
 specified with the `output:` keyword argument.
 
 These three keyword arguments are, as before, mutually exclusive. You can only
 do one action at a time.
 
-## New encoding keyword for configure_file
+## New keyword argument `encoding:` for `configure_file()`
 
 Add a new keyword to [`configure_file()`](#Reference-manual.md#configure_file)
-that allows the developer to specify the input and output file encoding.
+that allows the developer to specify the input and output file encoding. The
+default value is the same as before: UTF-8.
 
-If the file encoding of the input is not UTF-8 meson can crash (see #1542).
-A crash as with UTF-16 is the best case and the worst meson will silently
-corrupt the output file for example with ISO-2022-JP. For additional details
-see pull request #3135.
+In the past, Meson would not handle non-UTF-8/ASCII files correctly, and in the
+worst case would try to coerce it to UTF-8 and mangle the data. UTF-8 is the
+standard encoding now, but sometimes it is necessary to process files that use
+a different encoding.
 
-The new keyword defaults to UTF-8 and the documentation strongly suggest to
-convert the file to UTF-8 when possible.
+For additional details see [#3135](https://github.com/mesonbuild/meson/pull/3135).
 
-## New keyword argument `output_format` for configure_file()
+## New keyword argument `output_format:` for `configure_file()`
 
 When called without an input file, `configure_file` generates a
 C header file by default. A keyword argument was added to allow
@@ -115,12 +115,12 @@ configure_file('config.asm',
   output_format: 'nasm')
 ```
 
-## Substitutions in `custom_target(depends:)`
+## Substitutions in `custom_target(depfile:)`
 
 The `depfile` keyword argument to `custom_target` now accepts the `@BASENAME@`
 and `@PLAINNAME@` substitutions.
 
-## Deprecate `build_always`
+## Deprecated `build_always:` for custom targets
 
 Setting `build_always` to `true` for a custom target not only marks the target
 to be always considered out of date, but also adds it to the set of default
@@ -133,7 +133,7 @@ be achieved by combining `build_always_stale` with `build_by_default`.
 
 The documentation has been updated accordingly.
 
-## New built-in object dictionary
+## New built-in object type: dictionary
 
 Meson dictionaries use a syntax similar to python's dictionaries,
 but have a narrower scope: they are immutable, keys can only
@@ -143,23 +143,23 @@ keys causes a fatal error.
 Example usage:
 
 ```meson
-dict = {'foo': 42, 'bar': 'baz'}
+d = {'foo': 42, 'bar': 'baz'}
 
-foo = dict.get('foo')
-foobar = dict.get('foobar', 'fallback-value')
+foo = d.get('foo')
+foobar = d.get('foobar', 'fallback-value')
 
-foreach key, value : dict
+foreach key, value : d
   Do something with key and value
 endforeach
 ```
 
-## Array options treat -Dopt= and -Dopt=[] as equivalent
+## Array options treat `-Dopt=` and `-Dopt=[]` as equivalent
 
 Prior to this change passing -Dopt= to an array opt would be interpreted as
-[''] (an array with an empty string), now -Dopt= is the same as -Dopt=[], an
+`['']` (an array with an empty string), now `-Dopt=` is the same as `-Dopt=[]`, an
 empty list.
 
-## Feature detection based on meson_version in project()
+## Feature detection based on `meson_version:` in `project()`
 
 Meson will now print a `WARNING:` message during configuration if you use
 a function or a keyword argument that was added in a meson version that's newer
@@ -192,18 +192,19 @@ WARNING: Project specifies a minimum meson_version '>=0.43' which conflicts with
  * 0.44.0: {'configuration_data.get_unquoted()'}
 ```
 
-## New feature option type
+## New type of build option for features
 
-A new type of option can be defined in `meson_options.txt` for the traditional
-`enabled / disabled / auto` tristate. The value of this option can be passed to
-the `required` keyword argument of functions `dependency()`, `find_library()`,
-`find_program()` and `add_languages()`.
+A new type of [option called `feature`](Build-options.md#features) can be
+defined in `meson_options.txt` for the traditional `enabled / disabled / auto`
+tristate. The value of this option can be passed to the `required` keyword
+argument of functions `dependency()`, `find_library()`, `find_program()` and
+`add_languages()`.
 
 A new global option `auto_features` has been added to override the value of all
 `auto` features. It is intended to be used by packagers to have full control on
 which feature must be enabled or disabled.
 
-## New options to gnome.gdbus_codegen
+## New options to `gnome.gdbus_codegen()`
 
 You can now pass additional arguments to gdbus-codegen using the `extra_args`
 keyword. This is the same for the other gnome function calls.
@@ -213,12 +214,14 @@ can be modified by setting the autocleanup keyword.
 
 For example:
 
-    sources += gnome.gdbus_codegen('com.mesonbuild.Test',
-      'com.mesonbuild.Test.xml',
-      autocleanup : 'none',
-      extra_args : ['--pragma-once'])
+```meson
+sources += gnome.gdbus_codegen('com.mesonbuild.Test',
+  'com.mesonbuild.Test.xml',
+  autocleanup : 'none',
+  extra_args : ['--pragma-once'])
+```
 
-## Made install a top level Meson command
+## Made 'install' a top level Meson command
 
 You can now run `meson install` in your build directory and it will do
 the install. It has several command line options you can toggle the
@@ -228,34 +231,38 @@ is similar to how `meson test` already works.
 For example, to install only the files that have changed, you can do:
 
 ```console
-meson install --only-changed
+$ meson install --only-changed
 ```
 
-## install_mode argument extended to all installable targets
+## `install_mode:` keyword argument extended to all installable targets
 
-It is now possible to pass an install_mode argument to all installable targets,
-such as executable(), libraries, headers, man pages and custom/generated
+It is now possible to pass an `install_mode` argument to all installable targets,
+such as `executable()`, libraries, headers, man pages and custom/generated
 targets.
 
-The install_mode argument can be used to specify the file mode in symbolic
+The `install_mode` argument can be used to specify the file mode in symbolic
 format and optionally the owner/uid and group/gid for the installed files.
 
-## New built-in option install_umask with a default value 022
+## New built-in option `install_umask` with a default value 022
 
 This umask is used to define the default permissions of files and directories
 created in the install tree. Files will preserve their executable mode, but the
-exact permissions will obey the install_umask.
+exact permissions will obey the `install_umask`.
 
-The install_umask can be overridden in the meson command-line:
+The `install_umask` can be overridden in the meson command-line:
 
-    $ meson --install-umask=027 builddir/
+```console
+$ meson --install-umask=027 builddir/
+```
 
-A project can also override the default in the project() call:
+A project can also override the default in the `project()` call:
 
-    project('myproject', 'c',
-      default_options : ['install_umask=027'])
+```meson
+project('myproject', 'c',
+  default_options : ['install_umask=027'])
+```
 
-To disable the install_umask, set it to 'preserve', in which case permissions
+To disable the `install_umask`, set it to `preserve`, in which case permissions
 are copied from the files in their origin.
 
 ## Octal and binary string literals
@@ -267,8 +274,7 @@ int_493 = 0o755
 int_1365 = 0b10101010101
 ```
 
-
-## New keyword arguments: 'check' and 'capture' for run_command()
+## New keyword arguments: 'check' and 'capture' for `run_command()`
 
 If `check:` is `true`, then the configuration will fail if the command returns a
 non-zero exit status. The default value is `false` for compatibility reasons.
