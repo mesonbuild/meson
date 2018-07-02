@@ -119,11 +119,12 @@ are never run in parallel.
     buildtarget both_libraries(library_name, list_of_sources, ...)
 ```
 
-Builds both a static and shared library with the given sources. Positional and
-keyword arguments are otherwise the same as for [`library`](#library). Source
-files will be compiled only once and object files will be reused to build both
-shared and static libraries, unless `b_staticpic` user option or `pic` argument
-are set to false in which case sources will be compiled twice.
+Builds both a static and shared library with the given
+sources. Positional and keyword arguments are otherwise the same as
+for [`library`](#library). Source files will be compiled only once and
+object files will be reused to build both shared and static libraries,
+unless `b_staticpic` user option or `pic` argument are set to false in
+which case sources will be compiled twice.
 
 The returned [buildtarget](#build-target-object) always represents the shared
 library. In addition it supports the following extra methods:
@@ -670,20 +671,24 @@ installed, and so on, use a [`custom_target`](#custom_target) instead.
     value get_option(option_name)
 ```
 
-Obtains the value of the [project build option](Build-options.md) specified in the positional argument.
+Obtains the value of the [project build option](Build-options.md)
+specified in the positional argument.
 
-Note that the value returned for built-in options that end in `dir` such as
-`bindir` and `libdir` is always a path relative to (and inside) the `prefix`.
+Note that the value returned for built-in options that end in `dir`
+such as `bindir` and `libdir` is always a path relative to (and
+inside) the `prefix`.
 
-The only exceptions are: `sysconfdir`, `localstatedir`, and `sharedstatedir`
-which will return the value passed during configuration as-is, which may be
-absolute, or relative to `prefix`.  [`install_dir` arguments](Installing.md)
-handles that as expected, but if you need the absolute path to one of these
-e.g. to use in a define etc., you should use `join_paths(get_option('prefix'),
+The only exceptions are: `sysconfdir`, `localstatedir`, and
+`sharedstatedir` which will return the value passed during
+configuration as-is, which may be absolute, or relative to `prefix`.
+[`install_dir` arguments](Installing.md) handles that as expected, but
+if you need the absolute path to one of these e.g. to use in a define
+etc., you should use `join_paths(get_option('prefix'),
 get_option('localstatedir')))`
 
-For options of type `feature` a special object is returned instead of a string.
-See [`feature` options](Build-options.md#features) documentation for more details.
+For options of type `feature` a special object is returned instead of
+a string.  See [`feature` options](Build-options.md#features)
+documentation for more details.
 
 ### get_variable()
 
@@ -731,8 +736,8 @@ the search path, since there is no global search path. For something
 like that, see [`add_project_arguments()`](#add_project_arguments).
 
 See also `implicit_include_directories` parameter of
-[executable()](#executable), which adds current source and build directories
-to include path.
+[executable()](#executable), which adds current source and build
+directories to include path.
 
 Each directory given is converted to two include paths: one that is
 relative to the source root and one relative to the build root.
@@ -768,9 +773,15 @@ executable('some-tool', sources,
 ...
 ```
 
-If the build tree is `/tmp/build-tree`, the following include paths will be added to the `executable()` call: `-I/tmp/build-tree/include -I/home/user/project.git/include`.
+If the build tree is `/tmp/build-tree`, the following include paths
+will be added to the `executable()` call: `-I/tmp/build-tree/include
+-I/home/user/project.git/include`.
 
-This function has one keyword argument `is_system` which, if set, flags the specified directories as system directories. This means that they will be used with the `-isystem` compiler argument rather than `-I` on compilers that support this flag (in practice everything except Visual Studio).
+This function has one keyword argument `is_system` which, if set,
+flags the specified directories as system directories. This means that
+they will be used with the `-isystem` compiler argument rather than
+`-I` on compilers that support this flag (in practice everything
+except Visual Studio).
 
 ### install_data()
 
@@ -799,10 +810,10 @@ arguments. The following keyword arguments are supported:
 
  To leave any of these three as the default, specify `false`.
 
-- `rename` if specified renames each source file into corresponding file
-  from `rename` list. Nested paths are allowed and they are joined with
-  `install_dir`. Length of `rename` list must be equal to the number of sources.
-  *(added 0.46.0)*
+- `rename` if specified renames each source file into corresponding
+  file from `rename` list. Nested paths are allowed and they are
+  joined with `install_dir`. Length of `rename` list must be equal to
+  the number of sources.  *(added 0.46.0)*
 
 See [Installing](Installing.md) for more examples.
 
@@ -986,10 +997,11 @@ The keyword arguments for this are the same as for [`executable`](#executable) w
   libraries. Defaults to `dylib` for shared libraries and `rlib` for
   static libraries.
 
-`static_library`, `shared_library` and `both_libraries` also accept these keyword
-arguments.
+`static_library`, `shared_library` and `both_libraries` also accept
+these keyword arguments.
 
-Note: You can set `name_prefix` and `name_suffix` to `[]`, or omit them for the default behaviour for each platform.
+Note: You can set `name_prefix` and `name_suffix` to `[]`, or omit
+them for the default behaviour for each platform.
 
 ### message()
 
@@ -1072,14 +1084,14 @@ Project supports the following keyword arguments.
     runresult run_command(command, list_of_args, ...)
 ```
 
-Runs the command specified in positional arguments.
-`command` can be a string, or the output of [`find_program()`](#find_program),
-[`files()`](#files) or [`configure_file()`](#configure_file), or
-[a compiler object](#compiler-object).
+Runs the command specified in positional arguments.  `command` can be
+a string, or the output of [`find_program()`](#find_program),
+[`files()`](#files) or [`configure_file()`](#configure_file), or [a
+compiler object](#compiler-object).
 
-Returns [an opaque object](#run-result-object) containing the result of the
-invocation. The command is run from an *unspecified* directory, and
-Meson will set three environment variables `MESON_SOURCE_ROOT`,
+Returns [an opaque object](#run-result-object) containing the result
+of the invocation. The command is run from an *unspecified* directory,
+and Meson will set three environment variables `MESON_SOURCE_ROOT`,
 `MESON_BUILD_ROOT` and `MESON_SUBDIR` that specify the source
 directory, build directory and subdirectory the target was defined in,
 respectively.
@@ -1107,7 +1119,7 @@ output as far as Meson is concerned. It is only meant for tasks such
 as running a code formatter or flashing an external device's firmware
 with a built file.
 
-The script is run from an *unspecified* directory, and Meson will set
+The command is run from an *unspecified* directory, and Meson will set
 three environment variables `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT`
 and `MESON_SUBDIR` that specify the source directory, build directory
 and subdirectory the target was defined in, respectively.
@@ -1175,9 +1187,10 @@ variables defined in the [`executable`](#executable) it is loaded by,
 you will need to set the `export_dynamic` argument of the executable to
 `true`.
 
-**Note:** Linking to a shared module is not supported on some platforms, notably
-OSX.  Consider using a [`shared_library`](#shared_library) instead, if you need
-to both `dlopen()` and link with a library.
+**Note:** Linking to a shared module is not supported on some
+platforms, notably OSX.  Consider using a
+[`shared_library`](#shared_library) instead, if you need to both
+`dlopen()` and link with a library.
 
 *Added 0.37.0*
 
@@ -1282,15 +1295,16 @@ argument to [`dependency()`](#dependency).
     void test(name, executable, ...)
 ```
 
-Defines a test to run with the test harness. Takes two positional arguments,
-the first is the name of the test and the second is the executable to run.
-The executable can be an [executable build target object](#build-target-object)
-returned by [`executable()`](#executable) or an
-[external program object](#external-program-object) returned by
-[`find_program()`](#find_program). The executable's exit code is used by the
-test harness to record the outcome of the test, for example exit code zero
-indicates success. For more on the Meson test harness protocol read
-[Unit Tests](Unit-tests.md).
+Defines a test to run with the test harness. Takes two positional
+arguments, the first is the name of the test and the second is the
+executable to run.  The executable can be an [executable build target
+object](#build-target-object) returned by
+[`executable()`](#executable) or an [external program
+object](#external-program-object) returned by
+[`find_program()`](#find_program). The executable's exit code is used
+by the test harness to record the outcome of the test, for example
+exit code zero indicates success. For more on the Meson test harness
+protocol read [Unit Tests](Unit-tests.md).
 
 Keyword arguments are the following:
 
@@ -1474,11 +1488,14 @@ the following methods.
   instead return `program`, which may either be the result of
   `find_program` or `configure_file`.
 
-- `project_version()` returns the version string specified in `project` function call.
+- `project_version()` returns the version string specified in
+  `project` function call.
 
-- `project_license()` returns the array of licenses specified in `project` function call.
+- `project_license()` returns the array of licenses specified in
+  `project` function call.
 
-- `project_name()` returns the project name specified in the `project` function call.
+- `project_name()` returns the project name specified in the `project`
+  function call.
 
 - `version()` return a string with the version of Meson.
 
@@ -1489,15 +1506,17 @@ doing the actual compilation. See
 [Cross-compilation](Cross-compilation.md). It has the following
 methods:
 
-- `cpu_family()` returns the CPU family name. [This table](Reference-tables.md#cpu-families)
-  contains all known CPU families. These are guaranteed to continue working.
+- `cpu_family()` returns the CPU family name. [This
+  table](Reference-tables.md#cpu-families) contains all known CPU
+  families. These are guaranteed to continue working.
 
 - `cpu()` returns a more specific CPU name, such as `i686`, `amd64`,
   etc.
 
-- `system()` returns the operating system name.
-  [This table](Reference-tables.html#operating-system-names) Lists all of the
-  currently known Operating System names, these are guaranteed to continue working.
+- `system()` returns the operating system name.  [This
+  table](Reference-tables.html#operating-system-names) Lists all of
+  the currently known Operating System names, these are guaranteed to
+  continue working.
 
 - `endian()` returns `big` on big-endian systems and `little` on
   little-endian systems.
@@ -1507,8 +1526,8 @@ Currently, these values are populated using
 and
 [`platform.machine()`](https://docs.python.org/3.4/library/platform.html#platform.machine). If
 you think the returned values for any of these are incorrect for your
-system or CPU, or if your OS is not in the linked table, please file [a
-bug report](https://github.com/mesonbuild/meson/issues/new) with
+system or CPU, or if your OS is not in the linked table, please file
+[a bug report](https://github.com/mesonbuild/meson/issues/new) with
 details and we'll look into it.
 
 ### `host_machine` object
@@ -1573,16 +1592,16 @@ the following methods:
   Meson will proceed even if the library is not found. By default the
   library is searched for in the system library directory
   (e.g. /usr/lib). This can be overridden with the `dirs` keyword
-  argument, which can be either a string or a list of strings.
-  Since *0.47.0*  the value of a [`feature`](Build-options.md#features) option
-  can also be passed to the `required` keyword argument.
+  argument, which can be either a string or a list of strings.  Since
+  *0.47.0* the value of a [`feature`](Build-options.md#features)
+  option can also be passed to the `required` keyword argument.
 
 - `first_supported_argument(list_of_strings)`, given a list of
   strings, returns the first argument that passes the `has_argument`
   test or an empty array if none pass.
 
-- `first_supported_link_argument(list_of_strings)` *(added 0.46.0)*, given a
-  list of strings, returns the first argument that passes the
+- `first_supported_link_argument(list_of_strings)` *(added 0.46.0)*,
+  given a list of strings, returns the first argument that passes the
   `has_link_argument` test or an empty array if none pass.
 
 - `get_define(definename)` returns the given preprocessor symbol's
@@ -1605,11 +1624,12 @@ the following methods:
   the specified command line argument, that is, can compile code
   without erroring out or printing a warning about an unknown flag.
 
-- `has_link_argument(argument_name)` *(added 0.46.0)* returns true if the linker
-  accepts the specified command line argument, that is, can compile and link
-  code without erroring out or printing a warning about an unknown flag. Link
-  arguments will be passed to the compiler, so should usually have the `-Wl,`
-  prefix. On VisualStudio a `/link` argument will be prepended.
+- `has_link_argument(argument_name)` *(added 0.46.0)* returns true if
+  the linker accepts the specified command line argument, that is, can
+  compile and link code without erroring out or printing a warning
+  about an unknown flag. Link arguments will be passed to the
+  compiler, so should usually have the `-Wl,` prefix. On VisualStudio
+  a `/link` argument will be prepended.
 
 - `has_function(funcname)` returns true if the given function is
   provided by the standard library or a library passed in with the
@@ -1654,9 +1674,9 @@ the following methods:
   `has_argument` but takes multiple arguments and uses them all in a
   single compiler invocation, available since 0.37.0.
 
-- `has_multi_link_arguments(arg1, arg2, arg3, ...)` *(added 0.46.0)* is the same
-  as `has_link_argument` but takes multiple arguments and uses them all in a
-  single compiler invocation.
+- `has_multi_link_arguments(arg1, arg2, arg3, ...)` *(added 0.46.0)*
+  is the same as `has_link_argument` but takes multiple arguments and
+  uses them all in a single compiler invocation.
 
 - `has_type(typename)` returns true if the specified token is a type,
   you can specify external dependencies to use with `dependencies`
@@ -1813,10 +1833,10 @@ The following methods are defined for all [dictionaries](Syntax.md#dictionaries)
 - `has_key(key)` returns `true` if the dictionary contains the key
   given as argument, `false` otherwise
 
-- `get(key, fallback)`, returns the value for the key given as first argument
-  if it is present in the dictionary, or the optional fallback value given
-  as the second argument. If a single argument was given and the key was not
-  found, causes a fatal error
+- `get(key, fallback)`, returns the value for the key given as first
+  argument if it is present in the dictionary, or the optional
+  fallback value given as the second argument. If a single argument
+  was given and the key was not found, causes a fatal error
 
 You can also iterate over dictionaries with the [`foreach`
 statement](Syntax.md#foreach-statements).
@@ -1836,10 +1856,11 @@ A build target is either an [executable](#executable),
 
 - `extract_all_objects()` is same as `extract_objects` but returns all
   object files generated by this target. Since 0.46.0 keyword argument
-  `recursive` must be set to `true` to also return objects passed to the
-  `object` argument of this target. By default only objects built for this
-  target are returned to maintain backward compatibility with previous versions.
-  The default will eventually be changed to `true` in a future version.
+  `recursive` must be set to `true` to also return objects passed to
+  the `object` argument of this target. By default only objects built
+  for this target are returned to maintain backward compatibility with
+  previous versions.  The default will eventually be changed to `true`
+  in a future version.
 
 - `extract_objects()` returns an opaque value representing the
   generated object files of arguments, usually used to take single
@@ -1906,10 +1927,11 @@ contains a target with the following methods:
   this and will also allow Meson to setup inter-target dependencies
   correctly. Please file a bug if that doesn't work for you.
 
-- `[index]` returns an opaque object that references this target, and can be
-  used as a source in other targets. When it is used as such it will make that
-  target depend on this custom target, but the only source added will be the
-  one that corresponds to the index of the custom target's output argument.
+- `[index]` returns an opaque object that references this target, and
+  can be used as a source in other targets. When it is used as such it
+  will make that target depend on this custom target, but the only
+  source added will be the one that corresponds to the index of the
+  custom target's output argument.
 
 ### `dependency` object
 
@@ -1926,7 +1948,7 @@ an external dependency with the following methods:
    (*Added 0.45.0*) A warning is issued if the variable is not defined,
    unless a `default` parameter is specified.
 
- - `get_configtool_variable(varname)` (*Added 0.44.0*) will get the 
+ - `get_configtool_variable(varname)` (*Added 0.44.0*) will get the
    command line argument from the config tool (with `--` prepended), or,
    if invoked on a non config-tool dependency, error out.
 
@@ -1937,11 +1959,12 @@ an external dependency with the following methods:
 
  - `version()` is the version number as a string, for example `1.2.8`
 
- - `partial_dependency(compile_args : false, link_args : false, links : false,
-   includes : false, source : false)` (*added 0.46.0) returns a new dependency
-   object with the same name, version, found status, type name, and methods as
-   the object that called it. This new object will only inherit other
-   attributes from its parent as controlled by keyword arguments.
+ - `partial_dependency(compile_args : false, link_args : false, links
+   : false, includes : false, source : false)` (*added 0.46.0) returns
+   a new dependency object with the same name, version, found status,
+   type name, and methods as the object that called it. This new
+   object will only inherit other attributes from its parent as
+   controlled by keyword arguments.
 
    If the parent has any dependencies, those will be applied to the new
    partial dependency with the same rules. So , given:
@@ -1952,8 +1975,9 @@ an external dependency with the following methods:
    dep3 = dep2.partial_dependency(compile_args : true)
    ```
 
-   dep3 will add `['-Werror=foo', '-Werror=bar']` to the compiler args of
-   any target it is added to, but libfoo will not be added to the link_args.
+   dep3 will add `['-Werror=foo', '-Werror=bar']` to the compiler args
+   of any target it is added to, but libfoo will not be added to the
+   link_args.
 
    The following arguments will add the following attributes:
 
@@ -1981,7 +2005,7 @@ and has the following methods:
 
 - `found()` which returns whether the executable was found
 
-- `path()` which returns a string pointing to the script or executable  
+- `path()` which returns a string pointing to the script or executable
   **NOTE:** You should not need to use this method. Passing the object
   itself should work in all cases. F.ex.: `run_command(obj, arg1, arg2)`
 
@@ -1992,23 +2016,24 @@ detailed information about how environment variables should be set
 during tests. It should be passed as the `env` keyword argument to
 tests. It has the following methods.
 
-- `append(varname, value1, value2, ...)` appends the given values to the old
-  value of the environment variable, e.g.  `env.append('FOO', 'BAR', 'BAZ',
-  separator : ';')` produces `BOB;BAR;BAZ` if `FOO` had the value `BOB` and
-  plain `BAR;BAZ` if the value was not defined. If the separator is not
-  specified explicitly, the default path separator for the host operating
-  system will be used, i.e. ';' for Windows and ':' for UNIX/POSIX systems.
+- `append(varname, value1, value2, ...)` appends the given values to
+  the old value of the environment variable, e.g.  `env.append('FOO',
+  'BAR', 'BAZ', separator : ';')` produces `BOB;BAR;BAZ` if `FOO` had
+  the value `BOB` and plain `BAR;BAZ` if the value was not defined. If
+  the separator is not specified explicitly, the default path
+  separator for the host operating system will be used, i.e. ';' for
+  Windows and ':' for UNIX/POSIX systems.
 
 - `prepend(varname, value1, value2, ...)` is the same as `append` except that it
   writes to the beginning of the variable
 
-- `set(varname, value1, value2)` sets the environment variable specified in the
-  first argument to the values in the second argument joined by the separator,
-  e.g.  `env.set('FOO', 'BAR'),` sets envvar `FOO` to value `BAR`. See
-  `append()` above for how separators work.
+- `set(varname, value1, value2)` sets the environment variable
+  specified in the first argument to the values in the second argument
+  joined by the separator, e.g.  `env.set('FOO', 'BAR'),` sets envvar
+  `FOO` to value `BAR`. See `append()` above for how separators work.
 
-**Note:** All these methods overwrite the previously-defined value(s) if called
-twice with the same `varname`.
+**Note:** All these methods overwrite the previously-defined value(s)
+if called twice with the same `varname`.
 
 ### `external library` object
 
