@@ -292,3 +292,11 @@ the `depend_files:` and `depends:` keywords.
 When using binutils's `windres`, dependencies on files `#include`'d by the
 preprocessor are now automatically tracked.
 
+## Polkit support for privileged installation
+
+When running `install`, if installation fails with a permission error and
+`pkexec` is available, Meson will attempt to use it to spawn a permission
+dialog for privileged installation and retry the installation.
+
+If `pkexec` is not available, the old behaviour is retained and you will need
+to explicitly run the install step with `sudo`.
