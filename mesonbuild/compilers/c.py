@@ -173,7 +173,7 @@ class CCompiler(Compiler):
         for line in stdo.split('\n'):
             if line.startswith('libraries:'):
                 libstr = line.split('=', 1)[1]
-                paths = [os.path.realpath(p) for p in libstr.split(':')]
+                paths = [os.path.realpath(p) for p in libstr.split(':') if os.path.exists(os.path.realpath(p))]
         return paths
 
     def get_library_dirs(self):
