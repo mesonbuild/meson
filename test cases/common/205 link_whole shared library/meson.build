@@ -1,5 +1,12 @@
 project('test link_whole with shared libraries', 'cpp')
 
+# skip this test on inferior platforms
+if host_machine.system() == 'windows'
+  error('MESON_SKIP_TEST link_whole with shared libraries is not possible on Windows.')
+endif
+if host_machine.system() == 'darwin'
+  error('MESON_SKIP_TEST link_whole with shared libraries is not possible on macOS.')
+endif
 
 registry_lib = shared_library('registry',
   'registry.cpp',

@@ -1320,6 +1320,7 @@ class VisualStudioCCompiler(CCompiler):
         return ['/WHOLEARCHIVE:' + x for x in args]
 
     def get_link_no_as_needed_for(self, args):
+        # This doesn't actually seem to do anything
         args = listify(args)
         return ['/OPT:NOREF'] + args + ['/OPT:REF']
 

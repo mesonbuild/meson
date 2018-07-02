@@ -399,6 +399,7 @@ class BuildTarget(Target):
         self.validate_sources()
         self.validate_cross_install(environment)
         self.check_module_linking()
+        self.check_link_whole_shared()
 
     def __lt__(self, other):
         return self.get_id() < other.get_id()
@@ -1090,6 +1091,17 @@ This is not permitted on OSX''')
                     mlog.warning('''target links against shared modules. This is not
 recommended as it is not supported on some platforms''')
                 return
+
+    def check_link_whole_shared(self):
+        '''
+        Warn if shared libraries are linked with target using link_whole:
+        '''
+        for link_whole_target in self.link_whole_targets:
+            if isinstance(link_whole_target, SharedLibrary):
+                mlog.warning('''target links against shared libraries using link_whole.
+This does not work as expected with some linkers (MSVC, OSX Clang)''')
+            return
+
 
 class Generator:
     def __init__(self, args, kwargs):
