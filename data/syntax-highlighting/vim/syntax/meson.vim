@@ -78,6 +78,7 @@ syn keyword mesonBuiltin
   \ custom_target
   \ declare_dependency
   \ dependency
+  \ disabler
   \ environment
   \ error
   \ executable

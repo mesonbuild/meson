@@ -29,6 +29,20 @@ Do not merge head back to your branch. Any merge commits in your pull
 request make it not acceptable for merging into master and you must
 remove them.
 
+## Special procedure for new features
+
+Every new feature requires some extra steps, namely:
+
+ - Must include a project test under `test cases/`, or if that's not
+   possible or if the test requires a special environment, it must go
+   into `run_unittests.py`.
+ - Must be registered with the [FeatureChecks framework](Release-notes-for-0.47.0.md#Feature_detection_based_on_meson_version_in_project)
+   that will warn the user if they try to use a new feature while
+   targetting an older meson version.
+ - Needs a release note snippet inside `docs/markdown/snippets/` with
+   a heading and a brief paragraph explaining what the feature does
+   with an example.
+
 ## Acceptance and merging
 
 The kind of review and acceptance any merge proposal gets depends on

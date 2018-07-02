@@ -23,8 +23,8 @@ from mesonbuild import mlog
 
 have_fcntl = False
 have_msvcrt = False
-# Used to report conflicts between meson_version and new features used
-target_version = ''
+# {subproject: project_meson_version}
+project_meson_versions = {}
 
 try:
     import fcntl

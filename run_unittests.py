@@ -2271,6 +2271,21 @@ recommended as it is not supported on some platforms''')
                 arches = set(arches[1:])
                 self.assertEqual(arches, set(mesonbuild.environment.known_cpu_families))
 
+    def test_feature_check_usage_subprojects(self):
+        testdir = os.path.join(self.unit_test_dir, '34 featurenew subprojects')
+        out = self.init(testdir)
+        # Parent project warns correctly
+        self.assertRegex(out, "WARNING: Project targetting '>=0.45'.*'0.47.0': dict")
+        # Subproject warns correctly
+        self.assertRegex(out, "|WARNING: Project targetting '>=0.40'.*'0.44.0': disabler")
+        # Subproject has a new-enough meson_version, no warning
+        self.assertNotRegex(out, "WARNING: Project targetting.*Python")
+        # Ensure a summary is printed in the subproject and the outer project
+        self.assertRegex(out, "|WARNING: Project specifies a minimum meson_version '>=0.40'")
+        self.assertRegex(out, "| * 0.44.0: {'disabler'}")
+        self.assertRegex(out, "WARNING: Project specifies a minimum meson_version '>=0.45'")
+        self.assertRegex(out, " * 0.47.0: {'dict'}")
+
 
 class FailureTests(BasePlatformTests):
     '''
@@ -2492,6 +2507,11 @@ class FailureTests(BasePlatformTests):
         self.assertMesonDoesNotOutput("dict = {}",
                                       ".*WARNING.*Project targetting.*but.*",
                                       meson_version='>= 0.47.0')
+
+    def test_using_too_recent_feature_dependency(self):
+        self.assertMesonOutputs("dependency('pcap', required: false)",
+                                ".*WARNING.*Project targetting.*but.*",
+                                meson_version='>= 0.41.0')
 
 
 class WindowsTests(BasePlatformTests):

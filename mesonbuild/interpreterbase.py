@@ -31,33 +31,64 @@ def check_stringlist(a, msg='Arguments must be strings.'):
         mlog.debug('Element not a string:', str(a))
         raise InvalidArguments(msg)
 
-def _get_callee_args(wrapped_args):
+def _get_callee_args(wrapped_args, want_subproject=False):
     s = wrapped_args[0]
     n = len(wrapped_args)
-    if n == 3:
-        # Methods on objects (Holder, MesonMain, etc) have 3 args: self, args, kwargs
-        node_or_state = None
+    # Raise an error if the codepaths are not there
+    subproject = None
+    if want_subproject and n == 2:
+        if hasattr(s, 'subproject'):
+            # Interpreter base types have 2 args: self, node
+            node_or_state = wrapped_args[1]
+            # args and kwargs are inside the node
+            args = None
+            kwargs = None
+            subproject = s.subproject
+        elif hasattr(wrapped_args[1], 'subproject'):
+            # Module objects have 2 args: self, interpreter
+            node_or_state = wrapped_args[1]
+            # args and kwargs are inside the node
+            args = None
+            kwargs = None
+            subproject = wrapped_args[1].subproject
+        else:
+            raise AssertionError('Unknown args: {!r}'.format(wrapped_args))
+    elif n == 3:
+        # Methods on objects (*Holder, MesonMain, etc) have 3 args: self, args, kwargs
+        node_or_state = None # FIXME
         args = wrapped_args[1]
         kwargs = wrapped_args[2]
+        if want_subproject:
+            if hasattr(s, 'subproject'):
+                subproject = s.subproject
+            elif hasattr(s, 'interpreter'):
+                subproject = s.interpreter.subproject
     elif n == 4:
         # Meson functions have 4 args: self, node, args, kwargs
-        # Module functions have 4 args: self, state, args, kwargs
+        # Module functions have 4 args: self, state, args, kwargs; except,
+        # PythonInstallation methods have self, interpreter, args, kwargs
         node_or_state = wrapped_args[1]
         args = wrapped_args[2]
         kwargs = wrapped_args[3]
+        if want_subproject:
+            if isinstance(s, InterpreterBase):
+                subproject = s.subproject
+            else:
+                subproject = node_or_state.subproject
     elif n == 5:
         # Module snippets have 5 args: self, interpreter, state, args, kwargs
         node_or_state = wrapped_args[2]
         args = wrapped_args[3]
         kwargs = wrapped_args[4]
+        if want_subproject:
+            subproject = node_or_state.subproject
     else:
-        raise AssertionError('Expecting 3, 4, or 5 args, got: {!r}'.format(wrapped_args))
-
+        raise AssertionError('Unknown args: {!r}'.format(wrapped_args))
     # Sometimes interpreter methods are called internally with None instead of
     # empty list/dict
     args = args if args is not None else []
     kwargs = kwargs if kwargs is not None else {}
-    return s, node_or_state, args, kwargs
+    return s, node_or_state, args, kwargs, subproject
 
 def flatten(args):
     if isinstance(args, mparser.StringNode):
@@ -114,7 +145,7 @@ class permittedKwargs:
     def __call__(self, f):
         @wraps(f)
         def wrapped(*wrapped_args, **wrapped_kwargs):
-            s, node_or_state, args, kwargs = _get_callee_args(wrapped_args)
+            s, node_or_state, args, kwargs, _ = _get_callee_args(wrapped_args)
             loc = types.SimpleNamespace()
             if hasattr(s, 'subdir'):
                 loc.subdir = s.subdir
@@ -131,104 +162,92 @@ class permittedKwargs:
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
-# TODO: Share code between FeatureNew, FeatureDeprecated, FeatureNewKwargs,
-# and FeatureDeprecatedKwargs
-class FeatureNew:
-    """Checks for new features"""
-    # Shared across all instances
-    feature_versions = dict()
-    feature_warnings = False
+
+class FeatureCheckBase:
+    "Base class for feature version checks"
 
     def __init__(self, feature_name, version):
         self.feature_name = feature_name
         self.feature_version = version
 
-    def add_called_feature(self):
-        if self.feature_version not in self.feature_versions:
-            self.feature_versions[self.feature_version] = set()
-        if self.feature_name in self.feature_versions[self.feature_version]:
-            return False
-        self.feature_versions[self.feature_version].add(self.feature_name)
-        return True
+    @staticmethod
+    def get_target_version(subproject):
+        return mesonlib.project_meson_versions[subproject]
+
+    def use(self, subproject):
+        tv = self.get_target_version(subproject)
+        # No target version
+        if tv == '':
+            return
+        # Target version is new enough
+        if mesonlib.version_compare_condition_with_min(tv, self.feature_version):
+            return
+        # Feature is too new for target version, register it
+        if subproject not in self.feature_registry:
+            self.feature_registry[subproject] = {self.feature_version: set()}
+        register = self.feature_registry[subproject]
+        if self.feature_version not in register:
+            register[self.feature_version] = set()
+        if self.feature_name in register[self.feature_version]:
+            # Don't warn about the same feature multiple times
+            # FIXME: This is needed to prevent duplicate warnings, but also
+            # means we won't warn about a feature used in multiple places.
+            return
+        register[self.feature_version].add(self.feature_name)
+        self.log_usage_warning(tv)
 
     @classmethod
-    def called_features_report(cls):
-        if not cls.feature_warnings:
+    def report(cls, subproject):
+        if subproject not in cls.feature_registry:
             return
-        warning_str = 'Invalid minimum meson_version \'{}\' conflicts with:'\
-            .format(mesonlib.target_version)
-        fv = cls.feature_versions
+        warning_str = cls.get_warning_str_prefix(cls.get_target_version(subproject))
+        fv = cls.feature_registry[subproject]
         for version in sorted(fv.keys()):
             warning_str += '\n * {}: {}'.format(version, fv[version])
         mlog.warning(warning_str)
 
-    def use(self):
-        tv = mesonlib.target_version
-        if tv == '':
-            return
-        if mesonlib.version_compare_condition_with_min(tv, self.feature_version):
-            return
-        FeatureNew.feature_warnings = True
-        if not self.add_called_feature():
-            return
+    def __call__(self, f):
+        @wraps(f)
+        def wrapped(*wrapped_args, **wrapped_kwargs):
+            subproject = _get_callee_args(wrapped_args, want_subproject=True)[4]
+            if subproject is None:
+                raise AssertionError('{!r}'.format(wrapped_args))
+            self.use(subproject)
+            return f(*wrapped_args, **wrapped_kwargs)
+        return wrapped
+
+class FeatureNew(FeatureCheckBase):
+    """Checks for new features"""
+    # Class variable, shared across all instances
+    #
+    # Format: {subproject: {feature_version: set(feature_names)}}
+    feature_registry = {}
+
+    @staticmethod
+    def get_warning_str_prefix(tv):
+        return 'Project specifies a minimum meson_version \'{}\' which conflicts with:'.format(tv)
+
+    def log_usage_warning(self, tv):
         mlog.warning('Project targetting \'{}\' but tried to use feature introduced '
                      'in \'{}\': {}'.format(tv, self.feature_version, self.feature_name))
 
-    def __call__(self, f):
-        @wraps(f)
-        def wrapped(*wrapped_args, **wrapped_kwargs):
-            self.use()
-            return f(*wrapped_args, **wrapped_kwargs)
-        return wrapped
-
-class FeatureDeprecated:
+class FeatureDeprecated(FeatureCheckBase):
     """Checks for deprecated features"""
-    # Shared across all instances
-    feature_versions = dict()
-    feature_warnings = False
+    # Class variable, shared across all instances
+    #
+    # Format: {subproject: {feature_version: set(feature_names)}}
+    feature_registry = {}
 
-    def __init__(self, feature_name, version):
-        self.feature_name = feature_name
-        self.feature_version = version
+    @staticmethod
+    def get_warning_str_prefix(tv):
+        return 'Deprecated features used:'
 
-    def add_called_feature(self):
-        if self.feature_version not in self.feature_versions:
-            self.feature_versions[self.feature_version] = set()
-        if self.feature_name in self.feature_versions[self.feature_version]:
-            return False
-        self.feature_versions[self.feature_version].add(self.feature_name)
-        return True
-
-    @classmethod
-    def called_features_report(cls):
-        if not cls.feature_warnings:
-            return
-        warning_str = 'Deprecated features used:'.format(mesonlib.target_version)
-        fv = cls.feature_versions
-        for version in sorted(fv.keys()):
-            warning_str += '\n * {}: {}'.format(version, fv[version])
-        mlog.warning(warning_str)
-
-    def use(self):
-        tv = mesonlib.target_version
-        if tv == '':
-            return
-        if mesonlib.version_compare_condition_with_max(tv, self.feature_version):
-            return
-        FeatureDeprecated.feature_warnings = True
-        if not self.add_called_feature():
-            return
+    def log_usage_warning(self, tv):
         mlog.warning('Project targetting \'{}\' but tried to use feature deprecated '
                      'since \'{}\': {}'.format(tv, self.feature_version, self.feature_name))
 
-    def __call__(self, f):
-        @wraps(f)
-        def wrapped(*wrapped_args, **wrapped_kwargs):
-            self.use()
-            return f(*wrapped_args, **wrapped_kwargs)
-        return wrapped
 
-class FeatureNewKwargs:
+class FeatureCheckKwargsBase:
     def __init__(self, feature_name, feature_version, kwargs):
         self.feature_name = feature_name
         self.feature_version = feature_version
@@ -237,30 +256,24 @@ class FeatureNewKwargs:
     def __call__(self, f):
         @wraps(f)
         def wrapped(*wrapped_args, **wrapped_kwargs):
-            s, node_or_state, args, kwargs = _get_callee_args(wrapped_args)
+            # Which FeatureCheck class to invoke
+            FeatureCheckClass = self.feature_check_class
+            kwargs, subproject = _get_callee_args(wrapped_args, want_subproject=True)[3:5]
+            if subproject is None:
+                raise AssertionError('{!r}'.format(wrapped_args))
             for arg in self.kwargs:
                 if arg not in kwargs:
                     continue
-                FeatureNew(arg + ' arg in ' + self.feature_name, self.feature_version).use()
+                name = arg + ' arg in ' + self.feature_name
+                FeatureCheckClass(name, self.feature_version).use(subproject)
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
-class FeatureDeprecatedKwargs:
-    def __init__(self, feature_name, feature_version, kwargs):
-        self.feature_name = feature_name
-        self.feature_version = feature_version
-        self.kwargs = kwargs
+class FeatureNewKwargs(FeatureCheckKwargsBase):
+    feature_check_class = FeatureNew
 
-    def __call__(self, f):
-        @wraps(f)
-        def wrapped(*wrapped_args, **wrapped_kwargs):
-            s, node_or_state, args, kwargs = _get_callee_args(wrapped_args)
-            for arg in self.kwargs:
-                if arg not in kwargs:
-                    continue
-                FeatureDeprecated(arg + ' arg in ' + self.feature_name, self.feature_version).use()
-            return f(*wrapped_args, **wrapped_kwargs)
-        return wrapped
+class FeatureDeprecatedKwargs(FeatureCheckKwargsBase):
+    feature_check_class = FeatureDeprecated
 
 
 class InterpreterException(mesonlib.MesonException):
