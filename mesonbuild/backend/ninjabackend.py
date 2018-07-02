@@ -711,6 +711,8 @@ int dummy;
             default_install_dir = self.environment.get_bindir()
         elif isinstance(t, build.CustomTarget):
             default_install_dir = None
+        elif isinstance(t, build.Jar):
+            default_install_dir = self.environment.get_jardir()
         else:
             assert(isinstance(t, build.BuildTarget))
             # XXX: Add BuildTarget-specific install dir cases here

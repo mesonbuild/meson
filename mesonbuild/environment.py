@@ -947,6 +947,9 @@ This is probably wrong, it should always point to the native compiler.''' % evar
     def get_datadir(self):
         return self.coredata.get_builtin_option('datadir')
 
+    def get_jardir(self):
+        return self.coredata.get_builtin_option('jardir')
+
     def get_compiler_system_dirs(self):
         for comp in self.coredata.compilers.values():
             if isinstance(comp, compilers.ClangCompiler):

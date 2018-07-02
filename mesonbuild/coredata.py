@@ -333,7 +333,6 @@ class CoreData:
                     'Default project to execute in Visual Studio',
                     '')
 
-
     def get_builtin_option(self, optname):
         if optname in self.builtins:
             return self.builtins[optname].value
@@ -554,6 +553,7 @@ builtin_options = {
     'sbindir':    [UserStringOption, 'System executable directory.', 'sbin'],
     'includedir': [UserStringOption, 'Header file directory.', 'include'],
     'datadir':    [UserStringOption, 'Data file directory.', 'share'],
+    'jardir':     [UserStringOption, 'Jar library directory.', 'share/java'],
     'mandir':     [UserStringOption, 'Manual page directory.', 'share/man'],
     'infodir':    [UserStringOption, 'Info page directory.', 'share/info'],
     'localedir':  [UserStringOption, 'Locale data directory.', 'share/locale'],
