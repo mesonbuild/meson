@@ -24,9 +24,9 @@ Project name: featurenew
 Project version: undefined
 Build machine cpu family: x86_64
 Build machine cpu: x86_64
-WARNING: Project targetting '>=0.43' but tried to use feature introduced in '0.44.0': get_unquoted
+WARNING: Project targetting '>=0.43' but tried to use feature introduced in '0.44.0': configuration_data.get_unquoted()
 Message: bar
 Build targets in project: 0
-Minimum version of features used:
-0.44.0: {'get_unquoted'}
+WARNING: Project specifies a minimum meson_version '>=0.43' which conflicts with:
+ * 0.44.0: {'configuration_data.get_unquoted()'}
 ```

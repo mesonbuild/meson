@@ -329,7 +329,7 @@ This will become a hard error in the future''')
             return args[1]
         raise InterpreterException('Entry %s not in configuration data.' % name)
 
-    @FeatureNew('configuration_data.get_unquoted', '0.44.0')
+    @FeatureNew('configuration_data.get_unquoted()', '0.44.0')
     def get_unquoted_method(self, args, kwargs):
         if len(args) < 1 or len(args) > 2:
             raise InterpreterException('Get method takes one or two arguments.')
