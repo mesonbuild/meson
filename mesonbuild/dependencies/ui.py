@@ -33,7 +33,6 @@ from .base import ExternalDependency, ExternalProgram
 from .base import ExtraFrameworkDependency, PkgConfigDependency
 from .base import ConfigToolDependency
 
-from ..interpreterbase import FeatureNew
 
 class GLDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
@@ -516,7 +515,6 @@ class WxDependency(ConfigToolDependency):
 
 class VulkanDependency(ExternalDependency):
 
-    @FeatureNew('Vulkan Dependency', '0.42.0')
     def __init__(self, environment, kwargs):
         super().__init__('vulkan', environment, None, kwargs)
 

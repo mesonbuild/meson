@@ -57,8 +57,9 @@ def stringifyUserArguments(args):
 
 
 class ObjectHolder:
-    def __init__(self, obj):
+    def __init__(self, obj, subproject=None):
         self.held_object = obj
+        self.subproject = subproject
 
     def __repr__(self):
         return '<Holder: {!r}>'.format(self.held_object)
@@ -210,8 +211,8 @@ class ConfigureFileHolder(InterpreterObject, ObjectHolder):
 
     def __init__(self, subdir, sourcename, targetname, configuration_data):
         InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, build.ConfigureFile(subdir, sourcename,
-                                                        targetname, configuration_data))
+        obj = build.ConfigureFile(subdir, sourcename, targetname, configuration_data)
+        ObjectHolder.__init__(self, obj)
 
 
 class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder):
@@ -254,10 +255,10 @@ class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder):
 
 
 class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
-    def __init__(self):
+    def __init__(self, pv):
         MutableInterpreterObject.__init__(self)
         self.used = False # These objects become immutable after use in configure_file.
-        ObjectHolder.__init__(self, build.ConfigurationData())
+        ObjectHolder.__init__(self, build.ConfigurationData(), pv)
         self.methods.update({'set': self.set_method,
                              'set10': self.set10_method,
                              'set_quoted': self.set_quoted_method,
@@ -363,9 +364,9 @@ This will become a hard error in the future''')
 # these wrappers.
 
 class DependencyHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, dep):
+    def __init__(self, dep, pv):
         InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, dep)
+        ObjectHolder.__init__(self, dep, pv)
         self.methods.update({'found': self.found_method,
                              'type_name': self.type_name_method,
                              'version': self.version_method,
@@ -416,12 +417,13 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
     @noPosargs
     @permittedKwargs(permitted_method_kwargs['partial_dependency'])
     def partial_dependency_method(self, args, kwargs):
-        return DependencyHolder(self.held_object.get_partial_dependency(**kwargs))
+        pdep = self.held_object.get_partial_dependency(**kwargs)
+        return DependencyHolder(pdep, self.subproject)
 
 class InternalDependencyHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, dep):
+    def __init__(self, dep, pv):
         InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, dep)
+        ObjectHolder.__init__(self, dep, pv)
         self.methods.update({'found': self.found_method,
                              'version': self.version_method,
                              'partial_dependency': self.partial_dependency_method,
@@ -441,7 +443,8 @@ class InternalDependencyHolder(InterpreterObject, ObjectHolder):
     @noPosargs
     @permittedKwargs(permitted_method_kwargs['partial_dependency'])
     def partial_dependency_method(self, args, kwargs):
-        return DependencyHolder(self.held_object.get_partial_dependency(**kwargs))
+        pdep = self.held_object.get_partial_dependency(**kwargs)
+        return DependencyHolder(pdep, self.subproject)
 
 class ExternalProgramHolder(InterpreterObject, ObjectHolder):
     def __init__(self, ep):
@@ -470,9 +473,9 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
         return self.held_object.get_name()
 
 class ExternalLibraryHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, el):
+    def __init__(self, el, pv):
         InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, el)
+        ObjectHolder.__init__(self, el, pv)
         self.methods.update({'found': self.found_method,
                              'partial_dependency': self.partial_dependency_method,
                              })
@@ -501,14 +504,15 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder):
     @noPosargs
     @permittedKwargs(permitted_method_kwargs['partial_dependency'])
     def partial_dependency_method(self, args, kwargs):
-        return DependencyHolder(self.held_object.get_partial_dependency(**kwargs))
+        pdep = self.held_object.get_partial_dependency(**kwargs)
+        return DependencyHolder(pdep, self.subproject)
 
 class GeneratorHolder(InterpreterObject, ObjectHolder):
     @FeatureNewKwargs('generator', '0.43.0', ['capture'])
-    def __init__(self, interpreter, args, kwargs):
+    def __init__(self, interp, args, kwargs):
+        self.interpreter = interp
         InterpreterObject.__init__(self)
-        self.interpreter = interpreter
-        ObjectHolder.__init__(self, build.Generator(args, kwargs))
+        ObjectHolder.__init__(self, build.Generator(args, kwargs), interp.subproject)
         self.methods.update({'process': self.process_method})
 
     @FeatureNewKwargs('generator.process', '0.45.0', ['preserve_path_from'])
@@ -715,7 +719,7 @@ class GeneratedObjectsHolder(InterpreterObject, ObjectHolder):
 class TargetHolder(InterpreterObject, ObjectHolder):
     def __init__(self, target, interp):
         InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, target)
+        ObjectHolder.__init__(self, target, interp.subproject)
         self.interpreter = interp
 
 class BuildTargetHolder(TargetHolder):
@@ -911,10 +915,11 @@ class SubprojectHolder(InterpreterObject, ObjectHolder):
         return self.held_object.variables[varname]
 
 class CompilerHolder(InterpreterObject):
-    def __init__(self, compiler, env):
+    def __init__(self, compiler, env, subproject):
         InterpreterObject.__init__(self)
         self.compiler = compiler
         self.environment = env
+        self.subproject = subproject
         self.methods.update({'compiles': self.compiles_method,
                              'links': self.links_method,
                              'get_id': self.get_id_method,
@@ -1408,7 +1413,7 @@ class CompilerHolder(InterpreterObject):
                                                self.environment,
                                                self.compiler.language,
                                                silent=True)
-            return ExternalLibraryHolder(lib)
+            return ExternalLibraryHolder(lib, self.subproject)
 
         search_dirs = mesonlib.stringlistify(kwargs.get('dirs', []))
         for i in search_dirs:
@@ -1419,7 +1424,7 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('{} library {!r} not found'.format(self.compiler.get_display_language(), libname))
         lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
                                            self.compiler.language)
-        return ExternalLibraryHolder(lib)
+        return ExternalLibraryHolder(lib, self.subproject)
 
     @permittedKwargs({})
     def has_argument_method(self, args, kwargs):
@@ -1690,7 +1695,7 @@ class MesonMain(InterpreterObject):
         else:
             clist = self.build.cross_compilers
         if cname in clist:
-            return CompilerHolder(clist[cname], self.build.environment)
+            return CompilerHolder(clist[cname], self.build.environment, self.interpreter.subproject)
         raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
 
     @noPosargs
@@ -1962,9 +1967,9 @@ class Interpreter(InterpreterBase):
         elif isinstance(item, build.Data):
             return DataHolder(item)
         elif isinstance(item, dependencies.InternalDependency):
-            return InternalDependencyHolder(item)
+            return InternalDependencyHolder(item, self.subproject)
         elif isinstance(item, dependencies.ExternalDependency):
-            return DependencyHolder(item)
+            return DependencyHolder(item, self.subproject)
         elif isinstance(item, dependencies.ExternalProgram):
             return ExternalProgramHolder(item)
         elif hasattr(item, 'held_object'):
@@ -2079,7 +2084,7 @@ class Interpreter(InterpreterBase):
 external dependencies (including libraries) must go to "dependencies".''')
         dep = dependencies.InternalDependency(version, incs, compile_args,
                                               link_args, libs, libs_whole, sources, final_deps)
-        return DependencyHolder(dep)
+        return DependencyHolder(dep, self.subproject)
 
     @noKwargs
     def func_assert(self, node, args, kwargs):
@@ -2305,7 +2310,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_configuration_data(self, node, args, kwargs):
         if args:
             raise InterpreterException('configuration_data takes no arguments')
-        return ConfigurationDataHolder()
+        return ConfigurationDataHolder(self.subproject)
 
     def set_options(self, default_options):
         # Set default options as if they were passed to the command line.
@@ -2426,10 +2431,11 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         self.build.subproject_dir = self.subproject_dir
 
+        mesonlib.project_meson_versions[self.subproject] = ''
         if 'meson_version' in kwargs:
             cv = coredata.version
             pv = kwargs['meson_version']
-            mesonlib.target_version = pv
+            mesonlib.project_meson_versions[self.subproject] = pv
             if not mesonlib.version_compare(cv, pv):
                 raise InterpreterException('Meson version is %s but project requires %s.' % (cv, pv))
         self.build.projects[self.subproject] = proj_name
@@ -2799,6 +2805,19 @@ external dependencies (including libraries) must go to "dependencies".''')
                                       'dep {}'.format(found, dirname, wanted, name))
         return None
 
+    def _handle_featurenew_dependencies(self, name):
+        'Do a feature check on dependencies used by this subproject'
+        if name == 'mpi':
+            FeatureNew('MPI Dependency', '0.42.0').use(self.subproject)
+        elif name == 'pcap':
+            FeatureNew('Pcap Dependency', '0.42.0').use(self.subproject)
+        elif name == 'vulkan':
+            FeatureNew('Vulkan Dependency', '0.42.0').use(self.subproject)
+        elif name == 'libwmf':
+            FeatureNew('LibWMF Dependency', '0.44.0').use(self.subproject)
+        elif name == 'openmp':
+            FeatureNew('OpenMP Dependency', '0.46.0').use(self.subproject)
+
     @FeatureNewKwargs('dependency', '0.40.0', ['method'])
     @FeatureNewKwargs('dependency', '0.38.0', ['default_options'])
     @permittedKwargs(permitted_kwargs['dependency'])
@@ -2810,7 +2829,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         disabled, required, feature = extract_required_kwarg(kwargs)
         if disabled:
             mlog.log('Dependency', mlog.bold(display_name), 'skipped: feature', mlog.bold(feature), 'disabled')
-            return DependencyHolder(NotFoundDependency(self.environment))
+            return DependencyHolder(NotFoundDependency(self.environment), self.subproject)
 
         # writing just "dependency('')" is an error, because it can only fail
         if name == '' and required and 'fallback' not in kwargs:
@@ -2845,6 +2864,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 pass
             # ... search for it outside the project
             elif name != '':
+                self._handle_featurenew_dependencies(name)
                 try:
                     dep = dependencies.find_external_dependency(name, self.environment, kwargs)
                 except DependencyException as e:
@@ -2868,7 +2888,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         # Only store found-deps in the cache
         if dep.found():
             self.coredata.deps[identifier] = dep
-        return DependencyHolder(dep)
+        return DependencyHolder(dep, self.subproject)
 
     @FeatureNew('disabler', '0.44.0')
     @noKwargs
@@ -3012,7 +3032,7 @@ root and issuing %s.
         if 'input' not in kwargs or 'output' not in kwargs:
             raise InterpreterException('Keyword arguments input and output must exist')
         if 'fallback' not in kwargs:
-            FeatureNew('Optional fallback in vcs_tag', '0.41.0').use()
+            FeatureNew('Optional fallback in vcs_tag', '0.41.0').use(self.subproject)
         fallback = kwargs.pop('fallback', self.project_version)
         if not isinstance(fallback, str):
             raise InterpreterException('Keyword argument fallback must be a string.')
@@ -3064,7 +3084,7 @@ root and issuing %s.
         if len(args) != 1:
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
         if 'depfile' in kwargs and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
-            FeatureNew('substitutions in custom_target depfile', '0.47.0').use()
+            FeatureNew('substitutions in custom_target depfile', '0.47.0').use(self.subproject)
         name = args[0]
         kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs), self)
@@ -3649,9 +3669,9 @@ different subdirectory.
     def run(self):
         super().run()
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
-        FeatureNew.called_features_report()
-        FeatureDeprecated.called_features_report()
-        if self.subproject == '':
+        FeatureNew.report(self.subproject)
+        FeatureDeprecated.report(self.subproject)
+        if not self.is_subproject():
             self.print_extra_warnings()
 
     def print_extra_warnings(self):

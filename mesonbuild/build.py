@@ -1780,7 +1780,7 @@ class CustomTarget(Target):
                                            'when installing a target')
 
                 if isinstance(kwargs['install_dir'], list):
-                    FeatureNew('multiple install_dir for custom_target', '0.40.0').use()
+                    FeatureNew('multiple install_dir for custom_target', '0.40.0').use(self.subproject)
                 # If an item in this list is False, the output corresponding to
                 # the list index of that item will not be installed
                 self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
