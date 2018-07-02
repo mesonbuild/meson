@@ -3448,12 +3448,16 @@ root and issuing %s.
             raise InterpreterException('@INPUT@ used as command argument, but no input file specified.')
         # Validate output
         output = kwargs['output']
+        ofile_rpath = os.path.join(self.subdir, output)
         if not isinstance(output, str):
             raise InterpreterException('Output file name must be a string')
-        if output in self.configure_file_outputs:
-            mlog.warning('Output file', mlog.bold(output), 'for configure_file overwritten. First time written in line', self.configure_file_outputs[output], 'now in line', self.current_lineno)
+        if ofile_rpath in self.configure_file_outputs:
+            if len(self.subdir) > 0:
+                mlog.warning('Output file', mlog.bold(ofile_rpath), 'for configure_file overwritten. First time written in subdir', self.subdir, 'line', self.configure_file_outputs[ofile_rpath], 'now in line', self.current_lineno)
+            else:
+                mlog.warning('Output file', mlog.bold(ofile_rpath), 'for configure_file overwritten. First time written in line', self.configure_file_outputs[ofile_rpath], 'now in line', self.current_lineno)
         else:
-            self.configure_file_outputs[output] = self.current_lineno
+            self.configure_file_outputs[ofile_rpath] = self.current_lineno
         if ifile_abs:
             values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
             outputs = mesonlib.substitute_values([output], values)
