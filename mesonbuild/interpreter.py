@@ -3444,20 +3444,6 @@ root and issuing %s.
             raise InterpreterException('Output file name must not contain a subdirectory.')
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
-        # Optimize copies by not doing substitution if there's nothing to
-        # substitute, and warn about this legacy hack
-        if 'configuration' in kwargs:
-            conf = kwargs['configuration']
-            if not isinstance(conf, ConfigurationDataHolder):
-                raise InterpreterException('Argument "configuration" must be of type configuration_data')
-            if ifile_abs and not conf.keys():
-                del kwargs['configuration']
-                kwargs['copy'] = True
-                mlog.warning('Got an empty configuration_data() object: '
-                             'optimizing copy automatically; if you want to '
-                             'copy a file to the build dir, use the \'copy:\' '
-                             'keyword argument added in 0.47.0', location=node)
-                conf.mark_used()
         # Perform the appropriate action
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
@@ -3467,15 +3453,21 @@ root and issuing %s.
             if inputfile is not None:
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
                 file_encoding = kwargs.setdefault('encoding', 'utf-8')
-                missing_variables = mesonlib.do_conf_file(ifile_abs, ofile_abs,
-                                                          conf.held_object, fmt,
-                                                          file_encoding)
+                missing_variables, confdata_useless = \
+                    mesonlib.do_conf_file(ifile_abs, ofile_abs, conf.held_object,
+                                          fmt, file_encoding)
                 if missing_variables:
                     var_list = ", ".join(map(repr, sorted(missing_variables)))
                     mlog.warning(
-                        "The variable(s) %s in the input file %s are not "
+                        "The variable(s) %s in the input file '%s' are not "
                         "present in the given configuration data." % (
                             var_list, inputfile), location=node)
+                if confdata_useless:
+                    ifbase = os.path.basename(ifile_abs)
+                    mlog.warning('Got an empty configuration_data() object and found no '
+                                 'substitutions in the input file {!r}. If you want to '
+                                 'copy a file to the build dir, use the \'copy:\' keyword '
+                                 'argument added in 0.47.0'.format(ifbase), location=node)
             else:
                 mesonlib.dump_conf_header(ofile_abs, conf.held_object, output_format)
             conf.mark_used()
