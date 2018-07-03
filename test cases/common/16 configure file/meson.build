@@ -156,11 +156,11 @@ configure_file(
 )
 test('test7', executable('prog7', 'prog7.c'))
 
-# Test empty configuration data object on invalid utf8 file
+# Test copying of an empty configuration data object
 inf = 'invalid-utf8.bin.in'
 outf = configure_file(input : inf,
   output : 'invalid-utf8.bin',
-  configuration : configuration_data())
+  copy: true)
 ret = run_command(check_file, inf, outf)
 if ret.returncode() != 0
   error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
@@ -185,6 +185,25 @@ configure_file(
   configuration : conf8
 )
 
+# Test that passing an empty configuration_data() object to a file with
+# #mesondefine substitutions does not print the warning.
+configure_file(
+  input: 'nosubst-nocopy1.txt.in',
+  output: 'nosubst-nocopy1.txt',
+  configuration : configuration_data()
+)
+
+# Test that passing an empty configuration_data() object to a file with
+# @FOO@ substitutions does not print the warning.
+configure_file(
+  input: 'nosubst-nocopy2.txt.in',
+  output: 'nosubst-nocopy2.txt',
+  configuration : configuration_data()
+)
+
+# Test that passing a configured file object to test() works, and that passing
+# an empty configuration_data() object to a file that leads to no substitutions
+# prints a warning (see unit tests)
 test_file = configure_file(
   input: 'test.py.in',
   output: 'test.py',
