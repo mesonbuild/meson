@@ -72,16 +72,10 @@ lib_c_meson_template = '''project('{project_name}', 'c',
 # not the executables that use the library.
 lib_args = ['-DBUILDING_{utoken}']
 
-# Hiding symbols that are not explicitly marked as exported
-# requires a compiler flag on all compilers except VS.
-cc = meson.get_compiler('c')
-if cc.get_id() != 'msvc'
-  lib_args += ['-fvisibility=hidden']
-endif
-
 shlib = shared_library('{lib_name}', '{source_file}',
   install : true,
   c_args : lib_args,
+  symbol_visibility : 'hidden',
 )
 
 test_exe = executable('{test_exe_name}', '{test_source_file}',
@@ -226,16 +220,10 @@ lib_cpp_meson_template = '''project('{project_name}', 'cpp',
 # not the executables that use the library.
 lib_args = ['-DBUILDING_{utoken}']
 
-# Hiding symbols that are not explicitly marked as exported
-# requires a compiler flag on all compilers except VS.
-cpp = meson.get_compiler('cpp')
-if cpp.get_id() != 'msvc'
-  lib_args += ['-fvisibility=hidden']
-endif
-
 shlib = shared_library('{lib_name}', '{source_file}',
   install : true,
   cpp_args : lib_args,
+  symbol_visibility : 'hidden',
 )
 
 test_exe = executable('{test_exe_name}', '{test_source_file}',
