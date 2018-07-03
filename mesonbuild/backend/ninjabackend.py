@@ -980,7 +980,7 @@ int dummy;
             plain_class_path = self.generate_single_java_compile(src, target, compiler, outfile)
             class_list.append(plain_class_path)
         class_dep_list = [os.path.join(self.get_target_private_dir(target), i) for i in class_list]
-        manifest_path = os.path.join(self.get_target_private_dir(target), 'Manifest.txt')
+        manifest_path = os.path.join(self.get_target_private_dir(target), 'META-INF', 'MANIFEST.MF')
         manifest_fullpath = os.path.join(self.environment.get_build_dir(), manifest_path)
         os.makedirs(os.path.dirname(manifest_fullpath), exist_ok=True)
         with open(manifest_fullpath, 'w') as manifest:
