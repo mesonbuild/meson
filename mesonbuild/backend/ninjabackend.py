@@ -1951,6 +1951,8 @@ rule FORTRAN_DEP_HACK%s
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
         commands = CompilerArgs(compiler)
+        # Start with symbol visibility.
+        commands += compiler.symbol_visibility_args(target.symbol_visibility)
         # Add compiler args for compiling this target derived from 'base' build
         # options passed on the command-line, in default_options, etc.
         # These have the lowest priority.

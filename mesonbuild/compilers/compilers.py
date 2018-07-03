@@ -311,6 +311,14 @@ vs64_instruction_set_args = {'mmx': ['/arch:AVX'],
                              'neon': None,
                              }
 
+common_symbol_visibility_args = {'': [],
+                                 'default': ['-fvisibility=default'],
+                                 'internal': ['-fvisibility=internal'],
+                                 'hidden': ['-fvisibility=hidden'],
+                                 'protected': ['-fvisibility=protected'],
+                                 'inlineshidden': ['-fvisibility=hidden', '-fvisibility-inlines-hidden'],
+                                 }
+
 def sanitizer_compile_args(value):
     if value == 'none':
         return []
@@ -1062,6 +1070,9 @@ class Compiler:
         # building fails with undefined symbols.
         return []
 
+    def symbol_visibility_args(self, vistype):
+        return []
+
 GCC_STANDARD = 0
 GCC_OSX = 1
 GCC_MINGW = 2
@@ -1277,6 +1288,8 @@ class GnuCompiler:
     def openmp_flags(self):
         return ['-fopenmp']
 
+    def symbol_visibility_args(self, vistype):
+        return common_symbol_visibility_args[vistype]
 
 class ElbrusCompiler(GnuCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
@@ -1419,6 +1432,8 @@ class ClangCompiler:
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
 
+    def symbol_visibility_args(self, vistype):
+        return common_symbol_visibility_args[vistype]
 
 class ArmclangCompiler:
     def __init__(self):
