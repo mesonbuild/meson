@@ -1864,7 +1864,7 @@ int main(int argc, char **argv) {
             r'meson.build:6: WARNING: a warning of some sort',
             r'sub' + os.path.sep + r'meson.build:4: WARNING: subdir warning',
             r'meson.build:7: WARNING: Module unstable-simd has no backwards or forwards compatibility and might not exist in future releases.',
-            r"meson.build:11: WARNING: The variable(s) 'MISSING' in the input file conf.in are not present in the given configuration data.",
+            r"meson.build:11: WARNING: The variable(s) 'MISSING' in the input file 'conf.in' are not present in the given configuration data.",
             r'meson.build:1: WARNING: Passed invalid keyword argument "invalid".',
         ]:
             self.assertRegex(out, re.escape(expected))
@@ -2285,6 +2285,17 @@ recommended as it is not supported on some platforms''')
         self.assertRegex(out, "| * 0.44.0: {'disabler'}")
         self.assertRegex(out, "WARNING: Project specifies a minimum meson_version '>=0.45'")
         self.assertRegex(out, " * 0.47.0: {'dict'}")
+
+    def test_configure_file_warnings(self):
+        testdir = os.path.join(self.common_test_dir, "16 configure file")
+        out = self.init(testdir)
+        self.assertRegex(out, "WARNING:.*'empty'.*config.h.in.*not present.*")
+        self.assertRegex(out, "WARNING:.*'FOO_BAR'.*nosubst-nocopy2.txt.in.*not present.*")
+        self.assertRegex(out, "WARNING:.*'empty'.*config.h.in.*not present.*")
+        self.assertRegex(out, "WARNING:.*empty configuration_data.*test.py.in")
+        # No warnings about empty configuration data objects passed to files with substitutions
+        self.assertNotRegex(out, "WARNING:.*empty configuration_data.*nosubst-nocopy1.txt.in")
+        self.assertNotRegex(out, "WARNING:.*empty configuration_data.*nosubst-nocopy2.txt.in")
 
 
 class FailureTests(BasePlatformTests):
