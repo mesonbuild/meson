@@ -511,6 +511,13 @@ be passed to [shared and static libraries](#library).
 - `override_options` takes an array of strings in the same format as
   `project`'s `default_options` overriding the values of these options
   for this target only, since 0.40.0
+- `symbol_visibility` specifies how symbols should be exported, see
+  e.g [the GCC Wiki](https://gcc.gnu.org/wiki/Visibility) for more
+  information. This value can either be an empty string or one of
+  `default`, `internal`, `hidden`, `protected` or `inlineshidden`, which
+  is the same as `hidden` but also includes things like C++ implicit
+  constructors as specified in the GCC manual. Available since
+  0.48.0.
 - `d_import_dirs` list of directories to look in for string imports used
   in the D programming language
 - `d_unittest`, when set to true, the D modules are compiled in debug mode
@@ -976,15 +983,16 @@ dropped. That means that `join_paths('foo', '/bar')` returns `/bar`.
     buildtarget library(library_name, list_of_sources, ...)
 ```
 
-Builds a library that is either static, shared or both depending on the value of
-`default_library` user option. You should use this instead of
-[`shared_library`](#shared_library),
+Builds a library that is either static, shared or both depending on
+the value of `default_library` user option. You should use this
+instead of [`shared_library`](#shared_library),
 [`static_library`](#static_library) or
 [`both_libraries`](#both_libraries) most of the time. This allows you
 to toggle your entire project (including subprojects) from shared to
 static with only one option.
 
-The keyword arguments for this are the same as for [`executable`](#executable) with the following additions:
+The keyword arguments for this are the same as for
+[`executable`](#executable) with the following additions:
 
 - `name_prefix` the string that will be used as the prefix for the
   target output filename by overriding the default (only used for
