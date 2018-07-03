@@ -247,10 +247,13 @@ class CoreData:
         Non-Windows follows the Linux path and will honor XDG_* if set. This
         simplifies the implementation somewhat.
         """
+        error_msg = 'Cannot find specified cross file: '
         if filename is None:
             return None
         filename = os.path.expanduser(os.path.expandvars(filename))
         if os.path.isabs(filename):
+            if not os.path.isfile(filename):
+                raise MesonException(error_msg + filename)
             return filename
         path_to_try = os.path.abspath(filename)
         if os.path.isfile(path_to_try):
@@ -263,9 +266,9 @@ class CoreData:
                 path_to_try = os.path.join(path, 'meson', 'cross', filename)
                 if os.path.isfile(path_to_try):
                     return path_to_try
-            raise MesonException('Cannot find specified cross file: ' + filename)
+            raise MesonException(error_msg + filename)
 
-        raise MesonException('Cannot find specified cross file: ' + filename)
+        raise MesonException(error_msg + filename)
 
     def sanitize_prefix(self, prefix):
         if not os.path.isabs(prefix):
