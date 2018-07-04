@@ -1398,6 +1398,28 @@ the following methods.
   `MESON_INSTALL_DESTDIR_PREFIX`, and `MESONINTROSPECT` set. All
   additional arguments are passed as parameters.
 
+  Meson uses the `DESTDIR` environment variable as set by the
+  inherited environment to determine the (temporary) installation
+  location for files. Your install script must be aware of this while
+  manipulating and installing files. The correct way to handle this is
+  with the `MESON_INSTALL_DESTDIR_PREFIX` variable which is always set
+  and contains `DESTDIR` (if set) and `prefix` joined together. This
+  is useful because both are usually absolute paths and there are
+  platform-specific edge-cases in joining two absolute paths.
+
+  In case it is needed, `MESON_INSTALL_PREFIX` is also always set and
+  has the value of the `prefix` option passed to Meson.
+
+  `MESONINTROSPECT` contains the path to the introspect command that
+  corresponds to the `meson` executable that was used to configure the
+  build. (This might be a different path then the first executable
+  found in `PATH`.) It can be used to query build configuration. Note
+  that the value will contain many parts, f.ex., it may be `python3
+  /path/to/meson.py introspect`. The user is responsible for splitting
+  the string to an array if needed by splitting lexically like a UNIX
+  shell would. If your script uses Python, `shlex.split()` is the
+  easiest correct way to do this.
+
 - `add_postconf_script(script_name, arg1, arg2, ...)` will run the
   executable given as an argument after all project files have been
   generated. This script will have the environment variables
@@ -1460,26 +1482,6 @@ the following methods.
 - `is_unity()` returns `true` when doing a [unity
   build](Unity-builds.md) (multiple sources are combined before
   compilation to reduce build time) and `false` otherwise.
-
-  To determine the installation location, the script should use the
-  `DESTDIR`, `MESON_INSTALL_PREFIX`, `MESON_INSTALL_DESTDIR_PREFIX`
-  variables. `DESTDIR` will be set only if it is inherited from the
-  outside environment. `MESON_INSTALL_PREFIX` is always set and has
-  the value of the `prefix` option passed to
-  Meson. `MESON_INSTALL_DESTDIR_PREFIX` is always set and contains
-  `DESTDIR` and `prefix` joined together. This is useful because both
-  are absolute paths, and many path-joining functions such as
-  [`os.path.join` in
-  Python](https://docs.python.org/3/library/os.path.html#os.path.join)
-  special-case absolute paths.
-
-  `MESONINTROSPECT` contains the path to the introspect command that
-  corresponds to the `meson` executable that was used to configure the
-  build. (This might be a different path then the first executable
-  found in `PATH`.) It can be used to query build configuration. Note
-  that the value may contain many parts, i.e. it may be `python3
-  /path/to/meson.py introspect`. The user is responsible for splitting
-  the string to an array if needed.
 
 - `override_find_program(progname, program)` [*(Added
   0.46.0)*](Release-notes-for-0-46-0.html#can-override-find_program)
