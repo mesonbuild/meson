@@ -2296,6 +2296,10 @@ recommended as it is not supported on some platforms''')
         # No warnings about empty configuration data objects passed to files with substitutions
         self.assertNotRegex(out, "WARNING:.*empty configuration_data.*nosubst-nocopy1.txt.in")
         self.assertNotRegex(out, "WARNING:.*empty configuration_data.*nosubst-nocopy2.txt.in")
+        with open(os.path.join(self.builddir, 'nosubst-nocopy1.txt'), 'rb') as f:
+            self.assertEqual(f.read().strip(), b'/* #undef FOO_BAR */')
+        with open(os.path.join(self.builddir, 'nosubst-nocopy2.txt'), 'rb') as f:
+            self.assertEqual(f.read().strip(), b'')
 
 
 class FailureTests(BasePlatformTests):
