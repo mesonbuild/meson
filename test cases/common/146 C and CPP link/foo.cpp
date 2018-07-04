@@ -16,6 +16,9 @@
 
 const int cnums[] = {0, 61};
 
+/* Provided by foobar.c */
+extern "C" int get_number_index (void);
+
 template<typename T, int N>
 std::vector<T> makeVector(const T (&data)[N])
 {
@@ -27,5 +30,5 @@ namespace {
 }
 
 extern "C" int six_one(void) {
-    return numbers[1];
+    return numbers[get_number_index ()];
 }
