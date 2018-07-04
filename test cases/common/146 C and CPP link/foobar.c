@@ -17,6 +17,10 @@
 #include "foo.hpp"
 #include "foobar.h"
 
+int get_number_index (void) {
+  return 1;
+}
+
 void mynumbers(int nums[]) {
     nums[0] = forty_two();
     nums[1] = six_one();
