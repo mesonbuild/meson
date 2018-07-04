@@ -851,31 +851,36 @@ class CCompiler(Compiler):
             args = ['-l' + libname]
             if self.links(code, env, extra_args=args):
                 return args
-        # Ensure that we won't modify the list that was passed to us
-        extra_dirs = extra_dirs[:]
         # Search in the system libraries too
-        extra_dirs += self.get_library_dirs()
+        system_dirs = self.get_library_dirs()
         # Not found or we want to use a specific libtype? Try to find the
         # library file itself.
         prefixes, suffixes = self.get_library_naming(env, libtype)
-        # Triply-nested loop!
+        # Triply-nested loops!
         for d in extra_dirs:
             for suffix in suffixes:
                 for prefix in prefixes:
                     trial = os.path.join(d, prefix + libname + '.' + suffix)
-                    # as well as checking the path, we need to check compilation
-                    # with link-whole, as static libs (.a) need to be checked
-                    # to ensure they are the right architecture, e.g. 32bit or
-                    # 64-bit. Just a normal test link won't work as the .a file
-                    # doesn't seem to be checked by linker if there are no
-                    # unresolved symbols from the main C file.
+                    if os.path.isfile(trial):
+                        return [trial]
+        for d in system_dirs:
+            for suffix in suffixes:
+                for prefix in prefixes:
+                    trial = os.path.join(d, prefix + libname + '.' + suffix)
+                    # When searching the system paths used by the compiler, we
+                    # need to check linking with link-whole, as static libs
+                    # (.a) need to be checked to ensure they are the right
+                    # architecture, e.g. 32bit or 64-bit.
+                    # Just a normal test link won't work as the .a file doesn't
+                    # seem to be checked by linker if there are no unresolved
+                    # symbols from the main C file.
                     extra_link_args = self.get_link_whole_for([trial])
                     extra_link_args = self.linker_to_compiler_args(extra_link_args)
                     if (os.path.isfile(trial) and
                             self.links(code, env,
                                        extra_args=extra_link_args)):
                         return [trial]
-        # XXX: For OpenBSD and macOS we (may) need to search for libfoo.x.y.z.dylib
+        # XXX: For OpenBSD and macOS we (may) need to search for libfoo.x{,.y.z}.ext
         return None
 
     def find_library_impl(self, libname, env, extra_dirs, code, libtype):
