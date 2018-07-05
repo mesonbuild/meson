@@ -25,21 +25,31 @@ Installation options are all relative to the prefix, except:
 * When the prefix is `/usr`: `sysconfdir` defaults to `/etc`, `localstatedir` defaults to `/var`, and `sharedstatedir` defaults to `/var/lib`
 * When the prefix is `/usr/local`: `localstatedir` defaults to `/var/local`, and `sharedstatedir` defaults to `/var/local/lib`
 
-| Option         | Default value | Description
-| ------         | ------------- | -----------
-| prefix         | see below     | Installation prefix
-| libdir         | see below     | Library directory
-| libexecdir     | libexec       | Library executable directory
-| bindir         | bin           | Executable directory
-| sbindir        | sbin          | System executable directory
-| includedir     | include       | Header file directory
-| datadir        | share         | Data file directory
-| mandir         | share/man     | Manual page directory
-| infodir        | share/info    | Info page directory
-| localedir      | share/locale  | Locale data directory
-| sysconfdir     | etc           | Sysconf data directory
-| localstatedir  | var           | Localstate data directory
-| sharedstatedir | com           | Architecture-independent data directory
+| Option                               | Default value | Description |
+| ------                               | ------------- | ----------- |
+| prefix                               | see below     | Installation prefix |
+| libdir                               | see below     | Library directory |
+| libexecdir                           | libexec       | Library executable directory |
+| bindir                               | bin           | Executable directory |
+| sbindir                              | sbin          | System executable directory |
+| includedir                           | include       | Header file directory |
+| datadir                              | share         | Data file directory |
+| mandir                               | share/man     | Manual page directory |
+| infodir                              | share/info    | Info page directory |
+| localedir                            | share/locale  | Locale data directory |
+| sysconfdir                           | etc           | Sysconf data directory |
+| localstatedir                        | var           | Localstate data directory |
+| sharedstatedir                       | com           | Architecture-independent data directory |
+| werror                               | false         | Treat warnings as erros |
+| warnlevel {1, 2, 3}                  | 1             | Set the warning level. From 1 = lowest to 3 = highest |
+| layout {mirror,flat}                 | mirror        | Build directory layout. |
+| default-library {shared, static, both} | shared       | Default library type. |
+| backend {ninja, vs,<br>vs2010, vs2015, vs2017, xcode} |               | Backend to use (default: ninja). |
+| stdsplit                             |               | Split stdout and stderr in test logs. |
+| errorlogs                            |               | Whether to print the logs from failing tests. |
+| cross-file CROSS_FILE                |               | File describing cross compilation environment. |
+| wrap-mode {default, nofallback, nodownload, forcefallback} | | Special wrap mode to use |
+
 
 `prefix` defaults to `C:/` on Windows, and `/usr/local/` otherwise. You should always
 override this value.
@@ -62,19 +72,19 @@ a builddir and then run `meson configure` on it with no options.
 The following options are available. Note that they may not be available on all
 platforms or with all compilers:
 
-| Option      | Default value | Possible values         | Description
-| ----------- | ------------- | ---------------         | -----------
-| b_asneeded  | true          | true, false             | Use -Wl,--as-needed when linking
-| b_bitcode   | false         | true, false             | Embed Apple bitcode, see below
-| b_colorout  | always        | auto, always, never     | Use colored output
-| b_coverage  | false         | true, false             | Enable coverage tracking
-| b_lundef    | true          | true, false             | Don't allow undefined symbols when linking
-| b_lto       | false         | true, false             | Use link time optimization
-| b_ndebug    | false         | true, false, if-release | Disable asserts
-| b_pch       | true          | true, false             | Use precompiled headers
-| b_pgo       | off           | off, generate, use      | Use profile guided optimization
-| b_sanitize  | none          | see below               | Code sanitizer to use
-| b_staticpic | true          | true, false             | Build static libraries as position independent
+| Option      | Default value | Possible values         | Description |
+| ----------- | ------------- | ---------------         | ----------- |
+| b_asneeded  | true          | true, false             | Use -Wl,--as-needed when linking |
+| b_bitcode   | false         | true, false             | Embed Apple bitcode, see below |
+| b_colorout  | always        | auto, always, never     | Use colored output |
+| b_coverage  | false         | true, false             | Enable coverage tracking |
+| b_lundef    | true          | true, false             | Don't allow undefined symbols when linking |
+| b_lto       | false         | true, false             | Use link time optimization |
+| b_ndebug    | false         | true, false, if-release | Disable asserts |
+| b_pch       | true          | true, false             | Use precompiled headers |
+| b_pgo       | off           | off, generate, use      | Use profile guided optimization |
+| b_sanitize  | none          | see below               | Code sanitizer to use |
+| b_staticpic | true          | true, false             | Build static libraries as position independent |
 
 The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
 `undefined`, `memory`, `address,undefined`.
@@ -97,18 +107,18 @@ The following options are available. Note that both the options themselves and
 the possible values they can take will depend on the target platform or
 compiler being used:
 
-| Option       | Default value | Possible values                          | Description
-| ------       | ------------- | ---------------                          | -----------
-| c_args       |               | free-form comma-separated list           | C compile arguments to use
-| c_link_args  |               | free-form comma-separated list           | C link arguments to use
-| c_std        | none          | none, c89, c99, c11, gnu89, gnu99, gnu11 | C language standard to use
-| c_winlibs    | see below     | free-form comma-separated list           | Standard Windows libs to link against
-| cpp_args     |               | free-form comma-separated list           | C++ compile arguments to use
-| cpp_link_args|               | free-form comma-separated list           | C++ link arguments to use
-| cpp_std      | none          | none, c++98, c++03, c++11, c++14, c++17, <br/>c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z | C++ language standard to use
-| cpp_debugstl | false         | true, false                              | C++ STL debug mode
-| cpp_eh       | sc            | none, a, s, sc                           | C++ exception handling type
-| cpp_winlibs  | see below     | free-form comma-separated list           | Standard Windows libs to link against
+| Option       | Default value | Possible values                          | Description |
+| ------       | ------------- | ---------------                          | ----------- |
+| c_args       |               | free-form comma-separated list           | C compile arguments to use |
+| c_link_args  |               | free-form comma-separated list           | C link arguments to use |
+| c_std        | none          | none, c89, c99, c11, gnu89, gnu99, gnu11 | C language standard to use |
+| c_winlibs    | see below     | free-form comma-separated list           | Standard Windows libs to link against |
+| cpp_args     |               | free-form comma-separated list           | C++ compile arguments to use |
+| cpp_link_args|               | free-form comma-separated list           | C++ link arguments to use |
+| cpp_std      | none          | none, c++98, c++03, c++11, c++14, c++17, <br/>c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z | C++ language standard to use |
+| cpp_debugstl | false         | true, false                              | C++ STL debug mode |
+| cpp_eh       | sc            | none, a, s, sc                           | C++ exception handling type |
+| cpp_winlibs  | see below     | free-form comma-separated list           | Standard Windows libs to link against |
 
 The default values of `c_winlibs` and `cpp_winlibs` are in compiler-specific
 argument forms, but the libraries are: kernel32, user32, gdi32, winspool,
