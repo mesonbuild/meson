@@ -10,6 +10,9 @@ directly from the source tree with the command
 the command is simply `meson`. In this manual we only use the latter
 format for simplicity.
 
+Additionally, the invocation can pass options to meson.
+The list of options is documented [here](Builtin-options.md).
+
 At the time of writing only a command line version of Meson is
 available. This means that Meson must be invoked using the
 terminal. If you wish to use the MSVC compiler, you need to run Meson

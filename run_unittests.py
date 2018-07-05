@@ -2271,6 +2271,21 @@ recommended as it is not supported on some platforms''')
                 arches = set(arches[1:])
                 self.assertEqual(arches, set(mesonbuild.environment.known_cpu_families))
 
+    @unittest.skipIf(not os.path.isdir('docs'), 'Doc dir not found, presumably because this is a tarball release.')
+    def test_markdown_files_in_sitemap(self):
+        '''
+        Test that each markdown files in docs/markdown is referenced in sitemap.txt
+        '''
+        with open("docs/sitemap.txt") as f:
+            md = f.read()
+        self.assertIsNotNone(md)
+        toc = list(m.group(1) for m in re.finditer(r"^\s*(\w.*)$", md, re.MULTILINE))
+        markdownfiles = [f.name for f in Path("docs/markdown").iterdir() if f.is_file() and f.suffix == '.md']
+        exceptions = ['_Sidebar.md']
+        for f in markdownfiles:
+            if f not in exceptions:
+                self.assertIn(f, toc)
+
     def test_feature_check_usage_subprojects(self):
         testdir = os.path.join(self.unit_test_dir, '34 featurenew subprojects')
         out = self.init(testdir)

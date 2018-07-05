@@ -5,6 +5,7 @@ index.md
 	Manual.md
 		Overview.md
 		Running-Meson.md
+		Builtin-options.md
 		Using-with-Visual-Studio.md
 		Meson-sample.md
 		Syntax.md
