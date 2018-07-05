@@ -831,7 +831,7 @@ This will become a hard error in the future.''')
 
         args += self._unpack_args('--expand-content-files=', 'expand_content_files', kwargs, state)
         args += self._unpack_args('--ignore-headers=', 'ignore_headers', kwargs)
-        args += self._unpack_args('--installdir=', 'install_dir', kwargs, state)
+        args += self._unpack_args('--installdir=', 'install_dir', kwargs)
         args += self._get_build_args(kwargs, state, depends)
         res = [build.RunTarget(targetname, command[0], command[1:] + args, depends, state.subdir, state.subproject)]
         if kwargs.get('install', True):

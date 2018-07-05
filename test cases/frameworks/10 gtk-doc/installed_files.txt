@@ -13,3 +13,17 @@ usr/share/gtk-doc/html/foobar/right-insensitive.png
 usr/share/gtk-doc/html/foobar/style.css
 usr/share/gtk-doc/html/foobar/up.png
 usr/share/gtk-doc/html/foobar/up-insensitive.png
+usr/share/gtk-doc/html/foobar2/BAR.html
+usr/share/gtk-doc/html/foobar2/foobar2.devhelp2
+usr/share/gtk-doc/html/foobar2/foobar.html
+usr/share/gtk-doc/html/foobar2/foobar2-foo.html
+usr/share/gtk-doc/html/foobar2/foobar2-foo-version.html
+usr/share/gtk-doc/html/foobar2/home.png
+usr/share/gtk-doc/html/foobar2/index.html
+usr/share/gtk-doc/html/foobar2/left.png
+usr/share/gtk-doc/html/foobar2/left-insensitive.png
+usr/share/gtk-doc/html/foobar2/right.png
+usr/share/gtk-doc/html/foobar2/right-insensitive.png
+usr/share/gtk-doc/html/foobar2/style.css
+usr/share/gtk-doc/html/foobar2/up.png
+usr/share/gtk-doc/html/foobar2/up-insensitive.png
