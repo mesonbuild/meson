@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 import sys, stat, traceback, argparse
 import datetime
 import os.path
@@ -110,6 +111,8 @@ class MesonApp:
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
         mlog.initialize(env.get_log_dir())
+        if self.options.profile:
+            mlog.set_timestamp_start(time.monotonic())
         with mesonlib.BuildDirLock(self.build_dir):
             self._generate(env)
 
