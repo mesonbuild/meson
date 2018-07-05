@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os, platform, io
+import os
+import io
+import sys
+import time
+import platform
 from contextlib import contextmanager
 
 """This is (mostly) a standalone module used to write logging
@@ -41,11 +45,16 @@ log_dir = None
 log_file = None
 log_fname = 'meson-log.txt'
 log_depth = 0
+log_timestamp_start = None
 
 def initialize(logdir):
     global log_dir, log_file
     log_dir = logdir
     log_file = open(os.path.join(logdir, log_fname), 'w', encoding='utf8')
+
+def set_timestamp_start(start):
+    global log_timestamp_start
+    log_timestamp_start = start
 
 def shutdown():
     global log_file
@@ -87,6 +96,8 @@ def cyan(text):
 
 def process_markup(args, keep):
     arr = []
+    if log_timestamp_start is not None:
+        arr = ['[{:.3f}]'.format(time.monotonic() - log_timestamp_start)]
     for arg in args:
         if isinstance(arg, str):
             arr.append(arg)
