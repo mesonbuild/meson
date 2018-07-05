@@ -1012,7 +1012,7 @@ class CompilerHolder(InterpreterObject):
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
         deps = self.determine_dependencies(kwargs)
         result = self.compiler.alignment(typename, prefix, self.environment, extra_args, deps)
-        mlog.log('Checking for alignment of "', mlog.bold(typename), '": ', result, sep='')
+        mlog.log('Checking for alignment of', mlog.bold(typename, True), ':', result)
         return result
 
     @permittedKwargs({
@@ -1044,7 +1044,7 @@ class CompilerHolder(InterpreterObject):
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO (%d)' % result.returncode)
-            mlog.log('Checking if "', mlog.bold(testname), '" runs: ', h, sep='')
+            mlog.log('Checking if', mlog.bold(testname, True), 'runs:', h)
         return TryRunResultHolder(result)
 
     @noPosargs
@@ -1097,8 +1097,8 @@ class CompilerHolder(InterpreterObject):
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
-        mlog.log('Checking whether type "', mlog.bold(typename),
-                 '" has member "', mlog.bold(membername), '": ', hadtxt, sep='')
+        mlog.log('Checking whether type', mlog.bold(typename, True),
+                 'has member', mlog.bold(membername, True), ':', hadtxt)
         return had
 
     @permittedKwargs({
@@ -1126,8 +1126,8 @@ class CompilerHolder(InterpreterObject):
         else:
             hadtxt = mlog.red('NO')
         members = mlog.bold(', '.join(['"{}"'.format(m) for m in membernames]))
-        mlog.log('Checking whether type "', mlog.bold(typename),
-                 '" has members ', members, ': ', hadtxt, sep='')
+        mlog.log('Checking whether type', mlog.bold(typename, True),
+                 'has members', members, ':', hadtxt)
         return had
 
     @permittedKwargs({
@@ -1152,7 +1152,7 @@ class CompilerHolder(InterpreterObject):
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
-        mlog.log('Checking for function "', mlog.bold(funcname), '": ', hadtxt, sep='')
+        mlog.log('Checking for function', mlog.bold(funcname, True), ':', hadtxt)
         return had
 
     @permittedKwargs({
@@ -1177,7 +1177,7 @@ class CompilerHolder(InterpreterObject):
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
-        mlog.log('Checking for type "', mlog.bold(typename), '": ', hadtxt, sep='')
+        mlog.log('Checking for type', mlog.bold(typename, True), ':', hadtxt)
         return had
 
     @FeatureNew('compiler.compute_int', '0.40.0')
@@ -1284,7 +1284,7 @@ class CompilerHolder(InterpreterObject):
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
-            mlog.log('Checking if "', mlog.bold(testname), '" compiles: ', h, sep='')
+            mlog.log('Checking if', mlog.bold(testname, True), 'compiles:', h)
         return result
 
     @permittedKwargs({
@@ -1314,7 +1314,7 @@ class CompilerHolder(InterpreterObject):
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
-            mlog.log('Checking if "', mlog.bold(testname), '" links: ', h, sep='')
+            mlog.log('Checking if', mlog.bold(testname, True), 'links:', h)
         return result
 
     @FeatureNew('compiler.check_header', '0.47.0')
@@ -2236,7 +2236,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.global_args_frozen = True
         mlog.log()
         with mlog.nested():
-            mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
+            mlog.log('\nExecuting subproject', mlog.bold(dirname), '\n')
             subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
                                self.modules, default_options)
             subi.subprojects = self.subprojects
@@ -2439,8 +2439,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not mesonlib.version_compare(cv, pv):
                 raise InterpreterException('Meson version is %s but project requires %s.' % (cv, pv))
         self.build.projects[self.subproject] = proj_name
-        mlog.log('Project name: ', mlog.bold(proj_name), sep='')
-        mlog.log('Project version: ', mlog.bold(self.project_version), sep='')
+        mlog.log('Project name:', mlog.bold(proj_name))
+        mlog.log('Project version:', mlog.bold(self.project_version))
         self.add_languages(proj_langs, True)
         langs = self.coredata.compilers.keys()
         if 'vala' in langs:
@@ -2593,14 +2593,16 @@ external dependencies (including libraries) must go to "dependencies".''')
                     else:
                         raise
             if comp.full_version is not None:
-                version_string = ' (%s %s "%s")' % (comp.id, comp.version, comp.full_version)
+                version_string = '(%s %s "%s")' % (comp.id, comp.version, comp.full_version)
             else:
-                version_string = ' (%s %s)' % (comp.id, comp.version)
-            mlog.log('Native %s compiler: ' % comp.get_display_language(), mlog.bold(' '.join(comp.get_exelist())), version_string, sep='')
-
+                version_string = '(%s %s)' % (comp.id, comp.version)
+            mlog.log('Native', comp.get_display_language(), 'compiler:',
+                     mlog.bold(' '.join(comp.get_exelist())), version_string)
             self.build.add_compiler(comp)
             if need_cross_compiler:
-                mlog.log('Cross %s compiler: ' % cross_comp.get_display_language(), mlog.bold(' '.join(cross_comp.get_exelist())), ' (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
+                version_string = '(%s %s)' % (cross_comp.id, cross_comp.version)
+                mlog.log('Cross', cross_comp.get_display_language(), 'compiler:',
+                         mlog.bold(' '.join(cross_comp.get_exelist())), version_string)
                 self.build.add_cross_compiler(cross_comp)
             if self.environment.is_cross_build() and not need_cross_compiler:
                 self.build.add_cross_compiler(comp)
@@ -3207,10 +3209,10 @@ root and issuing %s.
                  env, should_fail, timeout, workdir)
         if is_base_test:
             self.build.tests.append(t)
-            mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
+            mlog.debug('Adding test', mlog.bold(args[0], True))
         else:
             self.build.benchmarks.append(t)
-            mlog.debug('Adding benchmark "', mlog.bold(args[0]), '".', sep='')
+            mlog.debug('Adding benchmark', mlog.bold(args[0], True))
 
     @FeatureNewKwargs('install_headers', '0.47.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_headers'])

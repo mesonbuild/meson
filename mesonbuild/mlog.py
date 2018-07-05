@@ -57,17 +57,21 @@ def shutdown():
 class AnsiDecorator:
     plain_code = "\033[0m"
 
-    def __init__(self, text, code):
+    def __init__(self, text, code, quoted=False):
         self.text = text
         self.code = code
+        self.quoted = quoted
 
     def get_text(self, with_codes):
+        text = self.text
         if with_codes:
-            return self.code + self.text + AnsiDecorator.plain_code
-        return self.text
+            text = self.code + self.text + AnsiDecorator.plain_code
+        if self.quoted:
+            text = '"{}"'.format(text)
+        return text
 
-def bold(text):
-    return AnsiDecorator(text, "\033[1m")
+def bold(text, quoted=False):
+    return AnsiDecorator(text, "\033[1m", quoted=quoted)
 
 def red(text):
     return AnsiDecorator(text, "\033[1;31m")
