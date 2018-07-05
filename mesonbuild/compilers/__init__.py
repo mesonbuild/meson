@@ -46,6 +46,8 @@ __all__ = [
 
     'ArmCCompiler',
     'ArmCPPCompiler',
+    'ArmclangCCompiler',
+    'ArmclangCPPCompiler',
     'CCompiler',
     'ClangCCompiler',
     'ClangCompiler',

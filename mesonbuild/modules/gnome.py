@@ -919,7 +919,6 @@ This will become a hard error in the future.''')
             raise MesonException('gdbus_codegen takes at most two arguments, name and xml file.')
         namebase = args[0]
         xml_files = args[1:]
-        target_name = namebase + '-gdbus'
         cmd = [self.interpreter.find_program_impl('gdbus-codegen')]
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         cmd += extra_args

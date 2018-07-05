@@ -1,7 +1,6 @@
 import os
 
 from .. import build
-from .. import mlog
 
 
 class ExtensionModule:

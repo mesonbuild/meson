@@ -333,7 +333,6 @@ class CoreData:
                     'Default project to execute in Visual Studio',
                     '')
 
-
     def get_builtin_option(self, optname):
         if optname in self.builtins:
             return self.builtins[optname].value

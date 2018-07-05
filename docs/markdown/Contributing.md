@@ -167,6 +167,8 @@ Continuous integration systems currently used:
   allows `[skip ci]` anywhere in the commit messages.
 - [AppVeyor](https://www.appveyor.com/docs/how-to/filtering-commits/#skip-directive-in-commit-message)
   requires `[skip ci]` or `[skip appveyor]` in the commit title.
+- [Sider](https://sider.review)
+  runs Flake8 (see below)
 
 ## Documentation
 
@@ -206,6 +208,13 @@ To run Flake8 on your local clone of Meson:
 $ python3 -m pip install flake8
 $ cd meson
 $ flake8
+```
+
+To run it automatically before committing:
+
+```console
+$ flake8 --install-hook=git
+$ git config --bool flake8.strict true
 ```
 
 ## C/C++ coding style
