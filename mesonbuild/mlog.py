@@ -145,6 +145,8 @@ def _log_error(severity, *args, **kwargs):
         args = (yellow('WARNING:'),) + args
     elif severity == 'error':
         args = (red('ERROR:'),) + args
+    elif severity == 'deprecation':
+        args = (red('DEPRECATION:'),) + args
     else:
         assert False, 'Invalid severity ' + severity
 
@@ -162,6 +164,9 @@ def error(*args, **kwargs):
 
 def warning(*args, **kwargs):
     return _log_error('warning', *args, **kwargs)
+
+def deprecation(*args, **kwargs):
+    return _log_error('deprecation', *args, **kwargs)
 
 def exception(e):
     log()

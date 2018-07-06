@@ -243,8 +243,9 @@ class FeatureDeprecated(FeatureCheckBase):
         return 'Deprecated features used:'
 
     def log_usage_warning(self, tv):
-        mlog.warning('Project targetting \'{}\' but tried to use feature deprecated '
-                     'since \'{}\': {}'.format(tv, self.feature_version, self.feature_name))
+        mlog.deprecation('Project targetting \'{}\' but tried to use feature '
+                         'deprecated since \'{}\': {}'
+                         ''.format(tv, self.feature_version, self.feature_name))
 
 
 class FeatureCheckKwargsBase:
