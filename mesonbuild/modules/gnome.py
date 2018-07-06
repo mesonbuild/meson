@@ -683,7 +683,7 @@ class GnomeModule(ExtensionModule):
 
         langs = mesonlib.stringlistify(kwargs.pop('languages', []))
         if langs:
-            mlog.log(mlog.red('DEPRECATION:'), '''The "languages" argument of gnome.yelp() is deprecated.
+            mlog.deprecation('''The "languages" argument of gnome.yelp() is deprecated.
 Use a LINGUAS file in the sources directory instead.
 This will become a hard error in the future.''')
 
