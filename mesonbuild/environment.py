@@ -208,10 +208,17 @@ def detect_cpu_family(compilers):
         trial = detect_windows_arch(compilers)
     else:
         trial = platform.machine().lower()
+
+    # Add mappings here as bugs are reported.
     if trial.startswith('i') and trial.endswith('86'):
         return 'x86'
     if trial.startswith('arm'):
         return 'arm'
+    if trial == 'mipsel':
+        return 'mips'
+    if trial == 'mips64el':
+        return 'mips64'
+
     if trial in ('amd64', 'x64'):
         trial = 'x86_64'
     if trial == 'x86_64':
@@ -226,7 +233,6 @@ def detect_cpu_family(compilers):
                 # Ignore compilers that do not support has_builtin_define.
                 pass
         return 'x86_64'
-    # Add fixes here as bugs are reported.
 
     if trial not in known_cpu_families:
         mlog.warning('Unknown CPU family {!r}, please report this at '
