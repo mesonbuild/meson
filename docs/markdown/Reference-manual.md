@@ -1956,13 +1956,13 @@ an external dependency with the following methods:
 
  - `type_name()` which returns a string describing the type of the
    dependency, the most common values are `internal` for deps created
-   with `declare_dependencies` and `pkgconfig` for system dependencies
+   with `declare_dependency()` and `pkgconfig` for system dependencies
    obtained with Pkg-config.
 
  - `version()` is the version number as a string, for example `1.2.8`
 
  - `partial_dependency(compile_args : false, link_args : false, links
-   : false, includes : false, source : false)` (*added 0.46.0) returns
+   : false, includes : false, source : false)` (*added 0.46.0*) returns
    a new dependency object with the same name, version, found status,
    type name, and methods as the object that called it. This new
    object will only inherit other attributes from its parent as
@@ -2041,8 +2041,16 @@ if called twice with the same `varname`.
 
 This object is returned by [`find_library()`](#find_library) and
 contains an external (i.e. not built as part of this project)
-library. This object has only one method, `found`, which returns
-whether the library was found.
+library. This object has the following methods:
+
+ - `found` which returns whether the library was found.
+
+ - `partial_dependency(compile_args : false, link_args : false, links
+   : false, includes : false, source : false)` (*added 0.46.0*) returns
+   a new dependency object with the same name, version, found status,
+   type name, and methods as the object that called it. This new
+   object will only inherit other attributes from its parent as
+   controlled by keyword arguments.
 
 ### `generator` object
 
