@@ -276,8 +276,7 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
 
     def validate_args(self, args, kwargs):
         if len(args) == 1 and isinstance(args[0], list) and len(args[0]) == 2:
-            mlog.log(mlog.red('DEPRECATION:'),
-                     '''Passing a list as the single argument to configuration_data.set is deprecated.
+            mlog.deprecation('''Passing a list as the single argument to configuration_data.set is deprecated.
 This will become a hard error in the future''')
             args = args[0]
 

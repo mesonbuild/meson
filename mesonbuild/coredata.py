@@ -169,7 +169,7 @@ class UserArrayOption(UserOption):
         if len(set(newvalue)) != len(newvalue):
             msg = 'Duplicated values in array option "%s" is deprecated. ' \
                   'This will become a hard error in the future.' % (self.name)
-            mlog.log(mlog.red('DEPRECATION:'), msg)
+            mlog.deprecation(msg)
         for i in newvalue:
             if not isinstance(i, str):
                 raise MesonException('String array element "{0}" is not a string.'.format(str(newvalue)))
