@@ -995,7 +995,7 @@ class NonExistingExternalProgram(ExternalProgram):
 
 class ExternalLibrary(ExternalDependency):
     def __init__(self, name, link_args, environment, language, silent=False):
-        super().__init__('external', environment, language, {})
+        super().__init__('library', environment, language, {})
         self.name = name
         self.language = language
         self.is_found = False

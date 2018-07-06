@@ -44,6 +44,8 @@ configure_file(
   command : stlib_cmd)
 
 libstcppext = cxx.find_library('stcppext', dirs : meson.current_build_dir())
+lib_type_name = libstcppext.type_name()
+assert(lib_type_name == 'library', 'type name is ' + lib_type_name)
 
 libfooext = shared_library(
   'fooext',

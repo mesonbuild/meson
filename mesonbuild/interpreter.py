@@ -477,11 +477,17 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, el, pv)
         self.methods.update({'found': self.found_method,
+                             'type_name': self.type_name_method,
                              'partial_dependency': self.partial_dependency_method,
                              })
 
     def found(self):
         return self.held_object.found()
+
+    @noPosargs
+    @permittedKwargs({})
+    def type_name_method(self, args, kwargs):
+        return self.held_object.type_name
 
     @noPosargs
     @permittedKwargs({})
