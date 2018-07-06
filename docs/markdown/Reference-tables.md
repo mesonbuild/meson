@@ -49,9 +49,8 @@ set in the cross file.
 | aarch64             | 64 bit ARM processor  |
 | mips                | 32 bit MIPS processor |
 | mips64              | 64 bit MIPS processor |
-| ppc                 | 32 bit PPC processors (Big Endian) |
-| ppc64               | 64 bit PPC processors (Big Endian) |
-| ppc64le             | 64 bit PPC processors (Little Endian) |
+| ppc                 | 32 bit PPC processors |
+| ppc64               | 64 bit PPC processors |
 | e2k                 | MCST Elbrus processor |
 | parisc              | HP PA-RISC processor  |
 | sparc64             | SPARC v9 processor    |
