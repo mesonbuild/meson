@@ -388,6 +388,12 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
     def get_asneeded_args(self) -> T.List[str]:
         return []
 
+    def get_noasneeded_args(self) -> T.List[str]:
+        return []
+
+    def get_include_symbols_for(self, args) -> T.List[str]:
+        return []
+
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         raise mesonlib.EnvironmentException(
             'Linker {} does not support link_whole'.format(self.id))
@@ -499,6 +505,15 @@ class GnuLikeDynamicLinkerMixin:
 
     def get_asneeded_args(self) -> T.List[str]:
         return self._apply_prefix('--as-needed')
+
+    def get_noasneeded_args(self) -> T.List[str]:
+        return self._apply_prefix('--no-as-needed')
+
+    def get_include_symbols_for(self, args) -> T.List[str]:
+        # This is only available since binutils 2.26. Can/should we check for that? How?
+        # We should probably use simply --undefined with earlier versions.
+        # https://sourceware.org/git/gitweb.cgi?p=binutils-gdb.git;a=blob_plain;f=ld/NEWS;hb=refs/tags/binutils-2_26
+        return self._apply_prefix(['--require-defined=' + a for a in args])
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         if not args:
@@ -627,6 +642,12 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def get_asneeded_args(self) -> T.List[str]:
         return self._apply_prefix('-dead_strip_dylibs')
+
+    def get_noasneeded_args(self) -> T.List[str]:
+        return self._apply_prefix('-no_dead_strip_inits_and_terms') # not perfect, but as close as we can get
+
+    def get_include_symbols_for(self, args) -> T.List[str]:
+        return self._apply_prefix(['-u,' + a for a in args]) # Clang on OSX doesn't have --require-defined
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return self._apply_prefix('-undefined,dynamic_lookup')
@@ -970,8 +991,8 @@ class VisualStudioLikeLinkerMixin:
         'debugoptimized': [],
         # The otherwise implicit REF and ICF linker optimisations are disabled by
         # /DEBUG. REF implies ICF.
-        'release': ['/OPT:REF'],
-        'minsize': ['/INCREMENTAL:NO', '/OPT:REF'],
+        'release': [], # /OPT:REF ?
+        'minsize': ['/INCREMENTAL:NO'], # /OPT:REF ?
         'custom': [],
     }  # type: T.Dict[str, T.List[str]]
 
@@ -984,6 +1005,15 @@ class VisualStudioLikeLinkerMixin:
 
     def invoked_by_compiler(self) -> bool:
         return not self.direct
+
+    def get_include_symbols_for(self, args) -> T.List[str]:
+        return self._apply_prefix(['/INCLUDE:' + a for a in args])
+
+    def get_noasneeded_args(self) -> T.List[str]:
+        return self._apply_prefix(['/OPT:NOREF'])
+
+    def get_asneeded_args(self) -> T.List[str]:
+        return self._apply_prefix(['/OPT:REF'])
 
     def get_debug_crt_args(self) -> T.List[str]:
         """Arguments needed to select a debug crt for the linker.
