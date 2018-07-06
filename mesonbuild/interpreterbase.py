@@ -394,7 +394,7 @@ class InterpreterBase:
                 self.current_lineno = cur.lineno
                 self.evaluate_statement(cur)
             except Exception as e:
-                if not(hasattr(e, 'lineno')):
+                if not hasattr(e, 'lineno'):
                     e.lineno = cur.lineno
                     e.colno = cur.colno
                     e.file = os.path.join(self.subdir, 'meson.build')

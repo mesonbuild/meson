@@ -36,6 +36,7 @@ import re, shlex
 import subprocess
 from collections import namedtuple
 from pathlib import PurePath
+import traceback
 
 import importlib
 
@@ -2960,9 +2961,14 @@ root and issuing %s.
         # If the subproject execution failed in a non-fatal way, don't raise an
         # exception; let the caller handle things.
         except Exception as e:
-            mlog.log('Couldn\'t use fallback subproject in',
-                     mlog.bold(os.path.join(self.subproject_dir, dirname)),
-                     'for the dependency', mlog.bold(display_name), '\nReason:', str(e))
+            msg = ['Couldn\'t use fallback subproject in',
+                   mlog.bold(os.path.join(self.subproject_dir, dirname)),
+                   'for the dependency', mlog.bold(display_name), '\nReason:']
+            if isinstance(e, mesonlib.MesonException):
+                msg.append(e.get_msg_with_context())
+            else:
+                msg.append(traceback.format_exc())
+            mlog.log(*msg)
             return None
         dep = self.get_subproject_dep(name, dirname, varname, kwargs.get('required', True))
         if not dep:
