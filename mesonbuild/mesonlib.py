@@ -83,6 +83,13 @@ an_unpicklable_object = threading.Lock()
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
 
+    def get_msg_with_context(self):
+        s = ''
+        if hasattr(self, 'lineno') and hasattr(self, 'file'):
+            s = get_error_location_string(self.file, self.lineno) + ' '
+        s += str(self)
+        return s
+
 class EnvironmentException(MesonException):
     '''Exceptions thrown while processing and creating the build environment'''
 
@@ -1046,6 +1053,9 @@ def detect_subprojects(spdir_name, current_dir='', result=None):
             else:
                 result[basename] = [trial]
     return result
+
+def get_error_location_string(fname, lineno):
+    return '{}:{}:'.format(fname, lineno)
 
 class OrderedSet(collections.MutableSet):
     """A set that preserves the order in which items are added, by first

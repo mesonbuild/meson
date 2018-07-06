@@ -140,7 +140,8 @@ def log(*args, **kwargs):
     force_print(*arr, **kwargs)
 
 def _log_error(severity, *args, **kwargs):
-    from . import environment
+    from .mesonlib import get_error_location_string
+    from .environment import build_filename
     if severity == 'warning':
         args = (yellow('WARNING:'),) + args
     elif severity == 'error':
@@ -152,9 +153,8 @@ def _log_error(severity, *args, **kwargs):
 
     location = kwargs.pop('location', None)
     if location is not None:
-        location_str = '{}:{}:'.format(os.path.join(location.subdir,
-                                                    environment.build_filename),
-                                       location.lineno)
+        location_file = os.path.join(location.subdir, build_filename)
+        location_str = get_error_location_string(location_file, location.lineno)
         args = (location_str,) + args
 
     log(*args, **kwargs)
