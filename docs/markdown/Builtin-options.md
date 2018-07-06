@@ -12,11 +12,7 @@ universal options, base options, compiler options.
 
 A list of these options can be found by running `meson --help`. All
 these can be set by passing to `meson` (aka `meson setup`) in any of
-these ways:
-
-| --option=value |
-| --option value |
-| -Doption=value |
+these ways: `--option=value`, `--option value`, `-Doption=value`.
 
 They can also be edited after setup using `meson configure`.
 
