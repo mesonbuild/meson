@@ -84,7 +84,6 @@ known_cpu_families = (
     'parisc',
     'ppc',
     'ppc64',
-    'ppc64le',
     'sparc64',
     'x86',
     'x86_64'
@@ -212,6 +211,8 @@ def detect_cpu_family(compilers):
         return 'x86'
     if trial.startswith('arm'):
         return 'arm'
+    if trial.startswith('ppc64'):
+        return 'ppc64'
     if trial in ('amd64', 'x64'):
         trial = 'x86_64'
     if trial == 'x86_64':
