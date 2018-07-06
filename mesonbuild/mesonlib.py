@@ -603,7 +603,9 @@ def do_replacement(regex, line, format, confdata):
                 elif isinstance(var, int):
                     var = str(var)
                 else:
-                    raise RuntimeError('Tried to replace a variable with something other than a string or int.')
+                    msg = 'Tried to replace variable {!r} value with ' \
+                          'something other than a string or int: {!r}'
+                    raise MesonException(msg.format(varname, var))
             else:
                 missing_variables.add(varname)
                 var = ''

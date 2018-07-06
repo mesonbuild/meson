@@ -276,8 +276,9 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
 
     def validate_args(self, args, kwargs):
         if len(args) == 1 and isinstance(args[0], list) and len(args[0]) == 2:
-            mlog.deprecation('''Passing a list as the single argument to configuration_data.set is deprecated.
-This will become a hard error in the future''')
+            mlog.deprecation('Passing a list as the single argument to '
+                             'configuration_data.set is deprecated. This will '
+                             'become a hard error in the future.')
             args = args[0]
 
         if len(args) != 2:
@@ -286,6 +287,11 @@ This will become a hard error in the future''')
             raise InterpreterException("Can not set values on configuration object that has been used.")
         name = args[0]
         val = args[1]
+        if not isinstance(val, (int, str)):
+            msg = 'Setting a configuration data value to {!r} is invalid, ' \
+                  'and will fail at configure_file(). If you are using it ' \
+                  'just to store some values, please use a dict instead.'
+            mlog.deprecation(msg.format(val))
         desc = kwargs.get('description', None)
         if not isinstance(name, str):
             raise InterpreterException("First argument to set must be a string.")

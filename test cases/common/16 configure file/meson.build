@@ -211,3 +211,6 @@ test_file = configure_file(
 )
 
 test('configure-file', test_file)
+
+cdata = configuration_data()
+cdata.set('invalid_value', ['array'])
