@@ -2045,7 +2045,7 @@ library. This object has the following methods:
 
  - `found` which returns whether the library was found.
 
- - `type_name()` (*added 0.47.1*) which returns a string describing
+ - `type_name()` (*added 0.48.0*) which returns a string describing
    the type of the dependency, which will be `library` in this case.
 
  - `partial_dependency(compile_args : false, link_args : false, links
