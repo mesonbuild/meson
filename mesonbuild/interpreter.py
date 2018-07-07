@@ -3452,10 +3452,10 @@ root and issuing %s.
         if not isinstance(output, str):
             raise InterpreterException('Output file name must be a string')
         if ofile_rpath in self.configure_file_outputs:
-            if len(self.subdir) > 0:
-                mlog.warning('Output file', mlog.bold(ofile_rpath), 'for configure_file overwritten. First time written in subdir', self.subdir, 'line', self.configure_file_outputs[ofile_rpath], 'now in line', self.current_lineno)
-            else:
-                mlog.warning('Output file', mlog.bold(ofile_rpath), 'for configure_file overwritten. First time written in line', self.configure_file_outputs[ofile_rpath], 'now in line', self.current_lineno)
+            mesonbuildfile = os.path.join(self.subdir, 'meson.build')
+            current_call = "{}:{}".format(mesonbuildfile, self.current_lineno)
+            first_call = "{}:{}".format(mesonbuildfile, self.configure_file_outputs[ofile_rpath])
+            mlog.warning('Output file', mlog.bold("'{}'".format(ofile_rpath)), 'for configure_file() at', current_call, 'overwrites configure_file() output at', first_call)
         else:
             self.configure_file_outputs[ofile_rpath] = self.current_lineno
         if ifile_abs:
