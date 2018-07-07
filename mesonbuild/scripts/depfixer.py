@@ -396,11 +396,25 @@ def fix_darwin(fname, new_rpath, final_path, install_name_mappings):
         raise
         sys.exit(0)
 
+def fix_jar(fname):
+    subprocess.check_call(['jar', 'xfv', fname, 'META-INF/MANIFEST.MF'])
+    with open('META-INF/MANIFEST.MF', 'r+') as f:
+        lines = f.readlines()
+        f.seek(0)
+        for line in lines:
+            if not line.startswith('Class-Path:'):
+                f.write(line)
+        f.truncate()
+    subprocess.check_call(['jar', 'ufm', fname, 'META-INF/MANIFEST.MF'])
+
 def fix_rpath(fname, new_rpath, final_path, install_name_mappings, verbose=True):
     # Static libraries never have rpaths
     if fname.endswith('.a'):
         return
     try:
+        if fname.endswith('.jar'):
+            fix_jar(fname)
+            return
         fix_elf(fname, new_rpath, verbose)
         return
     except SystemExit as e:

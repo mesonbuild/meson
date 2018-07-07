@@ -1911,6 +1911,9 @@ class Jar(BuildTarget):
         for s in self.sources:
             if not s.endswith('.java'):
                 raise InvalidArguments('Jar source %s is not a java file.' % s)
+        for t in self.link_targets:
+            if not isinstance(t, Jar):
+                raise InvalidArguments('Link target %s is not a jar target.' % t)
         self.filename = self.name + '.jar'
         self.outputs = [self.filename]
         self.java_args = kwargs.get('java_args', [])
@@ -1927,6 +1930,13 @@ class Jar(BuildTarget):
     def validate_cross_install(self, environment):
         # All jar targets are installable.
         pass
+
+    def is_linkable_target(self):
+        return True
+
+    def get_classpath_args(self):
+        cp_paths = [os.path.join(l.get_subdir(), l.get_filename()) for l in self.link_targets]
+        return ['-cp', os.pathsep.join(cp_paths)]
 
 class CustomTargetIndex:
 
@@ -1949,7 +1959,6 @@ class CustomTargetIndex:
 
     def get_subdir(self):
         return self.target.get_subdir()
-
 
 class ConfigureFile:
 
