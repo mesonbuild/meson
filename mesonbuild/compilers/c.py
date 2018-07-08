@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess, os.path, re
+import re
+import glob
+import os.path
+import subprocess
 
 from .. import mlog
 from .. import coredata
 from . import compilers
 from ..mesonlib import (
     EnvironmentException, version_compare, Popen_safe, listify,
-    for_windows, for_darwin, for_cygwin, for_haiku,
+    for_windows, for_darwin, for_cygwin, for_haiku, for_openbsd,
 )
 
 from .compilers import (
@@ -845,7 +848,32 @@ class CCompiler(Compiler):
         for p in prefixes:
             for s in suffixes:
                 patterns.append(p + '{}.' + s)
+        if for_openbsd(self.is_cross, env):
+            # Shared libraries on OpenBSD can be named libfoo.so.X.Y:
+            # https://www.openbsd.org/faq/ports/specialtopics.html#SharedLibs
+            #
+            # This globbing is probably the best matching we can do since regex
+            # is expensive. It's wrong in many edge cases, but it will match
+            # correctly-named libraries and hopefully no one on OpenBSD names
+            # their files libfoo.so.9a.7b.1.0
+            patterns.append('lib{}.so' + '.[0-9]*.[0-9]*')
         return patterns
+
+    @staticmethod
+    def _get_trials_from_pattern(pattern, directory, libname):
+        f = os.path.join(directory, pattern.format(libname))
+        if '*' in pattern:
+            # NOTE: globbing matches directories and broken symlinks
+            # so we have to do an isfile test on it later
+            return glob.glob(f)
+        return [f]
+
+    @staticmethod
+    def _get_file_from_list(files):
+        for f in files:
+            if os.path.isfile(f):
+                return f
+        return None
 
     def find_library_real(self, libname, env, extra_dirs, code, libtype):
         # First try if we can just add the library as -l.
@@ -855,20 +883,26 @@ class CCompiler(Compiler):
             args = ['-l' + libname]
             if self.links(code, env, extra_args=args):
                 return args
-        # Search in the system libraries too
-        system_dirs = self.get_library_dirs()
         # Not found or we want to use a specific libtype? Try to find the
         # library file itself.
         patterns = self.get_library_naming(env, libtype)
         for d in extra_dirs:
             for p in patterns:
-                trial = os.path.join(d, p.format(libname))
-                if os.path.isfile(trial):
-                    return [trial]
-        for d in system_dirs:
+                trial = self._get_trials_from_pattern(p, d, libname)
+                if not trial:
+                    continue
+                trial = self._get_file_from_list(trial)
+                if not trial:
+                    continue
+                return [trial]
+        # Search in the system libraries too
+        for d in self.get_library_dirs():
             for p in patterns:
-                trial = os.path.join(d, p.format(libname))
-                if not os.path.isfile(trial):
+                trial = self._get_trials_from_pattern(p, d, libname)
+                if not trial:
+                    continue
+                trial = self._get_file_from_list(trial)
+                if not trial:
                     continue
                 # When searching the system paths used by the compiler, we
                 # need to check linking with link-whole, as static libs

@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, pickle, re, shlex, subprocess
+import os
+import re
+import shlex
+import pickle
+import subprocess
 from collections import OrderedDict
 import itertools
 from pathlib import PurePath
@@ -2463,12 +2467,18 @@ rule FORTRAN_DEP_HACK%s
         target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
         return linker.get_link_whole_for(target_args) if len(target_args) else []
 
-    def guess_library_absolute_path(self, libname, search_dirs, patterns):
+    @staticmethod
+    def guess_library_absolute_path(linker, libname, search_dirs, patterns):
         for d in search_dirs:
             for p in patterns:
-                trial = os.path.join(d, p.format(libname))
-                if os.path.isfile(trial):
-                    return trial
+                trial = linker._get_trials_from_pattern(p, d, libname)
+                if not trial:
+                    continue
+                trial = linker._get_file_from_list(trial)
+                if not trial:
+                    continue
+                # Return the first result
+                return trial
 
     def guess_external_link_dependencies(self, linker, target, commands, internal):
         # Ideally the linker would generate dependency information that could be used.
@@ -2522,12 +2532,14 @@ rule FORTRAN_DEP_HACK%s
             for libname in libs:
                 # be conservative and record most likely shared and static resolution, because we don't know exactly
                 # which one the linker will prefer
-                static_resolution = self.guess_library_absolute_path(libname, search_dirs, static_patterns)
-                shared_resolution = self.guess_library_absolute_path(libname, search_dirs, shared_patterns)
-                if static_resolution:
-                    guessed_dependencies.append(os.path.realpath(static_resolution))
-                if shared_resolution:
-                    guessed_dependencies.append(os.path.realpath(shared_resolution))
+                staticlibs = self.guess_library_absolute_path(linker, libname,
+                                                              search_dirs, static_patterns)
+                sharedlibs = self.guess_library_absolute_path(linker, libname,
+                                                              search_dirs, shared_patterns)
+                if staticlibs:
+                    guessed_dependencies.append(os.path.realpath(staticlibs))
+                if sharedlibs:
+                    guessed_dependencies.append(os.path.realpath(sharedlibs))
 
         return guessed_dependencies + absolute_libs
 

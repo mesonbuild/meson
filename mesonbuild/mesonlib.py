@@ -363,6 +363,18 @@ def for_haiku(is_cross, env):
         return env.cross_info.config['host_machine']['system'] == 'haiku'
     return False
 
+def for_openbsd(is_cross, env):
+    """
+    Host machine is OpenBSD?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return is_openbsd()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'openbsd'
+    return False
+
 def exe_exists(arglist):
     try:
         p = subprocess.Popen(arglist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
