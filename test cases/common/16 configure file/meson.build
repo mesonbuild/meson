@@ -193,21 +193,40 @@ configure_file(
   configuration : configuration_data()
 )
 
-# Test that passing an empty configuration_data() object to a file with
-# @FOO@ substitutions does not print the warning.
+# test that passing an empty configuration_data() object to a file with
+# @foo@ substitutions does not print the warning.
 configure_file(
   input: 'nosubst-nocopy2.txt.in',
   output: 'nosubst-nocopy2.txt',
   configuration : configuration_data()
 )
 
-# Test that passing a configured file object to test() works, and that passing
+# test that passing a configured file object to test() works, and that passing
 # an empty configuration_data() object to a file that leads to no substitutions
 # prints a warning (see unit tests)
 test_file = configure_file(
   input: 'test.py.in',
   output: 'test.py',
   configuration: configuration_data()
+)
+
+# Test that overwriting an existing file creates a warning.
+configure_file(
+  input: 'test.py.in',
+  output: 'double_output.txt',
+  configuration: conf
+)
+configure_file(
+  input: 'test.py.in',
+  output: 'double_output.txt',
+  configuration: conf
+)
+
+# Test that the same file name in a different subdir will not create a warning
+configure_file(
+  input: 'test.py.in',
+  output: 'no_write_conflict.txt',
+  configuration: conf
 )
 
 test('configure-file', test_file)

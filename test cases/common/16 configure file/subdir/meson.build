@@ -17,3 +17,22 @@ configure_file(input : '../dummy.dat',
   output : 'config2-3.h',
   command : [found_script,  '@INPUT@', '@OUTPUT@'])
 run_command(check_file, join_paths(meson.current_build_dir(), 'config2-3.h'))
+
+# Test that overwriting an existing file creates a warning.
+configure_file(
+  input: '../test.py.in',
+  output: 'double_output2.txt',
+  configuration: conf
+)
+configure_file(
+  input: '../test.py.in',
+  output: 'double_output2.txt',
+  configuration: conf
+)
+
+# Test that the same file name in a different subdir will not create a warning
+configure_file(
+  input: '../test.py.in',
+  output: 'no_write_conflict.txt',
+  configuration: conf
+)
