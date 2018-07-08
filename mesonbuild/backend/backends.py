@@ -72,6 +72,8 @@ class ExecutableSerialisation:
         self.cmd_args = cmd_args
         self.env = env
         self.is_cross = is_cross
+        if exe_wrapper is not None:
+            assert(isinstance(exe_wrapper, dependencies.ExternalProgram))
         self.exe_runner = exe_wrapper
         self.workdir = workdir
         self.extra_paths = extra_paths
@@ -85,6 +87,8 @@ class TestSerialisation:
         self.suite = suite
         self.fname = fname
         self.is_cross_built = is_cross_built
+        if exe_wrapper is not None:
+            assert(isinstance(exe_wrapper, dependencies.ExternalProgram))
         self.exe_runner = exe_wrapper
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
@@ -310,7 +314,7 @@ class Backend:
                 self.environment.cross_info.need_cross_compiler() and \
                 self.environment.cross_info.need_exe_wrapper()
             if is_cross_built:
-                exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
+                exe_wrapper = self.environment.get_exe_wrapper()
             else:
                 exe_wrapper = None
             es = ExecutableSerialisation(basename, exe_cmd, cmd_args, env,
@@ -646,10 +650,10 @@ class Backend:
                 is_cross = is_cross and exe.is_cross
             if isinstance(exe, dependencies.ExternalProgram):
                 # E.g. an external verifier or simulator program run on a generated executable.
-                # Can always be run.
+                # Can always be run without a wrapper.
                 is_cross = False
             if is_cross:
-                exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
+                exe_wrapper = self.environment.get_exe_wrapper()
             else:
                 exe_wrapper = None
             if mesonlib.for_windows(is_cross, self.environment) or \
@@ -711,9 +715,8 @@ class Backend:
 
     def exe_object_to_cmd_array(self, exe):
         if self.environment.is_cross_build() and \
-           self.environment.cross_info.need_exe_wrapper() and \
            isinstance(exe, build.BuildTarget) and exe.is_cross:
-            if 'exe_wrapper' not in self.environment.cross_info.config['binaries']:
+            if self.environment.exe_wrapper is None:
                 s = 'Can not use target %s as a generator because it is cross-built\n'
                 s += 'and no exe wrapper is defined. You might want to set it to native instead.'
                 s = s % exe.name

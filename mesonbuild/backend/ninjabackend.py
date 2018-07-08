@@ -595,11 +595,10 @@ int dummy;
         if isinstance(texe, build.Executable):
             abs_exe = os.path.join(self.environment.get_build_dir(), self.get_target_filename(texe))
             deps.append(self.get_target_filename(texe))
-            if self.environment.is_cross_build() and \
-               self.environment.cross_info.need_exe_wrapper():
-                exe_wrap = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
-                if exe_wrap is not None:
-                    cmd += [exe_wrap]
+            if self.environment.is_cross_build():
+                exe_wrap = self.environment.get_exe_wrapper()
+                if exe_wrap:
+                    cmd += exe_wrap.get_command()
             cmd.append(abs_exe)
         elif isinstance(texe, dependencies.ExternalProgram):
             cmd += texe.get_command()

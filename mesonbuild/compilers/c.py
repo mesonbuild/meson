@@ -57,10 +57,9 @@ class CCompiler(Compiler):
         self.id = 'unknown'
         self.is_cross = is_cross
         self.can_compile_suffixes.add('h')
-        if isinstance(exe_wrapper, str):
-            self.exe_wrapper = [exe_wrapper]
-        else:
-            self.exe_wrapper = exe_wrapper
+        self.exe_wrapper = exe_wrapper
+        if self.exe_wrapper:
+            self.exe_wrapper = self.exe_wrapper.get_command()
 
         # Set to None until we actually need to check this
         self.has_fatal_warnings_link_arg = None
@@ -278,7 +277,7 @@ class CCompiler(Compiler):
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
                 return
-            cmdlist = self.exe_wrapper + [binary_name]
+            cmdlist = self.exe_wrapper.get_command() + [binary_name]
         else:
             cmdlist = [binary_name]
         mlog.debug('Running test binary command: ' + ' '.join(cmdlist))

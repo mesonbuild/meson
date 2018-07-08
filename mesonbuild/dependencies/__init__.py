@@ -14,7 +14,7 @@
 
 from .boost import BoostDependency
 from .base import (  # noqa: F401
-    Dependency, DependencyException, DependencyMethods, ExternalProgram, NonExistingExternalProgram,
+    Dependency, DependencyException, DependencyMethods, ExternalProgram, EmptyExternalProgram, NonExistingExternalProgram,
     ExternalDependency, NotFoundDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
     PkgConfigDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language)
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency

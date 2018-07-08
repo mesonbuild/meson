@@ -309,10 +309,13 @@ class Environment:
             # Used by the regenchecker script, which runs meson
             self.coredata.meson_command = mesonlib.meson_command
             self.first_invocation = True
+        self.cross_info = None
+        self.exe_wrapper = None
         if self.coredata.cross_file:
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)
-        else:
-            self.cross_info = None
+            if 'exe_wrapper' in self.cross_info.config['binaries']:
+                from .dependencies import ExternalProgram
+                self.exe_wrapper = ExternalProgram.from_cross_info(self.cross_info, 'exe_wrapper')
         self.cmd_line_options = options.cmd_line_options.copy()
 
         # List of potential compilers.
@@ -476,10 +479,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             # Return value has to be a list of compiler 'choices'
             compilers = [compilers]
             is_cross = True
-            if self.cross_info.need_exe_wrapper():
-                exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
-            else:
-                exe_wrap = []
+            exe_wrap = self.get_exe_wrapper()
         elif evar in os.environ:
             compilers = shlex.split(os.environ[evar])
             # Ensure ccache exists and remove it if it doesn't
@@ -968,6 +968,13 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             raise mesonlib.MesonException('Could not calculate system search dirs')
         out = out.split('\n')[index].lstrip('libraries: =').split(':')
         return [os.path.normpath(p) for p in out]
+
+    def get_exe_wrapper(self):
+        if not self.cross_info.need_exe_wrapper():
+            from .dependencies import EmptyExternalProgram
+            return EmptyExternalProgram()
+        return self.exe_wrapper
+
 
 class CrossBuildInfo:
     def __init__(self, filename):
