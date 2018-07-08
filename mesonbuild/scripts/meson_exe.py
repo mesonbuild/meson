@@ -49,7 +49,11 @@ def run_exe(exe):
     else:
         if exe.is_cross:
             if exe.exe_runner is None:
-                raise AssertionError('BUG: Trying to run cross-compiled exes with no wrapper')
+                raise AssertionError('BUG: Can\'t run cross-compiled exe {!r}'
+                                     'with no wrapper'.format(exe.name))
+            elif not exe.exe_runner.found():
+                raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found'
+                                     'wrapper {!r}'.format(exe.name, exe.exe_runner.get_path()))
             else:
                 cmd = exe.exe_runner.get_command() + exe.fname
         else:

@@ -240,7 +240,10 @@ class SingleTestRunner:
                     # because there is no execute wrapper.
                     return None
                 else:
-                    return [self.test.exe_runner] + self.test.fname
+                    if not self.test.exe_runner.found():
+                        msg = 'The exe_wrapper defined in the cross file {!r} was not ' \
+                              'found. Please check the command and/or add it to PATH.'
+                        raise TestException(msg.format(self.test.exe_runner.name))
                     return self.test.exe_runner.get_command() + self.test.fname
             else:
                 return self.test.fname
@@ -738,12 +741,13 @@ def run(args):
     if check_bin is not None:
         exe = ExternalProgram(check_bin, silent=True)
         if not exe.found():
-            sys.exit('Could not find requested program: %s' % check_bin)
+            print('Could not find requested program: {!r}'.format(check_bin))
+            return 1
     options.wd = os.path.abspath(options.wd)
 
     if not options.list and not options.no_rebuild:
         if not rebuild_all(options.wd):
-            sys.exit(-1)
+            return 1
 
     try:
         th = TestHarness(options)
@@ -755,5 +759,8 @@ def run(args):
         return th.run_special()
     except TestException as e:
         print('Meson test encountered an error:\n')
-        print(e)
+        if os.environ.get('MESON_FORCE_BACKTRACE'):
+            raise e
+        else:
+            print(e)
         return 1

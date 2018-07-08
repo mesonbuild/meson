@@ -133,6 +133,7 @@ class Vs2010Backend(backends.Backend):
                     cmd = exe_arr + self.replace_extra_args(args, genlist)
                     if generator.capture:
                         exe_data = self.serialize_executable(
+                            'generator ' + cmd[0],
                             cmd[0],
                             cmd[1:],
                             self.environment.get_build_dir(),
@@ -489,7 +490,7 @@ class Vs2010Backend(backends.Backend):
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
         extra_bdeps = target.get_transitive_build_target_deps()
         extra_paths = self.determine_windows_extra_paths(target.command[0], extra_bdeps)
-        exe_data = self.serialize_executable(target.command[0], cmd[1:],
+        exe_data = self.serialize_executable(target.name, target.command[0], cmd[1:],
                                              # All targets run from the target dir
                                              tdir_abs,
                                              extra_paths=extra_paths,

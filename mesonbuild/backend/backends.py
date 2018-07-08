@@ -276,8 +276,11 @@ class Backend:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
 
-    def serialize_executable(self, exe, cmd_args, workdir, env={},
+    def serialize_executable(self, tname, exe, cmd_args, workdir, env={},
                              extra_paths=None, capture=None):
+        '''
+        Serialize an executable for running with a generator or a custom target
+        '''
         import hashlib
         if extra_paths is None:
             # The callee didn't check if we needed extra paths, so check it here
@@ -302,19 +305,24 @@ class Backend:
         with open(exe_data, 'wb') as f:
             if isinstance(exe, dependencies.ExternalProgram):
                 exe_cmd = exe.get_command()
-                exe_needs_wrapper = False
+                exe_is_native = True
             elif isinstance(exe, (build.BuildTarget, build.CustomTarget)):
                 exe_cmd = [self.get_target_filename_abs(exe)]
-                exe_needs_wrapper = exe.is_cross
+                exe_is_native = not exe.is_cross
             else:
                 exe_cmd = [exe]
-                exe_needs_wrapper = False
-            is_cross_built = exe_needs_wrapper and \
+                exe_is_native = True
+            is_cross_built = (not exe_is_native) and \
                 self.environment.is_cross_build() and \
                 self.environment.cross_info.need_cross_compiler() and \
                 self.environment.cross_info.need_exe_wrapper()
             if is_cross_built:
                 exe_wrapper = self.environment.get_exe_wrapper()
+                if not exe_wrapper.found():
+                    msg = 'The exe_wrapper {!r} defined in the cross file is ' \
+                          'needed by target {!r}, but was not found. Please ' \
+                          'check the command and/or add it to PATH.'
+                    raise MesonException(msg.format(exe_wrapper.name, tname))
             else:
                 exe_wrapper = None
             es = ExecutableSerialisation(basename, exe_cmd, cmd_args, env,
