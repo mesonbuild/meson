@@ -841,7 +841,11 @@ class CCompiler(Compiler):
             suffixes = stlibext
         else:
             raise AssertionError('BUG: unknown libtype {!r}'.format(libtype))
-        return prefixes, suffixes
+        patterns = []
+        for p in prefixes:
+            for s in suffixes:
+                patterns.append(p + '{}.' + s)
+        return patterns
 
     def find_library_real(self, libname, env, extra_dirs, code, libtype):
         # First try if we can just add the library as -l.
@@ -855,32 +859,28 @@ class CCompiler(Compiler):
         system_dirs = self.get_library_dirs()
         # Not found or we want to use a specific libtype? Try to find the
         # library file itself.
-        prefixes, suffixes = self.get_library_naming(env, libtype)
-        # Triply-nested loops!
+        patterns = self.get_library_naming(env, libtype)
         for d in extra_dirs:
-            for suffix in suffixes:
-                for prefix in prefixes:
-                    trial = os.path.join(d, prefix + libname + '.' + suffix)
-                    if os.path.isfile(trial):
-                        return [trial]
+            for p in patterns:
+                trial = os.path.join(d, p.format(libname))
+                if os.path.isfile(trial):
+                    return [trial]
         for d in system_dirs:
-            for suffix in suffixes:
-                for prefix in prefixes:
-                    trial = os.path.join(d, prefix + libname + '.' + suffix)
-                    # When searching the system paths used by the compiler, we
-                    # need to check linking with link-whole, as static libs
-                    # (.a) need to be checked to ensure they are the right
-                    # architecture, e.g. 32bit or 64-bit.
-                    # Just a normal test link won't work as the .a file doesn't
-                    # seem to be checked by linker if there are no unresolved
-                    # symbols from the main C file.
-                    extra_link_args = self.get_link_whole_for([trial])
-                    extra_link_args = self.linker_to_compiler_args(extra_link_args)
-                    if (os.path.isfile(trial) and
-                            self.links(code, env,
-                                       extra_args=extra_link_args)):
-                        return [trial]
-        # XXX: For OpenBSD and macOS we (may) need to search for libfoo.x{,.y.z}.ext
+            for p in patterns:
+                trial = os.path.join(d, p.format(libname))
+                if not os.path.isfile(trial):
+                    continue
+                # When searching the system paths used by the compiler, we
+                # need to check linking with link-whole, as static libs
+                # (.a) need to be checked to ensure they are the right
+                # architecture, e.g. 32bit or 64-bit.
+                # Just a normal test link won't work as the .a file doesn't
+                # seem to be checked by linker if there are no unresolved
+                # symbols from the main C file.
+                extra_link_args = self.get_link_whole_for([trial])
+                extra_link_args = self.linker_to_compiler_args(extra_link_args)
+                if self.links(code, env, extra_args=extra_link_args):
+                    return [trial]
         return None
 
     def find_library_impl(self, libname, env, extra_dirs, code, libtype):
