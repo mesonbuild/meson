@@ -2463,13 +2463,12 @@ rule FORTRAN_DEP_HACK%s
         target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
         return linker.get_link_whole_for(target_args) if len(target_args) else []
 
-    def guess_library_absolute_path(self, libname, search_dirs, prefixes, suffixes):
-        for directory in search_dirs:
-            for suffix in suffixes:
-                for prefix in prefixes:
-                    trial = os.path.join(directory, prefix + libname + '.' + suffix)
-                    if os.path.isfile(trial):
-                        return trial
+    def guess_library_absolute_path(self, libname, search_dirs, patterns):
+        for d in search_dirs:
+            for p in patterns:
+                trial = os.path.join(d, p.format(libname))
+                if os.path.isfile(trial):
+                    return trial
 
     def guess_external_link_dependencies(self, linker, target, commands, internal):
         # Ideally the linker would generate dependency information that could be used.
@@ -2518,13 +2517,13 @@ rule FORTRAN_DEP_HACK%s
         # TODO The get_library_naming requirement currently excludes link targets that use d or fortran as their main linker
         if hasattr(linker, 'get_library_naming'):
             search_dirs = list(search_dirs) + linker.get_library_dirs()
-            prefixes_static, suffixes_static = linker.get_library_naming(self.environment, 'static', strict=True)
-            prefixes_shared, suffixes_shared = linker.get_library_naming(self.environment, 'shared', strict=True)
+            static_patterns = linker.get_library_naming(self.environment, 'static', strict=True)
+            shared_patterns = linker.get_library_naming(self.environment, 'shared', strict=True)
             for libname in libs:
                 # be conservative and record most likely shared and static resolution, because we don't know exactly
                 # which one the linker will prefer
-                static_resolution = self.guess_library_absolute_path(libname, search_dirs, prefixes_static, suffixes_static)
-                shared_resolution = self.guess_library_absolute_path(libname, search_dirs, prefixes_shared, suffixes_shared)
+                static_resolution = self.guess_library_absolute_path(libname, search_dirs, static_patterns)
+                shared_resolution = self.guess_library_absolute_path(libname, search_dirs, shared_patterns)
                 if static_resolution:
                     guessed_dependencies.append(os.path.realpath(static_resolution))
                 if shared_resolution:
