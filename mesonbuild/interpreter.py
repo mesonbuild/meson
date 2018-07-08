@@ -3455,7 +3455,7 @@ root and issuing %s.
             mesonbuildfile = os.path.join(self.subdir, 'meson.build')
             current_call = "{}:{}".format(mesonbuildfile, self.current_lineno)
             first_call = "{}:{}".format(mesonbuildfile, self.configure_file_outputs[ofile_rpath])
-            mlog.warning('Output file', mlog.bold("'{}'".format(ofile_rpath)), 'for configure_file() at', current_call, 'overwrites configure_file() output at', first_call)
+            mlog.warning('Output file', mlog.bold(ofile_rpath, True), 'for configure_file() at', current_call, 'overwrites configure_file() output at', first_call)
         else:
             self.configure_file_outputs[ofile_rpath] = self.current_lineno
         if ifile_abs:
