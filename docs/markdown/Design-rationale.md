@@ -193,7 +193,7 @@ keyword arguments. They look like this.
 
 ```meson
 project('compile several', 'c')
-sources = ['main.c', 'file1.c', 'file2.c', 'file3.c']
+sourcelist = ['main.c', 'file1.c', 'file2.c', 'file3.c']
 executable('program', sources : sourcelist)
 ```
 
@@ -202,7 +202,7 @@ External dependencies are simple to use.
 ```meson
 project('external lib', 'c')
 libdep = find_dep('extlibrary', required : true)
-sources = ['main.c', 'file1.c', 'file2.c', 'file3.c']
+sourcelist = ['main.c', 'file1.c', 'file2.c', 'file3.c']
 executable('program', sources : sourcelist, dep : libdep)
 ```
 
