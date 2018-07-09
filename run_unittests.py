@@ -522,12 +522,28 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(p, shr)
         p = cc.get_library_naming(env, 'static')
         self.assertEqual(p, stc)
-        p = cc.get_library_naming(env, 'default')
-        self.assertEqual(p, shr + stc)
-        p = cc.get_library_naming(env, 'shared-static')
-        self.assertEqual(p, shr + stc)
         p = cc.get_library_naming(env, 'static-shared')
         self.assertEqual(p, stc + shr)
+        p = cc.get_library_naming(env, 'shared-static')
+        self.assertEqual(p, shr + stc)
+        p = cc.get_library_naming(env, 'default')
+        self.assertEqual(p, shr + stc)
+        # Test find library by mocking up openbsd
+        if platform != 'openbsd':
+            return
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with open(os.path.join(tmpdir, 'libfoo.so.6.0'), 'w') as f:
+                f.write('')
+            with open(os.path.join(tmpdir, 'libfoo.so.5.0'), 'w') as f:
+                f.write('')
+            with open(os.path.join(tmpdir, 'libfoo.so.54.0'), 'w') as f:
+                f.write('')
+            with open(os.path.join(tmpdir, 'libfoo.so.66a.0b'), 'w') as f:
+                f.write('')
+            with open(os.path.join(tmpdir, 'libfoo.so.70.0.so.1'), 'w') as f:
+                f.write('')
+            found = cc.find_library_real('foo', env, [tmpdir], '', 'default')
+            self.assertEqual(os.path.basename(found[0]), 'libfoo.so.54.0')
 
     def test_find_library_patterns(self):
         '''

@@ -866,12 +866,29 @@ class CCompiler(Compiler):
         return patterns
 
     @staticmethod
-    def _get_trials_from_pattern(pattern, directory, libname):
+    def _sort_shlibs_openbsd(libs):
+        filtered = []
+        for lib in libs:
+            # Validate file as a shared library of type libfoo.so.X.Y
+            ret = lib.rsplit('.so.', maxsplit=1)
+            if len(ret) != 2:
+                continue
+            try:
+                float(ret[1])
+            except ValueError:
+                continue
+            filtered.append(lib)
+        float_cmp = lambda x: float(x.rsplit('.so.', maxsplit=1)[1])
+        return sorted(filtered, key=float_cmp, reverse=True)
+
+    @classmethod
+    def _get_trials_from_pattern(cls, pattern, directory, libname):
         f = os.path.join(directory, pattern.format(libname))
+        # Globbing for OpenBSD
         if '*' in pattern:
             # NOTE: globbing matches directories and broken symlinks
             # so we have to do an isfile test on it later
-            return glob.glob(f)
+            return cls._sort_shlibs_openbsd(glob.glob(f))
         return [f]
 
     @staticmethod
