@@ -41,8 +41,8 @@ def create_parser():
                    help='Special wrap mode to use')
     p.add_argument('--profile-self', action='store_true', dest='profile',
                    help=argparse.SUPPRESS)
-    p.add_argument('builddir', nargs='?', default='..')
-    p.add_argument('sourcedir', nargs='?', default='.')
+    p.add_argument('builddir', nargs='?', default=None)
+    p.add_argument('sourcedir', nargs='?', default=None)
     return p
 
 def wrapmodetype(string):
@@ -331,6 +331,15 @@ def run(original_args, mainfile):
     dir1 = options.builddir
     dir2 = options.sourcedir
     try:
+        if dir1 is None:
+            if dir2 is None:
+                if not os.path.exists('meson.build') and os.path.exists('../meson.build'):
+                    dir2 = '..'
+                else:
+                    raise MesonException('Must specify at least one directory name.')
+            dir1 = os.getcwd()
+        if dir2 is None:
+            dir2 = os.getcwd()
         app = MesonApp(dir1, dir2, handshake, options)
     except Exception as e:
         # Log directory does not exist, so just print
