@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess, os.path, re
+import re
+import glob
+import os.path
+import subprocess
 
 from .. import mlog
 from .. import coredata
 from . import compilers
 from ..mesonlib import (
     EnvironmentException, version_compare, Popen_safe, listify,
-    for_windows, for_darwin, for_cygwin, for_haiku,
+    for_windows, for_darwin, for_cygwin, for_haiku, for_openbsd,
 )
 
 from .compilers import (
@@ -800,6 +803,22 @@ class CCompiler(Compiler):
                         return False
         raise RuntimeError('BUG: {!r} check failed unexpectedly'.format(n))
 
+    def _get_patterns(self, env, prefixes, suffixes, shared=False):
+        patterns = []
+        for p in prefixes:
+            for s in suffixes:
+                patterns.append(p + '{}.' + s)
+        if shared and for_openbsd(self.is_cross, env):
+            # Shared libraries on OpenBSD can be named libfoo.so.X.Y:
+            # https://www.openbsd.org/faq/ports/specialtopics.html#SharedLibs
+            #
+            # This globbing is probably the best matching we can do since regex
+            # is expensive. It's wrong in many edge cases, but it will match
+            # correctly-named libraries and hopefully no one on OpenBSD names
+            # their files libfoo.so.9a.7b.1.0
+            patterns.append('lib{}.so.[0-9]*.[0-9]*')
+        return patterns
+
     def get_library_naming(self, env, libtype, strict=False):
         '''
         Get library prefixes and suffixes for the target platform ordered by
@@ -830,18 +849,37 @@ class CCompiler(Compiler):
         else:
             # Linux/BSDs
             shlibext = ['so']
+        patterns = []
         # Search priority
         if libtype in ('default', 'shared-static'):
-            suffixes = shlibext + stlibext
+            patterns += self._get_patterns(env, prefixes, shlibext, True)
+            patterns += self._get_patterns(env, prefixes, stlibext, False)
         elif libtype == 'static-shared':
-            suffixes = stlibext + shlibext
+            patterns += self._get_patterns(env, prefixes, stlibext, False)
+            patterns += self._get_patterns(env, prefixes, shlibext, True)
         elif libtype == 'shared':
-            suffixes = shlibext
+            patterns += self._get_patterns(env, prefixes, shlibext, True)
         elif libtype == 'static':
-            suffixes = stlibext
+            patterns += self._get_patterns(env, prefixes, stlibext, False)
         else:
             raise AssertionError('BUG: unknown libtype {!r}'.format(libtype))
-        return prefixes, suffixes
+        return patterns
+
+    @staticmethod
+    def _get_trials_from_pattern(pattern, directory, libname):
+        f = os.path.join(directory, pattern.format(libname))
+        if '*' in pattern:
+            # NOTE: globbing matches directories and broken symlinks
+            # so we have to do an isfile test on it later
+            return glob.glob(f)
+        return [f]
+
+    @staticmethod
+    def _get_file_from_list(files):
+        for f in files:
+            if os.path.isfile(f):
+                return f
+        return None
 
     def find_library_real(self, libname, env, extra_dirs, code, libtype):
         # First try if we can just add the library as -l.
@@ -851,36 +889,38 @@ class CCompiler(Compiler):
             args = ['-l' + libname]
             if self.links(code, env, extra_args=args):
                 return args
-        # Search in the system libraries too
-        system_dirs = self.get_library_dirs()
         # Not found or we want to use a specific libtype? Try to find the
         # library file itself.
-        prefixes, suffixes = self.get_library_naming(env, libtype)
-        # Triply-nested loops!
+        patterns = self.get_library_naming(env, libtype)
         for d in extra_dirs:
-            for suffix in suffixes:
-                for prefix in prefixes:
-                    trial = os.path.join(d, prefix + libname + '.' + suffix)
-                    if os.path.isfile(trial):
-                        return [trial]
-        for d in system_dirs:
-            for suffix in suffixes:
-                for prefix in prefixes:
-                    trial = os.path.join(d, prefix + libname + '.' + suffix)
-                    # When searching the system paths used by the compiler, we
-                    # need to check linking with link-whole, as static libs
-                    # (.a) need to be checked to ensure they are the right
-                    # architecture, e.g. 32bit or 64-bit.
-                    # Just a normal test link won't work as the .a file doesn't
-                    # seem to be checked by linker if there are no unresolved
-                    # symbols from the main C file.
-                    extra_link_args = self.get_link_whole_for([trial])
-                    extra_link_args = self.linker_to_compiler_args(extra_link_args)
-                    if (os.path.isfile(trial) and
-                            self.links(code, env,
-                                       extra_args=extra_link_args)):
-                        return [trial]
-        # XXX: For OpenBSD and macOS we (may) need to search for libfoo.x{,.y.z}.ext
+            for p in patterns:
+                trial = self._get_trials_from_pattern(p, d, libname)
+                if not trial:
+                    continue
+                trial = self._get_file_from_list(trial)
+                if not trial:
+                    continue
+                return [trial]
+        # Search in the system libraries too
+        for d in self.get_library_dirs():
+            for p in patterns:
+                trial = self._get_trials_from_pattern(p, d, libname)
+                if not trial:
+                    continue
+                trial = self._get_file_from_list(trial)
+                if not trial:
+                    continue
+                # When searching the system paths used by the compiler, we
+                # need to check linking with link-whole, as static libs
+                # (.a) need to be checked to ensure they are the right
+                # architecture, e.g. 32bit or 64-bit.
+                # Just a normal test link won't work as the .a file doesn't
+                # seem to be checked by linker if there are no unresolved
+                # symbols from the main C file.
+                extra_link_args = self.get_link_whole_for([trial])
+                extra_link_args = self.linker_to_compiler_args(extra_link_args)
+                if self.links(code, env, extra_args=extra_link_args):
+                    return [trial]
         return None
 
     def find_library_impl(self, libname, env, extra_dirs, code, libtype):
