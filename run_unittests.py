@@ -2294,8 +2294,8 @@ recommended as it is not supported on some platforms''')
         self.assertRegex(out, "WARNING:.*'empty'.*config.h.in.*not present.*")
         self.assertRegex(out, "WARNING:.*empty configuration_data.*test.py.in")
         # Warnings for configuration files that are overwritten.
-        self.assertRegex(out, "WARNING:.*double_output.txt.*overwrites")
-        self.assertRegex(out, "WARNING:.*subdir/double_output2.txt.*overwrites")
+        self.assertRegex(out, "WARNING:.*\"double_output.txt\".*overwrites")
+        self.assertRegex(out, "WARNING:.*\"subdir.double_output2.txt\".*overwrites")
         self.assertNotRegex(out, "WARNING:.*no_write_conflict.txt.*overwrites")
         # No warnings about empty configuration data objects passed to files with substitutions
         self.assertNotRegex(out, "WARNING:.*empty configuration_data.*nosubst-nocopy1.txt.in")
