@@ -2406,6 +2406,24 @@ recommended as it is not supported on some platforms''')
             self.assertEqual(f.read().strip(), b'')
         self.assertRegex(out, r"DEPRECATION:.*\['array'\] is invalid.*dict")
 
+    def test_dirs(self):
+        with tempfile.TemporaryDirectory() as containing:
+            with tempfile.TemporaryDirectory(dir=containing) as srcdir:
+                mfile = os.path.join(srcdir, 'meson.build')
+                of = open(mfile, 'w')
+                of.write("project('foobar', 'c')\n")
+                of.close()
+                pc = subprocess.run(self.setup_command,
+                                    cwd=srcdir,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.DEVNULL)
+                self.assertIn(b'Must specify at least one directory name', pc.stdout)
+                with tempfile.TemporaryDirectory(dir=srcdir) as builddir:
+                    subprocess.run(self.setup_command,
+                                   check=True,
+                                   cwd=builddir,
+                                   stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL)
 
 class FailureTests(BasePlatformTests):
     '''
