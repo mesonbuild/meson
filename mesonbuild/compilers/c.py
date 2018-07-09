@@ -803,6 +803,22 @@ class CCompiler(Compiler):
                         return False
         raise RuntimeError('BUG: {!r} check failed unexpectedly'.format(n))
 
+    def _get_patterns(self, env, prefixes, suffixes, shared=False):
+        patterns = []
+        for p in prefixes:
+            for s in suffixes:
+                patterns.append(p + '{}.' + s)
+        if shared and for_openbsd(self.is_cross, env):
+            # Shared libraries on OpenBSD can be named libfoo.so.X.Y:
+            # https://www.openbsd.org/faq/ports/specialtopics.html#SharedLibs
+            #
+            # This globbing is probably the best matching we can do since regex
+            # is expensive. It's wrong in many edge cases, but it will match
+            # correctly-named libraries and hopefully no one on OpenBSD names
+            # their files libfoo.so.9a.7b.1.0
+            patterns.append('lib{}.so.[0-9]*.[0-9]*')
+        return patterns
+
     def get_library_naming(self, env, libtype, strict=False):
         '''
         Get library prefixes and suffixes for the target platform ordered by
@@ -833,30 +849,20 @@ class CCompiler(Compiler):
         else:
             # Linux/BSDs
             shlibext = ['so']
+        patterns = []
         # Search priority
         if libtype in ('default', 'shared-static'):
-            suffixes = shlibext + stlibext
+            patterns += self._get_patterns(env, prefixes, shlibext, True)
+            patterns += self._get_patterns(env, prefixes, stlibext, False)
         elif libtype == 'static-shared':
-            suffixes = stlibext + shlibext
+            patterns += self._get_patterns(env, prefixes, stlibext, False)
+            patterns += self._get_patterns(env, prefixes, shlibext, True)
         elif libtype == 'shared':
-            suffixes = shlibext
+            patterns += self._get_patterns(env, prefixes, shlibext, True)
         elif libtype == 'static':
-            suffixes = stlibext
+            patterns += self._get_patterns(env, prefixes, stlibext, False)
         else:
             raise AssertionError('BUG: unknown libtype {!r}'.format(libtype))
-        patterns = []
-        for p in prefixes:
-            for s in suffixes:
-                patterns.append(p + '{}.' + s)
-        if for_openbsd(self.is_cross, env):
-            # Shared libraries on OpenBSD can be named libfoo.so.X.Y:
-            # https://www.openbsd.org/faq/ports/specialtopics.html#SharedLibs
-            #
-            # This globbing is probably the best matching we can do since regex
-            # is expensive. It's wrong in many edge cases, but it will match
-            # correctly-named libraries and hopefully no one on OpenBSD names
-            # their files libfoo.so.9a.7b.1.0
-            patterns.append('lib{}.so' + '.[0-9]*.[0-9]*')
         return patterns
 
     @staticmethod

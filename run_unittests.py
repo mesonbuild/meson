@@ -35,7 +35,7 @@ import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import (
-    is_windows, is_osx, is_cygwin, is_dragonflybsd,
+    is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd,
     windows_proof_rmtree, python_command, version_compare,
     grab_leading_numbers, BuildDirLock
 )
@@ -93,6 +93,25 @@ def skipIfNoPkgconfig(f):
             raise unittest.SkipTest('pkg-config not found')
         return f(*args, **kwargs)
     return wrapped
+
+class PatchModule:
+    '''
+    Fancy monkey-patching! Whee! Can't use mock.patch because it only
+    patches in the local namespace.
+    '''
+    def __init__(self, func, name, impl):
+        self.func = func
+        assert(isinstance(name, str))
+        self.func_name = name
+        self.old_impl = None
+        self.new_impl = impl
+
+    def __enter__(self):
+        self.old_impl = self.func
+        exec('{} = self.new_impl'.format(self.func_name))
+
+    def __exit__(self, *args):
+        exec('{} = self.old_impl'.format(self.func_name))
 
 
 class InternalTests(unittest.TestCase):
@@ -495,6 +514,76 @@ class InternalTests(unittest.TestCase):
         deps = mesonbuild.modules.pkgconfig.DependenciesHelper("thislib")
         deps.add_pub_reqs([mock])
         self.assertEqual(deps.format_reqs(deps.pub_reqs), "some_name")
+
+    def _test_all_naming(self, cc, env, patterns, platform):
+        shr = patterns[platform]['shared']
+        stc = patterns[platform]['static']
+        p = cc.get_library_naming(env, 'shared')
+        self.assertEqual(p, shr)
+        p = cc.get_library_naming(env, 'static')
+        self.assertEqual(p, stc)
+        p = cc.get_library_naming(env, 'default')
+        self.assertEqual(p, shr + stc)
+        p = cc.get_library_naming(env, 'shared-static')
+        self.assertEqual(p, shr + stc)
+        p = cc.get_library_naming(env, 'static-shared')
+        self.assertEqual(p, stc + shr)
+
+    def test_find_library_patterns(self):
+        '''
+        Unit test for the library search patterns used by find_library()
+        '''
+        unix_static = ['lib{}.a', '{}.a']
+        msvc_static = ['lib{}.a', 'lib{}.lib', '{}.a', '{}.lib']
+        # This is the priority list of pattern matching for library searching
+        patterns = {'openbsd': {'shared': ['lib{}.so', '{}.so', 'lib{}.so.[0-9]*.[0-9]*'],
+                                'static': unix_static},
+                    'linux': {'shared': ['lib{}.so', '{}.so'],
+                              'static': unix_static},
+                    'darwin': {'shared': ['lib{}.dylib', '{}.dylib'],
+                               'static': unix_static},
+                    'cygwin': {'shared': ['cyg{}.dll', 'cyg{}.dll.a', 'lib{}.dll',
+                                          'lib{}.dll.a', '{}.dll', '{}.dll.a'],
+                               'static': ['cyg{}.a'] + unix_static},
+                    'windows-msvc': {'shared': ['lib{}.lib', '{}.lib'],
+                                     'static': msvc_static},
+                    'windows-mingw': {'shared': ['lib{}.dll.a', 'lib{}.lib', 'lib{}.dll',
+                                                 '{}.dll.a', '{}.lib', '{}.dll'],
+                                      'static': msvc_static}}
+        env = Environment('', '', get_fake_options(''))
+        cc = env.detect_c_compiler(False)
+        if is_osx():
+            self._test_all_naming(cc, env, patterns, 'darwin')
+        elif is_cygwin():
+            self._test_all_naming(cc, env, patterns, 'cygwin')
+        elif is_windows():
+            if cc.get_id() == 'msvc':
+                self._test_all_naming(cc, env, patterns, 'windows-msvc')
+            else:
+                self._test_all_naming(cc, env, patterns, 'windows-mingw')
+        else:
+            self._test_all_naming(cc, env, patterns, 'linux')
+            # Mock OpenBSD since we don't have tests for it
+            true = lambda x, y: True
+            if not is_openbsd():
+                with PatchModule(mesonbuild.compilers.c.for_openbsd,
+                                 'mesonbuild.compilers.c.for_openbsd', true):
+                    self._test_all_naming(cc, env, patterns, 'openbsd')
+            else:
+                self._test_all_naming(cc, env, patterns, 'openbsd')
+            with PatchModule(mesonbuild.compilers.c.for_darwin,
+                             'mesonbuild.compilers.c.for_darwin', true):
+                self._test_all_naming(cc, env, patterns, 'darwin')
+            with PatchModule(mesonbuild.compilers.c.for_cygwin,
+                             'mesonbuild.compilers.c.for_cygwin', true):
+                self._test_all_naming(cc, env, patterns, 'cygwin')
+            with PatchModule(mesonbuild.compilers.c.for_windows,
+                             'mesonbuild.compilers.c.for_windows', true):
+                self._test_all_naming(cc, env, patterns, 'windows-mingw')
+            cc.id = 'msvc'
+            with PatchModule(mesonbuild.compilers.c.for_windows,
+                             'mesonbuild.compilers.c.for_windows', true):
+                self._test_all_naming(cc, env, patterns, 'windows-msvc')
 
 
 class BasePlatformTests(unittest.TestCase):

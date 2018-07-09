@@ -28,7 +28,7 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..compilers import CompilerArgs, get_macos_dylib_install_name
+from ..compilers import CompilerArgs, CCompiler, get_macos_dylib_install_name
 from ..linkers import ArLinker
 from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_compiler_for_source, has_path_sep
@@ -2471,10 +2471,10 @@ rule FORTRAN_DEP_HACK%s
     def guess_library_absolute_path(linker, libname, search_dirs, patterns):
         for d in search_dirs:
             for p in patterns:
-                trial = linker._get_trials_from_pattern(p, d, libname)
+                trial = CCompiler._get_trials_from_pattern(p, d, libname)
                 if not trial:
                     continue
-                trial = linker._get_file_from_list(trial)
+                trial = CCompiler._get_file_from_list(trial)
                 if not trial:
                     continue
                 # Return the first result

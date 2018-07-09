@@ -173,8 +173,11 @@ class FortranCompiler(Compiler):
     def run(self, code, env, extra_args=None, dependencies=None):
         return CCompiler.run(self, code, env, extra_args, dependencies)
 
-    def get_library_naming(self, env, libtype, strict=False):
-        return CCompiler.get_library_naming(self, env, libtype, strict)
+    def _get_patterns(self, *args, **kwargs):
+        return CCompiler._get_patterns(self, *args, **kwargs)
+
+    def get_library_naming(self, *args, **kwargs):
+        return CCompiler.get_library_naming(self, *args, **kwargs)
 
     def find_library_real(self, *args):
         return CCompiler.find_library_real(self, *args)
