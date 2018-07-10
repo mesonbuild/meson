@@ -1562,7 +1562,7 @@ class IntelCompiler:
             return ['-openmp']
 
     def get_link_whole_for(self, args):
-        return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
+        return GnuCompiler.get_link_whole_for(self, args)
 
 
 class ArmCompiler:
