@@ -1561,6 +1561,9 @@ class IntelCompiler:
         else:
             return ['-openmp']
 
+    def get_link_whole_for(self, args):
+        return GnuCompiler.get_link_whole_for(self, args)
+
 
 class ArmCompiler:
     # Functionality that is common to all ARM family compilers.
