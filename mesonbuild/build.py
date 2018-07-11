@@ -1269,12 +1269,13 @@ class Executable(BuildTarget):
             if (for_windows(is_cross, environment) or
                     for_cygwin(is_cross, environment) or 'cs' in self.compilers):
                 self.suffix = 'exe'
+            elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('arm') or
+                  'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('arm')):
+                self.suffix = 'axf'
+            elif (is_cross and 'exe_suffix' in environment.cross_info.get_properties()):
+                self.suffix = environment.cross_info.get_properties()['exe_suffix']
             else:
-                if ('c' in self.compilers and self.compilers['c'].get_id().startswith('arm') or
-                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('arm')):
-                    self.suffix = 'axf'
-                else:
-                    self.suffix = ''
+                self.suffix = ''
         self.filename = self.name
         if self.suffix:
             self.filename += '.' + self.suffix
@@ -1370,6 +1371,8 @@ class StaticLibrary(BuildTarget):
                     self.suffix = 'rlib'
                 elif self.rust_crate_type == 'staticlib':
                     self.suffix = 'a'
+            elif (is_cross and 'static_lib_suffix' in environment.cross_info.get_properties()):
+                self.suffix = environment.cross_info.get_properties()['static_lib_suffix']
             else:
                 self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
@@ -1417,7 +1420,10 @@ class SharedLibrary(BuildTarget):
         if not hasattr(self, 'prefix'):
             self.prefix = None
         if not hasattr(self, 'suffix'):
-            self.suffix = None
+            if (is_cross and 'shared_lib_suffix' in environment.cross_info.get_properties()):
+                self.suffix = environment.cross_info.get_properties()['shared_lib_suffix']
+            else:
+                self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames(is_cross, environment)
 
@@ -1690,6 +1696,9 @@ class SharedModule(SharedLibrary):
             raise MesonException('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
+        if not hasattr(self, 'suffix'):
+            if (is_cross and 'shared_module_suffix' in environment.cross_info.get_properties()):
+                self.suffix = environment.cross_info.get_properties()['shared_module_suffix']
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
 
 class CustomTarget(Target):
