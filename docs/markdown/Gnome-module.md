@@ -40,8 +40,8 @@ file called `foobar.h`, which you can then include in your sources.
 * `install_dir`: (*Added 0.37.0*) location to install the header or
   bundle depending on previous options
 * `install_header`: (*Added 0.37.0*) if true, install the header file
-* `source_dir`: a list of subdirectories where the resource compiler
-  should look up the files, relative to the location of the XML file
+* `source_dir`: a list of directories where the resource compiler
+  should look up the files
 
 Returns an array containing: `[c_source, header_file]` or
 `[gresource_bundle]`
