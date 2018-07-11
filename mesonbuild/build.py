@@ -1741,7 +1741,7 @@ class CustomTarget(Target):
             if i.strip() == '':
                 raise InvalidArguments('Output must not consist only of whitespace.')
             if has_path_sep(i):
-                raise InvalidArguments('Output must not contain a path segment.')
+                raise InvalidArguments('Output {!r} must not contain a path segment.'.format(i))
             if '@INPUT@' in i or '@INPUT0@' in i:
                 m = 'Output cannot contain @INPUT@ or @INPUT0@, did you ' \
                     'mean @PLAINNAME@ or @BASENAME@?'

@@ -1,4 +1,5 @@
-gdbus_src = gnome.gdbus_codegen('generated-gdbus-no-docbook', 'com.example.Sample.xml',
+gdbus_src = gnome.gdbus_codegen('generated-gdbus-no-docbook',
+  'data/com.example.Sample.xml',
   interface_prefix : 'com.example.',
   namespace : 'Sample',
   annotations : [
@@ -10,7 +11,7 @@ assert(gdbus_src[0].full_path().endswith('.c'), 'expected 1 c source file')
 assert(gdbus_src[1].full_path().endswith('.h'), 'expected 1 c header file')
 
 gdbus_src = gnome.gdbus_codegen('generated-gdbus',
-  sources : 'com.example.Sample.xml',
+  sources : files('data/com.example.Sample.xml'),
   interface_prefix : 'com.example.',
   namespace : 'Sample',
   annotations : [
