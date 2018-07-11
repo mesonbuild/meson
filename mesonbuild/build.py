@@ -1438,6 +1438,8 @@ class Executable(BuildTarget):
             elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('ccrx') or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('ccrx')):
                 self.suffix = 'abs'
+            elif (environment.is_cross_build() and 'exe_suffix' in environment.properties[for_machine]):
+                self.suffix = environment.properties[for_machine]['exe_suffix']
             else:
                 self.suffix = environment.machines[for_machine].get_exe_suffix()
         self.filename = self.name
@@ -1540,6 +1542,8 @@ class StaticLibrary(BuildTarget):
                     self.suffix = 'rlib'
                 elif self.rust_crate_type == 'staticlib':
                     self.suffix = 'a'
+            elif (environment.is_cross_build() and 'static_library_suffix' in environment.properties[for_machine]):
+                self.suffix = environment.properties[for_machine]['static_library_suffix']
             else:
                 self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
@@ -1594,7 +1598,10 @@ class SharedLibrary(BuildTarget):
         if not hasattr(self, 'prefix'):
             self.prefix = None
         if not hasattr(self, 'suffix'):
-            self.suffix = None
+            if (environment.is_cross_build() and 'shared_library_suffix' in environment.properties[for_machine]):
+                self.suffix = environment.properties[for_machine]['shared_library_suffix']
+            else:
+                self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames(environment)
 
@@ -1883,6 +1890,9 @@ class SharedModule(SharedLibrary):
             raise MesonException('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
+        if not hasattr(self, 'suffix'):
+            if (environment.is_cross_build() and 'shared_module_suffix' in environment.properties[for_machine]):
+                self.suffix = environment.properties[for_machine]['shared_module_suffix']
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         self.typename = 'shared module'
 
