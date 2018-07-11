@@ -26,8 +26,15 @@ class Vs2017Backend(Vs2010Backend):
         self.vs_version = '2017'
         # WindowsSDKVersion should be set by command prompt.
         sdk_version = os.environ.get('WindowsSDKVersion', None)
+        version_path = os.path.join(self.environment.get_build_dir(), 'meson-private', 'windows_target_platform_version.dat')
         if sdk_version:
             self.windows_target_platform_version = sdk_version.rstrip('\\')
+            f = open(version_path, 'w')
+            f.write(self.windows_target_platform_version)
+        else:
+            if os.path.exists(version_path):
+                f = open(version_path, 'r')
+                self.windows_target_platform_version = f.read()
 
     def generate_debug_information(self, link):
         # valid values for vs2017 is 'false', 'true', 'DebugFastLink', 'DebugFull'
