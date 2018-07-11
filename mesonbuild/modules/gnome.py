@@ -1017,7 +1017,7 @@ This will become a hard error in the future.''')
             output = namebase + '-docbook'
             outputs = []
             for f in xml_files:
-                outputs.append('{}-{}'.format(docbook, f))
+                outputs.append('{}-{}'.format(docbook, os.path.basename(str(f))))
 
             if mesonlib.version_compare(glib_version, '>= 2.56.2'):
                 custom_kwargs = {'input': xml_files,
