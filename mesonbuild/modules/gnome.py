@@ -154,10 +154,10 @@ class GnomeModule(ExtensionModule):
 
         # Make source dirs relative to build dir now
         source_dirs = [os.path.join(state.build_to_src, state.subdir, d) for d in source_dirs]
-        # Always include current directory, but after paths set by user
-        source_dirs.append(os.path.join(state.build_to_src, state.subdir))
         # Ensure build directories of generated deps are included
         source_dirs += subdirs
+        # Always include current directory, but after paths set by user
+        source_dirs.append(os.path.join(state.build_to_src, state.subdir))
 
         for source_dir in OrderedSet(source_dirs):
             cmd += ['--sourcedir', source_dir]
