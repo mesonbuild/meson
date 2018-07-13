@@ -85,7 +85,37 @@ test_script:
 
 ## Travis without Docker
 
-This setup is not recommended but included here for completeness
+You can cheat your way around docker by using **python** as language and setting your compiler in the build **matrix**. This example just uses **linux** and **c** but can be easily adapted to **c++** and **osx**.
+
+```yaml
+sudo: false
+
+os: linux
+dist: trusty
+
+language: python
+
+python: 3.6
+
+matrix:
+  include:
+    - env: CC=gcc
+    - env: CC=clang
+
+install:
+  - export NINJA_LATEST=$(curl -s https://api.github.com/repos/ninja-build/ninja/releases/latest | grep browser_download_url | cut -d '"' -f 4 | grep ninja-linux.zip)
+  - wget "$NINJA_LATEST"
+  - unzip -q ninja-linux.zip -d build
+  - export PATH="$PWD/build:$PATH"
+  - pip install meson
+
+script:
+  - meson builddir
+  - ninja -C builddir
+  - ninja -C builddir test
+```
+
+This setup uses the **beta** group. It is not recommended but included here for completeness:
 
 ```yaml
 sudo: false
