@@ -383,6 +383,9 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
                              'partial_dependency': self.partial_dependency_method,
                              })
 
+    def found(self):
+        return self.found_method([], {})
+
     @noPosargs
     @permittedKwargs({})
     def type_name_method(self, args, kwargs):
@@ -916,16 +919,30 @@ class Test(InterpreterObject):
 
 class SubprojectHolder(InterpreterObject, ObjectHolder):
 
-    def __init__(self, subinterpreter):
+    def __init__(self, subinterpreter, subproject_dir, name):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, subinterpreter)
+        self.name = name
+        self.subproject_dir = subproject_dir
         self.methods.update({'get_variable': self.get_variable_method,
+                             'found': self.found_method,
                              })
+
+    @noPosargs
+    @permittedKwargs({})
+    def found_method(self, args, kwargs):
+        return self.found()
+
+    def found(self):
+        return self.held_object is not None
 
     @permittedKwargs({})
     def get_variable_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Get_variable takes one argument.')
+        if not self.found():
+            raise InterpreterException('Subproject "%s/%s" disabled can\'t get_variable on it.' % (
+                self.subproject_dir, self.name))
         varname = args[0]
         if not isinstance(varname, str):
             raise InterpreterException('Get_variable takes a string argument.')
@@ -1838,7 +1855,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'both_libraries': known_library_kwargs,
                     'library': known_library_kwargs,
                     'subdir': {'if_found'},
-                    'subproject': {'version', 'default_options'},
+                    'subproject': {'version', 'default_options', 'required'},
                     'test': {'args', 'depends', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
                     }
@@ -2219,7 +2236,16 @@ external dependencies (including libraries) must go to "dependencies".''')
         dirname = args[0]
         return self.do_subproject(dirname, kwargs)
 
+    def disabled_subproject(self, dirname):
+        self.subprojects[dirname] = SubprojectHolder(None, self.subproject_dir, dirname)
+        return self.subprojects[dirname]
+
     def do_subproject(self, dirname, kwargs):
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        if disabled:
+            mlog.log('\nSubproject', mlog.bold(dirname), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
+            return self.disabled_subproject(dirname)
+
         default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
         default_options = coredata.create_options_dict(default_options)
         if dirname == '':
@@ -2237,7 +2263,13 @@ external dependencies (including libraries) must go to "dependencies".''')
             incpath = ' => '.join(fullstack)
             raise InvalidCode('Recursive include of subprojects: %s.' % incpath)
         if dirname in self.subprojects:
-            return self.subprojects[dirname]
+            subproject = self.subprojects[dirname]
+
+            if required and not subproject.found():
+                raise InterpreterException('Subproject "%s/%s" required but not found.' % (
+                                           self.subproject_dir, dirname))
+
+            return subproject
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
         r = wrap.Resolver(subproject_dir_abs, self.coredata.wrap_mode)
         try:
@@ -2249,22 +2281,35 @@ external dependencies (including libraries) must go to "dependencies".''')
             # promotion...
             self.print_nested_info(dirname)
 
-            msg = 'Subproject directory {!r} does not exist and cannot be downloaded:\n{}'
-            raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname), e))
+            if required:
+                msg = 'Subproject directory {!r} does not exist and cannot be downloaded:\n{}'
+                raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname), e))
+
+            mlog.log('\nSubproject ', mlog.bold(dirname), 'is buildable:', mlog.red('NO'), '(disabling)\n')
+            return self.disabled_subproject(dirname)
+
         subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
         mlog.log()
         with mlog.nested():
-            mlog.log('\nExecuting subproject', mlog.bold(dirname), '\n')
-            subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
-                               self.modules, default_options)
-            subi.subprojects = self.subprojects
+            try:
+                mlog.log('\nExecuting subproject', mlog.bold(dirname), '\n')
+                subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
+                                   self.modules, default_options)
+                subi.subprojects = self.subprojects
 
-            subi.subproject_stack = self.subproject_stack + [dirname]
-            current_active = self.active_projectname
-            subi.run()
-            mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
+                subi.subproject_stack = self.subproject_stack + [dirname]
+                current_active = self.active_projectname
+                subi.run()
+                mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
+            except Exception as e:
+                if not required:
+                    mlog.log(e)
+                    mlog.log('\nSubproject', mlog.bold(dirname), 'is buildable:', mlog.red('NO'), '(disabling)')
+                    return self.disabled_subproject(dirname)
+                else:
+                    raise e
 
         if 'version' in kwargs:
             pv = subi.project_version
@@ -2274,7 +2319,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.active_projectname = current_active
         self.build.subprojects[dirname] = subi.project_version
         self.subprojects.update(subi.subprojects)
-        self.subprojects[dirname] = SubprojectHolder(subi)
+        self.subprojects[dirname] = SubprojectHolder(subi, self.subproject_dir, dirname)
         self.build_def_files += subi.build_def_files
         return self.subprojects[dirname]
 
@@ -2799,6 +2844,13 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     def get_subproject_dep(self, name, dirname, varname, required):
         try:
+            subproject = self.subprojects[dirname]
+            if not subproject.found():
+                if not required:
+                    return DependencyHolder(NotFoundDependency(self.environment), self.subproject)
+
+                raise DependencyException('Subproject %s was not found.' % (name))
+
             dep = self.subprojects[dirname].get_variable_method([varname], {})
         except InvalidArguments as e:
             if required:
@@ -2820,6 +2872,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         dep = self.get_subproject_dep(name, dirname, varname, required)
         if not dep:
             return False
+        if not dep.found():
+            return dep
+
         found = dep.version_method([], {})
         # Don't do a version check if the dependency is not found and not required
         if not dep.found_method([], {}) and not required:

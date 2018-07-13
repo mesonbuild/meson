@@ -2848,6 +2848,16 @@ class FailureTests(BasePlatformTests):
         msg = '.*WARNING:.*feature.*build_always_stale.*custom_target.*'
         self.assertMesonDoesNotOutput(vcs_tag, msg, meson_version='>=0.43')
 
+    def test_missing_subproject_not_required_and_required(self):
+        self.assertMesonRaises("sub1 = subproject('not-found-subproject', required: false)\n" +
+                               "sub2 = subproject('not-found-subproject', required: true)",
+                               """.*Subproject "subprojects/not-found-subproject" required but not found.*""")
+
+    def test_get_variable_on_not_found_project(self):
+        self.assertMesonRaises("sub1 = subproject('not-found-subproject', required: false)\n" +
+                               "sub1.get_variable('naaa')",
+                               """Subproject "subprojects/not-found-subproject" disabled can't get_variable on it.""")
+
 
 class WindowsTests(BasePlatformTests):
     '''
