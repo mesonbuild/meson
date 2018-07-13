@@ -111,7 +111,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
     def get_options(self):
         opts = CPPCompiler.get_options(self)
         opts.update({'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                         ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17'
+                                                         ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17',
                                                           'gnu++98', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17'],
                                                          'none')})
         return opts
