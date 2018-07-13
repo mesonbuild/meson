@@ -13,11 +13,22 @@ The documentation for uses can be found at
 [the Meson homepage](http://mesonbuild.com).
 
 See [here](index.md#Community) for information how to get in contact and
-[here](index.md#Development) for more information on how to contribute.
+[here](index.md#Development) for more information on how to contribute to Meson.
 
-## Features
+## Documentation
 
-## Community
+This documentation is work in progress. So far the following section are planned/under construction.
+There is an [overview](overview.md) introducing new programmers on the basics of Meson.
+
+Special topics about the development like [docmenting](documentation.md) or [testing](testing.md).
+
+And there is [documentation about this documentation](docdoc.md).
+
+## General information
+
+Some general informations on the development process of Meson and how to contribute.
+
+### Community
 
 There are two main methods of connecting with other Meson
 developers. The first one is the mailing list, which is hosted at
@@ -26,10 +37,14 @@ developers. The first one is the mailing list, which is hosted at
 The second way is via IRC. The channel to use is `#mesonbuild` at
 [Freenode](https://freenode.net/).
 
-## Development
+### Development
 
 All development on Meson is done on the [GitHub
 project](https://github.com/mesonbuild/meson). Instructions for
 contributing can be found on the [contribution page](http://mesonbuild.com/Contributing.html).
 
 You do not need to sign a CLA to contribute to Meson.
+
+### Contribution to this documentation
+
+Contributions are more than welcome.
