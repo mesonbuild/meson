@@ -53,6 +53,8 @@ set in the cross file.
 | ppc64               | 64 bit PPC processors |
 | e2k                 | MCST Elbrus processor |
 | parisc              | HP PA-RISC processor  |
+| riscv32             | 32 bit RISC-V Open ISA|
+| riscv64             | 64 bit RISC-V Open ISA|
 | sparc64             | SPARC v9 processor    |
 
 Any cpu family not listed in the above list is not guaranteed to
