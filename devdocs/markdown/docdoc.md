@@ -1,3 +1,3 @@
 # Documenation about this Documentation
 
-TODO
+See the section about the [documentation](documentation.md).
