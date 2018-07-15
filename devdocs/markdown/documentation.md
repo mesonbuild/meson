@@ -15,3 +15,7 @@ Here is a quick guide to the `doc` directory:
 ## How to contribute
 
 Find the appropriate markdown file in the `doc/markdown` (`doc\markdown` under Windows) directory and make your changes.
+
+If you create a new markdown file (which is probably rare), add it to `sitemap.txt`.
+
+**_Attention:_** [Integration tests should be disabled](http://mesonbuild.com/Contributing.html#skipping-integration-tests) for documentation-only commits by putting [skip ci] into the commit title.
