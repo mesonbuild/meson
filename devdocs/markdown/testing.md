@@ -1,5 +1,7 @@
 # Testing
 
+See [this here](http://mesonbuild.com/Contributing.html#tests).
+
 TODO
 
 ## Organization
