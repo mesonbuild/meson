@@ -1,0 +1,2096 @@
+﻿#
+# Copyright (C) Mike Wey
+#
+# Licensed under the GNU Lesser General Public License Version 3
+#
+# This library is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the license, or
+# (at your option) any later version.
+#
+# This software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this library.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# must start with wrap
+wrap: glib
+file: GLib-2.0.gir
+file: GModule-2.0.gir
+
+addAliases: start
+	public alias uint uid_t;
+	public alias int pid_t;
+
+	version( Windows )
+	{
+		alias int glong;
+		alias uint gulong;
+	}
+	else version( X86_64 )
+	{
+		alias long glong;
+		alias ulong gulong;
+	}
+	else
+	{
+		alias int glong;
+		alias uint gulong;
+	}
+
+	version (Windows)
+	{
+		private import core.stdc.stdio;
+
+		static if( !is(typeof(fdopen(0, null))) )
+		{
+			extern (C) FILE*  fdopen(int, char*);
+		}
+	}
+
+	struct Scoped(T)
+	{
+		T payload;
+
+		alias payload this;
+
+		@disable this();
+		@disable this(this);
+
+		~this()
+		{
+			.destroy(payload);
+		}
+	}
+
+	auto getScopedGobject(T, Args...)(auto ref Args args) if (is(T == class))
+	{
+		Scoped!(T) result = void;
+		result.payload = new T(args);
+
+		return result;
+	}
+
+	/**
+	 * Get the length of a zero terminated array.
+	 */
+	size_t getArrayLength(T)(T* arr)
+	{
+		size_t len;
+
+		for ( ; arr[len]; len++ ){}
+
+		return len;
+	}
+
+	unittest
+	{
+		assert(getArrayLength("aaaaaaaaa\0".ptr) == 9);
+	}
+
+	Type* gMalloc(Type)()
+	{
+		import glib.c.functions;
+		return cast(Type*)g_malloc0(Type.sizeof);
+	}
+
+	alias void* GIConv;
+addAliases: end
+
+addEnums: start
+
+	enum GPriority
+	{
+		HIGH = -100,
+		DEFAULT = 0,
+		HIGH_IDLE = 100,
+		DEFAULT_IDLE = 200,
+		LOW = 300
+	}
+
+addEnums: end
+
+noConstant: DIR_SEPARATOR
+noConstant: DIR_SEPARATOR_S
+noConstant: E
+noConstant: LN10
+noConstant: LN2
+noConstant: LOG_2_BASE_10
+noConstant: PI
+noConstant: PI_2
+noConstant: PI_4
+noConstant: SEARCHPATH_SEPARATOR
+noConstant: SEARCHPATH_SEPARATOR_S
+noConstant: SQRT2
+noConstant: VERSION_MIN_REQUIRED
+
+struct: Array
+class: ArrayG
+
+struct: Base64
+move: base64_decode_step Base64 decode_step
+move: base64_decode_inplace Base64 decode_inplace
+noCode: decode_step
+array: decode_inplace Return out_len
+code: start
+	/**
+	 * Incrementally decode a sequence of binary data from its Base-64 stringified
+	 * representation. By calling this function multiple times you can convert
+	 * data in chunks to avoid having to have the full encoded data in memory.
+	 *
+	 * The output buffer must be large enough to fit all the data that will
+	 * be written to it. Since base64 encodes 3 bytes in 4 chars you need
+	 * at least: (@len / 4) * 3 + 3 bytes (+ 3 may be needed in case of non-zero
+	 * state).
+	 *
+	 * Params:
+	 *     inn = binary input data
+	 *     len = max length of @in data to decode
+	 *     output = output buffer
+	 *     state = Saved state between steps, initialize to 0
+	 *     save = Saved state between steps, initialize to 0
+	 *
+	 * Return: The number of bytes of output that was written
+	 *
+	 * Since: 2.12
+	 */
+	public static size_t decodeStep(string inn, ref ubyte[] output, ref int state, ref uint save)
+	{
+		auto p = g_base64_decode_step(Str.toStringz(inn), cast(int)inn.length, cast(char*)output.ptr, &state, &save);
+
+		return p;
+	}
+code: end
+
+struct: BookmarkFile
+out: load_from_data_dirs full_path
+array: set_groups groups length
+
+struct: ByteArray
+class: ByteArray
+
+struct: Bytes
+noCode: new_take
+noCode: new_static
+
+struct: Checksum
+noCode: get_digest
+code: start
+	/**
+	 * Gets the digest from checksum as a raw binary vector and places it
+	 * into buffer. The size of the digest depends on the type of checksum.
+	 *
+	 * Once this function has been called, the Checksum is closed and can
+	 * no longer be updated with update().
+	 *
+	 * Params:
+	 *     buffer = output buffer
+	 *     digestLen = an inout parameter. The caller initializes it to the size of buffer.
+	 *         After the call it contains the length of the digest.
+	 *
+	 * Since: 2.16
+	 */
+	public void getDigest(ref ubyte[] buffer)
+	{
+		size_t digestLen = buffer.length;
+
+		g_checksum_get_digest(gChecksum, buffer.ptr, &digestLen);
+
+		buffer = buffer[0 .. digestLen];
+	}
+code: end
+
+struct: ConstructionException
+namespace:
+code: start
+	class ConstructionException : Exception
+	{
+		this(string message)
+		{
+			super(message);
+		}
+
+		override string toString()
+		{
+			return "Construction failure, " ~ msg;
+		}
+	}
+code: end
+
+struct: DateTime
+structWrap: gpointer DateTime
+noCode: new_now_utc
+noCode: new_now_local
+noCode: new_from_unix_local
+noCode: new_from_unix_utc
+noCode: new_from_timeval_local
+noCode: new_from_timeval_utc
+noCode: new_local
+noCode: new_utc
+noCode: hash
+code: start
+	/**
+	 * Creates a DateTime corresponding to the given Unix time t
+	 * Unix time is the number of seconds that have elapsed since 1970-01-01
+	 * 00:00:00 UTC, regardless of the local time offset.
+	 *
+	 * This call can fail (ConstructionException) if t represents a time outside
+	 * of the supported range of GDateTime.
+	 * You should release the return value by calling unref()
+	 * when you are done with it
+	 *
+	 * Params:
+	 *     t   = the Unix time
+	 *     utc = If true use utc else use the local timezone.
+	 *
+	 * Throws: ConstructionException GTK+ fails to create the object.
+	 *
+	 * Since: 2.26
+	 */
+	public this (long t, bool utc = true)
+	{
+		GDateTime* p;
+
+		if ( utc )
+		{
+			p = g_date_time_new_from_unix_utc(t);
+		}
+		else
+		{
+			p = g_date_time_new_from_unix_local(t);
+		}
+
+		if(p is null)
+		{
+			throw new ConstructionException("null returned by g_date_time_new_from_unix_local(t)");
+		}
+		this(cast(GDateTime*) p);
+	}
+
+	/**
+	 * Creates a DateTime corresponding to the given TimeVal tv.
+	 * The time contained in a TimeVal is always stored in the form of
+	 * seconds elapsed since 1970-01-01 00:00:00 UTC, regardless of the
+	 * local time offset.
+	 *
+	 * This call can fail (ConstructionException) if tv represents a time outside
+	 * of the supported range of DateTime.
+	 * You should release the return value by calling unref()
+	 * when you are done with it.
+	 *
+	 * Params:
+	 *     tv  = a GTimeVal
+	 *     utc = If true use utc else use the local timezone.
+	 *
+	 * Throws: ConstructionException GTK+ fails to create the object.
+	 *
+	 * Since: 2.26
+	 */
+	public this (ref GTimeVal tv, bool utc = true)
+	{
+		GDateTime* p;
+
+		if ( utc )
+		{
+			p = g_date_time_new_from_timeval_utc(&tv);
+		}
+		else
+		{
+			p = g_date_time_new_from_timeval_local(&tv);
+		}
+
+		if(p is null)
+		{
+			throw new ConstructionException("null returned by g_date_time_new_from_timeval_local((tv is null) ? null : tv.getTimeValStruct())");
+		}
+		this(cast(GDateTime*) p);
+	}
+
+	/** */
+	override bool opEquals(Object rhs)
+	{
+		DateTime date = cast(DateTime)rhs;
+
+		if ( date is null )
+			return false;
+
+		return equal(this, date) != 0;
+	}
+
+	/** */
+	override int opCmp(Object rhs)
+	{
+		DateTime date = cast(DateTime)rhs;
+
+		if ( date is null )
+			return int.min;
+
+		return compare(this, date);
+	}
+
+	/** */
+	override nothrow @trusted hash_t toHash()
+	{
+		return hash();
+	}
+
+	/**
+	 * Hashes datetime into a guint, suitable for use within GHashTable.
+	 * Since 2.26
+	 * Params:
+	 * datetime = a GDateTime
+	 * Returns: a guint containing the hash
+	 */
+	public nothrow @trusted uint hash()
+	{
+		try
+		{
+			return g_date_time_hash(gDateTime);
+		}
+		catch(Exception e)
+		{
+			return 0;
+		}
+	}
+code: end
+
+struct: Dir
+class: Directory
+
+struct: Error
+class: ErrorG
+move: propagate_error Error
+move: set_error_literal Error
+out: set_error_literal err
+out: propagate_error dest
+
+struct: GException
+namespace:
+import: glib.ErrorG
+import: glib.Str
+code: start
+	class GException : Exception
+	{
+		ErrorG error;
+
+		this(ErrorG error)
+		{
+			super( Str.toString(error.getErrorGStruct().message) );
+			this.error = error;
+		}
+	}
+code: end
+
+struct: GLib
+namespace:
+code: start
+	static import glib.Version;
+	deprecated("moves to the glib.Version module")
+	alias glib.Version.Version Version;
+code: end
+
+struct: HashTable
+class: HashTable
+
+struct: Hmac
+noCode: get_digest
+move: compute_hmac_for_data Hmac
+move: compute_hmac_for_string Hmac
+move: compute_hmac_for_bytes Hmac
+array: compute_hmac_for_data data length
+array: compute_hmac_for_string str length
+code: start
+	/**
+	 * Gets the digest from checksum as a raw binary array and places it
+	 * into buffer. The size of the digest depends on the type of checksum.
+	 *
+	 * Once this function has been called, the Hmac is closed and can
+	 * no longer be updated with update().
+	 *
+	 * Params:
+	 *     buffer = output buffer
+	 *
+	 * Since: 2.30
+	 */
+	public void getDigest(ref ubyte[] buffer)
+	{
+		size_t digestLen = buffer.length;
+
+		g_hmac_get_digest(gHmac, buffer.ptr, &digestLen);
+
+		buffer = buffer[0 .. digestLen];
+	}
+code: end
+
+struct: IConv
+namespace:
+noStruct: true
+ref: iconv inbuf
+out: iconv inbytes_left
+array: iconv inbuf inbytes_left
+ref: iconv outbuf
+out: iconv outbytes_left
+array: iconv outbuf outbytes_left
+
+struct: Idle
+class: Idle
+cType:
+code: start
+	/** Holds all idle delegates */
+	private bool delegate()[] idleListeners;
+	/** Our idle ID */
+	private uint idleID;
+	/** The priority this class was instantiated with */
+	private GPriority priority = GPriority.DEFAULT_IDLE;
+
+	/**
+	 * Creates a new idle cycle.
+	 * Params:
+	 *    	dlg = the delegate to be executed
+	 *    	fireNow = When true the delegate will be executed emmidiatly
+	 */
+	this(bool delegate() dlg, bool fireNow=false)
+	{
+		if ( fireNow && !dlg() )
+			return;
+
+		idleListeners ~= dlg;
+		idleID = g_idle_add_full(priority, cast(GSourceFunc)&idleCallback, cast(void*)this, cast(GDestroyNotify)&destroyIdleNotify);
+	}
+
+	/**
+	 * Creates a new idle cycle.
+	 * Params:
+	 *    	dlg = the delegate to be executed
+	 *      priority = Priority for the idle function
+	 *    	fireNow = When true the delegate will be executed emmidiatly
+	 */
+	this(bool delegate() dlg, GPriority priority, bool fireNow=false)
+	{
+		this.priority = priority;
+
+		if ( fireNow && !dlg() )
+			return;
+
+		idleListeners ~= dlg;
+		idleID = g_idle_add_full(priority, cast(GSourceFunc)&idleCallback, cast(void*)this, cast(GDestroyNotify)&destroyIdleNotify);
+	}
+
+	/** */
+	public void stop()
+	{
+		if ( idleID > 0 )
+			g_source_remove(idleID);
+	}
+
+	/**
+	 * Removes the idle from gtk
+	 */
+	~this()
+	{
+		stop();
+	}
+
+	/**
+	 * Adds a new delegate to this idle cycle
+	 * Params:
+	 *    	dlg =
+	 *    	fireNow =
+	 */
+	public void addListener(bool delegate() dlg, bool fireNow=false)
+	{
+		if ( fireNow && !dlg() )
+			return;
+
+		idleListeners ~= dlg;
+
+		if ( idleID == 0 )
+			idleID = g_idle_add_full(priority, cast(GSourceFunc)&idleCallback, cast(void*)this, cast(GDestroyNotify)&destroyIdleNotify);
+	}
+
+	/*
+	 * Executes all delegates on the execution list
+	 * Returns: false if the callback should be removed.
+	 */
+	extern(C) static bool idleCallback(Idle idle)
+	{
+		bool runAgain = false;
+		int i = 0;
+
+		while ( i<idle.idleListeners.length )
+		{
+			if ( !idle.idleListeners[i]() )
+			{
+				idle.idleListeners = idle.idleListeners[0..i] ~ idle.idleListeners[i+1..$];
+			}
+			else
+			{
+				runAgain = true;
+				++i;
+			}
+		}
+
+		return runAgain;
+	}
+
+	/*
+	 * Reset the idle object when it's destroyed on the GTK side.
+	 */
+	extern(C) static void destroyIdleNotify(Idle idle)
+	{
+		idle.idleListeners.length = 0;
+		idle.idleID = 0;
+	}
+code: end
+
+struct: IOChannel
+array: read_line str_return length
+out: read_line_string terminator_pos
+array: write_chars buf count
+
+struct: List
+class: ListG
+import: gobject.ObjectG
+import: glib.Str
+code: start
+  	/** */
+	@property void* data()
+	{
+		return gList.data;
+	}
+
+  	/**
+	 * get the next element
+	 * Returns: the next element, or NULL if there are no more elements.
+	 */
+	@property ListG next()
+	{
+		if ( gList.next is null )
+		{
+			return null;
+		}
+
+		return new ListG(gList.next);
+	}
+
+	/**
+	 * get the previous element
+	 * Returns: the previous element, or NULL if there are no more elements.
+	 */
+	@property ListG previous()
+	{
+		if ( gList.prev is null )
+		{
+			return null;
+		}
+
+		return new ListG(gList.prev);
+	}
+
+	/**
+	 * Turn the list into a D array of the desiered type.
+	 * Type T wraps should match the type of the data.
+	 */
+	public T[] toArray(T, TC = getCType!T)()
+		if ( is(T == class) )
+	{
+		T[] arr = new T[length()];
+		ListG list = this;
+		size_t count;
+
+		while(list !is null && count < arr.length)
+		{
+			arr[count] = ObjectG.getDObject!(T)(cast(TC)list.data);
+			list = list.next();
+			count++;
+		}
+
+		return arr;
+	}
+
+	/** Ditto */
+	public T[] toArray(T)()
+		if ( is ( T == string ) )
+	{
+		T[] arr = new T[length()];
+		ListG list = this;
+		size_t count;
+
+		while(list !is null && count < arr.length)
+		{
+			arr[count] = Str.toString(cast(char*)list.data);
+			list = list.next();
+			count++;
+		}
+
+		return arr;
+	}
+
+	private template getCType(T)
+	{
+		static if ( is(T == class) )
+			alias getCType = typeof(T.tupleof[0]);
+		else
+			alias getCType = void*;
+	}
+
+	unittest
+	{
+		import gobject.Value;
+
+		auto list = new ListG(null);
+		list = list.append(new Value(0).getValueStruct());
+		list = list.append(new Value(1).getValueStruct());
+		auto arr = list.toArray!Value();
+
+		assert(arr[0].getInt() == 0);
+		assert(arr[1].getInt() == 1);
+
+		list = new ListG(null);
+		list = list.append(cast(void*)"test\0".ptr);
+		list = list.append(cast(void*)"test2\0".ptr);
+
+		assert(["test", "test2"] == list.toArray!string());
+	}
+code: end
+
+struct: MainContext
+in: query fds
+in: query n_fds
+
+struct: MarkupParseContext
+class: SimpleXML
+
+struct: MemorySlice
+namespace:
+code: start
+	public T* sliceNew(T)()
+	{
+		// We cant use sliceAlloc for the GLib array types.
+		// the actual array structs are larger than the ones used in the API.
+		static if ( is( T == GArray ) )
+			return g_array_new(false, false, 1);
+		else static if ( is( T == GByteArray ) )
+			return g_byte_array_new();
+		else static if ( is( T == GPtrArray ) )
+			return g_ptr_array_new();
+		else
+			return cast(T*)g_slice_alloc0(T.sizeof);
+	}
+
+	public T* sliceAlloc(T)()
+	{
+		return cast(T*)g_slice_alloc0(T.sizeof);
+	}
+
+	public T* sliceDup(T)(T* memBlock)
+	{
+		return cast(T*)g_slice_copy(T.sizeof, memBlock);
+	}
+
+	public void sliceFree(T)(T* memBlock)
+ 	{
+ 		 g_slice_free1(T.sizeof, memBlock);
+ 	}
+code: end
+
+struct: Module
+in: symbol symbol
+
+struct: PatternSpec
+class: Pattern
+
+struct: PtrArray
+class: PtrArray
+code: start
+	/**
+	 * Number of pointers in the array
+	 */
+	public uint len ()
+	{
+		return gPtrArray.len;
+	}
+
+	/**
+	 * Returns the pointer at the given index of the pointer array.
+	 *
+	 * This does not perform bounds checking on the given index, so
+	 * you are responsible for checking it against the array length.
+	 */
+	public void* index (uint idx)
+	{
+		return (gPtrArray.pdata)[idx];
+	}
+code: end
+
+struct: Queue
+class: QueueG
+
+struct: Rand
+class: RandG
+alias: double randDouble
+alias: int randInt
+array: new_with_seed_array seed seed_length
+
+struct: Scanner
+class: ScannerG
+
+struct: SList
+class: ListSG
+import: gobject.ObjectG
+import: glib.Str
+code: start
+  	/** */
+	@property void* data()
+	{
+		return gSList.data;
+	}
+
+  	/**
+	 * get the next element
+	 * Returns: the next element, or NULL if there are no more elements.
+	 */
+	@property ListSG next()
+	{
+		if ( gSList.next is null )
+		{
+			return null;
+		}
+
+		return new ListSG(gSList.next);
+	}
+
+	/**
+	 * Turn the list into a D array of the desiered type.
+	 * Type T wraps should match the type of the data.
+	 */
+	public T[] toArray(T, TC = getCType!T)()
+		if ( is(T == class) )
+	{
+		T[] arr = new T[length()];
+		ListSG list = this;
+		size_t count;
+
+		while(list !is null && count < arr.length)
+		{
+			arr[count] = ObjectG.getDObject!(T)(cast(TC)list.data);
+			list = list.next();
+			count++;
+		}
+
+		return arr;
+	}
+
+	/** Ditto */
+	public T[] toArray(T)()
+		if ( is ( T == string ) )
+	{
+		T[] arr = new T[length()];
+		ListSG list = this;
+		size_t count;
+
+		while(list !is null && count < arr.length)
+		{
+			arr[count] = Str.toString(cast(char*)list.data);
+			list = list.next();
+			count++;
+		}
+
+		return arr;
+	}
+
+	private template getCType(T)
+	{
+		static if ( is(T == class) )
+			alias getCType = typeof(T.tupleof[0]);
+		else
+			alias getCType = void*;
+	}
+
+	unittest
+	{
+		import gobject.Value;
+
+		auto list = new ListSG(null);
+		list = list.append(new Value(0).getValueStruct());
+		list = list.append(new Value(1).getValueStruct());
+		auto arr = list.toArray!Value();
+
+		assert(arr[0].getInt() == 0);
+		assert(arr[1].getInt() == 1);
+
+		list = new ListSG(null);
+		list = list.append(cast(void*)"test\0".ptr);
+		list = list.append(cast(void*)"test2\0".ptr);
+
+		assert(["test", "test2"] == list.toArray!string());
+	}
+code: end
+
+struct: Spawn
+class: Spawn
+cType:
+import: core.thread
+import: core.stdc.string
+import: core.stdc.stdio
+import: std.string
+import: std.traits
+#noCode: spawn_async_with_pipes
+code: start
+	//we need fdopen.
+	version(Posix)
+	{
+		private import core.sys.posix.stdio;
+	}
+	//fdopen for Windows is defined in glib.c.types.
+
+	string workingDirectory = ".";
+	string[] argv;
+	string[] envp;
+	GSpawnFlags flags = SpawnFlags.SEARCH_PATH;
+	GSpawnChildSetupFunc childSetup;
+	void* userData;
+	GPid childPid;
+	FILE* standardInput;
+	FILE* standardOutput;
+	FILE* standardError;
+	GError* error;
+	int stdIn;
+	int stdOut;
+	int stdErr;
+
+	// for commandLineSync
+	int exitStatus;
+	char* strOutput;
+	char* strError;
+
+	alias bool delegate(Spawn) ChildWatch;
+	ChildWatch externalWatch;
+
+	/**
+	 * Creates a Spawn for execution.
+	 */
+	public this(string program, string[] envp=null)
+	{
+		argv ~= program;
+		this.envp = envp;
+	}
+
+	/**
+	 * Creates a Spawn for execution.
+	 */
+	public this(string[] program, string[] envp=null)
+	{
+		argv = program;
+		this.envp = envp;
+	}
+
+	/**
+	 * Adds a delegate to be notified on the end of the child process.
+	 * Params:
+	 *    	dlg =
+	 */
+	public void addChildWatch(ChildWatch dlg)
+	{
+		externalWatch = dlg;
+	}
+
+	/**
+	 * Closes all open streams and child process.
+	 */
+	public void close()
+	{
+		if (stdIn != 0 )
+		{
+			fclose(standardInput);
+			stdIn = 0;
+		}
+		if (stdOut != 0 )
+		{
+			fclose(standardOutput);
+			stdOut = 0;
+		}
+		if (stdErr != 0 )
+		{
+			fclose(standardError);
+			stdErr = 0;
+		}
+		static if ( isPointer!(GPid) )
+		{
+			if ( childPid !is null )
+			{
+				closePid(childPid);
+				childPid = null;
+			}
+		}
+		else
+		{
+			if ( childPid != 0 )
+			{
+				closePid(childPid);
+				childPid = 0;
+			}
+		}
+	}
+
+	/**
+	 * Adds a parameter to the execution program
+	 */
+	public void addParm(string parm)
+	{
+		argv ~= parm;
+	}
+
+	/**
+	 * Gets the last error message
+	 */
+	public string getLastError()
+	{
+		if ( error != null )
+		{
+			return Str.toString(error.message);
+		}
+		return "";
+	}
+
+	/**
+	 * Executes the prepared process
+	 */
+	public int execAsyncWithPipes(
+		ChildWatch externalWatch = null,
+		bool delegate(string) readOutput = null,
+		bool delegate(string) readError = null )
+	{
+		int result = g_spawn_async_with_pipes(
+		Str.toStringz(workingDirectory),
+		Str.toStringzArray(argv),
+		Str.toStringzArray(envp),
+		flags,
+		childSetup,
+		userData,
+		&childPid,
+		&stdIn,
+		&stdOut,
+		&stdErr,
+		&error
+		);
+
+		if ( result != 0 )
+		{
+			this.externalWatch = externalWatch;
+			g_child_watch_add(childPid, cast(GChildWatchFunc)(&childWatchCallback), cast(void*)this);
+			standardInput = fdopen(stdIn, Str.toStringz("w"));
+			standardOutput = fdopen(stdOut, Str.toStringz("r"));
+			standardError = fdopen(stdErr, Str.toStringz("r"));
+
+			if ( readOutput !is null )
+			{
+				(new ReadFile(standardOutput, readOutput)).start();
+			}
+			if ( readError !is null )
+			{
+				(new ReadFile(standardError, readError)).start();
+			}
+		}
+
+		return result;
+	}
+
+	class ReadFile : Thread
+	{
+		bool delegate(string) read;
+		FILE* file;
+
+		int lineCount;
+
+		this(FILE* file, bool delegate (string) read )
+		{
+			this.file = file;
+			this.read = read;
+
+			super(&run);
+		}
+
+		public void run()
+		{
+			string line = readLine(file);
+			while( line !is null )
+			{
+				++lineCount;
+				if ( read !is null )
+				{
+					read(line);
+				}
+				line = readLine(file);
+			}
+		}
+	}
+
+	private string readLine(FILE* stream, int max=4096)
+	{
+		if ( feof(stream) )
+		{
+			if ( externalWatch !is null )
+			{
+				externalWatch(this);
+			}
+			return null;
+		}
+		string line;
+		line.length = max+1;
+		char* lineP = fgets(Str.toStringz(line), max, stream);
+		if ( lineP is null )
+		{
+			return "";
+		}
+		size_t l = strlen(line.ptr);
+		if ( l > 0 ) --l;
+
+		return line[0..l];
+	}
+
+	extern(C) static void childWatchCallback(int pid, int status, Spawn spawn)
+	{
+		//writefln("Spawn.childWatchCallback %s %s", pid, status);
+		spawn.exitStatus = status;
+		if ( spawn.externalWatch !is null )
+		{
+			spawn.externalWatch(spawn);
+		}
+		spawn.close();
+	}
+
+
+	public bool endOfOutput()
+	{
+		if ( standardOutput is null ) return true;
+		return feof(standardOutput) != 0;
+	}
+
+	public bool endOfError()
+	{
+		if ( standardError is null ) return true;
+		return feof(standardError) != 0;
+	}
+
+	string getOutputString()
+	{
+		return Str.toString(strOutput);
+	}
+
+	string getErrorString()
+	{
+		return Str.toString(strError);
+	}
+
+	int getExitStatus()
+	{
+		return exitStatus;
+	}
+
+	/**
+	 * Executes a command synchronasly and
+	 * optionally calls delegates for sysout, syserr and end of job
+	 *
+	 */
+	public int commandLineSync(
+		ChildWatch externalWatch = null,
+		bool delegate(string) readOutput = null,
+		bool delegate(string) readError = null )
+	{
+		string commandLine;
+		foreach ( int count, string arg; argv)
+		{
+			if ( count > 0 )
+			{
+				commandLine ~= ' ';
+			}
+			commandLine ~= arg;
+		}
+		int status = g_spawn_command_line_sync(
+			Str.toStringz(commandLine),
+			&strOutput,
+			&strError,
+			&exitStatus,
+			&error);
+		if ( readOutput != null )
+		{
+			foreach ( string line ; splitLines(Str.toString(strOutput)) )
+			{
+				readOutput(line);
+			}
+		}
+		if ( readError != null )
+		{
+			foreach ( string line ; splitLines(Str.toString(strError)) )
+			{
+				readError(line);
+			}
+		}
+		if ( externalWatch != null )
+		{
+			externalWatch(this);
+		}
+		return status;
+	}
+code: end
+
+struct: Str
+import: core.stdc.stdio
+import: core.stdc.string
+import: gobject.c.types
+code: start
+	/*
+	 * Convert C-style 0 terminated string s to char[] string.
+	 * copied from phobos
+	 */
+	public static string toString(const(char)* s, size_t len = 0) pure
+	{
+		if ( s is null )
+			return cast(string)null;
+
+		if ( len == 0 )
+			len = strlen(s);
+
+		return s[0 .. len].idup;
+	}
+
+	/*
+	 * Convert array of chars s[] to a C-style 0 terminated string.
+	 * copied from phobos
+	 */
+	public static char* toStringz(string s) pure
+	{
+		if ( s is null ) return null;
+		char[] copy;
+
+		if (s.length == 0)
+		{
+			copy = "\0".dup;
+		}
+		else
+		{
+			// Need to make a copy
+			copy = new char[s.length + 1];
+			copy[0..s.length] = s[];
+			copy[s.length] = 0;
+		}
+
+		return copy.ptr;
+	}
+
+	/** */
+	public static char** toStringzArray(string[] args) pure
+	{
+		if ( args is null )
+		{
+			return null;
+		}
+		char** argv = (new char*[args.length]).ptr;
+		int argc = 0;
+		foreach (string p; args)
+		{
+			argv[argc++] = cast(char*)(p.dup~'\0');
+		}
+		argv[argc] = null;
+
+		return argv;
+	}
+
+	/** */
+	public static char*** toStringzArray(string[][] args) pure
+	{
+		if ( args is null )
+		{
+			return null;
+		}
+		char**[] argv = new char**[args.length];
+		int argc = 0;
+		foreach( string[] p; args )
+		{
+			argv[argc++] = toStringzArray(p);
+		}
+		argv[argc] = null;
+
+		return argv.ptr;
+	}
+
+	/** */
+	public static string[] toStringArray(const(char*)* args) pure
+	{
+		if ( args is null )
+		{
+			return null;
+		}
+		string[] argv;
+
+		while ( *args !is null )
+		{
+			argv ~= toString(*args);
+			args++;
+		}
+
+		return argv;
+	}
+
+	/** */
+	public static string[] toStringArray(const(char*)* args, size_t len) pure
+	{
+		string[] argv = new string[len];
+
+		for ( int i; i < len; i++ )
+		{
+			argv[i] = toString(args[i]);
+		}
+
+		return argv;
+	}
+
+	/** */
+	public static string[][] toStringArray(char*** args) pure
+	{
+		string[][] argv;
+
+		if ( args is null )
+		{
+			return null;
+		}
+
+		while ( *args !is null )
+		{
+			argv ~= toStringArray(*args);
+			args++;
+		}
+
+		return argv;
+	}
+
+	/** */
+	public static void freeString(char* str)
+	{
+		g_free(str);
+	}
+
+	/** */
+	public static void freeStringArray(char** str)
+	{
+		g_strfreev(str);
+	}
+
+	/** */
+	public static void freeStringArray(char*** str)
+	{
+		while ( *str !is null )
+		{
+			g_strfreev(*str);
+			str++;
+		}
+
+		g_free(str);
+	}
+code: end
+
+struct: String
+class: StringG
+
+struct: Thread
+noCode: new
+
+struct: Timeout
+class: Timeout
+cType:
+code: start
+	/** Holds all idle delegates */
+	private bool delegate()[] timeoutListeners;
+	/** Our timeout ID */
+	private uint timeoutID;
+
+
+	/**
+	 * Creates a new timeout cycle with the default priority, GPriority.DEFAULT.
+	 *
+	 * Note that timeout functions may be delayed, due to the processing of other
+	 * event sources. Thus they should not be relied on for precise timing.
+	 * After each call to the timeout function, the time of the next timeout is
+	 * recalculated based on the current time and the given interval
+	 * (it does not try to 'catch up' time lost in delays).
+	 * Params:
+	 *    	interval = 	the timeout in milieconds
+	 *    	delegate() = 	the delegate to be executed
+	 *    	fireNow = 	When true the delegate will be executed emmidiatly
+	 */
+	this(uint interval, bool delegate() dlg, bool fireNow=false)
+	{
+		if ( fireNow && !dlg() )
+			return;
+
+		timeoutListeners ~= dlg;
+		timeoutID = g_timeout_add_full(GPriority.DEFAULT, interval, cast(GSourceFunc)&timeoutCallback, cast(void*)this, cast(GDestroyNotify)&destroyTimeoutNotify);
+	}
+
+	/**
+	 * Creates a new timeout cycle.
+	 * Params:
+	 *    	interval = 	the timeout in milieconds
+	 *    	delegate() = 	the delegate to be executed
+	 *      priority = Priority for the timeout function
+	 *    	fireNow = 	When true the delegate will be executed emmidiatly
+	 */
+	this(uint interval, bool delegate() dlg, GPriority priority, bool fireNow=false)
+	{
+		if ( fireNow && !dlg() )
+			return;
+
+		timeoutListeners ~= dlg;
+		timeoutID = g_timeout_add_full(priority, interval, cast(GSourceFunc)&timeoutCallback, cast(void*)this, cast(GDestroyNotify)&destroyTimeoutNotify);
+	}
+
+	/**
+	 * Creates a new timeout cycle with the default priority, GPriority.DEFAULT.
+	 * Params:
+	 *    	delegate() = 	the delegate to be executed
+	 *      seconds = interval in seconds.
+	 *    	fireNow = 	When true the delegate will be executed emmidiatly
+	 */
+	this(bool delegate() dlg, uint seconds, bool fireNow=false)
+	{
+		if ( fireNow && !dlg() )
+			return;
+
+		timeoutListeners ~= dlg;
+		timeoutID = g_timeout_add_seconds_full(GPriority.DEFAULT, seconds, cast(GSourceFunc)&timeoutCallback, cast(void*)this, cast(GDestroyNotify)&destroyTimeoutNotify);
+	}
+
+	/**
+	 * Creates a new timeout cycle.
+	 * Params:
+	 *    	delegate() = 	the delegate to be executed
+	 *      seconds = interval in seconds.
+	 *      priority = Priority for the timeout function
+	 *    	fireNow = 	When true the delegate will be executed emmidiatly
+	 */
+	this(bool delegate() dlg, uint seconds, GPriority priority, bool fireNow=false)
+	{
+		if ( fireNow && !dlg() )
+			return;
+
+		timeoutListeners ~= dlg;
+		timeoutID = g_timeout_add_seconds_full(priority, seconds, cast(GSourceFunc)&timeoutCallback, cast(void*)this, cast(GDestroyNotify)&destroyTimeoutNotify);
+	}
+
+	/** Removes the timeout from gtk */
+	public void stop()
+	{
+		if ( timeoutID > 0 )
+		{
+			g_source_remove(timeoutID);
+		}
+	}
+
+	/**
+	 * Removes the timeout from gtk
+	 */
+	~this()
+	{
+		stop();
+	}
+
+	/**
+	 * Adds a new delegate to this timeout cycle
+	 * Params:
+	 *    	dlg =
+	 *    	fireNow =
+	 */
+	public void addListener(bool delegate() dlg, bool fireNow=false)
+	{
+		if ( fireNow && !dlg() )
+			return;
+
+		timeoutListeners ~= dlg;
+	}
+
+	/**
+	 * The callback execution from glib
+	 * Params:
+	 *    	timeout =
+	 * Returns:
+	 */
+	extern(C) static bool timeoutCallback(Timeout timeout)
+	{
+		bool runAgain = false;
+		int i = 0;
+
+		while ( i<timeout.timeoutListeners.length )
+		{
+			if ( !timeout.timeoutListeners[i]() )
+			{
+				timeout.timeoutListeners = timeout.timeoutListeners[0..i] ~ timeout.timeoutListeners[i+1..$];
+			}
+			else
+			{
+				runAgain = true;
+				++i;
+			}
+		}
+
+		return runAgain;
+	}
+
+	/*
+	 * Reset the timeout object when it's destroyed on the GTK side.
+	 */
+	extern(C) static void destroyTimeoutNotify(Timeout timeout)
+	{
+		timeout.timeoutListeners.length = 0;
+		timeout.timeoutID = 0;
+	}
+code: end
+
+struct: TimeZone
+noCode: new_local
+noCode: new_utc
+
+struct: Tree
+class: BBTree
+
+struct: Util
+move: build_filenamev Util
+move: build_pathv Util
+noCode: build_filenamev
+noCode: build_pathv
+code: start
+	/**
+	 * Behaves exactly like g_build_filename(), but takes the path elements
+	 * as a string array, instead of varargs. This function is mainly
+	 * meant for language bindings.
+	 *
+	 * Params:
+	 *     args = strings containing the path elements.
+	 *
+	 * Return: a newly-allocated string that must be freed with g_free().
+	 *
+	 * Since: 2.8
+	 */
+	public static string buildFilename(string[] firstElement ... )
+	{
+		return Str.toString(g_build_filenamev(Str.toStringzArray(firstElement)));
+	}
+
+	/**
+	 * Behaves exactly like g_build_path(), but takes the path elements
+	 * as a string array, instead of varargs. This function is mainly
+	 * meant for language bindings.
+	 *
+	 * Params:
+	 *     separator = a string used to separator the elements of the path.
+	 *     args = strings containing the path elements.
+	 *
+	 * Return: a newly-allocated string that must be freed with g_free().
+	 *
+	 * Since: 2.8
+	 */
+	public static string buildPath(string separator, string[] firstElement ... )
+	{
+		return Str.toString(g_build_pathv(Str.toStringz(separator), Str.toStringzArray(firstElement)));
+	}
+code: end
+
+struct: Variant
+noCode: new_bytestring_array
+noCode: new_object_path
+noCode: new_signature
+noCode: new_objv
+noCode: new_bytestring
+noCode: new_handle
+noCode: new_take_string
+code: start
+	/**
+	 * Creates a DBus object path GVariant with the contents of string.
+	 * string must be a valid DBus object path.
+	 * Use Variant.isObjectPath() if you're not sure.
+	 *
+	 * Since: 2.24
+	 *
+	 * Throws: ConstructionException GTK+ fails to create the object.
+	 */
+	public static Variant fromObjectPath(string path)
+	{
+		auto p = g_variant_new_object_path(Str.toStringz(path));
+		if(p is null)
+		{
+			throw new ConstructionException("null returned by g_variant_new_object_path");
+		}
+		return new Variant(cast(GVariant*) p);
+	}
+
+	/**
+	 * Creates a DBus type signature GVariant with the contents of string.
+	 * string must be a valid DBus type signature.
+	 * Use Variant.isSignature() if you're not sure.
+	 *
+	 * Since: 2.24
+	 *
+	 * Throws: ConstructionException GTK+ fails to create the object.
+	 */
+	public static Variant fromSignature(string signature)
+	{
+		auto p = g_variant_new_signature(Str.toStringz(signature));
+		if(p is null)
+		{
+			throw new ConstructionException("null returned by g_variant_new_signature");
+		}
+		return new Variant(cast(GVariant*) p);
+	}
+
+	/**
+	 * Creates an array-of-bytes GVariant with the contents of string.
+	 * This function is just like new Variant(string) except that the string
+	 * need not be valid utf8.
+	 *
+	 * The nul terminator character at the end of the string is stored in
+	 * the array.
+	 *
+	 * Throws: ConstructionException GTK+ fails to create the object.
+	 */
+	public static Variant fromByteString(string byteString)
+	{
+		auto p = g_variant_new_bytestring(Str.toStringz(byteString));
+		if(p is null)
+		{
+			throw new ConstructionException("null returned by g_variant_new_bytestring");
+		}
+		return new Variant(cast(GVariant*) p);
+	}
+
+	/**
+	 * Constructs an array of object paths Variant from the given array
+	 * of strings.
+	 *
+	 * Each string must be a valid Variant object path.
+	 *
+	 * Since: 2.30
+	 *
+	 * Params:
+	 *     strv   = an array of strings.
+	 *
+	 * Throws: ConstructionException GTK+ fails to create the object.
+	 */
+	public static Variant fromObjv(string[] strv)
+	{
+		// GVariant * g_variant_new_objv (const gchar * const *strv,  gssize length);
+		auto p = g_variant_new_objv(Str.toStringzArray(strv), strv.length);
+		if(p is null)
+		{
+			throw new ConstructionException("null returned by g_variant_new_objv(strv, length)");
+		}
+		return new Variant(cast(GVariant*) p);
+	}
+
+	/**
+	 * Constructs an array of bytestring GVariant from the given array of
+	 * strings. If length is -1 then strv is null-terminated.
+	 *
+	 * Since: 2.26
+	 *
+	 * Params:
+	 *     strv   = an array of strings.
+	 *
+	 * Throws: ConstructionException GTK+ fails to create the object.
+	 */
+	public static Variant fromByteStringArray(string[] strv)
+	{
+		auto p = g_variant_new_bytestring_array(Str.toStringzArray(strv), strv.length);
+		if(p is null)
+		{
+			throw new ConstructionException("null returned by g_variant_new_bytestring_array(strv, length)");
+		}
+		return new Variant(cast(GVariant*) p);
+	}
+code: end
+
+struct: VariantType
+noCode: new_maybe
+code: start
+	/**
+	 * Constructs the type corresponding to a maybe instance containing
+	 * type type or Nothing.
+	 *
+	 * It is appropriate to call free() on the return value.
+	 *
+	 * Params:
+	 *     element = a VariantType
+	 *
+	 * Return: a new maybe VariantType
+	 *
+	 *     Since 2.24
+	 *
+	 * Throws: ConstructionException GTK+ fails to create the object.
+	 */
+	public static VariantType newMaybe(VariantType element)
+	{
+		auto p = g_variant_type_new_maybe((element is null) ? null : element.getVariantTypeStruct());
+
+		if(p is null)
+		{
+			throw new ConstructionException("null returned by new_maybe");
+		}
+
+		return new VariantType(cast(GVariantType*) p);
+	}
+code: end
+
+struct:
+
+move: atomic_int_add Atomic int_add
+move: atomic_int_and Atomic int_and
+move: atomic_int_compare_and_exchange Atomic int_compare_and_exchange
+move: atomic_int_dec_and_test Atomic int_dec_and_test
+move: atomic_int_exchange_and_add Atomic int_exchange_and_add
+move: atomic_int_get Atomic int_get
+move: atomic_int_inc Atomic int_inc
+move: atomic_int_or Atomic int_or
+move: atomic_int_set Atomic int_set
+move: atomic_int_xor Atomic int_xor
+move: atomic_pointer_add Atomic pointer_add
+move: atomic_pointer_and Atomic pointer_and
+move: atomic_pointer_compare_and_exchange Atomic pointer_compare_and_exchange
+move: atomic_pointer_get Atomic pointer_get
+move: atomic_pointer_or Atomic pointer_or
+move: atomic_pointer_set Atomic pointer_set
+move: atomic_pointer_xor Atomic pointer_xor
+
+move: base64_decode Base64 decode
+move: base64_encode Base64 encode
+move: base64_encode_close Base64 encode_close
+move: base64_encode_step Base64 encode_step
+
+move: convert CharacterSet
+move: convert_error_quark CharacterSet
+move: convert_with_fallback CharacterSet
+move: convert_with_iconv CharacterSet
+move: filename_display_basename CharacterSet
+move: filename_display_name CharacterSet
+move: filename_from_utf8 CharacterSet
+move: filename_to_utf8 CharacterSet
+move: get_charset CharacterSet
+move: get_codeset CharacterSet
+move: get_filename_charsets CharacterSet
+move: locale_from_utf8 CharacterSet
+move: locale_to_utf8 CharacterSet
+
+move: child_watch_add Child
+move: child_watch_add_full Child
+move: child_watch_source_new Child
+
+move: compute_checksum_for_bytes Checksum
+move: compute_checksum_for_data Checksum
+move: compute_checksum_for_string Checksum
+
+move: datalist_clear DataList clear
+move: datalist_foreach DataList foreach
+move: datalist_get_data DataList get_data
+move: datalist_get_flags DataList get_flags
+move: datalist_id_dup_data DataList id_dup_data
+move: datalist_id_get_data DataList id_get_data
+move: datalist_id_remove_no_notify DataList id_remove_no_notify
+move: datalist_id_replace_data DataList id_replace_data
+move: datalist_id_set_data_full DataList id_set_data_full
+move: datalist_init DataList init
+move: datalist_set_flags DataList set_flags
+move: datalist_unset_flags DataList unset_flags
+
+move: dataset_destroy DataSet destroy
+move: dataset_foreach DataSet foreach
+move: dataset_id_get_data DataSet id_get_data
+move: dataset_id_remove_no_notify DataSet id_remove_no_notify
+move: dataset_id_set_data_full DataSet id_set_data_full
+
+#move: clear_error Error
+move: prefix_error Error
+move: propagate_prefixed_error Error
+move: set_error Error
+
+move: access FileUtils
+move: chdir FileUtils
+move: close FileUtils
+move: file_error_from_errno FileUtils
+move: file_error_quark FileUtils
+move: file_get_contents FileUtils
+move: file_open_tmp FileUtils
+move: file_read_link FileUtils
+move: file_set_contents FileUtils
+move: file_test FileUtils
+move: mkdir_with_parents FileUtils
+move: mkdtemp FileUtils
+move: mkdtemp_full FileUtils
+move: mkstemp FileUtils
+move: mkstemp_full FileUtils
+move: rmdir FileUtils
+move: unlink FileUtils
+
+move: direct_equal HashTable
+move: direct_hash HashTable
+move: double_equal HashTable
+move: double_hash HashTable
+move: int64_equal HashTable
+move: int64_hash HashTable
+move: int_equal HashTable
+move: int_hash HashTable
+move: str_equal HashTable
+move: str_hash HashTable
+
+move: hostname_is_ascii_encoded Hostname is_ascii_encoded
+move: hostname_is_ip_address Hostname is_ip_address
+move: hostname_is_non_ascii Hostname is_non_ascii
+move: hostname_to_ascii Hostname to_ascii
+move: hostname_to_unicode Hostname to_unicode
+
+move: idle_add Idle add
+move: idle_add_full Idle add_full
+move: idle_remove_by_data Idle remove_by_data
+move: idle_source_new Idle source_new
+
+move: dcgettext Internationalization
+move: dgettext Internationalization
+move: dngettext Internationalization
+move: dpgettext Internationalization
+move: dpgettext2 Internationalization
+move: get_language_names Internationalization
+move: get_locale_variants Internationalization
+move: strip_context Internationalization
+
+move: io_add_watch IOChannel
+move: io_add_watch_full IOChannel
+move: io_create_watch IOChannel
+
+move: main_current_source MainLoop
+move: main_depth MainLoop
+move: poll MainLoop
+
+move: markup_collect_attributes MarkupParseContext
+move: markup_error_quark MarkupParseContext
+move: markup_escape_text MarkupParseContext
+move: markup_printf_escaped MarkupParseContext
+move: markup_vprintf_escaped MarkupParseContext
+
+move: clear_pointer Memory
+move: free Memory
+move: malloc Memory
+move: malloc0 Memory
+move: malloc0_n Memory
+move: malloc_n Memory
+move: mem_is_system_malloc Memory
+move: mem_profile Memory
+move: mem_set_vtable Memory
+move: memdup Memory
+move: realloc Memory
+move: realloc_n Memory
+move: try_malloc Memory
+move: try_malloc0 Memory
+move: try_malloc0_n Memory
+move: try_malloc_n Memory
+move: try_realloc Memory
+move: try_realloc_n Memory
+
+move: slice_alloc MemorySlice
+move: slice_alloc0 MemorySlice
+move: slice_copy MemorySlice
+move: slice_free1 MemorySlice
+move: slice_free_chain_with_offset MemorySlice
+move: slice_get_config MemorySlice
+move: slice_get_config_state MemorySlice
+move: slice_set_config MemorySlice
+
+move: log MessageLog
+move: log_default_handler MessageLog
+move: log_remove_handler MessageLog
+move: log_set_always_fatal MessageLog
+move: log_set_default_handler MessageLog
+move: log_set_fatal_mask MessageLog
+move: log_set_handler MessageLog
+move: log_set_handler_full MessageLog
+move: logv MessageLog
+
+move: on_error_query Messages
+move: on_error_stack_trace Messages
+move: print Messages
+move: printerr Messages
+move: set_print_handler Messages
+move: set_printerr_handler Messages
+
+move: option_error_quark OptionContext
+
+move: pattern_match PatternSpec
+move: pattern_match_simple PatternSpec
+move: pattern_match_string PatternSpec
+
+move: intern_static_string Quark
+move: intern_string Quark
+move: quark_from_static_string Quark
+move: quark_from_string Quark
+move: quark_to_string Quark
+move: quark_try_string Quark
+
+move: random_double Rand
+move: random_double_range Rand
+move: random_int Rand
+move: random_int_range Rand
+move: random_set_seed Rand
+
+move: shell_error_quark ShellUtils
+move: shell_parse_argv ShellUtils
+move: shell_quote ShellUtils
+move: shell_unquote ShellUtils
+
+move: spawn_async Spawn async
+move: spawn_async_with_pipes Spawn async_with_pipes
+move: spawn_check_exit_status Spawn check_exit_status
+move: spawn_close_pid Spawn close_pid
+move: spawn_command_line_async Spawn command_line_async
+move: spawn_command_line_sync Spawn command_line_sync
+move: spawn_error_quark Spawn error_quark
+move: spawn_exit_error_quark Spawn exit_error_quark
+move: spawn_sync Spawn sync
+
+struct: Spawn
+noCode: async_with_pipes
+
+move: ascii_digit_value Str
+move: ascii_dtostr Str
+move: ascii_formatd Str
+move: ascii_strcasecmp Str
+move: ascii_strdown Str
+move: ascii_strncasecmp Str
+move: ascii_strtod Str
+move: ascii_strtoll Str
+move: ascii_strtoull Str
+move: ascii_strup Str
+move: ascii_tolower Str
+move: ascii_toupper Str
+move: ascii_xdigit_value Str
+move: printf Str
+move: printf_string_upper_bound Str
+move: snprintf Str
+move: sprintf Str
+move: stpcpy Str
+move: str_has_prefix Str has_prefix
+move: str_has_suffix Str has_suffix
+move: str_is_ascii Str is_ascii
+move: str_match_string Str match_string
+move: str_to_ascii Str to_ascii
+move: str_tokenize_and_fold Str tokenize_and_fold
+move: strcanon Str
+move: strcasecmp Str
+move: strchomp Str
+move: strchug Str
+move: strcmp0 Str
+move: strcompress Str
+move: strconcat Str
+move: strdelimit Str
+move: strdown Str
+move: strdup Str
+move: strdup_printf Str
+move: strdup_vprintf Str
+move: strdupv Str
+move: strerror Str
+move: strescape Str
+move: strfreev Str
+move: strjoin Str
+move: strjoinv Str
+move: strlcat Str
+move: strlcpy Str
+move: strncasecmp Str
+move: strndup Str
+move: strnfill Str
+move: strreverse Str
+move: strrstr Str
+move: strrstr_len Str
+move: strsignal Str
+move: strsplit Str
+move: strsplit_set Str
+move: strstr_len Str
+move: strtod Str
+move: strup Str
+move: strv_get_type Str
+move: strv_length Str
+move: strv_contains Str
+move: vasprintf Str
+move: vprintf Str
+move: vsnprintf Str
+move: vsprintf Str
+
+version !OSX: start
+	move: fprintf Str
+	move: vfprintf Str
+version: end
+
+version 2.54: start
+	move: ascii_string_to_signed Str
+	move: ascii_string_to_unsigned Str
+version: end
+
+move: string_new String
+move: string_new_len String
+move: string_sized_new String
+
+move: bit_lock Thread
+move: bit_trylock Thread
+move: bit_unlock Thread
+move: get_num_processors Thread
+move: pointer_bit_lock Thread
+move: pointer_bit_trylock Thread
+move: pointer_bit_unlock Thread
+
+move: timeout_add Timeout add
+move: timeout_add_full Timeout add_full
+move: timeout_add_seconds Timeout add_seconds
+move: timeout_add_seconds_full Timeout add_seconds_full
+move: timeout_source_new Timeout source_new
+move: timeout_source_new_seconds Timeout source_new_seconds
+
+move: get_current_time TimeVal
+move: get_monotonic_time TimeVal
+move: get_real_time TimeVal
+move: usleep TimeVal
+
+move: ucs4_to_utf16 Unicode
+move: ucs4_to_utf8 Unicode
+move: unichar_break_type Unicode
+move: unichar_combining_class Unicode
+move: unichar_compose Unicode
+move: unichar_decompose Unicode
+move: unichar_digit_value Unicode
+move: unichar_fully_decompose Unicode
+move: unichar_get_mirror_char Unicode
+move: unichar_get_script Unicode
+move: unichar_isalnum Unicode
+move: unichar_isalpha Unicode
+move: unichar_iscntrl Unicode
+move: unichar_isdefined Unicode
+move: unichar_isdigit Unicode
+move: unichar_isgraph Unicode
+move: unichar_islower Unicode
+move: unichar_ismark Unicode
+move: unichar_isprint Unicode
+move: unichar_ispunct Unicode
+move: unichar_isspace Unicode
+move: unichar_istitle Unicode
+move: unichar_isupper Unicode
+move: unichar_iswide Unicode
+move: unichar_iswide_cjk Unicode
+move: unichar_isxdigit Unicode
+move: unichar_iszerowidth Unicode
+move: unichar_to_utf8 Unicode
+move: unichar_tolower Unicode
+move: unichar_totitle Unicode
+move: unichar_toupper Unicode
+move: unichar_type Unicode
+move: unichar_validate Unicode
+move: unichar_xdigit_value Unicode
+move: unicode_canonical_decomposition Unicode
+move: unicode_canonical_ordering Unicode
+move: unicode_script_from_iso15924 Unicode
+move: unicode_script_to_iso15924 Unicode
+move: utf16_to_ucs4 Unicode
+move: utf16_to_utf8 Unicode
+move: utf8_casefold Unicode
+move: utf8_collate Unicode
+move: utf8_collate_key Unicode
+move: utf8_collate_key_for_filename Unicode
+move: utf8_find_next_char Unicode
+move: utf8_find_prev_char Unicode
+move: utf8_get_char Unicode
+move: utf8_get_char_validated Unicode
+move: utf8_normalize Unicode
+move: utf8_offset_to_pointer Unicode
+move: utf8_pointer_to_offset Unicode
+move: utf8_prev_char Unicode
+move: utf8_strchr Unicode
+move: utf8_strdown Unicode
+move: utf8_strlen Unicode
+move: utf8_strncpy Unicode
+move: utf8_strrchr Unicode
+move: utf8_strreverse Unicode
+move: utf8_strup Unicode
+move: utf8_substring Unicode
+move: utf8_to_ucs4 Unicode
+move: utf8_to_ucs4_fast Unicode
+move: utf8_to_utf16 Unicode
+move: utf8_validate Unicode
+version 2.52: move: utf8_make_valid Unicode
+
+version !Windows: start
+	move: unix_error_quark UnixUtils error_quark
+	move: unix_fd_add UnixUtils fd_add
+	move: unix_fd_add_full UnixUtils fd_add_full
+	move: unix_fd_source_new UnixUtils fd_source_new
+	move: unix_open_pipe UnixUtils open_pipe
+	move: unix_set_fd_nonblocking UnixUtils set_fd_nonblocking
+	move: unix_signal_add UnixUtils signal_add
+	move: unix_signal_add_full UnixUtils signal_add_full
+	move: unix_signal_source_new UnixUtils signal_source_new
+version: end
+
+move: filename_from_uri URI
+move: filename_to_uri URI
+move: uri_escape_string URI
+move: uri_list_extract_uris URI
+move: uri_parse_scheme URI
+move: uri_unescape_segment URI
+move: uri_unescape_string URI
+
+version 2.52: start
+	move: uuid_string_is_valid Uuid string_is_valid
+	move: uuid_string_random Uuid string_random
+version: end
+
+move: atexit Util
+move: basename Util
+move: bit_nth_lsf Util
+move: bit_nth_msf Util
+move: bit_storage Util
+move: build_path Util
+move: environ_getenv Util
+move: environ_setenv Util
+move: environ_unsetenv Util
+move: find_program_in_path Util
+move: format_size Util
+move: format_size_for_display Util
+move: format_size_full Util
+move: get_application_name Util
+move: get_environ Util
+move: get_current_dir Util
+move: get_home_dir Util
+move: get_host_name Util
+move: get_prgname Util
+move: get_real_name Util
+move: get_system_config_dirs Util
+move: get_system_data_dirs Util
+move: get_tmp_dir Util
+move: get_user_cache_dir Util
+move: get_user_config_dir Util
+move: get_user_data_dir Util
+move: get_user_name Util
+move: get_user_runtime_dir Util
+move: get_user_special_dir Util
+move: getenv Util
+move: listenv Util
+move: nullify_pointer Util
+move: parse_debug_string Util
+move: path_get_basename Util
+move: path_get_dirname Util
+move: path_is_absolute Util
+move: path_skip_root Util
+move: qsort_with_data Util
+move: reload_user_special_dirs_cache Util
+move: set_application_name Util
+move: set_prgname Util
+move: setenv Util
+move: spaced_primes_closest Util
+move: unsetenv Util
+
+move: check_version Version

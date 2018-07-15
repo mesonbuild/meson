@@ -1,0 +1,121 @@
+#
+# Licensed under the GNU Lesser General Public License Version 3
+#
+# This library is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the license, or
+# (at your option) any later version.
+#
+# This software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this library.  If not, see <http://www.gnu.org/licenses/>.
+
+
+# define the license to use
+license: start
+/*
+ * Licensed under the GNU Lesser General Public License Version 3
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the license, or
+ * (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+// generated automatically - do not change
+
+
+license: end
+
+includeComments: y
+
+# defines the simple token substitution
+# TODO allow to create real aliases on the code and simple static token replacement
+alias: volatile
+alias: G_CONST_RETURN
+alias: gint int
+alias: guint uint
+alias: gboolean bool
+alias: gpointer void*
+alias: gconstpointer void*
+alias: gchar char
+alias: guchar char
+alias: gshort short
+alias: gushort ushort
+alias: gint8 byte
+alias: guint8 ubyte
+alias: gint16 short
+alias: guint16 ushort
+alias: gint32 int
+alias: gint64 long
+alias: guint32 uint
+alias: guint64 ulong
+alias: guintptr size_t
+alias: gfloat float
+alias: gdouble double
+alias: goffset long
+alias: gsize size_t
+alias: gssize ptrdiff_t
+alias: va_list void*
+alias: unichar dchar
+alias: unichar2 wchar
+alias: uchar ubyte
+alias: XID uint
+
+alias: gunichar dchar
+alias: gunichar2 wchar
+
+alias: time_t uint
+alias: uid_t uid_t
+
+alias: alias alias_
+alias: align alig
+alias: body bod
+alias: continue continu
+alias: debug dbg
+alias: default defaulx
+alias: delete delet
+alias: export expor
+alias: foreach foreac
+alias: function funct
+alias: Function Funct
+alias: in inn
+alias: instance instanc
+alias: interface iface
+alias: module modul
+alias: out output
+alias: package p
+alias: ref doref
+alias: scope scop
+alias: string str
+alias: switch switc
+alias: union unio
+alias: version versio
+
+alias: GLIB_SYSDEF_POLLIN =1
+alias: GLIB_SYSDEF_POLLOUT =4
+alias: GLIB_SYSDEF_POLLPRI =2
+alias: GLIB_SYSDEF_POLLHUP =16
+alias: GLIB_SYSDEF_POLLERR =8
+alias: GLIB_SYSDEF_POLLNVAL =32
+
+###########################################################
+### predifined: lib
+###########################################################
+
+srcDir: .
+
+lookup: APILookupGLib.txt
+lookup: APILookupGObject.txt

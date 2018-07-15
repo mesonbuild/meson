@@ -2007,7 +2007,8 @@ class Interpreter(InterpreterBase):
             elif isinstance(v, dependencies.InternalDependency):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
-                self.process_new_values(v.sources[0])
+                if v.sources:
+                    self.process_new_values(v.sources[0])
             elif hasattr(v, 'held_object'):
                 pass
             else:
