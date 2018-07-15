@@ -16,6 +16,7 @@ __pycache__
 
 .DS_Store
 *~
+*.swp
 packagecache
 /MANIFEST
 /build
