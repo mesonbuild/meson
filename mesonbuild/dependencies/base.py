@@ -740,6 +740,7 @@ class DubDependency(ExternalDependency):
     def __init__(self, name, environment, kwargs):
         super().__init__('dub', environment, 'd', kwargs)
         self.name = name
+        self.compiler = super().get_compiler()
 
         if 'required' in kwargs:
             self.required = kwargs.get('required')
