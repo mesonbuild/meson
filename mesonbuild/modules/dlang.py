@@ -82,43 +82,8 @@ class DlangModule(ExtensionModule):
                arg not in config:
                 mlog.warning('Without', mlog.bold(arg), 'the DUB package can\'t be published')
 
-        type_array = [
-            'authors',
-            'dflags',
-            'lflags',
-            'libs',
-            'copyFiles',
-            'versions',
-            'debugVersions',
-            'importPaths',
-            'stringImportPaths',
-            'preGenerateCommands',
-            'postGenerateCommands',
-            'preBuildCommands',
-            'postBuildCommands',
-            'buildRequirements',
-            'options',
-            'buildOptions',
-            'sourceFiles',
-            'sourcePaths',
-            'excludedSourceFiles'
-        ]
-
-        disabled = [
-            'configurations',
-            'subConfigurations',
-            'buildTypes'
-        ]
-
         for key, value in kwargs.items():
-            if key in disabled:
-                continue
-            elif key in type_array:
-                if isinstance(value, list):
-                    config[key] = value
-                elif isinstance(value, str):
-                    config[key] = [value]
-            elif key == 'dependencies':
+            if key == 'dependencies':
                 config[key] = {}
                 if isinstance(value, list):
                     for dep in value:
@@ -140,7 +105,7 @@ class DlangModule(ExtensionModule):
                             config[key][name] = ''
                         else:
                             config[key][name] = version
-            elif isinstance(value, str):
+            else:
                 config[key] = value
 
         with open(config_path, 'w', encoding='utf8') as ofile:
