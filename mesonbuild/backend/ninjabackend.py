@@ -668,9 +668,7 @@ int dummy;
         self.create_target_alias('meson-coverage-html', outfile)
 
     def generate_install(self, outfile):
-        install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
-
-        d = self.create_install_data_files()
+        self.create_install_data_files()
         elem = NinjaBuildElement(self.all_outputs, 'meson-install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
@@ -679,9 +677,6 @@ int dummy;
         elem.write(outfile)
         # Alias that runs the target defined above
         self.create_target_alias('meson-install', outfile)
-
-        with open(install_data_file, 'wb') as ofile:
-            pickle.dump(d, ofile)
 
     def generate_tests(self, outfile):
         self.serialize_tests()

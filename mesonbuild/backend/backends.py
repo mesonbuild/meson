@@ -924,6 +924,8 @@ class Backend:
             subprocess.check_call(cmd, env=child_env)
 
     def create_install_data_files(self):
+        install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
+
         if self.environment.is_cross_build():
             bins = self.environment.cross_info.config['binaries']
             if 'strip' not in bins:
@@ -946,7 +948,8 @@ class Backend:
         self.generate_data_install(d)
         self.generate_custom_install_script(d)
         self.generate_subdir_install(d)
-        return d
+        with open(install_data_file, 'wb') as ofile:
+            pickle.dump(d, ofile)
 
     def get_target_install_dirs(self, t):
         # Find the installation directory.
