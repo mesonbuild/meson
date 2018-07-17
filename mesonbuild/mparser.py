@@ -91,8 +91,8 @@ class Lexer:
         self.code = code
         self.keywords = {'true', 'false', 'if', 'else', 'elif',
                          'endif', 'and', 'or', 'not', 'foreach', 'endforeach',
-                         'in'}
-        self.future_keywords = {'continue', 'break', 'return'}
+                         'in', 'continue', 'break'}
+        self.future_keywords = {'return'}
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
@@ -242,6 +242,12 @@ class StringNode(ElementaryNode):
 
     def __str__(self):
         return "String node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
+
+class ContinueNode(ElementaryNode):
+    pass
+
+class BreakNode(ElementaryNode):
+    pass
 
 class ArrayNode:
     def __init__(self, args):
@@ -759,6 +765,10 @@ class Parser:
             block = self.foreachblock()
             self.block_expect('endforeach', block_start)
             return block
+        if self.accept('continue'):
+            return ContinueNode(self.current)
+        if self.accept('break'):
+            return BreakNode(self.current)
         return self.statement()
 
     def codeblock(self):

@@ -300,6 +300,12 @@ class InvalidArguments(InterpreterException):
 class SubdirDoneRequest(BaseException):
     pass
 
+class ContinueRequest(BaseException):
+    pass
+
+class BreakRequest(BaseException):
+    pass
+
 class InterpreterObject:
     def __init__(self):
         self.methods = {}
@@ -453,6 +459,10 @@ class InterpreterBase:
             return self.evaluate_indexing(cur)
         elif isinstance(cur, mparser.TernaryNode):
             return self.evaluate_ternary(cur)
+        elif isinstance(cur, mparser.ContinueNode):
+            raise ContinueRequest()
+        elif isinstance(cur, mparser.BreakNode):
+            raise BreakRequest()
         elif self.is_elementary_type(cur):
             return cur
         else:
@@ -641,7 +651,12 @@ The result of this is undefined and will become a hard error in a future Meson r
                 return items
             for item in items:
                 self.set_variable(varname, item)
-                self.evaluate_codeblock(node.block)
+                try:
+                    self.evaluate_codeblock(node.block)
+                except ContinueRequest:
+                    continue
+                except BreakRequest:
+                    break
         elif isinstance(items, dict):
             if len(node.varnames) != 2:
                 raise InvalidArguments('Foreach on dict unpacks key and value')
@@ -650,7 +665,12 @@ The result of this is undefined and will become a hard error in a future Meson r
             for key, value in items.items():
                 self.set_variable(node.varnames[0].value, key)
                 self.set_variable(node.varnames[1].value, value)
-                self.evaluate_codeblock(node.block)
+                try:
+                    self.evaluate_codeblock(node.block)
+                except ContinueRequest:
+                    continue
+                except BreakRequest:
+                    break
         else:
             raise InvalidArguments('Items of foreach loop must be an array or a dict')
 
