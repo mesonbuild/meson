@@ -90,8 +90,9 @@ class Lexer:
     def __init__(self, code):
         self.code = code
         self.keywords = {'true', 'false', 'if', 'else', 'elif',
-                         'endif', 'and', 'or', 'not', 'foreach', 'endforeach'}
-        self.future_keywords = {'continue', 'break', 'in', 'return'}
+                         'endif', 'and', 'or', 'not', 'foreach', 'endforeach',
+                         'in'}
+        self.future_keywords = {'continue', 'break', 'return'}
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
@@ -436,7 +437,9 @@ comparison_map = {'equal': '==',
                   'lt': '<',
                   'le': '<=',
                   'gt': '>',
-                  'ge': '>='
+                  'ge': '>=',
+                  'in': 'in',
+                  'notin': 'not in',
                   }
 
 # Recursive descent parser for Meson's definition language.
@@ -543,6 +546,8 @@ class Parser:
         for nodename, operator_type in comparison_map.items():
             if self.accept(nodename):
                 return ComparisonNode(operator_type, left, self.e5())
+        if self.accept('not') and self.accept('in'):
+            return ComparisonNode('notin', left, self.e5())
         return left
 
     def e5(self):

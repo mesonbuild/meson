@@ -21,6 +21,14 @@ from . import environment, dependencies
 import os, copy, re, types
 from functools import wraps
 
+class ObjectHolder:
+    def __init__(self, obj, subproject=None):
+        self.held_object = obj
+        self.subproject = subproject
+
+    def __repr__(self):
+        return '<Holder: {!r}>'.format(self.held_object)
+
 # Decorators for method calls.
 
 def check_stringlist(a, msg='Arguments must be strings.'):
@@ -487,6 +495,13 @@ class InterpreterBase:
             return False
         return True
 
+    def evaluate_in(self, val1, val2):
+        if not isinstance(val1, (str, int, float, ObjectHolder)):
+            raise InvalidArguments('lvalue of "in" operator must be a string, integer, float, or object')
+        if not isinstance(val2, (list, dict)):
+            raise InvalidArguments('rvalue of "in" operator must be an array or a dict')
+        return val1 in val2
+
     def evaluate_comparison(self, node):
         val1 = self.evaluate_statement(node.left)
         if is_disabler(val1):
@@ -494,6 +509,10 @@ class InterpreterBase:
         val2 = self.evaluate_statement(node.right)
         if is_disabler(val2):
             return val2
+        if node.ctype == 'in':
+            return self.evaluate_in(val1, val2)
+        elif node.ctype == 'notin':
+            return not self.evaluate_in(val1, val2)
         valid = self.validate_comparison_types(val1, val2)
         # Ordering comparisons of different types isn't allowed since PR #1810
         # (0.41.0).  Since PR #2884 we also warn about equality comparisons of
