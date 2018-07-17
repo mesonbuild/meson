@@ -2623,25 +2623,32 @@ rule FORTRAN_DEP_HACK%s
             dependencies = target.get_dependencies()
         internal = self.build_target_link_arguments(linker, dependencies)
         commands += internal
-        # For 'automagic' deps: Boost and GTest. Also dependency('threads').
-        # pkg-config puts the thread flags itself via `Cflags:`
-        for d in target.external_deps:
-            if d.need_threads():
-                commands += linker.thread_link_flags(self.environment)
-            elif d.need_openmp():
-                commands += linker.openmp_flags()
         # Only non-static built targets need link args and link dependencies
         if not isinstance(target, build.StaticLibrary):
+            # For 'automagic' deps: Boost and GTest. Also dependency('threads').
+            # pkg-config puts the thread flags itself via `Cflags:`
+            need_threads = False
+            need_openmp = False
+
             commands += target.link_args
             # External deps must be last because target link libraries may depend on them.
             for dep in target.get_external_deps():
                 # Extend without reordering or de-dup to preserve `-L -l` sets
                 # https://github.com/mesonbuild/meson/issues/1718
                 commands.extend_direct(dep.get_link_args())
+                need_threads |= dep.need_threads()
+                need_openmp |= dep.need_openmp()
             for d in target.get_dependencies():
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
+                        need_threads |= dep.need_threads()
+                        need_openmp |= dep.need_openmp()
                         commands.extend_direct(dep.get_link_args())
+            if need_openmp:
+                commands += linker.openmp_flags()
+            if need_threads:
+                commands += linker.thread_link_flags(self.environment)
+
         # Add link args for c_* or cpp_* build options. Currently this only
         # adds c_winlibs and cpp_winlibs when building for Windows. This needs
         # to be after all internal and external libraries so that unresolved
