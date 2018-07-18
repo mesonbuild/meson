@@ -1,4 +1,4 @@
-# Copyright 2012-2017 The Meson development team
+# Copyright 2012-2018 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -71,6 +71,18 @@ cflags_mapping = {'c': 'CFLAGS',
                   'd': 'DFLAGS',
                   'vala': 'VALAFLAGS',
                   'rust': 'RUSTFLAGS'}
+
+compiler_envvars = {'c': 'CC',
+                    'cpp': 'CXX',
+                    'java': 'JAVAC',
+                    'd': 'DC',
+                    'objc': 'OBJC',
+                    'objcpp': 'OBJCXX',
+                    'fortran': 'FC',
+                    'rust': 'RUSTC',
+                    'vala': 'VALAC',
+                    'cs': 'CSC',
+                    }
 
 # All these are only for C-linkable languages; see `clink_langs` above.
 

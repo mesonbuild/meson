@@ -410,9 +410,16 @@ class CoreData:
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
             mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options))
 
+    def get_all_option_classes(self):
+        return (self.backend_options,
+                self.user_options,
+                self.compiler_options,
+                self.base_options)
+
 def load(build_dir):
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
     load_fail_msg = 'Coredata file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
+    state_file_exists = os.path.isfile(os.path.join(build_dir, 'meson-private', 'upgrade_state.json'))
     try:
         with open(filename, 'rb') as f:
             obj = pickle.load(f)
@@ -421,8 +428,12 @@ def load(build_dir):
     if not isinstance(obj, CoreData):
         raise MesonException(load_fail_msg)
     if obj.version != version:
-        raise MesonException('Build directory has been generated with Meson version %s, which is incompatible with current version %s.\nPlease delete this build directory AND create a new one.' %
-                             (obj.version, version))
+        msg = 'Build directory has been generated with Meson version %s, which is incompatible with current version %s.\n'
+        if state_file_exists:
+            msg += 'Upgrade the build directory by invoking the "upgrade-builddir" target.'
+        else:
+            msg += 'Please delete this build directory AND create a new one.'
+        raise MesonException(msg % (obj.version, version))
     return obj
 
 def save(obj, build_dir):

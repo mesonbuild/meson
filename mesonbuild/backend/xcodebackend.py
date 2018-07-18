@@ -1,4 +1,4 @@
-# Copyright 2014-2016 The Meson development team
+# Copyright 2014-2018 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -103,6 +103,7 @@ class XCodeBackend(backends.Backend):
             self.generate_xc_build_configuration()
             self.generate_xc_configurationList()
             self.generate_suffix()
+            self.dump_state_file()
 
     def get_xcodetype(self, fname):
         return self.xcodetypemap[fname.split('.')[-1]]

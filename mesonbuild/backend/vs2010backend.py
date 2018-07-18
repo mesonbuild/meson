@@ -1,4 +1,4 @@
-# Copyright 2014-2016 The Meson development team
+# Copyright 2014-2018 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -167,6 +167,7 @@ class Vs2010Backend(backends.Backend):
         self.generate_solution(sln_filename, projlist)
         self.generate_regen_info()
         Vs2010Backend.touch_regen_timestamp(self.environment.get_build_dir())
+        self.dump_state_file()
 
     @staticmethod
     def get_regen_stampfile(build_dir):

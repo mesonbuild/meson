@@ -307,6 +307,10 @@ def run(original_args, mainfile):
             sys.argv[1:] = remaining_args[1:]
             runpy.run_path(script_file, run_name='__main__')
             sys.exit(0)
+        elif cmd_name == 'upgrade-builddir':
+            from . import mupgrade
+            mupgrade.do_upgrade(args[1:] + ['.'])
+            sys.exit(0)
 
     # No special command? Do the basic setup/reconf.
     if len(args) >= 2 and args[0] == '--internal':

@@ -238,6 +238,7 @@ int dummy;
         # fully created.
         os.replace(tempfilename, outfilename)
         self.generate_compdb()
+        self.dump_state_file()
 
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html
     def generate_compdb(self):

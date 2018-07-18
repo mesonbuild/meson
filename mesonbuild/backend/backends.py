@@ -24,6 +24,7 @@ from ..mesonlib import MesonException, OrderedSet
 from ..mesonlib import classify_unity_sources
 from ..mesonlib import File
 from ..compilers import CompilerArgs
+from ..mupgrade import create_dump_dict
 from collections import OrderedDict
 import shlex
 
@@ -120,6 +121,7 @@ class OptionOverrideProxy:
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
 class Backend:
+
     def __init__(self, build):
         self.build = build
         self.environment = build.environment
@@ -922,3 +924,11 @@ class Backend:
         for s in self.build.postconf_scripts:
             cmd = s['exe'] + s['args']
             subprocess.check_call(cmd, env=child_env)
+
+    def dump_state_file(self):
+        import json
+        build_dir = self.environment.get_build_dir()
+        dumpfile = os.path.join(build_dir, 'meson-private', 'upgrade-state.json')
+        s = create_dump_dict(self.environment, self.build)
+        with open(dumpfile, 'w') as f:
+            json.dump(s, f)
