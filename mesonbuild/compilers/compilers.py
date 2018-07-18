@@ -1577,6 +1577,7 @@ class ClangCompiler(GnuLikeCompiler):
         # https://github.com/Homebrew/homebrew-core/issues/3727
         if self.compiler_type.is_osx_compiler and version_compare(self.version, '>=8.0'):
             extra_args.append('-Wl,-no_weak_imports')
+            extra_args.append('-Werror-partial-availability')
         return super().has_function(funcname, prefix, env, extra_args, dependencies)
 
     def openmp_flags(self):
