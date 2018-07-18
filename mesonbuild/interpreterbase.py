@@ -570,6 +570,8 @@ The result of this is undefined and will become a hard error in a future Meson r
             return r
 
         if cur.operation == 'add':
+            if isinstance(l, dict) and isinstance(r, dict):
+                return {**l, **r}
             try:
                 return l + r
             except Exception as e:
@@ -648,14 +650,18 @@ The result of this is undefined and will become a hard error in a future Meson r
             if not isinstance(addition, int):
                 raise InvalidArguments('The += operator requires an int on the right hand side if the variable on the left is an int')
             new_value = old_variable + addition
-        elif not isinstance(old_variable, list):
-            raise InvalidArguments('The += operator currently only works with arrays, strings or ints ')
-        # Add other data types here.
-        else:
+        elif isinstance(old_variable, list):
             if isinstance(addition, list):
                 new_value = old_variable + addition
             else:
                 new_value = old_variable + [addition]
+        elif isinstance(old_variable, dict):
+            if not isinstance(addition, dict):
+                raise InvalidArguments('The += operator requires a dict on the right hand side if the variable on the left is a dict')
+            new_value = {**old_variable, **addition}
+        # Add other data types here.
+        else:
+            raise InvalidArguments('The += operator currently only works with arrays, dicts, strings or ints ')
         self.set_variable(varname, new_value)
 
     def evaluate_indexing(self, node):

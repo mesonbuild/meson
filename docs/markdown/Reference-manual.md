@@ -1851,6 +1851,9 @@ statement](Syntax.md#foreach-statements).
 
 Dictionaries are available since 0.47.0.
 
+Since 0.48.0 dictionaries can be added (e.g. `d1 = d2 + d3` and `d1 += d2`).
+Values from the second dictionary overrides values from the first.
+
 ## Returned objects
 
 These are objects returned by the [functions listed above](#functions).
