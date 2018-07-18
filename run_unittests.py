@@ -93,6 +93,17 @@ def is_ci():
         return True
     return False
 
+def _git_init(project_dir):
+    subprocess.check_call(['git', 'init'], cwd=project_dir, stdout=subprocess.DEVNULL)
+    subprocess.check_call(['git', 'config',
+                           'user.name', 'Author Person'], cwd=project_dir)
+    subprocess.check_call(['git', 'config',
+                           'user.email', 'teh_coderz@example.com'], cwd=project_dir)
+    subprocess.check_call('git add *', cwd=project_dir, shell=True,
+                          stdout=subprocess.DEVNULL)
+    subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir,
+                          stdout=subprocess.DEVNULL)
+
 def skipIfNoPkgconfig(f):
     '''
     Skip this test if no pkg-config is found, unless we're on Travis or
@@ -670,11 +681,19 @@ class DataTests(unittest.TestCase):
         for f in snippet_dir.glob('*'):
             self.assertTrue(f.is_file())
             if f.suffix == '.md':
+                in_code_block = False
                 with f.open() as snippet:
                     for line in snippet:
+                        if line.startswith('    '):
+                            continue
+                        if line.startswith('```'):
+                            in_code_block = not in_code_block
+                        if in_code_block:
+                            continue
                         m = re.match(hashcounter, line)
                         if m:
                             self.assertEqual(len(m.group(0)), 2, 'All headings in snippets must have two hash symbols: ' + f.name)
+                self.assertFalse(in_code_block, 'Unclosed code block.')
             else:
                 if f.name != 'add_release_note_snippets_here':
                     self.assertTrue(False, 'A file without .md suffix in snippets dir: ' + f.name)
@@ -1692,19 +1711,8 @@ class AllPlatformTests(BasePlatformTests):
         if not shutil.which('git'):
             raise unittest.SkipTest('Git not found')
 
-        def git_init(project_dir):
-            subprocess.check_call(['git', 'init'], cwd=project_dir, stdout=subprocess.DEVNULL)
-            subprocess.check_call(['git', 'config',
-                                   'user.name', 'Author Person'], cwd=project_dir)
-            subprocess.check_call(['git', 'config',
-                                   'user.email', 'teh_coderz@example.com'], cwd=project_dir)
-            subprocess.check_call(['git', 'add', 'meson.build', 'distexe.c'], cwd=project_dir,
-                                  stdout=subprocess.DEVNULL)
-            subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir,
-                                  stdout=subprocess.DEVNULL)
-
         try:
-            self.dist_impl(git_init)
+            self.dist_impl(_git_init)
         except PermissionError:
             # When run under Windows CI, something (virus scanner?)
             # holds on to the git files so cleaning up the dir
@@ -1730,6 +1738,24 @@ class AllPlatformTests(BasePlatformTests):
         except PermissionError:
             # When run under Windows CI, something (virus scanner?)
             # holds on to the hg files so cleaning up the dir
+            # fails sometimes.
+            pass
+
+    def test_dist_git_script(self):
+        if not shutil.which('git'):
+            raise unittest.SkipTest('Git not found')
+
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                project_dir = os.path.join(tmpdir, 'a')
+                shutil.copytree(os.path.join(self.unit_test_dir, '35 dist script'),
+                                project_dir)
+                _git_init(project_dir)
+                self.init(project_dir)
+                self.build('dist')
+        except PermissionError:
+            # When run under Windows CI, something (virus scanner?)
+            # holds on to the git files so cleaning up the dir
             # fails sometimes.
             pass
 

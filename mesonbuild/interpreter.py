@@ -1602,6 +1602,7 @@ class MesonMain(InterpreterObject):
                              'build_root': self.build_root_method,
                              'add_install_script': self.add_install_script_method,
                              'add_postconf_script': self.add_postconf_script_method,
+                             'add_dist_script': self.add_dist_script_method,
                              'install_dependency_manifest': self.install_dependency_manifest_method,
                              'override_find_program': self.override_find_program_method,
                              'project_version': self.project_version_method,
@@ -1643,6 +1644,15 @@ class MesonMain(InterpreterObject):
         check_stringlist(args, 'add_postconf_script arguments must be strings')
         script = self._find_source_script(args[0], args[1:])
         self.build.postconf_scripts.append(script)
+
+    @permittedKwargs({})
+    def add_dist_script_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('add_dist_script takes exactly one argument')
+        check_stringlist(args, 'add_dist_script argument must be a string')
+        if self.interpreter.subproject != '':
+            raise InterpreterException('add_dist_script may not be used in a subproject.')
+        self.build.dist_scripts.append(os.path.join(self.interpreter.subdir, args[0]))
 
     @noPosargs
     @permittedKwargs({})
