@@ -14,6 +14,7 @@
 
 import re
 import codecs
+import types
 from .mesonlib import MesonException
 from . import mlog
 
@@ -90,6 +91,7 @@ class Lexer:
         self.code = code
         self.keywords = {'true', 'false', 'if', 'else', 'elif',
                          'endif', 'and', 'or', 'not', 'foreach', 'endforeach'}
+        self.future_keywords = {'continue', 'break', 'in', 'return'}
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
@@ -196,6 +198,9 @@ This will become a hard error in a future Meson release.""", self.getline(line_s
                         if match_text in self.keywords:
                             tid = match_text
                         else:
+                            if match_text in self.future_keywords:
+                                mlog.warning("Identifier '{}' will become a reserved keyword in a future release. Please rename it.".format(match_text),
+                                             location=types.SimpleNamespace(subdir=subdir, lineno=lineno))
                             value = match_text
                     yield Token(tid, subdir, curline_start, curline, col, bytespan, value)
                     break
