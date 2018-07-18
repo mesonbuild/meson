@@ -1868,6 +1868,7 @@ class Interpreter(InterpreterBase):
         self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects = {}
         self.subproject_stack = []
+        self.configure_file_outputs = {}
         # Passed from the outside, only used in subprojects.
         if default_project_options:
             self.default_project_options = default_project_options.copy()
@@ -3453,8 +3454,16 @@ root and issuing %s.
             raise InterpreterException('@INPUT@ used as command argument, but no input file specified.')
         # Validate output
         output = kwargs['output']
+        ofile_rpath = os.path.join(self.subdir, output)
         if not isinstance(output, str):
             raise InterpreterException('Output file name must be a string')
+        if ofile_rpath in self.configure_file_outputs:
+            mesonbuildfile = os.path.join(self.subdir, 'meson.build')
+            current_call = "{}:{}".format(mesonbuildfile, self.current_lineno)
+            first_call = "{}:{}".format(mesonbuildfile, self.configure_file_outputs[ofile_rpath])
+            mlog.warning('Output file', mlog.bold(ofile_rpath, True), 'for configure_file() at', current_call, 'overwrites configure_file() output at', first_call)
+        else:
+            self.configure_file_outputs[ofile_rpath] = self.current_lineno
         if ifile_abs:
             values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
             outputs = mesonlib.substitute_values([output], values)
