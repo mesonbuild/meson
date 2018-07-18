@@ -15,6 +15,7 @@
 
 import lzma
 import os
+import sys
 import shutil
 import subprocess
 import pickle
@@ -23,6 +24,7 @@ import tarfile, zipfile
 import tempfile
 from glob import glob
 from mesonbuild.environment import detect_ninja
+from mesonbuild.dependencies import ExternalProgram
 from mesonbuild.mesonlib import windows_proof_rmtree
 
 def create_hash(fname):
@@ -73,7 +75,23 @@ def process_submodules(dirname):
         del_gitfiles(os.path.join(dirname, v))
 
 
-def create_dist_git(dist_name, src_root, bld_root, dist_sub):
+def run_dist_scripts(dist_root, dist_scripts):
+    assert(os.path.isabs(dist_root))
+    env = os.environ.copy()
+    env['MESON_DIST_ROOT'] = dist_root
+    for d in dist_scripts:
+        print('Processing dist script %s.' % d)
+        ddir, dname = os.path.split(d)
+        ep = ExternalProgram(dname,
+                             search_dir=os.path.join(dist_root, ddir),
+                             silent=True)
+        if not ep.found():
+            sys.exit('Script %s could not be found in dist directory.' % d)
+        pc = subprocess.run(ep.command, env=env)
+        if pc.returncode != 0:
+            sys.exit('Dist script errored out.')
+
+def create_dist_git(dist_name, src_root, bld_root, dist_sub, dist_scripts):
     distdir = os.path.join(dist_sub, dist_name)
     if os.path.exists(distdir):
         shutil.rmtree(distdir)
@@ -81,6 +99,7 @@ def create_dist_git(dist_name, src_root, bld_root, dist_sub):
     subprocess.check_call(['git', 'clone', '--shared', src_root, distdir])
     process_submodules(distdir)
     del_gitfiles(distdir)
+    run_dist_scripts(distdir, dist_scripts)
     xzname = distdir + '.tar.xz'
     # Should use shutil but it got xz support only in 3.5.
     with tarfile.open(xzname, 'w:xz') as tf:
@@ -92,12 +111,14 @@ def create_dist_git(dist_name, src_root, bld_root, dist_sub):
     return (xzname, )
 
 
-def create_dist_hg(dist_name, src_root, bld_root, dist_sub):
+def create_dist_hg(dist_name, src_root, bld_root, dist_sub, dist_scripts):
     os.makedirs(dist_sub, exist_ok=True)
 
     tarname = os.path.join(dist_sub, dist_name + '.tar')
     xzname = tarname + '.xz'
     subprocess.check_call(['hg', 'archive', '-R', src_root, '-S', '-t', 'tar', tarname])
+    if len(dist_scripts) > 0:
+        print('WARNING: dist scripts not supported in Mercurial projects.')
     with lzma.open(xzname, 'wb') as xf, open(tarname, 'rb') as tf:
         shutil.copyfileobj(tf, xf)
     os.unlink(tarname)
@@ -152,9 +173,9 @@ def run(args):
     dist_name = build.project_name + '-' + build.project_version
 
     if os.path.isdir(os.path.join(src_root, '.git')):
-        names = create_dist_git(dist_name, src_root, bld_root, dist_sub)
+        names = create_dist_git(dist_name, src_root, bld_root, dist_sub, build.dist_scripts)
     elif os.path.isdir(os.path.join(src_root, '.hg')):
-        names = create_dist_hg(dist_name, src_root, bld_root, dist_sub)
+        names = create_dist_hg(dist_name, src_root, bld_root, dist_sub, build.dist_scripts)
     else:
         print('Dist currently only works with Git or Mercurial repos.')
         return 1

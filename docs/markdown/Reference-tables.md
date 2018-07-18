@@ -33,6 +33,8 @@ These are return values of the `get_id` method in a compiler object.
 | MESON_BUILD_ROOT    | Absolute path to the build dir  |
 | MESONINTROSPECT     | Command to run to run the introspection command, may be of the form `python /path/to/meson introspect`, user is responsible for splitting the path if necessary. |
 | MESON_SUBDIR        | Current subdirectory, only set for `run_command` |
+| MESON_DIST_ROOT     | Points to the root of the staging directory, only set when running `dist` scripts |
+
 
 ## CPU families
 
