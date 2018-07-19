@@ -470,11 +470,14 @@ class PythonModule(ExtensionModule):
             mlog.log("Using meson's python {}".format(mesonlib.python_command))
             python = ExternalProgram('python3', mesonlib.python_command, silent=True)
         else:
-            if mesonlib.is_windows():
+            python = ExternalProgram(name_or_path, silent = True)
+
+            if not python.found() and mesonlib.is_windows():
                 pythonpath = self._get_win_pythonpath(name_or_path)
                 if pythonpath is not None:
                     name_or_path = pythonpath
-            python = ExternalProgram(name_or_path, silent = True)
+                    python = ExternalProgram(name_or_path, silent = True)
+
             # Last ditch effort, python2 or python3 can be named python
             # on various platforms, let's not give up just yet, if an executable
             # named python is available and has a compatible version, let's use
