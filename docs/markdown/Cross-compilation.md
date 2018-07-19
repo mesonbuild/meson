@@ -304,3 +304,17 @@ then the following command would start a cross build using that cross files:
 ```sh
 meson builddir/ --cross-file x86-linux
 ```
+
+## Reading cross file from stdin
+
+As of version 0.48.0, meson supports reading the cross-file from stdin rather
+than from disk. This is done by passing "-" as the path to the cross-file, and
+it can be used, for example, to make small changes to cross files when using
+them, without having to manipulate them directly on disk. For example:
+
+```sh
+sed -e 's|compiler|/path/to/compiler|' x86-linux.cross | meson builddir/ --cross-file -
+```
+
+When read from stdin, a copy of the cross file used is written into the build
+directory as `meson.crossfile`
