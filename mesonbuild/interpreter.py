@@ -972,6 +972,16 @@ class CompilerHolder(InterpreterObject):
     def cmd_array_method(self, args, kwargs):
         return self.compiler.exelist
 
+    def get_option_compile_args(self):
+        var = self.environment.coredata.compiler_options[self.compiler.language + '_args'].value
+        assert(isinstance(var, list))
+        return var
+
+    def get_option_linker_args(self):
+        var = self.environment.coredata.compiler_options[self.compiler.language + '_link_args'].value
+        assert(isinstance(var, list))
+        return var
+
     def determine_args(self, kwargs):
         nobuiltins = kwargs.get('no_builtin_args', False)
         if not isinstance(nobuiltins, bool):
@@ -985,9 +995,11 @@ class CompilerHolder(InterpreterObject):
                 idir = os.path.join(self.environment.get_source_dir(),
                                     i.held_object.get_curdir(), idir)
                 args += self.compiler.get_include_args(idir, False)
+        args += self.get_option_compile_args() # Args that come from "the outside"
+        args += self.get_option_linker_args()
         if not nobuiltins:
             opts = self.environment.coredata.compiler_options
-            args += self.compiler.get_option_compile_args(opts)
+            args += self.compiler.get_option_compile_args(opts) # Args that come from togglable options
             args += self.compiler.get_option_link_args(opts)
         args += mesonlib.stringlistify(kwargs.get('args', []))
         return args
@@ -1021,7 +1033,7 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of sizeof must be a string.')
-        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        extra_args = self.determine_args(kwargs)
         deps = self.determine_dependencies(kwargs)
         result = self.compiler.alignment(typename, prefix, self.environment, extra_args, deps)
         mlog.log('Checking for alignment of', mlog.bold(typename, True), ':', result)
