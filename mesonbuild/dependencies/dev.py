@@ -36,8 +36,8 @@ class GTestDependency(ExternalDependency):
 
     def detect(self):
         self.version = '1.something_maybe'
-        gtest_detect = self.clib_compiler.find_library("gtest", self.env, [])
-        gtest_main_detect = self.clib_compiler.find_library("gtest_main", self.env, [])
+        gtest_detect = self.clib_compiler.find_library("gtest", self.env, [], [])
+        gtest_main_detect = self.clib_compiler.find_library("gtest_main", self.env, [], [])
         if gtest_detect and (not self.main or gtest_main_detect):
             self.is_found = True
             self.compile_args = []
@@ -83,7 +83,7 @@ class GMockDependency(ExternalDependency):
         self.version = '1.something_maybe'
         # GMock may be a library or just source.
         # Work with both.
-        gmock_detect = self.clib_compiler.find_library("gmock", self.env, [])
+        gmock_detect = self.clib_compiler.find_library("gmock", self.env, [], [])
         if gmock_detect:
             self.is_found = True
             self.compile_args = []

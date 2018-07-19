@@ -1443,7 +1443,8 @@ class CompilerHolder(InterpreterObject):
         for i in search_dirs:
             if not os.path.isabs(i):
                 raise InvalidCode('Search directory %s is not an absolute path.' % i)
-        linkargs = self.compiler.find_library(libname, self.environment, search_dirs)
+        extra_args = self.determine_args(kwargs)
+        linkargs = self.compiler.find_library(libname, self.environment, search_dirs, extra_args)
         if required and not linkargs:
             raise InterpreterException('{} library {!r} not found'.format(self.compiler.get_display_language(), libname))
         lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,

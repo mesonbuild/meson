@@ -185,11 +185,11 @@ class FortranCompiler(Compiler):
     def find_library_impl(self, *args):
         return CCompiler.find_library_impl(self, *args)
 
-    def find_library(self, libname, env, extra_dirs, libtype='default'):
+    def find_library(self, libname, env, extra_dirs, extra_args, libtype='default'):
         code = '''program main
             call exit(0)
         end program main'''
-        return self.find_library_impl(libname, env, extra_dirs, code, libtype)
+        return self.find_library_impl(libname, env, extra_dirs, code, extra_args, libtype)
 
     def thread_flags(self, env):
         return CCompiler.thread_flags(self, env)

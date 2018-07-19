@@ -898,12 +898,14 @@ class CCompiler(Compiler):
                 return f
         return None
 
-    def find_library_real(self, libname, env, extra_dirs, code, libtype):
+    def find_library_real(self, libname, env, extra_dirs, code, extra_args, libtype):
+        if not isinstance(extra_args, list):
+            extra_args = [extra_args]
         # First try if we can just add the library as -l.
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
         if not extra_dirs:
-            args = ['-l' + libname]
+            args = extra_args + ['-l' + libname]
             if self.links(code, env, extra_args=args):
                 return args
         # Not found or we want to use a specific libtype? Try to find the
@@ -936,19 +938,19 @@ class CCompiler(Compiler):
                 # symbols from the main C file.
                 extra_link_args = self.get_link_whole_for([trial])
                 extra_link_args = self.linker_to_compiler_args(extra_link_args)
-                if self.links(code, env, extra_args=extra_link_args):
+                if self.links(code, env, extra_args=(extra_args + extra_link_args)):
                     return [trial]
         return None
 
-    def find_library_impl(self, libname, env, extra_dirs, code, libtype):
+    def find_library_impl(self, libname, env, extra_dirs, code, extra_args, libtype):
         # These libraries are either built-in or invalid
         if libname in self.ignore_libs:
             return []
         if isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
-        key = (tuple(self.exelist), libname, tuple(extra_dirs), code, libtype)
+        key = (tuple(self.exelist), libname, tuple(extra_dirs), code, tuple(extra_args), libtype)
         if key not in self.find_library_cache:
-            value = self.find_library_real(libname, env, extra_dirs, code, libtype)
+            value = self.find_library_real(libname, env, extra_dirs, code, extra_args, libtype)
             self.find_library_cache[key] = value
         else:
             value = self.find_library_cache[key]
@@ -956,9 +958,9 @@ class CCompiler(Compiler):
             return None
         return value[:]
 
-    def find_library(self, libname, env, extra_dirs, libtype='default'):
+    def find_library(self, libname, env, extra_dirs, extra_args, libtype='default'):
         code = 'int main(int argc, char **argv) { return 0; }'
-        return self.find_library_impl(libname, env, extra_dirs, code, libtype)
+        return self.find_library_impl(libname, env, extra_dirs, code, extra_args, libtype)
 
     def thread_flags(self, env):
         if for_haiku(self.is_cross, env):

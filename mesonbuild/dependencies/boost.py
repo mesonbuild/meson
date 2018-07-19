@@ -352,7 +352,7 @@ class BoostDependency(ExternalDependency):
             return None
 
     def find_libraries_with_abi_tag(self, tag):
-
+        extra_args = []
         # All modules should have the same tag
         self.lib_modules = {}
 
@@ -361,7 +361,7 @@ class BoostDependency(ExternalDependency):
         for module in self.requested_modules:
             libname = 'boost_' + module + tag
 
-            args = self.clib_compiler.find_library(libname, self.env, self.extra_lib_dirs())
+            args = self.clib_compiler.find_library(libname, self.env, self.extra_lib_dirs(), extra_args)
             if args is None:
                 mlog.debug("Couldn\'t find library '{}' for boost module '{}'  (ABI tag = '{}')".format(libname, module, tag))
                 all_found = False
