@@ -20,7 +20,6 @@ from .compilers import Compiler, cuda_buildtype_args
 
 class CudaCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        # If a child ObjCPP class has already set it, don't set it ourselves
         if not hasattr(self, 'language'):
             self.language = 'cuda'
         super().__init__(exelist, version)
@@ -39,7 +38,7 @@ class CudaCompiler(Compiler):
         return 'Cuda'
 
     def get_no_stdinc_args(self):
-        return ['']
+        return []
 
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanitycheckcuda.cu')
@@ -49,7 +48,10 @@ class CudaCompiler(Compiler):
             extra_flags += self.get_compile_only_args()
 
         code = '''
-        #include <stdio.h>
+__global__ void kernel (void) {
+
+}
+
         int main(int argc,char** argv){
             return 0;
         }
@@ -67,7 +69,7 @@ class CudaCompiler(Compiler):
         pe = subprocess.Popen(binary_name)
         pe.wait()
         if pe.returncode != 0:
-            raise EnvironmentException('Executables created by ObjC compiler %s are not runnable.' % self.name_string())
+            raise EnvironmentException('Executables created by Cuda compiler %s are not runnable.' % self.name_string())
 
     def get_compiler_check_args(self):
         return super().get_compiler_check_args() + []
