@@ -14,21 +14,29 @@ class NimCompiler(Compiler):
         self.language = 'nim'
         super().__init__(exelist, version)
         self.id = 'nim'
+        self.is_cross = False
 
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanity.nim')
         output_name = os.path.join(work_dir, 'nimtest')
-        with open(source_name, 'w'):
-            pass
-        pc = subprocess.Popen(
-            self.exelist + ['c'] + self.get_output_args(output_name) + [source_name], cwd=work_dir)
-        pc.wait()
-        if pc.returncode != 0:
-            raise EnvironmentException(
-                'Nim compiler can not compile programs.')
-        if subprocess.call(output_name) != 0:
-            raise EnvironmentException(
-                "Executables created by Nim compiler are not runnable.")
+        code = '' # blank files are valid nim
+        args  = self.get_cross_extra_flags(environment, link=False)
+        with self.compile(code, args, 'compile') as p:
+            if p.returncode != 0:
+                msg = 'Nim compiler {!r} can not compile programs'.format(self.name_string())
+                raise EnvironmentException(msg)
+        # with open(source_name, 'w'):
+        #     pass
+        
+        # pc = subprocess.Popen(
+        #     self.exelist + ['c'] + self.get_output_args(output_name) + [source_name], cwd=work_dir)
+        # pc.wait()
+        # if pc.returncode != 0:
+        #     raise EnvironmentException(
+        #         'Nim compiler can not compile programs.')
+        # if subprocess.call(output_name) != 0:
+        #     raise EnvironmentException(
+        #         "Executables created by Nim compiler are not runnable.")
 
     def get_output_args(self, target):
         return ['--out:' + target]
@@ -43,7 +51,7 @@ class NimCompiler(Compiler):
         return ' '.join(self.exelist)
 
     def get_compile_only_args(self):
-        return ['-c']
+        return ['--compileOnly']
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
