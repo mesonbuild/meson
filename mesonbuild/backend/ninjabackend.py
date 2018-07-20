@@ -855,8 +855,8 @@ int dummy;
 
         for dep in target.get_external_deps():
             commands.extend_direct(dep.get_link_args())
-        commands += self.build.get_project_args(compiler, target.subproject)
-        commands += self.build.get_global_args(compiler)
+        commands += self.build.get_project_args(compiler, target.subproject, target.is_cross)
+        commands += self.build.get_global_args(compiler, target.is_cross)
 
         elem = NinjaBuildElement(self.all_outputs, outputs, 'cs_COMPILER', rel_srcs)
         elem.add_dep(deps)
@@ -869,8 +869,8 @@ int dummy;
         deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
         args = []
         args += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
-        args += self.build.get_global_args(compiler)
-        args += self.build.get_project_args(compiler, target.subproject)
+        args += self.build.get_global_args(compiler, target.is_cross)
+        args += self.build.get_project_args(compiler, target.subproject, target.is_cross)
         args += target.get_java_args()
         args += compiler.get_output_args(self.get_target_private_dir(target))
         args += target.get_classpath_args()
@@ -1247,8 +1247,8 @@ int dummy;
         compile_args += swiftc.get_optimization_args(self.get_option_for_target('optimization', target))
         compile_args += swiftc.get_debug_args(self.get_option_for_target('debug', target))
         compile_args += swiftc.get_module_args(module_name)
-        compile_args += self.build.get_project_args(swiftc, target.subproject)
-        compile_args += self.build.get_global_args(swiftc)
+        compile_args += self.build.get_project_args(swiftc, target.subproject, target.is_cross)
+        compile_args += self.build.get_global_args(swiftc, target.is_cross)
         for i in reversed(target.get_include_dirs()):
             basedir = i.get_curdir()
             for d in i.get_incdirs():
@@ -1260,8 +1260,8 @@ int dummy;
                 sargs = swiftc.get_include_args(srctreedir)
                 compile_args += sargs
         link_args = swiftc.get_output_args(os.path.join(self.environment.get_build_dir(), self.get_target_filename(target)))
-        link_args += self.build.get_project_link_args(swiftc, target.subproject)
-        link_args += self.build.get_global_link_args(swiftc)
+        link_args += self.build.get_project_link_args(swiftc, target.subproject, target.is_cross)
+        link_args += self.build.get_global_link_args(swiftc, target.is_cross)
         rundir = self.get_target_private_dir(target)
         out_module_name = self.swift_module_file_name(target)
         in_module_files = self.determine_swift_dep_modules(target)
@@ -2395,10 +2395,10 @@ rule FORTRAN_DEP_HACK%s
 
         if not isinstance(target, build.StaticLibrary):
             # Add link args added using add_project_link_arguments()
-            commands += self.build.get_project_link_args(linker, target.subproject)
+            commands += self.build.get_project_link_args(linker, target.subproject, target.is_cross)
             # Add link args added using add_global_link_arguments()
             # These override per-project link arguments
-            commands += self.build.get_global_link_args(linker)
+            commands += self.build.get_global_link_args(linker, target.is_cross)
             if not target.is_cross:
                 # Link args added from the env: LDFLAGS. We want these to
                 # override all the defaults but not the per-target link args.
