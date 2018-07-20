@@ -5,7 +5,8 @@ short-description: Compiling D sources
 
 # Compiling D applications
 
-Meson has support for compiling D programs. A minimal `meson.build` file for D looks like this:
+Meson has support for compiling D programs. A minimal `meson.build`
+file for D looks like this:
 
 ```meson
 project('myapp', 'd')
@@ -15,8 +16,8 @@ executable('myapp', 'app.d')
 
 ## Compiling different versions
 
-If you are using the [version()](https://dlang.org/spec/version.html) feature for conditional compilation, you can use it using the `d_module_versions`
-target property:
+If you are using the [version()](https://dlang.org/spec/version.html) feature for conditional compilation,
+you can use it using the `d_module_versions` target property:
 ```meson
 project('myapp', 'd')
 executable('myapp', 'app.d', d_module_versions: ['Demo', 'FeatureA'])
@@ -24,10 +25,14 @@ executable('myapp', 'app.d', d_module_versions: ['Demo', 'FeatureA'])
 
 ## Using embedded unittests
 
-If you are using embedded [unittest functions](https://dlang.org/spec/unittest.html), your source code needs to be compiled twice, once in regular
-mode, and once with unittests active. This is done by setting the `d_unittest` target property to `true`.
-Meson will only ever pass the respective compiler's `-unittest` flag, and never have the compiler generate an empty main function.
-If you need that feature in a portable way, create an empty `main()` function for unittests yourself, since the GNU D compiler
+If you are using embedded [unittest functions](https://dlang.org/spec/unittest.html), your source code needs
+to be compiled twice, once in regular
+mode, and once with unittests active. This is done by setting the
+`d_unittest` target property to `true`.
+Meson will only ever pass the respective compiler's `-unittest` flag,
+and never have the compiler generate an empty main function.
+If you need that feature in a portable way, create an empty `main()`
+function for unittests yourself, since the GNU D compiler
 does not have this feature.
 
 This is an example for using D unittests with Meson:
@@ -43,8 +48,10 @@ test('myapptest', test_exe)
 
 # Compiling D libraries and installing them
 
-Building D libraries is a straightforward process, not different from how C libraries are built in Meson. You should generate a pkg-config file
-and install it, in order to make other software on the system find the dependency once it is installed.
+Building D libraries is a straightforward process, not different from
+how C libraries are built in Meson. You should generate a pkg-config
+file and install it, in order to make other software on the system
+find the dependency once it is installed.
 
 This is an example on how to build a D shared library:
 ```meson
@@ -71,12 +78,17 @@ pkgc.generate(name: 'mylib',
 install_subdir('src/mylib/', install_dir: 'include/d/mylib/')
 ```
 
-It is important to make the D sources install in a subdirectory in the include path, in this case `/usr/include/d/mylib/mylib`.
-All D compilers include the `/usr/include/d` directory by default, and if your library would be installed into `/usr/include/d/mylib`, there
-is a high chance that, when you compile your project again on a machine where you installed it, the compiler will prefer the old installed include over
-the new version in the source tree, leading to very confusing errors.
+It is important to make the D sources install in a subdirectory in the
+ include path, in this case `/usr/include/d/mylib/mylib`.
+All D compilers include the `/usr/include/d` directory by default, and
+ if your library would be installed into `/usr/include/d/mylib`, there
+is a high chance that, when you compile your project again on a
+machine where you installed it, the compiler will prefer the old
+installed include over the new version in the source tree, leading to
+very confusing errors.
 
-This is an example of how to use the D library we just built and installed in an application:
+This is an example of how to use the D library we just built and
+installed in an application:
 ```meson
 project('myapp', 'd')
 
@@ -85,5 +97,15 @@ myapp_src = ['app.d', 'alpha.d', 'beta.d']
 executable('myapp', myapp_src, dependencies: [mylib_dep])
 ```
 
-Please keep in mind that the library and executable would both need to be built with the exact same D compiler and D compiler version. The D ABI is not
-stable across compilers and their versions, and mixing compilers will lead to problems.
+Please keep in mind that the library and executable would both need to
+be built with the exact same D compiler and D compiler version. The D
+ABI is not stable across compilers and their versions, and mixing
+compilers will lead to problems.
+
+# Integrating with DUB
+
+DUB is a fully integrated build system for D, but it is also a way to
+provide dependencies. Adding dependencies from the [D package registry](https://code.dlang.org/)
+is pretty straight forward. You can find how to do this in
+[Dependencies](Dependencies.md#Dub). You can also automatically
+generate a `dub.json` file as explained in [Dlang](Dlang-module.md#generatedubfile).

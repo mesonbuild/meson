@@ -12,7 +12,9 @@ RUN apt-get -y update && apt-get -y upgrade \
 && apt-get -y install qt4-linguist-tools \
 && apt-get -y install python-dev \
 && apt-get -y install libomp-dev openssh-client \
-&& python3 -m pip install hotdoc codecov
+&& python3 -m pip install hotdoc codecov \
+&& dub fetch urld \
+&& dub build urld --compiler=gdc
 
 # OpenSSH client is needed to run openmpi binaries.
 

@@ -19,6 +19,7 @@ import copy
 import os
 import re
 import stat
+import json
 import shlex
 import shutil
 import textwrap
@@ -30,7 +31,6 @@ from .. import mesonlib
 from ..compilers import clib_langs
 from ..mesonlib import MesonException, OrderedSet
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
-
 
 # These must be defined in this file to avoid cyclical references.
 packages = {}
@@ -59,6 +59,8 @@ class DependencyMethods(Enum):
     CUPSCONFIG = 'cups-config'
     PCAPCONFIG = 'pcap-config'
     LIBWMFCONFIG = 'libwmf-config'
+    # Misc
+    DUB = 'dub'
 
 
 class Dependency:
@@ -790,6 +792,162 @@ class PkgConfigDependency(ExternalDependency):
         # a path rather than the raw dlname
         return os.path.basename(dlname)
 
+class DubDependency(ExternalDependency):
+    class_dubbin = None
+
+    def __init__(self, name, environment, kwargs):
+        super().__init__('dub', environment, 'd', kwargs)
+        self.name = name
+        self.compiler = super().get_compiler()
+
+        if 'required' in kwargs:
+            self.required = kwargs.get('required')
+
+        if DubDependency.class_dubbin is None:
+            self.dubbin = self.check_dub()
+            DubDependency.class_dubbin = self.dubbin
+        else:
+            self.dubbin = DubDependency.class_dubbin
+
+        if not self.dubbin:
+            if self.required:
+                raise DependencyException('DUB not found.')
+            self.is_found = False
+            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
+            return
+
+        mlog.debug('Determining dependency {!r} with DUB executable '
+                   '{!r}'.format(name, self.dubbin.get_path()))
+
+        # Ask dub for the package
+        ret, res = self._call_dubbin(['describe', name])
+
+        if ret != 0:
+            if self.required:
+                raise DependencyException('Dependency {!r} not found'.format(name))
+            self.is_found = False
+            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
+            return
+
+        j = json.loads(res)
+        comp = self.compiler.get_id().replace('llvm', 'ldc').replace('gcc', 'gdc')
+        for package in j['packages']:
+            if package['name'] == name:
+                if j['compiler'] != comp:
+                    msg = ['Dependency', mlog.bold(name), 'found but it was compiled with']
+                    msg += [mlog.bold(j['compiler']), 'and we are using', mlog.bold(comp)]
+                    mlog.error(*msg)
+                    if self.required:
+                        raise DependencyException('Dependency {!r} not found'.format(name))
+                    self.is_found = False
+                    mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
+                    return
+
+                self.version = package['version']
+                self.pkg = package
+                break
+
+        # Check if package version meets the requirements
+        found_msg = ['Dependency', mlog.bold(name), 'found:']
+        if self.version_reqs is None:
+            self.is_found = True
+        else:
+            if not isinstance(self.version_reqs, (str, list)):
+                raise DependencyException('Version argument must be string or list.')
+            if isinstance(self.version_reqs, str):
+                self.version_reqs = [self.version_reqs]
+            (self.is_found, not_found, found) = \
+                version_compare_many(self.version, self.version_reqs)
+            if not self.is_found:
+                found_msg += [mlog.red('NO'),
+                              'found {!r} but need:'.format(self.version),
+                              ', '.join(["'{}'".format(e) for e in not_found])]
+                if found:
+                    found_msg += ['; matched:',
+                                  ', '.join(["'{}'".format(e) for e in found])]
+                if not self.silent:
+                    mlog.log(*found_msg)
+                if self.required:
+                    m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
+                    raise DependencyException(m.format(name, not_found, self.version))
+                return
+
+        found_msg += [mlog.green('YES'), self.version]
+
+        if self.pkg['targetFileName'].endswith('.a'):
+            self.static = True
+
+        self.compile_args = []
+        for flag in self.pkg['dflags']:
+            self.link_args.append(flag)
+        for path in self.pkg['importPaths']:
+            self.compile_args.append('-I' + os.path.join(self.pkg['path'], path))
+
+        self.link_args = []
+        for flag in self.pkg['lflags']:
+            self.link_args.append(flag)
+
+        search_paths = []
+        search_paths.append(os.path.join(self.pkg['path'], self.pkg['targetPath']))
+        found, res = self.__search_paths(search_paths, self.pkg['targetFileName'])
+        for file in res:
+            self.link_args.append(file)
+
+        if not found:
+            if self.required:
+                raise DependencyException('Dependency {!r} not found'.format(name))
+                self.is_found = False
+                mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
+                return
+
+        if not self.silent:
+            mlog.log(*found_msg)
+
+    def get_compiler(self):
+        return self.compiler
+
+    def __search_paths(self, search_paths, target_file):
+        found = False
+        res = []
+        if target_file == '':
+            return True, res
+        for path in search_paths:
+                if os.path.isdir(path):
+                    for file in os.listdir(path):
+                        if file == target_file:
+                            res.append(os.path.join(path, file))
+                            found = True
+        return found, res
+
+    def _call_dubbin(self, args, env=None):
+        p, out = Popen_safe(self.dubbin.get_command() + args, env=env)[0:2]
+        return p.returncode, out.strip()
+
+    def check_dub(self):
+        dubbin = ExternalProgram('dub', silent=True)
+        if dubbin.found():
+            try:
+                p, out = Popen_safe(dubbin.get_command() + ['--version'])[0:2]
+                if p.returncode != 0:
+                    mlog.warning('Found dub {!r} but couldn\'t run it'
+                                 ''.format(' '.join(dubbin.get_command())))
+                    # Set to False instead of None to signify that we've already
+                    # searched for it and not found it
+                    dubbin = False
+            except (FileNotFoundError, PermissionError):
+                dubbin = False
+        else:
+            dubbin = False
+        if dubbin:
+            mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
+                     '(%s)' % out.strip())
+        else:
+            mlog.log('Found DUB:', mlog.red('NO'))
+        return dubbin
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.DUB]
 
 class ExternalProgram:
     windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
@@ -1097,6 +1255,7 @@ def find_external_dependency(name, env, kwargs):
         raise DependencyException('Keyword "required" must be a boolean.')
     if not isinstance(kwargs.get('method', ''), str):
         raise DependencyException('Keyword "method" must be a string.')
+    method = kwargs.get('method', '')
     lname = name.lower()
     if lname in packages:
         if lname not in _packages_accept_language and 'language' in kwargs:
@@ -1113,6 +1272,11 @@ def find_external_dependency(name, env, kwargs):
     if 'language' in kwargs:
         # Remove check when PkgConfigDependency supports language.
         raise DependencyException('%s dependency does not accept "language" keyword argument' % (lname, ))
+    if 'dub' == method:
+        dubdep = DubDependency(name, env, kwargs)
+        if required and not dubdep.found():
+            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
+        return dubdep
     pkg_exc = None
     pkgdep = None
     try:

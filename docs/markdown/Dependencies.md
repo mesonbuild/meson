@@ -109,6 +109,38 @@ object. Since they can be used interchangeably, the rest of the build
 definitions do not need to care which one it is. Meson will take care
 of all the work behind the scenes to make this work.
 
+# Dependency method
+
+You can use the keyword `method` to let meson know what method to use
+when searching for the dependency. The default value is `auto`.
+Aditional dependencies methods are `pkg-config`, `config-tool`,
+`system`, `sysconfig`, `qmake`, `extraframework` and `dub`.
+
+```meson
+cups_dep = dependency('cups', method : 'pkg-config')
+```
+
+### Some notes on Dub
+
+Please understand that meson is only able to find dependencies that
+exist in the local Dub repository. You need to manually fetch and
+build the target dependencies.
+
+For `urld`.
+```
+dub fetch urld
+dub build urld
+```
+
+Other thing you need to keep in mind is that both meson and Dub need
+to be using the same compiler. This can be achieved using Dub's
+`-compiler` argument and/or manually setting the `DC` environment
+variable when running meson.
+```
+dub build urld --compiler=dmd
+DC="dmd" meson builddir
+```
+
 # Dependencies with custom lookup functionality
 
 Some dependencies have specific detection logic.
@@ -280,7 +312,7 @@ The `language` keyword may used.
 
 Python3 is handled specially by meson:
 1. Meson tries to use `pkg-config`.
-1. If `pkg-config` fails meson uses a fallback:
+2. If `pkg-config` fails meson uses a fallback:
     - On Windows the fallback is the current `python3` interpreter.
     - On OSX the fallback is a framework dependency from `/Library/Frameworks`.
 

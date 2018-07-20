@@ -376,6 +376,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
         self.methods.update({'found': self.found_method,
                              'type_name': self.type_name_method,
                              'version': self.version_method,
+                             'name': self.name_method,
                              'get_pkgconfig_variable': self.pkgconfig_method,
                              'get_configtool_variable': self.configtool_method,
                              'partial_dependency': self.partial_dependency_method,
@@ -397,6 +398,11 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
     @permittedKwargs({})
     def version_method(self, args, kwargs):
         return self.held_object.get_version()
+
+    @noPosargs
+    @permittedKwargs({})
+    def name_method(self, args, kwargs):
+        return self.held_object.get_name()
 
     @permittedKwargs({'define_variable'})
     def pkgconfig_method(self, args, kwargs):
