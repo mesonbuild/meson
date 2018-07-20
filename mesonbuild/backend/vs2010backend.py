@@ -998,10 +998,10 @@ class Vs2010Backend(backends.Backend):
                 options = self.environment.coredata.base_options
                 extra_link_args += compiler.get_std_shared_module_link_args(options)
             # Add link args added using add_project_link_arguments()
-            extra_link_args += self.build.get_project_link_args(compiler, target.subproject)
+            extra_link_args += self.build.get_project_link_args(compiler, target.subproject, target.is_cross)
             # Add link args added using add_global_link_arguments()
             # These override per-project link arguments
-            extra_link_args += self.build.get_global_link_args(compiler)
+            extra_link_args += self.build.get_global_link_args(compiler, target.is_cross)
             if not target.is_cross:
                 # Link args added from the env: LDFLAGS. We want these to
                 # override all the defaults but not the per-target link args.

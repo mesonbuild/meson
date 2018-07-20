@@ -664,6 +664,8 @@ class DataTests(unittest.TestCase):
         self.assertTrue(snippet_dir.is_dir())
         for f in snippet_dir.glob('*'):
             self.assertTrue(f.is_file())
+            if f.parts[-1].endswith('~'):
+                continue
             if f.suffix == '.md':
                 with f.open() as snippet:
                     for line in snippet:
