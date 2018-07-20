@@ -684,7 +684,7 @@ configuration as-is, which may be absolute, or relative to `prefix`.
 [`install_dir` arguments](Installing.md) handles that as expected, but
 if you need the absolute path to one of these e.g. to use in a define
 etc., you should use `join_paths(get_option('prefix'),
-get_option('localstatedir')))`
+get_option('localstatedir'))`
 
 For options of type `feature` a special object is returned instead of
 a string.  See [`feature` options](Build-options.md#features)
