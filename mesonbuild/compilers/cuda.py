@@ -188,3 +188,6 @@ __global__ void kernel (void) {
 
     def linker_to_compiler_args(self, args):
         return ['/link'] + args
+
+    def get_pic_args(self):
+        return []
