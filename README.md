@@ -1,6 +1,7 @@
 <p align="center">
-<img src="http://mesonbuild.com/assets/images/meson_logo.png">
+    <img src="https://github.com/brigazvi/meson/blob/master/graphics/meson_logo.svg" alt="icon"> <br>
 </p>
+
 Meson® is a project to create the best possible next-generation
 build system.
 
