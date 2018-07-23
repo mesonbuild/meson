@@ -467,6 +467,8 @@ This is probably wrong, it should always point to the native compiler.''' % evar
         C, C++, ObjC, ObjC++, Fortran, CS so consolidate it here.
         '''
         if self.is_cross_build() and want_cross:
+            if lang not in self.cross_info.config['binaries']:
+                raise EnvironmentException('{!r} compiler binary not defined in cross file'.format(lang))
             compilers = mesonlib.stringlistify(self.cross_info.config['binaries'][lang])
             # Ensure ccache exists and remove it if it doesn't
             if compilers[0] == 'ccache':
