@@ -2,11 +2,7 @@
 %__meson_wrap_mode nodownload
 
 %meson \
-    export CFLAGS="${CFLAGS:-%__global_cflags}"       \
-    export CXXFLAGS="${CXXFLAGS:-%__global_cxxflags}" \
-    export FFLAGS="${FFLAGS:-%__global_fflags}"       \
-    export FCFLAGS="${FCFLAGS:-%__global_fcflags}"    \
-    export LDFLAGS="${LDFLAGS:-%__global_ldflags}"    \
+    %set_build_flags \
     %{__meson}                              \\\
         --buildtype=plain                   \\\
         --prefix=%{_prefix}                 \\\
