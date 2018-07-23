@@ -73,8 +73,8 @@ class NinjaBuildElement:
             self.infilenames = [infilenames]
         else:
             self.infilenames = infilenames
-        self.deps = set()
-        self.orderdeps = set()
+        self.deps = OrderedSet()
+        self.orderdeps = OrderedSet()
         self.elems = []
         self.all_outputs = all_outputs
 
