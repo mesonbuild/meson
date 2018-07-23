@@ -3587,6 +3587,19 @@ endian = 'little'
         self.build()
         self.run_tests()
 
+    def test_deterministic_dep_order(self):
+        '''
+        Test that the dependencies are always listed in a deterministic order.
+        '''
+        testdir = os.path.join(self.common_test_dir, '206 dep order')
+        self.init(testdir)
+        with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
+            for line in bfile:
+                if 'build myexe:' in line or 'build myexe.exe:' in line:
+                    self.assertIn('liblib1.a liblib2.a', line)
+                    return
+        raise RuntimeError('Could not find the build rule')
+
     @skipIfNoPkgconfig
     def test_usage_external_library(self):
         '''
