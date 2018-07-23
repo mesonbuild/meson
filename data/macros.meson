@@ -3,24 +3,24 @@
 
 %meson \
     %set_build_flags \
-    %{__meson}                              \\\
-        --buildtype=plain                   \\\
-        --prefix=%{_prefix}                 \\\
-        --libdir=%{_libdir}                 \\\
-        --libexecdir=%{_libexecdir}         \\\
-        --bindir=%{_bindir}                 \\\
-        --sbindir=%{_sbindir}               \\\
-        --includedir=%{_includedir}         \\\
-        --datadir=%{_datadir}               \\\
-        --mandir=%{_mandir}                 \\\
-        --infodir=%{_infodir}               \\\
-        --localedir=%{_datadir}/locale      \\\
-        --sysconfdir=%{_sysconfdir}         \\\
-        --localstatedir=%{_localstatedir}   \\\
-        --sharedstatedir=%{_sharedstatedir} \\\
-        --wrap-mode=%{__meson_wrap_mode}    \\\
-        %{_vpath_srcdir} %{_vpath_builddir} \\\
-        %{nil}
+    %{shrink:%{__meson} \
+        --buildtype=plain \
+        --prefix=%{_prefix} \
+        --libdir=%{_libdir} \
+        --libexecdir=%{_libexecdir} \
+        --bindir=%{_bindir} \
+        --sbindir=%{_sbindir} \
+        --includedir=%{_includedir} \
+        --datadir=%{_datadir} \
+        --mandir=%{_mandir} \
+        --infodir=%{_infodir} \
+        --localedir=%{_datadir}/locale \
+        --sysconfdir=%{_sysconfdir} \
+        --localstatedir=%{_localstatedir} \
+        --sharedstatedir=%{_sharedstatedir} \
+        --wrap-mode=%{__meson_wrap_mode} \
+        %{_vpath_srcdir} %{_vpath_builddir} \
+	%{nil}}
 
 %meson_build \
     %ninja_build -C %{_vpath_builddir}
