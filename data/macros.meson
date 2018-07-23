@@ -1,5 +1,6 @@
 %__meson %{_bindir}/meson
 %__meson_wrap_mode nodownload
+%__meson_auto_features enabled
 
 %meson \
     %set_build_flags \
@@ -19,6 +20,7 @@
         --localstatedir=%{_localstatedir} \
         --sharedstatedir=%{_sharedstatedir} \
         --wrap-mode=%{__meson_wrap_mode} \
+        --auto-features=%{__meson_auto_features} \
         %{_vpath_srcdir} %{_vpath_builddir} \
 	%{nil}}
 
