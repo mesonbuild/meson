@@ -3571,7 +3571,7 @@ endian = 'little'
         self.init(testdir)
         with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
             for line in bfile:
-                if 'build myexe:' in line:
+                if 'build myexe:' in line or 'build myexe.exe:' in line:
                     self.assertIn('liblib1.a liblib2.a', line)
                     return
         raise RuntimeError('Could not find the build rule')
