@@ -376,7 +376,7 @@ class Backend:
 
     def determine_rpath_dirs(self, target):
         link_deps = target.get_all_link_deps()
-        result = set()
+        result = OrderedSet()
         for ld in link_deps:
             if ld is target:
                 continue

@@ -3576,6 +3576,21 @@ endian = 'little'
                     return
         raise RuntimeError('Could not find the build rule')
 
+    def test_deterministic_rpath_order(self):
+        '''
+        Test that the rpaths are always listed in a deterministic order.
+        '''
+        if is_cygwin():
+            raise unittest.SkipTest('rpath are not used on Cygwin')
+        testdir = os.path.join(self.common_test_dir, '207 rpath order')
+        self.init(testdir)
+        with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
+            for line in bfile:
+                if '-rpath' in line:
+                    self.assertIn('-rpath,$$ORIGIN/subprojects/sub1:$$ORIGIN/subprojects/sub2', line)
+                    return
+        raise RuntimeError('Could not find the rpath')
+
     @skipIfNoPkgconfig
     def test_usage_external_library(self):
         '''
