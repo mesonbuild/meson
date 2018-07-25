@@ -80,7 +80,19 @@ class I18nModule(ExtensionModule):
             command.append(datadirs)
 
         kwargs['command'] = command
-        ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, state.subproject, kwargs)
+
+        inputfile = kwargs['input']
+        if isinstance(inputfile, str):
+            inputfile = mesonlib.File.from_source_file(state.environment.source_dir,
+                                                       state.subdir, inputfile)
+        output = kwargs['output']
+        ifile_abs = inputfile.absolute_path(state.environment.source_dir,
+                                            state.environment.build_dir)
+        values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
+        outputs = mesonlib.substitute_values([output], values)
+        output = outputs[0]
+
+        ct = build.CustomTarget(output + '_merge', state.subdir, state.subproject, kwargs)
         return ModuleReturnValue(ct, [ct])
 
     @FeatureNewKwargs('i18n.gettext', '0.37.0', ['preset'])
