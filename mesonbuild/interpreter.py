@@ -92,12 +92,13 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder):
     def auto_method(self, args, kwargs):
         return self.held_object.is_auto()
 
-def extract_required_kwarg(kwargs):
+def extract_required_kwarg(kwargs, subproject):
     val = kwargs.get('required', True)
     disabled = False
     required = False
     feature = None
     if isinstance(val, FeatureOptionHolder):
+        FeatureNew('User option "feature"', '0.47.0').use(subproject)
         option = val.held_object
         feature = val.name
         if option.is_disabled():
@@ -1424,7 +1425,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(libname, str):
             raise InterpreterException('Library name not a string.')
 
-        disabled, required, feature = extract_required_kwarg(kwargs)
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Library', mlog.bold(libname), 'skipped: feature', mlog.bold(feature), 'disabled')
             lib = dependencies.ExternalLibrary(libname, None,
@@ -2471,7 +2472,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @permittedKwargs(permitted_kwargs['add_languages'])
     @stringArgs
     def func_add_languages(self, node, args, kwargs):
-        disabled, required, feature = extract_required_kwarg(kwargs)
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             for lang in sorted(args, key=compilers.sort_clink):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
@@ -2732,7 +2733,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if not args:
             raise InterpreterException('No program name specified.')
 
-        disabled, required, feature = extract_required_kwarg(kwargs)
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Program', mlog.bold(' '.join(args)), 'skipped: feature', mlog.bold(feature), 'disabled')
             return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
@@ -2847,7 +2848,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         name = args[0]
         display_name = name if name else '(anonymous)'
 
-        disabled, required, feature = extract_required_kwarg(kwargs)
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Dependency', mlog.bold(display_name), 'skipped: feature', mlog.bold(feature), 'disabled')
             return DependencyHolder(NotFoundDependency(self.environment), self.subproject)
