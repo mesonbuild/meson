@@ -399,7 +399,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
     def version_method(self, args, kwargs):
         return self.held_object.get_version()
 
-    @permittedKwargs({'define_variable'})
+    @permittedKwargs({'define_variable', 'default'})
     def pkgconfig_method(self, args, kwargs):
         args = listify(args)
         if len(args) != 1:
