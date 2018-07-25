@@ -96,6 +96,14 @@ def _git_init(project_dir):
     subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir,
                           stdout=subprocess.DEVNULL)
 
+def can_use_pkgconfig():
+    # CI provides pkg-config, and we should fail the test if it isn't found
+    if is_ci():
+        return True
+    if shutil.which('pkg-config'):
+        return True
+    return False
+
 def skipIfNoPkgconfig(f):
     '''
     Skip this test if no pkg-config is found, unless we're on Travis or
@@ -106,7 +114,7 @@ def skipIfNoPkgconfig(f):
     Note: Yes, we provide pkg-config even while running Windows CI
     '''
     def wrapped(*args, **kwargs):
-        if not is_ci() and shutil.which('pkg-config') is None:
+        if not can_use_pkgconfig():
             raise unittest.SkipTest('pkg-config not found')
         return f(*args, **kwargs)
     return wrapped
@@ -2743,6 +2751,81 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(opts['buildtype'], 'debug')
         self.assertEqual(opts['debug'], True)
         self.assertEqual(opts['optimization'], '0')
+
+    def test_static_and_shared_library_usability(self):
+        '''
+        Test that static and shared libraries with various kinds of static
+        library internal dependencies are usable after installation, and that
+        the pkg-config files generated for such libraries have the correct
+        Libs: and Libs.private: lines.
+        '''
+        env = get_fake_env('', self.builddir, self.prefix)
+        cc = env.detect_c_compiler(False)
+        if cc.get_id() == 'msvc':
+            static_args = '-DPROVIDER_STATIC'
+            # FIXME: Can't reliably test mixed shared/static because of
+            # __declspec linkage issues and because it will greatly complicate
+            # the build files. Waiting for static_c_args support.
+            libtypes = ('static',)
+        else:
+            static_args = ''
+            libtypes = ('static', 'shared', 'both')
+        # Test
+        for libtype in libtypes:
+            oldprefix = self.prefix
+            # Install external library so we can find it
+            testdir = os.path.join(self.unit_test_dir, '35 both library usability', 'provider')
+            # install into installdir without using DESTDIR
+            installdir = self.installdir
+            self.prefix = installdir
+            if libtype == 'static':
+                c_args = static_args
+            else:
+                c_args = ''
+            self.init(testdir, extra_args=['--default-library=' + libtype, '-Dc_args=' + c_args])
+            self.prefix = oldprefix
+            for each in ('whole-installed', 'whole-internal', 'with-installed', 'with-internal'):
+                pc = os.path.join(self.privatedir, '{}.pc'.format(each))
+                with open(pc, 'r') as f:
+                    for l in f:
+                        l = l.strip()
+                        if l.startswith('Libs:'):
+                            if libtype == 'static' and each == 'with-installed':
+                                self.assertEqual(l, 'Libs: -L${libdir} -linstalled-some -l' + each)
+                            else:
+                                self.assertEqual(l, 'Libs: -L${libdir} -l' + each)
+                        if l.startswith('Libs.private:'):
+                            if each == 'with-installed':
+                                self.assertEqual(l, 'Libs.private: -L${libdir} -linstalled-some')
+                            else:
+                                self.assertNotIn('internal-some', l)
+            self.build()
+            self.run_tests()
+            # Rest of the test requires pkg-config
+            if not can_use_pkgconfig():
+                ## New builddir for the next iteration
+                self.new_builddir()
+                continue
+            self.install(use_destdir=False)
+            if is_windows() or is_cygwin():
+                os.environ['PATH'] += os.pathsep + os.path.join(installdir, 'bin')
+            os.environ['PKG_CONFIG_PATH'] = os.path.join(installdir, self.libdir, 'pkgconfig')
+            testdir = os.path.join(self.unit_test_dir, '35 both library usability', 'consumer')
+            for _libtype in libtypes:
+                if _libtype == 'static':
+                    _c_args = static_args
+                else:
+                    _c_args = ''
+                ## New builddir for the consumer
+                self.new_builddir()
+                self.init(testdir, extra_args=['--default-library=' + _libtype, '-Dc_args=' + _c_args])
+                self.build()
+                self.run_tests()
+            ## New builddir for the next iteration
+            self.new_builddir()
+        # Deliver a skip status to signal incomplete test
+        if not can_use_pkgconfig():
+            raise unittest.SkipTest('pkg-config not found, test incomplete')
 
 
 class FailureTests(BasePlatformTests):

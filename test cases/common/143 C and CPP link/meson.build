@@ -15,8 +15,8 @@
 project('C and C++ static link test', ['c', 'cpp'])
 
 # Verify that adding link arguments works.
-add_global_link_arguments('', language : 'c')
-add_project_link_arguments('', language : 'c')
+add_global_link_arguments('-DMESON_UNUSED', language : 'c')
+add_project_link_arguments('-DMESON_UNUSED', language : 'c')
 
 libc = static_library('cfoo', ['foo.c', 'foo.h'])
 

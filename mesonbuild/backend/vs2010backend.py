@@ -1032,7 +1032,7 @@ class Vs2010Backend(backends.Backend):
         (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args.to_native())
 
         # Add more libraries to be linked if needed
-        for t in target.get_dependencies():
+        for t in target.get_dependencies(link_whole=True):
             lobj = self.build.targets[t.get_id()]
             linkname = os.path.join(down, self.get_target_filename_for_linking(lobj))
             if t in target.link_whole_targets:

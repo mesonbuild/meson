@@ -2412,7 +2412,7 @@ rule FORTRAN_DEP_HACK%s
             # line where the static library is used.
             dependencies = []
         else:
-            dependencies = target.get_dependencies()
+            dependencies = target.get_dependencies(link_whole=True)
         internal = self.build_target_link_arguments(linker, dependencies)
         commands += internal
         # Only non-static built targets need link args and link dependencies
