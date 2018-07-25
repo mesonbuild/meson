@@ -3608,10 +3608,14 @@ endian = 'little'
             raise unittest.SkipTest('rpath are not used on Cygwin')
         testdir = os.path.join(self.unit_test_dir, '35 rpath order')
         self.init(testdir)
+        if is_osx():
+            rpathre = re.compile('-rpath,.*/subprojects/sub1.*-rpath,.*/subprojects/sub2')
+        else:
+            rpathre = re.compile('-rpath,\$\$ORIGIN/subprojects/sub1:\$\$ORIGIN/subprojects/sub2')
         with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
             for line in bfile:
                 if '-rpath' in line:
-                    self.assertIn('-rpath,$$ORIGIN/subprojects/sub1:$$ORIGIN/subprojects/sub2', line)
+                    self.assertRegex(line, rpathre)
                     return
         raise RuntimeError('Could not find the rpath')
 
