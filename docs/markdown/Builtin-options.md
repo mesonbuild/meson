@@ -74,6 +74,7 @@ platforms or with all compilers:
 | b_bitcode   | false         | true, false             | Embed Apple bitcode, see below |
 | b_colorout  | always        | auto, always, never     | Use colored output |
 | b_coverage  | false         | true, false             | Enable coverage tracking |
+| b_crtlib    | from_buildtype| none, md, mdd, mt, mtd, from_buildtype | VS runtime library to use (since 0.48.0) |
 | b_lundef    | true          | true, false             | Don't allow undefined symbols when linking |
 | b_lto       | false         | true, false             | Use link time optimization |
 | b_ndebug    | false         | true, false, if-release | Disable asserts |
