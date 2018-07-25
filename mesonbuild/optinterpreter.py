@@ -121,7 +121,7 @@ def string_array_parser(name, description, kwargs):
 def FeatureParser(name, description, kwargs):
     return coredata.UserFeatureOption(name,
                                       description,
-                                      kwargs.get('value', 'enabled'),
+                                      kwargs.get('value', 'auto'),
                                       yielding=kwargs.get('yield', coredata.default_yielding))
 
 option_types = {'string': StringParser,
