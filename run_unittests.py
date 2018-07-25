@@ -3582,7 +3582,7 @@ endian = 'little'
         '''
         if is_cygwin():
             raise unittest.SkipTest('rpath are not used on Cygwin')
-        testdir = os.path.join(self.common_test_dir, '207 rpath order')
+        testdir = os.path.join(self.unit_test_dir, '35 rpath order')
         self.init(testdir)
         with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
             for line in bfile:
