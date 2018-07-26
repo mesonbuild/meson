@@ -3591,7 +3591,7 @@ endian = 'little'
         '''
         Test that the dependencies are always listed in a deterministic order.
         '''
-        testdir = os.path.join(self.common_test_dir, '206 dep order')
+        testdir = os.path.join(self.unit_test_dir, '36 dep order')
         self.init(testdir)
         with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
             for line in bfile:
