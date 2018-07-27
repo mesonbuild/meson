@@ -2279,7 +2279,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self.subprojects[dirname]
 
     def get_option_internal(self, optname):
-        undecorated_optname = optname
+        raw_optname = optname
         try:
             return self.coredata.base_options[optname]
         except KeyError:
@@ -2296,9 +2296,20 @@ external dependencies (including libraries) must go to "dependencies".''')
             optname = self.subproject + ':' + optname
         try:
             opt = self.coredata.user_options[optname]
-            if opt.yielding and ':' in optname:
-                # If option not present in superproject, keep the original.
-                opt = self.coredata.user_options.get(undecorated_optname, opt)
+            if opt.yielding and ':' in optname and raw_optname in self.coredata.user_options:
+                popt = self.coredata.user_options[raw_optname]
+                if type(opt) is type(popt):
+                    opt = popt
+                else:
+                    # Get class name, then option type as a string
+                    opt_type = opt.__class__.__name__[4:][:-6].lower()
+                    popt_type = popt.__class__.__name__[4:][:-6].lower()
+                    # This is not a hard error to avoid dependency hell, the workaround
+                    # when this happens is to simply set the subproject's option directly.
+                    mlog.warning('Option {0!r} of type {1!r} in subproject {2!r} cannot yield '
+                                 'to parent option of type {3!r}, ignoring parent value. '
+                                 'Use -D{2}:{0}=value to set the value for this option manually'
+                                 '.'.format(raw_optname, opt_type, self.subproject, popt_type))
             return opt
         except KeyError:
             pass
