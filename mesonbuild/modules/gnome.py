@@ -511,7 +511,7 @@ class GnomeModule(ExtensionModule):
                 sanitize = state.environment.coredata.base_options['b_sanitize'].value
                 cflags += compilers.sanitizer_compile_args(sanitize)
                 if 'address' in sanitize.split(','):
-                    external_ldflags += ['-lasan']
+                    internal_ldflags += ['-lasan']  # This must be first in ldflags
                 # FIXME: Linking directly to libasan is not recommended but g-ir-scanner
                 # does not understand -f LDFLAGS. https://bugzilla.gnome.org/show_bug.cgi?id=783892
                 # ldflags += compilers.sanitizer_link_args(sanitize)
