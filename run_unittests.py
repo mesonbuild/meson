@@ -23,6 +23,7 @@ import os
 import shutil
 import unittest
 import platform
+from itertools import chain
 from unittest import mock
 from configparser import ConfigParser
 from glob import glob
@@ -34,7 +35,7 @@ import mesonbuild.environment
 import mesonbuild.mesonlib
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
-from mesonbuild.interpreter import ObjectHolder
+from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.mesonlib import (
     is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd,
     windows_proof_rmtree, python_command, version_compare,
@@ -50,6 +51,10 @@ from run_tests import get_builddir_target_args, get_backend_commands, Backend
 from run_tests import ensure_backend_detects_changes, run_configure_inprocess
 from run_tests import run_mtest_inprocess
 
+# Fake class for mocking
+class FakeBuild:
+    def __init__(self, env):
+        self.environment = env
 
 def get_dynamic_section_entry(fname, entry):
     if is_cygwin() or is_osx():
@@ -71,9 +76,13 @@ def get_dynamic_section_entry(fname, entry):
 def get_soname(fname):
     return get_dynamic_section_entry(fname, 'soname')
 
-
 def get_rpath(fname):
     return get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
+
+def is_tarball():
+    if not os.path.isdir('docs'):
+        return True
+    return False
 
 def is_ci():
     if 'TRAVIS' in os.environ or 'APPVEYOR' in os.environ:
@@ -479,23 +488,6 @@ class InternalTests(unittest.TestCase):
         kwargs = {'sources': [1, 2, 3], 'pch_sources': [4, 5, 6]}
         self.assertEqual([[1, 2, 3], [4, 5, 6]], extract(kwargs, 'sources', 'pch_sources'))
 
-    @unittest.skipIf(not os.path.isdir('docs'), 'Doc dir not found, presumably because this is a tarball release.')
-    def test_snippets(self):
-        hashcounter = re.compile('^ *(#)+')
-        snippet_dir = Path('docs/markdown/snippets')
-        self.assertTrue(snippet_dir.is_dir())
-        for f in snippet_dir.glob('*'):
-            self.assertTrue(f.is_file())
-            if f.suffix == '.md':
-                with f.open() as snippet:
-                    for line in snippet:
-                        m = re.match(hashcounter, line)
-                        if m:
-                            self.assertEqual(len(m.group(0)), 2, 'All headings in snippets must have two hash symbols: ' + f.name)
-            else:
-                if f.name != 'add_release_note_snippets_here':
-                    self.assertTrue(False, 'A file without .md suffix in snippets dir: ' + f.name)
-
     def test_pkgconfig_module(self):
 
         class Mock:
@@ -601,6 +593,89 @@ class InternalTests(unittest.TestCase):
             with PatchModule(mesonbuild.compilers.c.for_windows,
                              'mesonbuild.compilers.c.for_windows', true):
                 self._test_all_naming(cc, env, patterns, 'windows-msvc')
+
+
+@unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
+class DataTests(unittest.TestCase):
+
+    def test_snippets(self):
+        hashcounter = re.compile('^ *(#)+')
+        snippet_dir = Path('docs/markdown/snippets')
+        self.assertTrue(snippet_dir.is_dir())
+        for f in snippet_dir.glob('*'):
+            self.assertTrue(f.is_file())
+            if f.suffix == '.md':
+                with f.open() as snippet:
+                    for line in snippet:
+                        m = re.match(hashcounter, line)
+                        if m:
+                            self.assertEqual(len(m.group(0)), 2, 'All headings in snippets must have two hash symbols: ' + f.name)
+            else:
+                if f.name != 'add_release_note_snippets_here':
+                    self.assertTrue(False, 'A file without .md suffix in snippets dir: ' + f.name)
+
+    def test_compiler_options_documented(self):
+        '''
+        Test that C and C++ compiler options and base options are documented in
+        Builtin-Options.md. Only tests the default compiler for the current
+        platform on the CI.
+        '''
+        md = None
+        with open('docs/markdown/Builtin-options.md') as f:
+            md = f.read()
+        self.assertIsNotNone(md)
+        env = Environment('', '', get_fake_options(''))
+        # FIXME: Support other compilers
+        cc = env.detect_c_compiler(False)
+        cpp = env.detect_cpp_compiler(False)
+        for comp in (cc, cpp):
+            for opt in comp.get_options().keys():
+                self.assertIn(opt, md)
+            for opt in comp.base_options:
+                self.assertIn(opt, md)
+        self.assertNotIn('b_unknown', md)
+
+    def test_cpu_families_documented(self):
+        with open("docs/markdown/Reference-tables.md") as f:
+            md = f.read()
+        self.assertIsNotNone(md)
+
+        sections = list(re.finditer(r"^## (.+)$", md, re.MULTILINE))
+        for s1, s2 in zip(sections[::2], sections[1::2]):
+            if s1.group(1) == "CPU families":
+                # Extract the content for this section
+                content = md[s1.end():s2.start()]
+                # Find the list entries
+                arches = [m.group(1) for m in re.finditer(r"^\| (\w+) +\|", content, re.MULTILINE)]
+                # Drop the header
+                arches = set(arches[1:])
+                self.assertEqual(arches, set(mesonbuild.environment.known_cpu_families))
+
+    def test_markdown_files_in_sitemap(self):
+        '''
+        Test that each markdown files in docs/markdown is referenced in sitemap.txt
+        '''
+        with open("docs/sitemap.txt") as f:
+            md = f.read()
+        self.assertIsNotNone(md)
+        toc = list(m.group(1) for m in re.finditer(r"^\s*(\w.*)$", md, re.MULTILINE))
+        markdownfiles = [f.name for f in Path("docs/markdown").iterdir() if f.is_file() and f.suffix == '.md']
+        exceptions = ['_Sidebar.md']
+        for f in markdownfiles:
+            if f not in exceptions:
+                self.assertIn(f, toc)
+
+    def test_syntax_highlighting_files(self):
+        '''
+        Ensure that syntax highlighting files were updated for new functions in
+        the global namespace in build files.
+        '''
+        env = Environment('', '', get_fake_options(''))
+        interp = Interpreter(FakeBuild(env), mock=True)
+        with open('data/syntax-highlighting/vim/syntax/meson.vim') as f:
+            res = re.search(r'syn keyword mesonBuiltin(\s+\\\s\w+)+', f.read(), re.MULTILINE)
+            defined = set([a.strip() for a in res.group().split('\\')][1:])
+            self.assertEqual(defined, set(chain(interp.funcs.keys(), interp.builtin.keys())))
 
 
 class BasePlatformTests(unittest.TestCase):
@@ -2341,60 +2416,6 @@ recommended as it is not supported on some platforms''')
             # they used to fail this test with Meson 0.46 an earlier versions.
             pass
 
-    @unittest.skipIf(not os.path.isdir('docs'), 'Doc dir not found, presumably because this is a tarball release.')
-    def test_compiler_options_documented(self):
-        '''
-        Test that C and C++ compiler options and base options are documented in
-        Builtin-Options.md. Only tests the default compiler for the current
-        platform on the CI.
-        '''
-        md = None
-        with open('docs/markdown/Builtin-options.md') as f:
-            md = f.read()
-        self.assertIsNotNone(md)
-        env = Environment('.', self.builddir, get_fake_options(self.prefix))
-        # FIXME: Support other compilers
-        cc = env.detect_c_compiler(False)
-        cpp = env.detect_cpp_compiler(False)
-        for comp in (cc, cpp):
-            for opt in comp.get_options().keys():
-                self.assertIn(opt, md)
-            for opt in comp.base_options:
-                self.assertIn(opt, md)
-        self.assertNotIn('b_unknown', md)
-
-    @unittest.skipIf(not os.path.isdir('docs'), 'Doc dir not found, presumably because this is a tarball release.')
-    def test_cpu_families_documented(self):
-        with open("docs/markdown/Reference-tables.md") as f:
-            md = f.read()
-        self.assertIsNotNone(md)
-
-        sections = list(re.finditer(r"^## (.+)$", md, re.MULTILINE))
-        for s1, s2 in zip(sections[::2], sections[1::2]):
-            if s1.group(1) == "CPU families":
-                # Extract the content for this section
-                content = md[s1.end():s2.start()]
-                # Find the list entries
-                arches = [m.group(1) for m in re.finditer(r"^\| (\w+) +\|", content, re.MULTILINE)]
-                # Drop the header
-                arches = set(arches[1:])
-                self.assertEqual(arches, set(mesonbuild.environment.known_cpu_families))
-
-    @unittest.skipIf(not os.path.isdir('docs'), 'Doc dir not found, presumably because this is a tarball release.')
-    def test_markdown_files_in_sitemap(self):
-        '''
-        Test that each markdown files in docs/markdown is referenced in sitemap.txt
-        '''
-        with open("docs/sitemap.txt") as f:
-            md = f.read()
-        self.assertIsNotNone(md)
-        toc = list(m.group(1) for m in re.finditer(r"^\s*(\w.*)$", md, re.MULTILINE))
-        markdownfiles = [f.name for f in Path("docs/markdown").iterdir() if f.is_file() and f.suffix == '.md']
-        exceptions = ['_Sidebar.md']
-        for f in markdownfiles:
-            if f not in exceptions:
-                self.assertIn(f, toc)
-
     def test_feature_check_usage_subprojects(self):
         testdir = os.path.join(self.unit_test_dir, '39 featurenew subprojects')
         out = self.init(testdir)
@@ -3894,7 +3915,7 @@ def should_run_cross_mingw_tests():
 
 if __name__ == '__main__':
     unset_envs()
-    cases = ['InternalTests', 'AllPlatformTests', 'FailureTests', 'PythonTests']
+    cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests', 'PythonTests']
     if not is_windows():
         cases += ['LinuxlikeTests']
         if should_run_cross_arm_tests():
