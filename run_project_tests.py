@@ -294,14 +294,14 @@ def run_test(skipped, testdir, extra_args, compiler, backend, flags, commands, s
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
 def pass_prefix_to_test(dirname):
-    if '40 prefix' in dirname:
+    if '40 prefix absolute' in dirname:
         return False
     return True
 
 def pass_libdir_to_test(dirname):
     if '8 install' in dirname:
         return False
-    if '39 libdir' in dirname:
+    if '39 libdir must be inside prefix' in dirname:
         return False
     if '201 install_mode' in dirname:
         return False
