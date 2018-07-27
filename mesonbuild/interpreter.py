@@ -1837,7 +1837,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
 class Interpreter(InterpreterBase):
 
     def __init__(self, build, backend=None, subproject='', subdir='', subproject_dir='subprojects',
-                 modules = None, default_project_options=None):
+                 modules = None, default_project_options=None, mock=False):
         super().__init__(build.environment.get_source_dir(), subdir)
         self.an_unpicklable_object = mesonlib.an_unpicklable_object
         self.build = build
@@ -1854,8 +1854,9 @@ class Interpreter(InterpreterBase):
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
         self.subproject_dir = subproject_dir
         self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
-        self.load_root_meson_file()
-        self.sanity_check_ast()
+        if not mock:
+            self.load_root_meson_file()
+            self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(build, self)})
         self.generators = []
         self.visited_subdirs = {}
@@ -1872,7 +1873,8 @@ class Interpreter(InterpreterBase):
         self.build_func_dict()
         # build_def_files needs to be defined before parse_project is called
         self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
-        self.parse_project()
+        if not mock:
+            self.parse_project()
         self.builtin['build_machine'] = BuildMachine(self.coredata.compilers)
         if not self.build.environment.is_cross_build():
             self.builtin['host_machine'] = self.builtin['build_machine']
