@@ -69,6 +69,7 @@ syn keyword mesonBuiltin
   \ add_project_arguments
   \ add_project_link_arguments
   \ add_test_setup
+  \ assert
   \ benchmark
   \ both_libraries
   \ build_machine
@@ -102,6 +103,7 @@ syn keyword mesonBuiltin
   \ library
   \ meson
   \ message
+  \ option
   \ project
   \ run_command
   \ run_target
@@ -110,6 +112,7 @@ syn keyword mesonBuiltin
   \ shared_module
   \ static_library
   \ subdir
+  \ subdir_done
   \ subproject
   \ target_machine
   \ test
