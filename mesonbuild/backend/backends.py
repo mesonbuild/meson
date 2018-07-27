@@ -23,7 +23,7 @@ import subprocess
 from ..mesonlib import MesonException, OrderedSet
 from ..mesonlib import classify_unity_sources
 from ..mesonlib import File
-from ..compilers import CompilerArgs
+from ..compilers import CompilerArgs, get_macos_dylib_install_name
 from collections import OrderedDict
 import shlex
 
@@ -922,3 +922,225 @@ class Backend:
         for s in self.build.postconf_scripts:
             cmd = s['exe'] + s['args']
             subprocess.check_call(cmd, env=child_env)
+
+    def create_install_data_files(self):
+        install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
+
+        if self.environment.is_cross_build():
+            bins = self.environment.cross_info.config['binaries']
+            if 'strip' not in bins:
+                mlog.warning('Cross file does not specify strip binary, result will not be stripped.')
+                strip_bin = None
+            else:
+                strip_bin = mesonlib.stringlistify(bins['strip'])
+        else:
+            strip_bin = self.environment.native_strip_bin
+        d = InstallData(self.environment.get_source_dir(),
+                        self.environment.get_build_dir(),
+                        self.environment.get_prefix(),
+                        strip_bin,
+                        self.environment.coredata.get_builtin_option('install_umask'),
+                        self.environment.get_build_command() + ['introspect'])
+        self.generate_depmf_install(d)
+        self.generate_target_install(d)
+        self.generate_header_install(d)
+        self.generate_man_install(d)
+        self.generate_data_install(d)
+        self.generate_custom_install_script(d)
+        self.generate_subdir_install(d)
+        with open(install_data_file, 'wb') as ofile:
+            pickle.dump(d, ofile)
+
+    def get_target_install_dirs(self, t):
+        # Find the installation directory.
+        if isinstance(t, build.SharedModule):
+            default_install_dir = self.environment.get_shared_module_dir()
+        elif isinstance(t, build.SharedLibrary):
+            default_install_dir = self.environment.get_shared_lib_dir()
+        elif isinstance(t, build.StaticLibrary):
+            default_install_dir = self.environment.get_static_lib_dir()
+        elif isinstance(t, build.Executable):
+            default_install_dir = self.environment.get_bindir()
+        elif isinstance(t, build.CustomTarget):
+            default_install_dir = None
+        else:
+            assert(isinstance(t, build.BuildTarget))
+            # XXX: Add BuildTarget-specific install dir cases here
+            default_install_dir = self.environment.get_libdir()
+        outdirs = t.get_custom_install_dir()
+        if outdirs[0] is not None and outdirs[0] != default_install_dir and outdirs[0] is not True:
+            # Either the value is set to a non-default value, or is set to
+            # False (which means we want this specific output out of many
+            # outputs to not be installed).
+            custom_install_dir = True
+        else:
+            custom_install_dir = False
+            outdirs[0] = default_install_dir
+        return outdirs, custom_install_dir
+
+    def get_target_link_deps_mappings(self, t, prefix):
+        '''
+        On macOS, we need to change the install names of all built libraries
+        that a target depends on using install_name_tool so that the target
+        continues to work after installation. For this, we need a dictionary
+        mapping of the install_name value to the new one, so we can change them
+        on install.
+        '''
+        result = {}
+        if isinstance(t, build.StaticLibrary):
+            return result
+        for ld in t.get_all_link_deps():
+            if ld is t or not isinstance(ld, build.SharedLibrary):
+                continue
+            old = get_macos_dylib_install_name(ld.prefix, ld.name, ld.suffix, ld.soversion)
+            if old in result:
+                continue
+            fname = ld.get_filename()
+            outdirs, _ = self.get_target_install_dirs(ld)
+            new = os.path.join(prefix, outdirs[0], fname)
+            result.update({old: new})
+        return result
+
+    def generate_target_install(self, d):
+        for t in self.build.get_targets().values():
+            if not t.should_install():
+                continue
+            outdirs, custom_install_dir = self.get_target_install_dirs(t)
+            # Sanity-check the outputs and install_dirs
+            num_outdirs, num_out = len(outdirs), len(t.get_outputs())
+            if num_outdirs != 1 and num_outdirs != num_out:
+                m = 'Target {!r} has {} outputs: {!r}, but only {} "install_dir"s were found.\n' \
+                    "Pass 'false' for outputs that should not be installed and 'true' for\n" \
+                    'using the default installation directory for an output.'
+                raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs))
+            install_mode = t.get_custom_install_mode()
+            # Install the target output(s)
+            if isinstance(t, build.BuildTarget):
+                should_strip = self.get_option_for_target('strip', t)
+                # Install primary build output (library/executable/jar, etc)
+                # Done separately because of strip/aliases/rpath
+                if outdirs[0] is not False:
+                    mappings = self.get_target_link_deps_mappings(t, d.prefix)
+                    i = TargetInstallData(self.get_target_filename(t), outdirs[0],
+                                          t.get_aliases(), should_strip, mappings,
+                                          t.install_rpath, install_mode)
+                    d.targets.append(i)
+                    # On toolchains/platforms that use an import library for
+                    # linking (separate from the shared library with all the
+                    # code), we need to install that too (dll.a/.lib).
+                    if isinstance(t, (build.SharedLibrary, build.SharedModule, build.Executable)) and t.get_import_filename():
+                        if custom_install_dir:
+                            # If the DLL is installed into a custom directory,
+                            # install the import library into the same place so
+                            # it doesn't go into a surprising place
+                            implib_install_dir = outdirs[0]
+                        else:
+                            implib_install_dir = self.environment.get_import_lib_dir()
+                        # Install the import library.
+                        i = TargetInstallData(self.get_target_filename_for_linking(t),
+                                              implib_install_dir, {}, False, {}, '', install_mode)
+                        d.targets.append(i)
+                # Install secondary outputs. Only used for Vala right now.
+                if num_outdirs > 1:
+                    for output, outdir in zip(t.get_outputs()[1:], outdirs[1:]):
+                        # User requested that we not install this output
+                        if outdir is False:
+                            continue
+                        f = os.path.join(self.get_target_dir(t), output)
+                        i = TargetInstallData(f, outdir, {}, False, {}, None, install_mode)
+                        d.targets.append(i)
+            elif isinstance(t, build.CustomTarget):
+                # If only one install_dir is specified, assume that all
+                # outputs will be installed into it. This is for
+                # backwards-compatibility and because it makes sense to
+                # avoid repetition since this is a common use-case.
+                #
+                # To selectively install only some outputs, pass `false` as
+                # the install_dir for the corresponding output by index
+                if num_outdirs == 1 and num_out > 1:
+                    for output in t.get_outputs():
+                        f = os.path.join(self.get_target_dir(t), output)
+                        i = TargetInstallData(f, outdirs[0], {}, False, {}, None, install_mode)
+                        d.targets.append(i)
+                else:
+                    for output, outdir in zip(t.get_outputs(), outdirs):
+                        # User requested that we not install this output
+                        if outdir is False:
+                            continue
+                        f = os.path.join(self.get_target_dir(t), output)
+                        i = TargetInstallData(f, outdir, {}, False, {}, None, install_mode)
+                        d.targets.append(i)
+
+    def generate_custom_install_script(self, d):
+        result = []
+        srcdir = self.environment.get_source_dir()
+        builddir = self.environment.get_build_dir()
+        for i in self.build.install_scripts:
+            exe = i['exe']
+            args = i['args']
+            fixed_args = []
+            for a in args:
+                a = a.replace('@SOURCE_ROOT@', srcdir)
+                a = a.replace('@BUILD_ROOT@', builddir)
+                fixed_args.append(a)
+            result.append(build.RunScript(exe, fixed_args))
+        d.install_scripts = result
+
+    def generate_header_install(self, d):
+        incroot = self.environment.get_includedir()
+        headers = self.build.get_headers()
+
+        srcdir = self.environment.get_source_dir()
+        builddir = self.environment.get_build_dir()
+        for h in headers:
+            outdir = h.get_custom_install_dir()
+            if outdir is None:
+                outdir = os.path.join(incroot, h.get_install_subdir())
+            for f in h.get_sources():
+                if not isinstance(f, File):
+                    msg = 'Invalid header type {!r} can\'t be installed'
+                    raise MesonException(msg.format(f))
+                abspath = f.absolute_path(srcdir, builddir)
+                i = [abspath, outdir, h.get_custom_install_mode()]
+                d.headers.append(i)
+
+    def generate_man_install(self, d):
+        manroot = self.environment.get_mandir()
+        man = self.build.get_man()
+        for m in man:
+            for f in m.get_sources():
+                num = f.split('.')[-1]
+                subdir = m.get_custom_install_dir()
+                if subdir is None:
+                    subdir = os.path.join(manroot, 'man' + num)
+                srcabs = f.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
+                dstabs = os.path.join(subdir, os.path.basename(f.fname) + '.gz')
+                i = [srcabs, dstabs, m.get_custom_install_mode()]
+                d.man.append(i)
+
+    def generate_data_install(self, d):
+        data = self.build.get_data()
+        srcdir = self.environment.get_source_dir()
+        builddir = self.environment.get_build_dir()
+        for de in data:
+            assert(isinstance(de, build.Data))
+            subdir = de.install_dir
+            if not subdir:
+                subdir = os.path.join(self.environment.get_datadir(), self.interpreter.build.project_name)
+            for src_file, dst_name in zip(de.sources, de.rename):
+                assert(isinstance(src_file, mesonlib.File))
+                dst_abs = os.path.join(subdir, dst_name)
+                i = [src_file.absolute_path(srcdir, builddir), dst_abs, de.install_mode]
+                d.data.append(i)
+
+    def generate_subdir_install(self, d):
+        for sd in self.build.get_install_subdirs():
+            src_dir = os.path.join(self.environment.get_source_dir(),
+                                   sd.source_subdir,
+                                   sd.installable_subdir).rstrip('/')
+            dst_dir = os.path.join(self.environment.get_prefix(),
+                                   sd.install_dir)
+            if not sd.strip_directory:
+                dst_dir = os.path.join(dst_dir, os.path.basename(src_dir))
+            d.install_subdirs.append([src_dir, dst_dir, sd.install_mode,
+                                      sd.exclude])
