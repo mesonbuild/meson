@@ -61,7 +61,8 @@ zdep_prefix = zdep.get_pkgconfig_variable('libdir', define_variable: ['prefix', 
 The dependency detector works with all libraries that provide a
 `pkg-config` file. Unfortunately several packages don't provide
 pkg-config files. Meson has autodetection support for some of these,
-and they are described [later in this page](#dependencies-with-custom-lookup-functionality).
+and they are described [later in this
+page](#dependencies-with-custom-lookup-functionality).
 
 # Declaring your own
 
@@ -145,9 +146,9 @@ DC="dmd" meson builddir
 
 Some dependencies have specific detection logic.
 
-Generic dependency names are case-sensitive<sup>[1](#footnote1)</sup>, but these
-dependency names are matched case-insensitively.  The recommended style is to
-write them in all lower-case.
+Generic dependency names are case-sensitive<sup>[1](#footnote1)</sup>,
+but these dependency names are matched case-insensitively.  The
+recommended style is to write them in all lower-case.
 
 In some cases, more than one detection method exists, and the `method` keyword
 may be used to select a detection method to use.  The `auto` method uses any
@@ -164,10 +165,10 @@ wmf_dep = dependency('libwmf', method : 'config-tool')
 ## Dependencies using config tools
 
 [CUPS](#cups), [LLVM](#llvm), [pcap](#pcap), [WxWidgets](#wxwidgets),
-[libwmf](#libwmf), and GnuStep either do not provide pkg-config modules or
-additionally can be detected via a config tool (cups-config, llvm-config,
-etc). Meson has native support for these tools, and they can be found like other
-dependencies:
+[libwmf](#libwmf), and GnuStep either do not provide pkg-config
+modules or additionally can be detected via a config tool
+(cups-config, llvm-config, etc). Meson has native support for these
+tools, and they can be found like other dependencies:
 
 ```meson
 pcap_dep = dependency('pcap', version : '>=1.0')
@@ -180,7 +181,7 @@ llvm_dep = dependency('llvm', version : '>=4.0')
 Use the `modules` keyword to list frameworks required, e.g.
 
 ```meson
-dep = find_dep('appleframeworks', modules : 'foundation')
+dep = dependency('appleframeworks', modules : 'foundation')
 ```
 
 These dependencies can never be found for non-OSX hosts.
@@ -196,8 +197,8 @@ boost_dep = dependency('boost')
 exe = executable('myprog', 'file.cc', dependencies : boost_dep)
 ```
 
-To link against boost with Meson, simply list which libraries you would like to
-use.
+To link against boost with Meson, simply list which libraries you
+would like to use.
 
 ```meson
 boost_dep = dependency('boost', modules : ['thread', 'utility'])
@@ -211,8 +212,8 @@ If your boost headers or libraries are in non-standard locations you
 can set the BOOST_ROOT, BOOST_INCLUDEDIR, and/or BOOST_LIBRARYDIR
 environment variables.
 
-You can set the argument `threading` to `single` to use boost libraries that
-have been compiled for single-threaded use instead.
+You can set the argument `threading` to `single` to use boost
+libraries that have been compiled for single-threaded use instead.
 
 ## CUPS
 
@@ -252,15 +253,15 @@ Meson has native support for LLVM going back to version LLVM version 3.5.
 It supports a few additional features compared to other config-tool based
 dependencies.
 
-As of 0.44.0 Meson supports the `static` keyword argument for LLVM. Before this
-LLVM >= 3.9 would always dynamically link, while older versions would
-statically link, due to a quirk in `llvm-config`.
+As of 0.44.0 Meson supports the `static` keyword argument for
+LLVM. Before this LLVM >= 3.9 would always dynamically link, while
+older versions would statically link, due to a quirk in `llvm-config`.
 
 ### Modules, a.k.a. Components
 
 Meson wraps LLVM's concept of components in it's own modules concept.
-When you need specific components you add them as modules as meson will do the
-right thing:
+When you need specific components you add them as modules as meson
+will do the right thing:
 
 ```meson
 llvm_dep = dependency('llvm', version : '>= 4.0', modules : ['amdgpu'])
