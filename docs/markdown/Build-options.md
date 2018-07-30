@@ -25,7 +25,7 @@ option('some_feature', type : 'feature', value : 'enabled')
 ## Build option types
 
 All types allow a `description` value to be set describing the option,
-if no option is set then the name of the option will be used instead.
+if no description is set then the name of the option will be used instead.
 
 ### Strings
 
