@@ -57,6 +57,7 @@ set in the cross file.
 | riscv64             | 64 bit RISC-V Open ISA|
 | sparc               | 32 bit SPARC          |
 | sparc64             | SPARC v9 processor    |
+| s390x               | IBM zSystem s390x     |
 
 Any cpu family not listed in the above list is not guaranteed to
 remain stable in future releases.
