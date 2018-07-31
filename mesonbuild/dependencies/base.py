@@ -947,7 +947,7 @@ class DubDependency(ExternalDependency):
 
     @staticmethod
     def get_methods():
-        return [DependencyMethods.PKGCONFIG, DependencyMethods.DUB]
+        return [DependencyMethods.DUB]
 
 class ExternalProgram:
     windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
