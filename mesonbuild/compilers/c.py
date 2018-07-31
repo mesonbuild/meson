@@ -60,10 +60,12 @@ class CCompiler(Compiler):
         self.id = 'unknown'
         self.is_cross = is_cross
         self.can_compile_suffixes.add('h')
-        if isinstance(exe_wrapper, str):
-            self.exe_wrapper = [exe_wrapper]
+        # If the exe wrapper was not found, pretend it wasn't set so that the
+        # sanity check is skipped and compiler checks use fallbacks.
+        if not exe_wrapper or not exe_wrapper.found():
+            self.exe_wrapper = None
         else:
-            self.exe_wrapper = exe_wrapper
+            self.exe_wrapper = exe_wrapper.get_command()
 
         # Set to None until we actually need to check this
         self.has_fatal_warnings_link_arg = None

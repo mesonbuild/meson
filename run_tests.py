@@ -29,6 +29,7 @@ from pathlib import Path
 import mesonbuild
 from mesonbuild import mesonlib
 from mesonbuild import mesonmain
+from mesonbuild import mtest
 from mesonbuild import mlog
 from mesonbuild.environment import detect_ninja
 
@@ -156,8 +157,17 @@ def get_fake_options(prefix):
     opts.cmd_line_options = {}
     return opts
 
-def should_run_linux_cross_tests():
-    return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
+def run_mtest_inprocess(commandlist):
+    old_stdout = sys.stdout
+    sys.stdout = mystdout = StringIO()
+    old_stderr = sys.stderr
+    sys.stderr = mystderr = StringIO()
+    try:
+        returncode = mtest.run(commandlist)
+    finally:
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+    return returncode, mystdout.getvalue(), mystderr.getvalue()
 
 def run_configure_inprocess(commandlist):
     old_stdout = sys.stdout
@@ -203,7 +213,7 @@ if __name__ == '__main__':
     # Iterate over list in reverse order to find the last --backend arg
     backend = Backend.ninja
     cross = False
-    # FIXME: Convert to argparse
+    # FIXME: PLEASE convert to argparse
     for arg in reversed(sys.argv[1:]):
         if arg.startswith('--backend'):
             if arg.startswith('--backend=vs'):
@@ -212,6 +222,10 @@ if __name__ == '__main__':
                 backend = Backend.xcode
         if arg.startswith('--cross'):
             cross = True
+            if arg == '--cross=mingw':
+                cross = 'mingw'
+            elif arg == '--cross=arm':
+                cross = 'arm'
     # Running on a developer machine? Be nice!
     if not mesonlib.is_windows() and not mesonlib.is_haiku() and 'TRAVIS' not in os.environ:
         os.nice(20)
@@ -249,10 +263,12 @@ if __name__ == '__main__':
             returncode += subprocess.call(mesonlib.python_command + ['run_project_tests.py'] + sys.argv[1:], env=env)
         else:
             cross_test_args = mesonlib.python_command + ['run_cross_test.py']
-            print(mlog.bold('Running armhf cross tests.').get_text(mlog.colorize_console))
-            print()
-            returncode += subprocess.call(cross_test_args + ['cross/ubuntu-armhf.txt'], env=env)
-            print(mlog.bold('Running mingw-w64 64-bit cross tests.').get_text(mlog.colorize_console))
-            print()
-            returncode += subprocess.call(cross_test_args + ['cross/linux-mingw-w64-64bit.txt'], env=env)
+            if cross is True or cross == 'arm':
+                print(mlog.bold('Running armhf cross tests.').get_text(mlog.colorize_console))
+                print()
+                returncode += subprocess.call(cross_test_args + ['cross/ubuntu-armhf.txt'], env=env)
+            if cross is True or cross == 'mingw':
+                print(mlog.bold('Running mingw-w64 64-bit cross tests.').get_text(mlog.colorize_console))
+                print()
+                returncode += subprocess.call(cross_test_args + ['cross/linux-mingw-w64-64bit.txt'], env=env)
     sys.exit(returncode)

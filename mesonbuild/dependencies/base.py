@@ -1139,10 +1139,14 @@ class ExternalProgram:
     def get_name(self):
         return self.name
 
+
 class NonExistingExternalProgram(ExternalProgram):
+    "A program that will never exist"
 
     def __init__(self):
-        super().__init__(name = 'nonexistingprogram', silent = True)
+        self.name = 'nonexistingprogram'
+        self.command = [None]
+        self.path = None
 
     def __repr__(self):
         r = '<{} {!r} -> {!r}>'
@@ -1150,6 +1154,26 @@ class NonExistingExternalProgram(ExternalProgram):
 
     def found(self):
         return False
+
+
+class EmptyExternalProgram(ExternalProgram):
+    '''
+    A program object that returns an empty list of commands. Used for cases
+    such as a cross file exe_wrapper to represent that it's not required.
+    '''
+
+    def __init__(self):
+        self.name = None
+        self.command = []
+        self.path = None
+
+    def __repr__(self):
+        r = '<{} {!r} -> {!r}>'
+        return r.format(self.__class__.__name__, self.name, self.command)
+
+    def found(self):
+        return True
+
 
 class ExternalLibrary(ExternalDependency):
     def __init__(self, name, link_args, environment, language, silent=False):

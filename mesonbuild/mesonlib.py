@@ -1069,6 +1069,12 @@ def detect_subprojects(spdir_name, current_dir='', result=None):
 def get_error_location_string(fname, lineno):
     return '{}:{}:'.format(fname, lineno)
 
+def substring_is_in_list(substr, strlist):
+    for s in strlist:
+        if substr in s:
+            return True
+    return False
+
 class OrderedSet(collections.MutableSet):
     """A set that preserves the order in which items are added, by first
     insertion.

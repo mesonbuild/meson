@@ -22,6 +22,7 @@ import textwrap
 import os
 import shutil
 import unittest
+import platform
 from unittest import mock
 from configparser import ConfigParser
 from glob import glob
@@ -47,7 +48,7 @@ import mesonbuild.modules.pkgconfig
 from run_tests import exe_suffix, get_fake_options, get_meson_script
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
 from run_tests import ensure_backend_detects_changes, run_configure_inprocess
-from run_tests import should_run_linux_cross_tests
+from run_tests import run_mtest_inprocess
 
 
 def get_dynamic_section_entry(fname, entry):
@@ -746,8 +747,11 @@ class BasePlatformTests(unittest.TestCase):
         dir_args = get_builddir_target_args(self.backend, self.builddir, None)
         self._run(self.clean_command + dir_args, workdir=self.builddir)
 
-    def run_tests(self):
-        self._run(self.test_command, workdir=self.builddir)
+    def run_tests(self, inprocess=False):
+        if not inprocess:
+            self._run(self.test_command, workdir=self.builddir)
+        else:
+            run_mtest_inprocess(['-C', self.builddir])
 
     def install(self, *, use_destdir=True):
         if self.backend is not Backend.ninja:
@@ -3674,9 +3678,9 @@ endian = 'little'
             self.assertNotRegex(out, self.installdir + '.*dylib ')
 
 
-class LinuxArmCrossCompileTests(BasePlatformTests):
+class LinuxCrossArmTests(BasePlatformTests):
     '''
-    Tests that verify cross-compilation to Linux/ARM
+    Tests that cross-compilation to Linux/ARM works
     '''
     def setUp(self):
         super().setUp()
@@ -3709,6 +3713,45 @@ class LinuxArmCrossCompileTests(BasePlatformTests):
         compdb = self.get_compdb()
         self.assertRegex(compdb[0]['command'], '-D_FILE_OFFSET_BITS=64.*-U_FILE_OFFSET_BITS')
         self.build()
+
+class LinuxCrossMingwTests(BasePlatformTests):
+    '''
+    Tests that cross-compilation to Windows/MinGW works
+    '''
+    def setUp(self):
+        super().setUp()
+        src_root = os.path.dirname(__file__)
+        self.meson_cross_file = os.path.join(src_root, 'cross', 'linux-mingw-w64-64bit.txt')
+
+    def test_exe_wrapper_behaviour(self):
+        '''
+        Test that an exe wrapper that isn't found doesn't cause compiler sanity
+        checks and compiler checks to fail, but causes configure to fail if it
+        requires running a cross-built executable (custom_target or run_target)
+        and causes the tests to be skipped if they are run.
+        '''
+        testdir = os.path.join(self.unit_test_dir, '35 exe_wrapper behaviour')
+        # Configures, builds, and tests fine by default
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+        self.wipe()
+        os.mkdir(self.builddir)
+        # Change cross file to use a non-existing exe_wrapper and it should fail
+        self.meson_cross_file = os.path.join(testdir, 'broken-cross.txt')
+        # Force tracebacks so we can detect them properly
+        os.environ['MESON_FORCE_BACKTRACE'] = '1'
+        with self.assertRaisesRegex(MesonException, 'exe_wrapper.*target.*use-exe-wrapper'):
+            # Must run in-process or we'll get a generic CalledProcessError
+            self.init(testdir, extra_args='-Drun-target=false', inprocess=True)
+        with self.assertRaisesRegex(MesonException, 'exe_wrapper.*run target.*run-prog'):
+            # Must run in-process or we'll get a generic CalledProcessError
+            self.init(testdir, extra_args='-Dcustom-target=false', inprocess=True)
+        self.init(testdir, extra_args=['-Dcustom-target=false', '-Drun-target=false'])
+        self.build()
+        with self.assertRaisesRegex(MesonException, 'exe_wrapper.*PATH'):
+            # Must run in-process or we'll get a generic CalledProcessError
+            self.run_tests(inprocess=True)
 
 
 class PythonTests(BasePlatformTests):
@@ -3843,13 +3886,21 @@ def unset_envs():
         if v in os.environ:
             del os.environ[v]
 
+def should_run_cross_arm_tests():
+    return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
+
+def should_run_cross_mingw_tests():
+    return shutil.which('x86_64-w64-mingw32-gcc') and not (is_windows() or is_cygwin())
+
 if __name__ == '__main__':
     unset_envs()
     cases = ['InternalTests', 'AllPlatformTests', 'FailureTests', 'PythonTests']
     if not is_windows():
         cases += ['LinuxlikeTests']
-        if should_run_linux_cross_tests():
-            cases += ['LinuxArmCrossCompileTests']
+        if should_run_cross_arm_tests():
+            cases += ['LinuxCrossArmTests']
+        if should_run_cross_mingw_tests():
+            cases += ['LinuxCrossMingwTests']
     if is_windows() or is_cygwin():
         cases += ['WindowsTests']
 

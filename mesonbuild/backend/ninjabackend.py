@@ -545,7 +545,7 @@ int dummy;
             if extra_paths:
                 serialize = True
         if serialize:
-            exe_data = self.serialize_executable(target.command[0], cmd[1:],
+            exe_data = self.serialize_executable(target.name, target.command[0], cmd[1:],
                                                  # All targets are built from the build dir
                                                  self.environment.get_build_dir(),
                                                  extra_paths=extra_paths,
@@ -599,11 +599,15 @@ int dummy;
         if isinstance(texe, build.Executable):
             abs_exe = os.path.join(self.environment.get_build_dir(), self.get_target_filename(texe))
             deps.append(self.get_target_filename(texe))
-            if self.environment.is_cross_build() and \
-               self.environment.cross_info.need_exe_wrapper():
-                exe_wrap = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
-                if exe_wrap is not None:
-                    cmd += [exe_wrap]
+            if self.environment.is_cross_build():
+                exe_wrap = self.environment.get_exe_wrapper()
+                if exe_wrap:
+                    if not exe_wrap.found():
+                        msg = 'The exe_wrapper {!r} defined in the cross file is ' \
+                              'needed by run target {!r}, but was not found. ' \
+                              'Please check the command and/or add it to PATH.'
+                        raise MesonException(msg.format(exe_wrap.name, target.name))
+                    cmd += exe_wrap.get_command()
             cmd.append(abs_exe)
         elif isinstance(texe, dependencies.ExternalProgram):
             cmd += texe.get_command()
@@ -1718,6 +1722,7 @@ rule FORTRAN_DEP_HACK%s
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
             if generator.capture:
                 exe_data = self.serialize_executable(
+                    'generator ' + cmdlist[0],
                     cmdlist[0],
                     cmdlist[1:],
                     self.environment.get_build_dir(),

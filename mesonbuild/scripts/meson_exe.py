@@ -19,6 +19,8 @@ import pickle
 import platform
 import subprocess
 
+from .. import mesonlib
+
 options = None
 
 def buildparser():
@@ -47,9 +49,13 @@ def run_exe(exe):
     else:
         if exe.is_cross:
             if exe.exe_runner is None:
-                raise AssertionError('BUG: Trying to run cross-compiled exes with no wrapper')
+                raise AssertionError('BUG: Can\'t run cross-compiled exe {!r}'
+                                     'with no wrapper'.format(exe.name))
+            elif not exe.exe_runner.found():
+                raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found'
+                                     'wrapper {!r}'.format(exe.name, exe.exe_runner.get_path()))
             else:
-                cmd = [exe.exe_runner] + exe.fname
+                cmd = exe.exe_runner.get_command() + exe.fname
         else:
             cmd = exe.fname
     child_env = os.environ.copy()
@@ -57,7 +63,7 @@ def run_exe(exe):
     if len(exe.extra_paths) > 0:
         child_env['PATH'] = (os.pathsep.join(exe.extra_paths + ['']) +
                              child_env['PATH'])
-        if exe.exe_runner and 'wine' in exe.exe_runner:
+        if exe.exe_runner and mesonlib.substring_is_in_list('wine', exe.exe_runner.get_command()):
             wine_paths = ['Z:' + p for p in exe.extra_paths]
             wine_path = ';'.join(wine_paths)
             # Don't accidentally end with an `;` because that will add the
