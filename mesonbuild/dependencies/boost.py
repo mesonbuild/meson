@@ -327,7 +327,7 @@ class BoostDependency(ExternalDependency):
 
     def debug_tag(self):
         return '-gd' if self.is_debug else ''
-		
+
     def arch_tag(self):
         # currently only applies to windows msvc installed binaries
         if self.env.detect_cpp_compiler(self.want_cross).get_id() != 'msvc':
