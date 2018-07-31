@@ -86,6 +86,7 @@ known_cpu_families = (
     'ppc64',
     'riscv32',
     'riscv64',
+    'sparc',
     'sparc64',
     'x86',
     'x86_64'
