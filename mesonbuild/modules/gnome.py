@@ -848,20 +848,27 @@ This will become a hard error in the future.''')
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
                 raise MesonException(
                     'Gir include dirs should be include_directories().')
+
         cflags.update(get_include_args(inc_dirs))
-        cflags.update(state.environment.coredata.get_external_args('c'))
         ldflags = OrderedSet()
         ldflags.update(internal_ldflags)
-        ldflags.update(state.environment.coredata.get_external_link_args('c'))
         ldflags.update(external_ldflags)
+
+        if state.environment.is_cross_build():
+            compiler = state.environment.coredata.cross_compilers.get('c')
+        else:
+            cflags.update(state.environment.coredata.get_external_args('c'))
+            ldflags.update(state.environment.coredata.get_external_link_args('c'))
+            compiler = state.environment.coredata.compilers.get('c')
+
+        if compiler:
+            args += ['--cc=%s' % ' '.join(compiler.get_exelist())]
+            args += ['--ld=%s' % ' '.join(compiler.get_linker_exelist())]
         if cflags:
             args += ['--cflags=%s' % ' '.join(cflags)]
         if ldflags:
             args += ['--ldflags=%s' % ' '.join(ldflags)]
-        compiler = state.environment.coredata.compilers.get('c')
-        if compiler:
-            args += ['--cc=%s' % ' '.join(compiler.get_exelist())]
-            args += ['--ld=%s' % ' '.join(compiler.get_linker_exelist())]
+
 
         return args
 
