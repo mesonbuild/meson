@@ -18,6 +18,7 @@ import os
 import tempfile
 import unittest
 import subprocess
+import zipapp
 from pathlib import Path
 
 from mesonbuild.mesonlib import windows_proof_rmtree, python_command, is_windows
@@ -181,6 +182,14 @@ class CommandTests(unittest.TestCase):
 
     def test_meson_exe_windows(self):
         raise unittest.SkipTest('NOT IMPLEMENTED')
+
+    def test_meson_zipapp(self):
+        if is_windows():
+            raise unittest.SkipTest('NOT IMPLEMENTED')
+        source = Path(__file__).resolve().parent.as_posix()
+        target = self.tmpdir / 'meson.pyz'
+        zipapp.create_archive(source=source, target=target, interpreter=python_command[0], main=None)
+        self._run([target.as_posix(), '--help'])
 
 if __name__ == '__main__':
     unittest.main(buffer=True)

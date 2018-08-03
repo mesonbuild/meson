@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import meson
+from mesonbuild import mesonmain
 import sys
 
-sys.exit(meson.main())
+sys.exit(mesonmain.main())
