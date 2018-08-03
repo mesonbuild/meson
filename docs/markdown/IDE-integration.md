@@ -43,3 +43,9 @@ When these tests fail, the user probably wants to run the failing test in a debu
     meson introspect --tests
 
 This provides you with all the information needed to run the test: what command to execute, command line arguments and environment variable settings.
+
+# Existing integrations
+
+- [Gnome Builder](https://wiki.gnome.org/Apps/Builder)
+- [Eclipse CDT](https://www.eclipse.org/cdt/) (experimental)
+- [Meson Cmake Wrapper](https://github.com/prozum/meson-cmake-wrapper) (for cmake IDEs)
