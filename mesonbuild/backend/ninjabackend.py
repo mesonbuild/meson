@@ -1099,7 +1099,7 @@ int dummy;
         relsrc = []
         for i in target.get_sources():
             if not nim.can_compile(i):
-                raise InvalidArguments('Rust target %s contains a non-nim source file.' % target.get_basename())
+                raise InvalidArguments('Nim target %s contains a non-nim source file.' % target.get_basename())
             relsrc.append(i.rel_to_builddir(self.build_to_src))
         target_name = os.path.join(target.subdir, target.get_filename())
         args = nim.get_always_args()

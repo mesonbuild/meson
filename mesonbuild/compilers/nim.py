@@ -1,6 +1,7 @@
 import os.path
 import subprocess
-from ..mesonlib import EnvironmentException
+from ..mesonlib import EnvironmentException, Popen_safe, mlog
+from ..mesonlib import get_compiler_for_source
 
 from .compilers import (
     nim_buildtype_args,
@@ -20,23 +21,27 @@ class NimCompiler(Compiler):
         source_name = os.path.join(work_dir, 'sanity.nim')
         output_name = os.path.join(work_dir, 'nimtest')
         code = '' # blank files are valid nim
+        args = self.exelist + ['c']
         args  = self.get_cross_extra_flags(environment, link=False)
-        with self.compile(code, args, 'compile') as p:
-            if p.returncode != 0:
-                msg = 'Nim compiler {!r} can not compile programs'.format(self.name_string())
-                raise EnvironmentException(msg)
-        # with open(source_name, 'w'):
-        #     pass
+        args += self.get_output_args(output_name)
+        args += self.get_outdir_args(work_dir)
+        with open(source_name, 'w'):
+            pass
         
-        # pc = subprocess.Popen(
-        #     self.exelist + ['c'] + self.get_output_args(output_name) + [source_name], cwd=work_dir)
-        # pc.wait()
-        # if pc.returncode != 0:
-        #     raise EnvironmentException(
-        #         'Nim compiler can not compile programs.')
-        # if subprocess.call(output_name) != 0:
-        #     raise EnvironmentException(
-        #         "Executables created by Nim compiler are not runnable.")
+        mlog.debug('Running compile:')
+        mlog.debug('Working directory: ', work_dir)
+        mlog.debug('Command line: ', ' '.join(args), '\n')
+        pc, stdo, stde  = Popen_safe(
+            self.exelist + ['c'] + args + [source_name], cwd=work_dir)
+        pc.wait()
+        mlog.debug('Compiler stdout:\n', stdo)
+        mlog.debug('Compiler stderr:\n', stde)
+        if pc.returncode != 0:
+            raise EnvironmentException(
+                'Nim compiler can not compile programs.')
+        if subprocess.call(output_name) != 0:
+            raise EnvironmentException(
+                "Executables created by Nim compiler are not runnable.")
 
     def get_output_args(self, target):
         return ['--out:' + target]
@@ -66,7 +71,7 @@ class NimCompiler(Compiler):
         return nim_buildtype_args[buildtype]
 
     def get_always_args(self):
-        return ['c', ]
+        return ['c', '--verbosity:0']
 
     def get_warn_args(self, warninglevel):
         return []
