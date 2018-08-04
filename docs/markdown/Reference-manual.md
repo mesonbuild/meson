@@ -1644,7 +1644,7 @@ the following methods:
   `args` keyword, you can specify external dependencies to use with
   `dependencies` keyword argument.
 
-- `check_header` returns true if the specified header is *usable* with
+- `check_header` *(added 0.47.0)* returns true if the specified header is *usable* with
   the specified prefix, dependencies, and arguments.
   You can specify external dependencies to use with `dependencies`
   keyword argument and extra code to put above the header test with
