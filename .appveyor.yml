@@ -85,7 +85,7 @@ install:
   - cmd: set "ORIG_PATH=%PATH%"
   # Use a Ninja with QuLogic's patch: https://github.com/ninja-build/ninja/issues/1219
   - cmd: set "MESON_FIXED_NINJA=1"
-  - ps: DownloadFile -Source 'http://nirbheek.in/files/binaries/ninja/win32/ninja.exe' -Destination 'C:\projects\meson\ninja.exe'
+  - ps: DownloadFile -Source 'https://github.com/mesonbuild/cidata/raw/master/ninja.exe' -Destination 'C:\projects\meson\ninja.exe'
   # Use the x86 python only when building for x86 for the cpython tests.
   # For all other archs (including, say, arm), use the x64 python.
   - cmd: if %arch%==x86 (set MESON_PYTHON_PATH=C:\python35) else (set MESON_PYTHON_PATH=C:\python35-x64)
