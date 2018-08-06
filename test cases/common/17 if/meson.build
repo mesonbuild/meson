@@ -28,3 +28,33 @@ endif
 if get_variable('nonexisting', false)
   error('Get_variable fail.')
 endif
+
+
+# Now test elseif
+
+t = true
+f = false
+
+if true
+  message('Ok.')
+elif true
+  error('Error')
+else
+  error('Error')
+endif
+
+if f
+  error('Error.')
+elif t
+  message('Ok')
+else
+  error('Error')
+endif
+
+if f
+  error('Error.')
+elif false
+  error('Error')
+else
+  message('Ok')
+endif
