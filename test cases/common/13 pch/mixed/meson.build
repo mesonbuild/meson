@@ -1,6 +1,3 @@
-project('mixed C and C++ pch test', 'cpp', 'c')
-
-
 exe = executable(
   'prog',
   files('main.cc', 'func.c'),
