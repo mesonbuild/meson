@@ -1274,6 +1274,9 @@ class VisualStudioCCompiler(CCompiler):
     def get_pic_args(self):
         return [] # PIC is handled by the loader on Windows
 
+    def gen_export_dynamic_link_args(self, env):
+        return [] # Not applicable with MSVC
+
     def get_std_shared_lib_link_args(self):
         return ['/DLL']
 
