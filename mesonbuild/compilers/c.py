@@ -16,6 +16,7 @@ import re
 import glob
 import os.path
 import subprocess
+from pathlib import Path
 
 from .. import mlog
 from .. import coredata
@@ -883,13 +884,13 @@ class CCompiler(Compiler):
 
     @classmethod
     def _get_trials_from_pattern(cls, pattern, directory, libname):
-        f = os.path.join(directory, pattern.format(libname))
+        f = Path(directory) / pattern.format(libname)
         # Globbing for OpenBSD
         if '*' in pattern:
             # NOTE: globbing matches directories and broken symlinks
             # so we have to do an isfile test on it later
-            return cls._sort_shlibs_openbsd(glob.glob(f))
-        return [f]
+            return cls._sort_shlibs_openbsd(glob.glob(str(f)))
+        return [f.as_posix()]
 
     @staticmethod
     def _get_file_from_list(files):

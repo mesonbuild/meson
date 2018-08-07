@@ -1094,6 +1094,9 @@ class OrderedSet(collections.MutableSet):
                 '", "'.join(repr(e) for e in self.__container.keys()))
         return 'OrderedSet()'
 
+    def __reversed__(self):
+        return reversed(self.__container)
+
     def add(self, value):
         self.__container[value] = None
 

@@ -584,26 +584,7 @@ class PkgConfigDependency(ExternalDependency):
                                       (self.name, out))
         self.compile_args = self._convert_mingw_paths(shlex.split(out))
 
-    def _set_libs(self):
-        env = None
-        libcmd = [self.name, '--libs']
-        if self.static:
-            libcmd.append('--static')
-        # Force pkg-config to output -L fields even if they are system
-        # paths so we can do manual searching with cc.find_library() later.
-        env = os.environ.copy()
-        env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
-        ret, out = self._call_pkgbin(libcmd, env=env)
-        if ret != 0:
-            raise DependencyException('Could not generate libs for %s:\n\n%s' %
-                                      (self.name, out))
-        # Also get the 'raw' output without -Lfoo system paths for usage when
-        # a library can't be found, and also in gnome.generate_gir
-        # + gnome.gtkdoc which need -L -l arguments.
-        ret, out_raw = self._call_pkgbin(libcmd)
-        if ret != 0:
-            raise DependencyException('Could not generate libs for %s:\n\n%s' %
-                                      (self.name, out_raw))
+    def _search_libs(self, out, out_raw):
         link_args = []
         raw_link_args = []
         # Library paths should be safe to de-dup
@@ -634,7 +615,7 @@ class PkgConfigDependency(ExternalDependency):
                     continue
                 if self.clib_compiler:
                     args = self.clib_compiler.find_library(lib[2:], self.env,
-                                                           list(libpaths), libtype)
+                                                           list(reversed(libpaths)), libtype)
                 # If the project only uses a non-clib language such as D, Rust,
                 # C#, Python, etc, all we can do is limp along by adding the
                 # arguments as-is and then adding the libpaths at the end.
@@ -679,14 +660,34 @@ class PkgConfigDependency(ExternalDependency):
             if lib.startswith('-L') and not lib.startswith(('-L-l', '-L-L')):
                 raw_libpaths.add(lib[2:])
             raw_link_args.append(lib)
-        # Set everything
-        self.link_args = link_args
-        self.raw_link_args = raw_link_args
         # Add all -Lbar args if we have -lfoo args in link_args
         if libs_notfound:
             # Order of -L flags doesn't matter with ld, but it might with other
             # linkers such as MSVC, so prepend them.
-            self.link_args = ['-L' + lp for lp in raw_libpaths] + self.link_args
+            link_args = ['-L' + lp for lp in raw_libpaths] + link_args
+        return link_args, raw_link_args
+
+    def _set_libs(self):
+        env = None
+        libcmd = [self.name, '--libs']
+        if self.static:
+            libcmd.append('--static')
+        # Force pkg-config to output -L fields even if they are system
+        # paths so we can do manual searching with cc.find_library() later.
+        env = os.environ.copy()
+        env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
+        ret, out = self._call_pkgbin(libcmd, env=env)
+        if ret != 0:
+            raise DependencyException('Could not generate libs for %s:\n\n%s' %
+                                      (self.name, out))
+        # Also get the 'raw' output without -Lfoo system paths for adding -L
+        # args with -lfoo when a library can't be found, and also in
+        # gnome.generate_gir + gnome.gtkdoc which need -L -l arguments.
+        ret, out_raw = self._call_pkgbin(libcmd)
+        if ret != 0:
+            raise DependencyException('Could not generate libs for %s:\n\n%s' %
+                                      (self.name, out_raw))
+        self.link_args, self.raw_link_args = self._search_libs(out, out_raw)
 
     def get_pkgconfig_variable(self, variable_name, kwargs):
         options = ['--variable=' + variable_name, self.name]
