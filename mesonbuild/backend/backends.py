@@ -55,7 +55,7 @@ class InstallData:
         self.mesonintrospect = mesonintrospect
 
 class TargetInstallData:
-    def __init__(self, fname, outdir, aliases, strip, install_name_mappings, install_rpath, install_mode):
+    def __init__(self, fname, outdir, aliases, strip, install_name_mappings, install_rpath, install_mode, optional=False):
         self.fname = fname
         self.outdir = outdir
         self.aliases = aliases
@@ -63,6 +63,7 @@ class TargetInstallData:
         self.install_name_mappings = install_name_mappings
         self.install_rpath = install_rpath
         self.install_mode = install_mode
+        self.optional = optional
 
 class ExecutableSerialisation:
     def __init__(self, name, fname, cmd_args, env, is_cross, exe_wrapper,
@@ -1047,9 +1048,10 @@ class Backend:
                             implib_install_dir = outdirs[0]
                         else:
                             implib_install_dir = self.environment.get_import_lib_dir()
-                        # Install the import library.
+                        # Install the import library; may not exist for shared modules
                         i = TargetInstallData(self.get_target_filename_for_linking(t),
-                                              implib_install_dir, {}, False, {}, '', install_mode)
+                                              implib_install_dir, {}, False, {}, '', install_mode,
+                                              optional=isinstance(t, build.SharedModule))
                         d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
                 if num_outdirs > 1:

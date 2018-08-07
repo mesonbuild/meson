@@ -384,6 +384,13 @@ class Installer:
 
     def install_targets(self, d):
         for t in d.targets:
+            if not os.path.exists(t.fname):
+                # For example, import libraries of shared modules are optional
+                if t.optional:
+                    print('File {!r} not found, skipping'.format(t.fname))
+                    continue
+                else:
+                    raise RuntimeError('File {!r} could not be found'.format(t.fname))
             fname = check_for_stampfile(t.fname)
             outdir = get_destdir_path(d, t.outdir)
             outname = os.path.join(outdir, os.path.basename(fname))
