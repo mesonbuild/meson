@@ -51,10 +51,14 @@ from run_tests import get_builddir_target_args, get_backend_commands, Backend
 from run_tests import ensure_backend_detects_changes, run_configure_inprocess
 from run_tests import run_mtest_inprocess
 
-# Fake class for mocking
+# Fake classes for mocking
 class FakeBuild:
     def __init__(self, env):
         self.environment = env
+
+class FakeCompilerOptions:
+    def __init__(self):
+        self.value = []
 
 def get_dynamic_section_entry(fname, entry):
     if is_cygwin() or is_osx():
@@ -605,6 +609,7 @@ class InternalTests(unittest.TestCase):
             env = Environment('', '', get_fake_options(''))
             compiler = env.detect_c_compiler(False)
             env.coredata.compilers = {'c': compiler}
+            env.coredata.compiler_options['c_link_args'] = FakeCompilerOptions()
             p1 = Path(tmpdir) / '1'
             p2 = Path(tmpdir) / '2'
             p1.mkdir()
@@ -614,6 +619,12 @@ class InternalTests(unittest.TestCase):
             # libbar.a is in both prefixes
             (p1 / 'libbar.a').open('w').close()
             (p2 / 'libbar.a').open('w').close()
+            # Ensure that we never statically link to these
+            (p1 / 'libpthread.a').open('w').close()
+            (p1 / 'libm.a').open('w').close()
+            (p1 / 'libc.a').open('w').close()
+            (p1 / 'libdl.a').open('w').close()
+            (p1 / 'librt.a').open('w').close()
 
             def fake_call_pkgbin(self, args, env=None):
                 if '--libs' not in args:
@@ -622,6 +633,8 @@ class InternalTests(unittest.TestCase):
                     return 0, '-L{} -lfoo -L{} -lbar'.format(p1.as_posix(), p2.as_posix())
                 if args[0] == 'bar':
                     return 0, '-L{} -lbar'.format(p2.as_posix())
+                if args[0] == 'internal':
+                    return 0, '-L{} -lpthread -lm -lc -lrt -ldl'.format(p1.as_posix())
 
             old_call = PkgConfigDependency._call_pkgbin
             old_check = PkgConfigDependency.check_pkgconfig
@@ -634,6 +647,14 @@ class InternalTests(unittest.TestCase):
                              [(p1 / 'libfoo.a').as_posix(), (p2 / 'libbar.a').as_posix()])
             bar_dep = PkgConfigDependency('bar', env, kwargs)
             self.assertEqual(bar_dep.get_link_args(), [(p2 / 'libbar.a').as_posix()])
+            internal_dep = PkgConfigDependency('internal', env, kwargs)
+            if compiler.get_id() == 'msvc':
+                self.assertEqual(internal_dep.get_link_args(), [])
+            else:
+                link_args = internal_dep.get_link_args()
+                for link_arg in link_args:
+                    for lib in ('pthread', 'm', 'c', 'dl', 'rt'):
+                        self.assertNotIn('lib{}.a'.format(lib), link_arg, msg=link_args)
             # Test ends
             PkgConfigDependency._call_pkgbin = old_call
             PkgConfigDependency.check_pkgconfig = old_check
@@ -2797,7 +2818,7 @@ class WindowsTests(BasePlatformTests):
         if cc.id != 'msvc':
             raise unittest.SkipTest('Not using MSVC')
         # To force people to update this test, and also test
-        self.assertEqual(set(cc.ignore_libs), {'c', 'm', 'pthread'})
+        self.assertEqual(set(cc.ignore_libs), {'c', 'm', 'pthread', 'dl', 'rt'})
         for l in cc.ignore_libs:
             self.assertEqual(cc.find_library(l, env, []), [])
 

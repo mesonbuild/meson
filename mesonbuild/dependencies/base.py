@@ -623,12 +623,16 @@ class PkgConfigDependency(ExternalDependency):
                 # arguments as-is and then adding the libpaths at the end.
                 else:
                     args = None
-                if args:
+                if args is not None:
                     libs_found.add(lib)
                     # Replace -l arg with full path to library if available
-                    # else, library is provided by the compiler and can't be resolved
-                    if not args[0].startswith('-l'):
-                        lib = args[0]
+                    # else, library is either to be ignored, or is provided by
+                    # the compiler, can't be resolved, and should be used as-is
+                    if args:
+                        if not args[0].startswith('-l'):
+                            lib = args[0]
+                    else:
+                        continue
                 else:
                     # Library wasn't found, maybe we're looking in the wrong
                     # places or the library will be provided with LDFLAGS or
