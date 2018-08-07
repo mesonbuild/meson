@@ -594,6 +594,50 @@ class InternalTests(unittest.TestCase):
                              'mesonbuild.compilers.c.for_windows', true):
                 self._test_all_naming(cc, env, patterns, 'windows-msvc')
 
+    def test_pkgconfig_parse_libs(self):
+        '''
+        Unit test for parsing of pkg-config output to search for libraries
+
+        https://github.com/mesonbuild/meson/issues/3951
+        '''
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pkgbin = ExternalProgram('pkg-config', command=['pkg-config'], silent=True)
+            env = Environment('', '', get_fake_options(''))
+            compiler = env.detect_c_compiler(False)
+            env.coredata.compilers = {'c': compiler}
+            p1 = Path(tmpdir) / '1'
+            p2 = Path(tmpdir) / '2'
+            p1.mkdir()
+            p2.mkdir()
+            # libfoo.a is in one prefix
+            (p1 / 'libfoo.a').open('w').close()
+            # libbar.a is in both prefixes
+            (p1 / 'libbar.a').open('w').close()
+            (p2 / 'libbar.a').open('w').close()
+
+            def fake_call_pkgbin(self, args, env=None):
+                if '--libs' not in args:
+                    return 0, ''
+                if args[0] == 'foo':
+                    return 0, '-L{} -lfoo -L{} -lbar'.format(p1.as_posix(), p2.as_posix())
+                if args[0] == 'bar':
+                    return 0, '-L{} -lbar'.format(p2.as_posix())
+
+            old_call = PkgConfigDependency._call_pkgbin
+            old_check = PkgConfigDependency.check_pkgconfig
+            PkgConfigDependency._call_pkgbin = fake_call_pkgbin
+            PkgConfigDependency.check_pkgconfig = lambda x: pkgbin
+            # Test begins
+            kwargs = {'required': True, 'silent': True}
+            foo_dep = PkgConfigDependency('foo', env, kwargs)
+            self.assertEqual(foo_dep.get_link_args(),
+                             [(p1 / 'libfoo.a').as_posix(), (p2 / 'libbar.a').as_posix()])
+            bar_dep = PkgConfigDependency('bar', env, kwargs)
+            self.assertEqual(bar_dep.get_link_args(), [(p2 / 'libbar.a').as_posix()])
+            # Test ends
+            PkgConfigDependency._call_pkgbin = old_call
+            PkgConfigDependency.check_pkgconfig = old_check
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
