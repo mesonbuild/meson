@@ -661,6 +661,9 @@ class Compiler:
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
     ignore_libs = ()
+    # Libraries that are internal compiler implementations, and must not be
+    # manually searched.
+    internal_libs = ()
     # Cache for the result of compiler checks which can be cached
     compiler_check_cache = {}
 

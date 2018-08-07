@@ -47,11 +47,14 @@ from .compilers import (
     RunResult,
 )
 
+gnu_compiler_internal_libs = ('m', 'c', 'pthread', 'dl', 'rt')
+
 
 class CCompiler(Compiler):
     library_dirs_cache = {}
     program_dirs_cache = {}
     find_library_cache = {}
+    internal_libs = gnu_compiler_internal_libs
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
@@ -905,10 +908,13 @@ class CCompiler(Compiler):
         # First try if we can just add the library as -l.
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
-        if not extra_dirs:
+        if not extra_dirs or libname in self.internal_libs:
             args = ['-l' + libname]
             if self.links(code, env, extra_args=args):
                 return args
+            # Don't do a manual search for internal libs
+            if libname in self.internal_libs:
+                return None
         # Not found or we want to use a specific libtype? Try to find the
         # library file itself.
         patterns = self.get_library_naming(env, libtype)
@@ -1188,7 +1194,8 @@ class IntelCCompiler(IntelCompiler, CCompiler):
 class VisualStudioCCompiler(CCompiler):
     std_warn_args = ['/W3']
     std_opt_args = ['/O2']
-    ignore_libs = ('m', 'c', 'pthread')
+    ignore_libs = gnu_compiler_internal_libs
+    internal_libs = ()
 
     def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
