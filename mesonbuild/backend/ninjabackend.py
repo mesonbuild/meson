@@ -790,7 +790,8 @@ int dummy;
                             implib_install_dir = self.environment.get_import_lib_dir()
                         # Install the import library.
                         i = TargetInstallData(self.get_target_filename_for_linking(t),
-                                              implib_install_dir, {}, False, {}, '', install_mode)
+                                              implib_install_dir, {}, False, {}, '', install_mode,
+                                              optional=isinstance(t, build.SharedModule))
                         d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
                 if num_outdirs > 1:
