@@ -247,7 +247,7 @@ def get_compiler_for_source(compilers, src):
     for comp in compilers:
         if comp.can_compile(src):
             return comp
-    raise RuntimeError('No specified compiler can handle file {!s}'.format(src))
+    raise MesonException('No specified compiler can handle file {!s}'.format(src))
 
 def classify_unity_sources(compilers, sources):
     compsrclist = {}
