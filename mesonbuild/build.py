@@ -104,9 +104,13 @@ class Build:
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
         self.global_args = {}
+        self.global_cross_args = {}
         self.projects_args = {}
+        self.projects_cross_args = {}
         self.global_link_args = {}
+        self.global_cross_link_args = {}
         self.projects_link_args = {}
+        self.projects_cross_link_args = {}
         self.tests = []
         self.benchmarks = []
         self.headers = []
@@ -167,20 +171,30 @@ class Build:
     def get_install_subdirs(self):
         return self.install_dirs
 
-    def get_global_args(self, compiler):
+    def get_global_args(self, compiler, is_cross):
+        if is_cross:
+            return self.global_cross_args.get(compiler.get_language(), [])
         return self.global_args.get(compiler.get_language(), [])
 
-    def get_project_args(self, compiler, project):
-        args = self.projects_args.get(project)
+    def get_project_args(self, compiler, project, is_cross):
+        if is_cross:
+            args = self.projects_cross_args.get(project)
+        else:
+            args = self.projects_args.get(project)
         if not args:
             return []
         return args.get(compiler.get_language(), [])
 
-    def get_global_link_args(self, compiler):
+    def get_global_link_args(self, compiler, is_cross):
+        if is_cross:
+            return self.global_cross_link_args.get(compiler.get_language(), [])
         return self.global_link_args.get(compiler.get_language(), [])
 
-    def get_project_link_args(self, compiler, project):
-        link_args = self.projects_link_args.get(project)
+    def get_project_link_args(self, compiler, project, is_cross):
+        if is_cross:
+            link_args = self.projects_cross_link_args.get(project)
+        else:
+            link_args = self.projects_link_args.get(project)
         if not link_args:
             return []
 
