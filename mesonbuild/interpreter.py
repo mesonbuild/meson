@@ -2816,6 +2816,12 @@ external dependencies (including libraries) must go to "dependencies".''')
         if not dep:
             return False
         found = dep.version_method([], {})
+        # Don't do a version check if the dependency is not found and not required
+        if found == 'none' and not required:
+            subproj_path = os.path.join(self.subproject_dir, dirname)
+            mlog.log('Dependency', mlog.bold(name), 'from subproject',
+                     mlog.bold(subproj_path), 'found:', mlog.red('NO'), '(cached)')
+            return dep
         if self.check_subproject_version(wanted, found):
             subproj_path = os.path.join(self.subproject_dir, dirname)
             mlog.log('Dependency', mlog.bold(name), 'from subproject',
