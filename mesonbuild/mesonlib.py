@@ -204,7 +204,7 @@ class File:
 
     @staticmethod
     def from_source_file(source_root, subdir, fname):
-        if not os.path.isfile(os.path.join(source_root, subdir, fname)):
+        if not os.path.exists(os.path.join(source_root, subdir, fname)):
             raise MesonException('File %s does not exist.' % fname)
         return File(False, subdir, fname)
 
