@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import configparser, os, platform, re, shlex, shutil, subprocess
+import configparser, os, platform, re, sys, shlex, shutil, subprocess
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, LDCLinker
@@ -313,13 +313,26 @@ class Environment:
             # Used by the regenchecker script, which runs meson
             self.coredata.meson_command = mesonlib.meson_command
             self.first_invocation = True
-        self.cross_info = None
         self.exe_wrapper = None
+
+        self.machines = MachineInfos()
+        # Will be fully initialized later using compilers later.
+        self.machines.detect_build()
         if self.coredata.cross_file:
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)
             if 'exe_wrapper' in self.cross_info.config['binaries']:
                 from .dependencies import ExternalProgram
                 self.exe_wrapper = ExternalProgram.from_cross_info(self.cross_info, 'exe_wrapper')
+            if 'host_machine' in self.cross_info.config:
+                self.machines.host = MachineInfo.from_literal(
+                    self.cross_info.config['host_machine'])
+            if 'target_machine' in self.cross_info.config:
+                self.machines.target = MachineInfo.from_literal(
+                    self.cross_info.config['target_machine'])
+        else:
+            self.cross_info = None
+        self.machines.default_missing()
+
         self.cmd_line_options = options.cmd_line_options.copy()
 
         # List of potential compilers.
@@ -1093,10 +1106,70 @@ class CrossBuildInfo:
             return False
         return True
 
-
 class MachineInfo:
     def __init__(self, system, cpu_family, cpu, endian):
         self.system = system
         self.cpu_family = cpu_family
         self.cpu = cpu
         self.endian = endian
+
+    @staticmethod
+    def detect(compilers = None):
+        """Detect the machine we're running on
+
+        If compilers are not provided, we cannot know as much. None out those
+        fields to avoid accidentally depending on partial knowledge. The
+        underlying ''detect_*'' method can be called to explicitly use the
+        partial information.
+        """
+        return MachineInfo(
+            detect_system(),
+            detect_cpu_family(compilers) if compilers is not None else None,
+            detect_cpu(compilers) if compilers is not None else None,
+            sys.byteorder)
+
+    @staticmethod
+    def from_literal(literal):
+        minimum_literal = {'cpu', 'cpu_family', 'endian', 'system'}
+        if set(literal) < minimum_literal:
+            raise EnvironmentException(
+                'Machine info is currently {}\n'.format(literal) +
+                'but is missing {}.'.format(minimum_literal - set(literal)))
+        return MachineInfo(
+            literal['system'],
+            literal['cpu_family'],
+            literal['cpu'],
+            literal['endian'])
+
+class MachineInfos:
+    def __init__(self):
+        self.build = None
+        self.host = None
+        self.target = None
+
+    def default_missing(self):
+        """Default host to buid and target to host.
+
+        This allows just specifying nothing in the native case, just host in the
+        cross non-compiler case, and just target in the native-built
+        cross-compiler case.
+        """
+        if self.host is None:
+            self.host = self.build
+        if self.target is None:
+            self.target = self.host
+
+    def miss_defaulting(self):
+        """Unset definition duplicated from their previous to None
+
+        This is the inverse of ''default_missing''. By removing defaulted
+        machines, we can elaborate the original and then redefault them and thus
+        avoid repeating the elaboration explicitly.
+        """
+        if self.target == self.host:
+            self.target = None
+        if self.host == self.build:
+            self.host = None
+
+    def detect_build(self, compilers = None):
+        self.build = MachineInfo.detect(compilers)

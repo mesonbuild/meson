@@ -31,7 +31,7 @@ from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabl
 from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
 from .modules import ModuleReturnValue
 
-import os, sys, shutil, uuid
+import os, shutil, uuid
 import re, shlex
 import subprocess
 from collections import namedtuple
@@ -571,57 +571,11 @@ class GeneratedListHolder(InterpreterObject, ObjectHolder):
     def add_file(self, a):
         self.held_object.add_file(a)
 
-class BuildMachine(InterpreterObject, ObjectHolder):
-    def __init__(self, compilers):
-        self.compilers = compilers
+# A machine that's statically known from the cross file
+class MachineHolder(InterpreterObject, ObjectHolder):
+    def __init__(self, machine_info):
         InterpreterObject.__init__(self)
-        held_object = environment.MachineInfo(environment.detect_system(),
-                                              environment.detect_cpu_family(self.compilers),
-                                              environment.detect_cpu(self.compilers),
-                                              sys.byteorder)
-        ObjectHolder.__init__(self, held_object)
-        self.methods.update({'system': self.system_method,
-                             'cpu_family': self.cpu_family_method,
-                             'cpu': self.cpu_method,
-                             'endian': self.endian_method,
-                             })
-
-    @noPosargs
-    @permittedKwargs({})
-    def cpu_family_method(self, args, kwargs):
-        return self.held_object.cpu_family
-
-    @noPosargs
-    @permittedKwargs({})
-    def cpu_method(self, args, kwargs):
-        return self.held_object.cpu
-
-    @noPosargs
-    @permittedKwargs({})
-    def system_method(self, args, kwargs):
-        return self.held_object.system
-
-    @noPosargs
-    @permittedKwargs({})
-    def endian_method(self, args, kwargs):
-        return self.held_object.endian
-
-# This class will provide both host_machine and
-# target_machine
-class CrossMachineInfo(InterpreterObject, ObjectHolder):
-    def __init__(self, cross_info):
-        InterpreterObject.__init__(self)
-        minimum_cross_info = {'cpu', 'cpu_family', 'endian', 'system'}
-        if set(cross_info) < minimum_cross_info:
-            raise InterpreterException(
-                'Machine info is currently {}\n'.format(cross_info) +
-                'but is missing {}.'.format(minimum_cross_info - set(cross_info)))
-        self.info = cross_info
-        minfo = environment.MachineInfo(cross_info['system'],
-                                        cross_info['cpu_family'],
-                                        cross_info['cpu'],
-                                        cross_info['endian'])
-        ObjectHolder.__init__(self, minfo)
+        ObjectHolder.__init__(self, machine_info)
         self.methods.update({'system': self.system_method,
                              'cpu': self.cpu_method,
                              'cpu_family': self.cpu_family_method,
@@ -1932,20 +1886,23 @@ class Interpreter(InterpreterBase):
         self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
         if not mock:
             self.parse_project()
-        self.builtin['build_machine'] = BuildMachine(self.coredata.compilers)
-        if not self.build.environment.is_cross_build():
-            self.builtin['host_machine'] = self.builtin['build_machine']
-            self.builtin['target_machine'] = self.builtin['build_machine']
-        else:
-            cross_info = self.build.environment.cross_info
-            if cross_info.has_host():
-                self.builtin['host_machine'] = CrossMachineInfo(cross_info.config['host_machine'])
-            else:
-                self.builtin['host_machine'] = self.builtin['build_machine']
-            if cross_info.has_target():
-                self.builtin['target_machine'] = CrossMachineInfo(cross_info.config['target_machine'])
-            else:
-                self.builtin['target_machine'] = self.builtin['host_machine']
+
+        # Initialize machine descriptions. We can do a better job now because we
+        # have the compilers needed to gain more knowledge, so wipe out old
+        # inferrence and start over.
+        self.build.environment.machines.miss_defaulting()
+        self.build.environment.machines.detect_build(self.coredata.compilers)
+        self.build.environment.machines.default_missing()
+        assert self.build.environment.machines.build.cpu is not None
+        assert self.build.environment.machines.host.cpu is not None
+        assert self.build.environment.machines.target.cpu is not None
+
+        self.builtin['build_machine'] = \
+            MachineHolder(self.build.environment.machines.build)
+        self.builtin['host_machine'] = \
+            MachineHolder(self.build.environment.machines.host)
+        self.builtin['target_machine'] = \
+            MachineHolder(self.build.environment.machines.target)
 
     def get_non_matching_default_options(self):
         env = self.environment
