@@ -150,12 +150,14 @@ binaries are not actually compatible. In such cases you may use the
 needs_exe_wrapper = true
 ```
 
-The last bit is the definition of host and target machines. Every
-cross build definition must have one or both of them. If it had
-neither, the build would not be a cross build but a native build. You
-do not need to define the build machine, as all necessary information
-about it is extracted automatically. The definitions for host and
-target machines look the same. Here is a sample for host machine.
+The last bit is the definition of build, host, and target machines.
+Every cross build definition must have one or both of host and target.
+If it had neither, the build would not be a cross build but a native
+build. You do not need to define the build machine, as all necessary
+information about it is extracted automatically. But you may specify
+if you prefer to skip such environment inspection for some reason. The
+definitions for all three machines look the same. Here is a sample for
+host machine.
 
 ```ini
 [host_machine]

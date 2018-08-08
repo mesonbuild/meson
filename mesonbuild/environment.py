@@ -311,12 +311,16 @@ class Environment:
 
         self.machines = MachineInfos()
         # Will be fully initialized later using compilers later.
-        self.machines.detect_build()
         if self.coredata.cross_file:
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)
             if 'exe_wrapper' in self.cross_info.config['binaries']:
                 from .dependencies import ExternalProgram
                 self.exe_wrapper = ExternalProgram.from_cross_info(self.cross_info, 'exe_wrapper')
+            if 'build_machine' in self.cross_info.config:
+                self.machines.build = MachineInfo.from_literal(
+                    self.cross_info.config['build_machine'])
+            else:
+                self.machines.detect_build()
             if 'host_machine' in self.cross_info.config:
                 self.machines.host = MachineInfo.from_literal(
                     self.cross_info.config['host_machine'])
@@ -325,6 +329,7 @@ class Environment:
                     self.cross_info.config['target_machine'])
         else:
             self.cross_info = None
+            self.machines.detect_build()
         self.machines.default_missing()
 
         self.cmd_line_options = options.cmd_line_options.copy()
@@ -1023,8 +1028,6 @@ class CrossBuildInfo:
     def __init__(self, filename):
         self.config = {'properties': {}}
         self.parse_datafile(filename)
-        if 'host_machine' not in self.config and 'target_machine' not in self.config:
-            raise mesonlib.MesonException('Cross info file must have either host or a target machine.')
         if 'host_machine' in self.config and 'binaries' not in self.config:
             raise mesonlib.MesonException('Cross file with "host_machine" is missing "binaries".')
 
@@ -1226,6 +1229,12 @@ class MachineInfo:
 class MachineInfos(PerMachine):
     def __init__(self):
         super().__init__(None, None, None)
+        # Whether any of the machines was detected based on the environment
+        # rather than explicitly specified. This is needed because we actually
+        # need to detect twice, once to choose a compiler and again to learn
+        # more information after a compiler i chosen, if we detect anything at
+        # all.
+        self.any_detected = False
 
     def default_missing(self):
         """Default host to buid and target to host.
@@ -1253,3 +1262,4 @@ class MachineInfos(PerMachine):
 
     def detect_build(self, compilers = None):
         self.build = MachineInfo.detect(compilers)
+        self.any_detected |= True

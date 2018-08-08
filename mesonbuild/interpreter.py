@@ -1895,9 +1895,10 @@ class Interpreter(InterpreterBase):
         # Initialize machine descriptions. We can do a better job now because we
         # have the compilers needed to gain more knowledge, so wipe out old
         # inferrence and start over.
-        self.build.environment.machines.miss_defaulting()
-        self.build.environment.machines.detect_build(self.coredata.compilers)
-        self.build.environment.machines.default_missing()
+        if self.build.environment.machines.any_detected:
+            self.build.environment.machines.miss_defaulting()
+            self.build.environment.machines.detect_build(self.coredata.compilers)
+            self.build.environment.machines.default_missing()
         assert self.build.environment.machines.build.cpu is not None
         assert self.build.environment.machines.host.cpu is not None
         assert self.build.environment.machines.target.cpu is not None
