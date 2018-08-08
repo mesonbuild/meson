@@ -17,6 +17,7 @@ import json
 
 from pathlib import Path
 from .. import mesonlib
+from ..mesonlib import MesonException
 from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue
 from ..interpreterbase import (
@@ -64,29 +65,48 @@ class PythonDependency(ExternalDependency):
         else:
             self.major_version = 2
 
+        # We first try to find the necessary python variables using pkgconfig
         if DependencyMethods.PKGCONFIG in self.methods and not python_holder.is_pypy:
             pkg_version = self.variables.get('LDVERSION') or self.version
             pkg_libdir = self.variables.get('LIBPC')
-            old_pkg_libdir = os.environ.get('PKG_CONFIG_LIBDIR')
-            old_pkg_path = os.environ.get('PKG_CONFIG_PATH')
 
-            os.environ.pop('PKG_CONFIG_PATH', None)
+            # If python-X.Y.pc exists in LIBPC, we will try to use it
+            if pkg_libdir is not None and Path(os.path.join(pkg_libdir, 'python-{}.pc'.format(pkg_version))).is_file():
+                old_pkg_libdir = os.environ.get('PKG_CONFIG_LIBDIR')
+                old_pkg_path = os.environ.get('PKG_CONFIG_PATH')
 
-            if pkg_libdir:
-                os.environ['PKG_CONFIG_LIBDIR'] = pkg_libdir
+                os.environ.pop('PKG_CONFIG_PATH', None)
 
-            try:
-                self.pkgdep = PkgConfigDependency('python-{}'.format(pkg_version), environment, kwargs)
-            except Exception:
-                pass
+                if pkg_libdir:
+                    os.environ['PKG_CONFIG_LIBDIR'] = pkg_libdir
 
-            if old_pkg_path is not None:
-                os.environ['PKG_CONFIG_PATH'] = old_pkg_path
+                try:
+                    self.pkgdep = PkgConfigDependency('python-{}'.format(pkg_version), environment, kwargs)
+                    mlog.debug('Found "python-{}" via pkgconfig lookup in LIBPC ({})'.format(pkg_version, pkg_libdir))
+                    py_lookup_method = 'pkgconfig'
+                except MesonException as e:
+                    mlog.debug('"python-{}" could not be found in LIBPC ({})'.format(pkg_version, pkg_libdir))
+                    mlog.debug(e)
 
-            if old_pkg_libdir is not None:
-                os.environ['PKG_CONFIG_LIBDIR'] = old_pkg_libdir
+                if old_pkg_path is not None:
+                    os.environ['PKG_CONFIG_PATH'] = old_pkg_path
+
+                if old_pkg_libdir is not None:
+                    os.environ['PKG_CONFIG_LIBDIR'] = old_pkg_libdir
+                else:
+                    os.environ.pop('PKG_CONFIG_LIBDIR', None)
             else:
-                os.environ.pop('PKG_CONFIG_LIBDIR', None)
+                mlog.debug('"python-{}" could not be found in LIBPC ({}), this is likely due to a relocated python installation'.format(pkg_version, pkg_libdir))
+
+            # If lookup via LIBPC failed, try to use fallback PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH mechanisms
+            if self.pkgdep is None or not self.pkgdep.found():
+                try:
+                    self.pkgdep = PkgConfigDependency('python-{}'.format(pkg_version), environment, kwargs)
+                    mlog.debug('Found "python-{}" via fallback pkgconfig lookup in PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH'.format(pkg_version))
+                    py_lookup_method = 'pkgconfig-fallback'
+                except MesonException as e:
+                    mlog.debug('"python-{}" could not be found via fallback pkgconfig lookup in PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH'.format(pkg_version))
+                    mlog.debug(e)
 
         if self.pkgdep and self.pkgdep.found():
             self.compile_args = self.pkgdep.get_compile_args()
@@ -96,14 +116,19 @@ class PythonDependency(ExternalDependency):
         else:
             self.pkgdep = None
 
+            # Finally, try to find python via SYSCONFIG as a final measure
             if DependencyMethods.SYSCONFIG in self.methods:
                 if mesonlib.is_windows():
                     self._find_libpy_windows(environment)
                 else:
                     self._find_libpy(python_holder, environment)
 
+                if self.is_found:
+                    mlog.debug('Found "python-{}" via SYSCONFIG module'.format(self.version))
+                    py_lookup_method = 'sysconfig'
+
         if self.is_found:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
+            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES ({})'.format(py_lookup_method)))
         else:
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
 
