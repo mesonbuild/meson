@@ -743,8 +743,8 @@ class Backend:
                 exe_wrapper = self.environment.get_exe_wrapper()
             else:
                 exe_wrapper = None
-            if mesonlib.for_windows(is_cross, self.environment) or \
-               mesonlib.for_cygwin(is_cross, self.environment):
+            if mesonlib.for_windows(self.environment) or \
+               mesonlib.for_cygwin(self.environment):
                 extra_bdeps = []
                 if isinstance(exe, build.CustomTarget):
                     extra_bdeps = exe.get_transitive_build_target_deps()

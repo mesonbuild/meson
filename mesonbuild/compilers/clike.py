@@ -274,9 +274,10 @@ class CLikeCompiler:
         return []
 
     def gen_export_dynamic_link_args(self, env):
-        if mesonlib.for_windows(env.is_cross_build(), env) or mesonlib.for_cygwin(env.is_cross_build(), env):
+        m = env.machines[self.for_machine]
+        if m.is_windows() or m.is_cygwin():
             return ['-Wl,--export-all-symbols']
-        elif mesonlib.for_darwin(env.is_cross_build(), env):
+        elif mesonlib.for_darwin(env):
             return []
         else:
             return ['-Wl,-export-dynamic']
@@ -884,7 +885,7 @@ class CLikeCompiler:
         for p in prefixes:
             for s in suffixes:
                 patterns.append(p + '{}.' + s)
-        if shared and mesonlib.for_openbsd(self.is_cross, env):
+        if shared and mesonlib.for_openbsd(env):
             # Shared libraries on OpenBSD can be named libfoo.so.X.Y:
             # https://www.openbsd.org/faq/ports/specialtopics.html#SharedLibs
             #
@@ -911,9 +912,9 @@ class CLikeCompiler:
         else:
             prefixes = ['lib', '']
         # Library suffixes and prefixes
-        if mesonlib.for_darwin(env.is_cross_build(), env):
+        if mesonlib.for_darwin(env):
             shlibext = ['dylib', 'so']
-        elif mesonlib.for_windows(env.is_cross_build(), env):
+        elif mesonlib.for_windows(env):
             # FIXME: .lib files can be import or static so we should read the
             # file, figure out which one it is, and reject the wrong kind.
             if isinstance(self, compilers.VisualStudioLikeCompiler):
@@ -922,7 +923,7 @@ class CLikeCompiler:
                 shlibext = ['dll.a', 'lib', 'dll']
             # Yep, static libraries can also be foo.lib
             stlibext += ['lib']
-        elif mesonlib.for_cygwin(env.is_cross_build(), env):
+        elif mesonlib.for_cygwin(env):
             shlibext = ['dll', 'dll.a']
             prefixes = ['cyg'] + prefixes
         else:
@@ -1126,12 +1127,12 @@ class CLikeCompiler:
         return self.find_framework_impl(name, env, extra_dirs, allow_system)
 
     def thread_flags(self, env):
-        if mesonlib.for_haiku(self.is_cross, env) or mesonlib.for_darwin(self.is_cross, env):
+        if mesonlib.for_haiku(env) or mesonlib.for_darwin(env):
             return []
         return ['-pthread']
 
     def thread_link_flags(self, env):
-        if mesonlib.for_haiku(self.is_cross, env) or mesonlib.for_darwin(self.is_cross, env):
+        if mesonlib.for_haiku(env) or mesonlib.for_darwin(env):
             return []
         return ['-pthread']
 
@@ -1189,8 +1190,8 @@ class CLikeCompiler:
     def has_func_attribute(self, name, env):
         # Just assume that if we're not on windows that dllimport and dllexport
         # don't work
-        if not (mesonlib.for_windows(env.is_cross_build(), env) or
-                mesonlib.for_cygwin(env.is_cross_build(), env)):
+        if not (mesonlib.for_windows(env) or
+                mesonlib.for_cygwin(env)):
             if name in ['dllimport', 'dllexport']:
                 return False, False
 

@@ -665,8 +665,8 @@ int dummy;
         # CustomTarget command needs extra paths first.
         is_cross = self.environment.is_cross_build() and \
             self.environment.need_exe_wrapper()
-        if mesonlib.for_windows(is_cross, self.environment) or \
-           mesonlib.for_cygwin(is_cross, self.environment):
+        if mesonlib.for_windows(self.environment) or \
+           mesonlib.for_cygwin(self.environment):
             extra_bdeps = target.get_transitive_build_target_deps()
             extra_paths = self.determine_windows_extra_paths(target.command[0],
                                                              extra_bdeps, is_cross)

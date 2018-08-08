@@ -513,12 +513,11 @@ class Environment:
         # Various prefixes and suffixes for import libraries, shared libraries,
         # static libraries, and executables.
         # Versioning is added to these names in the backends as-needed.
-        cross = self.is_cross_build()
-        if mesonlib.for_windows(cross, self):
+        if mesonlib.for_windows(self):
             self.exe_suffix = 'exe'
             self.object_suffix = 'obj'
             self.win_libdir_layout = True
-        elif mesonlib.for_cygwin(cross, self):
+        elif mesonlib.for_cygwin(self):
             self.exe_suffix = 'exe'
             self.object_suffix = 'o'
             self.win_libdir_layout = True
@@ -774,9 +773,9 @@ class Environment:
                 cls = ClangClCCompiler if lang == 'c' else ClangClCPPCompiler
                 return cls(compiler, version, is_cross, exe_wrap, target)
             if 'clang' in out:
-                if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
+                if 'Apple' in out or mesonlib.for_darwin(self):
                     compiler_type = CompilerType.CLANG_OSX
-                elif 'windows' in out or mesonlib.for_windows(want_cross, self):
+                elif 'windows' in out or mesonlib.for_windows(self):
                     compiler_type = CompilerType.CLANG_MINGW
                 else:
                     compiler_type = CompilerType.CLANG_STANDARD
@@ -808,16 +807,16 @@ class Environment:
                 return cls(compiler, version, is_cross, exe_wrap, target)
 
             if 'PGI Compilers' in out:
-                if mesonlib.for_darwin(want_cross, self):
+                if self.machines[for_machine].is_darwin():
                     compiler_type = CompilerType.PGI_OSX
-                elif mesonlib.for_windows(want_cross, self):
+                elif self.machines[for_machine].is_windows():
                     compiler_type = CompilerType.PGI_WIN
                 else:
                     compiler_type = CompilerType.PGI_STANDARD
                 cls = PGICCompiler if lang == 'c' else PGICPPCompiler
                 return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap)
             if '(ICC)' in out:
-                if mesonlib.for_darwin(want_cross, self):
+                if self.machine[for_macine].is_darwin():
                     compiler_type = CompilerType.ICC_OSX
                 elif mesonlib.for_windows(want_cross, self):
                     # TODO: fix ICC on Windows
@@ -932,9 +931,9 @@ class Environment:
                     return PathScaleFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'PGI Compilers' in out:
-                    if mesonlib.for_darwin(want_cross, self):
+                    if self.machine[for_macine].is_darwin():
                         compiler_type = CompilerType.PGI_OSX
-                    elif mesonlib.for_windows(want_cross, self):
+                    elif self.machines[for_machine].is_windows():
                         compiler_type = CompilerType.PGI_WIN
                     else:
                         compiler_type = CompilerType.PGI_STANDARD

@@ -928,7 +928,7 @@ This will become a hard error in a future Meson release.''')
             # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
             # PIC is always on for Windows (all code is position-independent
             # since library loading is done differently)
-            if for_darwin(self.is_cross, self.environment) or for_windows(self.is_cross, self.environment):
+            if for_darwin(self.environment) or for_windows(self.environment):
                 self.pic = True
             else:
                 self.pic = self._extract_pic_pie(kwargs, 'pic')
@@ -1253,7 +1253,7 @@ You probably should put it in link_with instead.''')
         '''
         for link_target in self.link_targets:
             if isinstance(link_target, SharedModule):
-                if for_darwin(self.is_cross, self.environment):
+                if for_darwin(self.environment):
                     raise MesonException('''target links against shared modules.
 This is not permitted on OSX''')
                 else:
@@ -1436,8 +1436,8 @@ class Executable(BuildTarget):
             self.prefix = ''
         if not hasattr(self, 'suffix'):
             # Executable for Windows or C#/Mono
-            if (for_windows(is_cross, environment) or
-                    for_cygwin(is_cross, environment) or 'cs' in self.compilers):
+            if (for_windows(environment) or
+                    for_cygwin(environment) or 'cs' in self.compilers):
                 self.suffix = 'exe'
             elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('arm') or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('arm')):
@@ -1475,7 +1475,7 @@ class Executable(BuildTarget):
             implib_basename = self.name + '.exe'
             if not isinstance(kwargs.get('implib', False), bool):
                 implib_basename = kwargs['implib']
-            if for_windows(is_cross, environment) or for_cygwin(is_cross, environment):
+            if for_windows(environment) or for_cygwin(environment):
                 self.vs_import_filename = '{0}.lib'.format(implib_basename)
                 self.gcc_import_filename = 'lib{0}.a'.format(implib_basename)
                 if self.get_using_msvc():
@@ -1652,7 +1652,7 @@ class SharedLibrary(BuildTarget):
         # C, C++, Swift, Vala
         # Only Windows uses a separate import library for linking
         # For all other targets/platforms import_filename stays None
-        elif for_windows(is_cross, env):
+        elif for_windows(env):
             suffix = 'dll'
             self.vs_import_filename = '{0}{1}.lib'.format(self.prefix if self.prefix is not None else '', self.name)
             self.gcc_import_filename = '{0}{1}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
@@ -1677,7 +1677,7 @@ class SharedLibrary(BuildTarget):
                 self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
             else:
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        elif for_cygwin(is_cross, env):
+        elif for_cygwin(env):
             suffix = 'dll'
             self.gcc_import_filename = '{0}{1}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
             # Shared library is of the form cygfoo.dll
@@ -1689,7 +1689,7 @@ class SharedLibrary(BuildTarget):
                 self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
             else:
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        elif for_darwin(is_cross, env):
+        elif for_darwin(env):
             prefix = 'lib'
             suffix = 'dylib'
             # On macOS, the filename can only contain the major version
@@ -1699,7 +1699,7 @@ class SharedLibrary(BuildTarget):
             else:
                 # libfoo.dylib
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        elif for_android(is_cross, env):
+        elif for_android(env):
             prefix = 'lib'
             suffix = 'so'
             # Android doesn't support shared_library versioning
@@ -1764,7 +1764,7 @@ class SharedLibrary(BuildTarget):
     def process_kwargs(self, kwargs, environment):
         super().process_kwargs(kwargs, environment)
 
-        if not for_android(self.is_cross, self.environment):
+        if not for_android(self.environment):
             supports_versioning = True
         else:
             supports_versioning = False

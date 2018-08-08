@@ -123,13 +123,13 @@ class BoostDependency(ExternalDependency):
             self.libdir = os.environ['BOOST_LIBRARYDIR']
 
         if self.boost_root is None:
-            if mesonlib.for_windows(self.want_cross, self.env):
+            if mesonlib.for_windows(self.env):
                 self.boost_roots = self.detect_win_roots()
             else:
                 self.boost_roots = self.detect_nix_roots()
 
         if self.incdir is None:
-            if mesonlib.for_windows(self.want_cross, self.env):
+            if mesonlib.for_windows(self.env):
                 self.incdir = self.detect_win_incdir()
             else:
                 self.incdir = self.detect_nix_incdir()
@@ -268,7 +268,7 @@ class BoostDependency(ExternalDependency):
             pass
         # 2. Fall back to the old method
         else:
-            if mesonlib.for_windows(self.want_cross, self.env):
+            if mesonlib.for_windows(self.env):
                 self.detect_lib_modules_win()
             else:
                 self.detect_lib_modules_nix()
@@ -290,7 +290,7 @@ class BoostDependency(ExternalDependency):
     def compiler_tag(self):
         tag = None
         compiler = self.env.detect_cpp_compiler(self.want_cross)
-        if mesonlib.for_windows(self.want_cross, self.env):
+        if mesonlib.for_windows(self.env):
             if compiler.get_id() in ['msvc', 'clang-cl']:
                 comp_ts_version = compiler.get_toolset_version()
                 compiler_ts = comp_ts_version.split('.')
@@ -304,10 +304,10 @@ class BoostDependency(ExternalDependency):
         if not self.is_multithreading:
             return ''
 
-        if mesonlib.for_darwin(self.want_cross, self.env):
+        if mesonlib.for_darwin(self.env):
             # - Mac:      requires -mt for multithreading, so should not fall back to non-mt libraries.
             return '-mt'
-        elif mesonlib.for_windows(self.want_cross, self.env):
+        elif mesonlib.for_windows(self.env):
             # - Windows:  requires -mt for multithreading, so should not fall back to non-mt libraries.
             return '-mt'
         else:
@@ -340,7 +340,7 @@ class BoostDependency(ExternalDependency):
 
     # FIXME - how to handle different distributions, e.g. for Mac? Currently we handle homebrew and macports, but not fink.
     def abi_tags(self):
-        if mesonlib.for_windows(self.want_cross, self.env):
+        if mesonlib.for_windows(self.env):
             return [self.versioned_abi_tag(), self.threading_tag()]
         else:
             return [self.threading_tag()]
@@ -437,7 +437,7 @@ class BoostDependency(ExternalDependency):
     def detect_lib_modules_nix(self):
         if self.static:
             libsuffix = 'a'
-        elif mesonlib.for_darwin(self.want_cross, self.env):
+        elif mesonlib.for_darwin(self.env):
             libsuffix = 'dylib'
         else:
             libsuffix = 'so'

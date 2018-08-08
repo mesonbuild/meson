@@ -126,14 +126,14 @@ def platform_fix_name(fname, compiler, env):
         canonical_compiler = compiler
 
     if '?lib' in fname:
-        if mesonlib.for_windows(env.is_cross_build(), env) and canonical_compiler == 'msvc':
+        if env.machines.host.is_windows() and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/\1.', fname)
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
-        elif mesonlib.for_windows(env.is_cross_build(), env):
+        elif env.machines.host.is_windows():
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/lib\1.', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'lib\1.dll', fname)
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
-        elif mesonlib.for_cygwin(env.is_cross_build(), env):
+        elif env.machines.host.is_cygwin():
             fname = re.sub(r'lib/\?lib(.*)\.so$', r'bin/cyg\1.dll', fname)
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/cyg\1.', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'cyg\1.dll', fname)
@@ -143,7 +143,7 @@ def platform_fix_name(fname, compiler, env):
 
     if fname.endswith('?exe'):
         fname = fname[:-4]
-        if mesonlib.for_windows(env.is_cross_build(), env) or mesonlib.for_cygwin(env.is_cross_build(), env):
+        if env.machines.host.is_windows() or env.machines.host.is_cygwin():
             return fname + '.exe'
 
     if fname.startswith('?msvc:'):
@@ -158,40 +158,40 @@ def platform_fix_name(fname, compiler, env):
 
     if fname.startswith('?cygwin:'):
         fname = fname[8:]
-        if not mesonlib.for_cygwin(env.is_cross_build(), env):
+        if not env.machines.host.is_cygwin():
             return None
 
     if fname.startswith('?!cygwin:'):
         fname = fname[9:]
-        if mesonlib.for_cygwin(env.is_cross_build(), env):
+        if env.machines.host.is_cygwin():
             return None
 
     if fname.endswith('?so'):
-        if mesonlib.for_windows(env.is_cross_build(), env) and canonical_compiler == 'msvc':
+        if env.machines.host.is_windows() and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/(?:lib|)([^/]*?)\?so$', r'/\1.dll', fname)
             return fname
-        elif mesonlib.for_windows(env.is_cross_build(), env):
+        elif env.machines.host.is_windows():
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
             return fname
-        elif mesonlib.for_cygwin(env.is_cross_build(), env):
+        elif env.machines.host.is_cygwin():
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/lib([^/]*?)\?so$', r'/cyg\1.dll', fname)
             fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
             return fname
-        elif mesonlib.for_darwin(env.is_cross_build(), env):
+        elif env.machines.host.is_darwin():
             return fname[:-3] + '.dylib'
         else:
             return fname[:-3] + '.so'
 
     if fname.endswith('?implib') or fname.endswith('?implibempty'):
-        if mesonlib.for_windows(env.is_cross_build(), env) and canonical_compiler == 'msvc':
+        if env.machines.host.is_windows() and canonical_compiler == 'msvc':
             # only MSVC doesn't generate empty implibs
             if fname.endswith('?implibempty') and compiler == 'msvc':
                 return None
             return re.sub(r'/(?:lib|)([^/]*?)\?implib(?:empty|)$', r'/\1.lib', fname)
-        elif mesonlib.for_windows(env.is_cross_build(), env) or mesonlib.for_cygwin(env.is_cross_build(), env):
+        elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
             return re.sub(r'\?implib(?:empty|)$', r'.dll.a', fname)
         else:
             return None
