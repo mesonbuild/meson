@@ -20,7 +20,12 @@ from .scripts import depfixer
 from .scripts import destdir_join
 from .mesonlib import is_windows, Popen_safe
 from .mtest import rebuild_all
-from __main__ import __file__ as main_file
+try:
+    from __main__ import __file__ as main_file
+except ImportError:
+    # Happens when running as meson.exe which is native Windows.
+    # This is only used for pkexec which is not, so this is fine.
+    main_file = None
 
 selinux_updates = []
 
