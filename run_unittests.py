@@ -3117,6 +3117,8 @@ class LinuxlikeTests(BasePlatformTests):
                 (version_compare(compiler.version, '<6.0.0') or
                  (compiler.clang_type == mesonbuild.compilers.CLANG_OSX and version_compare(compiler.version, '<9.2')))):
                 continue
+            if (compiler.get_id() == 'gcc' and '2a' in v and version_compare(compiler.version, '<8.0.0')):
+                continue
             std_opt = '{}={}'.format(lang_std, v)
             self.init(testdir, ['-D' + std_opt])
             cmd = self.get_compdb()[0]['command']
