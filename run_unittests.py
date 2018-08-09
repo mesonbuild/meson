@@ -2094,6 +2094,9 @@ int main(int argc, char **argv) {
         self.assertNotEqual(subprocess.call(self.wrap_command + ['promote', 'scommon'],
                                             cwd=workdir,
                                             stdout=subprocess.DEVNULL), 0)
+        self.assertNotEqual(subprocess.call(self.wrap_command + ['promote', 'invalid/path/to/scommon'],
+                                            cwd=workdir,
+                                            stderr=subprocess.DEVNULL), 0)
         self.assertFalse(os.path.isdir(scommondir))
         subprocess.check_call(self.wrap_command + ['promote', 'subprojects/s2/subprojects/scommon'], cwd=workdir)
         self.assertTrue(os.path.isdir(scommondir))
@@ -2103,6 +2106,20 @@ int main(int argc, char **argv) {
         self.assertTrue(os.path.isfile(promoted_wrap))
         self.init(workdir)
         self.build()
+
+    def test_subproject_promotion_wrap(self):
+        testdir = os.path.join(self.unit_test_dir, '42 promote wrap')
+        workdir = os.path.join(self.builddir, 'work')
+        shutil.copytree(testdir, workdir)
+        spdir = os.path.join(workdir, 'subprojects')
+
+        ambiguous_wrap = os.path.join(spdir, 'ambiguous.wrap')
+        self.assertNotEqual(subprocess.call(self.wrap_command + ['promote', 'ambiguous'],
+                                            cwd=workdir,
+                                            stdout=subprocess.DEVNULL), 0)
+        self.assertFalse(os.path.isfile(ambiguous_wrap))
+        subprocess.check_call(self.wrap_command + ['promote', 'subprojects/s2/subprojects/ambiguous.wrap'], cwd=workdir)
+        self.assertTrue(os.path.isfile(ambiguous_wrap))
 
     def test_warning_location(self):
         tdir = os.path.join(self.unit_test_dir, '22 warning location')
