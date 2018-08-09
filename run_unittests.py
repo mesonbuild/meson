@@ -3111,11 +3111,11 @@ class LinuxlikeTests(BasePlatformTests):
         for v in compiler.get_options()[lang_std].choices:
             if (compiler.get_id() == 'clang' and '17' in v and
                 (version_compare(compiler.version, '<5.0.0') or
-                 (compiler.clang_type == mesonbuild.compilers.CLANG_OSX and version_compare(compiler.version, '<9.2')))):
+                 (compiler.clang_type == mesonbuild.compilers.CLANG_OSX and version_compare(compiler.version, '<9.1')))):
                 continue
             if (compiler.get_id() == 'clang' and '2a' in v and
                 (version_compare(compiler.version, '<6.0.0') or
-                 (compiler.clang_type == mesonbuild.compilers.CLANG_OSX and version_compare(compiler.version, '<9.2')))):
+                 (compiler.clang_type == mesonbuild.compilers.CLANG_OSX and version_compare(compiler.version, '<9.1')))):
                 continue
             if (compiler.get_id() == 'gcc' and '2a' in v and version_compare(compiler.version, '<8.0.0')):
                 continue
