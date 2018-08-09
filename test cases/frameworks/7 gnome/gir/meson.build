@@ -1,11 +1,19 @@
 subdir('dep1')
 
 libsources = ['meson-sample.c', 'meson-sample.h']
+lib2sources = ['meson-sample2.c', 'meson-sample2.h']
 
 girlib = shared_library(
   'gir_lib',
   sources : libsources,
   dependencies : [gobj, dep1_dep],
+  install : true
+)
+
+girlib2 = shared_library(
+  'gir_lib2',
+  sources : lib2sources,
+  dependencies : [gobj],
   install : true
 )
 
@@ -19,8 +27,8 @@ girexe = executable(
 fake_dep = dependency('no-way-this-exists', required: false)
 
 gnome.generate_gir(
-  girlib,
-  sources : libsources,
+  girlib, girlib2,
+  sources : libsources + lib2sources,
   nsversion : '1.0',
   namespace : 'Meson',
   symbol_prefix : 'meson',

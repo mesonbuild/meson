@@ -67,10 +67,15 @@ executable(
 
 ### gnome.generate_gir()
 
-Generates GObject introspection data. Takes one positional argument,
-the build target you want to build gir data for. There are several
-keyword arguments. Many of these map directly to the `g-ir-scanner`
-tool so see its documentation for more information.
+Generates GObject introspection data.
+
+Takes one or more positional arguments:
+
+Either one or more library objects you want to build gir data for, or a single
+executable object.
+
+There are several keyword arguments. Many of these map directly to the
+`g-ir-scanner` tool so see its documentation for more information.
 
 * `dependencies`: deps to use during introspection scanning
 * `extra_args`: command line arguments to pass to gir compiler

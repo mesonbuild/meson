@@ -499,54 +499,69 @@ class GnomeModule(ExtensionModule):
                     'Gir include dirs should be include_directories().')
         return ret
 
-    def _scan_lang(self, state, lang):
+    def _scan_langs(self, state, langs):
         ret = []
 
-        for link_arg in state.environment.coredata.get_external_link_args(lang):
-            if link_arg.startswith('-L'):
-                ret.append(link_arg)
+        for lang in langs:
+            for link_arg in state.environment.coredata.get_external_link_args(lang):
+                if link_arg.startswith('-L'):
+                    ret.append(link_arg)
 
         return ret
 
-    def _scan_gir_target(self, state, girtarget):
+    def _scan_gir_targets(self, state, girtargets):
         ret = []
 
-        if isinstance(girtarget, build.Executable):
-            ret += ['--program', girtarget]
-        elif isinstance(girtarget, build.SharedLibrary):
-            libname = girtarget.get_basename()
-            # Needed for the following binutils bug:
-            # https://github.com/mesonbuild/meson/issues/1911
-            # However, g-ir-scanner does not understand -Wl,-rpath
-            # so we need to use -L instead
-            for d in state.backend.determine_rpath_dirs(girtarget):
-                d = os.path.join(state.environment.get_build_dir(), d)
-                ret.append('-L' + d)
-            ret += ['--library', libname]
-            # need to put our output directory first as we need to use the
-            # generated libraries instead of any possibly installed system/prefix
-            # ones.
-            ret += ["-L@PRIVATE_OUTDIR_ABS_%s@" % girtarget.get_id()]
+        for girtarget in girtargets:
+            if isinstance(girtarget, build.Executable):
+                ret += ['--program', girtarget]
+            elif isinstance(girtarget, build.SharedLibrary):
+                libname = girtarget.get_basename()
+                # Needed for the following binutils bug:
+                # https://github.com/mesonbuild/meson/issues/1911
+                # However, g-ir-scanner does not understand -Wl,-rpath
+                # so we need to use -L instead
+                for d in state.backend.determine_rpath_dirs(girtarget):
+                    d = os.path.join(state.environment.get_build_dir(), d)
+                    ret.append('-L' + d)
+                ret += ['--library', libname]
+                # need to put our output directory first as we need to use the
+                # generated libraries instead of any possibly installed system/prefix
+                # ones.
+                ret += ["-L@PRIVATE_OUTDIR_ABS_%s@" % girtarget.get_id()]
 
         return ret
 
-    def _get_girtarget_lang_compiler(self, girtarget):
-        for lang, compiler in girtarget.compilers.items():
-            # XXX: Can you use g-i with any other language?
-            if lang in ('c', 'cpp', 'objc', 'objcpp', 'd'):
-                break
-        else:
-            lang = None
-            compiler = None
+    def _get_girtargets_langs_compilers(self, girtargets):
+        ret = []
+        for girtarget in girtargets:
+            for lang, compiler in girtarget.compilers.items():
+                # XXX: Can you use g-i with any other language?
+                if lang in ('c', 'cpp', 'objc', 'objcpp', 'd'):
+                    ret.append((lang, compiler))
+                    break
 
-        return lang, compiler
+        return ret
 
-    def _get_lang_compiler_flags(self, state, lang, compiler):
+    def _get_gir_targets_deps(self, girtargets):
+        ret = []
+        for girtarget in girtargets:
+            ret += girtarget.get_all_link_deps()
+            ret += girtarget.get_external_deps()
+        return ret
+
+    def _get_gir_targets_inc_dirs(self, girtargets):
+        ret = []
+        for girtarget in girtargets:
+            ret += girtarget.get_include_dirs()
+        return ret
+
+    def _get_langs_compilers_flags(self, state, langs_compilers):
         cflags = []
         internal_ldflags = []
         external_ldflags = []
 
-        if lang and compiler:
+        for lang, compiler in langs_compilers:
             if state.global_args.get(lang):
                 cflags += state.global_args[lang]
             if state.project_args.get(lang):
@@ -562,8 +577,8 @@ class GnomeModule(ExtensionModule):
 
         return cflags, internal_ldflags, external_ldflags
 
-    def _make_gir_filelist(self, state, srcdir, ns, nsversion, girtarget, libsources):
-        gir_filelist_dir = state.backend.get_target_private_dir_abs(girtarget)
+    def _make_gir_filelist(self, state, srcdir, ns, nsversion, girtargets, libsources):
+        gir_filelist_dir = state.backend.get_target_private_dir_abs(girtargets[0])
         if not os.path.isdir(gir_filelist_dir):
             os.mkdir(gir_filelist_dir)
         gir_filelist_filename = os.path.join(gir_filelist_dir, '%s_%s_gir_filelist' % (ns, nsversion))
@@ -658,21 +673,30 @@ class GnomeModule(ExtensionModule):
 
         return typelib_includes
 
+    def _get_external_args_for_langs(self, state, langs):
+        ret = []
+        for lang in langs:
+            ret += state.environment.coredata.get_external_args(lang)
+        return ret
+
     @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
                       'export_packages', 'includes', 'dependencies', 'link_with', 'include_directories',
                       'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
                       'packages', 'header', 'build_by_default'})
     def generate_gir(self, state, args, kwargs):
-        if len(args) != 1:
-            raise MesonException('Gir takes one argument')
+        if not args:
+            raise MesonException('generate_gir takes at least one argument')
         if kwargs.get('install_dir'):
             raise MesonException('install_dir is not supported with generate_gir(), see "install_dir_gir" and "install_dir_typelib"')
 
         giscanner = self.interpreter.find_program_impl('g-ir-scanner')
         gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
 
-        girtarget = self._unwrap_gir_target(args[0])
+        girtargets = [self._unwrap_gir_target(arg) for arg in args]
+
+        if len(girtargets) > 1 and any([isinstance(el, build.Executable) for el in girtargets]):
+            raise MesonException('generate_gir only accepts a single argument when one of the arguments is an executable')
 
         self.gir_dep, pkgargs = self._get_gir_dep(state)
 
@@ -682,12 +706,12 @@ class GnomeModule(ExtensionModule):
         girfile = '%s-%s.gir' % (ns, nsversion)
         srcdir = os.path.join(state.environment.get_source_dir(), state.subdir)
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
-        depends = [girtarget]
+        depends = [] + girtargets
         gir_inc_dirs = []
-        lang, compiler = self._get_girtarget_lang_compiler(girtarget)
-        cflags, internal_ldflags, external_ldflags = self._get_lang_compiler_flags(state, lang, compiler)
-        deps = (girtarget.get_all_link_deps() + girtarget.get_external_deps() +
-                extract_as_list(kwargs, 'dependencies', pop=True, unholder=True))
+        langs_compilers = self._get_girtargets_langs_compilers(girtargets)
+        cflags, internal_ldflags, external_ldflags = self._get_langs_compilers_flags(state, langs_compilers)
+        deps = self._get_gir_targets_deps(girtargets)
+        deps += extract_as_list(kwargs, 'dependencies', pop=True, unholder=True)
         typelib_includes = self._gather_typelib_includes_and_update_depends(state, deps, depends)
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
@@ -697,6 +721,7 @@ class GnomeModule(ExtensionModule):
         cflags += list(dep_cflags)
         internal_ldflags += list(dep_internal_ldflags)
         external_ldflags += list(dep_external_ldflags)
+        girtargets_inc_dirs = self._get_gir_targets_inc_dirs(girtargets)
         inc_dirs = self._scan_inc_dirs(kwargs)
 
         scan_command = [giscanner]
@@ -708,8 +733,8 @@ class GnomeModule(ExtensionModule):
         scan_command += self._scan_header(kwargs)
         scan_command += self._scan_extra_args(kwargs)
         scan_command += ['-I' + srcdir, '-I' + builddir]
-        scan_command += get_include_args(girtarget.get_include_dirs())
-        scan_command += ['--filelist=' + self._make_gir_filelist(state, srcdir, ns, nsversion, girtarget, libsources)]
+        scan_command += get_include_args(girtargets_inc_dirs)
+        scan_command += ['--filelist=' + self._make_gir_filelist(state, srcdir, ns, nsversion, girtargets, libsources)]
         scan_command += self._scan_link_withs(state, depends, kwargs)
         scan_command += self._scan_include(state, depends, gir_inc_dirs, kwargs)
         scan_command += self._scan_symbol_prefix(kwargs)
@@ -717,12 +742,12 @@ class GnomeModule(ExtensionModule):
         scan_command += self._scan_export_packages(kwargs)
         scan_command += ['--cflags-begin']
         scan_command += cflags
-        scan_command += state.environment.coredata.get_external_args(lang)
+        scan_command += self._get_external_args_for_langs(state, [lc[0] for lc in langs_compilers])
         scan_command += ['--cflags-end']
         scan_command += get_include_args(inc_dirs)
         scan_command += get_include_args(list(gi_includes) + gir_inc_dirs + inc_dirs, prefix='--add-include-path=')
-        scan_command += self._scan_gir_target(state, girtarget)
-        scan_command += self._scan_lang(state, lang)
+        scan_command += self._scan_gir_targets(state, girtargets)
+        scan_command += self._scan_langs(state, [lc[0] for lc in langs_compilers])
         scan_command += list(internal_ldflags)
         scan_command += list(external_ldflags)
 
