@@ -54,7 +54,7 @@ import mesonbuild.modules.pkgconfig
 from run_tests import (
     Backend, FakeBuild, FakeCompilerOptions,
     ensure_backend_detects_changes, exe_suffix, get_backend_commands,
-    get_builddir_target_args, get_fake_env, get_meson_script,
+    get_builddir_target_args, get_fake_env, get_fake_options, get_meson_script,
     run_configure_inprocess, run_mtest_inprocess
 )
 
@@ -542,7 +542,10 @@ class InternalTests(unittest.TestCase):
         config.write(configfile)
         configfile.flush()
         configfile.close()
-        detected_value = mesonbuild.environment.CrossBuildInfo(configfile.name).need_exe_wrapper()
+        opts = get_fake_options('')
+        opts.cross_file = configfilename
+        env = get_fake_env('', '', '', opts)
+        detected_value = env.need_exe_wrapper()
         os.unlink(configfilename)
 
         desired_value = not detected_value
@@ -554,7 +557,10 @@ class InternalTests(unittest.TestCase):
         configfilename = configfile.name
         config.write(configfile)
         configfile.close()
-        forced_value = mesonbuild.environment.CrossBuildInfo(configfile.name).need_exe_wrapper()
+        opts = get_fake_options('')
+        opts.cross_file = configfilename
+        env = get_fake_env('', '', '', opts)
+        forced_value = env.need_exe_wrapper()
         os.unlink(configfilename)
 
         self.assertEqual(forced_value, desired_value)
@@ -744,8 +750,9 @@ class InternalTests(unittest.TestCase):
 
             old_call = PkgConfigDependency._call_pkgbin
             old_check = PkgConfigDependency.check_pkgconfig
+            old_pkgbin = PkgConfigDependency.class_pkgbin
             PkgConfigDependency._call_pkgbin = fake_call_pkgbin
-            PkgConfigDependency.check_pkgconfig = lambda x: pkgbin
+            PkgConfigDependency.check_pkgconfig = lambda x, _: pkgbin
             # Test begins
             kwargs = {'required': True, 'silent': True}
             foo_dep = PkgConfigDependency('foo', env, kwargs)
@@ -766,7 +773,7 @@ class InternalTests(unittest.TestCase):
             PkgConfigDependency.check_pkgconfig = old_check
             # Reset dependency class to ensure that in-process configure doesn't mess up
             PkgConfigDependency.pkgbin_cache = {}
-            PkgConfigDependency.class_pkgbin = None
+            PkgConfigDependency.class_pkgbin = old_pkgbin
 
     def test_version_compare(self):
         comparefunc = mesonbuild.mesonlib.version_compare_many
@@ -4843,7 +4850,7 @@ class NativeFileTests(BasePlatformTests):
             getter = functools.partial(getter, False)
         cc = getter()
         binary, newid = cb(cc)
-        env.config_info.binaries = {lang: binary}
+        env.binaries.host.binaries[lang] = binary
         compiler = getter()
         self.assertEqual(compiler.id, newid)
 
@@ -4998,7 +5005,7 @@ class NativeFileTests(BasePlatformTests):
         getter = getattr(env, 'detect_{}_compiler'.format(lang))
         if lang in ['rust']:
             getter = functools.partial(getter, False)
-        env.config_info.binaries = {lang: wrapper}
+        env.binaries.host.binaries[lang] = wrapper
         compiler = getter()
         self.assertEqual(compiler.version, version)
 
@@ -5024,7 +5031,7 @@ class NativeFileTests(BasePlatformTests):
         wrapper = self.helper_create_binary_wrapper(
             'swiftc', version='Swift 1.2345', outfile='stderr')
         env = get_fake_env('', '', '')
-        env.config_info.binaries = {'swift': wrapper}
+        env.binaries.host.binaries['swift'] = wrapper
         compiler = env.detect_swift_compiler()
         self.assertEqual(compiler.version, '1.2345')
 

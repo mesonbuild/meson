@@ -33,7 +33,8 @@ from pathlib import PurePath
 from .. import mlog
 from .. import mesonlib
 from ..compilers import clib_langs
-from ..mesonlib import MesonException, OrderedSet
+from ..environment import BinaryTable
+from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
 
 # These must be defined in this file to avoid cyclical references.
@@ -393,24 +394,21 @@ class ConfigToolDependency(ExternalDependency):
         if not isinstance(versions, list) and versions is not None:
             versions = listify(versions)
 
-        if self.env.is_cross_build() and not self.native:
-            cross_file = self.env.cross_info.config['binaries']
-            try:
-                tools = [cross_file[self.tool_name]]
-            except KeyError:
+        for_machine = MachineChoice.BUILD if self.native else MachineChoice.HOST
+        tool = self.env.binaries[for_machine].lookup_entry(self.tool_name)
+        if tool is not None:
+            tools = [tool]
+        else:
+            if self.env.is_cross_build() and not self.native:
                 mlog.warning('No entry for {0} specified in your cross file. '
                              'Falling back to searching PATH. This may find a '
                              'native version of {0}!'.format(self.tool_name))
-                tools = self.tools
-        elif self.tool_name in self.env.config_info.binaries:
-            tools = [self.env.config_info.binaries[self.tool_name]]
-        else:
-            tools = self.tools
+            tools = [[t] for t in self.tools]
 
         best_match = (None, None)
         for tool in tools:
             try:
-                p, out = Popen_safe([tool, '--version'])[:2]
+                p, out = Popen_safe(tool + ['--version'])[:2]
             except (FileNotFoundError, PermissionError):
                 continue
             if p.returncode != 0:
@@ -447,12 +445,12 @@ class ConfigToolDependency(ExternalDependency):
                 mlog.log('Found', mlog.bold(self.tool_name), repr(req_version),
                          mlog.red('NO'))
             return False
-        mlog.log('Found {}:'.format(self.tool_name), mlog.bold(shutil.which(self.config)),
+        mlog.log('Found {}:'.format(self.tool_name), mlog.bold(shutil.which(self.config[0])),
                  '({})'.format(version))
         return True
 
     def get_config_value(self, args, stage):
-        p, out, err = Popen_safe([self.config] + args)
+        p, out, err = Popen_safe(self.config + args)
         # This is required to keep shlex from stripping path separators on
         # Windows. Also, don't put escape sequences in config values, okay?
         out = out.replace('\\', '\\\\')
@@ -469,7 +467,7 @@ class ConfigToolDependency(ExternalDependency):
         return [DependencyMethods.AUTO, DependencyMethods.CONFIG_TOOL]
 
     def get_configtool_variable(self, variable_name):
-        p, out, _ = Popen_safe([self.config, '--{}'.format(variable_name)])
+        p, out, _ = Popen_safe(self.config + ['--{}'.format(variable_name)])
         if p.returncode != 0:
             if self.required:
                 raise DependencyException(
@@ -486,7 +484,7 @@ class ConfigToolDependency(ExternalDependency):
 class PkgConfigDependency(ExternalDependency):
     # The class's copy of the pkg-config path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_pkgbin = None
+    class_pkgbin = PerMachine(None, None, None)
     # We cache all pkg-config subprocess invocations to avoid redundant calls
     pkgbin_cache = {}
 
@@ -498,31 +496,56 @@ class PkgConfigDependency(ExternalDependency):
         # stored in the pickled coredata and recovered.
         self.pkgbin = None
 
-        # When finding dependencies for cross-compiling, we don't care about
-        # the 'native' pkg-config
-        if self.want_cross:
-            if 'pkgconfig' not in environment.cross_info.config['binaries']:
-                if self.required:
-                    raise DependencyException('Pkg-config binary missing from cross file')
-            else:
-                potential_pkgbin = ExternalProgram.from_bin_list(
-                    environment.cross_info.config['binaries'], 'pkgconfig')
-                if potential_pkgbin.found():
-                    self.pkgbin = potential_pkgbin
-                else:
-                    mlog.debug('Cross pkg-config %s not found.' % potential_pkgbin.name)
-        # Only search for the native pkg-config the first time and
-        # store the result in the class definition
-        elif PkgConfigDependency.class_pkgbin is None:
-            self.pkgbin = self.check_pkgconfig()
-            PkgConfigDependency.class_pkgbin = self.pkgbin
+        if not self.want_cross and environment.is_cross_build():
+            for_machine = MachineChoice.BUILD
         else:
-            self.pkgbin = PkgConfigDependency.class_pkgbin
+            for_machine = MachineChoice.HOST
 
-        if not self.pkgbin:
+        # Create a nested function for sake of early return
+        def search():
+            # Only search for the pkg-config for each machine the first time and
+            # store the result in the class definition
+            if PkgConfigDependency.class_pkgbin[for_machine] is None:
+                mlog.debug('Pkg-config binary for %s is not cached.' % for_machine)
+            else:
+                mlog.debug('Pkg-config binary for %s is cached.' % for_machine)
+                choice = PkgConfigDependency.class_pkgbin[for_machine]
+                assert choice is not None
+                return choice
+            # Lookup in cross or machine file.
+            bt = environment.binaries[for_machine]
+            potential_pkgpath = bt.lookup_entry('pkgconfig')
+            if potential_pkgpath is None:
+                mlog.debug('Pkg-config binary missing from cross or native file, or PKG_CONFIG undefined.')
+            else:
+                mlog.debug('Pkg-config binary for %s specified from config file as %s.', for_machine, potential_pkgpath)
+                potential_pkgbin = ExternalProgram.from_entry('pkgconfig', potential_pkgpath)
+                if not potential_pkgbin.found():
+                    mlog.debug(
+                        'Pkg-config %s for machine %s specified at %s but not found.',
+                        potential_pkgbin.name, for_machine, potential_pkgbin.command)
+                else:
+                    return potential_pkgbin
+            # Fallback on hard-coded defaults.
+            if environment.machines.matches_build_machine(for_machine):
+                for potential_pkgpath in environment.default_pkgconfig:
+                    potential_pkgbin = self.check_pkgconfig(potential_pkgpath)
+                    if potential_pkgbin is None:
+                        mlog.debug(
+                            'default Pkg-config fallback %s for machine %s specified at %s but not found.',
+                            potential_pkgbin.name, for_machine, potential_pkgbin.command)
+                    else:
+                        return potential_pkgbin
+
+        self.pkgbin = search()
+        if self.pkgbin is None:
+            msg = 'Pkg-config binary for machine %s not found.' % for_machine
             if self.required:
-                raise DependencyException('Pkg-config not found.')
-            return
+                raise DependencyException(msg)
+            else:
+                mlog.debug(msg)
+        else:
+            PkgConfigDependency.class_pkgbin[for_machine] = self.pkgbin
 
         mlog.debug('Determining dependency {!r} with pkg-config executable '
                    '{!r}'.format(name, self.pkgbin.get_path()))
@@ -785,12 +808,7 @@ class PkgConfigDependency(ExternalDependency):
     def get_methods():
         return [DependencyMethods.PKGCONFIG]
 
-    def check_pkgconfig(self):
-        evar = 'PKG_CONFIG'
-        if evar in os.environ:
-            pkgbin = os.environ[evar].strip()
-        else:
-            pkgbin = 'pkg-config'
+    def check_pkgconfig(self, pkgbin):
         pkgbin = ExternalProgram(pkgbin, silent=True)
         if pkgbin.found():
             try:
@@ -1688,14 +1706,15 @@ class ExternalProgram:
         '''Human friendly description of the command'''
         return ' '.join(self.command)
 
-    @staticmethod
-    def from_bin_list(bins, name):
-        if name not in bins:
+    @classmethod
+    def from_bin_list(cls, bt: BinaryTable, name):
+        command = bt.lookup_entry(name)
+        if command is None:
             return NonExistingExternalProgram()
-        command = bins[name]
-        if not isinstance(command, (list, str)):
-            raise MesonException('Invalid type {!r} for binary {!r} in cross file'
-                                 ''.format(command, name))
+        return cls.from_entry(name, command)
+
+    @staticmethod
+    def from_entry(name, command):
         if isinstance(command, list):
             if len(command) == 1:
                 command = command[0]
@@ -1703,6 +1722,7 @@ class ExternalProgram:
         # need to search if the path is an absolute path.
         if isinstance(command, list) or os.path.isabs(command):
             return ExternalProgram(name, command=command, silent=True)
+        assert isinstance(command, str)
         # Search for the command using the specified string!
         return ExternalProgram(command, silent=True)
 

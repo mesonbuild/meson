@@ -1045,13 +1045,10 @@ class Compiler:
     def get_cross_extra_flags(self, environment, link):
         extra_flags = []
         if self.is_cross and environment:
-            if 'properties' in environment.cross_info.config:
-                props = environment.cross_info.config['properties']
-                lang_args_key = self.language + '_args'
-                extra_flags += mesonlib.stringlistify(props.get(lang_args_key, []))
-                lang_link_args_key = self.language + '_link_args'
-                if link:
-                    extra_flags += mesonlib.stringlistify(props.get(lang_link_args_key, []))
+            props = environment.properties.host
+            extra_flags += props.get_external_args(self.language)
+            if link:
+                extra_flags += props.get_external_link_args(self.language)
         return extra_flags
 
     def _get_compile_output(self, dirname, mode):

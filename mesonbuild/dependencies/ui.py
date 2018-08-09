@@ -333,22 +333,18 @@ class QtBaseDependency(ExternalDependency):
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
 
-    def _find_qmake(self, qmake):
-        # Even when cross-compiling, if a cross-info qmake is not specified, we
-        # fallback to using the qmake in PATH because that's what we used to do
-        if self.env.is_cross_build():
-            if 'qmake' in self.env.cross_info.config['binaries']:
-                return ExternalProgram.from_bin_list(self.env.cross_info.config['binaries'], 'qmake')
-        elif self.env.config_info:
-            # Prefer suffixed to unsuffixed version
-            p = ExternalProgram.from_bin_list(self.env.config_info.binaries, 'qmake')
-            if p.found():
-                return p
-        return ExternalProgram(qmake, silent=True)
-
     def _qmake_detect(self, mods, kwargs):
         for qmake in ('qmake-' + self.name, 'qmake'):
-            self.qmake = self._find_qmake(qmake)
+            self.qmake = ExternalProgram.from_bin_list(
+                self.env.binaries.host, qmake)
+            if not self.qmake.found():
+                # Even when cross-compiling, if a cross-info qmake is not
+                # specified, we fallback to using the qmake in PATH because
+                # that's what we used to do
+                self.qmake = ExternalProgram.from_bin_list(
+                    self.env.binaries.build, qmake)
+            if not self.qmake.found():
+                self.qmake = ExternalProgram(qmake, silent=True)
             if not self.qmake.found():
                 continue
             # Check that the qmake is for qt5

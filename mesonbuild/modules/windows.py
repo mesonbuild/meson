@@ -41,29 +41,13 @@ class WindowsModule(ExtensionModule):
     def _find_resource_compiler(self, state):
         # FIXME: Does not handle `native: true` executables, see
         # See https://github.com/mesonbuild/meson/issues/1531
+        # But given a machine, we can un-hardcode `binaries.host` below.
 
         if hasattr(self, '_rescomp'):
             return self._rescomp
 
-        rescomp = None
-        if state.environment.is_cross_build():
-            # If cross compiling see if windres has been specified in the
-            # cross file before trying to find it another way.
-            bins = state.environment.cross_info.config['binaries']
-            rescomp = ExternalProgram.from_bin_list(bins, 'windres')
-
-        if not rescomp or not rescomp.found():
-            if 'WINDRES' in os.environ:
-                # Pick-up env var WINDRES if set. This is often used for
-                # specifying an arch-specific windres.
-                rescomp = ExternalProgram('windres', command=os.environ.get('WINDRES'), silent=True)
-
-        if not rescomp or not rescomp.found():
-            # Take windres from the config file after the environment, which is
-            # in keeping with the expectations on unix-like OSes that
-            # environment variables trump config files.
-            bins = state.environment.config_info.binaries
-            rescomp = ExternalProgram.from_bin_list(bins, 'windres')
+        # Will try cross / native file and then env var
+        rescomp = ExternalProgram.from_bin_list(state.environment.binaries.host, 'windres')
 
         if not rescomp or not rescomp.found():
             comp = self.detect_compiler(state.compilers)

@@ -536,7 +536,7 @@ int dummy;
         # a serialized executable wrapper for that and check if the
         # CustomTarget command needs extra paths first.
         is_cross = self.environment.is_cross_build() and \
-            self.environment.cross_info.need_exe_wrapper()
+            self.environment.need_exe_wrapper()
         if mesonlib.for_windows(is_cross, self.environment) or \
            mesonlib.for_cygwin(is_cross, self.environment):
             extra_bdeps = target.get_transitive_build_target_deps()
@@ -1337,7 +1337,7 @@ int dummy;
             if not is_cross:
                 self.generate_java_link(outfile)
         if is_cross:
-            if self.environment.cross_info.is_cross_build():
+            if self.environment.is_cross_build():
                 static_linker = self.build.static_cross_linker
             else:
                 static_linker = self.build.static_linker
@@ -1381,6 +1381,8 @@ int dummy;
         ctypes = [(self.build.compilers, False)]
         if self.environment.is_cross_build():
             ctypes.append((self.build.cross_compilers, True))
+        else:
+            ctypes.append((self.build.cross_compilers, True))
         for (complist, is_cross) in ctypes:
             for langname, compiler in complist.items():
                 if langname == 'java' \
@@ -1389,13 +1391,9 @@ int dummy;
                         or langname == 'cs':
                     continue
                 crstr = ''
-                cross_args = []
+                cross_args = self.environment.properties.host.get_external_link_args(langname)
                 if is_cross:
                     crstr = '_CROSS'
-                    try:
-                        cross_args = self.environment.cross_info.config['properties'][langname + '_link_args']
-                    except KeyError:
-                        pass
                 rule = 'rule %s%s_LINKER\n' % (langname, crstr)
                 if compiler.can_linker_accept_rsp():
                     command_template = ''' command = {executable} @$out.rsp
@@ -1823,7 +1821,7 @@ rule FORTRAN_DEP_HACK%s
     def get_cross_stdlib_args(self, target, compiler):
         if not target.is_cross:
             return []
-        if not self.environment.cross_info.has_stdlib(compiler.language):
+        if not self.environment.properties.host.has_stdlib(compiler.language):
             return []
         return compiler.get_no_stdinc_args()
 
@@ -2224,13 +2222,13 @@ rule FORTRAN_DEP_HACK%s
         symname = os.path.join(targetdir, target_name + '.symbols')
         elem = NinjaBuildElement(self.all_outputs, symname, 'SHSYM', target_file)
         if self.environment.is_cross_build():
-            elem.add_item('CROSS', '--cross-host=' + self.environment.cross_info.config['host_machine']['system'])
+            elem.add_item('CROSS', '--cross-host=' + self.environment.machines.host.system)
         elem.write(outfile)
 
     def get_cross_stdlib_link_args(self, target, linker):
         if isinstance(target, build.StaticLibrary) or not target.is_cross:
             return []
-        if not self.environment.cross_info.has_stdlib(linker.language):
+        if not self.environment.properties.host.has_stdlib(linker.language):
             return []
         return linker.get_no_stdlib_link_args()
 

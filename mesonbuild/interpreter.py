@@ -21,7 +21,7 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
-from .mesonlib import FileMode, Popen_safe, listify, extract_as_list, has_path_sep
+from .mesonlib import FileMode, MachineChoice, Popen_safe, listify, extract_as_list, has_path_sep
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .interpreterbase import InterpreterBase
@@ -1760,7 +1760,7 @@ class MesonMain(InterpreterObject):
     @permittedKwargs({})
     def has_exe_wrapper_method(self, args, kwargs):
         if self.is_cross_build_method(None, None) and \
-           self.build.environment.cross_info.need_exe_wrapper():
+           self.build.environment.need_exe_wrapper():
             if self.build.environment.exe_wrapper is None:
                 return False
         # We return True when exe_wrap is defined, when it's not needed, and
@@ -1866,7 +1866,7 @@ class MesonMain(InterpreterObject):
         if not isinstance(propname, str):
             raise InterpreterException('Property name must be string.')
         try:
-            props = self.interpreter.environment.cross_info.get_properties()
+            props = self.interpreter.environment.properties.host
             return props[propname]
         except Exception:
             if len(args) == 2:
@@ -2164,10 +2164,10 @@ class Interpreter(InterpreterBase):
 
     def check_cross_stdlibs(self):
         if self.build.environment.is_cross_build():
-            cross_info = self.build.environment.cross_info
+            props = self.build.environment.properties.host
             for l, c in self.build.cross_compilers.items():
                 try:
-                    di = mesonlib.stringlistify(cross_info.get_stdlib(l))
+                    di = mesonlib.stringlistify(props.get_stdlib(l))
                     if len(di) != 2:
                         raise InterpreterException('Stdlib definition for %s should have exactly two elements.'
                                                    % l)
@@ -2735,7 +2735,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             self.coredata. base_options[optname] = oobj
         self.emit_base_options_warnings(enabled_opts)
 
-    def _program_from_file(self, prognames, bins, silent):
+    def program_from_file_for(self, for_machine, prognames, silent):
+        bins = self.environment.binaries[for_machine]
         for p in prognames:
             if hasattr(p, 'held_object'):
                 p = p.held_object
@@ -2747,14 +2748,6 @@ external dependencies (including libraries) must go to "dependencies".''')
             if prog.found():
                 return ExternalProgramHolder(prog)
         return None
-
-    def program_from_cross_file(self, prognames, silent=False):
-        bins = self.environment.cross_info.config['binaries']
-        return self._program_from_file(prognames, bins, silent)
-
-    def program_from_config_file(self, prognames, silent=False):
-        bins = self.environment.config_info.binaries
-        return self._program_from_file(prognames, bins, silent)
 
     def program_from_system(self, args, silent=False):
         # Search for scripts relative to current subdir.
@@ -2813,11 +2806,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         progobj = self.program_from_overrides(args, silent=silent)
         if progobj is None:
-            if self.build.environment.is_cross_build() and not native:
-                progobj = self.program_from_cross_file(args, silent=silent)
-            else:
-                progobj = self.program_from_config_file(args, silent=silent)
-
+            for_machine = MachineChoice.BUILD if native else MachineChoice.HOST
+            progobj = self.program_from_file_for(for_machine, args, silent=silent)
         if progobj is None:
             progobj = self.program_from_system(args, silent=silent)
         if required and (progobj is None or not progobj.found()):
@@ -4121,8 +4111,9 @@ This will become a hard error in the future.''')
 
     def add_cross_stdlib_info(self, target):
         for l in self.get_used_languages(target):
-            if self.environment.cross_info.has_stdlib(l) \
-                    and self.subproject != self.environment.cross_info.get_stdlib(l)[0]:
+            props = self.environment.properties.host
+            if props.has_stdlib(l) \
+                    and self.subproject != props.get_stdlib(l)[0]:
                 target.add_deps(self.build.cross_stdlibs[l])
 
     def check_sources_exist(self, subdir, sources):
