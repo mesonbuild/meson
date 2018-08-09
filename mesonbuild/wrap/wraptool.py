@@ -168,23 +168,26 @@ def do_promotion(from_path, spdir_name):
 
 def promote(options):
     argument = options.project_path
-    path_segment, subproject_name = os.path.split(argument)
     spdir_name = 'subprojects'
     sprojs = mesonlib.detect_subprojects(spdir_name)
-    if subproject_name not in sprojs:
-        sys.exit('Subproject %s not found in directory tree.' % subproject_name)
-    matches = sprojs[subproject_name]
-    if len(matches) == 1:
-        do_promotion(matches[0], spdir_name)
-        return
-    if path_segment == '':
-        print('There are many versions of %s in tree. Please specify which one to promote:\n' % subproject_name)
+
+    # check if the argument is a full path to a subproject directory or wrap file
+    system_native_path_argument = argument.replace('/', os.sep)
+    for _, matches in sprojs.items():
+        if system_native_path_argument in matches:
+            do_promotion(system_native_path_argument, spdir_name)
+            return
+
+    # otherwise the argument is just a subproject basename which must be unambiguous
+    if argument not in sprojs:
+        sys.exit('Subproject %s not found in directory tree.' % argument)
+    matches = sprojs[argument]
+    if len(matches) > 1:
+        print('There is more than one version of %s in tree. Please specify which one to promote:\n' % argument)
         for s in matches:
             print(s)
         sys.exit(1)
-    system_native_path_argument = argument.replace('/', os.sep)
-    if system_native_path_argument in matches:
-        do_promotion(argument, spdir_name)
+    do_promotion(matches[0], spdir_name)
 
 def status(options):
     print('Subproject status')
