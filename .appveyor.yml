@@ -17,14 +17,6 @@ environment:
       backend: ninja
 
     - arch: x86
-      compiler: msvc2010
-      backend: ninja
-
-    - arch: x86
-      compiler: msvc2010
-      backend: vs2010
-
-    - arch: x86
       compiler: msvc2015
       backend: ninja
       BOOST_ROOT: C:\Libraries\Boost_1_60_0
@@ -57,7 +49,7 @@ branches:
 
 init:
   - ps: |
-        If($Env:compiler -like 'msvc2010') {
+        If($Env:compiler -like 'msvc2015') {
           Set-WinSystemLocale de-DE
           Start-Sleep -s 5
           Restart-Computer
@@ -98,7 +90,6 @@ install:
   - cmd: if %compiler%==msvc2017 ( if %arch%==x86 ( set "PATH=%PATH%;%BOOST_ROOT%\lib32-msvc-14.1" ) else ( set "PATH=%PATH%;%BOOST_ROOT%\lib64-msvc-14.1" ) )
 
   # Set paths and config for each build type.
-  - cmd: if %compiler%==msvc2010 ( call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" %arch% )
   - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
   - cmd: if %compiler%==msvc2017 ( call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat" -arch=%arch% )
   - cmd: if %compiler%==cygwin ( set PYTHON=python3 ) else ( set PYTHON=python )
