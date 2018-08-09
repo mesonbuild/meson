@@ -71,7 +71,7 @@ buildtarget_kwargs = set([
     'objects',
     'override_options',
     'sources',
-    'symbol_visibility',
+    'gnu_symbol_visibility',
 ])
 
 known_build_target_kwargs = (
@@ -818,13 +818,13 @@ This will become a hard error in a future Meson release.''')
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
         if not isinstance(self.implicit_include_directories, bool):
             raise InvalidArguments('Implicit_include_directories must be a boolean.')
-        self.symbol_visibility = kwargs.get('symbol_visibility', '')
-        if not isinstance(self.symbol_visibility, str):
-            raise InvalidArguments('Symbol visibility must be a string.')
-        if self.symbol_visibility != '':
+        self.gnu_symbol_visibility = kwargs.get('gnu_symbol_visibility', '')
+        if not isinstance(self.gnu_symbol_visibility, str):
+            raise InvalidArguments('GNU symbol visibility must be a string.')
+        if self.gnu_symbol_visibility != '':
             permitted = ['default', 'internal', 'hidden', 'protected', 'inlineshidden']
-            if self.symbol_visibility not in permitted:
-                raise InvalidArguments('Symbol visibility arg %s not one of: %s',
+            if self.gnu_symbol_visibility not in permitted:
+                raise InvalidArguments('GNU symbol visibility arg %s not one of: %s',
                                        self.symbol_visibility, ', '.join(permitted))
 
     def get_filename(self):

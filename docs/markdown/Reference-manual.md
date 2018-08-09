@@ -511,13 +511,13 @@ be passed to [shared and static libraries](#library).
 - `override_options` takes an array of strings in the same format as
   `project`'s `default_options` overriding the values of these options
   for this target only, since 0.40.0
-- `symbol_visibility` specifies how symbols should be exported, see
+- `gnu_symbol_visibility` specifies how symbols should be exported, see
   e.g [the GCC Wiki](https://gcc.gnu.org/wiki/Visibility) for more
   information. This value can either be an empty string or one of
   `default`, `internal`, `hidden`, `protected` or `inlineshidden`, which
   is the same as `hidden` but also includes things like C++ implicit
-  constructors as specified in the GCC manual. Available since
-  0.48.0.
+  constructors as specified in the GCC manual. Ignored on compilers that
+  do not support GNU visibility arguments. Available since 0.48.0.
 - `d_import_dirs` list of directories to look in for string imports used
   in the D programming language
 - `d_unittest`, when set to true, the D modules are compiled in debug mode

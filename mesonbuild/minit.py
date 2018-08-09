@@ -75,7 +75,7 @@ lib_args = ['-DBUILDING_{utoken}']
 shlib = shared_library('{lib_name}', '{source_file}',
   install : true,
   c_args : lib_args,
-  symbol_visibility : 'hidden',
+  gnu_symbol_visibility : 'hidden',
 )
 
 test_exe = executable('{test_exe_name}', '{test_source_file}',
@@ -223,7 +223,7 @@ lib_args = ['-DBUILDING_{utoken}']
 shlib = shared_library('{lib_name}', '{source_file}',
   install : true,
   cpp_args : lib_args,
-  symbol_visibility : 'hidden',
+  gnu_symbol_visibility : 'hidden',
 )
 
 test_exe = executable('{test_exe_name}', '{test_source_file}',
