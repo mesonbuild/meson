@@ -56,6 +56,13 @@ class install_scripts(orig):
             self.copy_file(in_built, outfile)
             self.outfiles.append(outfile)
 
+entries = {}
+if sys.platform == 'win32':
+    # This will create Scripts/meson.exe and Scripts/meson-script.py
+    # Can't use this on all platforms because distutils doesn't support
+    # entry_points in setup()
+    entries = {'console_scripts': ['meson=mesonbuild.mesonmain:main']}
+
 setup(name='meson',
       version=version,
       description='A high performance build system',
@@ -73,6 +80,7 @@ setup(name='meson',
                 'mesonbuild.wrap'],
       scripts=['meson.py'],
       cmdclass={'install_scripts': install_scripts},
+      entry_points=entries,
       data_files=[('share/man/man1', ['man/meson.1']),
                   ('share/polkit-1/actions', ['data/com.mesonbuild.install.policy'])],
       classifiers=['Development Status :: 5 - Production/Stable',

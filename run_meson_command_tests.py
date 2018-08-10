@@ -135,25 +135,15 @@ class CommandTests(unittest.TestCase):
         self.assertTrue(bindir.is_dir())
         # Run `meson`
         os.chdir('/')
-        if is_windows():
-            resolved_meson_command = python_command + [str(bindir / 'meson.py')]
-        else:
-            resolved_meson_command = python_command + [str(bindir / 'meson')]
-            # The python configuration on appveyor does not register .py as
-            # a valid extension, so we cannot run `meson` on Windows.
-            builddir = str(self.tmpdir / 'build1')
-            meson_setup = ['meson', 'setup']
-            meson_command = meson_setup + self.meson_args
-            stdo = self._run(meson_command + [self.testdir, builddir])
-            self.assertMesonCommandIs(stdo.split('\n')[0], resolved_meson_command)
+        resolved_meson_command = [str(bindir / 'meson')]
+        builddir = str(self.tmpdir / 'build1')
+        meson_setup = ['meson', 'setup']
+        meson_command = meson_setup + self.meson_args
+        stdo = self._run(meson_command + [self.testdir, builddir])
+        self.assertMesonCommandIs(stdo.split('\n')[0], resolved_meson_command)
         # Run `/path/to/meson`
         builddir = str(self.tmpdir / 'build2')
-        if is_windows():
-            # Cannot run .py directly because of the appveyor configuration,
-            # and the script is named meson.py, not meson
-            meson_setup = python_command + [str(bindir / 'meson.py'), 'setup']
-        else:
-            meson_setup = [str(bindir / 'meson'), 'setup']
+        meson_setup = [str(bindir / 'meson'), 'setup']
         meson_command = meson_setup + self.meson_args
         stdo = self._run(meson_command + [self.testdir, builddir])
         self.assertMesonCommandIs(stdo.split('\n')[0], resolved_meson_command)
@@ -168,7 +158,7 @@ class CommandTests(unittest.TestCase):
             # Next part requires a shell
             return
         # `meson` is a wrapper to `meson.real`
-        resolved_meson_command = python_command + [str(bindir / 'meson.real')]
+        resolved_meson_command = [str(bindir / 'meson.real')]
         builddir = str(self.tmpdir / 'build4')
         (bindir / 'meson').rename(bindir / 'meson.real')
         wrapper = (bindir / 'meson')
