@@ -41,6 +41,8 @@ def create_parser():
                    help='Special wrap mode to use')
     p.add_argument('--profile-self', action='store_true', dest='profile',
                    help=argparse.SUPPRESS)
+    p.add_argument('--fatal-meson-warnings', action='store_true', dest='fatal_warnings',
+                   help='Make all Meson warnings fatal')
     p.add_argument('builddir', nargs='?', default=None)
     p.add_argument('sourcedir', nargs='?', default=None)
     return p
@@ -110,7 +112,7 @@ class MesonApp:
 
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
-        mlog.initialize(env.get_log_dir())
+        mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
         if self.options.profile:
             mlog.set_timestamp_start(time.monotonic())
         with mesonlib.BuildDirLock(self.build_dir):
