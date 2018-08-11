@@ -131,8 +131,22 @@ class CommandTests(unittest.TestCase):
         os.environ['PYTHONPATH'] = str(pylibdir)
         os.environ['PATH'] = str(bindir) + os.pathsep + os.environ['PATH']
         self._run(python_command + ['setup.py', 'install', '--prefix', str(prefix)])
-        self.assertTrue(pylibdir.is_dir())
+        # Check that all the files were installed correctly
         self.assertTrue(bindir.is_dir())
+        self.assertTrue(pylibdir.is_dir())
+        from setup import packages
+        # Extract list of expected python module files
+        expect = set()
+        for pkg in packages:
+            expect.update([p.as_posix() for p in Path(pkg.replace('.', '/')).glob('*.py')])
+        # Check what was installed, only count files that are inside 'mesonbuild'
+        have = set()
+        for p in Path(pylibdir).glob('**/*.py'):
+            s = p.as_posix()
+            if 'mesonbuild' not in s:
+                continue
+            have.add(s[s.rfind('mesonbuild'):])
+        self.assertEqual(have, expect)
         # Run `meson`
         os.chdir('/')
         resolved_meson_command = [str(bindir / 'meson')]

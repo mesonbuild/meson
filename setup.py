@@ -28,38 +28,44 @@ from setuptools import setup
 # On windows, will create Scripts/meson.exe and Scripts/meson-script.py
 # Other platforms will create bin/meson
 entries = {'console_scripts': ['meson=mesonbuild.mesonmain:main']}
+packages = ['mesonbuild',
+            'mesonbuild.backend',
+            'mesonbuild.compilers',
+            'mesonbuild.dependencies',
+            'mesonbuild.modules',
+            'mesonbuild.scripts',
+            'mesonbuild.wrap']
+data_files = []
+if sys.platform != 'win32':
+    # Only useful on UNIX-like systems
+    data_files = [('share/man/man1', ['man/meson.1']),
+                  ('share/polkit-1/actions', ['data/com.mesonbuild.install.policy'])]
 
-setup(name='meson',
-      version=version,
-      description='A high performance build system',
-      author='Jussi Pakkanen',
-      author_email='jpakkane@gmail.com',
-      url='http://mesonbuild.com',
-      license=' Apache License, Version 2.0',
-      python_requires='>=3.5',
-      packages=['mesonbuild',
-                'mesonbuild.backend',
-                'mesonbuild.compilers',
-                'mesonbuild.dependencies',
-                'mesonbuild.modules',
-                'mesonbuild.scripts',
-                'mesonbuild.wrap'],
-      entry_points=entries,
-      data_files=[('share/man/man1', ['man/meson.1']),
-                  ('share/polkit-1/actions', ['data/com.mesonbuild.install.policy'])],
-      classifiers=['Development Status :: 5 - Production/Stable',
-                   'Environment :: Console',
-                   'Intended Audience :: Developers',
-                   'License :: OSI Approved :: Apache Software License',
-                   'Natural Language :: English',
-                   'Operating System :: MacOS :: MacOS X',
-                   'Operating System :: Microsoft :: Windows',
-                   'Operating System :: POSIX :: BSD',
-                   'Operating System :: POSIX :: Linux',
-                   'Programming Language :: Python :: 3 :: Only',
-                   'Topic :: Software Development :: Build Tools',
-                   ],
-      long_description='''Meson is a cross-platform build system designed to be both as
-fast and as user friendly as possible. It supports many languages and compilers, including
-GCC, Clang and Visual Studio. Its build definitions are written in a simple non-turing
-complete DSL.''')
+if __name__ == '__main__':
+    setup(name='meson',
+          version=version,
+          description='A high performance build system',
+          author='Jussi Pakkanen',
+          author_email='jpakkane@gmail.com',
+          url='http://mesonbuild.com',
+          license=' Apache License, Version 2.0',
+          python_requires='>=3.5',
+          packages=packages,
+          entry_points=entries,
+          data_files=data_files,
+          classifiers=['Development Status :: 5 - Production/Stable',
+                       'Environment :: Console',
+                       'Intended Audience :: Developers',
+                       'License :: OSI Approved :: Apache Software License',
+                       'Natural Language :: English',
+                       'Operating System :: MacOS :: MacOS X',
+                       'Operating System :: Microsoft :: Windows',
+                       'Operating System :: POSIX :: BSD',
+                       'Operating System :: POSIX :: Linux',
+                       'Programming Language :: Python :: 3 :: Only',
+                       'Topic :: Software Development :: Build Tools',
+                       ],
+          long_description='''Meson is a cross-platform build system designed to be both as
+    fast and as user friendly as possible. It supports many languages and compilers, including
+    GCC, Clang and Visual Studio. Its build definitions are written in a simple non-turing
+    complete DSL.''')
