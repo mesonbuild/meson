@@ -191,12 +191,16 @@ class Installer:
     def should_preserve_existing_file(self, from_file, to_file):
         if not self.options.only_changed:
             return False
+        # Always replace danging symlinks
+        if os.path.islink(from_file) and not os.path.isfile(from_file):
+            return False
         from_time = os.stat(from_file).st_mtime
         to_time = os.stat(to_file).st_mtime
         return from_time <= to_time
 
     def do_copyfile(self, from_file, to_file):
-        if not os.path.isfile(from_file):
+        outdir = os.path.split(to_file)[0]
+        if not os.path.isfile(from_file) and not os.path.islink(from_file):
             raise RuntimeError('Tried to install something that isn\'t a file:'
                                '{!r}'.format(from_file))
         # copyfile fails if the target file already exists, so remove it to
@@ -210,11 +214,13 @@ class Installer:
                 append_to_log(self.lf, '# Preserving old file %s\n' % to_file)
                 print('Preserving existing file %s.' % to_file)
                 return False
-            os.unlink(to_file)
-        outdir = os.path.split(to_file)[0]
+            os.remove(to_file)
         print('Installing %s to %s' % (from_file, outdir))
-        shutil.copyfile(from_file, to_file)
-        shutil.copystat(from_file, to_file)
+        if os.path.islink(from_file):
+            shutil.copy(from_file, outdir, follow_symlinks=False)
+        else:
+            shutil.copyfile(from_file, to_file)
+            shutil.copystat(from_file, to_file)
         selinux_updates.append(to_file)
         append_to_log(self.lf, to_file)
         return True
@@ -277,7 +283,7 @@ class Installer:
                 if os.path.isdir(abs_dst):
                     print('Tried to copy file %s but a directory of that name already exists.' % abs_dst)
                 if os.path.exists(abs_dst):
-                    os.unlink(abs_dst)
+                    os.remove(abs_dst)
                 parent_dir = os.path.dirname(abs_dst)
                 if not os.path.isdir(parent_dir):
                     os.mkdir(parent_dir)
@@ -431,7 +437,7 @@ class Installer:
                 try:
                     symlinkfilename = os.path.join(outdir, alias)
                     try:
-                        os.unlink(symlinkfilename)
+                        os.remove(symlinkfilename)
                     except FileNotFoundError:
                         pass
                     os.symlink(to, symlinkfilename)

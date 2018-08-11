@@ -3703,6 +3703,32 @@ endian = 'little'
             # Ensure that the otool output does not contain self.installdir
             self.assertNotRegex(out, self.installdir + '.*dylib ')
 
+    def test_install_subdir_symlinks(self):
+        '''
+        Test that installation of broken symlinks works fine.
+        https://github.com/mesonbuild/meson/issues/3914
+        '''
+        testdir = os.path.join(self.common_test_dir, '66 install subdir')
+        subdir = os.path.join(testdir, 'sub/sub1')
+        curdir = os.getcwd()
+        os.chdir(subdir)
+        # Can't distribute broken symlinks in the source tree because it breaks
+        # the creation of zipapps. Create it dynamically and run the test by
+        # hand.
+        src = '../../nonexistent.txt'
+        os.symlink(src, 'test.txt')
+        try:
+            self.init(testdir)
+            self.build()
+            self.install()
+            link = os.path.join(self.installdir, 'usr', 'share', 'sub1', 'test.txt')
+            self.assertTrue(os.path.islink(link), msg=link)
+            self.assertEqual(src, os.readlink(link))
+            self.assertFalse(os.path.isfile(link), msg=link)
+        finally:
+            os.remove(os.path.join(subdir, 'test.txt'))
+            os.chdir(curdir)
+
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
