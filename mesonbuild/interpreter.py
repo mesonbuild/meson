@@ -3087,7 +3087,7 @@ root and issuing %s.
              regex_selector] + vcs_cmd
         kwargs.setdefault('build_by_default', True)
         kwargs.setdefault('build_always_stale', True)
-        return self.func_custom_target(node, [kwargs['output']], kwargs)
+        return self._func_custom_target_impl(node, [kwargs['output']], kwargs)
 
     @FeatureNew('subdir_done', '0.46.0')
     @stringArgs
@@ -3107,6 +3107,10 @@ root and issuing %s.
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
         if 'depfile' in kwargs and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
             FeatureNew('substitutions in custom_target depfile', '0.47.0').use(self.subproject)
+        return self._func_custom_target_impl(node, args, kwargs)
+
+    def _func_custom_target_impl(self, node, args, kwargs):
+        'Implementation-only, without FeatureNew checks, for internal use'
         name = args[0]
         kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs), self)
