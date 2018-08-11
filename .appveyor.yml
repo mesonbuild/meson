@@ -99,7 +99,7 @@ install:
   - cmd: if %compiler%==msys2-mingw ( set "PATH=C:\msys64\mingw%PACMAN_BITS%\bin;%PATH%" )
   - cmd: if %compiler%==msys2-mingw ( set "MESON_PYTHON_PATH=C:\msys64\mingw%PACMAN_BITS%\bin" )
   - cmd: if %compiler%==msys2-mingw ( set "PYTHON=python3" )
-  - cmd: if %compiler%==msys2-mingw ( C:\msys64\usr\bin\pacman -S --needed --noconfirm "mingw%PACMAN_BITS%/mingw-w64-%PACMAN_ARCH%-python3" )
+  - cmd: if %compiler%==msys2-mingw ( C:\msys64\usr\bin\pacman -S --needed --noconfirm "mingw%PACMAN_BITS%/mingw-w64-%PACMAN_ARCH%-python3" "mingw%PACMAN_BITS%/mingw-w64-%PACMAN_ARCH%-python3-setuptools" )
   # Cygwin
   - cmd: if not %compiler%==cygwin ( set "PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%;" )
   - cmd: if %compiler%==cygwin ( set WRAPPER=ci\run-in-cygwin.bat )

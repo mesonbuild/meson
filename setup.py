@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import sys
 
 from mesonbuild.coredata import version
@@ -24,70 +23,49 @@ if sys.version_info < (3, 5, 0):
           'Meson requires Python 3.5.0 or greater')
     sys.exit(1)
 
-# We need to support Python installations that have nothing but the basic
-# Python installation. Use setuptools when possible and fall back to
-# plain distutils when setuptools is not available.
-try:
-    from setuptools import setup
-    from setuptools.command.install_scripts import install_scripts as orig
-except ImportError:
-    from distutils.core import setup
-    from distutils.command.install_scripts import install_scripts as orig
+from setuptools import setup
 
-class install_scripts(orig):
-    def run(self):
-        if sys.platform == 'win32':
-            super().run()
-            return
+# On windows, will create Scripts/meson.exe and Scripts/meson-script.py
+# Other platforms will create bin/meson
+entries = {'console_scripts': ['meson=mesonbuild.mesonmain:main']}
+packages = ['mesonbuild',
+            'mesonbuild.backend',
+            'mesonbuild.compilers',
+            'mesonbuild.dependencies',
+            'mesonbuild.modules',
+            'mesonbuild.scripts',
+            'mesonbuild.wrap']
+data_files = []
+if sys.platform != 'win32':
+    # Only useful on UNIX-like systems
+    data_files = [('share/man/man1', ['man/meson.1']),
+                  ('share/polkit-1/actions', ['data/com.mesonbuild.install.policy'])]
 
-        if not self.skip_build:
-            self.run_command('build_scripts')
-        self.outfiles = []
-        if not self.dry_run:
-            self.mkpath(self.install_dir)
-
-        # We want the files to be installed without a suffix on Unix
-        for infile in self.get_inputs():
-            infile = os.path.basename(infile)
-            in_built = os.path.join(self.build_dir, infile)
-            in_stripped = infile[:-3] if infile.endswith('.py') else infile
-            outfile = os.path.join(self.install_dir, in_stripped)
-            # NOTE: Mode is preserved by default
-            self.copy_file(in_built, outfile)
-            self.outfiles.append(outfile)
-
-setup(name='meson',
-      version=version,
-      description='A high performance build system',
-      author='Jussi Pakkanen',
-      author_email='jpakkane@gmail.com',
-      url='http://mesonbuild.com',
-      license=' Apache License, Version 2.0',
-      python_requires='>=3.5',
-      packages=['mesonbuild',
-                'mesonbuild.backend',
-                'mesonbuild.compilers',
-                'mesonbuild.dependencies',
-                'mesonbuild.modules',
-                'mesonbuild.scripts',
-                'mesonbuild.wrap'],
-      scripts=['meson.py'],
-      cmdclass={'install_scripts': install_scripts},
-      data_files=[('share/man/man1', ['man/meson.1']),
-                  ('share/polkit-1/actions', ['data/com.mesonbuild.install.policy'])],
-      classifiers=['Development Status :: 5 - Production/Stable',
-                   'Environment :: Console',
-                   'Intended Audience :: Developers',
-                   'License :: OSI Approved :: Apache Software License',
-                   'Natural Language :: English',
-                   'Operating System :: MacOS :: MacOS X',
-                   'Operating System :: Microsoft :: Windows',
-                   'Operating System :: POSIX :: BSD',
-                   'Operating System :: POSIX :: Linux',
-                   'Programming Language :: Python :: 3 :: Only',
-                   'Topic :: Software Development :: Build Tools',
-                   ],
-      long_description='''Meson is a cross-platform build system designed to be both as
-fast and as user friendly as possible. It supports many languages and compilers, including
-GCC, Clang and Visual Studio. Its build definitions are written in a simple non-turing
-complete DSL.''')
+if __name__ == '__main__':
+    setup(name='meson',
+          version=version,
+          description='A high performance build system',
+          author='Jussi Pakkanen',
+          author_email='jpakkane@gmail.com',
+          url='http://mesonbuild.com',
+          license=' Apache License, Version 2.0',
+          python_requires='>=3.5',
+          packages=packages,
+          entry_points=entries,
+          data_files=data_files,
+          classifiers=['Development Status :: 5 - Production/Stable',
+                       'Environment :: Console',
+                       'Intended Audience :: Developers',
+                       'License :: OSI Approved :: Apache Software License',
+                       'Natural Language :: English',
+                       'Operating System :: MacOS :: MacOS X',
+                       'Operating System :: Microsoft :: Windows',
+                       'Operating System :: POSIX :: BSD',
+                       'Operating System :: POSIX :: Linux',
+                       'Programming Language :: Python :: 3 :: Only',
+                       'Topic :: Software Development :: Build Tools',
+                       ],
+          long_description='''Meson is a cross-platform build system designed to be both as
+    fast and as user friendly as possible. It supports many languages and compilers, including
+    GCC, Clang and Visual Studio. Its build definitions are written in a simple non-turing
+    complete DSL.''')

@@ -232,15 +232,17 @@ def run_script_command(args):
     return cmdfunc(cmdargs)
 
 def set_meson_command(mainfile):
-    if mainfile.endswith('.exe'):
+    # On UNIX-like systems `meson` is a Python script
+    # On Windows `meson` and `meson.exe` are wrapper exes
+    if not mainfile.endswith('.py'):
         mesonlib.meson_command = [mainfile]
     elif os.path.isabs(mainfile) and mainfile.endswith('mesonmain.py'):
         # Can't actually run meson with an absolute path to mesonmain.py, it must be run as -m mesonbuild.mesonmain
         mesonlib.meson_command = mesonlib.python_command + ['-m', 'mesonbuild.mesonmain']
     else:
+        # Either run uninstalled, or full path to meson-script.py
         mesonlib.meson_command = mesonlib.python_command + [mainfile]
-    # This won't go into the log file because it's not initialized yet, and we
-    # need this value for unit tests.
+    # We print this value for unit tests.
     if 'MESON_COMMAND_TESTS' in os.environ:
         mlog.log('meson_command is {!r}'.format(mesonlib.meson_command))
 

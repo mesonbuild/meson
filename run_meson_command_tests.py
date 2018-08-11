@@ -131,29 +131,33 @@ class CommandTests(unittest.TestCase):
         os.environ['PYTHONPATH'] = str(pylibdir)
         os.environ['PATH'] = str(bindir) + os.pathsep + os.environ['PATH']
         self._run(python_command + ['setup.py', 'install', '--prefix', str(prefix)])
-        self.assertTrue(pylibdir.is_dir())
+        # Check that all the files were installed correctly
         self.assertTrue(bindir.is_dir())
+        self.assertTrue(pylibdir.is_dir())
+        from setup import packages
+        # Extract list of expected python module files
+        expect = set()
+        for pkg in packages:
+            expect.update([p.as_posix() for p in Path(pkg.replace('.', '/')).glob('*.py')])
+        # Check what was installed, only count files that are inside 'mesonbuild'
+        have = set()
+        for p in Path(pylibdir).glob('**/*.py'):
+            s = p.as_posix()
+            if 'mesonbuild' not in s:
+                continue
+            have.add(s[s.rfind('mesonbuild'):])
+        self.assertEqual(have, expect)
         # Run `meson`
         os.chdir('/')
-        if is_windows():
-            resolved_meson_command = python_command + [str(bindir / 'meson.py')]
-        else:
-            resolved_meson_command = python_command + [str(bindir / 'meson')]
-            # The python configuration on appveyor does not register .py as
-            # a valid extension, so we cannot run `meson` on Windows.
-            builddir = str(self.tmpdir / 'build1')
-            meson_setup = ['meson', 'setup']
-            meson_command = meson_setup + self.meson_args
-            stdo = self._run(meson_command + [self.testdir, builddir])
-            self.assertMesonCommandIs(stdo.split('\n')[0], resolved_meson_command)
+        resolved_meson_command = [str(bindir / 'meson')]
+        builddir = str(self.tmpdir / 'build1')
+        meson_setup = ['meson', 'setup']
+        meson_command = meson_setup + self.meson_args
+        stdo = self._run(meson_command + [self.testdir, builddir])
+        self.assertMesonCommandIs(stdo.split('\n')[0], resolved_meson_command)
         # Run `/path/to/meson`
         builddir = str(self.tmpdir / 'build2')
-        if is_windows():
-            # Cannot run .py directly because of the appveyor configuration,
-            # and the script is named meson.py, not meson
-            meson_setup = python_command + [str(bindir / 'meson.py'), 'setup']
-        else:
-            meson_setup = [str(bindir / 'meson'), 'setup']
+        meson_setup = [str(bindir / 'meson'), 'setup']
         meson_command = meson_setup + self.meson_args
         stdo = self._run(meson_command + [self.testdir, builddir])
         self.assertMesonCommandIs(stdo.split('\n')[0], resolved_meson_command)
@@ -168,7 +172,7 @@ class CommandTests(unittest.TestCase):
             # Next part requires a shell
             return
         # `meson` is a wrapper to `meson.real`
-        resolved_meson_command = python_command + [str(bindir / 'meson.real')]
+        resolved_meson_command = [str(bindir / 'meson.real')]
         builddir = str(self.tmpdir / 'build4')
         (bindir / 'meson').rename(bindir / 'meson.real')
         wrapper = (bindir / 'meson')
