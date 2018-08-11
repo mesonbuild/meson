@@ -2761,6 +2761,16 @@ class FailureTests(BasePlatformTests):
                                 ".*WARNING.*Project targetting.*but.*",
                                 meson_version='>= 0.41.0')
 
+    def test_vcs_tag_featurenew_build_always_stale(self):
+        'https://github.com/mesonbuild/meson/issues/3904'
+        vcs_tag = '''version_data = configuration_data()
+        version_data.set('PROJVER', '@VCS_TAG@')
+        vf = configure_file(output : 'version.h.in', configuration: version_data)
+        f = vcs_tag(input : vf, output : 'version.h')
+        '''
+        msg = '.*WARNING:.*feature.*build_always_stale.*custom_target.*'
+        self.assertMesonDoesNotOutput(vcs_tag, msg, meson_version='>=0.43')
+
 
 class WindowsTests(BasePlatformTests):
     '''
