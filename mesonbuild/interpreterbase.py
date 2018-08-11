@@ -172,6 +172,9 @@ class FeatureCheckBase:
 
     @staticmethod
     def get_target_version(subproject):
+        # Don't do any checks if project() has not been parsed yet
+        if subproject not in mesonlib.project_meson_versions:
+            return ''
         return mesonlib.project_meson_versions[subproject]
 
     def use(self, subproject):
