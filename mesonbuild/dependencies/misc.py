@@ -14,6 +14,7 @@
 
 # This file contains the detection logic for miscellaneous external dependencies.
 
+import functools
 import os
 import re
 import shlex
@@ -37,7 +38,6 @@ class MPIDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         language = kwargs.get('language', 'c')
         super().__init__('mpi', environment, language, kwargs)
-        required = kwargs.pop('required', True)
         kwargs['required'] = False
         kwargs['silent'] = True
         self.is_found = False
@@ -102,13 +102,6 @@ class MPIDependency(ExternalDependency):
             if result is not None:
                 self.is_found = True
                 self.version, self.compile_args, self.link_args = result
-
-        if self.is_found:
-            mlog.log('Dependency', mlog.bold(self.name), 'for', self.language, 'found:', mlog.green('YES'), self.version)
-        else:
-            mlog.log('Dependency', mlog.bold(self.name), 'for', self.language, 'found:', mlog.red('NO'))
-            if required:
-                raise DependencyException('MPI dependency {!r} not found'.format(self.name))
 
     def _filter_compile_args(self, args):
         """
@@ -267,10 +260,6 @@ class OpenMPDependency(ExternalDependency):
                 self.is_found = True
             else:
                 mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
-        if self.is_found:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'), self.version)
-        else:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
 
     def need_openmp(self):
         return True
@@ -326,10 +315,6 @@ class Python3Dependency(ExternalDependency):
                     self.compile_args = fw.get_compile_args()
                     self.link_args = fw.get_link_args()
                     self.is_found = True
-        if self.is_found:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
-        else:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
 
     @staticmethod
     def get_windows_python_arch():
@@ -436,33 +421,29 @@ class PcapDependency(ExternalDependency):
     @classmethod
     def _factory(cls, environment, kwargs):
         methods = cls._process_method_kw(kwargs)
-        if DependencyMethods.PKGCONFIG in methods:
-            try:
-                pcdep = PkgConfigDependency('pcap', environment, kwargs)
-                if pcdep.found():
-                    return pcdep
-            except Exception as e:
-                mlog.debug('Pcap not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.CONFIG_TOOL in methods:
-            try:
-                ctdep = ConfigToolDependency.factory(
-                    'pcap', environment, None, kwargs, ['pcap-config'], 'pcap-config')
-                if ctdep.found():
-                    ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-                    ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
-                    ctdep.version = cls.get_pcap_lib_version(ctdep)
-                    return ctdep
-            except Exception as e:
-                mlog.debug('Pcap not found via pcap-config. Trying next, error was:', str(e))
+        candidates = []
 
-        return PcapDependency(environment, kwargs)
+        if DependencyMethods.PKGCONFIG in methods:
+            candidates.append(functools.partial(PkgConfigDependency, 'pcap', environment, kwargs))
+
+        if DependencyMethods.CONFIG_TOOL in methods:
+            candidates.append(functools.partial(ConfigToolDependency.factory,
+                                                'pcap', environment, None,
+                                                kwargs, ['pcap-config'],
+                                                'pcap-config',
+                                                PcapDependency.tool_finish_init))
+
+        return candidates
+
+    @staticmethod
+    def tool_finish_init(ctdep):
+        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+        ctdep.version = PcapDependency.get_pcap_lib_version(ctdep)
 
     @staticmethod
     def get_methods():
-        if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
-        else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
     @staticmethod
     def get_pcap_lib_version(ctdep):
@@ -477,32 +458,29 @@ class CupsDependency(ExternalDependency):
     @classmethod
     def _factory(cls, environment, kwargs):
         methods = cls._process_method_kw(kwargs)
+        candidates = []
+
         if DependencyMethods.PKGCONFIG in methods:
-            try:
-                pcdep = PkgConfigDependency('cups', environment, kwargs)
-                if pcdep.found():
-                    return pcdep
-            except Exception as e:
-                mlog.debug('cups not found via pkgconfig. Trying next, error was:', str(e))
+            candidates.append(functools.partial(PkgConfigDependency, 'cups', environment, kwargs))
+
         if DependencyMethods.CONFIG_TOOL in methods:
-            try:
-                ctdep = ConfigToolDependency.factory(
-                    'cups', environment, None, kwargs, ['cups-config'], 'cups-config')
-                if ctdep.found():
-                    ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-                    ctdep.link_args = ctdep.get_config_value(['--ldflags', '--libs'], 'link_args')
-                    return ctdep
-            except Exception as e:
-                mlog.debug('cups not found via cups-config. Trying next, error was:', str(e))
+            candidates.append(functools.partial(ConfigToolDependency.factory,
+                                                'cups', environment, None,
+                                                kwargs, ['cups-config'],
+                                                'cups-config', CupsDependency.tool_finish_init))
+
         if DependencyMethods.EXTRAFRAMEWORK in methods:
             if mesonlib.is_osx():
-                fwdep = ExtraFrameworkDependency('cups', False, None, environment,
-                                                 kwargs.get('language', None), kwargs)
-                if fwdep.found():
-                    return fwdep
-        mlog.log('Dependency', mlog.bold('cups'), 'found:', mlog.red('NO'))
+                candidates.append(functools.partial(
+                    ExtraFrameworkDependency, 'cups', False, None, environment,
+                    kwargs.get('language', None), kwargs))
 
-        return CupsDependency(environment, kwargs)
+        return candidates
+
+    @staticmethod
+    def tool_finish_init(ctdep):
+        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+        ctdep.link_args = ctdep.get_config_value(['--ldflags', '--libs'], 'link_args')
 
     @staticmethod
     def get_methods():
@@ -519,30 +497,22 @@ class LibWmfDependency(ExternalDependency):
     @classmethod
     def _factory(cls, environment, kwargs):
         methods = cls._process_method_kw(kwargs)
-        if DependencyMethods.PKGCONFIG in methods:
-            try:
-                kwargs['required'] = False
-                pcdep = PkgConfigDependency('libwmf', environment, kwargs)
-                if pcdep.found():
-                    return pcdep
-            except Exception as e:
-                mlog.debug('LibWmf not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.CONFIG_TOOL in methods:
-            try:
-                ctdep = ConfigToolDependency.factory(
-                    'libwmf', environment, None, kwargs, ['libwmf-config'], 'libwmf-config')
-                if ctdep.found():
-                    ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-                    ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
-                    return ctdep
-            except Exception as e:
-                mlog.debug('cups not found via libwmf-config. Trying next, error was:', str(e))
+        candidates = []
 
-        return LibWmfDependency(environment, kwargs)
+        if DependencyMethods.PKGCONFIG in methods:
+            candidates.append(functools.partial(PkgConfigDependency, 'libwmf', environment, kwargs))
+
+        if DependencyMethods.CONFIG_TOOL in methods:
+            candidates.append(functools.partial(ConfigToolDependency.factory,
+                                                'libwmf', environment, None, kwargs, ['libwmf-config'], 'libwmf-config', LibWmfDependency.tool_finish_init))
+
+        return candidates
+
+    @staticmethod
+    def tool_finish_init(ctdep):
+        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
 
     @staticmethod
     def get_methods():
-        if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
-        else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]

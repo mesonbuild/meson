@@ -132,7 +132,6 @@ class BoostDependency(ExternalDependency):
                 self.incdir = self.detect_nix_incdir()
 
         if self.check_invalid_modules():
-            self.log_fail()
             return
 
         mlog.debug('Boost library root dir is', mlog.bold(self.boost_root))
@@ -145,12 +144,6 @@ class BoostDependency(ExternalDependency):
         if self.is_found:
             self.detect_lib_modules()
             mlog.debug('Boost library directory is', mlog.bold(self.libdir))
-
-        # 3. Report success or failure
-        if self.is_found:
-            self.log_success()
-        else:
-            self.log_fail()
 
     def check_invalid_modules(self):
         invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in BOOST_LIBS]
@@ -172,17 +165,14 @@ class BoostDependency(ExternalDependency):
         else:
             return False
 
-    def log_fail(self):
+    def log_details(self):
         module_str = ', '.join(self.requested_modules)
-        mlog.log("Dependency Boost (%s) found:" % module_str, mlog.red('NO'))
+        return module_str
 
-    def log_success(self):
-        module_str = ', '.join(self.requested_modules)
+    def log_info(self):
         if self.boost_root:
-            info = self.version + ', ' + self.boost_root
-        else:
-            info = self.version
-        mlog.log('Dependency Boost (%s) found:' % module_str, mlog.green('YES'), info)
+            return self.boost_root
+        return ''
 
     def detect_nix_roots(self):
         return [os.path.abspath(os.path.join(x, '..'))

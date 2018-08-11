@@ -15,6 +15,7 @@
 # This file contains the detection logic for external dependencies that
 # are UI-related.
 
+import functools
 import os
 import re
 import subprocess
@@ -37,32 +38,34 @@ from .base import ConfigToolDependency
 class GLDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('gl', environment, None, kwargs)
-        if DependencyMethods.SYSTEM in self.methods:
-            if mesonlib.is_osx():
-                self.is_found = True
-                # FIXME: Use AppleFrameworks dependency
-                self.link_args = ['-framework', 'OpenGL']
-                # FIXME: Detect version using self.clib_compiler
-                self.version = '1'
-                return
-            if mesonlib.is_windows():
-                self.is_found = True
-                # FIXME: Use self.clib_compiler.find_library()
-                self.link_args = ['-lopengl32']
-                # FIXME: Detect version using self.clib_compiler
-                self.version = '1'
-                return
+
+        if mesonlib.is_osx():
+            self.is_found = True
+            # FIXME: Use AppleFrameworks dependency
+            self.link_args = ['-framework', 'OpenGL']
+            # FIXME: Detect version using self.clib_compiler
+            self.version = '1'
+            return
+        if mesonlib.is_windows():
+            self.is_found = True
+            # FIXME: Use self.clib_compiler.find_library()
+            self.link_args = ['-lopengl32']
+            # FIXME: Detect version using self.clib_compiler
+            self.version = '1'
+            return
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        if DependencyMethods.PKGCONFIG in cls._process_method_kw(kwargs):
-            try:
-                pcdep = PkgConfigDependency('gl', environment, kwargs)
-                if pcdep.found():
-                    return pcdep
-            except Exception:
-                pass
-        return GLDependency(environment, kwargs)
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
+
+        if DependencyMethods.PKGCONFIG in methods:
+            candidates.append(functools.partial(PkgConfigDependency, 'gl', environment, kwargs))
+
+        if DependencyMethods.SYSTEM in methods:
+            candidates.append(functools.partial(GLDependency), environment, kwargs)
+
+        return candidates
 
     @staticmethod
     def get_methods():
@@ -201,12 +204,10 @@ class QtBaseDependency(ExternalDependency):
         self.bindir = None
         self.private_headers = kwargs.get('private_headers', False)
         mods = extract_as_list(kwargs, 'modules')
+        self.requested_modules = mods
         if not mods:
             raise DependencyException('No ' + self.qtname + '  modules specified.')
-        type_text = 'cross' if env.is_cross_build() else 'native'
-        found_msg = '{} {} {{}} dependency (modules: {}) found:' \
-                    ''.format(self.qtname, type_text, ', '.join(mods))
-        from_text = 'pkg-config'
+        self.from_text = 'pkg-config'
 
         # Keep track of the detection methods used, for logging purposes.
         methods = []
@@ -215,25 +216,15 @@ class QtBaseDependency(ExternalDependency):
             self._pkgconfig_detect(mods, kwargs)
             methods.append('pkgconfig')
         if not self.is_found and DependencyMethods.QMAKE in self.methods:
-            from_text = self._qmake_detect(mods, kwargs)
+            self.from_text = self._qmake_detect(mods, kwargs)
             methods.append('qmake-' + self.name)
             methods.append('qmake')
         if not self.is_found:
             # Reset compile args and link args
             self.compile_args = []
             self.link_args = []
-            from_text = '(checked {})'.format(mlog.format_list(methods))
+            self.from_text = mlog.format_list(methods)
             self.version = 'none'
-            if self.required:
-                err_msg = '{} {} dependency not found {}' \
-                          ''.format(self.qtname, type_text, from_text)
-                raise DependencyException(err_msg)
-            if not self.silent:
-                mlog.log(found_msg.format(from_text), mlog.red('NO'))
-            return
-        from_text = '`{}`'.format(from_text)
-        if not self.silent:
-            mlog.log(found_msg.format(from_text), mlog.green('YES'))
 
     def compilers_detect(self):
         "Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"
@@ -414,6 +405,16 @@ class QtBaseDependency(ExternalDependency):
     def get_private_includes(self, mod_inc_dir, module):
         return tuple()
 
+    def log_details(self):
+        module_str = ', '.join(self.requested_modules)
+        return 'modules: ' + module_str
+
+    def log_info(self):
+        return '`{}`'.format(self.from_text)
+
+    def log_tried(self):
+        return self.from_text
+
 
 class Qt4Dependency(QtBaseDependency):
     def __init__(self, env, kwargs):
@@ -452,33 +453,29 @@ class SDL2Dependency(ExternalDependency):
     @classmethod
     def _factory(cls, environment, kwargs):
         methods = cls._process_method_kw(kwargs)
+        candidates = []
+
         if DependencyMethods.PKGCONFIG in methods:
-            try:
-                pcdep = PkgConfigDependency('sdl2', environment, kwargs)
-                if pcdep.found():
-                    return pcdep
-            except Exception as e:
-                mlog.debug('SDL 2 not found via pkgconfig. Trying next, error was:', str(e))
+            candidates.append(functools.partial(PkgConfigDependency, 'sdl2', environment, kwargs))
+
         if DependencyMethods.CONFIG_TOOL in methods:
-            try:
-                ctdep = ConfigToolDependency.factory(
-                    'sdl2', environment, None, kwargs, ['sdl2-config'], 'sdl2-config')
-                if ctdep.found():
-                    ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-                    ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
-                    return ctdep
-            except Exception as e:
-                mlog.debug('SDL 2 not found via sdl2-config. Trying next, error was:', str(e))
+            candidates.append(functools.partial(ConfigToolDependency.factory,
+                                                'sdl2', environment, None,
+                                                kwargs, ['sdl2-config'],
+                                                'sdl2-config', SDL2Dependency.tool_finish_init))
+
         if DependencyMethods.EXTRAFRAMEWORK in methods:
             if mesonlib.is_osx():
-                fwdep = ExtraFrameworkDependency('sdl2', False, None, environment,
-                                                 kwargs.get('language', None), kwargs)
-                if fwdep.found():
-                    fwdep.version = '2'  # FIXME
-                    return fwdep
-            mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.red('NO'))
+                candidates.append(functools.partial(ExtraFrameworkDependency,
+                                                    'sdl2', False, None, environment,
+                                                    kwargs.get('language', None), kwargs))
+                # fwdep.version = '2'  # FIXME
+        return candidates
 
-        return SDL2Dependency(environment, kwargs)
+    @staticmethod
+    def tool_finish_init(ctdep):
+        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
 
     @staticmethod
     def get_methods():
@@ -518,73 +515,73 @@ class VulkanDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('vulkan', environment, None, kwargs)
 
-        if DependencyMethods.SYSTEM in self.methods:
-            try:
-                self.vulkan_sdk = os.environ['VULKAN_SDK']
-                if not os.path.isabs(self.vulkan_sdk):
-                    raise DependencyException('VULKAN_SDK must be an absolute path.')
-            except KeyError:
-                self.vulkan_sdk = None
+        try:
+            self.vulkan_sdk = os.environ['VULKAN_SDK']
+            if not os.path.isabs(self.vulkan_sdk):
+                raise DependencyException('VULKAN_SDK must be an absolute path.')
+        except KeyError:
+            self.vulkan_sdk = None
 
-            if self.vulkan_sdk:
-                # TODO: this config might not work on some platforms, fix bugs as reported
-                # we should at least detect other 64-bit platforms (e.g. armv8)
-                lib_name = 'vulkan'
-                if mesonlib.is_windows():
-                    lib_name = 'vulkan-1'
-                    lib_dir = 'Lib32'
-                    inc_dir = 'Include'
-                    if detect_cpu({}) == 'x86_64':
-                        lib_dir = 'Lib'
-                else:
-                    lib_name = 'vulkan'
-                    lib_dir = 'lib'
-                    inc_dir = 'include'
-
-                # make sure header and lib are valid
-                inc_path = os.path.join(self.vulkan_sdk, inc_dir)
-                header = os.path.join(inc_path, 'vulkan', 'vulkan.h')
-                lib_path = os.path.join(self.vulkan_sdk, lib_dir)
-                find_lib = self.clib_compiler.find_library(lib_name, environment, lib_path)
-
-                if not find_lib:
-                    raise DependencyException('VULKAN_SDK point to invalid directory (no lib)')
-
-                if not os.path.isfile(header):
-                    raise DependencyException('VULKAN_SDK point to invalid directory (no include)')
-
-                self.type_name = 'vulkan_sdk'
-                self.is_found = True
-                self.compile_args.append('-I' + inc_path)
-                self.link_args.append('-L' + lib_path)
-                self.link_args.append('-l' + lib_name)
-
-                # TODO: find a way to retrieve the version from the sdk?
-                # Usually it is a part of the path to it (but does not have to be)
-                self.version = '1'
-                return
+        if self.vulkan_sdk:
+            # TODO: this config might not work on some platforms, fix bugs as reported
+            # we should at least detect other 64-bit platforms (e.g. armv8)
+            lib_name = 'vulkan'
+            if mesonlib.is_windows():
+                lib_name = 'vulkan-1'
+                lib_dir = 'Lib32'
+                inc_dir = 'Include'
+                if detect_cpu({}) == 'x86_64':
+                    lib_dir = 'Lib'
             else:
-                # simply try to guess it, usually works on linux
-                libs = self.clib_compiler.find_library('vulkan', environment, [])
-                if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', environment):
-                    self.type_name = 'system'
-                    self.is_found = True
-                    self.version = 1 # TODO
-                    for lib in libs:
-                        self.link_args.append(lib)
-                    return
+                lib_name = 'vulkan'
+                lib_dir = 'lib'
+                inc_dir = 'include'
+
+            # make sure header and lib are valid
+            inc_path = os.path.join(self.vulkan_sdk, inc_dir)
+            header = os.path.join(inc_path, 'vulkan', 'vulkan.h')
+            lib_path = os.path.join(self.vulkan_sdk, lib_dir)
+            find_lib = self.clib_compiler.find_library(lib_name, environment, lib_path)
+
+            if not find_lib:
+                raise DependencyException('VULKAN_SDK point to invalid directory (no lib)')
+
+            if not os.path.isfile(header):
+                raise DependencyException('VULKAN_SDK point to invalid directory (no include)')
+
+            self.type_name = 'vulkan_sdk'
+            self.is_found = True
+            self.compile_args.append('-I' + inc_path)
+            self.link_args.append('-L' + lib_path)
+            self.link_args.append('-l' + lib_name)
+
+            # TODO: find a way to retrieve the version from the sdk?
+            # Usually it is a part of the path to it (but does not have to be)
+            self.version = '1'
+            return
+        else:
+            # simply try to guess it, usually works on linux
+            libs = self.clib_compiler.find_library('vulkan', environment, [])
+            if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', environment):
+                self.type_name = 'system'
+                self.is_found = True
+                self.version = 1 # TODO
+                for lib in libs:
+                    self.link_args.append(lib)
+                return
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        if DependencyMethods.PKGCONFIG in cls._process_method_kw(kwargs):
-            try:
-                pcdep = PkgConfigDependency('vulkan', environment, kwargs)
-                if pcdep.found():
-                    return pcdep
-            except Exception:
-                pass
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
 
-        return VulkanDependency(environment, kwargs)
+        if DependencyMethods.PKGCONFIG in methods:
+            candidates.append(functools.partial(PkgConfigDependency, 'vulkan', environment, kwargs))
+
+        if DependencyMethods.PKGCONFIG in methods:
+            candidates.append(functools.partial(VulkanDependency, environment, kwargs))
+
+        return candidates
 
     @staticmethod
     def get_methods():
