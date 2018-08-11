@@ -228,7 +228,7 @@ class FeatureNew(FeatureCheckBase):
 
     @staticmethod
     def get_warning_str_prefix(tv):
-        return 'Project specifies a minimum meson_version \'{}\' which conflicts with:'.format(tv)
+        return 'Project specifies a minimum meson_version \'{}\' but uses features which were added in newer versions:'.format(tv)
 
     def log_usage_warning(self, tv):
         mlog.warning('Project targetting \'{}\' but tried to use feature introduced '
