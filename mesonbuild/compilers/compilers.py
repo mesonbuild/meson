@@ -191,7 +191,7 @@ rust_buildtype_args = {'plain': [],
                        'debug': ['-C', 'debuginfo=2'],
                        'debugoptimized': ['-C', 'debuginfo=2'],
                        'release': [],
-                       'minsize': [], 
+                       'minsize': [],
                        }
 
 d_gdc_buildtype_args = {'plain': [],
@@ -246,15 +246,15 @@ clang_color_args = {'auto': ['-Xclang', '-fcolor-diagnostics'],
                     'never': ['-Xclang', '-fno-color-diagnostics'],
                     }
 
-clike_optimization_args = {'0': ['-O0'],
-                           'g': ['-O0'],
+clike_optimization_args = {'0': [],
+                           'g': [],
                            '1': ['-O1'],
                            '2': ['-O2'],
                            '3': ['-O3'],
                            's': ['-Os'],
                            }
 
-gnu_optimization_args = {'0': ['-O0'],
+gnu_optimization_args = {'0': [],
                          'g': ['-Og'],
                          '1': ['-O1'],
                          '2': ['-O2'],
@@ -262,7 +262,7 @@ gnu_optimization_args = {'0': ['-O0'],
                          's': ['-Os'],
                          }
 
-msvc_optimization_args = {'0': ['/O0'],
+msvc_optimization_args = {'0': [],
                           'g': ['/O0'],
                           '1': ['/O1'],
                           '2': ['/O2'],
@@ -270,7 +270,7 @@ msvc_optimization_args = {'0': ['/O0'],
                           's': ['/Os'],
                           }
 
-rust_optimization_args = {'0': ['-C' ,'--opt-level=0'],
+rust_optimization_args = {'0': [],
                           'g': ['-C' ,'--opt-level=0'],
                           '1': ['-C' ,'--opt-level=1'],
                           '2': ['-C' ,'--opt-level=2'],
