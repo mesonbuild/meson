@@ -1277,8 +1277,8 @@ class GnuCompiler:
         # For other targets, discard the .def file.
         return []
 
-    def get_gui_app_args(self):
-        if self.gcc_type in (GCC_CYGWIN, GCC_MINGW):
+    def get_gui_app_args(self, value):
+        if self.gcc_type in (GCC_CYGWIN, GCC_MINGW) and value:
             return ['-mwindows']
         return []
 
