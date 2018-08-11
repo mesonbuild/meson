@@ -1,4 +1,4 @@
-project('run command', 'c')
+project('run command', version : run_command('get-version.py', check : true).stdout().strip())
 
 if build_machine.system() == 'windows'
   c = run_command('cmd', '/c', 'echo', 'hello')
