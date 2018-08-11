@@ -20,7 +20,7 @@ import pickle
 from mesonbuild import build
 from mesonbuild import environment
 from mesonbuild.dependencies import ExternalProgram
-from mesonbuild import mesonlib
+from mesonbuild.mesonlib import MesonException
 from mesonbuild import mlog
 
 import time, datetime, multiprocessing, json
@@ -130,8 +130,11 @@ def returncode_to_status(retcode):
         signame = 'SIGinvalid'
     return '(exit status %d or signal %d %s)' % (retcode, signum, signame)
 
+def env_tuple_to_str(env):
+    return ''.join(["%s='%s' " % (k, v) for k, v in env])
 
-class TestException(mesonlib.MesonException):
+
+class TestException(MesonException):
     pass
 
 
@@ -162,7 +165,8 @@ class TestRun:
         if self.cmd is None:
             res += 'NONE\n'
         else:
-            res += '%s%s\n' % (''.join(["%s='%s' " % (k, v) for k, v in self.env.items()]), ' ' .join(self.cmd))
+            test_only_env = set(self.env.items()) - set(os.environ.items())
+            res += '{}{}\n'.format(env_tuple_to_str(test_only_env), ' '.join(self.cmd))
         if self.stdo:
             res += '--- stdout ---\n'
             res += self.stdo
@@ -608,6 +612,8 @@ TIMEOUT: %4d
 
         self.logfile.write('Log of Meson test suite run on %s\n\n'
                            % datetime.datetime.now().isoformat())
+        inherit_env = env_tuple_to_str(os.environ.items())
+        self.logfile.write('Inherited environment: {}\n\n'.format(inherit_env))
 
     @staticmethod
     def get_wrapper(options):
