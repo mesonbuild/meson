@@ -96,6 +96,8 @@ This is very similar to other build systems. The only difference is
 that the `DESTDIR` variable is passed as an environment variable
 rather than as an argument to `ninja install`.
 
-As distro builds happen always from scratch, we recommend you to
-enable [unity builds](Unity-builds.md) whenever possible on your
-packages because they are faster and produce better code.
+As distro builds happen always from scratch, you might consider
+enabling [unity builds](Unity-builds.md) on your packages because they
+are faster and produce better code. However there are many projects
+that do not build with unity builds enabled so the decision to use
+unity builds must be done by the packager on a case by case basis.
