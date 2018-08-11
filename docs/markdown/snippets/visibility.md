@@ -1,8 +1,8 @@
 ## Keyword argument for GNU symbol visibility
 
-Build targets got a new keyword, `symbol_visibility` that controls how
-symbols are exported from shared libraries. This is most commonly used
-to hide implementation symbols like this:
+Build targets got a new keyword, `gnu_symbol_visibility` that controls
+how symbols are exported from shared libraries. This is most commonly
+used to hide implementation symbols like this:
 
 ```meson
 shared_library('mylib', ...
