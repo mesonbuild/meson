@@ -218,6 +218,8 @@ class ExternalDependency(Dependency):
         self.is_found = False
         self.language = language
         self.version_reqs = kwargs.get('version', None)
+        if isinstance(self.version_reqs, str):
+            self.version_reqs = [self.version_reqs]
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
         self.static = kwargs.get('static', False)
@@ -274,6 +276,29 @@ class ExternalDependency(Dependency):
 
     def log_tried(self):
         return ''
+
+    # Check if dependency version meets the requirements
+    def _check_version(self):
+        if not self.is_found:
+            return
+
+        if self.version_reqs:
+            (self.is_found, not_found, found) = \
+                version_compare_many(self.version, self.version_reqs)
+            if not self.is_found:
+                found_msg = ['Dependency', mlog.bold(self.name), 'found:']
+                found_msg += [mlog.red('NO'),
+                              'found {!r} but need:'.format(self.version),
+                              ', '.join(["'{}'".format(e) for e in not_found])]
+                if found:
+                    found_msg += ['; matched:',
+                                  ', '.join(["'{}'".format(e) for e in found])]
+                mlog.log(*found_msg)
+
+                if self.required:
+                    m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
+                    raise DependencyException(m.format(self.name, not_found, self.version))
+                return
 
 
 class NotFoundDependency(Dependency):
@@ -480,20 +505,6 @@ class PkgConfigDependency(ExternalDependency):
         ret, self.version = self._call_pkgbin(['--modversion', name])
         if ret != 0:
             return
-        if self.version_reqs is None:
-            self.is_found = True
-        else:
-            if not isinstance(self.version_reqs, (str, list)):
-                raise DependencyException('Version argument must be string or list.')
-            if isinstance(self.version_reqs, str):
-                self.version_reqs = [self.version_reqs]
-            (self.is_found, not_found, found) = \
-                version_compare_many(self.version, self.version_reqs)
-            if not self.is_found:
-                if self.required:
-                    m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
-                    raise DependencyException(m.format(name, not_found, self.version))
-                return
 
         try:
             # Fetch cargs to be used while using this dependency
@@ -508,6 +519,8 @@ class PkgConfigDependency(ExternalDependency):
                 self.link_args = []
                 self.is_found = False
                 self.reason = e
+
+        self.is_found = True
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
@@ -862,22 +875,6 @@ class DubDependency(ExternalDependency):
                 self.pkg = package
                 break
 
-        # Check if package version meets the requirements
-        if self.version_reqs is None:
-            self.is_found = True
-        else:
-            if not isinstance(self.version_reqs, (str, list)):
-                raise DependencyException('Version argument must be string or list.')
-            if isinstance(self.version_reqs, str):
-                self.version_reqs = [self.version_reqs]
-            (self.is_found, not_found, found) = \
-                version_compare_many(self.version, self.version_reqs)
-            if not self.is_found:
-                if self.required:
-                    m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
-                    raise DependencyException(m.format(name, not_found, self.version))
-                return
-
         if self.pkg['targetFileName'].endswith('.a'):
             self.static = True
 
@@ -897,9 +894,7 @@ class DubDependency(ExternalDependency):
         for file in res:
             self.link_args.append(file)
 
-        if not found:
-            self.is_found = False
-            return
+        self.is_found = found
 
     def get_compiler(self):
         return self.compiler
@@ -1291,6 +1286,8 @@ def find_external_dependency(name, env, kwargs):
     lname = name.lower()
     if lname not in _packages_accept_language and 'language' in kwargs:
         raise DependencyException('%s dependency does not accept "language" keyword argument' % (name, ))
+    if not isinstance(kwargs.get('version', ''), (str, list)):
+        raise DependencyException('Keyword "Version" must be string or list.')
 
     # display the dependency name with correct casing
     display_name = display_name_map.get(lname, lname)
@@ -1313,6 +1310,7 @@ def find_external_dependency(name, env, kwargs):
         # try this dependency method
         try:
             d = c()
+            d._check_version()
             pkgdep.append(d)
         except Exception as e:
             mlog.debug(str(e))
