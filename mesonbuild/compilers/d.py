@@ -43,6 +43,22 @@ d_feature_args = {'gcc':  {'unittest': '-funittest',
                            }
                   }
 
+ldc_optimization_args = {'0': [],
+                         'g': [],
+                         '1': ['-O1'],
+                         '2': ['-O2'],
+                         '3': ['-O3'],
+                         's': ['-Os'],
+                         }
+
+dmd_optimization_args = {'0': [],
+                         'g': [],
+                         '1': ['-O1'],
+                         '2': ['-O2'],
+                         '3': ['-O3'],
+                         's': ['-Os'],
+                         }
+
 class DCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, **kwargs):
         self.language = 'd'
@@ -240,6 +256,8 @@ class DCompiler(Compiler):
 
         return dcargs
 
+    def get_debug_args(self, is_debug):
+        return clike_debug_args[is_debug]
 
 class GnuDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross, **kwargs):
@@ -292,9 +310,6 @@ class GnuDCompiler(DCompiler):
 
     def get_optimization_args(self, optimization_level):
         return gnu_optimization_args[optimization_level]
-
-    def get_debug_args(self, is_debug):
-        return clike_debug_args[is_debug]
 
 class LLVMDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross, **kwargs):
@@ -349,6 +364,9 @@ class LLVMDCompiler(DCompiler):
     def unix_args_to_native(cls, args):
         return cls.translate_args_to_nongnu(args)
 
+    def get_optimization_args(self, optimization_level):
+        return ldc_optimization_args[optimization_level]
+
 
 class DmdDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross, **kwargs):
@@ -399,3 +417,6 @@ class DmdDCompiler(DCompiler):
     @classmethod
     def unix_args_to_native(cls, args):
         return cls.translate_args_to_nongnu(args)
+
+    def get_optimization_args(self, optimization_level):
+        return dmd_optimization_args[optimization_level]

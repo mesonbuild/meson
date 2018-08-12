@@ -195,22 +195,22 @@ rust_buildtype_args = {'plain': [],
                        }
 
 d_gdc_buildtype_args = {'plain': [],
-                        'debug': ['-g', '-O0'],
-                        'debugoptimized': ['-g', '-O'],
+                        'debug': [],
+                        'debugoptimized': ['-O'],
                         'release': ['-O3', '-frelease'],
                         'minsize': [],
                         }
 
 d_ldc_buildtype_args = {'plain': [],
-                        'debug': ['-g', '-O0'],
-                        'debugoptimized': ['-g', '-O'],
+                        'debug': [],
+                        'debugoptimized': ['-O'],
                         'release': ['-O3', '-release'],
                         'minsize': [],
                         }
 
 d_dmd_buildtype_args = {'plain': [],
-                        'debug': ['-g'],
-                        'debugoptimized': ['-g', '-O'],
+                        'debug': [],
+                        'debugoptimized': ['-O'],
                         'release': ['-O', '-release'],
                         'minsize': [],
                         }
