@@ -223,9 +223,9 @@ mono_buildtype_args = {'plain': [],
                        }
 
 swift_buildtype_args = {'plain': [],
-                        'debug': ['-g'],
-                        'debugoptimized': ['-g', '-O'],
-                        'release': ['-O'],
+                        'debug': [],
+                        'debugoptimized': [],
+                        'release': [],
                         'minsize': [],
                         }
 

@@ -16,7 +16,15 @@ import subprocess, os.path
 
 from ..mesonlib import EnvironmentException
 
-from .compilers import Compiler, swift_buildtype_args
+from .compilers import Compiler, swift_buildtype_args, clike_debug_args
+
+swift_optimization_args = {'0': [],
+                           'g': [],
+                           '1': ['-O'],
+                           '2': ['-O'],
+                           '3': ['-O'],
+                           's': ['-O'],
+                           }
 
 class SwiftCompiler(Compiler):
     def __init__(self, exelist, version):
@@ -97,3 +105,9 @@ class SwiftCompiler(Compiler):
             raise EnvironmentException('Swift compiler %s can not compile programs.' % self.name_string())
         if subprocess.call(output_name) != 0:
             raise EnvironmentException('Executables created by Swift compiler %s are not runnable.' % self.name_string())
+
+    def get_debug_args(self, is_debug):
+        return clike_debug_args[is_debug]
+
+    def get_optimization_args(self, optimization_level):
+        return swift_optimization_args[optimization_level]

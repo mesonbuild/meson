@@ -1242,6 +1242,8 @@ int dummy;
                 raise InvalidArguments('Swift target %s contains a non-swift source file.' % target.get_basename())
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compile_args = swiftc.get_compile_only_args()
+        compile_args += swiftc.get_optimization_args(self.get_option_for_target('optimization', target))
+        compile_args += swiftc.get_debug_args(self.get_option_for_target('debug', target))
         compile_args += swiftc.get_module_args(module_name)
         compile_args += self.build.get_project_args(swiftc, target.subproject)
         compile_args += self.build.get_global_args(swiftc)
