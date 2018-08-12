@@ -19,6 +19,14 @@ from ..mesonlib import is_windows
 
 from .compilers import Compiler, mono_buildtype_args
 
+cs_optimization_args = {'0': [],
+                        'g': [],
+                        '1': ['-optimize+'],
+                        '2': ['-optimize+'],
+                        '3': ['-optimize+'],
+                        's': ['-optimize+'],
+                        }
+
 class CsCompiler(Compiler):
     def __init__(self, exelist, version, id, runner=None):
         self.language = 'cs'
@@ -118,6 +126,11 @@ class CsCompiler(Compiler):
     def get_buildtype_args(self, buildtype):
         return mono_buildtype_args[buildtype]
 
+    def get_debug_args(self, is_debug):
+        return ['-debug'] if is_debug else []
+
+    def get_optimization_args(self, optimization_level):
+        return cs_optimization_args[optimization_level]
 
 class MonoCompiler(CsCompiler):
     def __init__(self, exelist, version):

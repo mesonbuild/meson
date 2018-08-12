@@ -826,6 +826,8 @@ int dummy;
         deps = []
         commands = CompilerArgs(compiler, target.extra_args.get('cs', []))
         commands += compiler.get_buildtype_args(buildtype)
+        commands += compiler.get_optimization_args(self.get_option_for_target('optimization', target))
+        commands += compiler.get_debug_args(self.get_option_for_target('debug', target))
         if isinstance(target, build.Executable):
             commands.append('-target:exe')
         elif isinstance(target, build.SharedLibrary):

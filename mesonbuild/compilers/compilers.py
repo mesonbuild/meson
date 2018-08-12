@@ -216,8 +216,8 @@ d_dmd_buildtype_args = {'plain': [],
                         }
 
 mono_buildtype_args = {'plain': [],
-                       'debug': ['-debug'],
-                       'debugoptimized': ['-debug', '-optimize+'],
+                       'debug': [],
+                       'debugoptimized': ['-optimize+'],
                        'release': ['-optimize+'],
                        'minsize': [],
                        }
