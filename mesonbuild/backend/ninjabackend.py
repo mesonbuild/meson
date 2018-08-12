@@ -2234,9 +2234,8 @@ rule FORTRAN_DEP_HACK%s
         if isinstance(target, build.Executable):
             # Currently only used with the Swift compiler to add '-emit-executable'
             commands += linker.get_std_exe_link_args()
-            # If gui_app is significant on this platform
-            if hasattr(linker, 'get_gui_app_args'):
-                commands += linker.get_gui_app_args(target.gui_app)
+            # If gui_app is significant on this platform, add the appropriate linker arguments
+            commands += linker.get_gui_app_args(target.gui_app)
             # If export_dynamic, add the appropriate linker arguments
             if target.export_dynamic:
                 commands += linker.gen_export_dynamic_link_args(self.environment)

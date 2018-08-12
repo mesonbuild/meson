@@ -1076,6 +1076,9 @@ class Compiler:
     def gnu_symbol_visibility_args(self, vistype):
         return []
 
+    def get_gui_app_args(self, value):
+        return []
+
 GCC_STANDARD = 0
 GCC_OSX = 1
 GCC_MINGW = 2
