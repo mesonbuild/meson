@@ -137,4 +137,3 @@ class ArmarLinker(ArLinker):
     def can_linker_accept_rsp(self):
         # armar cann't accept arguments using the @rsp syntax
         return False
-
