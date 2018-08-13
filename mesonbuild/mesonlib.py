@@ -404,12 +404,6 @@ def grab_leading_numbers(vstr, strict=False):
             break
     return result
 
-def make_same_len(listA, listB):
-    maxlen = max(len(listA), len(listB))
-    for i in listA, listB:
-        for n in range(len(i), maxlen):
-            i.append(0)
-
 # a helper class which implements the same version ordering as RPM
 @functools.total_ordering
 class Version:
@@ -505,22 +499,16 @@ def version_compare_many(vstr1, conditions):
             found.append(req)
     return not_found == [], not_found, found
 
-
+# determine if the minimum version satisfying the condition |condition| exceeds
+# the minimum version for a feature |minimum|
 def version_compare_condition_with_min(condition, minimum):
-    match = numpart.match(minimum.strip())
-    if match is None:
-        msg = 'Uncomparable version string {!r}.'
-        raise MesonException(msg.format(minimum))
-    minimum = match.group(0)
     if condition.startswith('>='):
         cmpop = operator.le
         condition = condition[2:]
     elif condition.startswith('<='):
         return True
-        condition = condition[2:]
     elif condition.startswith('!='):
         return True
-        condition = condition[2:]
     elif condition.startswith('=='):
         cmpop = operator.le
         condition = condition[2:]
@@ -532,48 +520,9 @@ def version_compare_condition_with_min(condition, minimum):
         condition = condition[1:]
     elif condition.startswith('<'):
         return True
-        condition = condition[2:]
     else:
         cmpop = operator.le
-    varr1 = grab_leading_numbers(minimum, True)
-    varr2 = grab_leading_numbers(condition, True)
-    make_same_len(varr1, varr2)
-    return cmpop(varr1, varr2)
-
-def version_compare_condition_with_max(condition, maximum):
-    match = numpart.match(maximum.strip())
-    if match is None:
-        msg = 'Uncomparable version string {!r}.'
-        raise MesonException(msg.format(maximum))
-    maximum = match.group(0)
-    if condition.startswith('>='):
-        return False
-        condition = condition[2:]
-    elif condition.startswith('<='):
-        cmpop = operator.ge
-        condition = condition[2:]
-    elif condition.startswith('!='):
-        return False
-        condition = condition[2:]
-    elif condition.startswith('=='):
-        cmpop = operator.ge
-        condition = condition[2:]
-    elif condition.startswith('='):
-        cmpop = operator.ge
-        condition = condition[1:]
-    elif condition.startswith('>'):
-        return False
-        condition = condition[1:]
-    elif condition.startswith('<'):
-        cmpop = operator.gt
-        condition = condition[2:]
-    else:
-        cmpop = operator.ge
-    varr1 = grab_leading_numbers(maximum, True)
-    varr2 = grab_leading_numbers(condition, True)
-    make_same_len(varr1, varr2)
-    return cmpop(varr1, varr2)
-
+    return cmpop(Version(minimum), Version(condition))
 
 def default_libdir():
     if is_debianlike():
