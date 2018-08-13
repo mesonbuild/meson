@@ -1092,7 +1092,7 @@ Project supports the following keyword arguments.
     `meson.project_license()`.
 
   - `meson_version` takes a string describing which Meson version the
-    project requires. Usually something like `>0.28.0`.
+    project requires. Usually something like `>=0.28.0`.
 
   - `subproject_dir` specifies the top level directory name that holds
     Meson subprojects. This is only meant as a compatibility option
