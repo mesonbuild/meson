@@ -39,7 +39,7 @@ from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.mesonlib import (
     is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd,
     windows_proof_rmtree, python_command, version_compare,
-    grab_leading_numbers, BuildDirLock
+    BuildDirLock
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -2663,7 +2663,7 @@ class FailureTests(BasePlatformTests):
         super().tearDown()
         windows_proof_rmtree(self.srcdir)
 
-    def assertMesonRaises(self, contents, match, extra_args=None, langs=None):
+    def assertMesonRaises(self, contents, match, extra_args=None, langs=None, meson_version=None):
         '''
         Assert that running meson configure on the specified @contents raises
         a error message matching regex @match.
@@ -2671,7 +2671,10 @@ class FailureTests(BasePlatformTests):
         if langs is None:
             langs = []
         with open(self.mbuild, 'w') as f:
-            f.write("project('failure test', 'c', 'cpp')\n")
+            f.write("project('failure test', 'c', 'cpp'")
+            if meson_version:
+                f.write(", meson_version: '{}'".format(meson_version))
+            f.write(")\n")
             for lang in langs:
                 f.write("add_languages('{}', required : false)\n".format(lang))
             f.write(contents)
@@ -2681,13 +2684,14 @@ class FailureTests(BasePlatformTests):
             # Must run in-process or we'll get a generic CalledProcessError
             self.init(self.srcdir, extra_args=extra_args, inprocess=True)
 
-    def obtainMesonOutput(self, contents, match, extra_args, langs, meson_version):
+    def obtainMesonOutput(self, contents, match, extra_args, langs, meson_version=None):
         if langs is None:
             langs = []
         with open(self.mbuild, 'w') as f:
-            core_version = '.'.join([str(component) for component in grab_leading_numbers(mesonbuild.coredata.version)])
-            meson_version = meson_version or core_version
-            f.write("project('output test', 'c', 'cpp', meson_version: '{}')\n".format(meson_version))
+            f.write("project('output test', 'c', 'cpp'")
+            if meson_version:
+                f.write(", meson_version: '{}'".format(meson_version))
+            f.write(")\n")
             for lang in langs:
                 f.write("add_languages('{}', required : false)\n".format(lang))
             f.write(contents)

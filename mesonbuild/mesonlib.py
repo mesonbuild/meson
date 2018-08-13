@@ -391,19 +391,6 @@ def detect_vcs(source_dir):
                 return vcs
     return None
 
-def grab_leading_numbers(vstr, strict=False):
-    result = []
-    for x in vstr.rstrip('.').split('.'):
-        try:
-            result.append(int(x))
-        except ValueError as e:
-            if strict:
-                msg = 'Invalid version to compare against: {!r}; only ' \
-                      'numeric digits separated by "." are allowed: ' + str(e)
-                raise MesonException(msg.format(vstr))
-            break
-    return result
-
 # a helper class which implements the same version ordering as RPM
 @functools.total_ordering
 class Version:
