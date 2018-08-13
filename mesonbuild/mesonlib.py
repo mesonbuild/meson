@@ -509,6 +509,20 @@ def version_compare_condition_with_min(condition, minimum):
         return True
     else:
         cmpop = operator.le
+
+    # Declaring a project(meson_version: '>=0.46') and then using features in
+    # 0.46.0 is valid, because (knowing the meson versioning scheme) '0.46.0' is
+    # the lowest version which satisfies the constraint '>=0.46'.
+    #
+    # But this will fail here, because the minimum version required by the
+    # version constraint ('0.46') is strictly less (in our version comparison)
+    # than the minimum version needed for the feature ('0.46.0').
+    #
+    # Map versions in the constraint of the form '0.46' to '0.46.0', to embed
+    # this knowledge of the meson versioning scheme.
+    if re.match('^\d+.\d+$', condition):
+        condition += '.0'
+
     return cmpop(Version(minimum), Version(condition))
 
 def default_libdir():
