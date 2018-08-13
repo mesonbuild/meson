@@ -14,6 +14,7 @@
 
 """A library of random helper functionality."""
 
+import functools
 import sys
 import stat
 import time
@@ -409,14 +410,59 @@ def make_same_len(listA, listB):
         for n in range(len(i), maxlen):
             i.append(0)
 
-numpart = re.compile('[0-9.]+')
+# a helper class which implements the same version ordering as RPM
+@functools.total_ordering
+class Version:
+    def __init__(self, s):
+        self._s = s
 
-def version_compare(vstr1, vstr2, strict=False):
-    match = numpart.match(vstr1.strip())
-    if match is None:
-        msg = 'Uncomparable version string {!r}.'
-        raise MesonException(msg.format(vstr1))
-    vstr1 = match.group(0)
+        # split into numeric, alphabetic and non-alphanumeric sequences
+        sequences = re.finditer(r'(\d+|[a-zA-Z]+|[^a-zA-Z\d]+)', s)
+        # non-alphanumeric separators are discarded
+        sequences = [m for m in sequences if not re.match(r'[^a-zA-Z\d]+', m.group(1))]
+        # numeric sequences have leading zeroes discarded
+        sequences = [re.sub(r'^0+(\d)', r'\1', m.group(1), 1) for m in sequences]
+
+        self._v = sequences
+
+    def __str__(self):
+        return '%s (V=%s)' % (self._s, str(self._v))
+
+    def __lt__(self, other):
+        return self.__cmp__(other) == -1
+
+    def __eq__(self, other):
+        return self.__cmp__(other) == 0
+
+    def __cmp__(self, other):
+        def cmp(a, b):
+            return (a > b) - (a < b)
+
+        # compare each sequence in order
+        for i in range(0, min(len(self._v), len(other._v))):
+            # sort a non-digit sequence before a digit sequence
+            if self._v[i].isdigit() != other._v[i].isdigit():
+                return 1 if self._v[i].isdigit() else -1
+
+            # compare as numbers
+            if self._v[i].isdigit():
+                # because leading zeros have already been removed, if one number
+                # has more digits, it is greater
+                c = cmp(len(self._v[i]), len(other._v[i]))
+                if c != 0:
+                    return c
+                # fallthrough
+
+            # compare lexicographically
+            c = cmp(self._v[i], other._v[i])
+            if c != 0:
+                return c
+
+        # if equal length, all components have matched, so equal
+        # otherwise, the version with a suffix remaining is greater
+        return cmp(len(self._v), len(other._v))
+
+def _version_extract_cmpop(vstr2):
     if vstr2.startswith('>='):
         cmpop = operator.ge
         vstr2 = vstr2[2:]
@@ -440,10 +486,12 @@ def version_compare(vstr1, vstr2, strict=False):
         vstr2 = vstr2[1:]
     else:
         cmpop = operator.eq
-    varr1 = grab_leading_numbers(vstr1, strict)
-    varr2 = grab_leading_numbers(vstr2, strict)
-    make_same_len(varr1, varr2)
-    return cmpop(varr1, varr2)
+
+    return (cmpop, vstr2)
+
+def version_compare(vstr1, vstr2):
+    (cmpop, vstr2) = _version_extract_cmpop(vstr2)
+    return cmpop(Version(vstr1), Version(vstr2))
 
 def version_compare_many(vstr1, conditions):
     if not isinstance(conditions, (list, tuple, frozenset)):
@@ -451,7 +499,7 @@ def version_compare_many(vstr1, conditions):
     found = []
     not_found = []
     for req in conditions:
-        if not version_compare(vstr1, req, strict=True):
+        if not version_compare(vstr1, req):
             not_found.append(req)
         else:
             found.append(req)
