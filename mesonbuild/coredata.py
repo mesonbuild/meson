@@ -545,6 +545,7 @@ def parse_cmd_line_options(args):
 
 builtin_options = {
     'buildtype':  [UserComboOption, 'Build type to use.', ['plain', 'debug', 'debugoptimized', 'release', 'minsize'], 'debug'],
+    'msvcrt':     [UserComboOption, 'MSVC C-runtime to target.', ['dynamic', 'static'], 'dynamic'],
     'strip':      [UserBooleanOption, 'Strip targets on install.', False],
     'unity':      [UserComboOption, 'Unity build.', ['on', 'off', 'subprojects'], 'off'],
     'prefix':     [UserStringOption, 'Installation prefix.', default_prefix()],

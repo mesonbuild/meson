@@ -606,8 +606,9 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                     m = 'Failed to detect MSVC compiler arch: stderr was\n{!r}'
                     raise EnvironmentException(m.format(err))
                 is_64 = err.split('\n')[0].endswith(' x64')
+                runtime = self.coredata.get_builtin_option('msvcrt')
                 cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
-                return cls(compiler, version, is_cross, exe_wrap, is_64)
+                return cls(compiler, version, is_cross, exe_wrap, is_64, runtime)
             if '(ICC)' in out:
                 # TODO: add microsoft add check OSX
                 inteltype = ICC_STANDARD
