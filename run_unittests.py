@@ -691,6 +691,13 @@ class InternalTests(unittest.TestCase):
             PkgConfigDependency.pkgbin_cache = {}
             PkgConfigDependency.class_pkgbin = None
 
+    def test_version_compare(self):
+        comparefunc = mesonbuild.mesonlib.version_compare_many
+        for (a, b, result) in [
+                ('0.99.beta19', '>= 0.99.beta14', True),
+        ]:
+            self.assertEqual(comparefunc(a, b)[0], result)
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
