@@ -177,3 +177,15 @@ class ArmarLinker(StaticLinker):
 
     def get_link_debugfile_args(self, targetfile):
         return []
+
+class ArmarLinker(ArLinker):
+
+    def __init__(self, exelist):
+        self.exelist = exelist
+        self.id = 'armar'
+        self.std_args = ['-csr']
+
+    def can_linker_accept_rsp(self):
+        # armar cann't accept arguments using the @rsp syntax
+        return False
+
