@@ -132,11 +132,7 @@ class HotdocTargetBuilder:
             paths = [paths]
 
         for path in paths:
-            try:
-                self.add_extension_paths([path])
-            except subprocess.CalledProcessError as e:
-                raise MesonException(
-                    "Could not setup hotdoc extension %s: %s" % (paths, e))
+            self.add_extension_paths([path])
 
         return []
 
