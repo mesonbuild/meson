@@ -1820,7 +1820,8 @@ class CustomTarget(Target):
             while hasattr(ed, 'held_object'):
                 ed = ed.held_object
             if not isinstance(ed, (CustomTarget, BuildTarget)):
-                raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target (executable or a library)')
+                raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target (executable or a library) got: %s(%s)'
+                                       % (type(ed), ed))
             self.extra_depends.append(ed)
         for i in depend_files:
             if isinstance(i, (File, str)):
