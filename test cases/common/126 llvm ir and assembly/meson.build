@@ -47,7 +47,7 @@ foreach lang : ['c', 'cpp']
     square_impl = custom_target(lang + square_impl,
         input : square_preproc,
         output : lang + square_base + '.obj',
-        command : [ml, '/Fo', '@OUTPUT@', '/c', '@INPUT@'])
+        command : [ml, '/safeseh', '/Fo', '@OUTPUT@', '/c', '@INPUT@'])
   endif
   if supported_cpus.contains(cpu)
     e = executable('square_asm_' + lang, square_impl, 'main.' + lang,
