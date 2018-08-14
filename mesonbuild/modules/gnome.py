@@ -314,10 +314,13 @@ class GnomeModule(ExtensionModule):
         return link_command
 
     def _get_dependencies_flags(self, deps, state, depends, include_rpath=False,
-                                use_gir_args=False):
+                                use_gir_args=False, separate_nodedup=False):
         cflags = OrderedSet()
         internal_ldflags = OrderedSet()
         external_ldflags = OrderedSet()
+        # External linker flags that can't be de-duped reliably because they
+        # require two args in order, such as -framework AVFoundation
+        external_ldflags_nodedup = []
         gi_includes = OrderedSet()
         deps = mesonlib.listify(deps, unholder=True)
 
@@ -328,18 +331,21 @@ class GnomeModule(ExtensionModule):
                     if hasattr(lib, 'held_object'):
                         lib = lib.held_object
                     internal_ldflags.update(self._get_link_args(state, lib, depends, include_rpath))
-                    libdepflags = self._get_dependencies_flags(lib.get_external_deps(), state, depends, include_rpath,
-                                                               use_gir_args)
+                    libdepflags = self._get_dependencies_flags(lib.get_external_deps(), state,
+                                                               depends, include_rpath,
+                                                               use_gir_args, True)
                     cflags.update(libdepflags[0])
                     internal_ldflags.update(libdepflags[1])
                     external_ldflags.update(libdepflags[2])
-                    gi_includes.update(libdepflags[3])
-                extdepflags = self._get_dependencies_flags(dep.ext_deps, state, depends, include_rpath,
-                                                           use_gir_args)
+                    external_ldflags_nodedup += libdepflags[3]
+                    gi_includes.update(libdepflags[4])
+                extdepflags = self._get_dependencies_flags(dep.ext_deps, state, depends,
+                                                           include_rpath, use_gir_args, True)
                 cflags.update(extdepflags[0])
                 internal_ldflags.update(extdepflags[1])
                 external_ldflags.update(extdepflags[2])
-                gi_includes.update(extdepflags[3])
+                external_ldflags_nodedup += extdepflags[3]
+                gi_includes.update(extdepflags[4])
                 for source in dep.sources:
                     if hasattr(source, 'held_object'):
                         source = source.held_object
@@ -349,7 +355,8 @@ class GnomeModule(ExtensionModule):
             # This should be any dependency other than an internal one.
             elif isinstance(dep, Dependency):
                 cflags.update(dep.get_compile_args())
-                for lib in dep.get_link_args(raw=True):
+                ldflags = iter(dep.get_link_args(raw=True))
+                for lib in ldflags:
                     if (os.path.isabs(lib) and
                             # For PkgConfigDependency only:
                             getattr(dep, 'is_libtool', False)):
@@ -362,10 +369,15 @@ class GnomeModule(ExtensionModule):
                             libname = libname[3:]
                         libname = libname.split(".so")[0]
                         lib = "-l%s" % libname
-                    # Hack to avoid passing some compiler options in
+                    # FIXME: Hack to avoid passing some compiler options in
                     if lib.startswith("-W"):
                         continue
-                    external_ldflags.update([lib])
+                    # If it's a framework arg, slurp the framework name too
+                    # to preserve the order of arguments
+                    if lib == '-framework':
+                        external_ldflags_nodedup += [lib, next(ldflags)]
+                    else:
+                        external_ldflags.update([lib])
 
                 if isinstance(dep, PkgConfigDependency):
                     girdir = dep.get_pkgconfig_variable("girdir", {'default': ''})
@@ -380,16 +392,34 @@ class GnomeModule(ExtensionModule):
 
         if gir_has_extra_lib_arg(self.interpreter) and use_gir_args:
             def fix_ldflags(ldflags):
-                fixed_ldflags = OrderedSet()
+                fixed_ldflags =  OrderedSet()
                 for ldflag in ldflags:
                     if ldflag.startswith("-l"):
-                        fixed_ldflags.add(ldflag.replace('-l', '--extra-library=', 1))
-                    else:
-                        fixed_ldflags.add(ldflag)
+                        ldflag = ldflag.replace('-l', '--extra-library=', 1)
+                    fixed_ldflags.add(ldflag)
                 return fixed_ldflags
             internal_ldflags = fix_ldflags(internal_ldflags)
             external_ldflags = fix_ldflags(external_ldflags)
-        return cflags, internal_ldflags, external_ldflags, gi_includes
+
+        if not separate_nodedup:
+            external_ldflags.update(external_ldflags_nodedup)
+            return cflags, internal_ldflags, external_ldflags, gi_includes
+        else:
+            return cflags, internal_ldflags, external_ldflags, external_ldflags_nodedup, gi_includes
+
+    @staticmethod
+    def _get_scanner_cflags(cflags):
+        'g-ir-scanner only accepts -I/-D/-U; must ignore all other flags'
+        for f in cflags:
+            if f.startswith(('-D', '-U', '-I')):
+                yield f
+
+    @staticmethod
+    def _get_scanner_ldflags(ldflags):
+        'g-ir-scanner only accepts -L/-l; must ignore -F and other linker flags'
+        for f in ldflags:
+            if f.startswith(('-L', '-l', '--extra-library')):
+                yield f
 
     @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
@@ -574,12 +604,12 @@ class GnomeModule(ExtensionModule):
         # are not used here.
         dep_cflags, dep_internal_ldflags, dep_external_ldflags, gi_includes = \
             self._get_dependencies_flags(deps, state, depends, use_gir_args=True)
-        cflags += list(dep_cflags)
-        internal_ldflags += list(dep_internal_ldflags)
-        external_ldflags += list(dep_external_ldflags)
+        cflags += list(self._get_scanner_cflags(dep_cflags))
+        cflags += list(self._get_scanner_cflags(state.environment.coredata.get_external_args(lang)))
+        internal_ldflags += list(self._get_scanner_ldflags(dep_internal_ldflags))
+        external_ldflags += list(self._get_scanner_ldflags(dep_external_ldflags))
         scan_command += ['--cflags-begin']
         scan_command += cflags
-        scan_command += state.environment.coredata.get_external_args(lang)
         scan_command += ['--cflags-end']
         # need to put our output directory first as we need to use the
         # generated libraries instead of any possibly installed system/prefix
