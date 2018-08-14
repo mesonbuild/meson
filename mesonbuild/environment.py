@@ -15,7 +15,7 @@
 import configparser, os, platform, re, shlex, shutil, subprocess
 
 from . import coredata
-from .linkers import ArLinker, VisualStudioLinker
+from .linkers import ArLinker, ArmarLinker, VisualStudioLinker
 from . import mesonlib
 from .mesonlib import EnvironmentException, Popen_safe
 from . import mlog
@@ -885,6 +885,8 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 continue
             if '/OUT:' in out or '/OUT:' in err:
                 return VisualStudioLinker(linker)
+            if p.returncode == 0 and ('armar' in linker or 'armar.exe' in linker):
+                return ArmarLinker(linker)
             if p.returncode == 0:
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('usage'): # OSX

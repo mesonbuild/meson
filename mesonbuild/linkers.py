@@ -83,9 +83,6 @@ class ArLinker(StaticLinker):
             self.std_args = ['csrD']
         else:
             self.std_args = ['csr']
-        # For 'armar' the options should be prefixed with '-'.
-        if 'armar' in stdo:
-            self.std_args = ['-csr']
 
     def can_linker_accept_rsp(self):
         return mesonlib.is_windows()
@@ -129,3 +126,14 @@ class ArLinker(StaticLinker):
 
     def get_link_debugfile_args(self, targetfile):
         return []
+
+class ArmarLinker(ArLinker):
+
+    def __init__(self, exelist):
+        self.exelist = exelist
+        self.id = 'armar'
+        self.std_args = ['-csr']
+
+    def can_linker_accept_rsp(self):
+        # armar cann't accept arguments using the @rsp syntax
+        return False
