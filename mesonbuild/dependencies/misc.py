@@ -270,7 +270,6 @@ class ThreadDependency(ExternalDependency):
         super().__init__('threads', environment, None, {})
         self.name = 'threads'
         self.is_found = True
-        mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
 
     def need_threads(self):
         return True
