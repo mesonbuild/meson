@@ -98,7 +98,7 @@ class Dependency:
 
     def __init__(self, type_name, kwargs):
         self.name = "null"
-        self.version = 'none'
+        self.version = None
         self.language = None # None means C-like
         self.is_found = False
         self.type_name = type_name
@@ -138,7 +138,10 @@ class Dependency:
         return self.name
 
     def get_version(self):
-        return self.version
+        if self.version:
+            return self.version
+        else:
+            return 'unknown'
 
     def get_exe_args(self, compiler):
         return []
@@ -283,22 +286,34 @@ class ExternalDependency(Dependency):
             return
 
         if self.version_reqs:
-            (self.is_found, not_found, found) = \
-                version_compare_many(self.version, self.version_reqs)
-            if not self.is_found:
+            # an unknown version can never satisfy any requirement
+            if not self.version:
                 found_msg = ['Dependency', mlog.bold(self.name), 'found:']
-                found_msg += [mlog.red('NO'),
-                              'found {!r} but need:'.format(self.version),
-                              ', '.join(["'{}'".format(e) for e in not_found])]
-                if found:
-                    found_msg += ['; matched:',
-                                  ', '.join(["'{}'".format(e) for e in found])]
+                found_msg += [mlog.red('NO'), 'unknown version, but need:',
+                              self.version_reqs]
                 mlog.log(*found_msg)
 
                 if self.required:
-                    m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
-                    raise DependencyException(m.format(self.name, not_found, self.version))
-                return
+                    m = 'Unknown version of dependency {!r}, but need {!r}.'
+                    raise DependencyException(m.format(self.name, self.version_reqs))
+
+            else:
+                (self.is_found, not_found, found) = \
+                    version_compare_many(self.version, self.version_reqs)
+                if not self.is_found:
+                    found_msg = ['Dependency', mlog.bold(self.name), 'found:']
+                    found_msg += [mlog.red('NO'),
+                                  'found {!r} but need:'.format(self.version),
+                                  ', '.join(["'{}'".format(e) for e in not_found])]
+                    if found:
+                        found_msg += ['; matched:',
+                                      ', '.join(["'{}'".format(e) for e in found])]
+                    mlog.log(*found_msg)
+
+                    if self.required:
+                        m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
+                        raise DependencyException(m.format(self.name, not_found, self.version))
+                    return
 
 
 class NotFoundDependency(Dependency):
@@ -400,7 +415,7 @@ class ConfigToolDependency(ExternalDependency):
             # don't fail with --version, in that case just assume that there is
             # only one version and return it.
             if not out:
-                return (tool, 'none')
+                return (tool, None)
             if versions:
                 is_found = version_compare_many(out, versions)[0]
                 # This allows returning a found version without a config tool,
@@ -1236,9 +1251,6 @@ class ExtraFrameworkDependency(ExternalDependency):
                 self.is_found = True
                 return
 
-    def get_version(self):
-        return 'unknown'
-
     def log_info(self):
         return os.path.join(self.path, self.name)
 
@@ -1331,7 +1343,7 @@ def find_external_dependency(name, env, kwargs):
                 if info:
                     info = ', ' + info
 
-                mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.green('YES'), d.version + info)
+                mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.green('YES'), (d.version if d.version else '') + info)
 
                 return d
 

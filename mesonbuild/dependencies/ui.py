@@ -44,14 +44,12 @@ class GLDependency(ExternalDependency):
             # FIXME: Use AppleFrameworks dependency
             self.link_args = ['-framework', 'OpenGL']
             # FIXME: Detect version using self.clib_compiler
-            self.version = '1'
             return
         if mesonlib.is_windows():
             self.is_found = True
             # FIXME: Use self.clib_compiler.find_library()
             self.link_args = ['-lopengl32']
             # FIXME: Detect version using self.clib_compiler
-            self.version = '1'
             return
 
     @classmethod
@@ -224,7 +222,7 @@ class QtBaseDependency(ExternalDependency):
             self.compile_args = []
             self.link_args = []
             self.from_text = mlog.format_list(methods)
-            self.version = 'none'
+            self.version = None
 
     def compilers_detect(self):
         "Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"
@@ -557,7 +555,6 @@ class VulkanDependency(ExternalDependency):
 
             # TODO: find a way to retrieve the version from the sdk?
             # Usually it is a part of the path to it (but does not have to be)
-            self.version = '1'
             return
         else:
             # simply try to guess it, usually works on linux
@@ -565,7 +562,6 @@ class VulkanDependency(ExternalDependency):
             if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', environment):
                 self.type_name = 'system'
                 self.is_found = True
-                self.version = 1 # TODO
                 for lib in libs:
                     self.link_args.append(lib)
                 return

@@ -180,7 +180,7 @@ class MPIDependency(ExternalDependency):
             if version:
                 version = version.group(0)
             else:
-                version = 'none'
+                version = None
 
             return version, cargs, libs
 
@@ -197,7 +197,7 @@ class MPIDependency(ExternalDependency):
                 return
             args = shlex.split(o)
 
-            version = 'none'
+            version = None
 
             return version, args, args
 
@@ -222,11 +222,11 @@ class MPIDependency(ExternalDependency):
         else:
             return
         if self.language == 'fortran':
-            return ('none',
+            return (None,
                     ['-I' + incdir, '-I' + os.path.join(incdir, post)],
                     [os.path.join(libdir, 'msmpi.lib'), os.path.join(libdir, 'msmpifec.lib')])
         else:
-            return ('none',
+            return (None,
                     ['-I' + incdir, '-I' + os.path.join(incdir, post)],
                     [os.path.join(libdir, 'msmpi.lib')])
 
@@ -273,9 +273,6 @@ class ThreadDependency(ExternalDependency):
 
     def need_threads(self):
         return True
-
-    def get_version(self):
-        return 'unknown'
 
 
 class Python3Dependency(ExternalDependency):

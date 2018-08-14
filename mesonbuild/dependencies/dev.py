@@ -35,7 +35,6 @@ class GTestDependency(ExternalDependency):
         self.detect()
 
     def detect(self):
-        self.version = '1.something_maybe'
         gtest_detect = self.clib_compiler.find_library("gtest", self.env, [])
         gtest_main_detect = self.clib_compiler.find_library("gtest_main", self.env, [])
         if gtest_detect and (not self.main or gtest_main_detect):
@@ -85,7 +84,6 @@ class GTestDependency(ExternalDependency):
 class GMockDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('gmock', environment, 'cpp', kwargs)
-        self.version = '1.something_maybe'
         # GMock may be a library or just source.
         # Work with both.
         gmock_detect = self.clib_compiler.find_library("gmock", self.env, [])
