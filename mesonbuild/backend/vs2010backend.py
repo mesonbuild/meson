@@ -534,9 +534,17 @@ class Vs2010Backend(backends.Backend):
         pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
         pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % lang
 
+    def is_argument_with_msbuild_xml_entry(self, entry):
+        # Remove arguments that have a top level XML entry so
+        # they are not used twice.
+        # FIXME add args as needed.
+        return entry[1:].startswith('M')
+
     def add_additional_options(self, lang, parent_node, file_args):
         args = []
         for arg in file_args[lang].to_native():
+            if self.is_argument_with_msbuild_xml_entry(arg):
+                continue
             if arg == '%(AdditionalOptions)':
                 args.append(arg)
             else:
@@ -809,6 +817,7 @@ class Vs2010Backend(backends.Backend):
             if l in file_args:
                 file_args[l] += compilers.get_base_compile_args(self.get_base_options_for_target(target), comp)
                 file_args[l] += comp.get_option_compile_args(self.environment.coredata.compiler_options)
+
         # Add compile args added using add_project_arguments()
         for l, args in self.build.projects_args.get(target.subproject, {}).items():
             if l in file_args:
