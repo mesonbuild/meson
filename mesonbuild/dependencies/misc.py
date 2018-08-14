@@ -267,7 +267,7 @@ class OpenMPDependency(ExternalDependency):
 
 class ThreadDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('threads', environment, None, {})
+        super().__init__('threads', environment, None, kwargs)
         self.name = 'threads'
         self.is_found = True
 
