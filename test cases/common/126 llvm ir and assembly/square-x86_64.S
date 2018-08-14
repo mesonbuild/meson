@@ -7,8 +7,8 @@ _TEXT   SEGMENT
 
 SYMBOL_NAME(square_unsigned) PROC
         mov     eax, ecx
-	imul	eax, eax
-	ret
+    imul eax, eax
+    ret
 SYMBOL_NAME(square_unsigned) ENDP
 
 _TEXT   ENDS
@@ -24,14 +24,14 @@ END
 
 # if defined(_WIN32) || defined(__CYGWIN__) /* msabi */
 SYMBOL_NAME(square_unsigned):
-	imull	%ecx, %ecx
-	movl	%ecx, %eax
-	retq
+    imull %ecx, %ecx
+    movl %ecx, %eax
+    retq
 # else /* sysvabi */
 SYMBOL_NAME(square_unsigned):
-	imull	%edi, %edi
-	movl	%edi, %eax
-	retq
+    imull %edi, %edi
+    movl %edi, %eax
+    retq
 # endif
 
 #endif

@@ -7,7 +7,7 @@ ManualInclude::ManualInclude() {
 }
 
 void ManualInclude::myslot(void) {
-	;
+    ;
 }
 
 class MocClass : public QObject {

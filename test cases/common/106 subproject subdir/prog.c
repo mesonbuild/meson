@@ -1,5 +1,5 @@
 #include <sub.h>
 
 int main() {
-	return sub();
+    return sub();
 }
