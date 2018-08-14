@@ -5,6 +5,8 @@ win = import('windows')
 subdir('a')
 subdir('b')
 subdir('c')
+subdir('exe3')
+subdir('exe4')
 
 main = win.compile_resources('rsrc.rc')
 
