@@ -14,3 +14,7 @@ test('cupstest', e)
 # options
 dep = dependency('cups', version : '>=1.4', method : 'cups-config')
 dep = dependency('cups', version : '>=1.4', method : 'config-tool')
+
+# check we can apply a version constraint
+dependency('cups', version: '>=@0@'.format(dep.version()), method: 'pkg-config', required: false)
+dependency('cups', version: '>=@0@'.format(dep.version()), method: 'config-tool')

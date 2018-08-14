@@ -16,3 +16,7 @@ test('pcaptest', e)
 # Ensure discovery via the configuration tools work also
 pcap_dep = dependency('pcap', version : '>=1.0', method : 'pcap-config')
 pcap_dep = dependency('pcap', version : '>=1.0', method : 'config-tool')
+
+# Check we can apply a version constraint
+dependency('pcap', version: '>=@0@'.format(pcap_dep.version()), method: 'pkg-config', required: false)
+dependency('pcap', version: '>=@0@'.format(pcap_dep.version()), method: 'config-tool')

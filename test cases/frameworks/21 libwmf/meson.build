@@ -17,3 +17,7 @@ test('libwmftest', e)
 
 dependency('libwmf', method : 'config-tool')
 dependency('libwmf', method : 'libwmf-config')
+
+# Check we can apply a version constraint
+dependency('libwmf', version: '>=@0@'.format(libwmf_dep.version()), method: 'pkg-config', required: false)
+dependency('libwmf', version: '>=@0@'.format(libwmf_dep.version()), method: 'config-tool')

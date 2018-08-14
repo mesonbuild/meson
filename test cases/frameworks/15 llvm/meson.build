@@ -41,3 +41,6 @@ foreach static : [true, false]
     )
   endif
 endforeach
+
+# Check we can apply a version constraint
+dependency('llvm', version: '>=@0@'.format(d.version()))

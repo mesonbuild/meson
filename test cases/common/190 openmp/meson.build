@@ -38,3 +38,6 @@ if add_languages('fortran', required : false)
 
   test('OpenMP Fortran', execpp, env : env)
 endif
+
+# Check we can apply a version constraint
+dependency('openmp', version: '>=@0@'.format(openmp.version()))
