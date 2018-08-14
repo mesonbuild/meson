@@ -11,9 +11,10 @@ PUBLIC square_unsigned
 _TEXT   SEGMENT
 
 square_unsigned PROC var1:DWORD
-        mov     eax, var1
-	imul	eax, eax
-	ret
+    mov     eax, var1
+    imul eax, eax
+    ret
+
 square_unsigned ENDP
 
 _TEXT   ENDS
@@ -28,8 +29,8 @@ END
 #endif
 
 SYMBOL_NAME(square_unsigned):
-	movl	4(%esp), %eax
-	imull	%eax, %eax
-	retl
+    movl 4(%esp), %eax
+    imull %eax, %eax
+    retl
 
 #endif

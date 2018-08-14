@@ -1,5 +1,5 @@
 int first(void);
 
 int main() {
-	return first() - 1001;
+    return first() - 1001;
 }

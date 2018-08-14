@@ -1,7 +1,7 @@
 namespace Foo
 {
-	public int bar ()
-	{
-		return 0;
-	}
+    public int bar ()
+    {
+        return 0;
+    }
 }
