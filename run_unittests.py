@@ -2660,13 +2660,14 @@ recommended as it is not supported on some platforms''')
         out = self.init(testdir)
         # Parent project warns correctly
         self.assertRegex(out, "WARNING: Project targetting '>=0.45'.*'0.47.0': dict")
-        # Subproject warns correctly
-        self.assertRegex(out, "|WARNING: Project targetting '>=0.40'.*'0.44.0': disabler")
+        # Subprojects warn correctly
+        self.assertRegex(out, r"\|WARNING: Project targetting '>=0.40'.*'0.44.0': disabler")
+        self.assertRegex(out, r"\|WARNING: Project targetting '!=0.40'.*'0.44.0': disabler")
         # Subproject has a new-enough meson_version, no warning
         self.assertNotRegex(out, "WARNING: Project targetting.*Python")
         # Ensure a summary is printed in the subproject and the outer project
-        self.assertRegex(out, "|WARNING: Project specifies a minimum meson_version '>=0.40'")
-        self.assertRegex(out, "| * 0.44.0: {'disabler'}")
+        self.assertRegex(out, r"\|WARNING: Project specifies a minimum meson_version '>=0.40'")
+        self.assertRegex(out, r"\| \* 0.44.0: {'disabler'}")
         self.assertRegex(out, "WARNING: Project specifies a minimum meson_version '>=0.45'")
         self.assertRegex(out, " * 0.47.0: {'dict'}")
 

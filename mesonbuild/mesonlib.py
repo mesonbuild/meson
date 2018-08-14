@@ -493,9 +493,9 @@ def version_compare_condition_with_min(condition, minimum):
         cmpop = operator.le
         condition = condition[2:]
     elif condition.startswith('<='):
-        return True
+        return False
     elif condition.startswith('!='):
-        return True
+        return False
     elif condition.startswith('=='):
         cmpop = operator.le
         condition = condition[2:]
@@ -506,7 +506,7 @@ def version_compare_condition_with_min(condition, minimum):
         cmpop = operator.lt
         condition = condition[1:]
     elif condition.startswith('<'):
-        return True
+        return False
     else:
         cmpop = operator.le
 

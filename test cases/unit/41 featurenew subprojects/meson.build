@@ -4,3 +4,4 @@ foo = {}
 
 subproject('foo')
 subproject('bar')
+subproject('baz')
