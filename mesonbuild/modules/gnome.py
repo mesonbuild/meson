@@ -679,6 +679,13 @@ class GnomeModule(ExtensionModule):
             ret += state.environment.coredata.get_external_args(lang)
         return ret
 
+    @staticmethod
+    def _get_scanner_cflags(cflags):
+        'g-ir-scanner only accepts -I/-D/-U; must ignore all other flags'
+        for f in cflags:
+            if f.startswith(('-D', '-U', '-I')):
+                yield f
+
     @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
                       'export_packages', 'includes', 'dependencies', 'link_with', 'include_directories',
@@ -718,7 +725,8 @@ class GnomeModule(ExtensionModule):
         # are not used here.
         dep_cflags, dep_internal_ldflags, dep_external_ldflags, gi_includes = \
             self._get_dependencies_flags(deps, state, depends, use_gir_args=True)
-        cflags += list(dep_cflags)
+        cflags += list(self._get_scanner_cflags(dep_cflags))
+        cflags += list(self._get_scanner_cflags(self._get_external_args_for_langs(state, [lc[0] for lc in langs_compilers])))
         internal_ldflags += list(dep_internal_ldflags)
         external_ldflags += list(dep_external_ldflags)
         girtargets_inc_dirs = self._get_gir_targets_inc_dirs(girtargets)
@@ -742,7 +750,6 @@ class GnomeModule(ExtensionModule):
         scan_command += self._scan_export_packages(kwargs)
         scan_command += ['--cflags-begin']
         scan_command += cflags
-        scan_command += self._get_external_args_for_langs(state, [lc[0] for lc in langs_compilers])
         scan_command += ['--cflags-end']
         scan_command += get_include_args(inc_dirs)
         scan_command += get_include_args(list(gi_includes) + gir_inc_dirs + inc_dirs, prefix='--add-include-path=')
@@ -987,7 +994,6 @@ This will become a hard error in the future.''')
             args += ['--cflags=%s' % ' '.join(cflags)]
         if ldflags:
             args += ['--ldflags=%s' % ' '.join(ldflags)]
-
 
         return args
 
