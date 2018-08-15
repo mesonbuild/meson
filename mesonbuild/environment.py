@@ -605,9 +605,9 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 if version == 'unknown version':
                     m = 'Failed to detect MSVC compiler arch: stderr was\n{!r}'
                     raise EnvironmentException(m.format(err))
-                is_64 = err.split('\n')[0].endswith(' x64')
+                machine = err.split('\n')[0].split(' ')[-1]
                 cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
-                return cls(compiler, version, is_cross, exe_wrap, is_64)
+                return cls(compiler, version, is_cross, exe_wrap, machine)
             if '(ICC)' in out:
                 # TODO: add microsoft add check OSX
                 inteltype = ICC_STANDARD
@@ -884,7 +884,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 popen_exceptions[' '.join(linker + [arg])] = e
                 continue
             if '/OUT:' in out or '/OUT:' in err:
-                return VisualStudioLinker(linker)
+                return VisualStudioLinker(linker, compiler.machine)
             if p.returncode == 0 and ('armar' in linker or 'armar.exe' in linker):
                 return ArmarLinker(linker)
             if p.returncode == 0:

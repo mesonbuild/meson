@@ -1202,7 +1202,7 @@ class VisualStudioCCompiler(CCompiler):
                 'mtd': ['/MTd'],
                 }
 
-    def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
+    def __init__(self, exelist, version, is_cross, exe_wrap, machine):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'msvc'
         # /showIncludes is needed for build dependency tracking in Ninja
@@ -1212,7 +1212,8 @@ class VisualStudioCCompiler(CCompiler):
                           '2': ['/W3'],
                           '3': ['/W4']}
         self.base_options = ['b_pch', 'b_ndebug', 'b_vscrt'] # FIXME add lto, pgo and the like
-        self.is_64 = is_64
+        self.is_64 = machine.endswith('64')
+        self.machine = machine
 
     # Override CCompiler.get_always_args
     def get_always_args(self):
@@ -1279,7 +1280,7 @@ class VisualStudioCCompiler(CCompiler):
         return ['/nologo']
 
     def get_linker_output_args(self, outputname):
-        return ['/OUT:' + outputname]
+        return ['/MACHINE:' + self.machine, '/OUT:' + outputname]
 
     def get_linker_search_args(self, dirname):
         return ['/LIBPATH:' + dirname]
