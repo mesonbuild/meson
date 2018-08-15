@@ -63,7 +63,7 @@ class GLDependency(ExternalDependency):
             candidates.append(functools.partial(PkgConfigDependency, 'gl', environment, kwargs))
 
         if DependencyMethods.SYSTEM in methods:
-            candidates.append(functools.partial(GLDependency), environment, kwargs)
+            candidates.append(functools.partial(GLDependency, environment, kwargs))
 
         return candidates
 
