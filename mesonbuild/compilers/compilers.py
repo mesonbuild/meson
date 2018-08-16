@@ -273,6 +273,9 @@ msvc_optimization_args = {'0': [],
 clike_debug_args = {False: [],
                     True: ['-g']}
 
+msvc_debug_args = {False: [],
+                   True: []} # Fixme!
+
 base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled headers', True),
                 'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time optimization', False),
                 'b_sanitize': coredata.UserComboOption('b_sanitize',
