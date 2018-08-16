@@ -79,6 +79,24 @@ def append_to_log(lf, line):
         lf.write('\n')
     lf.flush()
 
+def set_chown(path, user=None, group=None, dir_fd=None, follow_symlinks=True):
+    # shutil.chown will call os.chown without passing all the parameters
+    # and particularly follow_symlinks, thus we replace it temporary
+    # with a lambda with all the parameters so that follow_symlinks will
+    # be actually passed properly.
+    # Not nice, but better than actually rewriting shutil.chown until
+    # this python bug is fixed: https://bugs.python.org/issue18108
+    real_os_chown = os.chown
+    try:
+        os.chown = lambda p, u, g: real_os_chown(p, u, g,
+                                                 dir_fd=dir_fd,
+                                                 follow_symlinks=follow_symlinks)
+        shutil.chown(path, user, group)
+    except:
+        raise
+    finally:
+        os.chown = real_os_chown
+
 def set_chmod(path, mode, dir_fd=None, follow_symlinks=True):
     try:
         os.chmod(path, mode, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
@@ -105,7 +123,7 @@ def set_mode(path, mode, default_umask):
     # No chown() on Windows, and must set one of owner/group
     if not is_windows() and (mode.owner or mode.group) is not None:
         try:
-            shutil.chown(path, mode.owner, mode.group)
+            set_chown(path, mode.owner, mode.group, follow_symlinks=False)
         except PermissionError as e:
             msg = '{!r}: Unable to set owner {!r} and group {!r}: {}, ignoring...'
             print(msg.format(path, mode.owner, mode.group, e.strerror))
