@@ -32,7 +32,7 @@ from ..compilers import CompilerArgs, CCompiler
 from ..linkers import ArLinker
 from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_compiler_for_source, has_path_sep
-from .backends import CleanTrees, InstallData, TargetInstallData
+from .backends import CleanTrees
 from ..build import InvalidArguments
 
 if mesonlib.is_windows():

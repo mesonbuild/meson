@@ -16,7 +16,6 @@ from .c import CCompiler
 from .compilers import (
     ICC_STANDARD,
     apple_buildtype_linker_args,
-    get_gcc_soname_args,
     gnulike_buildtype_args,
     gnulike_buildtype_linker_args,
     gnu_optimization_args,
@@ -26,6 +25,9 @@ from .compilers import (
     ElbrusCompiler,
     IntelCompiler,
 )
+
+from mesonbuild.mesonlib import EnvironmentException, is_osx
+import subprocess, os
 
 class FortranCompiler(Compiler):
     library_dirs_cache = CCompiler.library_dirs_cache
@@ -198,13 +200,6 @@ end program prog
 
     def gen_import_library_args(self, implibname):
         return CCompiler.gen_import_library_args(self, implibname)
-
-    def sanity_check(self, work_dir, environment):
-        code = '''program main
-            integer :: ret = 0
-            call exit(ret)
-        end program main'''
-        return CCompiler.sanity_check_impl(self, work_dir, environment, 'sanitycheckf.f90', code)
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         return CCompiler._get_compiler_check_args(self, env, extra_args, dependencies, mode='compile')
