@@ -5,4 +5,5 @@ usr/include/rootdir.h
 usr/libtest/libstat.a
 usr/share/man/man1/foo.1.gz
 usr/share/sub1/second.dat
+usr/share/sub2/stub
 usr/subdir/data.dat

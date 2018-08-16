@@ -3703,31 +3703,41 @@ endian = 'little'
             # Ensure that the otool output does not contain self.installdir
             self.assertNotRegex(out, self.installdir + '.*dylib ')
 
-    def test_install_subdir_symlinks(self):
+    def install_subdir_invalid_symlinks(self, testdir, subdir_path):
         '''
         Test that installation of broken symlinks works fine.
         https://github.com/mesonbuild/meson/issues/3914
         '''
-        testdir = os.path.join(self.common_test_dir, '66 install subdir')
-        subdir = os.path.join(testdir, 'sub/sub1')
+        testdir = os.path.join(self.common_test_dir, testdir)
+        subdir = os.path.join(testdir, subdir_path)
         curdir = os.getcwd()
         os.chdir(subdir)
         # Can't distribute broken symlinks in the source tree because it breaks
         # the creation of zipapps. Create it dynamically and run the test by
         # hand.
         src = '../../nonexistent.txt'
-        os.symlink(src, 'test.txt')
+        os.symlink(src, 'invalid-symlink.txt')
         try:
             self.init(testdir)
             self.build()
             self.install()
-            link = os.path.join(self.installdir, 'usr', 'share', 'sub1', 'test.txt')
+            install_path = subdir_path.split(os.path.sep)[-1]
+            link = os.path.join(self.installdir, 'usr', 'share', install_path, 'invalid-symlink.txt')
             self.assertTrue(os.path.islink(link), msg=link)
             self.assertEqual(src, os.readlink(link))
             self.assertFalse(os.path.isfile(link), msg=link)
         finally:
-            os.remove(os.path.join(subdir, 'test.txt'))
+            os.remove(os.path.join(subdir, 'invalid-symlink.txt'))
             os.chdir(curdir)
+
+    def test_install_subdir_symlinks(self):
+        self.install_subdir_invalid_symlinks('66 install subdir', os.path.join('sub', 'sub1'))
+
+    def test_install_subdir_symlinks_with_default_umask(self):
+        self.install_subdir_invalid_symlinks('201 install_mode', 'sub2')
+
+    def test_install_subdir_symlinks_with_default_umask_and_mode(self):
+        self.install_subdir_invalid_symlinks('201 install_mode', 'sub1')
 
 
 class LinuxArmCrossCompileTests(BasePlatformTests):

@@ -11,6 +11,9 @@ install_subdir('sub1',
   install_dir : 'share',
   install_mode : ['rwxr-x--t', 'root'])
 
+install_subdir('sub2',
+  install_dir : 'share')
+
 # test install_mode in configure_file
 conf = configuration_data()
 conf.set('var', 'mystring')
