@@ -380,11 +380,12 @@ otherwise. This function supports the following keyword arguments:
 - `static` tells the dependency provider to try to get static
   libraries instead of dynamic ones (note that this is not supported
   by all dependency backends)
-- `version`, specifies the required version, a string containing a
+- `version` specifies the required version, a string containing a
   comparison operator followed by the version string, examples include
   `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. (*Added 0.37.0*)
   You can also specify multiple restrictions by passing a list to this
   keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
+  These requirements are never met if the version is unknown.
 - other
 [library-specific](Dependencies.md#dependencies-with-custom-lookup-functionality)
 keywords may also be accepted (e.g. `modules` specifies submodules to use for
@@ -1986,7 +1987,9 @@ an external dependency with the following methods:
    with `declare_dependency()` and `pkgconfig` for system dependencies
    obtained with Pkg-config.
 
- - `version()` is the version number as a string, for example `1.2.8`
+ - `version()` is the version number as a string, for example `1.2.8`.
+   `unknown` if the dependency provider doesn't support determining the
+   version.
 
  - `partial_dependency(compile_args : false, link_args : false, links
    : false, includes : false, source : false)` (*added 0.46.0*) returns
