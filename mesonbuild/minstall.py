@@ -79,13 +79,20 @@ def append_to_log(lf, line):
         lf.write('\n')
     lf.flush()
 
+def set_chmod(path, mode, dir_fd=None, follow_symlinks=True):
+    try:
+        os.chmod(path, mode, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
+    except (NotImplementedError, OSError, SystemError) as e:
+        if not os.path.islink(path):
+            os.chmod(path, mode, dir_fd=dir_fd)
+
 def sanitize_permissions(path, umask):
     if umask is None:
         return
     new_perms = 0o777 if is_executable(path) else 0o666
     new_perms &= ~umask
     try:
-        os.chmod(path, new_perms)
+        set_chmod(path, new_perms, follow_symlinks=False)
     except PermissionError as e:
         msg = '{!r}: Unable to set permissions {!r}: {}, ignoring...'
         print(msg.format(path, new_perms, e.strerror))
@@ -116,7 +123,7 @@ def set_mode(path, mode, default_umask):
     # NOTE: On Windows you can set read/write perms; the rest are ignored
     if mode.perms_s is not None:
         try:
-            os.chmod(path, mode.perms)
+            set_chmod(path, mode.perms, follow_symlinks=False)
         except PermissionError as e:
             msg = '{!r}: Unable to set permissions {!r}: {}, ignoring...'
             print(msg.format(path, mode.perms_s, e.strerror))
