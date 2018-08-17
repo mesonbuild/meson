@@ -739,14 +739,21 @@ class Vs2010Backend(backends.Backend):
         if '/INCREMENTAL:NO' in buildtype_link_args:
             ET.SubElement(type_config, 'LinkIncremental').text = 'false'
         # CRT type; debug or release
-        if crtlib_type == 'mdd' or (crtlib_type == 'from_buildtype' and self.buildtype == 'debug'):
+        if crtlib_type.value == 'from_buildtype':
+            if self.buildtype == 'debug' or self.buildtype == 'debugoptimized':
+                ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
+                ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
+            else:
+                ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+                ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreaded'
+        elif crtlib_type.value == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
-        elif crtlib_type == 'mt':
+        elif crtlib_type.value == 'mt':
             # FIXME, wrong
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
             ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreaded'
-        elif crtlib_type == 'mtd':
+        elif crtlib_type.value == 'mtd':
             # FIXME, wrong
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebug'
