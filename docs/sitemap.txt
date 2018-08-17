@@ -29,7 +29,9 @@ index.md
 		Subprojects.md
 		Disabler.md
 		Modules.md
+			Dlang-module.md
 			Gnome-module.md
+			Hotdoc-module.md
 			i18n-module.md
 			Icestorm-module.md
 			Pkgconfig-module.md
@@ -40,7 +42,6 @@ index.md
 			RPM-module.md
 			Simd-module.md
 			Windows-module.md
-			Dlang-module.md
 		Java.md
 		Vala.md
 		D.md
