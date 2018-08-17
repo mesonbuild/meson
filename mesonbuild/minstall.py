@@ -69,9 +69,9 @@ class DirMaker:
         for d in self.dirs:
             append_to_log(self.lf, d)
 
-def is_executable(path):
+def is_executable(path, follow_symlinks=False):
     '''Checks whether any of the "x" bits are set in the source file mode.'''
-    return bool(os.stat(path).st_mode & 0o111)
+    return bool(os.stat(path, follow_symlinks=follow_symlinks).st_mode & 0o111)
 
 def append_to_log(lf, line):
     lf.write(line)
@@ -107,7 +107,7 @@ def set_chmod(path, mode, dir_fd=None, follow_symlinks=True):
 def sanitize_permissions(path, umask):
     if umask is None:
         return
-    new_perms = 0o777 if is_executable(path) else 0o666
+    new_perms = 0o777 if is_executable(path, follow_symlinks=False) else 0o666
     new_perms &= ~umask
     try:
         set_chmod(path, new_perms, follow_symlinks=False)
