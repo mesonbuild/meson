@@ -14,13 +14,19 @@ project('myapp', 'd')
 executable('myapp', 'app.d')
 ```
 
-## Compiling different versions
+## [Conditional compilation](https://dlang.org/spec/version.html)
 
-If you are using the [version()](https://dlang.org/spec/version.html) feature for conditional compilation,
+If you are using the [version()](https://dlang.org/spec/version.html#version-specification) feature for conditional compilation,
 you can use it using the `d_module_versions` target property:
 ```meson
 project('myapp', 'd')
 executable('myapp', 'app.d', d_module_versions: ['Demo', 'FeatureA'])
+```
+
+For debugging, [debug()](https://dlang.org/spec/version.html#debug) conditions are compiled automatically in debug builds, and extra identifiers can be added with the `d_debug` argument:
+```meson
+project('myapp', 'd')
+executable('myapp', 'app.d', d_debug: [3, 'DebugFeatureA'])
 ```
 
 ## Using embedded unittests
