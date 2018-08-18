@@ -660,7 +660,8 @@ def check_format():
             continue
         for fname in files:
             if os.path.splitext(fname)[1].lower() in check_suffixes:
-                if os.path.split(fname)[1] == 'sitemap.txt':
+                bn = os.path.basename(fname)
+                if bn == 'sitemap.txt' or bn == 'meson-test-run.txt':
                     continue
                 fullname = os.path.join(root, fname)
                 check_file(fullname)
