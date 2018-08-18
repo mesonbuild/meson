@@ -41,6 +41,30 @@ void main (string[] args)
             exit (1);
         }
     }
+    
+    version (With_VersionInteger)
+        version(3) exit(0);
+
+    version (With_Debug)
+        debug exit(0);
+    
+    version (With_DebugInteger)
+        debug(3) exit(0);
+    
+    version (With_DebugIdentifier)
+        debug(DebugIdentifier) exit(0);
+    
+    version (With_DebugAll) {
+        int dbg = 0;
+        debug dbg++;
+        debug(2) dbg++;
+        debug(3) dbg++;
+        debug(4) dbg++;
+        debug(DebugIdentifier) dbg++;
+        
+        if (dbg == 5)
+            exit(0);
+    }
 
     // we fail here
     exit (1);
