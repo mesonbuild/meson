@@ -62,6 +62,14 @@ dmd_optimization_args = {'0': [],
                          }
 
 class DCompiler(Compiler):
+    mscrt_args = {
+        'none': ['-mscrtlib='],
+        'md': ['-mscrtlib=msvcrt'],
+        'mdd': ['-mscrtlib=msvcrtd'],
+        'mt': ['-mscrtlib=libcmt'],
+        'mtd': ['-mscrtlib=libcmtd'],
+    }
+
     def __init__(self, exelist, version, is_cross, is_64, **kwargs):
         self.language = 'd'
         super().__init__(exelist, version, **kwargs)
@@ -286,12 +294,57 @@ class DCompiler(Compiler):
                 # a linker search path.
                 dcargs.append('-L' + arg)
                 continue
+            elif arg.startswith('-mscrtlib='):
+                mscrtlib = arg[10:].lower()
+
+                if cls is LLVMDCompiler:
+                    # Default crt libraries for LDC2 must be excluded for other
+                    # selected crt options.
+                    if mscrtlib != 'libcmt':
+                        dcargs.append('-L/NODEFAULTLIB:libcmt')
+                        dcargs.append('-L/NODEFAULTLIB:libvcruntime')
+
+                    # Fixes missing definitions for printf-functions in VS2017
+                    if mscrtlib.startswith('msvcrt'):
+                        dcargs.append('-L/DEFAULTLIB:legacy_stdio_definitions.lib')
+
+                dcargs.append(arg)
+                continue
             dcargs.append(arg)
 
         return dcargs
 
     def get_debug_args(self, is_debug):
         return clike_debug_args[is_debug]
+
+    def get_crt_args(self, crt_val, buildtype):
+        if not is_windows():
+            return []
+
+        if crt_val in self.mscrt_args:
+            return self.mscrt_args[crt_val]
+        assert(crt_val == 'from_buildtype')
+
+        # Match what build type flags used to do.
+        if buildtype == 'plain':
+            return []
+        elif buildtype == 'debug':
+            return self.mscrt_args['mdd']
+        elif buildtype == 'debugoptimized':
+            return self.mscrt_args['md']
+        elif buildtype == 'release':
+            return self.mscrt_args['md']
+        elif buildtype == 'minsize':
+            return self.mscrt_args['md']
+        else:
+            assert(buildtype == 'custom')
+            raise EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
+
+    def get_crt_compile_args(self, crt_val, buildtype):
+        return []
+
+    def get_crt_link_args(self, crt_val, buildtype):
+        return []
 
 class GnuDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross, is_64, **kwargs):
@@ -301,7 +354,7 @@ class GnuDCompiler(DCompiler):
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
-        self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic']
+        self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic', 'b_vscrt']
 
         self._has_color_support = version_compare(self.version, '>=4.9')
         # dependencies were implemented before, but broken - support was fixed in GCC 7.1+
@@ -349,7 +402,7 @@ class LLVMDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross, is_64, **kwargs):
         DCompiler.__init__(self, exelist, version, is_cross, is_64, **kwargs)
         self.id = 'llvm'
-        self.base_options = ['b_coverage', 'b_colorout']
+        self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
 
     def get_colorout_args(self, colortype):
         if colortype == 'always':
@@ -396,6 +449,9 @@ class LLVMDCompiler(DCompiler):
         # -L is for the compiler, telling it to pass the second -L to the linker.
         return ['-L-L' + dirname]
 
+    def get_crt_link_args(self, crt_val, buildtype):
+        return self.get_crt_args(crt_val, buildtype)
+
     @classmethod
     def unix_args_to_native(cls, args):
         return cls.translate_args_to_nongnu(args)
@@ -408,7 +464,7 @@ class DmdDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross, is_64, **kwargs):
         DCompiler.__init__(self, exelist, version, is_cross, is_64, **kwargs)
         self.id = 'dmd'
-        self.base_options = ['b_coverage', 'b_colorout']
+        self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
         self.is_msvc = 'VCINSTALLDIR' in os.environ
 
     def get_colorout_args(self, colortype):
@@ -464,6 +520,9 @@ class DmdDCompiler(DCompiler):
                 return ['-m32mscoff']
             return ['-m32']
         return []
+
+    def get_crt_compile_args(self, crt_val, buildtype):
+        return self.get_crt_args(crt_val, buildtype)
 
     @classmethod
     def unix_args_to_native(cls, args):

@@ -459,6 +459,15 @@ def get_base_link_args(options, linker, is_shared_module):
     elif as_needed:
         # -Wl,-dead_strip_dylibs is incompatible with bitcode
         args.append(linker.get_asneeded_args())
+    try:
+        crt_val = options['b_vscrt'].value
+        buildtype = options['buildtype'].value
+        try:
+            args += linker.get_crt_link_args(crt_val, buildtype)
+        except AttributeError:
+            pass
+    except KeyError:
+        pass
     return args
 
 class CrossNoRunException(MesonException):
