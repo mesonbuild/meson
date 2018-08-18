@@ -653,6 +653,7 @@ def check_format():
                       '.py',
                       '.swift',
                       '.build',
+                      '.md',
                       }
     for (root, _, files) in os.walk('.'):
         if '.dub' in root: # external deps are here
