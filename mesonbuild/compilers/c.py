@@ -1230,7 +1230,10 @@ class VisualStudioCCompiler(CCompiler):
         return ['/MDd']
 
     def get_buildtype_args(self, buildtype):
-        return compilers.msvc_buildtype_args[buildtype]
+        args = compilers.msvc_buildtype_args[buildtype]
+        if version_compare(self.version, '<18.0'):
+            args = [arg for arg in args if arg != '/Gw']
+        return args
 
     def get_buildtype_linker_args(self, buildtype):
         return compilers.msvc_buildtype_linker_args[buildtype]

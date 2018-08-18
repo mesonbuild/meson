@@ -145,8 +145,8 @@ arm_buildtype_args = {'plain': [],
 msvc_buildtype_args = {'plain': [],
                        'debug': ["/ZI", "/Ob0", "/Od", "/RTC1"],
                        'debugoptimized': ["/Zi", "/Ob1"],
-                       'release': ["/Ob2"],
-                       'minsize': ["/Zi", "/Ob1"],
+                       'release': ["/Ob2", "/Gw"],
+                       'minsize': ["/Zi", "/Gw"],
                        }
 
 apple_buildtype_linker_args = {'plain': [],
@@ -267,7 +267,7 @@ msvc_optimization_args = {'0': [],
                           '1': ['/O1'],
                           '2': ['/O2'],
                           '3': ['/O3'],
-                          's': ['/Os'],
+                          's': ['/O1'], # Implies /Os.
                           }
 
 clike_debug_args = {False: [],
