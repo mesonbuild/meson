@@ -3,6 +3,7 @@
 /.settings
 /.cproject
 /.idea
+/.vscode
 
 __pycache__
 .coverage
