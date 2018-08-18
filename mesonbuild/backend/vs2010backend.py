@@ -685,7 +685,7 @@ class Vs2010Backend(backends.Backend):
         compiler = self._get_cl_compiler(target)
         buildtype_args = compiler.get_buildtype_args(self.buildtype)
         buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
-        crtlib_type = self.environment.coredata.base_options['b_crtlib']
+        vscrt_type = self.environment.coredata.base_options['b_vscrt']
         project_name = target.name
         target_name = target.name
         root = ET.Element('Project', {'DefaultTargets': "Build",
@@ -739,21 +739,21 @@ class Vs2010Backend(backends.Backend):
         if '/INCREMENTAL:NO' in buildtype_link_args:
             ET.SubElement(type_config, 'LinkIncremental').text = 'false'
         # CRT type; debug or release
-        if crtlib_type.value == 'from_buildtype':
+        if vscrt_type.value == 'from_buildtype':
             if self.buildtype == 'debug' or self.buildtype == 'debugoptimized':
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
                 ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
             else:
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
                 ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreaded'
-        elif crtlib_type.value == 'mdd':
+        elif vscrt_type.value == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
-        elif crtlib_type.value == 'mt':
+        elif vscrt_type.value == 'mt':
             # FIXME, wrong
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
             ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreaded'
-        elif crtlib_type.value == 'mtd':
+        elif vscrt_type.value == 'mtd':
             # FIXME, wrong
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebug'

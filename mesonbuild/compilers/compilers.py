@@ -301,9 +301,9 @@ base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled he
                 'b_bitcode': coredata.UserBooleanOption('b_bitcode',
                                                         'Generate and embed bitcode (only macOS and iOS)',
                                                         False),
-                'b_crtlib': coredata.UserComboOption('b_crtlib', 'C run-time library to use.',
-                                                     ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype'],
-                                                     'from_buildtype'),
+                'b_vscrt': coredata.UserComboOption('b_vscrt', 'VS run-time library type to use.',
+                                                    ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype'],
+                                                    'from_buildtype'),
                 }
 
 gnulike_instruction_set_args = {'mmx': ['-mmmx'],
@@ -412,7 +412,7 @@ def get_base_compile_args(options, compiler):
     if option_enabled(compiler.base_options, options, 'b_bitcode'):
         args.append('-fembed-bitcode')
     try:
-        crt_val = options['b_crtlib'].value
+        crt_val = options['b_vscrt'].value
         buildtype = options['buildtype'].value
         try:
             args += compiler.get_crt_compile_args(crt_val, buildtype)

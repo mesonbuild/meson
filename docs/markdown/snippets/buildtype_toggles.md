@@ -18,4 +18,4 @@ meson configure -Doptimization=g
 Similarly we have added a toggle option to select the version of
 Visual Studio C runtime to use. By default it uses the debug runtime
 DLL debug builds and release DLL for release builds but this can be
-manually changed with the new build type option.
+manually changed with the new base option `b_vscrt`.
