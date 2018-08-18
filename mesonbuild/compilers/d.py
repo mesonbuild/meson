@@ -62,20 +62,19 @@ dmd_optimization_args = {'0': [],
                          }
 
 class DCompiler(Compiler):
-    def __init__(self, exelist, version, is_cross, **kwargs):
+    def __init__(self, exelist, version, is_cross, is_64, **kwargs):
         self.language = 'd'
         super().__init__(exelist, version, **kwargs)
         self.id = 'unknown'
         self.is_cross = is_cross
+        self.is_64 = is_64
 
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanity.d')
         output_name = os.path.join(work_dir, 'dtest')
         with open(source_name, 'w') as ofile:
-            ofile.write('''void main() {
-}
-''')
-        pc = subprocess.Popen(self.exelist + self.get_output_args(output_name) + [source_name], cwd=work_dir)
+            ofile.write('''void main() { }''')
+        pc = subprocess.Popen(self.exelist + self.get_output_args(output_name) + self.get_target_arch_args() + [source_name], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('D compiler %s can not compile programs.' % self.name_string())
@@ -166,6 +165,8 @@ class DCompiler(Compiler):
         return res
 
     def get_buildtype_linker_args(self, buildtype):
+        if buildtype != 'plain':
+            return self.get_target_arch_args()
         return []
 
     def get_std_exe_link_args(self):
@@ -224,6 +225,15 @@ class DCompiler(Compiler):
     def has_multi_arguments(self, args, env):
         return self.compiles('int i;\n', env, extra_args=args)
 
+    def get_target_arch_args(self):
+        # LDC2 on Windows targets to current OS architecture, but
+        # it should follow the target specified by the MSVC toolchain.
+        if is_windows():
+            if self.is_64:
+                return ['-m64']
+            return ['-m32']
+        return []
+
     @classmethod
     def translate_args_to_nongnu(cls, args):
         dcargs = []
@@ -272,8 +282,8 @@ class DCompiler(Compiler):
         return clike_debug_args[is_debug]
 
 class GnuDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross, **kwargs):
-        DCompiler.__init__(self, exelist, version, is_cross, **kwargs)
+    def __init__(self, exelist, version, is_cross, is_64, **kwargs):
+        DCompiler.__init__(self, exelist, version, is_cross, is_64, **kwargs)
         self.id = 'gcc'
         default_warn_args = ['-Wall', '-Wdeprecated']
         self.warn_args = {'1': default_warn_args,
@@ -324,8 +334,8 @@ class GnuDCompiler(DCompiler):
         return gnu_optimization_args[optimization_level]
 
 class LLVMDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross, **kwargs):
-        DCompiler.__init__(self, exelist, version, is_cross, **kwargs)
+    def __init__(self, exelist, version, is_cross, is_64, **kwargs):
+        DCompiler.__init__(self, exelist, version, is_cross, is_64, **kwargs)
         self.id = 'llvm'
         self.base_options = ['b_coverage', 'b_colorout']
 
@@ -361,6 +371,8 @@ class LLVMDCompiler(DCompiler):
         return ['-cov']
 
     def get_buildtype_args(self, buildtype):
+        if buildtype != 'plain':
+            return self.get_target_arch_args() + d_ldc_buildtype_args[buildtype]
         return d_ldc_buildtype_args[buildtype]
 
     def get_pic_args(self):
@@ -381,10 +393,11 @@ class LLVMDCompiler(DCompiler):
 
 
 class DmdDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross, **kwargs):
-        DCompiler.__init__(self, exelist, version, is_cross, **kwargs)
+    def __init__(self, exelist, version, is_cross, is_64, **kwargs):
+        DCompiler.__init__(self, exelist, version, is_cross, is_64, **kwargs)
         self.id = 'dmd'
         self.base_options = ['b_coverage', 'b_colorout']
+        self.is_msvc = 'VCINSTALLDIR' in os.environ
 
     def get_colorout_args(self, colortype):
         if colortype == 'always':
@@ -421,10 +434,24 @@ class DmdDCompiler(DCompiler):
         return ['-L-L' + dirname]
 
     def get_buildtype_args(self, buildtype):
+        if buildtype != 'plain':
+            return self.get_target_arch_args() + d_dmd_buildtype_args[buildtype]
         return d_dmd_buildtype_args[buildtype]
 
     def get_std_shared_lib_link_args(self):
         return ['-shared', '-defaultlib=libphobos2.so']
+
+    def get_target_arch_args(self):
+        # DMD32 and DMD64 on 64-bit Windows defaults to 32-bit (OMF).
+        # Force the target to 64-bit in order to stay consistent
+        # across the different platforms.
+        if is_windows():
+            if self.is_64:
+                return ['-m64']
+            elif self.is_msvc:
+                return ['-m32mscoff']
+            return ['-m32']
+        return []
 
     @classmethod
     def unix_args_to_native(cls, args):
