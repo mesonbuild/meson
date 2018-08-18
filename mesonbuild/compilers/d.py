@@ -103,6 +103,8 @@ class DCompiler(Compiler):
         return 'deps'
 
     def get_pic_args(self):
+        if is_windows():
+            return []
         return ['-fPIC']
 
     def get_std_shared_lib_link_args(self):
@@ -173,6 +175,9 @@ class DCompiler(Compiler):
         return []
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+        if is_windows():
+            return []
+
         # This method is to be used by LDC and DMD.
         # GDC can deal with the verbatim flags.
         if not rpath_paths and not install_rpath:
