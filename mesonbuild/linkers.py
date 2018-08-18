@@ -137,3 +137,52 @@ class ArmarLinker(ArLinker):
     def can_linker_accept_rsp(self):
         # armar cann't accept arguments using the @rsp syntax
         return False
+
+class LDCLinker(StaticLinker):
+
+    def __init__(self, exelist):
+        self.exelist = exelist
+        self.id = 'ldc2'
+
+    def can_linker_accept_rsp(self):
+        return mesonlib.is_windows()
+
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+        return []
+
+    def get_exelist(self):
+        return self.exelist[:]
+
+    def get_std_link_args(self):
+        return ['-lib']
+
+    def get_output_args(self, target):
+        return ['-of=' + target]
+
+    def get_buildtype_linker_args(self, buildtype):
+        return []
+
+    def get_linker_always_args(self):
+        return []
+
+    def get_coverage_link_args(self):
+        return []
+
+    def get_always_args(self):
+        return []
+
+    def thread_link_flags(self, env):
+        return []
+
+    def openmp_flags(self):
+        return []
+
+    def get_option_link_args(self, options):
+        return []
+
+    @classmethod
+    def unix_args_to_native(cls, args):
+        return args[:]
+
+    def get_link_debugfile_args(self, targetfile):
+        return []

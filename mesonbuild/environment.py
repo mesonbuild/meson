@@ -15,7 +15,7 @@
 import configparser, os, platform, re, shlex, shutil, subprocess
 
 from . import coredata
-from .linkers import ArLinker, ArmarLinker, VisualStudioLinker
+from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, LDCLinker
 from . import mesonlib
 from .mesonlib import EnvironmentException, Popen_safe
 from . import mlog
@@ -341,6 +341,7 @@ class Environment:
         self.vs_static_linker = ['lib']
         self.gcc_static_linker = ['gcc-ar']
         self.clang_static_linker = ['llvm-ar']
+        self.ldc2_static_linker = ['ldc2']
 
         # Various prefixes and suffixes for import libraries, shared libraries,
         # static libraries, and executables.
@@ -881,6 +882,11 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             elif isinstance(compiler, compilers.ClangCompiler):
                 # Use llvm-ar if available; needed for LTO
                 linkers = [self.clang_static_linker, self.default_static_linker]
+            elif isinstance(compiler, compilers.DCompiler):
+                if mesonlib.is_windows():
+                    linkers = [self.vs_static_linker, self.ldc2_static_linker]
+                else:
+                    linkers = [self.default_static_linker, self.ldc2_static_linker]
             else:
                 linkers = [self.default_static_linker]
         popen_exceptions = {}
@@ -898,6 +904,8 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 return VisualStudioLinker(linker)
             if p.returncode == 0 and ('armar' in linker or 'armar.exe' in linker):
                 return ArmarLinker(linker)
+            if 'LDC - the LLVM D compiler' in out:
+                return LDCLinker(linker)
             if p.returncode == 0:
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('usage'): # OSX
