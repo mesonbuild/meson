@@ -303,7 +303,7 @@ def pass_libdir_to_test(dirname):
         return False
     if '38 libdir must be inside prefix' in dirname:
         return False
-    if '199 install_mode' in dirname:
+    if '196 install_mode' in dirname:
         return False
     return True
 
