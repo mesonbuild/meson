@@ -69,9 +69,9 @@ class DirMaker:
         for d in self.dirs:
             append_to_log(self.lf, d)
 
-def is_executable(path):
+def is_executable(path, follow_symlinks=False):
     '''Checks whether any of the "x" bits are set in the source file mode.'''
-    return bool(os.stat(path).st_mode & 0o111)
+    return bool(os.stat(path, follow_symlinks=follow_symlinks).st_mode & 0o111)
 
 def append_to_log(lf, line):
     lf.write(line)
@@ -79,13 +79,38 @@ def append_to_log(lf, line):
         lf.write('\n')
     lf.flush()
 
+def set_chown(path, user=None, group=None, dir_fd=None, follow_symlinks=True):
+    # shutil.chown will call os.chown without passing all the parameters
+    # and particularly follow_symlinks, thus we replace it temporary
+    # with a lambda with all the parameters so that follow_symlinks will
+    # be actually passed properly.
+    # Not nice, but better than actually rewriting shutil.chown until
+    # this python bug is fixed: https://bugs.python.org/issue18108
+    real_os_chown = os.chown
+    try:
+        os.chown = lambda p, u, g: real_os_chown(p, u, g,
+                                                 dir_fd=dir_fd,
+                                                 follow_symlinks=follow_symlinks)
+        shutil.chown(path, user, group)
+    except:
+        raise
+    finally:
+        os.chown = real_os_chown
+
+def set_chmod(path, mode, dir_fd=None, follow_symlinks=True):
+    try:
+        os.chmod(path, mode, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
+    except (NotImplementedError, OSError, SystemError) as e:
+        if not os.path.islink(path):
+            os.chmod(path, mode, dir_fd=dir_fd)
+
 def sanitize_permissions(path, umask):
     if umask is None:
         return
-    new_perms = 0o777 if is_executable(path) else 0o666
+    new_perms = 0o777 if is_executable(path, follow_symlinks=False) else 0o666
     new_perms &= ~umask
     try:
-        os.chmod(path, new_perms)
+        set_chmod(path, new_perms, follow_symlinks=False)
     except PermissionError as e:
         msg = '{!r}: Unable to set permissions {!r}: {}, ignoring...'
         print(msg.format(path, new_perms, e.strerror))
@@ -98,7 +123,7 @@ def set_mode(path, mode, default_umask):
     # No chown() on Windows, and must set one of owner/group
     if not is_windows() and (mode.owner or mode.group) is not None:
         try:
-            shutil.chown(path, mode.owner, mode.group)
+            set_chown(path, mode.owner, mode.group, follow_symlinks=False)
         except PermissionError as e:
             msg = '{!r}: Unable to set owner {!r} and group {!r}: {}, ignoring...'
             print(msg.format(path, mode.owner, mode.group, e.strerror))
@@ -116,7 +141,7 @@ def set_mode(path, mode, default_umask):
     # NOTE: On Windows you can set read/write perms; the rest are ignored
     if mode.perms_s is not None:
         try:
-            os.chmod(path, mode.perms)
+            set_chmod(path, mode.perms, follow_symlinks=False)
         except PermissionError as e:
             msg = '{!r}: Unable to set permissions {!r}: {}, ignoring...'
             print(msg.format(path, mode.perms_s, e.strerror))
