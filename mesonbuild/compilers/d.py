@@ -174,6 +174,9 @@ class DCompiler(Compiler):
     def get_std_exe_link_args(self):
         return []
 
+    def gen_import_library_args(self, implibname):
+        return ['-Wl,--out-implib=' + implibname]
+
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         if is_windows():
             return []
@@ -252,6 +255,10 @@ class DCompiler(Compiler):
             if arg.startswith('-Wl,'):
                 linkargs = arg[arg.index(',') + 1:].split(',')
                 for la in linkargs:
+                    if la.startswith('--out-implib='):
+                        # Import library name for MSVC targets
+                        dcargs.append('-L/IMPLIB:' + la[13:].strip())
+                        continue
                     dcargs.append('-L' + la.strip())
                 continue
             elif arg.startswith('-install-name'):
