@@ -30,14 +30,17 @@ from .compilers import (
 )
 
 d_feature_args = {'gcc':  {'unittest': '-funittest',
+                           'debug': '-fdebug',
                            'version': '-fversion',
                            'import_dir': '-J'
                            },
                   'llvm': {'unittest': '-unittest',
+                           'debug': '-d-debug',
                            'version': '-d-version',
                            'import_dir': '-J'
                            },
                   'dmd':  {'unittest': '-unittest',
+                           'debug': '-debug',
                            'version': '-version',
                            'import_dir': '-J'
                            }
@@ -168,16 +171,53 @@ class DCompiler(Compiler):
             if unittest:
                 res.append(unittest_arg)
 
+        if 'debug' in kwargs:
+            debug_level = -1
+            debugs = kwargs.pop('debug')
+            if not isinstance(debugs, list):
+                debugs = [debugs]
+
+            debug_arg = d_feature_args[self.id]['debug']
+            if not debug_arg:
+                raise EnvironmentException('D compiler %s does not support conditional debug identifiers.' % self.name_string())
+
+            # Parse all debug identifiers and the largest debug level identifier
+            for d in debugs:
+                if isinstance(d, int):
+                    if d > debug_level:
+                        debug_level = d
+                elif isinstance(d, str) and d.isdigit():
+                    if int(d) > debug_level:
+                        debug_level = int(d)
+                else:
+                    res.append('{0}={1}'.format(debug_arg, d))
+
+            if debug_level >= 0:
+                res.append('{0}={1}'.format(debug_arg, debug_level))
+
         if 'versions' in kwargs:
+            version_level = -1
             versions = kwargs.pop('versions')
             if not isinstance(versions, list):
                 versions = [versions]
 
             version_arg = d_feature_args[self.id]['version']
             if not version_arg:
-                raise EnvironmentException('D compiler %s does not support the "feature versions" feature.' % self.name_string())
+                raise EnvironmentException('D compiler %s does not support conditional version identifiers.' % self.name_string())
+
+            # Parse all version identifiers and the largest version level identifier
             for v in versions:
-                res.append('{0}={1}'.format(version_arg, v))
+                if isinstance(v, int):
+                    if v > version_level:
+                        version_level = v
+                elif isinstance(v, str) and v.isdigit():
+                    if int(v) > version_level:
+                        version_level = int(v)
+                else:
+                    res.append('{0}={1}'.format(version_arg, v))
+
+            if version_level >= 0:
+                res.append('{0}={1}'.format(version_arg, version_level))
 
         if 'import_dirs' in kwargs:
             import_dirs = kwargs.pop('import_dirs')
@@ -378,7 +418,11 @@ class DCompiler(Compiler):
         return args
 
     def get_debug_args(self, is_debug):
-        return clike_debug_args[is_debug]
+        ddebug_args = []
+        if is_debug:
+            ddebug_args = [d_feature_args[self.id]['debug']]
+
+        return clike_debug_args[is_debug] + ddebug_args
 
     def get_crt_args(self, crt_val, buildtype):
         if not is_windows():

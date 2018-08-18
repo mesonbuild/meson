@@ -37,6 +37,7 @@ lang_arg_kwargs = set([
     'd_import_dirs',
     'd_unittest',
     'd_module_versions',
+    'd_debug',
     'fortran_args',
     'java_args',
     'objc_args',
@@ -737,9 +738,12 @@ just like those detected with the dependency() function.''')
         dfeature_unittest = kwargs.get('d_unittest', False)
         if dfeature_unittest:
             dfeatures['unittest'] = dfeature_unittest
-        dfeature_versions = kwargs.get('d_module_versions', None)
+        dfeature_versions = kwargs.get('d_module_versions', [])
         if dfeature_versions:
             dfeatures['versions'] = dfeature_versions
+        dfeature_debug = kwargs.get('d_debug', [])
+        if dfeature_debug:
+            dfeatures['debug'] = dfeature_debug
         if 'd_import_dirs' in kwargs:
             dfeature_import_dirs = extract_as_list(kwargs, 'd_import_dirs', unholder=True)
             for d in dfeature_import_dirs:
