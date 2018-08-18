@@ -2000,6 +2000,9 @@ class Interpreter(InterpreterBase):
     def process_new_values(self, invalues):
         invalues = listify(invalues)
         for v in invalues:
+            if isinstance(v, (RunTargetHolder, CustomTargetHolder, BuildTargetHolder)):
+                v = v.held_object
+
             if isinstance(v, (build.BuildTarget, build.CustomTarget, build.RunTarget)):
                 self.add_target(v.name, v)
             elif isinstance(v, list):
