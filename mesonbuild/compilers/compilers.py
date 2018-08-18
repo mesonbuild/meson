@@ -196,22 +196,22 @@ rust_buildtype_args = {'plain': [],
 
 d_gdc_buildtype_args = {'plain': [],
                         'debug': [],
-                        'debugoptimized': ['-O'],
-                        'release': ['-O3', '-frelease'],
+                        'debugoptimized': ['-finline-functions'],
+                        'release': ['-frelease', '-finline-functions'],
                         'minsize': [],
                         }
 
 d_ldc_buildtype_args = {'plain': [],
                         'debug': [],
-                        'debugoptimized': ['-O'],
-                        'release': ['-O3', '-release'],
+                        'debugoptimized': ['-enable-inlining', '-Hkeep-all-bodies'],
+                        'release': ['-release', '-enable-inlining', '-Hkeep-all-bodies'],
                         'minsize': [],
                         }
 
 d_dmd_buildtype_args = {'plain': [],
                         'debug': [],
-                        'debugoptimized': ['-O'],
-                        'release': ['-O', '-release'],
+                        'debugoptimized': ['-inline'],
+                        'release': ['-release', '-inline'],
                         'minsize': [],
                         }
 
