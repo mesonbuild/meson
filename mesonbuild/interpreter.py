@@ -3929,7 +3929,7 @@ Try setting b_lundef to false instead.''')
                     # BW compatibility. This was permitted so we must support it
                     # for a few releases so people can transition to "correct"
                     # path declarations.
-                    if i.startswith(self.environment.get_source_dir()):
+                    if os.path.normpath(i).startswith(self.environment.get_source_dir()):
                         mlog.warning('''Building a path to the source dir is not supported. Use a relative path instead.
 This will become a hard error in the future.''')
                         i = os.path.relpath(i, os.path.join(self.environment.get_source_dir(), self.subdir))
