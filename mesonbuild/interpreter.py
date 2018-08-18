@@ -1974,7 +1974,7 @@ class Interpreter(InterpreterBase):
             return [self.holderify(x) for x in item]
         if isinstance(item, build.CustomTarget):
             return CustomTargetHolder(item, self)
-        elif isinstance(item, (int, str)) or item is None:
+        elif isinstance(item, (int, str, bool)) or item is None:
             return item
         elif isinstance(item, build.Executable):
             return ExecutableHolder(item, self)
@@ -2017,6 +2017,8 @@ class Interpreter(InterpreterBase):
                 # The first source is our new VapiTarget, the rest are deps
                 self.process_new_values(v.sources[0])
             elif hasattr(v, 'held_object'):
+                pass
+            elif isinstance(v, (int, str, bool)):
                 pass
             else:
                 raise InterpreterException('Module returned a value of unknown type.')
