@@ -32,7 +32,7 @@ from ..compilers import CompilerArgs, CCompiler
 from ..linkers import ArLinker
 from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_compiler_for_source, has_path_sep
-from .backends import CleanTrees, InstallData, TargetInstallData
+from .backends import CleanTrees
 from ..build import InvalidArguments
 
 if mesonlib.is_windows():
@@ -826,6 +826,8 @@ int dummy;
         deps = []
         commands = CompilerArgs(compiler, target.extra_args.get('cs', []))
         commands += compiler.get_buildtype_args(buildtype)
+        commands += compiler.get_optimization_args(self.get_option_for_target('optimization', target))
+        commands += compiler.get_debug_args(self.get_option_for_target('debug', target))
         if isinstance(target, build.Executable):
             commands.append('-target:exe')
         elif isinstance(target, build.SharedLibrary):
@@ -1117,6 +1119,7 @@ int dummy;
         args.append(cratetype)
         args += ['--crate-name', target.name]
         args += rustc.get_buildtype_args(self.get_option_for_target('buildtype', target))
+        args += rustc.get_debug_args(self.get_option_for_target('debug', target))
         depfile = os.path.join(target.subdir, target.name + '.d')
         args += ['--emit', 'dep-info={}'.format(depfile), '--emit', 'link']
         args += target.get_extra_args('rust')
@@ -1241,6 +1244,8 @@ int dummy;
                 raise InvalidArguments('Swift target %s contains a non-swift source file.' % target.get_basename())
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compile_args = swiftc.get_compile_only_args()
+        compile_args += swiftc.get_optimization_args(self.get_option_for_target('optimization', target))
+        compile_args += swiftc.get_debug_args(self.get_option_for_target('debug', target))
         compile_args += swiftc.get_module_args(module_name)
         compile_args += self.build.get_project_args(swiftc, target.subproject)
         compile_args += self.build.get_global_args(swiftc)

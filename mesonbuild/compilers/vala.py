@@ -34,6 +34,12 @@ class ValaCompiler(Compiler):
     def needs_static_linker(self):
         return False # Because compiles into C.
 
+    def get_optimization_args(self, optimization_level):
+        return []
+
+    def get_debug_args(self, is_debug):
+        return ['--debug']
+
     def get_output_args(self, target):
         return [] # Because compiles into C.
 

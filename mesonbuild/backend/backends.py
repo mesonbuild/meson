@@ -532,6 +532,8 @@ class Backend:
         commands += compiler.get_option_compile_args(copt_proxy)
         # Add buildtype args: optimization level, debugging, etc.
         commands += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
+        commands += compiler.get_optimization_args(self.get_option_for_target('optimization', target))
+        commands += compiler.get_debug_args(self.get_option_for_target('debug', target))
         # Add compile args added using add_project_arguments()
         commands += self.build.get_project_args(compiler, target.subproject)
         # Add compile args added using add_global_arguments()

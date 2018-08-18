@@ -15,11 +15,19 @@
 from .c import CCompiler
 from .compilers import (
     ICC_STANDARD,
+    apple_buildtype_linker_args,
+    gnulike_buildtype_args,
+    gnulike_buildtype_linker_args,
+    gnu_optimization_args,
+    clike_debug_args,
     Compiler,
     GnuCompiler,
     ElbrusCompiler,
     IntelCompiler,
 )
+
+from mesonbuild.mesonlib import EnvironmentException, is_osx
+import subprocess, os
 
 class FortranCompiler(Compiler):
     library_dirs_cache = CCompiler.library_dirs_cache
@@ -60,6 +68,48 @@ class FortranCompiler(Compiler):
 
     def get_soname_args(self, *args):
         return CCompiler.get_soname_args(self, *args)
+
+    def sanity_check(self, work_dir, environment):
+        source_name = os.path.join(work_dir, 'sanitycheckf.f90')
+        binary_name = os.path.join(work_dir, 'sanitycheckf')
+        with open(source_name, 'w') as ofile:
+            ofile.write('''program prog
+     print *, "Fortran compilation is working."
+end program prog
+''')
+        extra_flags = self.get_cross_extra_flags(environment, link=True)
+        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
+        pc.wait()
+        if pc.returncode != 0:
+            raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
+        if self.is_cross:
+            if self.exe_wrapper is None:
+                # Can't check if the binaries run so we have to assume they do
+                return
+            cmdlist = self.exe_wrapper + [binary_name]
+        else:
+            cmdlist = [binary_name]
+        pe = subprocess.Popen(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        pe.wait()
+        if pe.returncode != 0:
+            raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
+
+    def get_std_warn_args(self, level):
+        return FortranCompiler.std_warn_args
+
+    def get_buildtype_args(self, buildtype):
+        return gnulike_buildtype_args[buildtype]
+
+    def get_optimization_args(self, optimization_level):
+        return gnu_optimization_args[optimization_level]
+
+    def get_debug_args(self, is_debug):
+        return clike_debug_args[is_debug]
+
+    def get_buildtype_linker_args(self, buildtype):
+        if is_osx():
+            return apple_buildtype_linker_args[buildtype]
+        return gnulike_buildtype_linker_args[buildtype]
 
     def split_shlib_to_parts(self, fname):
         return CCompiler.split_shlib_to_parts(self, fname)
@@ -150,13 +200,6 @@ class FortranCompiler(Compiler):
 
     def gen_import_library_args(self, implibname):
         return CCompiler.gen_import_library_args(self, implibname)
-
-    def sanity_check(self, work_dir, environment):
-        code = '''program main
-            integer :: ret = 0
-            call exit(ret)
-        end program main'''
-        return CCompiler.sanity_check_impl(self, work_dir, environment, 'sanitycheckf.f90', code)
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         return CCompiler._get_compiler_check_args(self, env, extra_args, dependencies, mode='compile')

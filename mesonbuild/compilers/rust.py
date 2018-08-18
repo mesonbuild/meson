@@ -16,7 +16,15 @@ import subprocess, os.path
 
 from ..mesonlib import EnvironmentException, Popen_safe
 
-from .compilers import Compiler, rust_buildtype_args
+from .compilers import Compiler, rust_buildtype_args, clike_debug_args
+
+rust_optimization_args = {'0': [],
+                          'g': ['-C', '--opt-level=0'],
+                          '1': ['-C', '--opt-level=1'],
+                          '2': ['-C', '--opt-level=2'],
+                          '3': ['-C', '--opt-level=3'],
+                          's': ['-C', '--opt-level=s'],
+                          }
 
 class RustCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -68,3 +76,9 @@ class RustCompiler(Compiler):
         cmd = self.exelist + ['--print', 'sysroot']
         p, stdo, stde = Popen_safe(cmd)
         return stdo.split('\n')[0]
+
+    def get_debug_args(self, is_debug):
+        return clike_debug_args[is_debug]
+
+    def get_optimization_args(self, optimization_level):
+        return rust_optimization_args[optimization_level]

@@ -534,9 +534,17 @@ class Vs2010Backend(backends.Backend):
         pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
         pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % lang
 
+    def is_argument_with_msbuild_xml_entry(self, entry):
+        # Remove arguments that have a top level XML entry so
+        # they are not used twice.
+        # FIXME add args as needed.
+        return entry[1:].startswith('M')
+
     def add_additional_options(self, lang, parent_node, file_args):
         args = []
         for arg in file_args[lang].to_native():
+            if self.is_argument_with_msbuild_xml_entry(arg):
+                continue
             if arg == '%(AdditionalOptions)':
                 args.append(arg)
             else:
@@ -677,6 +685,7 @@ class Vs2010Backend(backends.Backend):
         compiler = self._get_cl_compiler(target)
         buildtype_args = compiler.get_buildtype_args(self.buildtype)
         buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
+        vscrt_type = self.environment.coredata.base_options['b_vscrt']
         project_name = target.name
         target_name = target.name
         root = ET.Element('Project', {'DefaultTargets': "Build",
@@ -730,9 +739,24 @@ class Vs2010Backend(backends.Backend):
         if '/INCREMENTAL:NO' in buildtype_link_args:
             ET.SubElement(type_config, 'LinkIncremental').text = 'false'
         # CRT type; debug or release
-        if '/MDd' in buildtype_args:
+        if vscrt_type.value == 'from_buildtype':
+            if self.buildtype == 'debug' or self.buildtype == 'debugoptimized':
+                ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
+                ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
+            else:
+                ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+                ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreaded'
+        elif vscrt_type.value == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
+        elif vscrt_type.value == 'mt':
+            # FIXME, wrong
+            ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+            ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreaded'
+        elif vscrt_type.value == 'mtd':
+            # FIXME, wrong
+            ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
+            ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebug'
         else:
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
             ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDLL'
@@ -800,6 +824,7 @@ class Vs2010Backend(backends.Backend):
             if l in file_args:
                 file_args[l] += compilers.get_base_compile_args(self.get_base_options_for_target(target), comp)
                 file_args[l] += comp.get_option_compile_args(self.environment.coredata.compiler_options)
+
         # Add compile args added using add_project_arguments()
         for l, args in self.build.projects_args.get(target.subproject, {}).items():
             if l in file_args:

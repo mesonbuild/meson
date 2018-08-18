@@ -124,12 +124,10 @@ def is_library(fname):
     return suffix in lib_suffixes
 
 gnulike_buildtype_args = {'plain': [],
-                          # -O0 is passed for improved debugging information with gcc
-                          # See https://github.com/mesonbuild/meson/pull/509
-                          'debug': ['-O0', '-g'],
-                          'debugoptimized': ['-O2', '-g'],
-                          'release': ['-O3'],
-                          'minsize': ['-Os', '-g']}
+                          'debug': [],
+                          'debugoptimized': [],
+                          'release': [],
+                          'minsize': []}
 
 armclang_buildtype_args = {'plain': [],
                            'debug': ['-O0', '-g'],
@@ -145,10 +143,10 @@ arm_buildtype_args = {'plain': [],
                       }
 
 msvc_buildtype_args = {'plain': [],
-                       'debug': ["/MDd", "/ZI", "/Ob0", "/Od", "/RTC1"],
-                       'debugoptimized': ["/MD", "/Zi", "/O2", "/Ob1"],
-                       'release': ["/MD", "/O2", "/Ob2"],
-                       'minsize': ["/MD", "/Zi", "/Os", "/Ob1"],
+                       'debug': ["/ZI", "/Ob0", "/Od", "/RTC1"],
+                       'debugoptimized': ["/Zi", "/Ob1"],
+                       'release': ["/Ob2"],
+                       'minsize': ["/Zi", "/Ob1"],
                        }
 
 apple_buildtype_linker_args = {'plain': [],
@@ -190,44 +188,44 @@ java_buildtype_args = {'plain': [],
                        }
 
 rust_buildtype_args = {'plain': [],
-                       'debug': ['-C', 'debuginfo=2'],
-                       'debugoptimized': ['-C', 'debuginfo=2', '-C', 'opt-level=2'],
-                       'release': ['-C', 'opt-level=3'],
-                       'minsize': [], # In a future release: ['-C', 'opt-level=s'],
+                       'debug': [],
+                       'debugoptimized': [],
+                       'release': [],
+                       'minsize': [],
                        }
 
 d_gdc_buildtype_args = {'plain': [],
-                        'debug': ['-g', '-O0'],
-                        'debugoptimized': ['-g', '-O'],
+                        'debug': [],
+                        'debugoptimized': ['-O'],
                         'release': ['-O3', '-frelease'],
                         'minsize': [],
                         }
 
 d_ldc_buildtype_args = {'plain': [],
-                        'debug': ['-g', '-O0'],
-                        'debugoptimized': ['-g', '-O'],
+                        'debug': [],
+                        'debugoptimized': ['-O'],
                         'release': ['-O3', '-release'],
                         'minsize': [],
                         }
 
 d_dmd_buildtype_args = {'plain': [],
-                        'debug': ['-g'],
-                        'debugoptimized': ['-g', '-O'],
+                        'debug': [],
+                        'debugoptimized': ['-O'],
                         'release': ['-O', '-release'],
                         'minsize': [],
                         }
 
 mono_buildtype_args = {'plain': [],
-                       'debug': ['-debug'],
-                       'debugoptimized': ['-debug', '-optimize+'],
+                       'debug': [],
+                       'debugoptimized': ['-optimize+'],
                        'release': ['-optimize+'],
                        'minsize': [],
                        }
 
 swift_buildtype_args = {'plain': [],
-                        'debug': ['-g'],
-                        'debugoptimized': ['-g', '-O'],
-                        'release': ['-O'],
+                        'debug': [],
+                        'debugoptimized': [],
+                        'release': [],
                         'minsize': [],
                         }
 
@@ -247,6 +245,36 @@ clang_color_args = {'auto': ['-Xclang', '-fcolor-diagnostics'],
                     'always': ['-Xclang', '-fcolor-diagnostics'],
                     'never': ['-Xclang', '-fno-color-diagnostics'],
                     }
+
+clike_optimization_args = {'0': [],
+                           'g': [],
+                           '1': ['-O1'],
+                           '2': ['-O2'],
+                           '3': ['-O3'],
+                           's': ['-Os'],
+                           }
+
+gnu_optimization_args = {'0': [],
+                         'g': ['-Og'],
+                         '1': ['-O1'],
+                         '2': ['-O2'],
+                         '3': ['-O3'],
+                         's': ['-Os'],
+                         }
+
+msvc_optimization_args = {'0': [],
+                          'g': ['/O0'],
+                          '1': ['/O1'],
+                          '2': ['/O2'],
+                          '3': ['/O3'],
+                          's': ['/Os'],
+                          }
+
+clike_debug_args = {False: [],
+                    True: ['-g']}
+
+msvc_debug_args = {False: [],
+                   True: []} # Fixme!
 
 base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled headers', True),
                 'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time optimization', False),
@@ -273,6 +301,9 @@ base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled he
                 'b_bitcode': coredata.UserBooleanOption('b_bitcode',
                                                         'Generate and embed bitcode (only macOS and iOS)',
                                                         False),
+                'b_vscrt': coredata.UserComboOption('b_vscrt', 'VS run-time library type to use.',
+                                                    ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype'],
+                                                    'from_buildtype'),
                 }
 
 gnulike_instruction_set_args = {'mmx': ['-mmmx'],
@@ -380,6 +411,15 @@ def get_base_compile_args(options, compiler):
     # This does not need a try...except
     if option_enabled(compiler.base_options, options, 'b_bitcode'):
         args.append('-fembed-bitcode')
+    try:
+        crt_val = options['b_vscrt'].value
+        buildtype = options['buildtype'].value
+        try:
+            args += compiler.get_crt_compile_args(crt_val, buildtype)
+        except AttributeError:
+            pass
+    except KeyError:
+        pass
     return args
 
 def get_base_link_args(options, linker, is_shared_module):
@@ -1250,6 +1290,12 @@ class GnuCompiler:
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
 
+    def get_optimization_args(self, optimization_level):
+        return gnu_optimization_args[optimization_level]
+
+    def get_debug_args(self, is_debug):
+        return clike_debug_args[is_debug]
+
     def get_buildtype_linker_args(self, buildtype):
         if self.gcc_type == GCC_OSX:
             return apple_buildtype_linker_args[buildtype]
@@ -1370,6 +1416,12 @@ class ClangCompiler:
         if self.clang_type == CLANG_OSX:
             return apple_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
+
+    def get_optimization_args(self, optimization_level):
+        return clike_optimization_args[optimization_level]
+
+    def get_debug_args(self, is_debug):
+        return clike_debug_args[is_debug]
 
     def get_pch_suffix(self):
         return 'pch'
