@@ -127,11 +127,14 @@ class FortranCompiler(Compiler):
     def get_std_shared_lib_link_args(self):
         return CCompiler.get_std_shared_lib_link_args(self)
 
-    def get_library_dirs_real(self):
-        return CCompiler.get_library_dirs_real(self)
+    def _get_search_dirs(self, *args, **kwargs):
+        return CCompiler._get_search_dirs(self, *args, **kwargs)
 
-    def get_library_dirs(self):
-        return CCompiler.get_library_dirs(self)
+    def get_compiler_dirs(self, *args, **kwargs):
+        return CCompiler.get_compiler_dirs(self, *args, **kwargs)
+
+    def get_library_dirs(self, *args, **kwargs):
+        return CCompiler.get_library_dirs(self, *args, **kwargs)
 
     def get_pic_args(self):
         return CCompiler.get_pic_args(self)

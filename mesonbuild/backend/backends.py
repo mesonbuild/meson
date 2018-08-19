@@ -342,9 +342,9 @@ class Backend:
         return l, stdlib_args
 
     @staticmethod
-    def _libdir_is_system(libdir, compilers):
+    def _libdir_is_system(libdir, compilers, env):
         for cc in compilers.values():
-            if libdir in cc.get_library_dirs():
+            if libdir in cc.get_library_dirs(env):
                 return True
         return False
 
@@ -359,7 +359,7 @@ class Backend:
             # The only link argument is an absolute path to a library file.
             libpath = la[0]
             libdir = os.path.dirname(libpath)
-            if exclude_system and self._libdir_is_system(libdir, target.compilers):
+            if exclude_system and self._libdir_is_system(libdir, target.compilers, self.environment):
                 # No point in adding system paths.
                 continue
             # Windows doesn't support rpaths, but we use this function to
@@ -597,8 +597,8 @@ class Backend:
         # Get program and library dirs from all target compilers
         if isinstance(target, build.BuildTarget):
             for cc in target.compilers.values():
-                paths.update(cc.get_program_dirs())
-                paths.update(cc.get_library_dirs())
+                paths.update(cc.get_program_dirs(self.environment))
+                paths.update(cc.get_library_dirs(self.environment))
         return list(paths)
 
     def determine_windows_extra_paths(self, target, extra_bdeps, is_cross=False):
