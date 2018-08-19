@@ -33,8 +33,8 @@ foreach comp : [meson.get_compiler('c'), meson.get_compiler('cpp')]
   # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80005
   # https://github.com/mesonbuild/meson/issues/1458
   if host_system == 'linux'
-    assert(comp.check_header('linux/if.h', prefix : fallback),
-           'Could not find <linux/if.h>')
+    assert(comp.check_header('linux/socket.h', prefix : fallback),
+           'Could not find <linux/socket.h>')
     if comp.has_header('intrin.h', prefix : fallback)
       assert(not comp.check_header('intrin.h'),
              'intrin.h should not be usable on linux')
