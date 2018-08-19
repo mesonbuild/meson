@@ -53,10 +53,10 @@ ldc_optimization_args = {'0': [],
 
 dmd_optimization_args = {'0': [],
                          'g': [],
-                         '1': ['-O1'],
-                         '2': ['-O2'],
-                         '3': ['-O3'],
-                         's': ['-Os'],
+                         '1': ['-O'],
+                         '2': ['-O'],
+                         '3': ['-O'],
+                         's': ['-O'],
                          }
 
 class DCompiler(Compiler):
