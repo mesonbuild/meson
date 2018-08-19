@@ -908,7 +908,7 @@ class Compiler:
     def find_library(self, *args, **kwargs):
         raise EnvironmentException('Language {} does not support library finding.'.format(self.get_display_language()))
 
-    def get_library_dirs(self):
+    def get_library_dirs(self, *args, **kwargs):
         return []
 
     def has_multi_arguments(self, args, env):
@@ -995,7 +995,9 @@ class Compiler:
                 mlog.debug('Working directory: ', tmpdirname)
                 mlog.debug('Command line: ', ' '.join(commands), '\n')
                 mlog.debug('Code:\n', code)
-                p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname)
+                os_env = os.environ.copy()
+                os_env['LC_ALL'] = 'C'
+                p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname, env=os_env)
                 mlog.debug('Compiler stdout:\n', p.stdo)
                 mlog.debug('Compiler stderr:\n', p.stde)
                 p.commands = commands
@@ -1353,10 +1355,12 @@ class ElbrusCompiler(GnuCompiler):
                              'b_ndebug', 'b_staticpic',
                              'b_lundef', 'b_asneeded']
 
-    def get_library_dirs(self):
-        env = os.environ.copy()
-        env['LC_ALL'] = 'C'
-        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=env)[1]
+    # FIXME: use _build_wrapper to call this so that linker flags from the env
+    # get applied
+    def get_library_dirs(self, env):
+        os_env = os.environ.copy()
+        os_env['LC_ALL'] = 'C'
+        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
         paths = []
         for line in stdo.split('\n'):
             if line.startswith('libraries:'):
@@ -1366,10 +1370,10 @@ class ElbrusCompiler(GnuCompiler):
                 break
         return paths
 
-    def get_program_dirs(self):
-        env = os.environ.copy()
-        env['LC_ALL'] = 'C'
-        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=env)[1]
+    def get_program_dirs(self, env):
+        os_env = os.environ.copy()
+        os_env['LC_ALL'] = 'C'
+        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
         paths = []
         for line in stdo.split('\n'):
             if line.startswith('programs:'):
