@@ -41,24 +41,16 @@ from mesonbuild.mesonlib import (
     windows_proof_rmtree, python_command, version_compare,
     grab_leading_numbers, BuildDirLock
 )
-from mesonbuild.environment import Environment, detect_ninja
+from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 import mesonbuild.modules.pkgconfig
 
-from run_tests import exe_suffix, get_fake_options, get_meson_script
+from run_tests import exe_suffix, get_fake_env, get_meson_script
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
 from run_tests import ensure_backend_detects_changes, run_configure_inprocess
 from run_tests import run_mtest_inprocess
-
-# Fake classes for mocking
-class FakeBuild:
-    def __init__(self, env):
-        self.environment = env
-
-class FakeCompilerOptions:
-    def __init__(self):
-        self.value = []
+from run_tests import FakeBuild, FakeCompilerOptions
 
 def get_dynamic_section_entry(fname, entry):
     if is_cygwin() or is_osx():
@@ -563,7 +555,7 @@ class InternalTests(unittest.TestCase):
                     'windows-mingw': {'shared': ['lib{}.dll.a', 'lib{}.lib', 'lib{}.dll',
                                                  '{}.dll.a', '{}.lib', '{}.dll'],
                                       'static': msvc_static}}
-        env = Environment('', '', get_fake_options(''))
+        env = get_fake_env('', '', '')
         cc = env.detect_c_compiler(False)
         if is_osx():
             self._test_all_naming(cc, env, patterns, 'darwin')
@@ -606,7 +598,7 @@ class InternalTests(unittest.TestCase):
         '''
         with tempfile.TemporaryDirectory() as tmpdir:
             pkgbin = ExternalProgram('pkg-config', command=['pkg-config'], silent=True)
-            env = Environment('', '', get_fake_options(''))
+            env = get_fake_env('', '', '')
             compiler = env.detect_c_compiler(False)
             env.coredata.compilers = {'c': compiler}
             env.coredata.compiler_options['c_link_args'] = FakeCompilerOptions()
@@ -689,7 +681,7 @@ class DataTests(unittest.TestCase):
         with open('docs/markdown/Builtin-options.md') as f:
             md = f.read()
         self.assertIsNotNone(md)
-        env = Environment('', '', get_fake_options(''))
+        env = get_fake_env('', '', '')
         # FIXME: Support other compilers
         cc = env.detect_c_compiler(False)
         cpp = env.detect_cpp_compiler(False)
@@ -735,7 +727,7 @@ class DataTests(unittest.TestCase):
         Ensure that syntax highlighting files were updated for new functions in
         the global namespace in build files.
         '''
-        env = Environment('', '', get_fake_options(''))
+        env = get_fake_env('', '', '')
         interp = Interpreter(FakeBuild(env), mock=True)
         with open('data/syntax-highlighting/vim/syntax/meson.vim') as f:
             res = re.search(r'syn keyword mesonBuiltin(\s+\\\s\w+)+', f.read(), re.MULTILINE)
@@ -1169,7 +1161,7 @@ class AllPlatformTests(BasePlatformTests):
         https://github.com/mesonbuild/meson/issues/1355
         '''
         testdir = os.path.join(self.common_test_dir, '3 static')
-        env = Environment(testdir, self.builddir, get_fake_options(self.prefix))
+        env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = env.detect_c_compiler(False)
         static_linker = env.detect_static_linker(cc)
         if is_windows():
@@ -1456,7 +1448,7 @@ class AllPlatformTests(BasePlatformTests):
         if not is_windows():
             langs += [('objc', 'OBJC'), ('objcpp', 'OBJCXX')]
         testdir = os.path.join(self.unit_test_dir, '5 compiler detection')
-        env = Environment(testdir, self.builddir, get_fake_options(self.prefix))
+        env = get_fake_env(testdir, self.builddir, self.prefix)
         for lang, evar in langs:
             # Detect with evar and do sanity checks on that
             if evar in os.environ:
@@ -1558,7 +1550,7 @@ class AllPlatformTests(BasePlatformTests):
     def test_always_prefer_c_compiler_for_asm(self):
         testdir = os.path.join(self.common_test_dir, '138 c cpp and asm')
         # Skip if building with MSVC
-        env = Environment(testdir, self.builddir, get_fake_options(self.prefix))
+        env = get_fake_env(testdir, self.builddir, self.prefix)
         if env.detect_c_compiler(False).get_id() == 'msvc':
             raise unittest.SkipTest('MSVC can\'t compile assembly')
         self.init(testdir)
@@ -1816,7 +1808,7 @@ int main(int argc, char **argv) {
             self.assertPathExists(os.path.join(testdir, i))
 
     def detect_prebuild_env(self):
-        env = Environment('', self.builddir, get_fake_options(self.prefix))
+        env = get_fake_env('', self.builddir, self.prefix)
         cc = env.detect_c_compiler(False)
         stlinker = env.detect_static_linker(cc)
         if mesonbuild.mesonlib.is_windows():
@@ -1982,7 +1974,7 @@ int main(int argc, char **argv) {
                                        '--libdir=' + libdir])
         # Find foo dependency
         os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
-        env = Environment(testdir, self.builddir, get_fake_options(self.prefix))
+        env = get_fake_env(testdir, self.builddir, self.prefix)
         kwargs = {'required': True, 'silent': True}
         foo_dep = PkgConfigDependency('libfoo', env, kwargs)
         # Ensure link_args are properly quoted
@@ -2289,7 +2281,7 @@ recommended as it is not supported on some platforms''')
         testdirbase = os.path.join(self.unit_test_dir, '29 guessed linker dependencies')
         testdirlib = os.path.join(testdirbase, 'lib')
         extra_args = None
-        env = Environment(testdirlib, self.builddir, get_fake_options(self.prefix))
+        env = get_fake_env(testdirlib, self.builddir, self.prefix)
         if env.detect_c_compiler(False).get_id() != 'msvc':
             # static libraries are not linkable with -l with msvc because meson installs them
             # as .a files which unix_args_to_native will not know as it expects libraries to use
@@ -2738,7 +2730,7 @@ class FailureTests(BasePlatformTests):
         '''
         Test that when we can't detect objc or objcpp, we fail gracefully.
         '''
-        env = Environment('', self.builddir, get_fake_options(self.prefix))
+        env = get_fake_env('', self.builddir, self.prefix)
         try:
             env.detect_objc_compiler(False)
             env.detect_objcpp_compiler(False)
@@ -2875,7 +2867,7 @@ class WindowsTests(BasePlatformTests):
         ExternalLibraryHolder from build files.
         '''
         testdir = os.path.join(self.platform_test_dir, '1 basic')
-        env = Environment(testdir, self.builddir, get_fake_options(self.prefix))
+        env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = env.detect_c_compiler(False)
         if cc.id != 'msvc':
             raise unittest.SkipTest('Not using MSVC')
@@ -2888,7 +2880,7 @@ class WindowsTests(BasePlatformTests):
         testdir = os.path.join(self.platform_test_dir, '5 resources')
 
         # resource compiler depfile generation is not yet implemented for msvc
-        env = Environment(testdir, self.builddir, get_fake_options(self.prefix))
+        env = get_fake_env(testdir, self.builddir, self.prefix)
         depfile_works = env.detect_c_compiler(False).get_id() != 'msvc'
 
         self.init(testdir)
@@ -2977,7 +2969,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.common_test_dir, '48 pkgconfig-gen')
         self.init(testdir)
-        env = Environment(testdir, self.builddir, get_fake_options(self.prefix))
+        env = get_fake_env(testdir, self.builddir, self.prefix)
         kwargs = {'required': True, 'silent': True}
         os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
         foo_dep = PkgConfigDependency('libfoo', env, kwargs)
@@ -3233,7 +3225,7 @@ class LinuxlikeTests(BasePlatformTests):
         an ordinary test because it requires passing options to meson.
         '''
         testdir = os.path.join(self.common_test_dir, '1 trivial')
-        env = Environment(testdir, self.builddir, get_fake_options(self.prefix))
+        env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = env.detect_c_compiler(False)
         self._test_stds_impl(testdir, cc, 'c')
 
@@ -3243,7 +3235,7 @@ class LinuxlikeTests(BasePlatformTests):
         be an ordinary test because it requires passing options to meson.
         '''
         testdir = os.path.join(self.common_test_dir, '2 cpp')
-        env = Environment(testdir, self.builddir, get_fake_options(self.prefix))
+        env = get_fake_env(testdir, self.builddir, self.prefix)
         cpp = env.detect_cpp_compiler(False)
         self._test_stds_impl(testdir, cpp, 'cpp')
 
@@ -3787,8 +3779,6 @@ endian = 'little'
 
         The system library is found with cc.find_library() and pkg-config deps.
         '''
-        if not is_osx():
-            raise unittest.SkipTest('workflow currently only works on macOS')
         oldprefix = self.prefix
         # Install external library so we can find it
         testdir = os.path.join(self.unit_test_dir, '39 external, internal library rpath', 'external library')
@@ -3811,6 +3801,9 @@ endian = 'little'
         self.build()
         # test uninstalled
         self.run_tests()
+        if not is_osx():
+            # Rest of the workflow only works on macOS
+            return
         # test running after installation
         self.install(use_destdir=False)
         prog = os.path.join(self.installdir, 'bin', 'prog')
