@@ -1191,7 +1191,7 @@ class ExternalLibrary(ExternalDependency):
 class ExtraFrameworkDependency(ExternalDependency):
     def __init__(self, name, required, path, env, lang, kwargs):
         super().__init__('extraframeworks', env, lang, kwargs)
-        self.name = None
+        self.name = name
         self.required = required
         self.detect(name, path)
         if self.found():
