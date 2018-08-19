@@ -2495,6 +2495,7 @@ class FailureTests(BasePlatformTests):
     and slows down testing.
     '''
     dnf = "[Dd]ependency.*not found"
+    nopkg = '[Pp]kg-config not found'
 
     def setUp(self):
         super().setUp()
@@ -2576,7 +2577,11 @@ class FailureTests(BasePlatformTests):
         if shutil.which('sdl2-config'):
             raise unittest.SkipTest('sdl2-config found')
         self.assertMesonRaises("dependency('sdl2', method : 'sdlconfig')", self.dnf)
-        self.assertMesonRaises("dependency('sdl2', method : 'pkg-config')", self.dnf)
+        if shutil.which('pkg-config'):
+            errmsg = self.dnf
+        else:
+            errmsg = self.nopkg
+        self.assertMesonRaises("dependency('sdl2', method : 'pkg-config')", errmsg)
 
     def test_gnustep_notfound_dependency(self):
         # Want to test failure, so skip if available
@@ -3356,6 +3361,7 @@ class LinuxlikeTests(BasePlatformTests):
         for v in installed.values():
             self.assertTrue('prog' in v or 'foo' in v)
 
+    @skipIfNoPkgconfig
     def test_order_of_l_arguments(self):
         testdir = os.path.join(self.unit_test_dir, '9 -L -l order')
         os.environ['PKG_CONFIG_PATH'] = testdir
