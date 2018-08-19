@@ -31,7 +31,32 @@ from mesonbuild import mesonlib
 from mesonbuild import mesonmain
 from mesonbuild import mtest
 from mesonbuild import mlog
-from mesonbuild.environment import detect_ninja
+from mesonbuild.environment import Environment, detect_ninja
+
+
+# Fake classes and objects for mocking
+class FakeBuild:
+    def __init__(self, env):
+        self.environment = env
+
+class FakeCompilerOptions:
+    def __init__(self):
+        self.value = []
+
+def get_fake_options(prefix):
+    import argparse
+    opts = argparse.Namespace()
+    opts.cross_file = None
+    opts.wrap_mode = None
+    opts.prefix = prefix
+    opts.cmd_line_options = {}
+    return opts
+
+def get_fake_env(sdir, bdir, prefix):
+    env = Environment(sdir, bdir, get_fake_options(prefix))
+    env.coredata.compiler_options['c_args'] = FakeCompilerOptions()
+    return env
+
 
 Backend = Enum('Backend', 'ninja vs xcode')
 
@@ -147,15 +172,6 @@ def ensure_backend_detects_changes(backend):
     # bug: https://github.com/ninja-build/ninja/issues/371
     if backend is Backend.ninja:
         time.sleep(1)
-
-def get_fake_options(prefix):
-    import argparse
-    opts = argparse.Namespace()
-    opts.cross_file = None
-    opts.wrap_mode = None
-    opts.prefix = prefix
-    opts.cmd_line_options = {}
-    return opts
 
 def run_mtest_inprocess(commandlist):
     old_stdout = sys.stdout
