@@ -2333,7 +2333,7 @@ rule FORTRAN_DEP_HACK%s
         guessed_dependencies = []
         # TODO The get_library_naming requirement currently excludes link targets that use d or fortran as their main linker
         if hasattr(linker, 'get_library_naming'):
-            search_dirs = list(search_dirs) + linker.get_library_dirs()
+            search_dirs = list(search_dirs) + linker.get_library_dirs(self.environment)
             static_patterns = linker.get_library_naming(self.environment, 'static', strict=True)
             shared_patterns = linker.get_library_naming(self.environment, 'shared', strict=True)
             for libname in libs:

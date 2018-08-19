@@ -16,6 +16,8 @@ import re
 import glob
 import os.path
 import subprocess
+import functools
+import itertools
 from pathlib import Path
 
 from .. import mlog
@@ -49,6 +51,7 @@ gnu_compiler_internal_libs = ('m', 'c', 'pthread', 'dl', 'rt')
 
 
 class CCompiler(Compiler):
+    # TODO: Replace this manual cache with functools.lru_cache
     library_dirs_cache = {}
     program_dirs_cache = {}
     find_library_cache = {}
@@ -172,42 +175,47 @@ class CCompiler(Compiler):
     def get_std_shared_lib_link_args(self):
         return ['-shared']
 
-    def get_library_dirs_real(self):
-        env = os.environ.copy()
-        env['LC_ALL'] = 'C'
-        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=env)[1]
+    @functools.lru_cache()
+    def _get_search_dirs(self, env):
+        extra_args = ['--print-search-dirs']
+        stdo = None
+        with self._build_wrapper('', env, extra_args, None, 'compile', True) as p:
+            stdo = p.stdo
+        return stdo
+
+    @staticmethod
+    def _split_fetch_real_dirs(pathstr, sep=':'):
         paths = []
-        for line in stdo.split('\n'):
-            if line.startswith('libraries:'):
-                libstr = line.split('=', 1)[1]
-                paths = [os.path.realpath(p) for p in libstr.split(':') if os.path.exists(os.path.realpath(p))]
+        for p in pathstr.split(sep):
+            p = Path(p)
+            if p.exists():
+                paths.append(p.resolve().as_posix())
         return paths
 
-    def get_library_dirs(self):
-        key = tuple(self.exelist)
+    def get_compiler_dirs(self, env, name):
+        '''
+        Get dirs from the compiler, either `libraries:` or `programs:`
+        '''
+        stdo = self._get_search_dirs(env)
+        for line in stdo.split('\n'):
+            if line.startswith(name + ':'):
+                return CCompiler._split_fetch_real_dirs(line.split('=', 1)[1])
+        return []
+
+    def get_library_dirs(self, env):
+        key = (tuple(self.exelist), env)
         if key not in self.library_dirs_cache:
-            self.library_dirs_cache[key] = self.get_library_dirs_real()
+            self.library_dirs_cache[key] = self.get_compiler_dirs(env, 'libraries')
         return self.library_dirs_cache[key][:]
 
-    def get_program_dirs_real(self):
-        env = os.environ.copy()
-        env['LC_ALL'] = 'C'
-        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=env)[1]
-        paths = []
-        for line in stdo.split('\n'):
-            if line.startswith('programs:'):
-                libstr = line.split('=', 1)[1]
-                paths = [os.path.realpath(p) for p in libstr.split(':')]
-        return paths
-
-    def get_program_dirs(self):
+    def get_program_dirs(self, env):
         '''
         Programs used by the compiler. Also where toolchain DLLs such as
         libstdc++-6.dll are found with MinGW.
         '''
-        key = tuple(self.exelist)
+        key = (tuple(self.exelist), env)
         if key not in self.program_dirs_cache:
-            self.program_dirs_cache[key] = self.get_program_dirs_real()
+            self.program_dirs_cache[key] = self.get_compiler_dirs(env, 'programs')
         return self.program_dirs_cache[key][:]
 
     def get_pic_args(self):
@@ -916,35 +924,19 @@ class CCompiler(Compiler):
         # Not found or we want to use a specific libtype? Try to find the
         # library file itself.
         patterns = self.get_library_naming(env, libtype)
-        for d in extra_dirs:
+        # Search in the specified dirs, and then in the system libraries
+        for d in itertools.chain(extra_dirs, self.get_library_dirs(env)):
             for p in patterns:
                 trial = self._get_trials_from_pattern(p, d, libname)
                 if not trial:
                     continue
+                # We just check whether the library exists. We can't do a link
+                # check because the library might have unresolved symbols that
+                # require other libraries.
                 trial = self._get_file_from_list(trial)
                 if not trial:
                     continue
                 return [trial]
-        # Search in the system libraries too
-        for d in self.get_library_dirs():
-            for p in patterns:
-                trial = self._get_trials_from_pattern(p, d, libname)
-                if not trial:
-                    continue
-                trial = self._get_file_from_list(trial)
-                if not trial:
-                    continue
-                # When searching the system paths used by the compiler, we
-                # need to check linking with link-whole, as static libs
-                # (.a) need to be checked to ensure they are the right
-                # architecture, e.g. 32bit or 64-bit.
-                # Just a normal test link won't work as the .a file doesn't
-                # seem to be checked by linker if there are no unresolved
-                # symbols from the main C file.
-                extra_link_args = self.get_link_whole_for([trial])
-                extra_link_args = self.linker_to_compiler_args(extra_link_args)
-                if self.links(code, env, extra_args=extra_link_args):
-                    return [trial]
         return None
 
     def find_library_impl(self, libname, env, extra_dirs, code, libtype):
