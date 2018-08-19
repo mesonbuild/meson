@@ -477,7 +477,7 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
         return self.held_object.get_path()
 
     def found(self):
-        return self.held_object.found()
+        return isinstance(self.held_object, build.Executable) or self.held_object.found()
 
     def get_command(self):
         return self.held_object.get_command()
@@ -802,9 +802,6 @@ class BuildTargetHolder(TargetHolder):
 class ExecutableHolder(BuildTargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
-
-    def found(self):
-        return True
 
 class StaticLibraryHolder(BuildTargetHolder):
     def __init__(self, target, interp):
@@ -1757,8 +1754,7 @@ class MesonMain(InterpreterObject):
                 raise InterpreterException('Tried to override %s with a file that does not exist.' % name)
             exe = dependencies.ExternalProgram(abspath)
         if not isinstance(exe, (dependencies.ExternalProgram, build.Executable)):
-            # FIXME, make this work if the exe is an Executable target.
-            raise InterpreterException('Second argument must be an external program.')
+            raise InterpreterException('Second argument must be an external program or executable.')
         self.interpreter.add_find_program_override(name, exe)
 
     @noPosargs
@@ -2155,6 +2151,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             'or configure_file(), or a compiler object; not {!r}'
         if isinstance(cmd, ExternalProgramHolder):
             cmd = cmd.held_object
+            if isinstance(cmd, build.Executable):
+                raise InterpreterException('Cannot use an executable during configuration')
         elif isinstance(cmd, CompilerHolder):
             cmd = cmd.compiler.get_exelist()[0]
             prog = ExternalProgram(cmd, silent=True)
@@ -2707,8 +2705,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 exe = self.build.find_overrides[name]
                 if not silent:
                     mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
-                             '(overridden: %s)' % exe)
-                return self.holderify(exe)
+                             '(overridden: %s)' % exe.desc())
+                return ExternalProgramHolder(exe)
         return None
 
     def store_name_lookups(self, command_names):

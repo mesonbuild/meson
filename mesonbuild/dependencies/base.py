@@ -953,7 +953,7 @@ class ExternalProgram:
         r = '<{} {!r} -> {!r}>'
         return r.format(self.__class__.__name__, self.name, self.command)
 
-    def __str__(self):
+    def desc(self):
         return ' '.join(self.command)
 
     @staticmethod
