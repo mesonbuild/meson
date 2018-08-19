@@ -59,6 +59,8 @@ buildtarget_kwargs = set([
     'link_whole',
     'link_args',
     'link_depends',
+    'ignore_project_args',
+    'ignore_project_link_args',
     'implicit_include_directories',
     'include_directories',
     'install',
@@ -171,20 +173,19 @@ class Build:
     def get_global_args(self, compiler):
         return self.global_args.get(compiler.get_language(), [])
 
-    def get_project_args(self, compiler, project):
-        args = self.projects_args.get(project)
-        if not args:
-            return []
-        return args.get(compiler.get_language(), [])
-
     def get_global_link_args(self, compiler):
         return self.global_link_args.get(compiler.get_language(), [])
 
-    def get_project_link_args(self, compiler, project):
-        link_args = self.projects_link_args.get(project)
-        if not link_args:
+    def get_project_args(self, compiler, target):
+        if target.ignore_project_args:
             return []
+        args = self.projects_args.get(target.subproject, {})
+        return args.get(compiler.get_language(), [])
 
+    def get_project_link_args(self, compiler, target):
+        if target.ignore_project_link_args:
+            return []
+        link_args = self.projects_link_args.get(target.subproject, {})
         return link_args.get(compiler.get_language(), [])
 
 class IncludeDirs:
@@ -826,6 +827,14 @@ This will become a hard error in a future Meson release.''')
             if self.gnu_symbol_visibility not in permitted:
                 raise InvalidArguments('GNU symbol visibility arg %s not one of: %s',
                                        self.symbol_visibility, ', '.join(permitted))
+
+        self.ignore_project_args = kwargs.get('ignore_project_args', False)
+        if not isinstance(self.ignore_project_args, bool):
+            raise InvalidArguments('ignore_project_args must be a boolean.')
+
+        self.ignore_project_link_args = kwargs.get('ignore_project_link_args', False)
+        if not isinstance(self.ignore_project_link_args, bool):
+            raise InvalidArguments('ignore_project_link_args must be a boolean.')
 
     def get_filename(self):
         return self.filename
