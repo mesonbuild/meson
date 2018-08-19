@@ -144,6 +144,9 @@ end program prog
     def get_compiler_check_args(self):
         return CCompiler.get_compiler_check_args(self)
 
+    def get_allow_undefined_link_args(self):
+        return CCompiler.get_allow_undefined_link_args(self)
+
     def get_output_args(self, target):
         return CCompiler.get_output_args(self, target)
 

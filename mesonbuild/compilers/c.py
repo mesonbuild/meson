@@ -147,6 +147,30 @@ class CCompiler(Compiler):
         '''
         return self.get_no_optimization_args()
 
+    def get_allow_undefined_link_args(self):
+        '''
+        Get args for allowing undefined symbols when linking to a shared library
+        '''
+        if self.id == 'clang':
+            if self.clang_type == compilers.CLANG_OSX:
+                # Apple ld
+                return ['-Wl,-undefined,dynamic_lookup']
+            else:
+                # GNU ld and LLVM lld
+                return ['-Wl,--allow-shlib-undefined']
+        elif self.id == 'gcc':
+            if self.gcc_type == compilers.GCC_OSX:
+                # Apple ld
+                return ['-Wl,-undefined,dynamic_lookup']
+            else:
+                # GNU ld and LLVM lld
+                return ['-Wl,--allow-shlib-undefined']
+        elif self.id == 'msvc':
+            # link.exe
+            return ['/FORCE:UNRESOLVED']
+        # FIXME: implement other linkers
+        return []
+
     def get_output_args(self, target):
         return ['-o', target]
 
@@ -916,7 +940,8 @@ class CCompiler(Compiler):
         # Only try to find std libs if no extra dirs specified.
         if not extra_dirs or libname in self.internal_libs:
             args = ['-l' + libname]
-            if self.links(code, env, extra_args=args):
+            largs = self.linker_to_compiler_args(self.get_allow_undefined_link_args())
+            if self.links(code, env, extra_args=(args + largs)):
                 return args
             # Don't do a manual search for internal libs
             if libname in self.internal_libs:
