@@ -3881,6 +3881,17 @@ endian = 'little'
                     return
         raise RuntimeError('Could not find the rpath')
 
+    def test_override_with_exe_dep(self):
+        '''
+        Test that we produce the correct dependencies when a program is overridden with an executable.
+        '''
+        testdir = os.path.join(self.common_test_dir, '206 override with exe')
+        self.init(testdir)
+        with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
+            for line in bfile:
+                if 'main1.c:' in line or 'main2.c:' in line:
+                    self.assertIn('| subprojects/sub/foobar', line)
+
     @skipIfNoPkgconfig
     def test_usage_external_library(self):
         '''

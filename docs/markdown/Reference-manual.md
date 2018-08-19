@@ -1529,7 +1529,9 @@ the following methods.
   specifies that whenever `find_program` is used to find a program
   named `progname`, Meson should not not look it up on the system but
   instead return `program`, which may either be the result of
-  `find_program` or `configure_file`.
+  `find_program`, `configure_file` or `executable`.
+
+  If `program` is an `executable`, it cannot be used during configure.
 
 - `project_version()` returns the version string specified in
   `project` function call.
