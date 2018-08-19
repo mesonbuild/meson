@@ -803,6 +803,9 @@ class ExecutableHolder(BuildTargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
 
+    def found(self):
+        return True
+
 class StaticLibraryHolder(BuildTargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
@@ -1753,7 +1756,7 @@ class MesonMain(InterpreterObject):
             if not os.path.exists(abspath):
                 raise InterpreterException('Tried to override %s with a file that does not exist.' % name)
             exe = dependencies.ExternalProgram(abspath)
-        if not isinstance(exe, dependencies.ExternalProgram):
+        if not isinstance(exe, (dependencies.ExternalProgram, build.Executable)):
             # FIXME, make this work if the exe is an Executable target.
             raise InterpreterException('Second argument must be an external program.')
         self.interpreter.add_find_program_override(name, exe)
@@ -2704,8 +2707,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 exe = self.build.find_overrides[name]
                 if not silent:
                     mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
-                             '(overridden: %s)' % ' '.join(exe.command))
-                return ExternalProgramHolder(exe)
+                             '(overridden: %s)' % exe)
+                return self.holderify(exe)
         return None
 
     def store_name_lookups(self, command_names):

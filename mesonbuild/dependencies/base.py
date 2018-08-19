@@ -953,6 +953,9 @@ class ExternalProgram:
         r = '<{} {!r} -> {!r}>'
         return r.format(self.__class__.__name__, self.name, self.command)
 
+    def __str__(self):
+        return ' '.join(self.command)
+
     @staticmethod
     def from_cross_info(cross_info, name):
         if name not in cross_info.config['binaries']:
