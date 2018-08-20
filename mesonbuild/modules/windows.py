@@ -88,35 +88,38 @@ class WindowsModule(ExtensionModule):
             if hasattr(src, 'held_object'):
                 src = src.held_object
 
-            res_kwargs = {
-                'output': '@BASENAME@.' + suffix,
-                'input': [src],
-                'command': [rescomp] + res_args,
-                'depend_files': wrc_depend_files,
-                'depends': wrc_depends,
-            }
-
             if isinstance(src, str):
-                name = 'file {!r}'.format(os.path.join(state.subdir, src))
+                name_format = 'file {!r}'
+                name = format(os.path.join(state.subdir, src))
             elif isinstance(src, mesonlib.File):
-                name = 'file {!r}'.format(src.relative_name())
+                name_format = 'file {!r}'
+                name = format(src.relative_name())
             elif isinstance(src, build.CustomTarget):
                 if len(src.get_outputs()) > 1:
                     raise MesonException('windows.compile_resources does not accept custom targets with more than 1 output.')
 
-                name = 'target {!r}'.format(src.get_id())
+                name_format = 'target {!r}'
+                name = format(src.get_id())
             else:
                 raise MesonException('Unexpected source type {!r}. windows.compile_resources accepts only strings, files, custom targets, and lists thereof.'.format(src))
 
             # Path separators are not allowed in target names
             name = name.replace('/', '_').replace('\\', '_')
 
+            res_kwargs = {
+                'output': name + '_@BASENAME@.' + suffix,
+                'input': [src],
+                'command': [rescomp] + res_args,
+                'depend_files': wrc_depend_files,
+                'depends': wrc_depends,
+            }
+
             # instruct binutils windres to generate a preprocessor depfile
             if comp.id != 'msvc':
                 res_kwargs['depfile'] = res_kwargs['output'] + '.d'
                 res_kwargs['command'] += ['--preprocessor-arg=-MD', '--preprocessor-arg=-MQ@OUTPUT@', '--preprocessor-arg=-MF@DEPFILE@']
 
-            res_targets.append(build.CustomTarget('Windows resource for ' + name, state.subdir, state.subproject, res_kwargs))
+            res_targets.append(build.CustomTarget('Windows resource for ' + name_format.format(name), state.subdir, state.subproject, res_kwargs))
 
         add_target(args)
 
