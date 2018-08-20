@@ -1,5 +1,5 @@
-import core.stdc.stdio;
+import std.stdio;
 
 extern (C++) void print_hello(int i) {
-    printf("Hello. Here is a number printed with D: %d\n", i);
+    writefln("Hello. Here is a number printed with D: %d", i);
 }
