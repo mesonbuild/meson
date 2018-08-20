@@ -585,29 +585,59 @@ class PkgConfigDependency(ExternalDependency):
         self.compile_args = self._convert_mingw_paths(shlex.split(out))
 
     def _search_libs(self, out, out_raw):
-        link_args = []
-        raw_link_args = []
+        '''
+        @out: PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 pkg-config --libs
+        @out_raw: pkg-config --libs
+
+        We always look for the file ourselves instead of depending on the
+        compiler to find it with -lfoo or foo.lib (if possible) because:
+        1. We want to be able to select static or shared
+        2. We need the full path of the library to calculate RPATH values
+        3. De-dup of libraries is easier when we have absolute paths
+
+        Libraries that are provided by the toolchain or are not found by
+        find_library() will be added with -L -l pairs.
+        '''
         # Library paths should be safe to de-dup
-        libpaths = OrderedSet()
-        raw_libpaths = OrderedSet()
+        #
+        # First, figure out what library paths to use. Originally, we were
+        # doing this as part of the loop, but due to differences in the order
+        # of -L values between pkg-config and pkgconf, we need to do that as
+        # a separate step. See:
+        # https://github.com/mesonbuild/meson/issues/3951
+        # https://github.com/mesonbuild/meson/issues/4023
+        #
+        # Separate system and prefix paths, and ensure that prefix paths are
+        # always searched first.
+        prefix_libpaths = OrderedSet()
+        # We also store this raw_link_args on the object later
+        raw_link_args = self._convert_mingw_paths(shlex.split(out_raw))
+        for arg in raw_link_args:
+            if arg.startswith('-L') and not arg.startswith(('-L-l', '-L-L')):
+                prefix_libpaths.add(arg[2:])
+        system_libpaths = OrderedSet()
+        full_args = self._convert_mingw_paths(shlex.split(out))
+        for arg in full_args:
+            if arg.startswith(('-L-l', '-L-L')):
+                # These are D language arguments, not library paths
+                continue
+            if arg.startswith('-L') and arg[2:] not in prefix_libpaths:
+                system_libpaths.add(arg[2:])
+        # Use this re-ordered path list for library resolution
+        libpaths = list(prefix_libpaths) + list(system_libpaths)
         # Track -lfoo libraries to avoid duplicate work
         libs_found = OrderedSet()
         # Track not-found libraries to know whether to add library paths
         libs_notfound = []
         libtype = 'static' if self.static else 'default'
-        # We always look for the file ourselves instead of depending on the
-        # compiler to find it with -lfoo or foo.lib (if possible) because:
-        # 1. We want to be able to select static or shared
-        # 2. We need the full path of the library to calculate RPATH values
-        #
-        # Libraries that are provided by the toolchain or are not found by
-        # find_library() will be added with -L -l pairs.
-        for lib in self._convert_mingw_paths(shlex.split(out)):
+        # Generate link arguments for this library
+        link_args = []
+        for lib in full_args:
             if lib.startswith(('-L-l', '-L-L')):
                 # These are D language arguments, add them as-is
                 pass
             elif lib.startswith('-L'):
-                libpaths.add(lib[2:])
+                # We already handled library paths above
                 continue
             elif lib.startswith('-l'):
                 # Don't resolve the same -lfoo argument again
@@ -615,7 +645,7 @@ class PkgConfigDependency(ExternalDependency):
                     continue
                 if self.clib_compiler:
                     args = self.clib_compiler.find_library(lib[2:], self.env,
-                                                           list(reversed(libpaths)), libtype)
+                                                           libpaths, libtype)
                 # If the project only uses a non-clib language such as D, Rust,
                 # C#, Python, etc, all we can do is limp along by adding the
                 # arguments as-is and then adding the libpaths at the end.
@@ -659,16 +689,11 @@ class PkgConfigDependency(ExternalDependency):
                 if lib in link_args:
                     continue
             link_args.append(lib)
-        # Also store the raw link arguments, and store raw_libpaths
-        for lib in self._convert_mingw_paths(shlex.split(out_raw)):
-            if lib.startswith('-L') and not lib.startswith(('-L-l', '-L-L')):
-                raw_libpaths.add(lib[2:])
-            raw_link_args.append(lib)
         # Add all -Lbar args if we have -lfoo args in link_args
         if libs_notfound:
             # Order of -L flags doesn't matter with ld, but it might with other
             # linkers such as MSVC, so prepend them.
-            link_args = ['-L' + lp for lp in raw_libpaths] + link_args
+            link_args = ['-L' + lp for lp in prefix_libpaths] + link_args
         return link_args, raw_link_args
 
     def _set_libs(self):
