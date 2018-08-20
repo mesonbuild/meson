@@ -239,7 +239,7 @@ class DCompiler(Compiler):
                 for la in linkargs:
                     dcargs.append('-L' + la.strip())
                 continue
-            elif arg.startswith('-install-name'):
+            elif arg.startswith('-install_name'):
                 dcargs.append('-L' + arg)
                 continue
             elif arg.startswith('-link-defaultlib') or arg.startswith('-linker'):
