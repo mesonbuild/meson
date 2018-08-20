@@ -630,7 +630,7 @@ class InternalTests(unittest.TestCase):
                 if '--libs' not in args:
                     return 0, ''
                 if args[0] == 'foo':
-                    return 0, '-L{} -lfoo -L{} -lbar'.format(p1.as_posix(), p2.as_posix())
+                    return 0, '-L{} -lfoo -L{} -lbar'.format(p2.as_posix(), p1.as_posix())
                 if args[0] == 'bar':
                     return 0, '-L{} -lbar'.format(p2.as_posix())
                 if args[0] == 'internal':
