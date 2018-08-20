@@ -220,7 +220,7 @@ class CoreData:
         self.compiler_options = {}
         self.base_options = {}
         self.external_preprocess_args = {} # CPPFLAGS only
-        self.cross_file = self.__load_cross_file(options.cross_file)
+        self.cross_file = self.__load_cross_file(options)
         self.wrap_mode = options.wrap_mode
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
@@ -229,10 +229,12 @@ class CoreData:
         self.pkgconf_envvar = os.environ.get('PKG_CONFIG_PATH', '')
 
     @staticmethod
-    def __load_cross_file(filename):
+    def __load_cross_file(options):
         """Try to load the cross file.
 
-        If the filename is None return None. If the filename is an absolute
+        If the filename (options.cross_file) is None, return None. If the
+        path is "-", read from stdin and write to "$builddir/meson.crossfile"
+        and return that as the path. If the filename is an absolute path
         (after resolving variables and ~), return that absolute path. Next,
         check if the file is relative to the current source dir. If the path
         still isn't resolved do the following:
@@ -248,10 +250,19 @@ class CoreData:
         Non-Windows follows the Linux path and will honor XDG_* if set. This
         simplifies the implementation somewhat.
         """
+        error_msg = 'Cannot find specified cross file: '
+        filename = options.cross_file
         if filename is None:
             return None
+        if filename == '-':
+            filename = os.path.join(options.builddir, 'meson.crossfile')
+            with open(filename, mode='w') as f:
+                f.writelines(sys.stdin.readlines())
+            return filename
         filename = os.path.expanduser(os.path.expandvars(filename))
         if os.path.isabs(filename):
+            if not os.path.isfile(filename):
+                raise MesonException(error_msg + filename)
             return filename
         path_to_try = os.path.abspath(filename)
         if os.path.isfile(path_to_try):
@@ -264,9 +275,9 @@ class CoreData:
                 path_to_try = os.path.join(path, 'meson', 'cross', filename)
                 if os.path.isfile(path_to_try):
                     return path_to_try
-            raise MesonException('Cannot find specified cross file: ' + filename)
+            raise MesonException(error_msg + filename)
 
-        raise MesonException('Cannot find specified cross file: ' + filename)
+        raise MesonException(error_msg + filename)
 
     def sanitize_prefix(self, prefix):
         if not os.path.isabs(prefix):
