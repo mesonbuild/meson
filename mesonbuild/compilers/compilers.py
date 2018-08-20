@@ -810,11 +810,11 @@ class Compiler:
             self.language + '_args': coredata.UserArrayOption(
                 self.language + '_args',
                 description + ' compiler',
-                compile_args, shlex_split=True, user_input=True),
+                compile_args, shlex_split=True, user_input=True, allow_dups=True),
             self.language + '_link_args': coredata.UserArrayOption(
                 self.language + '_link_args',
                 description + ' linker',
-                link_args, shlex_split=True, user_input=True),
+                link_args, shlex_split=True, user_input=True, allow_dups=True),
         })
 
         return opts
