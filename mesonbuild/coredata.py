@@ -138,9 +138,10 @@ class UserComboOption(UserOption):
         return value
 
 class UserArrayOption(UserOption):
-    def __init__(self, name, description, value, shlex_split=False, user_input=False, **kwargs):
+    def __init__(self, name, description, value, shlex_split=False, user_input=False, allow_dups=False, **kwargs):
         super().__init__(name, description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
         self.shlex_split = shlex_split
+        self.allow_dups = allow_dups
         self.value = self.validate_value(value, user_input=user_input)
 
     def validate_value(self, value, user_input=True):
@@ -166,7 +167,7 @@ class UserArrayOption(UserOption):
         else:
             raise MesonException('"{0}" should be a string array, but it is not'.format(str(newvalue)))
 
-        if len(set(newvalue)) != len(newvalue):
+        if not self.allow_dups and len(set(newvalue)) != len(newvalue):
             msg = 'Duplicated values in array option "%s" is deprecated. ' \
                   'This will become a hard error in the future.' % (self.name)
             mlog.deprecation(msg)
