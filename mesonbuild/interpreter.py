@@ -2152,7 +2152,10 @@ external dependencies (including libraries) must go to "dependencies".''')
         if isinstance(cmd, ExternalProgramHolder):
             cmd = cmd.held_object
             if isinstance(cmd, build.Executable):
-                raise InterpreterException('Cannot use an executable during configuration')
+                progname = node.args.arguments[0].value
+                msg = 'Program {!r} was overridden with the compiled executable {!r}'\
+                      ' and therefore cannot be used during configuration'
+                raise InterpreterException(msg.format(progname, cmd.description()))
         elif isinstance(cmd, CompilerHolder):
             cmd = cmd.compiler.get_exelist()[0]
             prog = ExternalProgram(cmd, silent=True)
@@ -2705,7 +2708,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 exe = self.build.find_overrides[name]
                 if not silent:
                     mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
-                             '(overridden: %s)' % exe.desc())
+                             '(overridden: %s)' % exe.description())
                 return ExternalProgramHolder(exe)
         return None
 
