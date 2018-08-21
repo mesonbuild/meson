@@ -33,4 +33,11 @@ from enum import Enum
 # Note that these options do not affect subprojects that
 # are git submodules since those are only usable in git
 # repositories, and you almost always want to download them.
-WrapMode = Enum('WrapMode', 'default nofallback nodownload forcefallback')
+class WrapMode(Enum):
+    default = 1
+    nofallback = 2
+    nodownload = 3
+    forcefallback = 4
+
+    def __str__(self):
+        return self.name
