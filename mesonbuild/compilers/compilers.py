@@ -610,17 +610,18 @@ class CompilerArgs(list):
         if get_compiler_uses_gnuld(self.compiler):
             global soregex
             group_start = -1
-            for each in self:
+            group_end = -1
+            for i, each in enumerate(self):
                 if not each.startswith('-l') and not each.endswith('.a') and \
                    not soregex.match(each):
                     continue
-                i = self.index(each)
+                group_end = i
                 if group_start < 0:
                     # First occurrence of a library
                     group_start = i
             if group_start >= 0:
                 # Last occurrence of a library
-                self.insert(i + 1, '-Wl,--end-group')
+                self.insert(group_end + 1, '-Wl,--end-group')
                 self.insert(group_start, '-Wl,--start-group')
         return self.compiler.unix_args_to_native(self)
 
