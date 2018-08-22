@@ -108,6 +108,10 @@ class Build:
         self.projects_args = {}
         self.global_link_args = {}
         self.projects_link_args = {}
+        self.cross_global_args = {}
+        self.cross_projects_args = {}
+        self.cross_global_link_args = {}
+        self.cross_projects_link_args = {}
         self.tests = []
         self.benchmarks = []
         self.headers = []
@@ -168,20 +172,25 @@ class Build:
     def get_install_subdirs(self):
         return self.install_dirs
 
-    def get_global_args(self, compiler):
-        return self.global_args.get(compiler.get_language(), [])
+    def get_global_args(self, compiler, for_cross):
+        d = self.cross_global_args if for_cross else self.global_args
+        return d.get(compiler.get_language(), [])
 
-    def get_project_args(self, compiler, project):
-        args = self.projects_args.get(project)
+    def get_project_args(self, compiler, project, for_cross):
+        d = self.cross_projects_args if for_cross else self.projects_args
+        args = d.get(project)
         if not args:
             return []
         return args.get(compiler.get_language(), [])
 
-    def get_global_link_args(self, compiler):
-        return self.global_link_args.get(compiler.get_language(), [])
+    def get_global_link_args(self, compiler, for_cross):
+        d = self.cross_global_link_args if for_cross else self.global_link_args
+        return d.get(compiler.get_language(), [])
 
-    def get_project_link_args(self, compiler, project):
-        link_args = self.projects_link_args.get(project)
+    def get_project_link_args(self, compiler, project, for_cross):
+        d = self.cross_projects_link_args if for_cross else self.projects_link_args
+
+        link_args = d.get(project)
         if not link_args:
             return []
 

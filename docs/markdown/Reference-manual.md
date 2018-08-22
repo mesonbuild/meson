@@ -13,13 +13,20 @@ afterwards](#returned-objects).
   void add_global_arguments(arg1, arg2, ...)
 ```
 
-Adds the positional arguments to the compiler command line for the
-language specified in `language` keyword argument. If a list of
-languages is given, the arguments are added to each of the
-corresponding compiler command lines. Note that there is no way to
-remove an argument set in this way. If you have an argument that is
-only used in a subset of targets, you have to specify it in per-target
-flags.
+Adds the positional arguments to the compiler command line. This
+function has two keyword arguments:
+
+- `language` specifies the language(s) that the arguments should be
+applied to. If a list of languages is given, the arguments are added
+to each of the corresponding compiler command lines. Note that there
+is no way to remove an argument set in this way. If you have an
+argument that is only used in a subset of targets, you have to specify
+it in per-target flags.
+
+- `native` is a boolean specifying whether the arguments should be
+  applied to the native or cross compilation. If omitted, the flags
+  are added to native targets if compiling natively and cross targets
+  if cross compiling. Available since 0.48.0
 
 The arguments are used in all compiler invocations with the exception
 of compile tests, because you might need to run a compile test with
@@ -60,8 +67,9 @@ endif
 Takes one keyword argument, `required`. It defaults to `true`, which
 means that if any of the languages specified is not found, Meson will
 halt. Returns true if all languages specified were found and false
-otherwise. Since *0.47.0*  the value of a [`feature`](Build-options.md#features)
-option can also be passed to the `required` keyword argument.
+otherwise. Since *0.47.0* the value of a
+[`feature`](Build-options.md#features) option can also be passed to
+the `required` keyword argument.
 
 ### add_project_arguments()
 
