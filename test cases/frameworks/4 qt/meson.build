@@ -100,6 +100,16 @@ foreach qt : ['qt4', 'qt5']
     plugin = library(qt + 'plugin', 'plugin/plugin.cpp', pluginpreprocess,
           include_directories : plugin_includes,
           dependencies : qtcore)
+
+    # implementing Qt interfaces requires passing Qt include paths to moc
+    qtinterfacepreprocess = qtmodule.preprocess(
+      moc_sources : 'qtinterface.cpp',
+      dependencies : qtdep
+    )
+    qtinterface = library(qt + 'qtinterface',
+                          sources : ['qtinterface.cpp', qtinterfacepreprocess],
+                          dependencies : qtdep)
+
     if qt == 'qt5'
       subdir('subfolder')
     endif
