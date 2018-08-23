@@ -92,7 +92,7 @@ class I18nModule(ExtensionModule):
         outputs = mesonlib.substitute_values([output], values)
         output = outputs[0]
 
-        ct = build.CustomTarget(output + '_merge', state.subdir, state.subproject, kwargs)
+        ct = build.CustomTarget(output + '_' + state.subdir + '_merge', state.subdir, state.subproject, kwargs)
         return ModuleReturnValue(ct, [ct])
 
     @FeatureNewKwargs('i18n.gettext', '0.37.0', ['preset'])
