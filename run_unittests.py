@@ -176,19 +176,19 @@ class InternalTests(unittest.TestCase):
 
     def test_compiler_args_class(self):
         cargsfunc = mesonbuild.compilers.CompilerArgs
-        c = mesonbuild.compilers.CCompiler([], 'fake', False)
+        cc = mesonbuild.compilers.CCompiler([], 'fake', False)
         # Test that bad initialization fails
         self.assertRaises(TypeError, cargsfunc, [])
         self.assertRaises(TypeError, cargsfunc, [], [])
-        self.assertRaises(TypeError, cargsfunc, c, [], [])
+        self.assertRaises(TypeError, cargsfunc, cc, [], [])
         # Test that empty initialization works
-        a = cargsfunc(c)
+        a = cargsfunc(cc)
         self.assertEqual(a, [])
         # Test that list initialization works
-        a = cargsfunc(['-I.', '-I..'], c)
+        a = cargsfunc(['-I.', '-I..'], cc)
         self.assertEqual(a, ['-I.', '-I..'])
         # Test that there is no de-dup on initialization
-        self.assertEqual(cargsfunc(['-I.', '-I.'], c), ['-I.', '-I.'])
+        self.assertEqual(cargsfunc(['-I.', '-I.'], cc), ['-I.', '-I.'])
 
         ## Test that appending works
         a.append('-I..')
@@ -234,7 +234,7 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(a, ['-Ibar', '-Ifoo', '-Ibaz', '-I..', '-I.', '-Ldir', '-Lbah', '-Werror', '-O3', '-O2', '-Wall'])
 
         ## Test that adding libraries works
-        l = cargsfunc(c, ['-Lfoodir', '-lfoo'])
+        l = cargsfunc(cc, ['-Lfoodir', '-lfoo'])
         self.assertEqual(l, ['-Lfoodir', '-lfoo'])
         # Adding a library and a libpath appends both correctly
         l += ['-Lbardir', '-lbar']
@@ -244,7 +244,7 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(l, ['-Lbardir', '-Lfoodir', '-lfoo', '-lbar'])
 
         ## Test that 'direct' append and extend works
-        l = cargsfunc(c, ['-Lfoodir', '-lfoo'])
+        l = cargsfunc(cc, ['-Lfoodir', '-lfoo'])
         self.assertEqual(l, ['-Lfoodir', '-lfoo'])
         # Direct-adding a library and a libpath appends both correctly
         l.extend_direct(['-Lbardir', '-lbar'])
@@ -258,6 +258,29 @@ class InternalTests(unittest.TestCase):
         # Adding libbaz again does nothing
         l.append_direct('/libbaz.a')
         self.assertEqual(l, ['-Lfoodir', '-lfoo', '-Lbardir', '-lbar', '-lbar', '/libbaz.a'])
+
+    def test_compiler_args_class_gnuld(self):
+        cargsfunc = mesonbuild.compilers.CompilerArgs
+        ## Test --start/end-group
+        gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', 0, False)
+        ## Test that 'direct' append and extend works
+        l = cargsfunc(gcc, ['-Lfoodir', '-lfoo'])
+        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Wl,--end-group'])
+        # Direct-adding a library and a libpath appends both correctly
+        l.extend_direct(['-Lbardir', '-lbar'])
+        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Lbardir', '-lbar', '-Wl,--end-group'])
+        # Direct-adding the same library again still adds it
+        l.append_direct('-lbar')
+        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Lbardir', '-lbar', '-lbar', '-Wl,--end-group'])
+        # Direct-adding with absolute path deduplicates
+        l.append_direct('/libbaz.a')
+        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Lbardir', '-lbar', '-lbar', '/libbaz.a', '-Wl,--end-group'])
+        # Adding libbaz again does nothing
+        l.append_direct('/libbaz.a')
+        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Lbardir', '-lbar', '-lbar', '/libbaz.a', '-Wl,--end-group'])
+        # Adding a non-library argument doesn't include it in the group
+        l += ['-Lfoo', '-Wl,--export-dynamic']
+        self.assertEqual(l.to_native(copy=True), ['-Lfoo', '-Lfoodir', '-Wl,--start-group', '-lfoo', '-Lbardir', '-lbar', '-lbar', '/libbaz.a', '-Wl,--end-group', '-Wl,--export-dynamic'])
 
     def test_string_templates_substitution(self):
         dictfunc = mesonbuild.mesonlib.get_filenames_templates_dict

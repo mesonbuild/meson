@@ -602,16 +602,20 @@ class CompilerArgs(list):
             return True
         return False
 
-    def to_native(self):
+    def to_native(self, copy=False):
         # Check if we need to add --start/end-group for circular dependencies
         # between static libraries, and for recursively searching for symbols
         # needed by static libraries that are provided by object files or
         # shared libraries.
+        if copy:
+            new = self.copy()
+        else:
+            new = self
         if get_compiler_uses_gnuld(self.compiler):
             global soregex
             group_start = -1
             group_end = -1
-            for i, each in enumerate(self):
+            for i, each in enumerate(new):
                 if not each.startswith('-l') and not each.endswith('.a') and \
                    not soregex.match(each):
                     continue
@@ -621,9 +625,9 @@ class CompilerArgs(list):
                     group_start = i
             if group_start >= 0:
                 # Last occurrence of a library
-                self.insert(group_end + 1, '-Wl,--end-group')
-                self.insert(group_start, '-Wl,--start-group')
-        return self.compiler.unix_args_to_native(self)
+                new.insert(group_end + 1, '-Wl,--end-group')
+                new.insert(group_start, '-Wl,--start-group')
+        return self.compiler.unix_args_to_native(new)
 
     def append_direct(self, arg):
         '''
