@@ -36,7 +36,7 @@ def create_parser():
     p.add_argument('-v', '--version', action='version',
                    version=coredata.version)
     # See the mesonlib.WrapMode enum for documentation
-    p.add_argument('--wrap-mode', default=WrapMode.default,
+    p.add_argument('--wrap-mode', default=None,
                    type=wrapmodetype, choices=WrapMode,
                    help='Special wrap mode to use')
     p.add_argument('--profile-self', action='store_true', dest='profile',
@@ -71,18 +71,18 @@ class MesonApp:
         if not os.path.exists(ndir2):
             os.makedirs(ndir2)
         if not stat.S_ISDIR(os.stat(ndir1).st_mode):
-            raise RuntimeError('%s is not a directory' % dir1)
+            raise MesonException('%s is not a directory' % dir1)
         if not stat.S_ISDIR(os.stat(ndir2).st_mode):
-            raise RuntimeError('%s is not a directory' % dir2)
+            raise MesonException('%s is not a directory' % dir2)
         if os.path.samefile(dir1, dir2):
-            raise RuntimeError('Source and build directories must not be the same. Create a pristine build directory.')
+            raise MesonException('Source and build directories must not be the same. Create a pristine build directory.')
         if self.has_build_file(ndir1):
             if self.has_build_file(ndir2):
-                raise RuntimeError('Both directories contain a build file %s.' % environment.build_filename)
+                raise MesonException('Both directories contain a build file %s.' % environment.build_filename)
             return ndir1, ndir2
         if self.has_build_file(ndir2):
             return ndir2, ndir1
-        raise RuntimeError('Neither directory contains a build file %s.' % environment.build_filename)
+        raise MesonException('Neither directory contains a build file %s.' % environment.build_filename)
 
     def validate_dirs(self, dir1, dir2, handshake):
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)

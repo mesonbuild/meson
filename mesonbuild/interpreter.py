@@ -2279,21 +2279,19 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self.subprojects[dirname]
 
     def get_option_internal(self, optname):
+        # Some base options are not defined in some environments, return the
+        # default value from compilers.base_options in that case.
+        for d in [self.coredata.base_options, compilers.base_options,
+                  self.coredata.builtins, self.coredata.compiler_options]:
+            try:
+                return d[optname]
+            except KeyError:
+                pass
+
         raw_optname = optname
-        try:
-            return self.coredata.base_options[optname]
-        except KeyError:
-            pass
-        try:
-            return self.coredata.builtins[optname]
-        except KeyError:
-            pass
-        try:
-            return self.coredata.compiler_options[optname]
-        except KeyError:
-            pass
-        if not coredata.is_builtin_option(optname) and self.is_subproject():
+        if self.is_subproject():
             optname = self.subproject + ':' + optname
+
         try:
             opt = self.coredata.user_options[optname]
             if opt.yielding and ':' in optname and raw_optname in self.coredata.user_options:
@@ -2313,11 +2311,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             return opt
         except KeyError:
             pass
-        # Some base options are not defined in some environments, return the default value.
-        try:
-            return compilers.base_options[optname]
-        except KeyError:
-            pass
+
         raise InterpreterException('Tried to access unknown option "%s".' % optname)
 
     @stringArgs
