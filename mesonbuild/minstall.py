@@ -27,6 +27,10 @@ except ImportError:
     # This is only used for pkexec which is not, so this is fine.
     main_file = None
 
+symlink_warning = '''Warning: trying to copy a symlink that points to a file. This will copy the file,
+but this will be changed in a future version of Meson to copy the symlink as is. Please update your
+build definitions so that it will not break when the change happens.'''
+
 selinux_updates = []
 
 def buildparser():
@@ -242,7 +246,15 @@ class Installer:
             os.remove(to_file)
         print('Installing %s to %s' % (from_file, outdir))
         if os.path.islink(from_file):
-            shutil.copy(from_file, outdir, follow_symlinks=False)
+            if not os.path.exists(from_file):
+                # Dangling symlink. Replicate as is.
+                shutil.copy(from_file, outdir, follow_symlinks=False)
+            else:
+                # Remove this entire branch when changing the behaviour to duplicate
+                # symlinks rather than copying what they point to.
+                print(symlink_warning)
+                shutil.copyfile(from_file, to_file)
+                shutil.copystat(from_file, to_file)
         else:
             shutil.copyfile(from_file, to_file)
             shutil.copystat(from_file, to_file)
