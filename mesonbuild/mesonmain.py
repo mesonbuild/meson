@@ -57,8 +57,10 @@ def wrapmodetype(string):
 
 class MesonApp:
 
-    def __init__(self, dir1, dir2, handshake, options):
-        (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2, handshake)
+    def __init__(self, handshake, options):
+        (self.source_dir, self.build_dir) = self.validate_dirs(options.builddir,
+                                                               options.sourcedir,
+                                                               handshake)
         self.options = options
 
     def has_build_file(self, dirname):
@@ -66,6 +68,15 @@ class MesonApp:
         return os.path.exists(fname)
 
     def validate_core_dirs(self, dir1, dir2):
+        if dir1 is None:
+            if dir2 is None:
+                if not os.path.exists('meson.build') and os.path.exists('../meson.build'):
+                    dir2 = '..'
+                else:
+                    raise MesonException('Must specify at least one directory name.')
+            dir1 = os.getcwd()
+        if dir2 is None:
+            dir2 = os.getcwd()
         ndir1 = os.path.abspath(os.path.realpath(dir1))
         ndir2 = os.path.abspath(os.path.realpath(dir2))
         if not os.path.exists(ndir1):
@@ -335,19 +346,8 @@ def run(original_args, mainfile):
     args = mesonlib.expand_arguments(args)
     options = parser.parse_args(args)
     coredata.parse_cmd_line_options(options)
-    dir1 = options.builddir
-    dir2 = options.sourcedir
     try:
-        if dir1 is None:
-            if dir2 is None:
-                if not os.path.exists('meson.build') and os.path.exists('../meson.build'):
-                    dir2 = '..'
-                else:
-                    raise MesonException('Must specify at least one directory name.')
-            dir1 = os.getcwd()
-        if dir2 is None:
-            dir2 = os.getcwd()
-        app = MesonApp(dir1, dir2, handshake, options)
+        app = MesonApp(handshake, options)
     except Exception as e:
         # Log directory does not exist, so just print
         # to stdout.
