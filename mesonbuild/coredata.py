@@ -22,7 +22,7 @@ from .mesonlib import default_libdir, default_libexecdir, default_prefix
 import ast
 import argparse
 
-version = '0.47.1'
+version = '0.47.2'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']
 
 default_yielding = False
