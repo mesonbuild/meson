@@ -379,8 +379,12 @@ class DCompiler(Compiler):
 
                 dcargs.append('-L=' + arg)
                 continue
-
-            dcargs.append(arg)
+            elif not arg.startswith('-') and arg.endswith(('.a', '.lib')):
+                # ensure static libraries are passed through to the linker
+                dcargs.append('-L=' + arg)
+                continue
+            else:
+                dcargs.append(arg)
 
         return dcargs
 
