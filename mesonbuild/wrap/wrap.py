@@ -29,6 +29,7 @@ except ImportError:
     has_ssl = False
     API_ROOT = 'http://wrapdb.mesonbuild.com/v1/'
 
+req_timeout = 600.0
 ssl_warning_printed = False
 
 def build_ssl_context():
@@ -51,7 +52,7 @@ def open_wrapdburl(urlstring):
     global ssl_warning_printed
     if has_ssl:
         try:
-            return urllib.request.urlopen(urlstring)# , context=build_ssl_context())
+            return urllib.request.urlopen(urlstring, timeout=req_timeout)# , context=build_ssl_context())
         except urllib.error.URLError:
             if not ssl_warning_printed:
                 print('SSL connection failed. Falling back to unencrypted connections.')
@@ -64,7 +65,7 @@ def open_wrapdburl(urlstring):
     # certificate is not known.
     if urlstring.startswith('https'):
         urlstring = 'http' + urlstring[5:]
-    return urllib.request.urlopen(urlstring)
+    return urllib.request.urlopen(urlstring, timeout=req_timeout)
 
 
 class PackageDefinition:
@@ -270,7 +271,7 @@ class Resolver:
         if url.startswith('https://wrapdb.mesonbuild.com'):
             resp = open_wrapdburl(url)
         else:
-            resp = urllib.request.urlopen(url)
+            resp = urllib.request.urlopen(url, timeout=req_timeout)
         with contextlib.closing(resp) as resp:
             try:
                 dlsize = int(resp.info()['Content-Length'])
