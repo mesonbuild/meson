@@ -90,16 +90,16 @@ class WindowsModule(ExtensionModule):
 
             if isinstance(src, str):
                 name_format = 'file {!r}'
-                name = format(os.path.join(state.subdir, src))
+                name = os.path.join(state.subdir, src)
             elif isinstance(src, mesonlib.File):
                 name_format = 'file {!r}'
-                name = format(src.relative_name())
+                name = src.relative_name()
             elif isinstance(src, build.CustomTarget):
                 if len(src.get_outputs()) > 1:
                     raise MesonException('windows.compile_resources does not accept custom targets with more than 1 output.')
 
                 name_format = 'target {!r}'
-                name = format(src.get_id())
+                name = src.get_id()
             else:
                 raise MesonException('Unexpected source type {!r}. windows.compile_resources accepts only strings, files, custom targets, and lists thereof.'.format(src))
 
