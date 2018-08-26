@@ -11,7 +11,7 @@ shutil.rmtree('build', ignore_errors=True)
 os.mkdir('build')
 
 if not os.path.exists(sdl_filename):
-    response = urllib.request.urlopen(sdl_url)
+    response = urllib.request.urlopen(sdl_url, timeout=600.0)
     data = response.read()
     open(sdl_filename, 'wb').write(data)
 

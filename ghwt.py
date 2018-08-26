@@ -22,10 +22,11 @@
 import urllib.request, json, sys, os, shutil, subprocess
 import configparser, hashlib
 
+req_timeout = 600.0
 private_repos = {'meson', 'wrapweb', 'meson-ci'}
 
 def gh_get(url):
-    r = urllib.request.urlopen(url)
+    r = urllib.request.urlopen(url, timeout=req_timeout)
     jd = json.loads(r.read().decode('utf-8'))
     return jd
 
@@ -45,7 +46,7 @@ def unpack(sproj, branch, outdir):
     config = configparser.ConfigParser()
     config.read(usfile)
     us_url = config['wrap-file']['source_url']
-    us = urllib.request.urlopen(us_url).read()
+    us = urllib.request.urlopen(us_url, timeout=req_timeout).read()
     h = hashlib.sha256()
     h.update(us)
     dig = h.hexdigest()
