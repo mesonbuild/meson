@@ -813,12 +813,8 @@ This is probably wrong, it should always point to the native compiler.''' % evar
         # up to date language version at time (2016).
         if 'DC' in os.environ:
             exelist = shlex.split(os.environ['DC'])
-            for dc in exelist[:]:
-                if os.path.basename(dc).startswith(('ldmd', 'gdmd')):
-                    mlog.log('Meson doesn\'t support', mlog.bold(dc), 'as it\'s only a DMD frontend for another compiler, skipping.')
-                    exelist.remove(dc)
-            if not exelist:
-                raise EnvironmentException('Couldn\'t find any compatible D compiler in the DC environment variable. Please provide a valid value for DC or unset it so that Meson resolve the compiler by itself.')
+            if os.path.basename(exelist[-1]).startswith(('ldmd', 'gdmd')):
+                    raise EnvironmentException('Meson doesn\'t support %s as it\'s only a DMD frontend for another compiler. Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.' % exelist[-1])
         elif self.is_cross_build() and want_cross:
             exelist = mesonlib.stringlistify(self.cross_info.config['binaries']['d'])
             is_cross = True
