@@ -1,2 +1,4 @@
 usr/bin/app_d?exe
-usr/lib/libstuff.so
+?msvc:usr/bin/stuff.dll
+?msvc:usr/lib/stuff.lib
+?gcc:usr/lib/libstuff.so

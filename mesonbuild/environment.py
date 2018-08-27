@@ -15,7 +15,7 @@
 import configparser, os, platform, re, shlex, shutil, subprocess
 
 from . import coredata
-from .linkers import ArLinker, ArmarLinker, VisualStudioLinker
+from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, LDCLinker
 from . import mesonlib
 from .mesonlib import EnvironmentException, Popen_safe
 from . import mlog
@@ -341,6 +341,7 @@ class Environment:
         self.vs_static_linker = ['lib']
         self.gcc_static_linker = ['gcc-ar']
         self.clang_static_linker = ['llvm-ar']
+        self.ldc2_static_linker = ['ldc2']
 
         # Various prefixes and suffixes for import libraries, shared libraries,
         # static libraries, and executables.
@@ -839,12 +840,23 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             raise EnvironmentException('Could not execute D compiler "%s"' % ' '.join(exelist))
         version = search_version(out)
         full_version = out.split('\n', 1)[0]
+
+        # Detect which MSVC build environment is currently active.
+        is_64 = False
+        c_compiler = {}
+        if mesonlib.is_windows() and 'VCINSTALLDIR' in os.environ:
+            # MSVC compiler is required for correct platform detection.
+            c_compiler = {'c': self.detect_c_compiler(want_cross)}
+
+        if detect_cpu_family(c_compiler) == 'x86_64':
+            is_64 = True
+
         if 'LLVM D compiler' in out:
-            return compilers.LLVMDCompiler(exelist, version, is_cross, full_version=full_version)
+            return compilers.LLVMDCompiler(exelist, version, is_cross, is_64, full_version=full_version)
         elif 'gdc' in out:
-            return compilers.GnuDCompiler(exelist, version, is_cross, full_version=full_version)
+            return compilers.GnuDCompiler(exelist, version, is_cross, is_64, full_version=full_version)
         elif 'The D Language Foundation' in out or 'Digital Mars' in out:
-            return compilers.DmdDCompiler(exelist, version, is_cross, full_version=full_version)
+            return compilers.DmdDCompiler(exelist, version, is_cross, is_64, full_version=full_version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_swift_compiler(self):
@@ -876,6 +888,11 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             elif isinstance(compiler, compilers.ClangCompiler):
                 # Use llvm-ar if available; needed for LTO
                 linkers = [self.clang_static_linker, self.default_static_linker]
+            elif isinstance(compiler, compilers.DCompiler):
+                if mesonlib.is_windows():
+                    linkers = [self.vs_static_linker, self.ldc2_static_linker]
+                else:
+                    linkers = [self.default_static_linker, self.ldc2_static_linker]
             else:
                 linkers = [self.default_static_linker]
         popen_exceptions = {}
@@ -893,6 +910,8 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 return VisualStudioLinker(linker)
             if p.returncode == 0 and ('armar' in linker or 'armar.exe' in linker):
                 return ArmarLinker(linker)
+            if 'LDC - the LLVM D compiler' in out:
+                return LDCLinker(linker)
             if p.returncode == 0:
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('usage'): # OSX

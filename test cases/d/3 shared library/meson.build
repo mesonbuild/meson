@@ -11,11 +11,13 @@ ldyn = shared_library('stuff', 'libstuff.d', install : true)
 ed = executable('app_d', 'app.d', link_with : ldyn, install : true)
 test('linktest_dyn', ed)
 
-# test D attributes for pkg-config
-pkgc = import('pkgconfig')
-pkgc.generate(name: 'test',
-              libraries: ldyn,
-              subdirs: 'd/stuff',
-              description: 'A test of D attributes to pkgconfig.generate.',
-              d_module_versions: ['Use_Static']
-)
+if host_machine.system() != 'windows'
+  # test D attributes for pkg-config
+  pkgc = import('pkgconfig')
+  pkgc.generate(name: 'test',
+            libraries: ldyn,
+            subdirs: 'd/stuff',
+            description: 'A test of D attributes to pkgconfig.generate.',
+            d_module_versions: ['Use_Static']
+  )
+endif

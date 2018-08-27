@@ -2374,7 +2374,7 @@ rule FORTRAN_DEP_HACK%s
         # options passed on the command-line, in default_options, etc.
         # These have the lowest priority.
         if not isinstance(target, build.StaticLibrary):
-            commands += compilers.get_base_link_args(self.environment.coredata.base_options,
+            commands += compilers.get_base_link_args(self.get_base_options_for_target(target),
                                                      linker,
                                                      isinstance(target, build.SharedModule))
         # Add -nostdlib if needed; can't be overridden
