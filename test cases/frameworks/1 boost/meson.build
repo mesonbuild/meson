@@ -33,3 +33,6 @@ test('Boost nomod', nomodexe)
 test('Boost extralib test', extralibexe)
 
 subdir('partial_dep')
+
+# check we can apply a version constraint
+dependency('boost', version: '>=@0@'.format(dep.version()))

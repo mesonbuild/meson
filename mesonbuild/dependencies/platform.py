@@ -33,8 +33,4 @@ class AppleFrameworks(ExternalDependency):
         for f in self.frameworks:
             self.link_args += ['-framework', f]
 
-    def found(self):
-        return mesonlib.is_osx()
-
-    def get_version(self):
-        return 'unknown'
+        self.is_found = mesonlib.is_osx()

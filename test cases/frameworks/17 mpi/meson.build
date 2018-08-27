@@ -42,3 +42,6 @@ if uburesult.returncode() != 0 and add_languages('fortran', required : false)
 
   test('MPI Fortran', exef)
 endif
+
+# Check we can apply a version constraint
+dependency('mpi', version: '>=@0@'.format(mpic.version()))

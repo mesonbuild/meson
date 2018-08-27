@@ -8,3 +8,6 @@ endif
 e = executable('vulkanprog', 'vulkanprog.c', dependencies : vulkan_dep)
 
 test('vulkantest', e)
+
+# Check we can apply a version constraint
+dependency('vulkan', version: '>=@0@'.format(vulkan_dep.version()))

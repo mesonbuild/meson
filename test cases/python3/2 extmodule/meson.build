@@ -14,6 +14,10 @@ if py3_dep.found()
     py3,
     args : files('blaster.py'),
     env : ['PYTHONPATH=' + pypathdir])
+
+  # Check we can apply a version constraint
+  dependency('python3', version: '>=@0@'.format(py3_dep.version()))
+
 else
   error('MESON_SKIP_TEST: Python3 libraries not found, skipping test.')
 endif

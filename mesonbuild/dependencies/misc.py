@@ -180,7 +180,7 @@ class MPIDependency(ExternalDependency):
             if version:
                 version = version.group(0)
             else:
-                version = 'none'
+                version = None
 
             return version, cargs, libs
 
@@ -197,7 +197,7 @@ class MPIDependency(ExternalDependency):
                 return
             args = shlex.split(o)
 
-            version = 'none'
+            version = None
 
             return version, args, args
 
@@ -222,11 +222,11 @@ class MPIDependency(ExternalDependency):
         else:
             return
         if self.language == 'fortran':
-            return ('none',
+            return (None,
                     ['-I' + incdir, '-I' + os.path.join(incdir, post)],
                     [os.path.join(libdir, 'msmpi.lib'), os.path.join(libdir, 'msmpifec.lib')])
         else:
-            return ('none',
+            return (None,
                     ['-I' + incdir, '-I' + os.path.join(incdir, post)],
                     [os.path.join(libdir, 'msmpi.lib')])
 
@@ -267,16 +267,12 @@ class OpenMPDependency(ExternalDependency):
 
 class ThreadDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('threads', environment, None, {})
+        super().__init__('threads', environment, None, kwargs)
         self.name = 'threads'
         self.is_found = True
-        mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
 
     def need_threads(self):
         return True
-
-    def get_version(self):
-        return 'unknown'
 
 
 class Python3Dependency(ExternalDependency):
@@ -447,8 +443,11 @@ class PcapDependency(ExternalDependency):
 
     @staticmethod
     def get_pcap_lib_version(ctdep):
-        return ctdep.clib_compiler.get_return_value('pcap_lib_version', 'string',
-                                                    '#include <pcap.h>', ctdep.env, [], [ctdep])
+        v = ctdep.clib_compiler.get_return_value('pcap_lib_version', 'string',
+                                                 '#include <pcap.h>', ctdep.env, [], [ctdep])
+        v = re.sub(r'libpcap version ', '', v)
+        v = re.sub(r' -- Apple version.*$', '', v)
+        return v
 
 
 class CupsDependency(ExternalDependency):

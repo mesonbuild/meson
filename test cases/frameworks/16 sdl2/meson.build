@@ -15,3 +15,7 @@ configdep = dependency('sdl2', method : 'sdlconfig')
 
 # And the modern method name
 configdep = dependency('sdl2', method : 'config-tool')
+
+# Check we can apply a version constraint
+dependency('sdl2', version: '>=@0@'.format(sdl2_dep.version()), method: 'pkg-config')
+dependency('sdl2', version: '>=@0@'.format(sdl2_dep.version()), method: 'config-tool')
