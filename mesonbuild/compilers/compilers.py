@@ -521,7 +521,7 @@ class CompilerArgs(list):
     dedup2_suffixes = ()
     dedup2_args = ()
     # Arg prefixes and args that must be de-duped by returning 1
-    dedup1_prefixes = ('-l',)
+    dedup1_prefixes = ('-l', '-Wl,-l')
     dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
     # Match a .so of the form path/to/libfoo.so.0.1.0
     # Only UNIX shared libraries require this. Others have a fixed extension.
@@ -625,7 +625,7 @@ class CompilerArgs(list):
             group_start = -1
             group_end = -1
             for i, each in enumerate(new):
-                if not each.startswith('-l') and not each.endswith('.a') and \
+                if not each.startswith(('-Wl,-l', '-l')) and not each.endswith('.a') and \
                    not soregex.match(each):
                     continue
                 group_end = i

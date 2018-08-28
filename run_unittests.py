@@ -284,6 +284,9 @@ class InternalTests(unittest.TestCase):
         # Adding a non-library argument doesn't include it in the group
         l += ['-Lfoo', '-Wl,--export-dynamic']
         self.assertEqual(l.to_native(copy=True), ['-Lfoo', '-Lfoodir', '-Wl,--start-group', '-lfoo', '-Lbardir', '-lbar', '-lbar', '/libbaz.a', '-Wl,--end-group', '-Wl,--export-dynamic'])
+        # -Wl,-lfoo is detected as a library and gets added to the group
+        l.append('-Wl,-ldl')
+        self.assertEqual(l.to_native(copy=True), ['-Lfoo', '-Lfoodir', '-Wl,--start-group', '-lfoo', '-Lbardir', '-lbar', '-lbar', '/libbaz.a', '-Wl,--export-dynamic', '-Wl,-ldl', '-Wl,--end-group'])
 
     def test_string_templates_substitution(self):
         dictfunc = mesonbuild.mesonlib.get_filenames_templates_dict
