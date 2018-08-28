@@ -1,6 +1,12 @@
 project('library versions', 'c')
 
+zlib_dep = dependency('zlib')
+
 some = shared_library('some', 'lib.c',
+  # duplicate the rpath again, in order
+  # to test Meson's RPATH deduplication
+  build_rpath : zlib_dep.get_pkgconfig_variable('libdir'),
+  dependencies : zlib_dep,
   version : '1.2.3',
   soversion : '0',
   install : true)
