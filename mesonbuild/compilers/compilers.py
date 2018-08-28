@@ -19,7 +19,7 @@ from ..linkers import StaticLinker
 from .. import coredata
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import EnvironmentException, MesonException, version_compare, Popen_safe
+from ..mesonlib import EnvironmentException, MesonException, OrderedSet, version_compare, Popen_safe
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
@@ -1064,7 +1064,9 @@ class Compiler:
             abs_rpaths.append(build_rpath)
         # Ensure that there is enough space for large RPATHs
         args = ['-Wl,-headerpad_max_install_names']
-        args += ['-Wl,-rpath,' + rp for rp in abs_rpaths]
+        # Need to deduplicate abs_rpaths, as rpath_paths and
+        # build_rpath are not guaranteed to be disjoint sets
+        args += ['-Wl,-rpath,' + rp for rp in OrderedSet(abs_rpaths)]
         return args
 
     def build_unix_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
