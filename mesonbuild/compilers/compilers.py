@@ -1056,14 +1056,14 @@ class Compiler:
         return None
 
     def build_osx_rpath_args(self, build_dir, rpath_paths, build_rpath):
+        # Ensure that there is enough space for large RPATHs and install_name
+        args = ['-Wl,-headerpad_max_install_names']
         if not rpath_paths and not build_rpath:
-            return []
+            return args
         # On OSX, rpaths must be absolute.
         abs_rpaths = [os.path.join(build_dir, p) for p in rpath_paths]
         if build_rpath != '':
             abs_rpaths.append(build_rpath)
-        # Ensure that there is enough space for large RPATHs
-        args = ['-Wl,-headerpad_max_install_names']
         # Need to deduplicate abs_rpaths, as rpath_paths and
         # build_rpath are not guaranteed to be disjoint sets
         args += ['-Wl,-rpath,' + rp for rp in OrderedSet(abs_rpaths)]
@@ -1165,12 +1165,9 @@ def get_macos_dylib_install_name(prefix, shlib_name, suffix, soversion):
     install_name += '.dylib'
     return '@rpath/' + install_name
 
-def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, soversion, is_shared_module):
-    if soversion is None:
-        sostr = ''
-    else:
-        sostr = '.' + soversion
+def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, soversion, darwin_versions, is_shared_module):
     if gcc_type == GCC_STANDARD:
+        sostr = '' if soversion is None else '.' + soversion
         return ['-Wl,-soname,%s%s.%s%s' % (prefix, shlib_name, suffix, sostr)]
     elif gcc_type in (GCC_MINGW, GCC_CYGWIN):
         # For PE/COFF the soname argument has no effect with GNU LD
@@ -1179,7 +1176,10 @@ def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, soversion, is_shar
         if is_shared_module:
             return []
         name = get_macos_dylib_install_name(prefix, shlib_name, suffix, soversion)
-        return ['-install_name', name]
+        args = ['-install_name', name]
+        if darwin_versions:
+            args += ['-compatibility_version', darwin_versions[0], '-current_version', darwin_versions[1]]
+        return args
     else:
         raise RuntimeError('Not implemented yet.')
 
@@ -1325,8 +1325,8 @@ class GnuCompiler:
     def split_shlib_to_parts(self, fname):
         return os.path.dirname(fname), fname
 
-    def get_soname_args(self, prefix, shlib_name, suffix, soversion, is_shared_module):
-        return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, soversion, is_shared_module)
+    def get_soname_args(self, *args):
+        return get_gcc_soname_args(self.gcc_type, *args)
 
     def get_std_shared_lib_link_args(self):
         return ['-shared']
@@ -1452,7 +1452,7 @@ class ClangCompiler:
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
-    def get_soname_args(self, prefix, shlib_name, suffix, soversion, is_shared_module):
+    def get_soname_args(self, *args):
         if self.clang_type == CLANG_STANDARD:
             gcc_type = GCC_STANDARD
         elif self.clang_type == CLANG_OSX:
@@ -1461,7 +1461,7 @@ class ClangCompiler:
             gcc_type = GCC_MINGW
         else:
             raise MesonException('Unreachable code when converting clang type to gcc type.')
-        return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, soversion, is_shared_module)
+        return get_gcc_soname_args(gcc_type, *args)
 
     def has_multi_arguments(self, args, env):
         myargs = ['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument']
@@ -1620,7 +1620,7 @@ class IntelCompiler:
     def split_shlib_to_parts(self, fname):
         return os.path.dirname(fname), fname
 
-    def get_soname_args(self, prefix, shlib_name, suffix, soversion, is_shared_module):
+    def get_soname_args(self, *args):
         if self.icc_type == ICC_STANDARD:
             gcc_type = GCC_STANDARD
         elif self.icc_type == ICC_OSX:
@@ -1629,7 +1629,7 @@ class IntelCompiler:
             gcc_type = GCC_MINGW
         else:
             raise MesonException('Unreachable code when converting icc type to gcc type.')
-        return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, soversion, is_shared_module)
+        return get_gcc_soname_args(gcc_type, *args)
 
     # TODO: centralise this policy more globally, instead
     # of fragmenting it into GnuCompiler and ClangCompiler

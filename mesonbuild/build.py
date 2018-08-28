@@ -83,7 +83,7 @@ known_build_target_kwargs = (
     cs_kwargs)
 
 known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic'}
-known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs'}
+known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions'}
 known_shmod_kwargs = known_build_target_kwargs
 known_stlib_kwargs = known_build_target_kwargs | {'pic'}
 known_jar_kwargs = known_exe_kwargs | {'main_class'}
@@ -1392,6 +1392,8 @@ class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         self.soversion = None
         self.ltversion = None
+        # Max length 2, first element is compatibility_version, second is current_version
+        self.darwin_versions = []
         self.vs_module_defs = None
         # The import library this target will generate
         self.import_filename = None
@@ -1518,6 +1520,44 @@ class SharedLibrary(BuildTarget):
         self.filename = self.filename_tpl.format(self)
         self.outputs = [self.filename]
 
+    @staticmethod
+    def _validate_darwin_versions(darwin_versions):
+        try:
+            if isinstance(darwin_versions, int):
+                darwin_versions = str(darwin_versions)
+            if isinstance(darwin_versions, str):
+                darwin_versions = 2 * [darwin_versions]
+            if not isinstance(darwin_versions, list):
+                raise InvalidArguments('Shared library darwin_versions: must be a string, integer,'
+                                       'or a list, not {!r}'.format(darwin_versions))
+            if len(darwin_versions) > 2:
+                raise InvalidArguments('Shared library darwin_versions: list must contain 2 or fewer elements')
+            if len(darwin_versions) == 1:
+                darwin_versions = 2 * darwin_versions
+            for i, v in enumerate(darwin_versions[:]):
+                if isinstance(v, int):
+                    v = str(v)
+                if not isinstance(v, str):
+                    raise InvalidArguments('Shared library darwin_versions: list elements '
+                                           'must be strings or integers, not {!r}'.format(v))
+                if not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', v):
+                    raise InvalidArguments('Shared library darwin_versions: must be X.Y.Z where '
+                                           'X, Y, Z are numbers, and Y and Z are optional')
+                parts = v.split('.')
+                if len(parts) in (1, 2, 3) and int(parts[0]) > 65535:
+                    raise InvalidArguments('Shared library darwin_versions: must be X.Y.Z '
+                                           'where X is [0, 65535] and Y, Z are optional')
+                if len(parts) in (2, 3) and int(parts[1]) > 255:
+                    raise InvalidArguments('Shared library darwin_versions: must be X.Y.Z '
+                                           'where Y is [0, 255] and Y, Z are optional')
+                if len(parts) == 3 and int(parts[2]) > 255:
+                    raise InvalidArguments('Shared library darwin_versions: must be X.Y.Z '
+                                           'where Z is [0, 255] and Y, Z are optional')
+                darwin_versions[i] = v
+        except ValueError:
+            raise InvalidArguments('Shared library darwin_versions: value is invalid')
+        return darwin_versions
+
     def process_kwargs(self, kwargs, environment):
         super().process_kwargs(kwargs, environment)
 
@@ -1546,6 +1586,13 @@ class SharedLibrary(BuildTarget):
                 # We replicate what Autotools does here and take the first
                 # number of the version by default.
                 self.soversion = self.ltversion.split('.')[0]
+            # macOS and iOS dylib compatibility_version and current_version
+            if 'darwin_versions' in kwargs:
+                self.darwin_versions = self._validate_darwin_versions(kwargs['darwin_versions'])
+            elif self.soversion:
+                # If unspecified, pick the soversion
+                self.darwin_versions = 2 * [self.soversion]
+
         # Visual Studio module-definitions file
         if 'vs_module_defs' in kwargs:
             path = kwargs['vs_module_defs']

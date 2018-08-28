@@ -8,7 +8,7 @@ some = shared_library('some', 'lib.c',
   build_rpath : zlib_dep.get_pkgconfig_variable('libdir'),
   dependencies : zlib_dep,
   version : '1.2.3',
-  soversion : '0',
+  soversion : '7',
   install : true)
 
 noversion = shared_library('noversion', 'lib.c',
@@ -22,6 +22,21 @@ onlysoversion = shared_library('onlysoversion', 'lib.c',
   # Also test that int soversion is acceptable
   soversion : 5,
   install : true)
+
+shared_library('intver', 'lib.c',
+  darwin_versions : 2)
+
+shared_library('stringver', 'lib.c',
+  darwin_versions : '2.3')
+
+shared_library('stringlistver', 'lib.c',
+  darwin_versions : ['2.4'])
+
+shared_library('intstringver', 'lib.c',
+  darwin_versions : [1111, '2.5'])
+
+shared_library('stringlistvers', 'lib.c',
+  darwin_versions : ['2.6', '2.6.1'])
 
 # Hack to make the executables below depend on the shared libraries above
 # without actually adding them as `link_with` dependencies since we want to try

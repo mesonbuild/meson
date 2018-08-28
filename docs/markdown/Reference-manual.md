@@ -1183,13 +1183,20 @@ extra keyword arguments.
   `soversion` is `4`, a Windows DLL will be called `foo-4.dll` and one
   of the aliases of the Linux shared library would be
   `libfoo.so.4`. If this is not specified, the first part of `version`
-  is used instead. For example, if `version` is `3.6.0` and
+  is used instead (see below). For example, if `version` is `3.6.0` and
   `soversion` is not defined, it is set to `3`.
 - `version` a string specifying the version of this shared library,
   such as `1.1.0`. On Linux and OS X, this is used to set the shared
   library version in the filename, such as `libfoo.so.1.1.0` and
   `libfoo.1.1.0.dylib`. If this is not specified, `soversion` is used
-  instead (see below).
+  instead (see above).
+- `darwin_versions` *(added 0.48)* an integer, string, or a list of
+  versions to use for setting dylib `compatibility version` and
+  `current version` on macOS. If a list is specified, it must be
+  either zero, one, or two elements. If only one element is specified
+  or if it's not a list, the specified value will be used for setting
+  both compatibility version and current version. If unspecified, the
+  `soversion` will be used as per the aforementioned rules.
 - `vs_module_defs` a string, a File object, or Custom Target for a
   Microsoft module definition file for controlling symbol exports,
   etc., on platforms where that is possible (e.g. Windows).
