@@ -118,16 +118,14 @@ class DCompiler(Compiler):
     def get_std_shared_lib_link_args(self):
         return ['-shared']
 
-    def get_soname_args(self, prefix, shlib_name, suffix, soversion, is_shared_module):
+    def get_soname_args(self, *args):
         # FIXME: Make this work for cross-compiling
         gcc_type = GCC_STANDARD
         if is_windows():
             gcc_type = GCC_CYGWIN
         if is_osx():
             gcc_type = GCC_OSX
-
-        return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, soversion, is_shared_module)
-
+        return get_gcc_soname_args(gcc_type, *args)
 
     def get_feature_args(self, kwargs, build_to_src):
         res = []
