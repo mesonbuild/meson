@@ -12,6 +12,7 @@ RUN apt-get -y update && apt-get -y upgrade \
 && apt-get -y install qt4-linguist-tools \
 && apt-get -y install python-dev \
 && apt-get -y install libomp-dev openssh-client \
+&& apt-get -y install -y clang libclang-dev llvm-dev flex \
 && python3 -m pip install hotdoc codecov \
 && dub fetch urld \
 && dub build urld --compiler=gdc
