@@ -378,6 +378,12 @@ class Resolver:
         target_dir = os.path.join(self.subdir_root, package.get('directory'))
         if os.path.isdir(target_dir):
             return
+        try:
+            def copyfile(src, dst):
+                shutil.copyfile(src, os.path.join(target_dir, 'meson.build'))
+            shutil.register_unpack_format('meson', ['.build'], copyfile, [], "meson build file")
+        except shutil.RegistryError:
+            pass
         extract_dir = self.subdir_root
         # Some upstreams ship packages that do not have a leading directory.
         # Create one for them.
@@ -395,3 +401,4 @@ class Resolver:
                 with tempfile.TemporaryDirectory() as workdir:
                     shutil.unpack_archive(os.path.join(self.cachedir, package.get('patch_filename')), workdir)
                     self.copy_tree(workdir, self.subdir_root)
+        shutil.unregister_unpack_format('meson')
