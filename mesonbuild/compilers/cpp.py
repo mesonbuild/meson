@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 import os.path
 
 from .. import coredata
-from ..mesonlib import version_compare
+from .. import mlog
+from ..mesonlib import MesonException, version_compare
 
 from .c import CCompiler, VisualStudioCCompiler
 from .compilers import (
@@ -67,6 +69,55 @@ class CPPCompiler(CCompiler):
         int main () {{ return 0; }}'''
         return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
+    def _test_cpp_std_arg(self, cpp_std_value):
+        # Test whether the compiler understands a -std=XY argument
+        assert(cpp_std_value.startswith('-std='))
+
+        # This test does not use has_multi_arguments() for two reasons:
+        # 1. has_multi_arguments() requires an env argument, which the compiler
+        #    object does not have at this point.
+        # 2. even if it did have an env object, that might contain another more
+        #    recent -std= argument, which might lead to a cascaded failure.
+        CPP_TEST = 'int i = static_cast<int>(0);'
+        with self.compile(code=CPP_TEST, extra_args=[cpp_std_value], mode='compile') as p:
+            if p.returncode == 0:
+                mlog.debug('Compiler accepts {}:'.format(cpp_std_value), 'YES')
+                return True
+            else:
+                mlog.debug('Compiler accepts {}:'.format(cpp_std_value), 'NO')
+                return False
+
+    @functools.lru_cache()
+    def _find_best_cpp_std(self, cpp_std):
+        # The initial version mapping approach to make falling back
+        # from '-std=c++14' to '-std=c++1y' was too brittle. For instance,
+        # Apple's Clang uses a different versioning scheme to upstream LLVM,
+        # making the whole detection logic awfully brittle. Instead, let's
+        # just see if feeding GCC or Clang our '-std=' setting works, and
+        # if not, try the fallback argument.
+        CPP_FALLBACKS = {
+            'c++11': 'c++0x',
+            'gnu++11': 'gnu++0x',
+            'c++14': 'c++1y',
+            'gnu++14': 'gnu++1y',
+            'c++17': 'c++1z',
+            'gnu++17': 'gnu++1z'
+        }
+
+        # Currently, remapping is only supported for Clang and GCC
+        assert(self.id in frozenset(['clang', 'gcc']))
+
+        if cpp_std not in CPP_FALLBACKS:
+            # 'c++03' and 'c++98' don't have fallback types
+            return '-std=' + cpp_std
+
+        for i in (cpp_std, CPP_FALLBACKS[cpp_std]):
+            cpp_std_value = '-std=' + i
+            if self._test_cpp_std_arg(cpp_std_value):
+                return cpp_std_value
+
+        raise MesonException('C++ Compiler does not support -std={}'.format(cpp_std))
+
 
 class ClangCPPCompiler(ClangCompiler, CPPCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None, **kwargs):
@@ -89,11 +140,7 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         args = []
         std = options['cpp_std']
         if std.value != 'none':
-            cpp_std_value = std.value
-            # Clang 3.2, 3.3, 3.4 only understand -std={c,gnu}++1y and not -std={c,gnu}++14
-            if version_compare(self.version, '>=3.2') and version_compare(self.version, '<3.5'):
-                cpp_std_value = cpp_std_value.replace('++14', '++1y')
-            args.append('-std=' + cpp_std_value)
+            args.append(self._find_best_cpp_std(std.value))
         return args
 
     def get_option_link_args(self, options):
@@ -159,11 +206,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         args = []
         std = options['cpp_std']
         if std.value != 'none':
-            cpp_std_value = std.value
-            # GCC 4.8 only understands -std={c,gnu}++1y and not -std={c,gnu}++14
-            if version_compare(self.version, '>=4.8') and version_compare(self.version, '<4.9'):
-                cpp_std_value = cpp_std_value.replace('++14', '++1y')
-            args.append('-std=' + cpp_std_value)
+            args.append(self._find_best_cpp_std(std.value))
         if options['cpp_debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
