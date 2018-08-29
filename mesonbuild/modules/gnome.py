@@ -774,9 +774,9 @@ class GnomeModule(ExtensionModule):
         scan_command += ['--cflags-end']
         scan_command += get_include_args(inc_dirs)
         scan_command += get_include_args(list(gi_includes) + gir_inc_dirs + inc_dirs, prefix='--add-include-path=')
+        scan_command += list(internal_ldflags)
         scan_command += self._scan_gir_targets(state, girtargets)
         scan_command += self._scan_langs(state, [lc[0] for lc in langs_compilers])
-        scan_command += list(internal_ldflags)
         scan_command += list(external_ldflags)
 
         scan_target = self._make_gir_target(state, girfile, scan_command, depends, kwargs)
