@@ -232,7 +232,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         return ['-J' + path]
 
     def language_stdlib_only_link_flags(self):
-        return ['-lgfortran', '-lm', '-lquadmath']
+        return ['-lgfortran', '-lm']
 
 
 class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
