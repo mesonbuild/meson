@@ -194,20 +194,32 @@ class LLVMDependency(ConfigToolDependency):
 
     def _set_new_link_args(self):
         """How to set linker args for LLVM versions >= 3.9"""
-        if ((mesonlib.is_dragonflybsd() or mesonlib.is_freebsd()) and not
-                self.static and version_compare(self.version, '>= 4.0')):
-            # llvm-config on DragonFly BSD and FreeBSD for versions 4.0, 5.0,
-            # and 6.0 have an error when generating arguments for shared mode
-            # linking, even though libLLVM.so is installed, because for some
-            # reason the tool expects to find a .so for each static library.
-            # This works around that.
-            self.link_args = self.get_config_value(['--ldflags'], 'link_args')
-            self.link_args.append('-lLLVM')
-            return
-        link_args = ['--link-static', '--system-libs'] if self.static else ['--link-shared']
+        if not self.static:
+            if ((mesonlib.is_dragonflybsd() or mesonlib.is_freebsd()) and
+                    version_compare(self.version, '>= 4.0')):
+                # llvm-config on DragonFly BSD and FreeBSD for versions 4.0, 5.0,
+                # and 6.0 have an error when generating arguments for shared mode
+                # linking, even though libLLVM.so is installed, because for some
+                # reason the tool expects to find a .so for each static library.
+                # This works around that.
+                self.link_args = self.get_config_value(['--ldflags'], 'link_args')
+                self.link_args.append('-lLLVM')
+            else:
+                self.link_args = self.get_config_value(
+                    ['--libs', '--ldflags', '--link-shared'] + list(self.required_modules),
+                    'link_args')
+
+            # Check that any of the dynamic libraries actually exist, if they
+            # don't then assume that dynamic linking won't work and fall back
+            # to static
+            if os.path.exists(self.get_config_value(['--libfiles', '--link-shared'], 'link_args')[0]):
+                return
+            mlog.warning('Could not find dynamcially linkable libraries, '
+                         'falling back to static')
         self.link_args = self.get_config_value(
-            ['--libs', '--ldflags'] + link_args + list(self.required_modules),
+            ['--libs', '--ldflags', '--link-static', '--system-libs'] + list(self.required_modules),
             'link_args')
+
 
     def _set_old_link_args(self):
         """Setting linker args for older versions of llvm.
@@ -217,11 +229,7 @@ class LLVMDependency(ConfigToolDependency):
         not for shared-linnking, we have to figure those out ourselves, because
         of course we do.
         """
-        if self.static:
-            self.link_args = self.get_config_value(
-                ['--libs', '--ldflags', '--system-libs'] + list(self.required_modules),
-                'link_args')
-        else:
+        if not self.static:
             # llvm-config will provide arguments for static linking, so we get
             # to figure out for ourselves what to link with. We'll do that by
             # checking in the directory provided by --libdir for a library
@@ -235,10 +243,14 @@ class LLVMDependency(ConfigToolDependency):
                 if re_name.match(file_):
                     self.link_args = ['-L{}'.format(libdir),
                                       '-l{}'.format(os.path.splitext(file_.lstrip('lib'))[0])]
-                    break
-            else:
-                raise DependencyException(
-                    'Could not find a dynamically linkable library for LLVM.')
+                    return
+            # Fall back to static linking
+            mlog.warning('Could not find dynamcially linkable libraries, '
+                         'falling back to static')
+
+        self.link_args = self.get_config_value(
+            ['--libs', '--ldflags', '--system-libs'] + list(self.required_modules),
+            'link_args')
 
     def check_components(self, modules, required=True):
         """Check for llvm components (modules in meson terms).
