@@ -93,7 +93,8 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
     abs_out = os.path.join(build_root, doc_subdir)
     htmldir = os.path.join(abs_out, 'html')
 
-    content_files += [main_file]
+    if os.path.exists(main_file):
+        content_files += [main_file]
     sections = os.path.join(doc_src, module + "-sections.txt")
     if os.path.exists(sections):
         content_files.append(sections)
