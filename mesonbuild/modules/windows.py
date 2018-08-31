@@ -49,33 +49,47 @@ class WindowsModule(ExtensionModule):
                 raise MesonException('Resource include dirs should be include_directories().')
         extra_args += get_include_args(inc_dirs)
 
-        if comp.id == 'msvc':
-            rescomp = ExternalProgram('rc', silent=True)
-            res_args = extra_args + ['/nologo', '/fo@OUTPUT@', '@INPUT@']
+        rescomp = None
+        # FIXME: Does not handle `native: true` executables, see
+        # https://github.com/mesonbuild/meson/issues/1531
+        if state.environment.is_cross_build():
+            # If cross compiling see if windres has been specified in the
+            # cross file before trying to find it another way.
+            cross_info = state.environment.cross_info
+            rescomp = ExternalProgram.from_cross_info(cross_info, 'windres')
+
+        if not rescomp or not rescomp.found():
+            if 'WINDRES' in os.environ:
+                # Pick-up env var WINDRES if set. This is often used for
+                # specifying an arch-specific windres.
+                rescomp = ExternalProgram('windres', command=os.environ.get('WINDRES'), silent=True)
+
+        if not rescomp or not rescomp.found():
+            if comp.id == 'msvc':
+                rescomp = ExternalProgram('rc', silent=True)
+            else:
+                rescomp = ExternalProgram('windres', silent=True)
+
+        if not rescomp.found():
+            raise MesonException('Could not find Windows resource compiler')
+
+        if 'rc' in rescomp.get_path():
+            # RC is used to generate .res files, a special binary resource
+            # format, which can be passed directly to LINK (apparently LINK uses
+            # CVTRES internally to convert this to a COFF object)
             suffix = 'res'
+            res_args = extra_args + ['/nologo', '/fo@OUTPUT@', '@INPUT@']
         else:
+            # ld only supports object files, so windres is used to generate a
+            # COFF object
+            suffix = 'o'
+            res_args = extra_args + ['@INPUT@', '@OUTPUT@']
+
             m = 'Argument {!r} has a space which may not work with windres due to ' \
                 'a MinGW bug: https://sourceware.org/bugzilla/show_bug.cgi?id=4933'
             for arg in extra_args:
                 if ' ' in arg:
                     mlog.warning(m.format(arg))
-            rescomp = None
-            # FIXME: Does not handle `native: true` executables, see
-            # https://github.com/mesonbuild/meson/issues/1531
-            if state.environment.is_cross_build():
-                # If cross compiling see if windres has been specified in the
-                # cross file before trying to find it another way.
-                cross_info = state.environment.cross_info
-                rescomp = ExternalProgram.from_cross_info(cross_info, 'windres')
-            if not rescomp or not rescomp.found():
-                # Pick-up env var WINDRES if set. This is often used for
-                # specifying an arch-specific windres.
-                rescomp = ExternalProgram(os.environ.get('WINDRES', 'windres'), silent=True)
-            res_args = extra_args + ['@INPUT@', '@OUTPUT@']
-            suffix = 'o'
-        if not rescomp.found():
-            raise MesonException('Could not find Windows resource compiler {!r}'
-                                 ''.format(rescomp.get_path()))
 
         res_targets = []
 
@@ -115,7 +129,7 @@ class WindowsModule(ExtensionModule):
             }
 
             # instruct binutils windres to generate a preprocessor depfile
-            if comp.id != 'msvc':
+            if 'windres' in rescomp.get_path():
                 res_kwargs['depfile'] = res_kwargs['output'] + '.d'
                 res_kwargs['command'] += ['--preprocessor-arg=-MD', '--preprocessor-arg=-MQ@OUTPUT@', '--preprocessor-arg=-MF@DEPFILE@']
 

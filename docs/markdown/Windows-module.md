@@ -21,3 +21,10 @@ has the following keyword argument.
 - `include_directories` lists directories to be both searched by the resource
   compiler for referenced resource files, and added to the preprocessor include
   search path.
+
+The resource compiler executable used is the first which exists from the
+following list:
+
+1. The `windres` executable given in the `[binaries]` section of the cross-file
+2. The `WINDRES` environment variable
+3. The resource compiler which is part of the same toolset as the C or C++ compiler in use.
