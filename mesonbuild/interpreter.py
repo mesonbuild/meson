@@ -3714,11 +3714,10 @@ different subdirectory.
             return
         if 'b_sanitize' not in self.coredata.base_options:
             return
-        if 'address' in self.coredata.base_options['b_sanitize'].value:
-            if self.coredata.base_options['b_lundef'].value:
-                mlog.warning('''Trying to use address sanitizer on Clang with b_lundef.
+        if self.coredata.base_options['b_lundef'].value:
+            mlog.warning('''Trying to use {} sanitizer on Clang with b_lundef.
 This will probably not work.
-Try setting b_lundef to false instead.''')
+Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_sanitize'].value))
 
     def evaluate_subproject_info(self, path_from_source_root, subproject_dirname):
         depth = 0
