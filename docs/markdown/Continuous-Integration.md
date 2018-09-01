@@ -50,37 +50,62 @@ For CI on Windows, [AppVeyor](https://www.appveyor.com/) is probably
 your best bet. Here's a sample `yml` file for use with that.
 
 ```yaml
-os: Visual Studio 2015
+os: Visual Studio 2017
 
 environment:
   matrix:
     - arch: x86
-      compiler: msvc2010
-    - arch: x86
       compiler: msvc2015
     - arch: x64
       compiler: msvc2015
+    - arch: x86
+      compiler: msvc2017
+    - arch: x64
+      compiler: msvc2017
 
 platform:
   - x64
 
 install:
-  # Use the x86 python only when building for x86 for the cpython tests.
-  # For all other archs (including, say, arm), use the x64 python.
-  - ps: (new-object net.webclient).DownloadFile('https://www.dropbox.com/s/cyghxjrvgplu7sy/ninja.exe?dl=1', 'C:\projects\meson\ninja.exe')
-  - cmd: if %arch%==x86 (set MESON_PYTHON_PATH=C:\python34) else (set MESON_PYTHON_PATH=C:\python34-x64)
-  - cmd: echo Using Python at %MESON_PYTHON_PATH%
-  - cmd: "%MESON_PYTHON_PATH%\\pip install meson"
-  - cmd: if %compiler%==msvc2010 ( call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" %arch% )
+  # Download ninja
+  - cmd: mkdir C:\ninja-build
+  - ps: (new-object net.webclient).DownloadFile('https://www.dropbox.com/s/cyghxjrvgplu7sy/ninja.exe?dl=1', 'C:\ninja-build\ninja.exe')
+  # Set paths to dependencies (based on architecture)
+  - cmd: if %arch%==x86 (set PYTHON_ROOT=C:\python37) else (set PYTHON_ROOT=C:\python37-x64)
+  # Print out dependency paths
+  - cmd: echo Using Python at %PYTHON_ROOT%
+  # Add neccessary paths to PATH variable
+  - cmd: set PATH=%cd%;C:\ninja-build;%PYTHON_ROOT%;%PYTHON_ROOT%\Scripts;%PATH%
+  # Install meson
+  - cmd: pip install meson
+  # Set up the build environment
   - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
+  - cmd: if %compiler%==msvc2017 ( call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" %arch% )
 
 build_script:
   - cmd: echo Building on %arch% with %compiler%
-  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && python meson.py --backend=ninja builddir
-  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && ninja -C builddir
+  - cmd: meson --backend=ninja builddir
+  - cmd: ninja -C builddir
 
 test_script:
-  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && ninja -C builddir test
+  - cmd: ninja -C builddir test
+```
+
+### Qt
+
+For Qt 5, add the following line near the `PYTHON_ROOT` assignment:
+```yaml
+ - cmd: if %arch%==x86 (set QT_ROOT=C:\Qt\5.11\%compiler%) else (set QT_ROOT=C:\Qt\5.11\%compiler%_64)
+```
+And afterwards add `%QT_ROOT%\bin` to the `PATH` variable.
+
+You might have to adjust your build matrix as there are, for example, no msvc2017 32-bit builds. Visit the [Build Environment](https://www.appveyor.com/docs/build-environment/) page in the AppVeyor docs for more details.
+
+### Boost
+
+The following statement is sufficient for meson to find Boost:
+```yaml
+ - cmd: set BOOST_ROOT=C:\Libraries\boost_1_67_0
 ```
 
 ## Travis without Docker
