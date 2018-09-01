@@ -56,7 +56,7 @@ lib_c_test_template = '''#include <{header_file}>
 #include <stdio.h>
 
 int main(int argc, char **argv) {{
-    if(argc != 1) {{
+    if (argc != 1) {{
         printf("%s takes no arguments.\\n", argv[0]);
         return 1;
     }}
@@ -107,7 +107,7 @@ hello_c_template = '''#include <stdio.h>
 #define PROJECT_NAME "{project_name}"
 
 int main(int argc, char **argv) {{
-    if(argc != 1) {{
+    if (argc != 1) {{
         printf("%s takes no arguments.\\n", argv[0]);
         return 1;
     }}
@@ -131,11 +131,11 @@ hello_cpp_template = '''#include <iostream>
 #define PROJECT_NAME "{project_name}"
 
 int main(int argc, char **argv) {{
-    if(argc != 1) {{
-        std::cout << argv[0] <<  "takes no arguments.\\n";
+    if (argc != 1) {{
+        std::cout << argv[0] << "takes no arguments." << std::endl;
         return 1;
     }}
-    std::cout << "This is project " << PROJECT_NAME << ".\\n";
+    std::cout << "This is project " << PROJECT_NAME << "." << std::endl;
     return 0;
 }}
 '''
@@ -160,24 +160,20 @@ lib_hpp_template = '''#pragma once
   #endif
 #else
   #ifdef BUILDING_{utoken}
-      #define {utoken}_PUBLIC __attribute__ ((visibility ("default")))
+    #define {utoken}_PUBLIC __attribute__ ((visibility ("default")))
   #else
-      #define {utoken}_PUBLIC
+    #define {utoken}_PUBLIC
   #endif
 #endif
 
 namespace {namespace} {{
 
 class {utoken}_PUBLIC {class_name} {{
-
 public:
-  {class_name}();
-  int get_number() const;
-
+    {class_name}();
+    int getNumber() const;
 private:
-
-  int number;
-
+    int number;
 }};
 
 }}
@@ -192,8 +188,8 @@ namespace {namespace} {{
     number = 6;
 }}
 
-int {class_name}::get_number() const {{
-  return number;
+int {class_name}::getNumber() const {{
+    return number;
 }}
 
 }}
@@ -203,12 +199,12 @@ lib_cpp_test_template = '''#include <{header_file}>
 #include <iostream>
 
 int main(int argc, char **argv) {{
-    if(argc != 1) {{
-        std::cout << argv[0] << " takes no arguments.\\n";
+    if (argc != 1) {{
+        std::cout << argv[0] << " takes no arguments." << std::endl;
         return 1;
     }}
     {namespace}::{class_name} c;
-    return c.get_number() != 6;
+    return c.getNumber() != 6;
 }}
 '''
 
