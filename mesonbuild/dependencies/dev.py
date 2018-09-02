@@ -102,13 +102,18 @@ class GTestDependency(ExternalDependency):
 class GMockDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('gmock', environment, 'cpp', kwargs)
+        self.main = kwargs.get('main', False)
+
         # GMock may be a library or just source.
         # Work with both.
         gmock_detect = self.clib_compiler.find_library("gmock", self.env, [])
-        if gmock_detect:
+        gmock_main_detect = self.clib_compiler.find_library("gmock_main", self.env, [])
+        if gmock_detect and (not self.main or gmock_main_detect):
             self.is_found = True
             self.compile_args = []
             self.link_args = gmock_detect
+            if self.main:
+                self.link_args += gmock_main_detect
             self.sources = []
             self.prebuilt = True
             return
@@ -123,7 +128,7 @@ class GMockDependency(ExternalDependency):
                 self.link_args = []
                 all_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock-all.cc'))
                 main_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock_main.cc'))
-                if kwargs.get('main', False):
+                if self.main:
                     self.sources = [all_src, main_src]
                 else:
                     self.sources = [all_src]
@@ -137,6 +142,24 @@ class GMockDependency(ExternalDependency):
             return 'prebuilt'
         else:
             return 'building self'
+
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
+
+        if DependencyMethods.PKGCONFIG in methods:
+            pcname = 'gmock_main' if kwargs.get('main', False) else 'gmock'
+            candidates.append(functools.partial(PkgConfigDependency, pcname, environment, kwargs))
+
+        if DependencyMethods.SYSTEM in methods:
+            candidates.append(functools.partial(GMockDependency, environment, kwargs))
+
+        return candidates
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
 
 
 class LLVMDependency(ConfigToolDependency):
