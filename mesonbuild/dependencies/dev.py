@@ -15,14 +15,14 @@
 # This file contains the detection logic for external dependencies useful for
 # development purposes, such as testing, debugging, etc..
 
+import functools
 import os
 import re
 
-from .. import mlog
 from .. import mesonlib
 from ..mesonlib import version_compare, stringlistify, extract_as_list
 from .base import (
-    DependencyException, ExternalDependency, PkgConfigDependency,
+    DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
     strip_system_libdirs, ConfigToolDependency,
 )
 
@@ -79,6 +79,24 @@ class GTestDependency(ExternalDependency):
             return 'prebuilt'
         else:
             return 'building self'
+
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
+
+        if DependencyMethods.PKGCONFIG in methods:
+            pcname = 'gtest_main' if kwargs.get('main', False) else 'gtest'
+            candidates.append(functools.partial(PkgConfigDependency, pcname, environment, kwargs))
+
+        if DependencyMethods.SYSTEM in methods:
+            candidates.append(functools.partial(GTestDependency, environment, kwargs))
+
+        return candidates
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
 
 
 class GMockDependency(ExternalDependency):
