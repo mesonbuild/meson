@@ -283,34 +283,29 @@ class Python3Dependency(ExternalDependency):
         # We can only be sure that it is Python 3 at this point
         self.version = '3'
         self.pkgdep = None
-        if DependencyMethods.PKGCONFIG in self.methods:
-            try:
-                self.pkgdep = PkgConfigDependency('python3', environment, kwargs)
-                if self.pkgdep.found():
-                    self.compile_args = self.pkgdep.get_compile_args()
-                    self.link_args = self.pkgdep.get_link_args()
-                    self.version = self.pkgdep.get_version()
-                    self.is_found = True
-                    self.pcdep = self.pkgdep
-                    return
-                else:
-                    self.pkgdep = None
-            except Exception:
-                pass
-        if not self.is_found:
-            if mesonlib.is_windows() and DependencyMethods.SYSCONFIG in self.methods:
-                self._find_libpy3_windows(environment)
-            elif mesonlib.is_osx() and DependencyMethods.EXTRAFRAMEWORK in self.methods:
-                # In OSX the Python 3 framework does not have a version
-                # number in its name.
-                # There is a python in /System/Library/Frameworks, but that's
-                # python 2, Python 3 will always bin in /Library
-                fw = ExtraFrameworkDependency(
-                    'python', False, '/Library/Frameworks', self.env, self.language, kwargs)
-                if fw.found():
-                    self.compile_args = fw.get_compile_args()
-                    self.link_args = fw.get_link_args()
-                    self.is_found = True
+        self._find_libpy3_windows(environment)
+
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
+
+        if DependencyMethods.PKGCONFIG in methods:
+            candidates.append(functools.partial(PkgConfigDependency, 'python3', environment, kwargs))
+
+        if DependencyMethods.SYSCONFIG in methods:
+            candidates.append(functools.partial(Python3Dependency, environment, kwargs))
+
+        if DependencyMethods.EXTRAFRAMEWORK in methods:
+            # In OSX the Python 3 framework does not have a version
+            # number in its name.
+            # There is a python in /System/Library/Frameworks, but that's
+            # python 2, Python 3 will always be in /Library
+            candidates.append(functools.partial(
+                ExtraFrameworkDependency, 'python', False, '/Library/Frameworks',
+                environment, kwargs.get('language', None), kwargs))
+
+        return candidates
 
     @staticmethod
     def get_windows_python_arch():
@@ -401,12 +396,6 @@ class Python3Dependency(ExternalDependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.EXTRAFRAMEWORK]
         else:
             return [DependencyMethods.PKGCONFIG]
-
-    def get_pkgconfig_variable(self, variable_name, kwargs):
-        if self.pkgdep:
-            return self.pkgdep.get_pkgconfig_variable(variable_name, kwargs)
-        else:
-            return super().get_pkgconfig_variable(variable_name, kwargs)
 
 
 class PcapDependency(ExternalDependency):
