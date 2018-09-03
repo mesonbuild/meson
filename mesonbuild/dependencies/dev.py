@@ -15,14 +15,14 @@
 # This file contains the detection logic for external dependencies useful for
 # development purposes, such as testing, debugging, etc..
 
+import functools
 import os
 import re
 
-from .. import mlog
 from .. import mesonlib
 from ..mesonlib import version_compare, stringlistify, extract_as_list
 from .base import (
-    DependencyException, ExternalDependency, PkgConfigDependency,
+    DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
     strip_system_libdirs, ConfigToolDependency,
 )
 
@@ -80,18 +80,57 @@ class GTestDependency(ExternalDependency):
         else:
             return 'building self'
 
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
+
+        if DependencyMethods.PKGCONFIG in methods:
+            pcname = 'gtest_main' if kwargs.get('main', False) else 'gtest'
+            candidates.append(functools.partial(PkgConfigDependency, pcname, environment, kwargs))
+
+        if DependencyMethods.SYSTEM in methods:
+            candidates.append(functools.partial(GTestDependency, environment, kwargs))
+
+        return candidates
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
+
 
 class GMockDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('gmock', environment, 'cpp', kwargs)
+        self.main = kwargs.get('main', False)
+
+        # If we are getting main() from GMock, we definitely
+        # want to avoid linking in main() from GTest
+        gtest_kwargs = kwargs.copy()
+        if self.main:
+            gtest_kwargs['main'] = False
+
+        # GMock without GTest is pretty much useless
+        # this also mimics the structure given in WrapDB,
+        # where GMock always pulls in GTest
+        gtest_dep = GTestDependency(environment, gtest_kwargs)
+        if not gtest_dep.is_found:
+            self.is_found = False
+            return
+
+        self.compile_args = gtest_dep.compile_args
+        self.link_args = gtest_dep.link_args
+        self.sources = gtest_dep.sources
+
         # GMock may be a library or just source.
         # Work with both.
         gmock_detect = self.clib_compiler.find_library("gmock", self.env, [])
-        if gmock_detect:
+        gmock_main_detect = self.clib_compiler.find_library("gmock_main", self.env, [])
+        if gmock_detect and (not self.main or gmock_main_detect):
             self.is_found = True
-            self.compile_args = []
-            self.link_args = gmock_detect
-            self.sources = []
+            self.link_args += gmock_detect
+            if self.main:
+                self.link_args += gmock_main_detect
             self.prebuilt = True
             return
 
@@ -101,24 +140,44 @@ class GMockDependency(ExternalDependency):
                 # Yes, we need both because there are multiple
                 # versions of gmock that do different things.
                 d2 = os.path.normpath(os.path.join(d, '..'))
-                self.compile_args = ['-I' + d, '-I' + d2, '-I' + os.path.join(d2, 'include')]
-                self.link_args = []
+                self.compile_args += ['-I' + d, '-I' + d2, '-I' + os.path.join(d2, 'include')]
                 all_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock-all.cc'))
                 main_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock_main.cc'))
-                if kwargs.get('main', False):
-                    self.sources = [all_src, main_src]
+                if self.main:
+                    self.sources += [all_src, main_src]
                 else:
-                    self.sources = [all_src]
+                    self.sources += [all_src]
                 self.prebuilt = False
                 return
 
         self.is_found = False
+
+    def need_threads(self):
+        return True
 
     def log_info(self):
         if self.prebuilt:
             return 'prebuilt'
         else:
             return 'building self'
+
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
+
+        if DependencyMethods.PKGCONFIG in methods:
+            pcname = 'gmock_main' if kwargs.get('main', False) else 'gmock'
+            candidates.append(functools.partial(PkgConfigDependency, pcname, environment, kwargs))
+
+        if DependencyMethods.SYSTEM in methods:
+            candidates.append(functools.partial(GMockDependency, environment, kwargs))
+
+        return candidates
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
 
 
 class LLVMDependency(ConfigToolDependency):
