@@ -3069,7 +3069,8 @@ root and issuing %s.
                 msg.append(traceback.format_exc())
             mlog.log(*msg)
             return None
-        dep = self.get_subproject_dep(name, dirname, varname, kwargs.get('required', True))
+        required = kwargs.get('required', True)
+        dep = self.get_subproject_dep(name, dirname, varname, required)
         if not dep:
             return None
         subproj_path = os.path.join(self.subproject_dir, dirname)
@@ -3077,6 +3078,12 @@ root and issuing %s.
         if 'version' in kwargs:
             wanted = kwargs['version']
             found = dep.version_method([], {})
+            # Don't do a version check if the dependency is not found and not required
+            if not dep.found_method([], {}) and not required:
+                subproj_path = os.path.join(self.subproject_dir, dirname)
+                mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
+                         mlog.bold(subproj_path), 'found:', mlog.red('NO'))
+                return dep
             if not self.check_subproject_version(wanted, found):
                 mlog.log('Subproject', mlog.bold(subproj_path), 'dependency',
                          mlog.bold(display_name), 'version is', mlog.bold(found),
