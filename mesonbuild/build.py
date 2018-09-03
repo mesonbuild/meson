@@ -1314,6 +1314,10 @@ class Executable(BuildTarget):
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
 
+    def description(self):
+        '''Human friendly description of the executable'''
+        return self.name
+
     def type_suffix(self):
         return "@exe"
 
