@@ -101,6 +101,34 @@ class DCompiler(Compiler):
     def get_linker_exelist(self):
         return self.exelist[:]
 
+    def get_output_args(self, target):
+        return ['-of=' + target]
+
+    def get_linker_output_args(self, target):
+        return ['-of=' + target]
+
+    def get_include_args(self, path, is_system):
+        return ['-I=' + path]
+
+    def get_warn_args(self, level):
+        return ['-wi']
+
+    def get_werror_args(self):
+        return ['-w']
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        # DMD and LDC does not currently return Makefile-compatible dependency info.
+        return []
+
+    def get_linker_search_args(self, dirname):
+        # -L is recognized as "add this to the search path" by the linker,
+        # while the compiler recognizes it as "pass to linker". So, the first
+        # -L is for the compiler, telling it to pass the second -L to the linker.
+        return ['-L=-L' + dirname]
+
+    def get_coverage_args(self):
+        return ['-cov']
+
     def get_preprocess_only_args(self):
         return ['-E']
 
@@ -203,7 +231,7 @@ class DCompiler(Compiler):
                 paths = padding
             else:
                 paths = paths + ':' + padding
-        return ['-L-rpath={}'.format(paths)]
+        return ['-L=-rpath={}'.format(paths)]
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         if extra_args is None:
@@ -266,12 +294,12 @@ class DCompiler(Compiler):
                 for la in linkargs:
                     if la.startswith('--out-implib='):
                         # Import library name for MSVC targets
-                        dcargs.append('-L/IMPLIB:' + la[13:].strip())
+                        dcargs.append('-L=/IMPLIB:' + la[13:].strip())
                         continue
-                    dcargs.append('-L' + la.strip())
+                    dcargs.append('-L=' + la.strip())
                 continue
             elif arg.startswith('-install_name'):
-                dcargs.append('-L' + arg)
+                dcargs.append('-L=' + arg)
                 continue
             elif arg.startswith('-link-defaultlib') or arg.startswith('-linker'):
                 # these are special arguments to the LDC linker call,
@@ -283,7 +311,7 @@ class DCompiler(Compiler):
                 continue
             elif arg.startswith('-l'):
                 # translate library link flag
-                dcargs.append('-L' + arg)
+                dcargs.append('-L=' + arg)
                 continue
             elif arg.startswith('-L/') or arg.startswith('-L./'):
                 # we need to handle cases where -L is set by e.g. a pkg-config
@@ -293,12 +321,12 @@ class DCompiler(Compiler):
                 # compiler (pass flag through to the linker)
                 # Hence, we guess here whether the flag was intended to pass
                 # a linker search path.
-                dcargs.append('-L' + arg)
+                dcargs.append('-L=' + arg)
                 continue
             elif arg.startswith('/') or arg.startswith('./'):
                 # absolute (or relative) paths passed to the linker may be static libraries
                 # or other objects that we need to link.
-                dcargs.append('-L' + arg)
+                dcargs.append('-L=' + arg)
                 continue
             elif arg.startswith('-mscrtlib='):
                 mscrtlib = arg[10:].lower()
@@ -307,12 +335,12 @@ class DCompiler(Compiler):
                     # Default crt libraries for LDC2 must be excluded for other
                     # selected crt options.
                     if mscrtlib != 'libcmt':
-                        dcargs.append('-L/NODEFAULTLIB:libcmt')
-                        dcargs.append('-L/NODEFAULTLIB:libvcruntime')
+                        dcargs.append('-L=/NODEFAULTLIB:libcmt')
+                        dcargs.append('-L=/NODEFAULTLIB:libvcruntime')
 
                     # Fixes missing definitions for printf-functions in VS2017
                     if mscrtlib.startswith('msvcrt'):
-                        dcargs.append('-L/DEFAULTLIB:legacy_stdio_definitions.lib')
+                        dcargs.append('-L=/DEFAULTLIB:legacy_stdio_definitions.lib')
 
                 dcargs.append(arg)
 
@@ -396,6 +424,9 @@ class GnuDCompiler(DCompiler):
     def get_linker_search_args(self, dirname):
         return ['-L' + dirname]
 
+    def get_coverage_args(self):
+        return []
+
     def get_buildtype_args(self, buildtype):
         return d_gdc_buildtype_args[buildtype]
 
@@ -416,31 +447,11 @@ class LLVMDCompiler(DCompiler):
             return ['-enable-color']
         return []
 
-    def get_dependency_gen_args(self, outtarget, outfile):
-        # LDC using the -deps flag returns a non-Makefile dependency-info file, which
-        # the backends can not use. So we disable this feature for now.
-        return []
-
-    def get_output_args(self, target):
-        return ['-of', target]
-
-    def get_linker_output_args(self, target):
-        return ['-of', target]
-
-    def get_include_args(self, path, is_system):
-        return ['-I' + path]
-
     def get_warn_args(self, level):
         if level == '2' or level == '3':
             return ['-wi', '-dw']
         else:
             return ['-wi']
-
-    def get_werror_args(self):
-        return ['-w']
-
-    def get_coverage_args(self):
-        return ['-cov']
 
     def get_buildtype_args(self, buildtype):
         if buildtype != 'plain':
@@ -449,12 +460,6 @@ class LLVMDCompiler(DCompiler):
 
     def get_pic_args(self):
         return ['-relocation-model=pic']
-
-    def get_linker_search_args(self, dirname):
-        # -L is recognized as "add this to the search path" by the linker,
-        # while the compiler recognizes it as "pass to linker". So, the first
-        # -L is for the compiler, telling it to pass the second -L to the linker.
-        return ['-L-L' + dirname]
 
     def get_crt_link_args(self, crt_val, buildtype):
         return self.get_crt_args(crt_val, buildtype)
@@ -478,35 +483,6 @@ class DmdDCompiler(DCompiler):
         if colortype == 'always':
             return ['-color=on']
         return []
-
-    def get_dependency_gen_args(self, outtarget, outfile):
-        # LDC using the -deps flag returns a non-Makefile dependency-info file, which
-        # the backends can not use. So we disable this feature for now.
-        return []
-
-    def get_output_args(self, target):
-        return ['-of' + target]
-
-    def get_werror_args(self):
-        return ['-w']
-
-    def get_linker_output_args(self, target):
-        return ['-of' + target]
-
-    def get_include_args(self, path, is_system):
-        return ['-I' + path]
-
-    def get_warn_args(self, level):
-        return ['-wi']
-
-    def get_coverage_args(self):
-        return ['-cov']
-
-    def get_linker_search_args(self, dirname):
-        # -L is recognized as "add this to the search path" by the linker,
-        # while the compiler recognizes it as "pass to linker". So, the first
-        # -L is for the compiler, telling it to pass the second -L to the linker.
-        return ['-L-L' + dirname]
 
     def get_buildtype_args(self, buildtype):
         if buildtype != 'plain':
