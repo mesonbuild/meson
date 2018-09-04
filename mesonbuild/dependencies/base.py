@@ -870,8 +870,14 @@ class DubDependency(ExternalDependency):
         mlog.debug('Determining dependency {!r} with DUB executable '
                    '{!r}'.format(name, self.dubbin.get_path()))
 
+        # we need to know the correct architecture on Windows
+        if self.compiler.is_64:
+            arch = 'x86_64'
+        else:
+            arch = 'x86'
+
         # Ask dub for the package
-        ret, res = self._call_dubbin(['describe', name])
+        ret, res = self._call_dubbin(['describe', name, '--arch=' + arch])
 
         if ret != 0:
             self.is_found = False
@@ -925,15 +931,10 @@ class DubDependency(ExternalDependency):
 
         def add_lib_args(field_name, target):
             if field_name in target['buildSettings']:
-                if os.name is 'nt':
-                    for lib in target['buildSettings'][field_name]:
-                        if lib not in target['buildSettings'][field_name]:
-                            libs.append(lib)
-                            # TODO: Use CCompiler.find_library to find the path of the .lib files
-                else: # posix and everything else
-                    for lib in target['buildSettings'][field_name]:
-                        if lib not in libs:
-                            libs.append(lib)
+                for lib in target['buildSettings'][field_name]:
+                    if lib not in libs:
+                        libs.append(lib)
+                        if os.name is not 'nt':
                             pkgdep = PkgConfigDependency(lib, environment, {'required': 'true', 'silent': 'true'})
                             for arg in pkgdep.get_compile_args():
                                 self.compile_args.append(arg)
@@ -979,7 +980,7 @@ class DubDependency(ExternalDependency):
             d_ver = '' # gdc
 
         # Ex.: library-debug-linux.posix-x86_64-ldc_2081-EF934983A3319F8F8FF2F0E107A363BA
-        build_name = 'library-{}-{}.{}-{}-{}_{}'.format(j['buildType'], j['platform'][0], j['platform'][1], platform.machine(), comp, d_ver)
+        build_name = 'library-{}-{}-{}-{}_{}'.format(j['buildType'], '.'.join(j['platform']), j['architecture'][0], comp, d_ver)
         for entry in os.listdir(os.path.join(module_build_path, '.dub', 'build')):
             if entry.startswith(build_name):
                 for file in os.listdir(os.path.join(module_build_path, '.dub', 'build', entry)):
