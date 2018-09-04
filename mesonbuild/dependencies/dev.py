@@ -288,7 +288,7 @@ class LLVMDependency(ConfigToolDependency):
             libdir = self.get_config_value(['--libdir'], 'link_args')[0]
 
             expected_name = 'libLLVM-{}'.format(self.version)
-            re_name = re.compile(r'{}.(so|dll|dylib)'.format(expected_name))
+            re_name = re.compile(r'{}.(so|dll|dylib)$'.format(expected_name))
 
             for file_ in os.listdir(libdir):
                 if re_name.match(file_):
