@@ -18,4 +18,6 @@ endif
 
 exe = executable('trivialprog', sources : sources)
 
+# U+000C FORM FEED whitespace.
+
 test('runtest', exe) # This is a comment
