@@ -361,8 +361,11 @@ otherwise. This function supports the following keyword arguments:
   dependency is not found in the system. The value is an array
   `['subproj_name', 'subproj_dep']` where the first value is the name
   of the subproject and the second is the variable name in that
-  subproject that contains the value of
-  [`declare_dependency`](#declare_dependency).
+  subproject that contains a dependency object such as the return
+  value of [`declare_dependency`](#declare_dependency) or
+  [`dependency()`](#dependency), etc. Note that this means the
+  fallback dependency may be a not-found dependency, in which
+  case the value of the `required:` kwarg will be obeyed.
 - `language` *(added 0.42.0)* defines what language-specific
   dependency to find if it's available for multiple languages.
 - `method` defines the way the dependency is detected, the default is
