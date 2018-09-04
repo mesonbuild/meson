@@ -94,7 +94,7 @@ class Lexer:
         self.future_keywords = {'continue', 'break', 'in', 'return'}
         self.token_specification = [
             # Need to be sorted longest to shortest.
-            ('ignore', re.compile(r'[ \t]')),
+            ('ignore', re.compile(r'[ \t\f]')),
             ('id', re.compile('[_a-zA-Z][_0-9a-zA-Z]*')),
             ('number', re.compile(r'0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|0|[1-9]\d*')),
             ('eol_cont', re.compile(r'\\\n')),
