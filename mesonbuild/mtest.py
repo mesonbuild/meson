@@ -354,7 +354,18 @@ class SingleTestRunner:
                     # There's nothing we can do (maybe the process
                     # already died) so carry on.
                     pass
-            (stdo, stde) = p.communicate()
+            try:
+                (stdo, stde) = p.communicate(timeout=1)
+            except subprocess.TimeoutExpired:
+                # An earlier kill attempt has not worked for whatever reason.
+                # Try to kill it one last time with a direct call.
+                # If the process has spawned children, they will remain around.
+                p.kill()
+                try:
+                    (stdo, stde) = p.communicate(timeout=1)
+                except subprocess.TimeoutExpired:
+                    stdo = b'Test process could not be killed.'
+                    stde = b''
         endtime = time.time()
         duration = endtime - starttime
         stdo = decode(stdo)
