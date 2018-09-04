@@ -513,6 +513,17 @@ class DmdDCompiler(DCompiler):
             return self.get_target_arch_args() + d_dmd_buildtype_args[buildtype]
         return d_dmd_buildtype_args[buildtype]
 
+    def get_std_exe_link_args(self):
+        if is_windows():
+            # DMD links against D runtime only when main symbol is found,
+            # so these needs to be inserted when linking static D libraries.
+            if self.is_64:
+                return ['phobos64.lib']
+            elif self.is_msvc:
+                return ['phobos32mscoff.lib']
+            return ['phobos.lib']
+        return []
+
     def get_std_shared_lib_link_args(self):
         return ['-shared', '-defaultlib=libphobos2.so']
 
