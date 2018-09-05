@@ -46,11 +46,13 @@ log_file = None
 log_fname = 'meson-log.txt'
 log_depth = 0
 log_timestamp_start = None
+log_fatal_warnings = False
 
-def initialize(logdir):
-    global log_dir, log_file
+def initialize(logdir, fatal_warnings=False):
+    global log_dir, log_file, log_fatal_warnings
     log_dir = logdir
     log_file = open(os.path.join(logdir, log_fname), 'w', encoding='utf8')
+    log_fatal_warnings = fatal_warnings
 
 def set_timestamp_start(start):
     global log_timestamp_start
@@ -145,6 +147,7 @@ def log(*args, **kwargs):
 def _log_error(severity, *args, **kwargs):
     from .mesonlib import get_error_location_string
     from .environment import build_filename
+    from .mesonlib import MesonException
     if severity == 'warning':
         args = (yellow('WARNING:'),) + args
     elif severity == 'error':
@@ -161,6 +164,10 @@ def _log_error(severity, *args, **kwargs):
         args = (location_str,) + args
 
     log(*args, **kwargs)
+
+    global log_fatal_warnings
+    if log_fatal_warnings:
+        raise MesonException("Fatal warnings enabled, aborting")
 
 def error(*args, **kwargs):
     return _log_error('error', *args, **kwargs)
