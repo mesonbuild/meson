@@ -2157,7 +2157,7 @@ int main(int argc, char **argv) {
         self.build()
 
     def test_subproject_promotion_wrap(self):
-        testdir = os.path.join(self.unit_test_dir, '43 promote wrap')
+        testdir = os.path.join(self.unit_test_dir, '44 promote wrap')
         workdir = os.path.join(self.builddir, 'work')
         shutil.copytree(testdir, workdir)
         spdir = os.path.join(workdir, 'subprojects')
@@ -2378,14 +2378,14 @@ recommended as it is not supported on some platforms''')
         self.assertRebuiltTarget('app')
 
     def test_conflicting_d_dash_option(self):
-        testdir = os.path.join(self.unit_test_dir, '36 mixed command line args')
+        testdir = os.path.join(self.unit_test_dir, '37 mixed command line args')
         with self.assertRaises(subprocess.CalledProcessError) as e:
             self.init(testdir, extra_args=['-Dbindir=foo', '--bindir=bar'])
             # Just to ensure that we caught the correct error
             self.assertIn('passed as both', e.stderr)
 
     def _test_same_option_twice(self, arg, args):
-        testdir = os.path.join(self.unit_test_dir, '36 mixed command line args')
+        testdir = os.path.join(self.unit_test_dir, '37 mixed command line args')
         self.init(testdir, extra_args=args)
         opts = self.introspect('--buildoptions')
         for item in opts:
@@ -2404,7 +2404,7 @@ recommended as it is not supported on some platforms''')
         self._test_same_option_twice('one', ['-Done=foo', '-Done=bar'])
 
     def _test_same_option_twice_configure(self, arg, args):
-        testdir = os.path.join(self.unit_test_dir, '36 mixed command line args')
+        testdir = os.path.join(self.unit_test_dir, '37 mixed command line args')
         self.init(testdir)
         self.setconf(args)
         opts = self.introspect('--buildoptions')
@@ -2548,7 +2548,7 @@ recommended as it is not supported on some platforms''')
             pass
 
     def test_feature_check_usage_subprojects(self):
-        testdir = os.path.join(self.unit_test_dir, '40 featurenew subprojects')
+        testdir = os.path.join(self.unit_test_dir, '41 featurenew subprojects')
         out = self.init(testdir)
         # Parent project warns correctly
         self.assertRegex(out, "WARNING: Project targetting '>=0.45'.*'0.47.0': dict")
@@ -3838,7 +3838,7 @@ endian = 'little'
 
     @skipIfNoPkgconfig
     def test_pkgconfig_formatting(self):
-        testdir = os.path.join(self.unit_test_dir, '37 pkgconfig format')
+        testdir = os.path.join(self.unit_test_dir, '38 pkgconfig format')
         self.init(testdir)
         myenv = os.environ.copy()
         myenv['PKG_CONFIG_PATH'] = self.privatedir
@@ -3853,7 +3853,7 @@ endian = 'little'
         '''
         Test that the dependencies are always listed in a deterministic order.
         '''
-        testdir = os.path.join(self.unit_test_dir, '42 dep order')
+        testdir = os.path.join(self.unit_test_dir, '43 dep order')
         self.init(testdir)
         with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
             for line in bfile:
@@ -3868,7 +3868,7 @@ endian = 'little'
         '''
         if is_cygwin():
             raise unittest.SkipTest('rpath are not used on Cygwin')
-        testdir = os.path.join(self.unit_test_dir, '41 rpath order')
+        testdir = os.path.join(self.unit_test_dir, '42 rpath order')
         self.init(testdir)
         if is_osx():
             rpathre = re.compile('-rpath,.*/subprojects/sub1.*-rpath,.*/subprojects/sub2')
@@ -3885,7 +3885,7 @@ endian = 'little'
         '''
         Test that we produce the correct dependencies when a program is overridden with an executable.
         '''
-        testdir = os.path.join(self.common_test_dir, '206 override with exe')
+        testdir = os.path.join(self.common_test_dir, '202 override with exe')
         self.init(testdir)
         with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
             for line in bfile:
@@ -3904,7 +3904,7 @@ endian = 'little'
         '''
         oldprefix = self.prefix
         # Install external library so we can find it
-        testdir = os.path.join(self.unit_test_dir, '39 external, internal library rpath', 'external library')
+        testdir = os.path.join(self.unit_test_dir, '40 external, internal library rpath', 'external library')
         # install into installdir without using DESTDIR
         installdir = self.installdir
         self.prefix = installdir
@@ -3916,7 +3916,7 @@ endian = 'little'
         self.new_builddir()
         os.environ['LIBRARY_PATH'] = os.path.join(installdir, self.libdir)
         os.environ['PKG_CONFIG_PATH'] = os.path.join(installdir, self.libdir, 'pkgconfig')
-        testdir = os.path.join(self.unit_test_dir, '39 external, internal library rpath', 'built library')
+        testdir = os.path.join(self.unit_test_dir, '40 external, internal library rpath', 'built library')
         # install into installdir without using DESTDIR
         self.prefix = self.installdir
         self.init(testdir)
@@ -4036,7 +4036,7 @@ class LinuxCrossMingwTests(BasePlatformTests):
         requires running a cross-built executable (custom_target or run_target)
         and causes the tests to be skipped if they are run.
         '''
-        testdir = os.path.join(self.unit_test_dir, '35 exe_wrapper behaviour')
+        testdir = os.path.join(self.unit_test_dir, '36 exe_wrapper behaviour')
         # Configures, builds, and tests fine by default
         self.init(testdir)
         self.build()
@@ -4068,7 +4068,7 @@ class PythonTests(BasePlatformTests):
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('Skipping python tests with {} backend'.format(self.backend.name))
 
-        testdir = os.path.join(self.src_root, 'test cases', 'unit', '38 python extmodule')
+        testdir = os.path.join(self.src_root, 'test cases', 'unit', '39 python extmodule')
 
         # No python version specified, this will use meson's python
         self.init(testdir)
