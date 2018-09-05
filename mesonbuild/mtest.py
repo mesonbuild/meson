@@ -366,6 +366,9 @@ class SingleTestRunner:
                 except subprocess.TimeoutExpired:
                     stdo = b'Test process could not be killed.'
                     stde = b''
+            except ValueError:
+                stdo = b'Could not read output. Maybe the process has redirected its stdout/stderr?'
+                stde = b''
         endtime = time.time()
         duration = endtime - starttime
         stdo = decode(stdo)
