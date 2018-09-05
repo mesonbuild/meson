@@ -438,7 +438,7 @@ class QtBaseDependency(ExternalDependency):
         return 'modules: ' + module_str
 
     def log_info(self):
-        return '`{}`'.format(self.from_text)
+        return '{}'.format(self.from_text)
 
     def log_tried(self):
         return self.from_text

@@ -3262,7 +3262,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Confirm that the dependency was found with qmake
         mesonlog = self.get_meson_log()
         self.assertRegex('\n'.join(mesonlog),
-                         r'Dependency qt5 \(modules: Core\) found: YES .*, `(qmake|qmake-qt5)`\n')
+                         r'Dependency qt5 \(modules: Core\) found: YES .* \((qmake|qmake-qt5)\)\n')
 
     def _test_soname_impl(self, libpath, install):
         if is_cygwin() or is_osx():
