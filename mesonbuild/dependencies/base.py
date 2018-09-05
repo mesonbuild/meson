@@ -1412,11 +1412,17 @@ def find_external_dependency(name, env, kwargs):
             # if the dependency was found
             if d.found():
 
-                info = d.log_info()
-                if info:
-                    info = ', ' + info
+                info = []
+                if d.version:
+                    info.append(d.version)
 
-                mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.green('YES'), (d.version if d.version else '') + info)
+                log_info = d.log_info()
+                if log_info:
+                    info.append('(' + log_info + ')')
+
+                info = ' '.join(info)
+
+                mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.green('YES'), info)
 
                 return d
 
