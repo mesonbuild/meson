@@ -286,19 +286,24 @@ class DCompiler(Compiler):
         # The flags might have been added by pkg-config files,
         # and are therefore out of the user's control.
         for arg in args:
+            # Translate OS specific arguments first.
+            osargs = []
+            if is_windows():
+                osargs = cls.translate_arg_to_windows(arg)
+            elif is_osx():
+                osargs = cls.translate_arg_to_osx(arg)
+            if osargs:
+                dcargs.extend(osargs)
+                continue
+
+            # Translate common D arguments here.
             if arg == '-pthread':
                 continue
             if arg.startswith('-Wl,'):
+                # Translate linker arguments here.
                 linkargs = arg[arg.index(',') + 1:].split(',')
                 for la in linkargs:
-                    if la.startswith('--out-implib='):
-                        # Import library name for MSVC targets
-                        dcargs.append('-L=/IMPLIB:' + la[13:].strip())
-                        continue
                     dcargs.append('-L=' + la.strip())
-                continue
-            elif arg.startswith('-install_name'):
-                dcargs.append('-L=' + arg)
                 continue
             elif arg.startswith('-link-defaultlib') or arg.startswith('-linker'):
                 # these are special arguments to the LDC linker call,
@@ -312,7 +317,7 @@ class DCompiler(Compiler):
                 # translate library link flag
                 dcargs.append('-L=' + arg)
                 continue
-            elif arg.startswith('-L/') or arg.startswith('-L./'):
+            elif arg.startswith('-L'):
                 # we need to handle cases where -L is set by e.g. a pkg-config
                 # setting to select a linker search path. We can however not
                 # unconditionally prefix '-L' with '-L' because the user might
@@ -327,26 +332,43 @@ class DCompiler(Compiler):
                 # or other objects that we need to link.
                 dcargs.append('-L=' + arg)
                 continue
-            elif arg.startswith('-mscrtlib='):
-                mscrtlib = arg[10:].lower()
 
-                if cls is LLVMDCompiler:
-                    # Default crt libraries for LDC2 must be excluded for other
-                    # selected crt options.
-                    if mscrtlib != 'libcmt':
-                        dcargs.append('-L=/NODEFAULTLIB:libcmt')
-                        dcargs.append('-L=/NODEFAULTLIB:libvcruntime')
-
-                    # Fixes missing definitions for printf-functions in VS2017
-                    if mscrtlib.startswith('msvcrt'):
-                        dcargs.append('-L=/DEFAULTLIB:legacy_stdio_definitions.lib')
-
-                dcargs.append(arg)
-
-                continue
             dcargs.append(arg)
 
         return dcargs
+
+    @classmethod
+    def translate_arg_to_windows(cls, arg):
+        args = []
+        if arg.startswith('-Wl,'):
+            # Translate linker arguments here.
+            linkargs = arg[arg.index(',') + 1:].split(',')
+            for la in linkargs:
+                if la.startswith('--out-implib='):
+                    # Import library name
+                    args.append('-L=/IMPLIB:' + la[13:].strip())
+        elif arg.startswith('-mscrtlib='):
+            args.append(arg)
+            mscrtlib = arg[10:].lower()
+            if cls is LLVMDCompiler:
+                # Default crt libraries for LDC2 must be excluded for other
+                # selected crt options.
+                if mscrtlib != 'libcmt':
+                    args.append('-L=/NODEFAULTLIB:libcmt')
+                    args.append('-L=/NODEFAULTLIB:libvcruntime')
+
+                # Fixes missing definitions for printf-functions in VS2017
+                if mscrtlib.startswith('msvcrt'):
+                    args.append('-L=/DEFAULTLIB:legacy_stdio_definitions.lib')
+
+        return args
+
+    @classmethod
+    def translate_arg_to_osx(cls, arg):
+        args = []
+        if arg.startswith('-install_name'):
+            args.append('-L=' + arg)
+        return args
 
     def get_debug_args(self, is_debug):
         return clike_debug_args[is_debug]
