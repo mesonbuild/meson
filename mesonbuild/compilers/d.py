@@ -150,12 +150,15 @@ class DCompiler(Compiler):
 
     def get_soname_args(self, *args):
         # FIXME: Make this work for cross-compiling
-        gcc_type = GCC_STANDARD
         if is_windows():
-            gcc_type = GCC_CYGWIN
-        if is_osx():
-            gcc_type = GCC_OSX
-        return get_gcc_soname_args(gcc_type, *args)
+            return []
+        elif is_osx():
+            soname_args = get_gcc_soname_args(GCC_OSX, *args)
+            if soname_args:
+                return ['-Wl,' + ','.join(soname_args)]
+            return []
+
+        return get_gcc_soname_args(GCC_STANDARD, *args)
 
     def get_feature_args(self, kwargs, build_to_src):
         res = []
@@ -230,7 +233,7 @@ class DCompiler(Compiler):
                 paths = padding
             else:
                 paths = paths + ':' + padding
-        return ['-Wl,-rpath={}'.format(paths)]
+        return ['-Wl,-rpath,{}'.format(paths)]
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         if extra_args is None:
