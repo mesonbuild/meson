@@ -591,12 +591,12 @@ class Backend:
         for d in deps:
             if not (d.is_linkable_target()):
                 raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
-            d_arg = self.get_target_filename_for_linking(d)
-            if not d_arg:
+            arg = self.get_target_filename_for_linking(d)
+            if not arg:
                 continue
-            if isinstance(compiler, (compilers.LLVMDCompiler, compilers.DmdDCompiler)):
-                d_arg = '-L' + d_arg
-            args.append(d_arg)
+            if compiler.get_language() == 'd':
+                arg = '-Wl,' + arg
+            args.append(arg)
         return args
 
     def get_mingw_extra_paths(self, target):

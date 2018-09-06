@@ -122,9 +122,8 @@ class DCompiler(Compiler):
 
     def get_linker_search_args(self, dirname):
         # -L is recognized as "add this to the search path" by the linker,
-        # while the compiler recognizes it as "pass to linker". So, the first
-        # -L is for the compiler, telling it to pass the second -L to the linker.
-        return ['-L=-L' + dirname]
+        # while the compiler recognizes it as "pass to linker".
+        return ['-Wl,-L' + dirname]
 
     def get_coverage_args(self):
         return ['-cov']
@@ -151,12 +150,15 @@ class DCompiler(Compiler):
 
     def get_soname_args(self, *args):
         # FIXME: Make this work for cross-compiling
-        gcc_type = GCC_STANDARD
         if is_windows():
-            gcc_type = GCC_CYGWIN
-        if is_osx():
-            gcc_type = GCC_OSX
-        return get_gcc_soname_args(gcc_type, *args)
+            return []
+        elif is_osx():
+            soname_args = get_gcc_soname_args(GCC_OSX, *args)
+            if soname_args:
+                return ['-Wl,' + ','.join(soname_args)]
+            return []
+
+        return get_gcc_soname_args(GCC_STANDARD, *args)
 
     def get_feature_args(self, kwargs, build_to_src):
         res = []
@@ -231,7 +233,7 @@ class DCompiler(Compiler):
                 paths = padding
             else:
                 paths = paths + ':' + padding
-        return ['-L=-rpath={}'.format(paths)]
+        return ['-Wl,-rpath,{}'.format(paths)]
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         if extra_args is None:
@@ -287,19 +289,24 @@ class DCompiler(Compiler):
         # The flags might have been added by pkg-config files,
         # and are therefore out of the user's control.
         for arg in args:
+            # Translate OS specific arguments first.
+            osargs = []
+            if is_windows():
+                osargs = cls.translate_arg_to_windows(arg)
+            elif is_osx():
+                osargs = cls.translate_arg_to_osx(arg)
+            if osargs:
+                dcargs.extend(osargs)
+                continue
+
+            # Translate common D arguments here.
             if arg == '-pthread':
                 continue
             if arg.startswith('-Wl,'):
+                # Translate linker arguments here.
                 linkargs = arg[arg.index(',') + 1:].split(',')
                 for la in linkargs:
-                    if la.startswith('--out-implib='):
-                        # Import library name for MSVC targets
-                        dcargs.append('-L=/IMPLIB:' + la[13:].strip())
-                        continue
                     dcargs.append('-L=' + la.strip())
-                continue
-            elif arg.startswith('-install_name'):
-                dcargs.append('-L=' + arg)
                 continue
             elif arg.startswith('-link-defaultlib') or arg.startswith('-linker'):
                 # these are special arguments to the LDC linker call,
@@ -313,7 +320,7 @@ class DCompiler(Compiler):
                 # translate library link flag
                 dcargs.append('-L=' + arg)
                 continue
-            elif arg.startswith('-L/') or arg.startswith('-L./'):
+            elif arg.startswith('-L'):
                 # we need to handle cases where -L is set by e.g. a pkg-config
                 # setting to select a linker search path. We can however not
                 # unconditionally prefix '-L' with '-L' because the user might
@@ -321,33 +328,56 @@ class DCompiler(Compiler):
                 # compiler (pass flag through to the linker)
                 # Hence, we guess here whether the flag was intended to pass
                 # a linker search path.
+
+                # Make sure static library files are passed properly to the linker.
+                if arg.endswith('.a') or arg.endswith('.lib'):
+                    if arg.startswith('-L='):
+                        farg = arg[3:]
+                    else:
+                        farg = arg[2:]
+                    if len(farg) > 0 and not farg.startswith('-'):
+                        dcargs.append('-L=' + farg)
+                        continue
+
                 dcargs.append('-L=' + arg)
                 continue
-            elif arg.startswith('/') or arg.startswith('./'):
-                # absolute (or relative) paths passed to the linker may be static libraries
-                # or other objects that we need to link.
-                dcargs.append('-L=' + arg)
-                continue
-            elif arg.startswith('-mscrtlib='):
-                mscrtlib = arg[10:].lower()
 
-                if cls is LLVMDCompiler:
-                    # Default crt libraries for LDC2 must be excluded for other
-                    # selected crt options.
-                    if mscrtlib != 'libcmt':
-                        dcargs.append('-L=/NODEFAULTLIB:libcmt')
-                        dcargs.append('-L=/NODEFAULTLIB:libvcruntime')
-
-                    # Fixes missing definitions for printf-functions in VS2017
-                    if mscrtlib.startswith('msvcrt'):
-                        dcargs.append('-L=/DEFAULTLIB:legacy_stdio_definitions.lib')
-
-                dcargs.append(arg)
-
-                continue
             dcargs.append(arg)
 
         return dcargs
+
+    @classmethod
+    def translate_arg_to_windows(cls, arg):
+        args = []
+        if arg.startswith('-Wl,'):
+            # Translate linker arguments here.
+            linkargs = arg[arg.index(',') + 1:].split(',')
+            for la in linkargs:
+                if la.startswith('--out-implib='):
+                    # Import library name
+                    args.append('-L=/IMPLIB:' + la[13:].strip())
+        elif arg.startswith('-mscrtlib='):
+            args.append(arg)
+            mscrtlib = arg[10:].lower()
+            if cls is LLVMDCompiler:
+                # Default crt libraries for LDC2 must be excluded for other
+                # selected crt options.
+                if mscrtlib != 'libcmt':
+                    args.append('-L=/NODEFAULTLIB:libcmt')
+                    args.append('-L=/NODEFAULTLIB:libvcruntime')
+
+                # Fixes missing definitions for printf-functions in VS2017
+                if mscrtlib.startswith('msvcrt'):
+                    args.append('-L=/DEFAULTLIB:legacy_stdio_definitions.lib')
+
+        return args
+
+    @classmethod
+    def translate_arg_to_osx(cls, arg):
+        args = []
+        if arg.startswith('-install_name'):
+            args.append('-L=' + arg)
+        return args
 
     def get_debug_args(self, is_debug):
         return clike_debug_args[is_debug]
