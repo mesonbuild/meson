@@ -122,9 +122,8 @@ class DCompiler(Compiler):
 
     def get_linker_search_args(self, dirname):
         # -L is recognized as "add this to the search path" by the linker,
-        # while the compiler recognizes it as "pass to linker". So, the first
-        # -L is for the compiler, telling it to pass the second -L to the linker.
-        return ['-L=-L' + dirname]
+        # while the compiler recognizes it as "pass to linker".
+        return ['-Wl,-L' + dirname]
 
     def get_coverage_args(self):
         return ['-cov']
@@ -231,7 +230,7 @@ class DCompiler(Compiler):
                 paths = padding
             else:
                 paths = paths + ':' + padding
-        return ['-L=-rpath={}'.format(paths)]
+        return ['-Wl,-rpath={}'.format(paths)]
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         if extra_args is None:
