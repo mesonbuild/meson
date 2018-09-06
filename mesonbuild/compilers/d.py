@@ -328,6 +328,17 @@ class DCompiler(Compiler):
                 # compiler (pass flag through to the linker)
                 # Hence, we guess here whether the flag was intended to pass
                 # a linker search path.
+
+                # Make sure static library files are passed properly to the linker.
+                if arg.endswith('.a') or arg.endswith('.lib'):
+                    if arg.startswith('-L='):
+                        farg = arg[3:]
+                    else:
+                        farg = arg[2:]
+                    if len(farg) > 0 and not farg.startswith('-'):
+                        dcargs.append('-L=' + farg)
+                        continue
+
                 dcargs.append('-L=' + arg)
                 continue
 
