@@ -327,11 +327,6 @@ class DCompiler(Compiler):
                 # a linker search path.
                 dcargs.append('-L=' + arg)
                 continue
-            elif arg.startswith('/') or arg.startswith('./'):
-                # absolute (or relative) paths passed to the linker may be static libraries
-                # or other objects that we need to link.
-                dcargs.append('-L=' + arg)
-                continue
 
             dcargs.append(arg)
 
