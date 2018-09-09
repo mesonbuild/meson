@@ -24,7 +24,7 @@ from collections import OrderedDict
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
-    MesonException, Popen_safe, extract_as_list, for_windows, for_cygwin,
+    MesonException, Popen_safe, extract_as_list, for_windows,
     version_compare_many
 )
 from ..environment import detect_cpu
@@ -207,6 +207,10 @@ class QtBaseDependency(ExternalDependency):
             raise DependencyException('No ' + self.qtname + '  modules specified.')
         self.from_text = 'pkg-config'
 
+        self.qtmain = kwargs.get('main', False)
+        if not isinstance(self.qtmain, bool):
+            raise DependencyException('"main" argument must be a boolean')
+
         # Keep track of the detection methods used, for logging purposes.
         methods = []
         # Prefer pkg-config, then fallback to `qmake -query`
@@ -259,17 +263,32 @@ class QtBaseDependency(ExternalDependency):
                 for dir in mod_private_inc:
                     self.compile_args.append('-I' + dir)
             self.link_args += m.get_link_args()
-        self.is_found = True
-        self.version = m.version
-        self.pcdep = list(modules.values())
-        # Try to detect moc, uic, rcc
+
         if 'Core' in modules:
             core = modules['Core']
         else:
             corekwargs = {'required': 'false', 'silent': 'true'}
             core = PkgConfigDependency(self.qtpkgname + 'Core', self.env, corekwargs,
                                        language=self.language)
-            self.pcdep.append(core)
+            modules['Core'] = core
+
+        if for_windows(self.env.is_cross_build(), self.env) and self.qtmain:
+            # Check if we link with debug binaries
+            debug_lib_name = self.qtpkgname + 'Core' + self._get_modules_lib_suffix(True)
+            is_debug = False
+            for arg in core.get_link_args():
+                if arg == '-l%s' % debug_lib_name or arg.endswith('%s.lib' % debug_lib_name) or arg.endswith('%s.a' % debug_lib_name):
+                    is_debug = True
+                    break
+            libdir = core.get_pkgconfig_variable('libdir', {})
+            if not self._link_with_qtmain(is_debug, libdir):
+                self.is_found = False
+                return
+
+        self.is_found = True
+        self.version = m.version
+        self.pcdep = list(modules.values())
+        # Try to detect moc, uic, rcc
         # Used by self.compilers_detect()
         self.bindir = self.get_pkgconfig_host_bins(core)
         if not self.bindir:
@@ -320,13 +339,13 @@ class QtBaseDependency(ExternalDependency):
         incdir = qvars['QT_INSTALL_HEADERS']
         self.compile_args.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
-        if for_cygwin(self.env.is_cross_build(), self.env):
-            shlibext = '.dll.a'
-        else:
-            shlibext = '.so'
         # Used by self.compilers_detect()
         self.bindir = self.get_qmake_host_bins(qvars)
         self.is_found = True
+
+        is_debug = self.env.coredata.get_builtin_option('buildtype') == 'debug'
+        modules_lib_suffix = self._get_modules_lib_suffix(is_debug)
+
         for module in mods:
             mincdir = os.path.join(incdir, 'Qt' + module)
             self.compile_args.append('-I' + mincdir)
@@ -334,27 +353,38 @@ class QtBaseDependency(ExternalDependency):
                 priv_inc = self.get_private_includes(mincdir, module)
                 for dir in priv_inc:
                     self.compile_args.append('-I' + dir)
-            if for_windows(self.env.is_cross_build(), self.env):
-                is_debug = self.env.coredata.get_builtin_option('buildtype') == 'debug'
-                dbg = 'd' if is_debug else ''
-                if self.qtver == '4':
-                    base_name = 'Qt' + module + dbg + '4'
-                else:
-                    base_name = 'Qt5' + module + dbg
-                libfile = os.path.join(libdir, base_name + '.lib')
-                if not os.path.isfile(libfile):
-                    # MinGW can link directly to .dll
-                    libfile = os.path.join(self.bindir, base_name + '.dll')
-                    if not os.path.isfile(libfile):
-                        self.is_found = False
-                        break
+            libfile = self.clib_compiler.find_library(self.qtpkgname + module + modules_lib_suffix,
+                                                      self.env,
+                                                      libdir)
+            if libfile:
+                libfile = libfile[0]
             else:
-                libfile = os.path.join(libdir, 'lib{}{}{}'.format(self.qtpkgname, module, shlibext))
-                if not os.path.isfile(libfile):
-                    self.is_found = False
-                    break
+                self.is_found = False
+                break
             self.link_args.append(libfile)
+
+        if for_windows(self.env.is_cross_build(), self.env) and self.qtmain:
+            if not self._link_with_qtmain(is_debug, libdir):
+                self.is_found = False
+
         return qmake
+
+    def _get_modules_lib_suffix(self, is_debug):
+        suffix = ''
+        if for_windows(self.env.is_cross_build(), self.env):
+            if is_debug:
+                suffix += 'd'
+            if self.qtver == '4':
+                suffix += '4'
+        return suffix
+
+    def _link_with_qtmain(self, is_debug, libdir):
+        base_name = 'qtmaind' if is_debug else 'qtmain'
+        qtmain = self.clib_compiler.find_library(base_name, self.env, libdir)
+        if qtmain:
+            self.link_args.append(qtmain[0])
+            return True
+        return False
 
     def _framework_detect(self, qvars, modules, kwargs):
         libdir = qvars['QT_INSTALL_LIBS']

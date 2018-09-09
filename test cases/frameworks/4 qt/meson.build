@@ -33,7 +33,7 @@ foreach qt : ['qt4', 'qt5']
   nocoredep = dependency(qt, modules : ['Gui'], required : qt == 'qt5', method : get_option('method'))
 
   # If qt4 modules are found, test that. qt5 is required.
-  qtdep = dependency(qt, modules : qt_modules, private_headers: true, required : qt == 'qt5', method : get_option('method'))
+  qtdep = dependency(qt, modules : qt_modules, main : true, private_headers: true, required : qt == 'qt5', method : get_option('method'))
   if qtdep.found()
     qtmodule = import(qt)
 
@@ -62,7 +62,8 @@ foreach qt : ['qt4', 'qt5']
       sources : ['main.cpp', 'mainWindow.cpp', # Sources that don't need preprocessing.
       prep, prep_rcc],
       dependencies : qtdep,
-      cpp_args: extra_cpp_args)
+      cpp_args: extra_cpp_args,
+      gui_app : true)
 
     # We need a console test application because some test environments
     # do not have an X server.

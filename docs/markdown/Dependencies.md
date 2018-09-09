@@ -356,6 +356,10 @@ the list of sources for the target. The `modules` keyword of
 `dependency` works just like it does with Boost. It tells which
 subparts of Qt the program uses.
 
+You can set the `main` keyword argument to `true` to use the `WinMain()`
+function provided by qtmain static library (this argument does nothing on platforms
+other than Windows).
+
 Setting the optional `private_headers` keyword to true adds the private header
 include path of the given module(s) to the compiler flags.  (since v0.47.0)
 
