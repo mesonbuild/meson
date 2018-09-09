@@ -259,6 +259,7 @@ class HotdocTargetBuilder:
         self.check_forbiden_args()
         file_types = (str, mesonlib.File)
         self.process_known_arg("--index", file_types, mandatory=True, value_processor=self.ensure_file)
+        self.process_known_arg("--project-version", str, mandatory=True)
         self.process_known_arg("--sitemap", file_types, mandatory=True, value_processor=self.ensure_file)
         self.process_known_arg("--html-extra-theme", str, value_processor=self.ensure_dir)
         self.process_known_arg(None, list, "include_paths", force_list=True,
