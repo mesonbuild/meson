@@ -16,6 +16,7 @@ import copy, os, re
 from collections import OrderedDict
 import itertools, pathlib
 import pickle
+from functools import lru_cache
 
 from . import environment
 from . import dependencies
@@ -668,6 +669,7 @@ class BuildTarget(Target):
     def get_all_link_deps(self):
         return self.get_transitive_link_deps()
 
+    @lru_cache(maxsize=None)
     def get_transitive_link_deps(self):
         result = []
         for i in self.link_targets:
@@ -949,6 +951,7 @@ You probably should put it in link_with instead.''')
             if self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_targets.append(t)
+
 
     def link_whole(self, target):
         for t in listify(target, unholder=True):
