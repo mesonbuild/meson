@@ -87,13 +87,16 @@ class HotdocTargetBuilder:
             self.cmd.extend([option, value])
 
     def check_extra_arg_type(self, arg, value):
+        value = getattr(value, 'held_object', value)
         if isinstance(value, list):
             for v in value:
                 self.check_extra_arg_type(arg, v)
             return
 
-        if not isinstance(value, (str, bool, mesonlib.File)):
-            raise InvalidArguments('Argument "%s=%s" should be a string.' % (arg, value))
+        valid_types = (str, bool, mesonlib.File, build.IncludeDirs)
+        if not isinstance(value, valid_types):
+            raise InvalidArguments('Argument "%s=%s" should be of type: %s.' % (
+                arg, value, [t.__name__ for t in valid_types]))
 
     def process_extra_args(self):
         for arg, value in self.kwargs.items():
@@ -198,9 +201,16 @@ class HotdocTargetBuilder:
     def flatten_config_command(self):
         cmd = []
         for arg in mesonlib.listify(self.cmd, flatten=True):
+            arg = getattr(arg, 'held_object', arg)
             if isinstance(arg, mesonlib.File):
                 arg = arg.absolute_path(self.state.environment.get_source_dir(),
                                         self.state.environment.get_build_dir())
+            elif isinstance(arg, build.IncludeDirs):
+                for inc_dir in arg.get_incdirs():
+                    cmd.append(os.path.join(self.sourcedir, arg.get_curdir(), inc_dir))
+                    cmd.append(os.path.join(self.builddir, arg.get_curdir(), inc_dir))
+
+                continue
 
             cmd.append(arg)
 
