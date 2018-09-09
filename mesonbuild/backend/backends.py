@@ -26,6 +26,12 @@ from ..mesonlib import File
 from ..compilers import CompilerArgs, get_macos_dylib_install_name
 from collections import OrderedDict
 import shlex
+from functools import lru_cache
+
+@lru_cache(maxsize=None)
+def get_target_macos_dylib_install_name(ld):
+    return get_macos_dylib_install_name(ld.prefix, ld.name, ld.suffix, ld.soversion)
+
 
 class CleanTrees:
     '''
@@ -1006,7 +1012,7 @@ class Backend:
         for ld in t.get_all_link_deps():
             if ld is t or not isinstance(ld, build.SharedLibrary):
                 continue
-            old = get_macos_dylib_install_name(ld.prefix, ld.name, ld.suffix, ld.soversion)
+            old = get_target_macos_dylib_install_name(ld)
             if old in result:
                 continue
             fname = ld.get_filename()
