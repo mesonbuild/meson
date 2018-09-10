@@ -351,6 +351,15 @@ class QtBaseDependency(ExternalDependency):
         for module in mods:
             mincdir = os.path.join(incdir, 'Qt' + module)
             self.compile_args.append('-I' + mincdir)
+
+            if module == 'QuickTest':
+                define_base = 'QMLTEST'
+            elif module == 'Test':
+                define_base = 'TESTLIB'
+            else:
+                define_base = module.upper()
+            self.compile_args.append('-DQT_%s_LIB' % define_base)
+
             if self.private_headers:
                 priv_inc = self.get_private_includes(mincdir, module)
                 for dir in priv_inc:
