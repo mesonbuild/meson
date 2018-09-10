@@ -574,7 +574,7 @@ class VulkanDependency(ExternalDependency):
         if DependencyMethods.PKGCONFIG in methods:
             candidates.append(functools.partial(PkgConfigDependency, 'vulkan', environment, kwargs))
 
-        if DependencyMethods.PKGCONFIG in methods:
+        if DependencyMethods.SYSTEM in methods:
             candidates.append(functools.partial(VulkanDependency, environment, kwargs))
 
         return candidates
