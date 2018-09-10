@@ -397,6 +397,8 @@ class Python3Dependency(ExternalDependency):
         else:
             return [DependencyMethods.PKGCONFIG]
 
+    def log_tried(self):
+        return 'sysconfig'
 
 class PcapDependency(ExternalDependency):
 

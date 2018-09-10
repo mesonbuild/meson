@@ -72,6 +72,8 @@ class GLDependency(ExternalDependency):
         else:
             return [DependencyMethods.PKGCONFIG]
 
+    def log_tried(self):
+        return 'system'
 
 class GnuStepDependency(ConfigToolDependency):
 
@@ -582,3 +584,6 @@ class VulkanDependency(ExternalDependency):
     @staticmethod
     def get_methods():
         return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
+
+    def log_tried(self):
+        return 'system'

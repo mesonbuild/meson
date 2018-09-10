@@ -80,6 +80,9 @@ class GTestDependency(ExternalDependency):
         else:
             return 'building self'
 
+    def log_tried(self):
+        return 'system'
+
     @classmethod
     def _factory(cls, environment, kwargs):
         methods = cls._process_method_kw(kwargs)
@@ -160,6 +163,9 @@ class GMockDependency(ExternalDependency):
             return 'prebuilt'
         else:
             return 'building self'
+
+    def log_tried(self):
+        return 'system'
 
     @classmethod
     def _factory(cls, environment, kwargs):
