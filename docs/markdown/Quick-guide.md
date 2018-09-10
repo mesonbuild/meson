@@ -23,7 +23,7 @@ generate native VS and XCode project files.
 On Ubuntu these can be easily installed with the following command:
 
 ```console
-$ sudo apt-get install python3 ninja-build
+$ sudo apt-get install python3 python3-pip ninja-build
 ```
 
 The best way to get Meson is to `pip install` it for your user
