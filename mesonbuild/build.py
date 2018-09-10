@@ -765,25 +765,19 @@ just like those detected with the dependency() function.''')
         for linktarget in lwhole:
             self.link_whole(linktarget)
 
-        c_pchlist, cpp_pchlist, clist, cpplist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist \
-            = extract_as_list(kwargs, 'c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cs_args', 'vala_args', 'objc_args',
-                              'objcpp_args', 'fortran_args', 'rust_args')
+        for lang in ['c', 'cpp', 'cs', 'vala', 'objc', 'objcpp', 'fortran', 'rust', 'd']:
+            args = extract_as_list(kwargs, lang + '_args')
+            self.add_compiler_args(lang, args)
 
+        c_pchlist, cpp_pchlist = extract_as_list(kwargs, 'c_pch', 'cpp_pch')
         self.add_pch('c', c_pchlist)
         self.add_pch('cpp', cpp_pchlist)
-        compiler_args = {'c': clist, 'cpp': cpplist, 'cs': cslist, 'vala': valalist, 'objc': objclist, 'objcpp': objcpplist,
-                         'fortran': fortranlist, 'rust': rustlist
-                         }
-        for key, value in compiler_args.items():
-            self.add_compiler_args(key, value)
 
         if not isinstance(self, Executable) or 'export_dynamic' in kwargs:
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
             self.vala_gir = kwargs.get('vala_gir', None)
 
-        dlist = stringlistify(kwargs.get('d_args', []))
-        self.add_compiler_args('d', dlist)
         dfeatures = dict()
         dfeature_unittest = kwargs.get('d_unittest', False)
         if dfeature_unittest:
@@ -1073,7 +1067,6 @@ You probably should put it in link_with instead.''')
         self.include_dirs += ids
 
     def add_compiler_args(self, language, args):
-        args = listify(args)
         for a in args:
             if not isinstance(a, (str, File)):
                 raise InvalidArguments('A non-string passed to compiler args.')
