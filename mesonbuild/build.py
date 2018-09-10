@@ -21,7 +21,7 @@ from functools import lru_cache
 from . import environment
 from . import dependencies
 from . import mlog
-from .mesonlib import File, MesonException, listify, extract_as_list
+from .mesonlib import File, MesonException, listify, extract_as_list, OrderedSet
 from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
 from .mesonlib import for_windows, for_darwin, for_cygwin, for_android, has_path_sep
@@ -674,6 +674,14 @@ class BuildTarget(Target):
         result = []
         for i in self.link_targets:
             result += i.get_all_link_deps()
+        return result
+
+    @lru_cache(maxsize=None)
+    def get_link_dep_subdirs(self):
+        result = OrderedSet()
+        for i in self.link_targets:
+            result.add(i.get_subdir())
+            result.update(i.get_link_dep_subdirs())
         return result
 
     def get_custom_install_dir(self):
