@@ -394,12 +394,11 @@ class Backend:
         return paths
 
     def determine_rpath_dirs(self, target):
-        link_deps = target.get_all_link_deps()
-        result = OrderedSet()
-        for ld in link_deps:
-            if ld is target:
-                continue
-            result.add(self.get_target_dir(ld))
+        if self.environment.coredata.get_builtin_option('layout') == 'mirror':
+            result = target.get_link_dep_subdirs()
+        else:
+            result = OrderedSet()
+            result.add('meson-out')
         result.update(self.rpaths_for_bundled_shared_libraries(target))
         return list(result)
 
