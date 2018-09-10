@@ -10,6 +10,12 @@ e = executable('sdl2prog', 'sdl2prog.c', dependencies : sdl2_dep)
 
 test('sdl2test', e)
 
+if sdl2_dep.type_name() == 'extraframeworks'
+  # The SDL OSX framework does not ship with detection executables
+  # so skip the remaining tests.
+  subdir_done()
+endif
+
 # Ensure that we can find it with sdl2-config too, using the legacy method name
 configdep = dependency('sdl2', method : 'sdlconfig')
 
