@@ -849,8 +849,8 @@ This will become a hard error in a future Meson release.''')
             if not os.path.isfile(trial):
                 raise InvalidArguments('Tried to add non-existing resource %s.' % r)
         self.resources = resources
-        if 'name_prefix' in kwargs:
-            name_prefix = kwargs['name_prefix']
+        name_prefix = self.unwrap_target_dict(kwargs, 'name_prefix')
+        if name_prefix is not None:
             if isinstance(name_prefix, list):
                 if name_prefix:
                     raise InvalidArguments('name_prefix array must be empty to signify null.')
@@ -859,8 +859,8 @@ This will become a hard error in a future Meson release.''')
                     raise InvalidArguments('name_prefix must be a string.')
                 self.prefix = name_prefix
                 self.name_prefix_set = True
-        if 'name_suffix' in kwargs:
-            name_suffix = kwargs['name_suffix']
+        name_suffix = self.unwrap_target_dict(kwargs, 'name_suffix')
+        if name_suffix is not None:
             if isinstance(name_suffix, list):
                 if name_suffix:
                     raise InvalidArguments('name_suffix array must be empty to signify null.')
@@ -1073,6 +1073,13 @@ You probably should put it in link_with instead.''')
         for k in d.keys():
             if k not in known_build_targets:
                 raise MesonException('Dictionary keys must be in ' + str(known_build_targets))
+
+    def unwrap_target_dict(self, kwargs, key):
+        value = kwargs.get(key, None)
+        if isinstance(value, dict):
+            self.validate_target_dict(value)
+            value = value.get(self.target_type, None)
+        return value
 
     def validate_compiler_args(self, args):
         result = []
