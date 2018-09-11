@@ -105,6 +105,21 @@ install:
   - cmd: if %compiler%==cygwin ( set WRAPPER=ci\run-in-cygwin.bat )
   - cmd: if %compiler%==cygwin ( %WRAPPER% which %PYTHON% ) else ( where %PYTHON% )
 
+  # Setup D compiler and dub packages
+  - ps: |
+        If($Env:compiler.StartsWith('msvc') -and $Env:backend -eq 'ninja') {
+          & .\ci\install-dmd.ps1
+          $arch = 'x86_mscoff'
+          If($Env:arch -eq 'x64') {
+            $arch = 'x86_64'
+          }
+          & dub fetch urld
+          & dub build urld --compiler=dmd --arch=$arch
+          & dub fetch dubtestproject
+          & dub build dubtestproject:test1 --compiler=dmd --arch=$arch
+          & dub build dubtestproject:test2 --compiler=dmd --arch=$arch
+        }
+
   # pkg-config is needed for the pkg-config tests on msvc
   - ps: |
         If($Env:compiler.StartsWith('msvc')) {
