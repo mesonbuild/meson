@@ -1067,10 +1067,28 @@ You probably should put it in link_with instead.''')
             ids.append(a)
         self.include_dirs += ids
 
-    def add_compiler_args(self, language, args):
+    def validate_target_dict(self, d):
+        known_build_targets = ['static_library', 'shared_library',
+                               'shared_module', 'executable', 'jar']
+        for k in d.keys():
+            if k not in known_build_targets:
+                raise MesonException('Dictionary keys must be in ' + str(known_build_targets))
+
+    def validate_compiler_args(self, args):
+        result = []
         for a in args:
-            if not isinstance(a, (str, File)):
+            if isinstance(a, dict):
+                self.validate_target_dict(a)
+                l = extract_as_list(a, self.target_type)
+                result += self.validate_compiler_args(l)
+            elif isinstance(a, (str, File)):
+                result.append(a)
+            else:
                 raise InvalidArguments('A non-string passed to compiler args.')
+        return result
+
+    def add_compiler_args(self, language, args):
+        args = self.validate_compiler_args(args)
         if language in self.extra_args:
             self.extra_args[language] += args
         else:
@@ -1327,6 +1345,7 @@ class GeneratedList:
 
 class Executable(BuildTarget):
     known_kwargs = known_exe_kwargs
+    target_type = 'executable'
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         if 'pie' not in kwargs and 'b_pie' in environment.coredata.base_options:
@@ -1416,6 +1435,7 @@ class Executable(BuildTarget):
 
 class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
+    target_type = 'static_library'
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         if 'pic' not in kwargs and 'b_staticpic' in environment.coredata.base_options:
@@ -1475,6 +1495,7 @@ class StaticLibrary(BuildTarget):
 
 class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
+    target_type = 'shared_library'
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         self.soversion = None
@@ -1782,6 +1803,7 @@ class SharedLibrary(BuildTarget):
 # into something else.
 class SharedModule(SharedLibrary):
     known_kwargs = known_shmod_kwargs
+    target_type = 'shared_module'
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         if 'version' in kwargs:
@@ -2087,6 +2109,7 @@ class RunTarget(Target):
 
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
+    target_type = 'jar'
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)

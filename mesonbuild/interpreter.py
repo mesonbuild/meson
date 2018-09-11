@@ -3942,7 +3942,18 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
         elif 'b_staticpic' in self.environment.coredata.base_options:
             pic = self.environment.coredata.base_options['b_staticpic'].value
 
-        if pic:
+        # Check if compiler args are the same for both libraries
+        def has_different_args():
+            for lang in shared_holder.held_object.compilers.keys():
+                args = extract_as_list(kwargs, lang + '_args')
+                for a in args:
+                    if not isinstance(a, dict):
+                        continue
+                    if 'static_library' in a or 'shared_library' in a:
+                        return True
+            return False
+
+        if pic and not has_different_args():
             # Exclude sources from args and kwargs to avoid building them twice
             static_args = [args[0]]
             static_kwargs = kwargs.copy()
