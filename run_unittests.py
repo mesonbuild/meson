@@ -575,22 +575,22 @@ class InternalTests(unittest.TestCase):
         '''
         Unit test for the library search patterns used by find_library()
         '''
-        unix_static = ['lib{}.a', '{}.a']
-        msvc_static = ['lib{}.a', 'lib{}.lib', '{}.a', '{}.lib']
+        unix_static = ('lib{}.a', '{}.a')
+        msvc_static = ('lib{}.a', 'lib{}.lib', '{}.a', '{}.lib')
         # This is the priority list of pattern matching for library searching
-        patterns = {'openbsd': {'shared': ['lib{}.so', '{}.so', 'lib{}.so.[0-9]*.[0-9]*'],
+        patterns = {'openbsd': {'shared': ('lib{}.so', '{}.so', 'lib{}.so.[0-9]*.[0-9]*'),
                                 'static': unix_static},
-                    'linux': {'shared': ['lib{}.so', '{}.so'],
+                    'linux': {'shared': ('lib{}.so', '{}.so'),
                               'static': unix_static},
-                    'darwin': {'shared': ['lib{}.dylib', '{}.dylib'],
+                    'darwin': {'shared': ('lib{}.dylib', '{}.dylib'),
                                'static': unix_static},
-                    'cygwin': {'shared': ['cyg{}.dll', 'cyg{}.dll.a', 'lib{}.dll',
-                                          'lib{}.dll.a', '{}.dll', '{}.dll.a'],
-                               'static': ['cyg{}.a'] + unix_static},
-                    'windows-msvc': {'shared': ['lib{}.lib', '{}.lib'],
+                    'cygwin': {'shared': ('cyg{}.dll', 'cyg{}.dll.a', 'lib{}.dll',
+                                          'lib{}.dll.a', '{}.dll', '{}.dll.a'),
+                               'static': ('cyg{}.a',) + unix_static},
+                    'windows-msvc': {'shared': ('lib{}.lib', '{}.lib'),
                                      'static': msvc_static},
-                    'windows-mingw': {'shared': ['lib{}.dll.a', 'lib{}.lib', 'lib{}.dll',
-                                                 '{}.dll.a', '{}.lib', '{}.dll'],
+                    'windows-mingw': {'shared': ('lib{}.dll.a', 'lib{}.lib', 'lib{}.dll',
+                                                 '{}.dll.a', '{}.lib', '{}.dll'),
                                       'static': msvc_static}}
         env = get_fake_env('', '', '')
         cc = env.detect_c_compiler(False)

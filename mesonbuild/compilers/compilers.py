@@ -923,7 +923,7 @@ class Compiler:
         raise EnvironmentException('Language {} does not support library finding.'.format(self.get_display_language()))
 
     def get_library_dirs(self, *args, **kwargs):
-        return []
+        return ()
 
     def has_multi_arguments(self, args, env):
         raise EnvironmentException(
@@ -1381,12 +1381,12 @@ class ElbrusCompiler(GnuCompiler):
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
-        paths = []
+        paths = ()
         for line in stdo.split('\n'):
             if line.startswith('libraries:'):
                 # lcc does not include '=' in --print-search-dirs output.
                 libstr = line.split(' ', 1)[1]
-                paths = [os.path.realpath(p) for p in libstr.split(':')]
+                paths = (os.path.realpath(p) for p in libstr.split(':'))
                 break
         return paths
 
@@ -1394,12 +1394,12 @@ class ElbrusCompiler(GnuCompiler):
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
-        paths = []
+        paths = ()
         for line in stdo.split('\n'):
             if line.startswith('programs:'):
                 # lcc does not include '=' in --print-search-dirs output.
                 libstr = line.split(' ', 1)[1]
-                paths = [os.path.realpath(p) for p in libstr.split(':')]
+                paths = (os.path.realpath(p) for p in libstr.split(':'))
                 break
         return paths
 

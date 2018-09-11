@@ -17,7 +17,6 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
-from .. import compilers
 import json
 import subprocess
 from ..mesonlib import MesonException, OrderedSet
@@ -400,7 +399,7 @@ class Backend:
             result = OrderedSet()
             result.add('meson-out')
         result.update(self.rpaths_for_bundled_shared_libraries(target))
-        return list(result)
+        return tuple(result)
 
     def object_filename_from_source(self, target, source):
         assert isinstance(source, mesonlib.File)
