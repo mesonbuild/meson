@@ -119,6 +119,7 @@ class CCompiler(Compiler):
         return None, fname
 
     # The default behavior is this, override in MSVC
+    @functools.lru_cache(maxsize=None)
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         if self.id == 'clang' and self.clang_type == compilers.CLANG_OSX:
             return self.build_osx_rpath_args(build_dir, rpath_paths, build_rpath)
@@ -222,7 +223,7 @@ class CCompiler(Compiler):
             p = Path(p)
             if p.exists():
                 paths.append(p.resolve().as_posix())
-        return paths
+        return tuple(paths)
 
     def get_compiler_dirs(self, env, name):
         '''
@@ -232,23 +233,19 @@ class CCompiler(Compiler):
         for line in stdo.split('\n'):
             if line.startswith(name + ':'):
                 return CCompiler._split_fetch_real_dirs(line.split('=', 1)[1])
-        return []
+        return ()
 
+    @functools.lru_cache()
     def get_library_dirs(self, env):
-        key = (tuple(self.exelist), env)
-        if key not in self.library_dirs_cache:
-            self.library_dirs_cache[key] = self.get_compiler_dirs(env, 'libraries')
-        return self.library_dirs_cache[key][:]
+        return self.get_compiler_dirs(env, 'libraries')
 
+    @functools.lru_cache()
     def get_program_dirs(self, env):
         '''
         Programs used by the compiler. Also where toolchain DLLs such as
         libstdc++-6.dll are found with MinGW.
         '''
-        key = (tuple(self.exelist), env)
-        if key not in self.program_dirs_cache:
-            self.program_dirs_cache[key] = self.get_compiler_dirs(env, 'programs')
-        return self.program_dirs_cache[key][:]
+        return self.get_compiler_dirs(env, 'programs')
 
     def get_pic_args(self):
         return ['-fPIC']
@@ -907,7 +904,7 @@ class CCompiler(Compiler):
             patterns += self._get_patterns(env, prefixes, stlibext, False)
         else:
             raise AssertionError('BUG: unknown libtype {!r}'.format(libtype))
-        return patterns
+        return tuple(patterns)
 
     @staticmethod
     def _sort_shlibs_openbsd(libs):

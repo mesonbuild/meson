@@ -20,6 +20,7 @@ import subprocess
 from collections import OrderedDict
 import itertools
 from pathlib import PurePath
+from functools import lru_cache
 
 from . import backends
 from .. import modules
@@ -147,7 +148,6 @@ class NinjaBackend(backends.Backend):
         super().__init__(build)
         self.name = 'ninja'
         self.ninja_filename = 'build.ninja'
-        self.target_arg_cache = {}
         self.fortran_deps = {}
         self.all_outputs = {}
 
@@ -1951,6 +1951,7 @@ rule FORTRAN_DEP_HACK%s
             incs += compiler.get_include_args(i, False)
         return incs
 
+    @lru_cache(maxsize=None)
     def _generate_single_compile(self, target, compiler, is_generated=False):
         base_proxy = self.get_base_options_for_target(target)
         # Create an empty commands list, and start adding arguments from
@@ -2047,12 +2048,7 @@ rule FORTRAN_DEP_HACK%s
             raise AssertionError('BUG: sources should not contain headers {!r}'.format(src))
 
         compiler = get_compiler_for_source(target.compilers.values(), src)
-        key = (target, compiler, is_generated)
-        if key in self.target_arg_cache:
-            commands = self.target_arg_cache[key]
-        else:
-            commands = self._generate_single_compile(target, compiler, is_generated)
-            self.target_arg_cache[key] = commands
+        commands = self._generate_single_compile(target, compiler, is_generated)
         commands = CompilerArgs(commands.compiler, commands)
 
         build_dir = self.environment.get_build_dir()
@@ -2276,6 +2272,7 @@ rule FORTRAN_DEP_HACK%s
         return linker.get_link_whole_for(target_args) if len(target_args) else []
 
     @staticmethod
+    @lru_cache(maxsize=None)
     def guess_library_absolute_path(linker, libname, search_dirs, patterns):
         for d in search_dirs:
             for p in patterns:
@@ -2334,7 +2331,7 @@ rule FORTRAN_DEP_HACK%s
         guessed_dependencies = []
         # TODO The get_library_naming requirement currently excludes link targets that use d or fortran as their main linker
         if hasattr(linker, 'get_library_naming'):
-            search_dirs = list(search_dirs) + linker.get_library_dirs(self.environment)
+            search_dirs = tuple(search_dirs) + linker.get_library_dirs(self.environment)
             static_patterns = linker.get_library_naming(self.environment, 'static', strict=True)
             shared_patterns = linker.get_library_naming(self.environment, 'shared', strict=True)
             for libname in libs:
