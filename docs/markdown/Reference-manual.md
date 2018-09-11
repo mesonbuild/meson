@@ -142,6 +142,8 @@ library. In addition it supports the following extra methods:
 - `get_shared_lib()` returns the shared library build target
 - `get_static_lib()` returns the static library build target
 
+*Added 0.46.0*
+
 ### build_target()
 
 Creates a build target whose type can be set dynamically with the
