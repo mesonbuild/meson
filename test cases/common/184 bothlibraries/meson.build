@@ -10,3 +10,17 @@ exe_both = executable('prog-both', 'main.c', link_with : both_libs)
 test('runtest-shared', exe_shared)
 test('runtest-static', exe_static)
 test('runtest-both', exe_both)
+
+cargs = {
+  'static_library' : ['-DSTATIC_COMPILATION'],
+  'executable' : ['-DSTATIC_COMPILATION'],
+}
+both_libs = both_libraries('mylib-diffargs', 'libfile.c', c_args : cargs)
+exe_shared = executable('prog-shared-diffargs', 'main.c',
+                        link_with : both_libs.get_shared_lib())
+exe_static = executable('prog-static-diffargs', 'main.c',
+                        c_args : cargs,
+                        link_with : both_libs.get_static_lib())
+
+test('runtest-shared-diffargs', exe_shared, args : '43')
+test('runtest-static-diffargs', exe_static, args : '42')
