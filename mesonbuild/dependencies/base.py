@@ -56,7 +56,7 @@ class DependencyMethods(Enum):
     SYSCONFIG = 'sysconfig'
     # Specify using a "program"-config style tool
     CONFIG_TOOL = 'config-tool'
-    # For backewards compatibility
+    # For backwards compatibility
     SDLCONFIG = 'sdlconfig'
     CUPSCONFIG = 'cups-config'
     PCAPCONFIG = 'pcap-config'
