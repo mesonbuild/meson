@@ -323,6 +323,7 @@ of the module.
 * `dependencies`: a list of dependencies
 * `fixxref_args`: a list of arguments to pass to `gtkdoc-fixxref`
 * `gobject_typesfile`: a list of type files
+* `include_directories`: extra include paths to pass to `gtkdoc-scangobj`
 * `ignore_headers`: a list of header files to ignore
 * `html_assets`: a list of assets for the HTML pages
 * `html_args` a list of arguments to pass to `gtkdoc-mkhtml`
