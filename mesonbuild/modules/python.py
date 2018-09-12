@@ -260,52 +260,37 @@ class PythonDependency(ExternalDependency):
             return super().get_pkgconfig_variable(variable_name, kwargs)
 
 
-VARIABLES_COMMAND = '''
+INTROSPECT_COMMAND = '''
 import sysconfig
 import json
-
-print (json.dumps (sysconfig.get_config_vars()))
-'''
-
-
-PATHS_COMMAND = '''
-import sysconfig
-import json
-
-print (json.dumps(sysconfig.get_paths()))
-'''
-
-
-INSTALL_PATHS_COMMAND = '''
-import sysconfig
-import json
-
-print (json.dumps(sysconfig.get_paths(scheme='posix_prefix', vars={'base': '', 'platbase': '', 'installed_base': ''})))
-'''
-
-
-IS_PYPY_COMMAND = '''
 import sys
-import json
 
-print (json.dumps('__pypy__' in sys.builtin_module_names))
+install_paths = sysconfig.get_paths(scheme='posix_prefix', vars={'base': '', 'platbase': '', 'installed_base': ''})
+
+print (json.dumps ({
+  'variables': sysconfig.get_config_vars(),
+  'paths': sysconfig.get_paths(),
+  'install_paths': install_paths,
+  'version': sysconfig.get_python_version(),
+  'platform': sysconfig.get_platform(),
+  'is_pypy': '__pypy__' in sys.builtin_module_names,
+}))
 '''
-
 
 class PythonInstallation(ExternalProgramHolder, InterpreterObject):
-    def __init__(self, interpreter, python):
+    def __init__(self, interpreter, python, info):
         InterpreterObject.__init__(self)
         ExternalProgramHolder.__init__(self, python)
         self.interpreter = interpreter
         prefix = self.interpreter.environment.coredata.get_builtin_option('prefix')
-        self.variables = json.loads(run_command(python, VARIABLES_COMMAND))
-        self.paths = json.loads(run_command(python, PATHS_COMMAND))
-        install_paths = json.loads(run_command(python, INSTALL_PATHS_COMMAND))
+        self.variables = info['variables']
+        self.paths = info['paths']
+        install_paths = info['install_paths']
         self.platlib_install_path = os.path.join(prefix, install_paths['platlib'][1:])
         self.purelib_install_path = os.path.join(prefix, install_paths['purelib'][1:])
-        self.version = run_command(python, "import sysconfig; print (sysconfig.get_python_version())")
-        self.platform = run_command(python, "import sysconfig; print (sysconfig.get_platform())")
-        self.is_pypy = json.loads(run_command(python, IS_PYPY_COMMAND))
+        self.version = info['version']
+        self.platform = info['platform']
+        self.is_pypy = info['is_pypy']
 
     @permittedKwargs(mod_kwargs)
     def extension_module(self, interpreter, state, args, kwargs):
@@ -475,6 +460,13 @@ class PythonModule(ExtensionModule):
         else:
             return None
 
+    def _check_version(self, name_or_path, version):
+        if name_or_path == 'python2':
+            return mesonlib.version_compare(version, '< 3.0')
+        elif name_or_path == 'python3':
+            return mesonlib.version_compare(version, '>= 3.0')
+        return True
+
     @permittedKwargs(['required'])
     def find_installation(self, interpreter, state, args, kwargs):
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
@@ -511,12 +503,6 @@ class PythonModule(ExtensionModule):
             # it
             if not python.found() and name_or_path in ['python2', 'python3']:
                 python = ExternalProgram('python', silent = True)
-                if python.found():
-                    version = run_command(python, "import sysconfig; print (sysconfig.get_python_version())")
-                    if not version or \
-                            name_or_path == 'python2' and mesonlib.version_compare(version, '>= 3.0') or \
-                            name_or_path == 'python3' and not mesonlib.version_compare(version, '>= 3.0'):
-                        python = NonExistingExternalProgram()
 
         if not python.found():
             if required:
@@ -524,13 +510,17 @@ class PythonModule(ExtensionModule):
             res = ExternalProgramHolder(NonExistingExternalProgram())
         else:
             # Sanity check, we expect to have something that at least quacks in tune
-            version = run_command(python, "import sysconfig; print (sysconfig.get_python_version())")
-            if not version:
+            try:
+                info = json.loads(run_command(python, INTROSPECT_COMMAND))
+            except json.JSONDecodeError:
+                info = None
+
+            if isinstance(info, dict) and 'version' in info and self._check_version(name_or_path, info['version']):
+                res = PythonInstallation(interpreter, python, info)
+            else:
                 res = ExternalProgramHolder(NonExistingExternalProgram())
                 if required:
                     raise mesonlib.MesonException('{} is not a valid python'.format(python))
-            else:
-                res = PythonInstallation(interpreter, python)
 
         return res
 
