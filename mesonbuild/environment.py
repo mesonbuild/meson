@@ -15,7 +15,7 @@
 import configparser, os, platform, re, shlex, shutil, subprocess
 
 from . import coredata
-from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, LDCLinker
+from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker
 from . import mesonlib
 from .mesonlib import EnvironmentException, Popen_safe
 from . import mlog
@@ -341,7 +341,6 @@ class Environment:
         self.vs_static_linker = ['lib']
         self.gcc_static_linker = ['gcc-ar']
         self.clang_static_linker = ['llvm-ar']
-        self.ldc2_static_linker = ['ldc2']
 
         # Various prefixes and suffixes for import libraries, shared libraries,
         # static libraries, and executables.
@@ -885,10 +884,11 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 # Use llvm-ar if available; needed for LTO
                 linkers = [self.clang_static_linker, self.default_static_linker]
             elif isinstance(compiler, compilers.DCompiler):
+                # Prefer static linkers over linkers used by D compilers
                 if mesonlib.is_windows():
-                    linkers = [self.vs_static_linker, self.ldc2_static_linker]
+                    linkers = [self.vs_static_linker, compiler.get_linker_exelist()]
                 else:
-                    linkers = [self.default_static_linker, self.ldc2_static_linker]
+                    linkers = [self.default_static_linker, compiler.get_linker_exelist()]
             else:
                 linkers = [self.default_static_linker]
         popen_exceptions = {}
@@ -906,8 +906,12 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 return VisualStudioLinker(linker)
             if p.returncode == 0 and ('armar' in linker or 'armar.exe' in linker):
                 return ArmarLinker(linker)
+            if 'DMD32 D Compiler' in out or 'DMD64 D Compiler' in out:
+                return DLinker(linker, compiler.is_64, compiler.is_msvc)
             if 'LDC - the LLVM D compiler' in out:
-                return LDCLinker(linker)
+                return DLinker(linker, compiler.is_64, compiler.is_msvc)
+            if 'GDC' in out and ' based on D ' in out:
+                return DLinker(linker, compiler.is_64, compiler.is_msvc)
             if p.returncode == 0:
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('usage'): # OSX
