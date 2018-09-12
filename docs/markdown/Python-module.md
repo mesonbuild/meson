@@ -45,7 +45,9 @@ Keyword arguments are the following:
   abort if no python installation can be found. If `required` is set to `false`,
   Meson will continue even if no python installation was found. You can
   then use the `.found()` method on the returned object to check
-  whether it was found or not.
+  whether it was found or not. Since *0.48.0*  the value of a
+  [`feature`](Build-options.md#features) option can also be passed to the
+  `required` keyword argument.
 
 **Returns**: a [python installation][`python_installation` object]
 

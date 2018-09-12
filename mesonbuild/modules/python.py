@@ -25,7 +25,7 @@ from ..interpreterbase import (
     InterpreterObject, InvalidArguments,
     FeatureNew
 )
-from ..interpreter import ExternalProgramHolder
+from ..interpreter import ExternalProgramHolder, extract_required_kwarg
 from ..interpreterbase import flatten
 from ..build import known_shmod_kwargs
 from .. import mlog
@@ -477,9 +477,10 @@ class PythonModule(ExtensionModule):
 
     @permittedKwargs(['required'])
     def find_installation(self, interpreter, state, args, kwargs):
-        required = kwargs.get('required', True)
-        if not isinstance(required, bool):
-            raise InvalidArguments('"required" argument must be a boolean.')
+        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject)
+        if disabled:
+            mlog.log('find_installation skipped: feature', mlog.bold(feature), 'disabled')
+            return ExternalProgramHolder(NonExistingExternalProgram())
 
         if len(args) > 1:
             raise InvalidArguments('find_installation takes zero or one positional argument.')

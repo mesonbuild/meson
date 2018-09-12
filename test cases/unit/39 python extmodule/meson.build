@@ -21,3 +21,6 @@ if py.found()
 else
   error('MESON_SKIP_TEST: Python not found, skipping test.')
 endif
+
+py = py_mod.find_installation(get_option('python'), required : get_option('disabled_opt'))
+assert(not py.found(), 'find_installation not working with disabled feature')
