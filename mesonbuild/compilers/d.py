@@ -411,6 +411,9 @@ class DCompiler(Compiler):
     def get_crt_link_args(self, crt_val, buildtype):
         return []
 
+    def thread_link_flags(self, env):
+        return ['-pthread']
+
 class GnuDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross, is_64, **kwargs):
         DCompiler.__init__(self, exelist, version, is_cross, is_64, **kwargs)
