@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .mesonlib import Popen_safe
+from .mesonlib import Popen_safe, is_windows
 from . import mesonlib
 
 class StaticLinker:
@@ -138,11 +138,12 @@ class ArmarLinker(ArLinker):
         # armar cann't accept arguments using the @rsp syntax
         return False
 
-class LDCLinker(StaticLinker):
-
-    def __init__(self, exelist):
+class DLinker(StaticLinker):
+    def __init__(self, exelist, is_64, is_msvc):
         self.exelist = exelist
-        self.id = 'ldc2'
+        self.id = exelist[0]
+        self.is_64 = is_64
+        self.is_msvc = is_msvc
 
     def can_linker_accept_rsp(self):
         return mesonlib.is_windows()
@@ -163,6 +164,12 @@ class LDCLinker(StaticLinker):
         return []
 
     def get_linker_always_args(self):
+        if is_windows():
+            if self.is_64:
+                return ['-m64']
+            elif self.is_msvc and self.id == 'dmd':
+                return ['-m32mscoff']
+            return ['-m32']
         return []
 
     def get_coverage_link_args(self):
