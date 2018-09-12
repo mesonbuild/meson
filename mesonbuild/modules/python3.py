@@ -17,11 +17,12 @@ from .. import mesonlib, dependencies
 
 from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue
-from ..interpreterbase import noKwargs, permittedKwargs
+from ..interpreterbase import noKwargs, permittedKwargs, FeatureDeprecated
 from ..build import known_shmod_kwargs
 
 
 class Python3Module(ExtensionModule):
+    @FeatureDeprecated('python3 module', '0.48.0')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.snippets.add('extension_module')
