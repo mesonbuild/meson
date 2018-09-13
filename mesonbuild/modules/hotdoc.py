@@ -38,12 +38,13 @@ MIN_HOTDOC_VERSION = '0.8.100'
 
 
 class HotdocTargetBuilder:
-    def __init__(self, name, state, hotdoc, kwargs):
+    def __init__(self, name, state, hotdoc, interpreter, kwargs):
         self.hotdoc = hotdoc
         self.build_by_default = kwargs.pop('build_by_default', False)
         self.kwargs = kwargs
         self.name = name
         self.state = state
+        self.interpreter = interpreter
         self.include_paths = OrderedDict()
 
         self.builddir = state.environment.get_build_dir()
@@ -93,7 +94,7 @@ class HotdocTargetBuilder:
                 self.check_extra_arg_type(arg, v)
             return
 
-        valid_types = (str, bool, mesonlib.File, build.IncludeDirs)
+        valid_types = (str, bool, mesonlib.File, build.IncludeDirs, build.CustomTarget, build.BuildTarget)
         if not isinstance(value, valid_types):
             raise InvalidArguments('Argument "%s=%s" should be of type: %s.' % (
                 arg, value, [t.__name__ for t in valid_types]))
@@ -211,6 +212,9 @@ class HotdocTargetBuilder:
                     cmd.append(os.path.join(self.builddir, arg.get_curdir(), inc_dir))
 
                 continue
+            elif isinstance(arg, build.CustomTarget) or isinstance(arg, build.BuildTarget):
+                self._dependencies.append(arg)
+                arg = self.interpreter.backend.get_target_filename_abs(arg)
 
             cmd.append(arg)
 
@@ -384,7 +388,7 @@ class HotDocModule(ExtensionModule):
                                  ' required for the project name.')
 
         project_name = args[0]
-        builder = HotdocTargetBuilder(project_name, state, self.hotdoc, kwargs)
+        builder = HotdocTargetBuilder(project_name, state, self.hotdoc, self.interpreter, kwargs)
         target, install_script = builder.make_targets()
         targets = [HotdocTargetHolder(target, self.interpreter)]
         if install_script:
