@@ -23,7 +23,7 @@ from .wrap import WrapMode
 import ast
 import argparse
 
-version = '0.48.0.dev1'
+version = '0.47.999'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']
 
 default_yielding = False
