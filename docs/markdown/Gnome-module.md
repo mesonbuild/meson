@@ -333,6 +333,7 @@ of the module.
 * `main_xml`: specifies the main XML file
 * `main_sgml`: equal to `main_xml`
 * `mkdb_args`: a list of arguments to pass to `gtkdoc-mkdb`
+* `module_version`: the version of the module, affects the installed location and the devhelp2 file location
 * `scan_args`: a list of arguments to pass to `gtkdoc-scan`
 * `scanobjs_args`: a list of arguments to pass to `gtkdoc-scangobj`
 * `c_args`: (*Added 0.48.0*) additional compile arguments to pass

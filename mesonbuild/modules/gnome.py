@@ -883,12 +883,13 @@ This will become a hard error in the future.''')
         return ModuleReturnValue(None, rv)
 
     @FeatureNewKwargs('gnome.gtkdoc', '0.48.0', ['c_args'])
+    @FeatureNewKwargs('gnome.gtkdoc', '0.48.0', ['module_version'])
     @FeatureNewKwargs('gnome.gtkdoc', '0.37.0', ['namespace', 'mode'])
     @permittedKwargs({'main_xml', 'main_sgml', 'src_dir', 'dependencies', 'install',
                       'install_dir', 'scan_args', 'scanobjs_args', 'gobject_typesfile',
                       'fixxref_args', 'html_args', 'html_assets', 'content_files',
                       'mkdb_args', 'ignore_headers', 'include_directories',
-                      'namespace', 'mode', 'expand_content_files'})
+                      'namespace', 'mode', 'expand_content_files', 'module_version'})
     def gtkdoc(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('Gtkdoc must have one positional argument.')
@@ -903,11 +904,14 @@ This will become a hard error in the future.''')
         main_xml = kwargs.get('main_xml', '')
         if not isinstance(main_xml, str):
             raise MesonException('Main xml keyword argument must be a string.')
+        moduleversion = kwargs.get('module_version', '')
+        if not isinstance(moduleversion, str):
+            raise MesonException('Module version keyword argument must be a string.')
         if main_xml != '':
             if main_file != '':
                 raise MesonException('You can only specify main_xml or main_sgml, not both.')
             main_file = main_xml
-        targetname = modulename + '-doc'
+        targetname = modulename + ('-' + moduleversion if moduleversion else '') + '-doc'
         command = state.environment.get_build_command()
 
         namespace = kwargs.get('namespace', '')
@@ -938,6 +942,7 @@ This will become a hard error in the future.''')
                 '--headerdirs=' + '@@'.join(header_dirs),
                 '--mainfile=' + main_file,
                 '--modulename=' + modulename,
+                '--moduleversion=' + moduleversion,
                 '--mode=' + mode]
         if namespace:
             args.append('--namespace=' + namespace)
