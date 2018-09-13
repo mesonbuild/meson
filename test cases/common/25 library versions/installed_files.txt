@@ -1,1 +1,2 @@
 usr/lib/prefixsomelib.suffix
+?msvc:usr/lib/prefixsomelib.pdb

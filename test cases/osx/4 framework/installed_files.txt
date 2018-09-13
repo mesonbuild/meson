@@ -1,0 +1,2 @@
+usr/bin/prog
+usr/lib/libstat.a

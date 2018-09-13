@@ -1,5 +1,6 @@
 usr/bin/runscript.sh
 usr/bin/trivialprog?exe
+?msvc:usr/bin/trivialprog.pdb
 usr/include/config.h
 usr/include/rootdir.h
 usr/libtest/libstat.a
