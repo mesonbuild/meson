@@ -43,6 +43,10 @@ def create_parser():
                    help=argparse.SUPPRESS)
     p.add_argument('--fatal-meson-warnings', action='store_true', dest='fatal_warnings',
                    help='Make all Meson warnings fatal')
+    p.add_argument('--reconfigure', action='store_true',
+                   help='Set options and reconfigure the project. Useful when new ' +
+                        'options have been added to the project and the default value ' +
+                        'is not working.')
     p.add_argument('builddir', nargs='?', default=None)
     p.add_argument('sourcedir', nargs='?', default=None)
     return p
@@ -57,8 +61,10 @@ def wrapmodetype(string):
 
 class MesonApp:
 
-    def __init__(self, dir1, dir2, handshake, options):
-        (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2, handshake)
+    def __init__(self, options):
+        (self.source_dir, self.build_dir) = self.validate_dirs(options.builddir,
+                                                               options.sourcedir,
+                                                               options.reconfigure)
         self.options = options
 
     def has_build_file(self, dirname):
@@ -66,6 +72,15 @@ class MesonApp:
         return os.path.exists(fname)
 
     def validate_core_dirs(self, dir1, dir2):
+        if dir1 is None:
+            if dir2 is None:
+                if not os.path.exists('meson.build') and os.path.exists('../meson.build'):
+                    dir2 = '..'
+                else:
+                    raise MesonException('Must specify at least one directory name.')
+            dir1 = os.getcwd()
+        if dir2 is None:
+            dir2 = os.getcwd()
         ndir1 = os.path.abspath(os.path.realpath(dir1))
         ndir2 = os.path.abspath(os.path.realpath(dir2))
         if not os.path.exists(ndir1):
@@ -86,21 +101,23 @@ class MesonApp:
             return ndir2, ndir1
         raise MesonException('Neither directory contains a build file %s.' % environment.build_filename)
 
-    def validate_dirs(self, dir1, dir2, handshake):
+    def validate_dirs(self, dir1, dir2, reconfigure):
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
         priv_dir = os.path.join(build_dir, 'meson-private/coredata.dat')
         if os.path.exists(priv_dir):
-            if not handshake:
-                print('Directory already configured, exiting Meson. Just run your build command\n'
-                      '(e.g. ninja) and Meson will regenerate as necessary. If ninja fails, run ninja\n'
-                      'reconfigure to force Meson to regenerate.\n'
+            if not reconfigure:
+                print('Directory already configured.\n'
+                      '\nJust run your build command (e.g. ninja) and Meson will regenerate as necessary.\n'
+                      'If ninja fails, run "ninja reconfigure" or "meson --reconfigure"\n'
+                      'to force Meson to regenerate.\n'
                       '\nIf build failures persist, manually wipe your build directory to clear any\n'
                       'stored system data.\n'
-                      '\nTo change option values, run meson configure instead.')
-                sys.exit(0)
+                      '\nTo change option values, run "meson configure" instead.')
+                sys.exit(1)
         else:
-            if handshake:
-                raise RuntimeError('Something went terribly wrong. Please file a bug.')
+            if reconfigure:
+                print('Directory does not contain a valid build tree:\n{}'.format(build_dir))
+                sys.exit(1)
         return src_dir, build_dir
 
     def check_pkgconfig_envvar(self, env):
@@ -317,7 +334,11 @@ def run(original_args, mainfile):
 
     # No special command? Do the basic setup/reconf.
     if len(args) >= 2 and args[0] == '--internal':
-        if args[1] != 'regenerate':
+        if args[1] == 'regenerate':
+            # Rewrite "meson --internal regenerate" command line to
+            # "meson --reconfigure"
+            args = ['--reconfigure'] + args[2:]
+        else:
             script = args[1]
             try:
                 sys.exit(run_script_command(args[1:]))
@@ -325,29 +346,14 @@ def run(original_args, mainfile):
                 mlog.error('\nError in {} helper script:'.format(script))
                 mlog.exception(e)
                 sys.exit(1)
-        args = args[2:]
-        handshake = True
-    else:
-        handshake = False
 
     parser = create_parser()
 
     args = mesonlib.expand_arguments(args)
     options = parser.parse_args(args)
     coredata.parse_cmd_line_options(options)
-    dir1 = options.builddir
-    dir2 = options.sourcedir
     try:
-        if dir1 is None:
-            if dir2 is None:
-                if not os.path.exists('meson.build') and os.path.exists('../meson.build'):
-                    dir2 = '..'
-                else:
-                    raise MesonException('Must specify at least one directory name.')
-            dir1 = os.getcwd()
-        if dir2 is None:
-            dir2 = os.getcwd()
-        app = MesonApp(dir1, dir2, handshake, options)
+        app = MesonApp(options)
     except Exception as e:
         # Log directory does not exist, so just print
         # to stdout.
