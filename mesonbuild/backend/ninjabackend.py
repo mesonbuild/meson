@@ -222,6 +222,30 @@ int dummy;
             outfile.write('# Build rules for targets\n\n')
             for t in self.build.get_targets().values():
                 self.generate_target(t, outfile)
+
+            outfile.write('# Build rules for directories\n\n')
+            dir_targets = {}
+            for t in self.build.get_targets().values():
+                if isinstance(t, build.CustomTarget):
+                    continue
+                if isinstance(t, build.RunTarget):
+                    continue
+                (head, tail) = os.path.split(self.get_target_filename(t))
+                while head != '':
+                    subdir_rule = os.path.join(head, "all")
+                    if subdir_rule not in dir_targets:
+                        dir_targets[subdir_rule] = set()
+                    if (t.get_filename() == tail):
+                        output = self.get_target_filename(t)
+                    else:
+                        output = os.path.join(head, tail, "all")
+                    dir_targets[subdir_rule].add(output)
+                    (head, tail) = os.path.split(head)
+
+            for subdir_rule in dir_targets.keys():
+                elem = NinjaBuildElement(self.all_outputs, subdir_rule, 'phony', dir_targets[subdir_rule])
+                elem.write(outfile)
+
             outfile.write('# Test rules\n\n')
             self.generate_tests(outfile)
             outfile.write('# Install rules\n\n')
