@@ -193,8 +193,9 @@ def validate_install(srcdir, installdir, compiler, env):
         # Windows-specific tests check for the existence of installed PDB
         # files, but common tests do not, for obvious reasons. Ignore any
         # extra PDB files found.
-        if fname not in expected and not fname.endswith('.pdb') and compiler == 'cl':
-            ret_msg += 'Extra file {0} found.\n'.format(fname)
+        if fname not in expected:
+            if not (fname.endswith('.pdb') and compiler != 'cl'):
+                ret_msg += 'Extra file {0} found.\n'.format(fname)
     return ret_msg
 
 def log_text_file(logfile, testdir, stdo, stde):
