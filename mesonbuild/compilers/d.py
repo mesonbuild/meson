@@ -18,7 +18,6 @@ from ..mesonlib import EnvironmentException, version_compare, is_windows, is_osx
 
 from .compilers import (
     GCC_STANDARD,
-    GCC_CYGWIN,
     GCC_OSX,
     d_dmd_buildtype_args,
     d_gdc_buildtype_args,
