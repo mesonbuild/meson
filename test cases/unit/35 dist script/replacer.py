@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys
+import os
 import pathlib
 
 source_root = pathlib.Path(os.environ['MESON_DIST_ROOT'])
