@@ -39,7 +39,7 @@ from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.mesonlib import (
     is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd,
     windows_proof_rmtree, python_command, version_compare,
-    grab_leading_numbers, BuildDirLock
+    BuildDirLock, Version
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -691,6 +691,114 @@ class InternalTests(unittest.TestCase):
             PkgConfigDependency.pkgbin_cache = {}
             PkgConfigDependency.class_pkgbin = None
 
+    def test_version_compare(self):
+        comparefunc = mesonbuild.mesonlib.version_compare_many
+        for (a, b, result) in [
+                ('0.99.beta19', '>= 0.99.beta14', True),
+        ]:
+            self.assertEqual(comparefunc(a, b)[0], result)
+
+        for (a, b, result) in [
+                # examples from https://fedoraproject.org/wiki/Archive:Tools/RPM/VersionComparison
+                ("1.0010", "1.9", 1),
+                ("1.05", "1.5", 0),
+                ("1.0", "1", 1),
+                ("2.50", "2.5", 1),
+                ("fc4", "fc.4", 0),
+                ("FC5", "fc4", -1),
+                ("2a", "2.0", -1),
+                ("1.0", "1.fc4", 1),
+                ("3.0.0_fc", "3.0.0.fc", 0),
+                # from RPM tests
+                ("1.0", "1.0", 0),
+                ("1.0", "2.0", -1),
+                ("2.0", "1.0", 1),
+                ("2.0.1", "2.0.1", 0),
+                ("2.0", "2.0.1", -1),
+                ("2.0.1", "2.0", 1),
+                ("2.0.1a", "2.0.1a", 0),
+                ("2.0.1a", "2.0.1", 1),
+                ("2.0.1", "2.0.1a", -1),
+                ("5.5p1", "5.5p1", 0),
+                ("5.5p1", "5.5p2", -1),
+                ("5.5p2", "5.5p1", 1),
+                ("5.5p10", "5.5p10", 0),
+                ("5.5p1", "5.5p10", -1),
+                ("5.5p10", "5.5p1", 1),
+                ("10xyz", "10.1xyz", -1),
+                ("10.1xyz", "10xyz", 1),
+                ("xyz10", "xyz10", 0),
+                ("xyz10", "xyz10.1", -1),
+                ("xyz10.1", "xyz10", 1),
+                ("xyz.4", "xyz.4", 0),
+                ("xyz.4", "8", -1),
+                ("8", "xyz.4", 1),
+                ("xyz.4", "2", -1),
+                ("2", "xyz.4", 1),
+                ("5.5p2", "5.6p1", -1),
+                ("5.6p1", "5.5p2", 1),
+                ("5.6p1", "6.5p1", -1),
+                ("6.5p1", "5.6p1", 1),
+                ("6.0.rc1", "6.0", 1),
+                ("6.0", "6.0.rc1", -1),
+                ("10b2", "10a1", 1),
+                ("10a2", "10b2", -1),
+                ("1.0aa", "1.0aa", 0),
+                ("1.0a", "1.0aa", -1),
+                ("1.0aa", "1.0a", 1),
+                ("10.0001", "10.0001", 0),
+                ("10.0001", "10.1", 0),
+                ("10.1", "10.0001", 0),
+                ("10.0001", "10.0039", -1),
+                ("10.0039", "10.0001", 1),
+                ("4.999.9", "5.0", -1),
+                ("5.0", "4.999.9", 1),
+                ("20101121", "20101121", 0),
+                ("20101121", "20101122", -1),
+                ("20101122", "20101121", 1),
+                ("2_0", "2_0", 0),
+                ("2.0", "2_0", 0),
+                ("2_0", "2.0", 0),
+                ("a", "a", 0),
+                ("a+", "a+", 0),
+                ("a+", "a_", 0),
+                ("a_", "a+", 0),
+                ("+a", "+a", 0),
+                ("+a", "_a", 0),
+                ("_a", "+a", 0),
+                ("+_", "+_", 0),
+                ("_+", "+_", 0),
+                ("_+", "_+", 0),
+                ("+", "_", 0),
+                ("_", "+", 0),
+                # other tests
+                ('0.99.beta19', '0.99.beta14', 1),
+                ("1.0.0", "2.0.0", -1),
+                (".0.0", "2.0.0", -1),
+                ("alpha", "beta", -1),
+                ("1.0", "1.0.0", -1),
+                ("2.456", "2.1000", -1),
+                ("2.1000", "3.111", -1),
+                ("2.001", "2.1", 0),
+                ("2.34", "2.34", 0),
+                ("6.1.2", "6.3.8", -1),
+                ("1.7.3.0", "2.0.0", -1),
+                ("2.24.51", "2.25", -1),
+                ("2.1.5+20120813+gitdcbe778", "2.1.5", 1),
+                ("3.4.1", "3.4b1", 1),
+                ("041206", "200090325", -1),
+                ("0.6.2+git20130413", "0.6.2", 1),
+                ("2.6.0+bzr6602", "2.6.0", 1),
+                ("2.6.0", "2.6b2", 1),
+                ("2.6.0+bzr6602", "2.6b2x", 1),
+                ("0.6.7+20150214+git3a710f9", "0.6.7", 1),
+                ("15.8b", "15.8.0.1", -1),
+                ("1.2rc1", "1.2.0", -1),
+        ]:
+            ver_a = Version(a)
+            ver_b = Version(b)
+            self.assertEqual(ver_a.__cmp__(ver_b), result)
+            self.assertEqual(ver_b.__cmp__(ver_a), -result)
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
@@ -2552,13 +2660,14 @@ recommended as it is not supported on some platforms''')
         out = self.init(testdir)
         # Parent project warns correctly
         self.assertRegex(out, "WARNING: Project targetting '>=0.45'.*'0.47.0': dict")
-        # Subproject warns correctly
-        self.assertRegex(out, "|WARNING: Project targetting '>=0.40'.*'0.44.0': disabler")
+        # Subprojects warn correctly
+        self.assertRegex(out, r"\|WARNING: Project targetting '>=0.40'.*'0.44.0': disabler")
+        self.assertRegex(out, r"\|WARNING: Project targetting '!=0.40'.*'0.44.0': disabler")
         # Subproject has a new-enough meson_version, no warning
         self.assertNotRegex(out, "WARNING: Project targetting.*Python")
         # Ensure a summary is printed in the subproject and the outer project
-        self.assertRegex(out, "|WARNING: Project specifies a minimum meson_version '>=0.40'")
-        self.assertRegex(out, "| * 0.44.0: {'disabler'}")
+        self.assertRegex(out, r"\|WARNING: Project specifies a minimum meson_version '>=0.40'")
+        self.assertRegex(out, r"\| \* 0.44.0: {'disabler'}")
         self.assertRegex(out, "WARNING: Project specifies a minimum meson_version '>=0.45'")
         self.assertRegex(out, " * 0.47.0: {'dict'}")
 
@@ -2656,7 +2765,7 @@ class FailureTests(BasePlatformTests):
         super().tearDown()
         windows_proof_rmtree(self.srcdir)
 
-    def assertMesonRaises(self, contents, match, extra_args=None, langs=None):
+    def assertMesonRaises(self, contents, match, extra_args=None, langs=None, meson_version=None):
         '''
         Assert that running meson configure on the specified @contents raises
         a error message matching regex @match.
@@ -2664,7 +2773,10 @@ class FailureTests(BasePlatformTests):
         if langs is None:
             langs = []
         with open(self.mbuild, 'w') as f:
-            f.write("project('failure test', 'c', 'cpp')\n")
+            f.write("project('failure test', 'c', 'cpp'")
+            if meson_version:
+                f.write(", meson_version: '{}'".format(meson_version))
+            f.write(")\n")
             for lang in langs:
                 f.write("add_languages('{}', required : false)\n".format(lang))
             f.write(contents)
@@ -2674,13 +2786,14 @@ class FailureTests(BasePlatformTests):
             # Must run in-process or we'll get a generic CalledProcessError
             self.init(self.srcdir, extra_args=extra_args, inprocess=True)
 
-    def obtainMesonOutput(self, contents, match, extra_args, langs, meson_version):
+    def obtainMesonOutput(self, contents, match, extra_args, langs, meson_version=None):
         if langs is None:
             langs = []
         with open(self.mbuild, 'w') as f:
-            core_version = '.'.join([str(component) for component in grab_leading_numbers(mesonbuild.coredata.version)])
-            meson_version = meson_version or core_version
-            f.write("project('output test', 'c', 'cpp', meson_version: '{}')\n".format(meson_version))
+            f.write("project('output test', 'c', 'cpp'")
+            if meson_version:
+                f.write(", meson_version: '{}'".format(meson_version))
+            f.write(")\n")
             for lang in langs:
                 f.write("add_languages('{}', required : false)\n".format(lang))
             f.write(contents)

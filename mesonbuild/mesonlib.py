@@ -14,6 +14,7 @@
 
 """A library of random helper functionality."""
 
+import functools
 import sys
 import stat
 import time
@@ -390,33 +391,59 @@ def detect_vcs(source_dir):
                 return vcs
     return None
 
-def grab_leading_numbers(vstr, strict=False):
-    result = []
-    for x in vstr.rstrip('.').split('.'):
-        try:
-            result.append(int(x))
-        except ValueError as e:
-            if strict:
-                msg = 'Invalid version to compare against: {!r}; only ' \
-                      'numeric digits separated by "." are allowed: ' + str(e)
-                raise MesonException(msg.format(vstr))
-            break
-    return result
+# a helper class which implements the same version ordering as RPM
+@functools.total_ordering
+class Version:
+    def __init__(self, s):
+        self._s = s
 
-def make_same_len(listA, listB):
-    maxlen = max(len(listA), len(listB))
-    for i in listA, listB:
-        for n in range(len(i), maxlen):
-            i.append(0)
+        # split into numeric, alphabetic and non-alphanumeric sequences
+        sequences = re.finditer(r'(\d+|[a-zA-Z]+|[^a-zA-Z\d]+)', s)
+        # non-alphanumeric separators are discarded
+        sequences = [m for m in sequences if not re.match(r'[^a-zA-Z\d]+', m.group(1))]
+        # numeric sequences have leading zeroes discarded
+        sequences = [re.sub(r'^0+(\d)', r'\1', m.group(1), 1) for m in sequences]
 
-numpart = re.compile('[0-9.]+')
+        self._v = sequences
 
-def version_compare(vstr1, vstr2, strict=False):
-    match = numpart.match(vstr1.strip())
-    if match is None:
-        msg = 'Uncomparable version string {!r}.'
-        raise MesonException(msg.format(vstr1))
-    vstr1 = match.group(0)
+    def __str__(self):
+        return '%s (V=%s)' % (self._s, str(self._v))
+
+    def __lt__(self, other):
+        return self.__cmp__(other) == -1
+
+    def __eq__(self, other):
+        return self.__cmp__(other) == 0
+
+    def __cmp__(self, other):
+        def cmp(a, b):
+            return (a > b) - (a < b)
+
+        # compare each sequence in order
+        for i in range(0, min(len(self._v), len(other._v))):
+            # sort a non-digit sequence before a digit sequence
+            if self._v[i].isdigit() != other._v[i].isdigit():
+                return 1 if self._v[i].isdigit() else -1
+
+            # compare as numbers
+            if self._v[i].isdigit():
+                # because leading zeros have already been removed, if one number
+                # has more digits, it is greater
+                c = cmp(len(self._v[i]), len(other._v[i]))
+                if c != 0:
+                    return c
+                # fallthrough
+
+            # compare lexicographically
+            c = cmp(self._v[i], other._v[i])
+            if c != 0:
+                return c
+
+        # if equal length, all components have matched, so equal
+        # otherwise, the version with a suffix remaining is greater
+        return cmp(len(self._v), len(other._v))
+
+def _version_extract_cmpop(vstr2):
     if vstr2.startswith('>='):
         cmpop = operator.ge
         vstr2 = vstr2[2:]
@@ -440,10 +467,12 @@ def version_compare(vstr1, vstr2, strict=False):
         vstr2 = vstr2[1:]
     else:
         cmpop = operator.eq
-    varr1 = grab_leading_numbers(vstr1, strict)
-    varr2 = grab_leading_numbers(vstr2, strict)
-    make_same_len(varr1, varr2)
-    return cmpop(varr1, varr2)
+
+    return (cmpop, vstr2)
+
+def version_compare(vstr1, vstr2):
+    (cmpop, vstr2) = _version_extract_cmpop(vstr2)
+    return cmpop(Version(vstr1), Version(vstr2))
 
 def version_compare_many(vstr1, conditions):
     if not isinstance(conditions, (list, tuple, frozenset)):
@@ -451,28 +480,22 @@ def version_compare_many(vstr1, conditions):
     found = []
     not_found = []
     for req in conditions:
-        if not version_compare(vstr1, req, strict=True):
+        if not version_compare(vstr1, req):
             not_found.append(req)
         else:
             found.append(req)
     return not_found == [], not_found, found
 
-
+# determine if the minimum version satisfying the condition |condition| exceeds
+# the minimum version for a feature |minimum|
 def version_compare_condition_with_min(condition, minimum):
-    match = numpart.match(minimum.strip())
-    if match is None:
-        msg = 'Uncomparable version string {!r}.'
-        raise MesonException(msg.format(minimum))
-    minimum = match.group(0)
     if condition.startswith('>='):
         cmpop = operator.le
         condition = condition[2:]
     elif condition.startswith('<='):
-        return True
-        condition = condition[2:]
+        return False
     elif condition.startswith('!='):
-        return True
-        condition = condition[2:]
+        return False
     elif condition.startswith('=='):
         cmpop = operator.le
         condition = condition[2:]
@@ -483,49 +506,24 @@ def version_compare_condition_with_min(condition, minimum):
         cmpop = operator.lt
         condition = condition[1:]
     elif condition.startswith('<'):
-        return True
-        condition = condition[2:]
+        return False
     else:
         cmpop = operator.le
-    varr1 = grab_leading_numbers(minimum, True)
-    varr2 = grab_leading_numbers(condition, True)
-    make_same_len(varr1, varr2)
-    return cmpop(varr1, varr2)
 
-def version_compare_condition_with_max(condition, maximum):
-    match = numpart.match(maximum.strip())
-    if match is None:
-        msg = 'Uncomparable version string {!r}.'
-        raise MesonException(msg.format(maximum))
-    maximum = match.group(0)
-    if condition.startswith('>='):
-        return False
-        condition = condition[2:]
-    elif condition.startswith('<='):
-        cmpop = operator.ge
-        condition = condition[2:]
-    elif condition.startswith('!='):
-        return False
-        condition = condition[2:]
-    elif condition.startswith('=='):
-        cmpop = operator.ge
-        condition = condition[2:]
-    elif condition.startswith('='):
-        cmpop = operator.ge
-        condition = condition[1:]
-    elif condition.startswith('>'):
-        return False
-        condition = condition[1:]
-    elif condition.startswith('<'):
-        cmpop = operator.gt
-        condition = condition[2:]
-    else:
-        cmpop = operator.ge
-    varr1 = grab_leading_numbers(maximum, True)
-    varr2 = grab_leading_numbers(condition, True)
-    make_same_len(varr1, varr2)
-    return cmpop(varr1, varr2)
+    # Declaring a project(meson_version: '>=0.46') and then using features in
+    # 0.46.0 is valid, because (knowing the meson versioning scheme) '0.46.0' is
+    # the lowest version which satisfies the constraint '>=0.46'.
+    #
+    # But this will fail here, because the minimum version required by the
+    # version constraint ('0.46') is strictly less (in our version comparison)
+    # than the minimum version needed for the feature ('0.46.0').
+    #
+    # Map versions in the constraint of the form '0.46' to '0.46.0', to embed
+    # this knowledge of the meson versioning scheme.
+    if re.match('^\d+.\d+$', condition):
+        condition += '.0'
 
+    return cmpop(Version(minimum), Version(condition))
 
 def default_libdir():
     if is_debianlike():
