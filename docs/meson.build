@@ -17,6 +17,5 @@ documentation = hotdoc.generate_doc(meson.project_name(),
 )
 
 run_target('upload',
-    command: [find_program('hotdoc'), 'run', '--conf-file', documentation.config_path(),
-              '--git-upload']
+    command: [find_program('hotdoc'), 'run', '--conf-file', documentation.config_path()]
 )
