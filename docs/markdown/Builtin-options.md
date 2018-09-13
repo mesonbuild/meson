@@ -36,7 +36,7 @@ Installation options are all relative to the prefix, except:
 | sysconfdir                           | etc           | Sysconf data directory |
 | localstatedir                        | var           | Localstate data directory |
 | sharedstatedir                       | com           | Architecture-independent data directory |
-| werror                               | false         | Treat warnings as erros |
+| werror                               | false         | Treat warnings as errors |
 | warnlevel {1, 2, 3}                  | 1             | Set the warning level. From 1 = lowest to 3 = highest |
 | layout {mirror,flat}                 | mirror        | Build directory layout. |
 | default-library {shared, static, both} | shared       | Default library type. |
