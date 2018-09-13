@@ -960,7 +960,6 @@ You probably should put it in link_with instead.''')
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_targets.append(t)
 
-
     def link_whole(self, target):
         for t in listify(target, unholder=True):
             if not isinstance(t, StaticLibrary):
