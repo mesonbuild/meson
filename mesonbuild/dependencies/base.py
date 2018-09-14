@@ -870,13 +870,8 @@ class DubDependency(ExternalDependency):
         mlog.debug('Determining dependency {!r} with DUB executable '
                    '{!r}'.format(name, self.dubbin.get_path()))
 
-        # we need to know the correct architecture on Windows
-        if self.compiler.is_64:
-            arch = 'x86_64'
-        elif self.compiler.is_msvc:
-            arch = 'x86_mscoff'
-        else:
-            arch = 'x86'
+        # we need to know the target architecture
+        arch = self.compiler.arch
 
         # Ask dub for the package
         ret, res = self._call_dubbin(['describe', name, '--arch=' + arch])

@@ -836,22 +836,22 @@ This is probably wrong, it should always point to the native compiler.''' % evar
         version = search_version(out)
         full_version = out.split('\n', 1)[0]
 
-        # Detect which MSVC build environment is currently active.
-        is_64 = False
+        # Detect the target architecture, required for proper architecture handling on Windows.
         c_compiler = {}
-        if mesonlib.is_windows() and 'VCINSTALLDIR' in os.environ:
-            # MSVC compiler is required for correct platform detection.
-            c_compiler = {'c': self.detect_c_compiler(want_cross)}
+        is_msvc = mesonlib.is_windows() and 'VCINSTALLDIR' in os.environ
+        if is_msvc:
+            c_compiler = {'c': self.detect_c_compiler(want_cross)} # MSVC compiler is required for correct platform detection.
 
-        if detect_cpu_family(c_compiler) == 'x86_64':
-            is_64 = True
+        arch = detect_cpu_family(c_compiler)
+        if is_msvc and arch == 'x86':
+            arch = 'x86_mscoff'
 
         if 'LLVM D compiler' in out:
-            return compilers.LLVMDCompiler(exelist, version, is_cross, is_64, full_version=full_version)
+            return compilers.LLVMDCompiler(exelist, version, is_cross, arch, full_version=full_version)
         elif 'gdc' in out:
-            return compilers.GnuDCompiler(exelist, version, is_cross, is_64, full_version=full_version)
+            return compilers.GnuDCompiler(exelist, version, is_cross, arch, full_version=full_version)
         elif 'The D Language Foundation' in out or 'Digital Mars' in out:
-            return compilers.DmdDCompiler(exelist, version, is_cross, is_64, full_version=full_version)
+            return compilers.DmdDCompiler(exelist, version, is_cross, arch, full_version=full_version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_swift_compiler(self):
