@@ -6,6 +6,7 @@
 ?msvc:usr/lib/noversion.lib
 ?msvc:usr/lib/noversion.pdb
 ?msvc:usr/bin/onlyversion-1.dll
+?msvc:usr/bin/onlyversion-1.pdb
 ?msvc:usr/lib/onlyversion.lib
 ?msvc:usr/bin/onlysoversion-5.dll
 ?msvc:usr/bin/onlysoversion-5.pdb
