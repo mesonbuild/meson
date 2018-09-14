@@ -155,7 +155,12 @@ def platform_fix_name(fname, compiler, env):
 
     if fname.startswith('?gcc:'):
         fname = fname[5:]
-        if compiler == 'cl' or fname.endswith('dll.a') and not mesonlib.for_cygwin(env.is_cross_build(), env):
+        if compiler == 'cl':
+            return None
+
+    if fname.startswith('?cygwin:'):
+        fname = fname[8:]
+        if compiler == 'cl' or not mesonlib.for_cygwin(env.is_cross_build(), env):
             return None
 
     return fname
