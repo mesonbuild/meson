@@ -873,6 +873,8 @@ class DubDependency(ExternalDependency):
         # we need to know the correct architecture on Windows
         if self.compiler.is_64:
             arch = 'x86_64'
+        elif self.compiler.is_msvc:
+            arch = 'x86_mscoff'
         else:
             arch = 'x86'
 
@@ -885,8 +887,8 @@ class DubDependency(ExternalDependency):
 
         comp = self.compiler.get_id().replace('llvm', 'ldc').replace('gcc', 'gdc')
         packages = []
-        j = json.loads(res)
-        for package in j['packages']:
+        description = json.loads(res)
+        for package in description['packages']:
             packages.append(package['name'])
             if package['name'] == name:
                 self.is_found = True
@@ -897,12 +899,11 @@ class DubDependency(ExternalDependency):
                         not_lib = False
 
                 if not_lib:
-                    mlog.error(mlog.bold(name), 'found but it isn\'t a library')
+                    mlog.error(mlog.bold(name), "found but it isn't a library")
                     self.is_found = False
                     return
 
-                self.module_path = self._find_right_lib_path(package['path'], comp, j, True, package['targetFileName'])
-
+                self.module_path = self._find_right_lib_path(package['path'], comp, description, True, package['targetFileName'])
                 if not os.path.exists(self.module_path):
                     mlog.error(mlog.bold(name), 'found but it wasn\'t compiled with', mlog.bold(comp))
                     self.is_found = False
@@ -943,17 +944,21 @@ class DubDependency(ExternalDependency):
                             for arg in pkgdep.get_link_args(raw=True):
                                 self.raw_link_args.append(arg)
 
-        for target in j['targets']:
+        for target in description['targets']:
             if target['rootPackage'] in packages:
                 add_lib_args('libs', target)
                 add_lib_args('libs-{}'.format(platform.machine()), target)
                 for file in target['buildSettings']['linkerFiles']:
-                    self.link_args.append(self._find_right_lib_path(file, comp, j))
+                    lib_path = self._find_right_lib_path(file, comp, description)
+                    if lib_path:
+                        self.link_args.append(lib_path)
+                    else:
+                        self.is_found = False
 
     def get_compiler(self):
         return self.compiler
 
-    def _find_right_lib_path(self, default_path, comp, j, folder_only=False, file_name=''):
+    def _find_right_lib_path(self, default_path, comp, description, folder_only=False, file_name=''):
         path = ''
 
         module_build_path = lib_file_name = ''
@@ -970,7 +975,6 @@ class DubDependency(ExternalDependency):
 
         if ret != 0:
             mlog.error('Failed to run {!r}', mlog.bold(comp))
-            self.is_found = False
             return
 
         d_ver = re.search('v[0-9].[0-9][0-9][0-9].[0-9]', res) # Ex.: v2.081.2
@@ -980,7 +984,7 @@ class DubDependency(ExternalDependency):
             d_ver = '' # gdc
 
         # Ex.: library-debug-linux.posix-x86_64-ldc_2081-EF934983A3319F8F8FF2F0E107A363BA
-        build_name = 'library-{}-{}-{}-{}_{}'.format(j['buildType'], '.'.join(j['platform']), j['architecture'][0], comp, d_ver)
+        build_name = 'library-{}-{}-{}-{}_{}'.format(description['buildType'], '.'.join(description['platform']), '.'.join(description['architecture']), comp, d_ver)
         for entry in os.listdir(os.path.join(module_build_path, '.dub', 'build')):
             if entry.startswith(build_name):
                 for file in os.listdir(os.path.join(module_build_path, '.dub', 'build', entry)):
