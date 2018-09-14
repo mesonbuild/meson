@@ -121,7 +121,7 @@ class CCompiler(Compiler):
     # The default behavior is this, override in MSVC
     @functools.lru_cache(maxsize=None)
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        if self.id == 'clang' and self.clang_type == compilers.CLANG_OSX:
+        if (self.id == 'clang' and self.clang_type == compilers.CLANG_OSX) or (self.id == 'gcc' and self.gcc_type == compilers.GCC_OSX):
             return self.build_osx_rpath_args(build_dir, rpath_paths, build_rpath)
         return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
