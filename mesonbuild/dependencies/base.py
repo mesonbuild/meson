@@ -905,7 +905,18 @@ class DubDependency(ExternalDependency):
 
                 self.module_path = self._find_right_lib_path(package['path'], comp, description, True, package['targetFileName'])
                 if not os.path.exists(self.module_path):
-                    mlog.error(mlog.bold(name), 'found but it wasn\'t compiled with', mlog.bold(comp))
+                    # check if the dependency was built for other archs
+                    archs = [['x86_64'], ['x86'], ['x86', 'x86_mscoff']]
+                    for a in archs:
+                        description_a = copy.deepcopy(description)
+                        description_a['architecture'] = a
+                        arch_module_path = self._find_right_lib_path(package['path'], comp, description_a, True, package['targetFileName'])
+                        if arch_module_path:
+                            mlog.error(mlog.bold(name), "found but it wasn't compiled for", mlog.bold(arch))
+                            self.is_found = False
+                            return
+
+                    mlog.error(mlog.bold(name), "found but it wasn't compiled with", mlog.bold(comp))
                     self.is_found = False
                     return
 
