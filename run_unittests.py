@@ -2973,7 +2973,7 @@ class FailureTests(BasePlatformTests):
         # Same as above, except the meson version is now appropriate
         self.assertMesonDoesNotOutput("dict = {}",
                                       ".*WARNING.*Project targetting.*but.*",
-                                      meson_version='>= 0.47.0')
+                                      meson_version='>= 0.47')
 
     def test_using_too_recent_feature_dependency(self):
         self.assertMesonOutputs("dependency('pcap', required: false)",
