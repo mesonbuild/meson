@@ -970,15 +970,14 @@ class DubDependency(ExternalDependency):
         return self.compiler
 
     def _find_right_lib_path(self, default_path, comp, description, folder_only=False, file_name=''):
-        path = ''
-
-        module_build_path = lib_file_name = ''
+        module_path = lib_file_name = ''
         if folder_only:
-            module_build_path = default_path
+            module_path = default_path
             lib_file_name = file_name
         else:
-            module_build_path = os.path.dirname(default_path)
+            module_path = os.path.dirname(default_path)
             lib_file_name = os.path.basename(default_path)
+        module_build_path = os.path.join(module_path, '.dub', 'build')
 
         # Get D version implemented in the compiler
         # gdc doesn't support this
@@ -994,19 +993,21 @@ class DubDependency(ExternalDependency):
         else:
             d_ver = '' # gdc
 
+        if not os.path.isdir(module_build_path):
+            return ''
+
         # Ex.: library-debug-linux.posix-x86_64-ldc_2081-EF934983A3319F8F8FF2F0E107A363BA
         build_name = 'library-{}-{}-{}-{}_{}'.format(description['buildType'], '.'.join(description['platform']), '.'.join(description['architecture']), comp, d_ver)
-        for entry in os.listdir(os.path.join(module_build_path, '.dub', 'build')):
+        for entry in os.listdir(module_build_path):
             if entry.startswith(build_name):
-                for file in os.listdir(os.path.join(module_build_path, '.dub', 'build', entry)):
+                for file in os.listdir(os.path.join(module_build_path, entry)):
                     if file == lib_file_name:
                         if folder_only:
-                            path = os.path.join(module_build_path, '.dub', 'build', entry)
+                            return os.path.join(module_build_path, entry)
                         else:
-                            path = os.path.join(module_build_path, '.dub', 'build', entry, lib_file_name)
-                        break
+                            return os.path.join(module_build_path, entry, lib_file_name)
 
-        return path
+        return ''
 
     def _call_dubbin(self, args, env=None):
         p, out = Popen_safe(self.dubbin.get_command() + args, env=env)[0:2]
