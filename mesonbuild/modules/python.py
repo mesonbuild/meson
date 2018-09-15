@@ -267,6 +267,12 @@ import sys
 
 install_paths = sysconfig.get_paths(scheme='posix_prefix', vars={'base': '', 'platbase': '', 'installed_base': ''})
 
+def links_against_libpython():
+    from distutils.core import Distribution, Extension
+    cmd = Distribution().get_command_obj('build_ext')
+    cmd.ensure_finalized()
+    return bool(cmd.get_libraries(Extension('dummy', [])))
+
 print (json.dumps ({
   'variables': sysconfig.get_config_vars(),
   'paths': sysconfig.get_paths(),
@@ -274,6 +280,7 @@ print (json.dumps ({
   'version': sysconfig.get_python_version(),
   'platform': sysconfig.get_platform(),
   'is_pypy': '__pypy__' in sys.builtin_module_names,
+  'link_libpython': links_against_libpython(),
 }))
 '''
 
@@ -291,6 +298,7 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         self.version = info['version']
         self.platform = info['platform']
         self.is_pypy = info['is_pypy']
+        self.link_libpython = info['link_libpython']
 
     @permittedKwargs(mod_kwargs)
     def extension_module(self, interpreter, state, args, kwargs):
@@ -303,6 +311,18 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
                 raise InvalidArguments('"subdir" argument must be a string.')
 
             kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
+
+        # On macOS and some Linux distros (Debian) distutils doesn't link
+        # extensions against libpython. We call into distutils and mirror its
+        # behavior. See https://github.com/mesonbuild/meson/issues/4117
+        if not self.link_libpython:
+            new_deps = []
+            for holder in mesonlib.extract_as_list(kwargs, 'dependencies'):
+                dep = holder.held_object
+                if isinstance(dep, PythonDependency):
+                    holder = interpreter.holderify(dep.get_partial_dependency(compile_args=True))
+                new_deps.append(holder)
+            kwargs['dependencies'] = new_deps
 
         suffix = self.variables.get('EXT_SUFFIX') or self.variables.get('SO') or self.variables.get('.so')
 
