@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib, os.path, re, tempfile, shlex
+import contextlib, enum, os.path, re, tempfile, shlex
 import subprocess
 
 from ..linkers import StaticLinker
@@ -1141,19 +1141,35 @@ class Compiler:
         raise EnvironmentException(
             'Language {} does not support function attributes.'.format(self.get_display_language()))
 
-GCC_STANDARD = 0
-GCC_OSX = 1
-GCC_MINGW = 2
-GCC_CYGWIN = 3
 
-CLANG_STANDARD = 0
-CLANG_OSX = 1
-CLANG_WIN = 2
-# Possibly clang-cl?
+@enum.unique
+class CompilerType(enum.Enum):
+    GCC_STANDARD = 0
+    GCC_OSX = 1
+    GCC_MINGW = 2
+    GCC_CYGWIN = 3
 
-ICC_STANDARD = 0
-ICC_OSX = 1
-ICC_WIN = 2
+    CLANG_STANDARD = 10
+    CLANG_OSX = 11
+    CLANG_MINGW = 12
+    # Possibly clang-cl?
+
+    ICC_STANDARD = 20
+    ICC_OSX = 21
+    ICC_WIN = 22
+
+    @property
+    def is_standard_compiler(self):
+        return self.name in ('GCC_STANDARD', 'CLANG_STANDARD', 'ICC_STANDARD')
+
+    @property
+    def is_osx_compiler(self):
+        return self.name in ('GCC_OSX', 'CLANG_OSX', 'ICC_OSX')
+
+    @property
+    def is_windows_compiler(self):
+        return self.name in ('GCC_MINGW', 'GCC_CYGWIN', 'CLANG_MINGW', 'ICC_WIN')
+
 
 # GNU ld cannot be installed on macOS
 # https://github.com/Homebrew/homebrew-core/issues/17794#issuecomment-328174395
@@ -1169,14 +1185,14 @@ def get_macos_dylib_install_name(prefix, shlib_name, suffix, soversion):
     install_name += '.dylib'
     return '@rpath/' + install_name
 
-def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, soversion, darwin_versions, is_shared_module):
-    if gcc_type == GCC_STANDARD:
+def get_gcc_soname_args(compiler_type, prefix, shlib_name, suffix, soversion, darwin_versions, is_shared_module):
+    if compiler_type.is_standard_compiler:
         sostr = '' if soversion is None else '.' + soversion
         return ['-Wl,-soname,%s%s.%s%s' % (prefix, shlib_name, suffix, sostr)]
-    elif gcc_type in (GCC_MINGW, GCC_CYGWIN):
+    elif compiler_type.is_windows_compiler:
         # For PE/COFF the soname argument has no effect with GNU LD
         return []
-    elif gcc_type == GCC_OSX:
+    elif compiler_type.is_osx_compiler:
         if is_shared_module:
             return []
         name = get_macos_dylib_install_name(prefix, shlib_name, suffix, soversion)
@@ -1188,20 +1204,21 @@ def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, soversion, darwin_
         raise RuntimeError('Not implemented yet.')
 
 def get_compiler_is_linuxlike(compiler):
-    if (getattr(compiler, 'gcc_type', None) == GCC_STANDARD) or \
-       (getattr(compiler, 'clang_type', None) == CLANG_STANDARD) or \
-       (getattr(compiler, 'icc_type', None) == ICC_STANDARD):
-        return True
-    return False
+    compiler_type = getattr(compiler, 'compiler_type', None)
+    return compiler_type and compiler_type.is_standard_compiler
 
 def get_compiler_uses_gnuld(c):
     # FIXME: Perhaps we should detect the linker in the environment?
     # FIXME: Assumes that *BSD use GNU ld, but they might start using lld soon
-    if (getattr(c, 'gcc_type', None) in (GCC_STANDARD, GCC_MINGW, GCC_CYGWIN)) or \
-       (getattr(c, 'clang_type', None) in (CLANG_STANDARD, CLANG_WIN)) or \
-       (getattr(c, 'icc_type', None) in (ICC_STANDARD, ICC_WIN)):
-        return True
-    return False
+    compiler_type = getattr(c, 'compiler_type', None)
+    return compiler_type in (
+        CompilerType.GCC_STANDARD,
+        CompilerType.GCC_MINGW,
+        CompilerType.GCC_CYGWIN,
+        CompilerType.CLANG_STANDARD,
+        CompilerType.CLANG_MINGW,
+        CompilerType.ICC_STANDARD,
+        CompilerType.ICC_WIN)
 
 def get_largefile_args(compiler):
     '''
@@ -1262,13 +1279,13 @@ def gnulike_default_include_dirs(compiler, lang):
 
 class GnuCompiler:
     # Functionality that is common to all GNU family compilers.
-    def __init__(self, gcc_type, defines):
+    def __init__(self, compiler_type, defines):
         self.id = 'gcc'
-        self.gcc_type = gcc_type
+        self.compiler_type = compiler_type
         self.defines = defines or {}
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_colorout', 'b_ndebug', 'b_staticpic']
-        if self.gcc_type == GCC_OSX:
+        if self.compiler_type.is_osx_compiler:
             self.base_options.append('b_bitcode')
         else:
             self.base_options.append('b_lundef')
@@ -1279,7 +1296,7 @@ class GnuCompiler:
     # TODO: centralise this policy more globally, instead
     # of fragmenting it into GnuCompiler and ClangCompiler
     def get_asneeded_args(self):
-        if self.gcc_type == GCC_OSX:
+        if self.compiler_type.is_osx_compiler:
             return APPLE_LD_AS_NEEDED
         else:
             return GNU_LD_AS_NEEDED
@@ -1305,7 +1322,7 @@ class GnuCompiler:
             return self.defines[define]
 
     def get_pic_args(self):
-        if self.gcc_type in (GCC_CYGWIN, GCC_MINGW, GCC_OSX):
+        if self.compiler_type in (CompilerType.GCC_CYGWIN, CompilerType.GCC_MINGW, CompilerType.GCC_OSX):
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
@@ -1319,7 +1336,7 @@ class GnuCompiler:
         return clike_debug_args[is_debug]
 
     def get_buildtype_linker_args(self, buildtype):
-        if self.gcc_type == GCC_OSX:
+        if self.compiler_type.is_osx_compiler:
             return apple_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
 
@@ -1330,7 +1347,7 @@ class GnuCompiler:
         return os.path.dirname(fname), fname
 
     def get_soname_args(self, *args):
-        return get_gcc_soname_args(self.gcc_type, *args)
+        return get_gcc_soname_args(self.compiler_type, *args)
 
     def get_std_shared_lib_link_args(self):
         return ['-shared']
@@ -1343,13 +1360,13 @@ class GnuCompiler:
             raise RuntimeError('Module definitions file should be str')
         # On Windows targets, .def files may be specified on the linker command
         # line like an object file.
-        if self.gcc_type in (GCC_CYGWIN, GCC_MINGW):
+        if self.compiler_type in (CompilerType.GCC_CYGWIN, CompilerType.GCC_MINGW):
             return [defsfile]
         # For other targets, discard the .def file.
         return []
 
     def get_gui_app_args(self, value):
-        if self.gcc_type in (GCC_CYGWIN, GCC_MINGW) and value:
+        if self.compiler_type in (CompilerType.GCC_CYGWIN, CompilerType.GCC_MINGW) and value:
             return ['-mwindows']
         return []
 
@@ -1368,8 +1385,8 @@ class GnuCompiler:
 class ElbrusCompiler(GnuCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
     # PCH, LTO, sanitizers and color output as of version 1.21.x.
-    def __init__(self, gcc_type, defines):
-        GnuCompiler.__init__(self, gcc_type, defines)
+    def __init__(self, compiler_type, defines):
+        GnuCompiler.__init__(self, compiler_type, defines)
         self.id = 'lcc'
         self.base_options = ['b_pgo', 'b_coverage',
                              'b_ndebug', 'b_staticpic',
@@ -1404,12 +1421,12 @@ class ElbrusCompiler(GnuCompiler):
         return paths
 
 class ClangCompiler:
-    def __init__(self, clang_type):
+    def __init__(self, compiler_type):
         self.id = 'clang'
-        self.clang_type = clang_type
+        self.compiler_type = compiler_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_ndebug', 'b_staticpic', 'b_colorout']
-        if self.clang_type == CLANG_OSX:
+        if self.compiler_type.is_osx_compiler:
             self.base_options.append('b_bitcode')
         else:
             self.base_options.append('b_lundef')
@@ -1420,13 +1437,13 @@ class ClangCompiler:
     # TODO: centralise this policy more globally, instead
     # of fragmenting it into GnuCompiler and ClangCompiler
     def get_asneeded_args(self):
-        if self.clang_type == CLANG_OSX:
+        if self.compiler_type.is_osx_compiler:
             return APPLE_LD_AS_NEEDED
         else:
             return GNU_LD_AS_NEEDED
 
     def get_pic_args(self):
-        if self.clang_type in (CLANG_WIN, CLANG_OSX):
+        if self.compiler_type in (CompilerType.CLANG_MINGW, CompilerType.CLANG_OSX):
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
@@ -1437,7 +1454,7 @@ class ClangCompiler:
         return gnulike_buildtype_args[buildtype]
 
     def get_buildtype_linker_args(self, buildtype):
-        if self.clang_type == CLANG_OSX:
+        if self.compiler_type.is_osx_compiler:
             return apple_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
 
@@ -1457,15 +1474,7 @@ class ClangCompiler:
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
     def get_soname_args(self, *args):
-        if self.clang_type == CLANG_STANDARD:
-            gcc_type = GCC_STANDARD
-        elif self.clang_type == CLANG_OSX:
-            gcc_type = GCC_OSX
-        elif self.clang_type == CLANG_WIN:
-            gcc_type = GCC_MINGW
-        else:
-            raise MesonException('Unreachable code when converting clang type to gcc type.')
-        return get_gcc_soname_args(gcc_type, *args)
+        return get_gcc_soname_args(self.compiler_type, *args)
 
     def has_multi_arguments(self, args, env):
         myargs = ['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument']
@@ -1482,17 +1491,17 @@ class ClangCompiler:
         # visibility to obey OS X and iOS minimum version targets with
         # -mmacosx-version-min, -miphoneos-version-min, etc.
         # https://github.com/Homebrew/homebrew-core/issues/3727
-        if self.clang_type == CLANG_OSX and version_compare(self.version, '>=8.0'):
+        if self.compiler_type.is_osx_compiler and version_compare(self.version, '>=8.0'):
             extra_args.append('-Wl,-no_weak_imports')
         return super().has_function(funcname, prefix, env, extra_args, dependencies)
 
     def get_std_shared_module_link_args(self, options):
-        if self.clang_type == CLANG_OSX:
+        if self.compiler_type.is_osx_compiler:
             return ['-bundle', '-Wl,-undefined,dynamic_lookup']
         return ['-shared']
 
     def get_link_whole_for(self, args):
-        if self.clang_type == CLANG_OSX:
+        if self.compiler_type.is_osx_compiler:
             result = []
             for a in args:
                 result += ['-Wl,-force_load', a]
@@ -1593,9 +1602,9 @@ class ArmclangCompiler:
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
 class IntelCompiler:
-    def __init__(self, icc_type):
+    def __init__(self, compiler_type):
         self.id = 'intel'
-        self.icc_type = icc_type
+        self.compiler_type = compiler_type
         self.lang_header = 'none'
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_colorout', 'b_ndebug', 'b_staticpic', 'b_lundef', 'b_asneeded']
@@ -1625,27 +1634,19 @@ class IntelCompiler:
         return os.path.dirname(fname), fname
 
     def get_soname_args(self, *args):
-        if self.icc_type == ICC_STANDARD:
-            gcc_type = GCC_STANDARD
-        elif self.icc_type == ICC_OSX:
-            gcc_type = GCC_OSX
-        elif self.icc_type == ICC_WIN:
-            gcc_type = GCC_MINGW
-        else:
-            raise MesonException('Unreachable code when converting icc type to gcc type.')
-        return get_gcc_soname_args(gcc_type, *args)
+        return get_gcc_soname_args(self.compiler_type, *args)
 
     # TODO: centralise this policy more globally, instead
     # of fragmenting it into GnuCompiler and ClangCompiler
     def get_asneeded_args(self):
-        if self.icc_type == CLANG_OSX:
+        if self.compiler_type.is_osx_compiler:
             return APPLE_LD_AS_NEEDED
         else:
             return GNU_LD_AS_NEEDED
 
     def get_std_shared_lib_link_args(self):
         # FIXME: Don't know how icc works on OSX
-        # if self.icc_type == ICC_OSX:
+        # if self.compiler_type.is_osx_compiler:
         #     return ['-bundle']
         return ['-shared']
 

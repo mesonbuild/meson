@@ -17,8 +17,7 @@ import os.path, subprocess
 from ..mesonlib import EnvironmentException, version_compare, is_windows, is_osx
 
 from .compilers import (
-    GCC_STANDARD,
-    GCC_OSX,
+    CompilerType,
     d_dmd_buildtype_args,
     d_gdc_buildtype_args,
     d_ldc_buildtype_args,
@@ -152,12 +151,12 @@ class DCompiler(Compiler):
         if is_windows():
             return []
         elif is_osx():
-            soname_args = get_gcc_soname_args(GCC_OSX, *args)
+            soname_args = get_gcc_soname_args(CompilerType.GCC_OSX, *args)
             if soname_args:
                 return ['-Wl,' + ','.join(soname_args)]
             return []
 
-        return get_gcc_soname_args(GCC_STANDARD, *args)
+        return get_gcc_soname_args(CompilerType.GCC_STANDARD, *args)
 
     def get_feature_args(self, kwargs, build_to_src):
         res = []

@@ -30,7 +30,7 @@ from ..mesonlib import (
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 
 from .compilers import (
-    GCC_MINGW,
+    CompilerType,
     get_largefile_args,
     gnu_winlibs,
     msvc_winlibs,
@@ -121,7 +121,7 @@ class CCompiler(Compiler):
     # The default behavior is this, override in MSVC
     @functools.lru_cache(maxsize=None)
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        if self.id == 'clang' and self.clang_type == compilers.CLANG_OSX:
+        if self.id == 'clang' and self.compiler_type == CompilerType.CLANG_OSX:
             return self.build_osx_rpath_args(build_dir, rpath_paths, build_rpath)
         return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
@@ -160,15 +160,8 @@ class CCompiler(Compiler):
         '''
         Get args for allowing undefined symbols when linking to a shared library
         '''
-        if self.id == 'clang':
-            if self.clang_type == compilers.CLANG_OSX:
-                # Apple ld
-                return ['-Wl,-undefined,dynamic_lookup']
-            else:
-                # GNU ld and LLVM lld
-                return ['-Wl,--allow-shlib-undefined']
-        elif self.id == 'gcc':
-            if self.gcc_type == compilers.GCC_OSX:
+        if self.id in ('clang', 'gcc'):
+            if self.compiler_type.is_osx_compiler:
                 # Apple ld
                 return ['-Wl,-undefined,dynamic_lookup']
             else:
@@ -1064,9 +1057,9 @@ class CCompiler(Compiler):
 
 
 class ClangCCompiler(ClangCompiler, CCompiler):
-    def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None, **kwargs):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self, clang_type)
+        ClangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -1092,7 +1085,7 @@ class ClangCCompiler(ClangCompiler, CCompiler):
 
     def get_linker_always_args(self):
         basic = super().get_linker_always_args()
-        if self.clang_type == compilers.CLANG_OSX:
+        if self.compiler_type.is_osx_compiler:
             return basic + ['-Wl,-headerpad_max_install_names']
         return basic
 
@@ -1126,9 +1119,9 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
 
 
 class GnuCCompiler(GnuCompiler, CCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
-        GnuCompiler.__init__(self, gcc_type, defines)
+        GnuCompiler.__init__(self, compiler_type, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -1140,7 +1133,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
                                                        ['none', 'c89', 'c99', 'c11',
                                                         'gnu89', 'gnu99', 'gnu11'],
                                                        'none')})
-        if self.gcc_type == GCC_MINGW:
+        if self.compiler_type == CompilerType.GCC_MINGW:
             opts.update({
                 'c_winlibs': coredata.UserArrayOption('c_winlibs', 'Standard Win libraries to link against',
                                                       gnu_winlibs), })
@@ -1154,7 +1147,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         return args
 
     def get_option_link_args(self, options):
-        if self.gcc_type == GCC_MINGW:
+        if self.compiler_type == CompilerType.GCC_MINGW:
             return options['c_winlibs'].value[:]
         return []
 
@@ -1166,9 +1159,9 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
 
 class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        GnuCCompiler.__init__(self, exelist, version, gcc_type, is_cross, exe_wrapper, defines, **kwargs)
-        ElbrusCompiler.__init__(self, gcc_type, defines)
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        GnuCCompiler.__init__(self, exelist, version, compiler_type, is_cross, exe_wrapper, defines, **kwargs)
+        ElbrusCompiler.__init__(self, compiler_type, defines)
 
     # It does support some various ISO standards and c/gnu 90, 9x, 1x in addition to those which GNU CC supports.
     def get_options(self):
@@ -1190,9 +1183,9 @@ class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
 
 
 class IntelCCompiler(IntelCompiler, CCompiler):
-    def __init__(self, exelist, version, icc_type, is_cross, exe_wrapper=None, **kwargs):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
-        IntelCompiler.__init__(self, icc_type)
+        IntelCompiler.__init__(self, compiler_type)
         self.lang_header = 'c-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark', '-Wpch-messages']
         self.warn_args = {'1': default_warn_args,

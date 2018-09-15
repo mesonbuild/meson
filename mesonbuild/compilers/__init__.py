@@ -14,16 +14,7 @@
 
 # Public symbols for compilers sub-package when using 'from . import compilers'
 __all__ = [
-    'CLANG_OSX',
-    'CLANG_STANDARD',
-    'CLANG_WIN',
-    'GCC_CYGWIN',
-    'GCC_MINGW',
-    'GCC_OSX',
-    'GCC_STANDARD',
-    'ICC_OSX',
-    'ICC_STANDARD',
-    'ICC_WIN',
+    'CompilerType',
 
     'all_languages',
     'base_options',
@@ -94,16 +85,7 @@ __all__ = [
 
 # Bring symbols from each module into compilers sub-package namespace
 from .compilers import (
-    GCC_OSX,
-    GCC_MINGW,
-    GCC_CYGWIN,
-    GCC_STANDARD,
-    CLANG_OSX,
-    CLANG_WIN,
-    CLANG_STANDARD,
-    ICC_OSX,
-    ICC_WIN,
-    ICC_STANDARD,
+    CompilerType,
     all_languages,
     base_options,
     clib_langs,
