@@ -3232,7 +3232,11 @@ root and issuing %s.
         name = args[0]
         kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         if 'input' in kwargs:
-            kwargs['input'] = self.source_strings_to_files(extract_as_list(kwargs, 'input'))
+            try:
+                kwargs['input'] = self.source_strings_to_files(extract_as_list(kwargs, 'input'))
+            except mesonlib.MesonException:
+                mlog.warning('''Custom target input \'%s\' can\'t be converted to File object(s).
+This will become a hard error in the future.''' % kwargs['input'])
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs), self)
         self.add_target(name, tg.held_object)
         return tg
