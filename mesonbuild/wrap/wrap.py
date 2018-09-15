@@ -208,8 +208,12 @@ class Resolver:
                     subprocess.check_call(['git', 'checkout', revno],
                                           cwd=checkoutdir)
         else:
-            subprocess.check_call(['git', 'clone', p.get('url'),
-                                   p.get('directory')], cwd=self.subdir_root)
+            if p.values.get('clone-recursive', '').lower() == 'true':
+                subprocess.check_call(['git', 'clone', '--recursive', p.get('url'),
+                                       p.get('directory')], cwd=self.subdir_root)
+            else:
+                subprocess.check_call(['git', 'clone', p.get('url'),
+                                       p.get('directory')], cwd=self.subdir_root)
             if revno.lower() != 'head':
                 if subprocess.call(['git', 'checkout', revno], cwd=checkoutdir) != 0:
                     subprocess.check_call(['git', 'fetch', p.get('url'), revno], cwd=checkoutdir)

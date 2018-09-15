@@ -109,6 +109,13 @@ the end of your wrap file:
 push-url=git@git.example.com:projects/someproject.git # Supported since version 0.37.0
 ```
 
+If the git repo contains submodules, you can tell Meson to clone them
+automatically by adding the following *(since 0.48.0)*:
+
+```ini
+clone-recursive=true
+```
+
 ## Using wrapped projects
 
 To use a subproject simply do this in your top level `meson.build`.
