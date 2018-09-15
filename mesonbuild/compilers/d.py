@@ -307,7 +307,7 @@ class DCompiler(Compiler):
                 for la in linkargs:
                     dcargs.append('-L=' + la.strip())
                 continue
-            elif arg.startswith('-link-defaultlib') or arg.startswith('-linker'):
+            elif arg.startswith(('-link-defaultlib', '-linker', '-link-internally', '-linkonce-templates', '-lib')):
                 # these are special arguments to the LDC linker call,
                 # arguments like "-link-defaultlib-shared" do *not*
                 # denote a library to be linked, but change the default
