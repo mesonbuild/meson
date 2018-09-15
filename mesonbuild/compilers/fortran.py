@@ -14,7 +14,7 @@
 
 from .c import CCompiler
 from .compilers import (
-    ICC_STANDARD,
+    CompilerType,
     apple_buildtype_linker_args,
     gnulike_buildtype_args,
     gnulike_buildtype_linker_args,
@@ -257,9 +257,9 @@ end program prog
 
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
-        GnuCompiler.__init__(self, gcc_type, defines)
+        GnuCompiler.__init__(self, compiler_type, defines)
         default_warn_args = ['-Wall']
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -279,9 +279,9 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
 
 
 class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        GnuFortranCompiler.__init__(self, exelist, version, gcc_type, is_cross, exe_wrapper, defines, **kwargs)
-        ElbrusCompiler.__init__(self, gcc_type, defines)
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        GnuFortranCompiler.__init__(self, exelist, version, compiler_type, is_cross, exe_wrapper, defines, **kwargs)
+        ElbrusCompiler.__init__(self, compiler_type, defines)
 
 class G95FortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
@@ -330,7 +330,7 @@ class IntelFortranCompiler(IntelCompiler, FortranCompiler):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         # FIXME: Add support for OS X and Windows in detect_fortran_compiler so
         # we are sent the type of compiler
-        IntelCompiler.__init__(self, ICC_STANDARD)
+        IntelCompiler.__init__(self, CompilerType.ICC_STANDARD)
         self.id = 'intel'
         default_warn_args = ['-warn', 'general', '-warn', 'truncated_source']
         self.warn_args = {'1': default_warn_args,

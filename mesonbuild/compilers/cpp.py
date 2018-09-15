@@ -21,7 +21,7 @@ from ..mesonlib import MesonException, version_compare
 
 from .c import CCompiler, VisualStudioCCompiler
 from .compilers import (
-    GCC_MINGW,
+    CompilerType,
     gnu_winlibs,
     msvc_winlibs,
     ClangCompiler,
@@ -126,9 +126,9 @@ class CPPCompiler(CCompiler):
 
 
 class ClangCPPCompiler(ClangCompiler, CPPCompiler):
-    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None, **kwargs):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self, cltype)
+        ClangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -185,9 +185,9 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
 
 
 class GnuCPPCompiler(GnuCompiler, CPPCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap, defines, **kwargs):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrap, defines, **kwargs):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
-        GnuCompiler.__init__(self, gcc_type, defines)
+        GnuCompiler.__init__(self, compiler_type, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -202,7 +202,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
                      'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
                                                                 'STL debug mode',
                                                                 False)})
-        if self.gcc_type == GCC_MINGW:
+        if self.compiler_type == CompilerType.GCC_MINGW:
             opts.update({
                 'cpp_winlibs': coredata.UserArrayOption('cpp_winlibs', 'Standard Win libraries to link against',
                                                         gnu_winlibs), })
@@ -218,7 +218,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         return args
 
     def get_option_link_args(self, options):
-        if self.gcc_type == GCC_MINGW:
+        if self.compiler_type == CompilerType.GCC_MINGW:
             return options['cpp_winlibs'].value[:]
         return []
 
@@ -230,9 +230,9 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
 
 class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        GnuCPPCompiler.__init__(self, exelist, version, gcc_type, is_cross, exe_wrapper, defines, **kwargs)
-        ElbrusCompiler.__init__(self, gcc_type, defines)
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        GnuCPPCompiler.__init__(self, exelist, version, compiler_type, is_cross, exe_wrapper, defines, **kwargs)
+        ElbrusCompiler.__init__(self, compiler_type, defines)
 
     # It does not support c++/gnu++ 17 and 1z, but still does support 0x, 1y, and gnu++98.
     def get_options(self):
@@ -253,9 +253,9 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
 
 
 class IntelCPPCompiler(IntelCompiler, CPPCompiler):
-    def __init__(self, exelist, version, icc_type, is_cross, exe_wrap, **kwargs):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrap, **kwargs):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
-        IntelCompiler.__init__(self, icc_type)
+        IntelCompiler.__init__(self, compiler_type)
         self.lang_header = 'c++-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark',
                              '-Wpch-messages', '-Wnon-virtual-dtor']

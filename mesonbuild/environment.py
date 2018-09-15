@@ -22,14 +22,7 @@ from . import mlog
 
 from . import compilers
 from .compilers import (
-    CLANG_OSX,
-    CLANG_STANDARD,
-    CLANG_WIN,
-    GCC_CYGWIN,
-    GCC_MINGW,
-    GCC_OSX,
-    GCC_STANDARD,
-    ICC_STANDARD,
+    CompilerType,
     is_assembly,
     is_header,
     is_library,
@@ -451,12 +444,12 @@ class Environment:
     def get_gnu_compiler_type(defines):
         # Detect GCC type (Apple, MinGW, Cygwin, Unix)
         if '__APPLE__' in defines:
-            return GCC_OSX
+            return CompilerType.GCC_OSX
         elif '__MINGW32__' in defines or '__MINGW64__' in defines:
-            return GCC_MINGW
+            return CompilerType.GCC_MINGW
         elif '__CYGWIN__' in defines:
-            return GCC_CYGWIN
-        return GCC_STANDARD
+            return CompilerType.GCC_CYGWIN
+        return CompilerType.GCC_STANDARD
 
     def warn_about_lang_pointing_to_cross(self, compiler_exe, evar):
         evar_str = os.environ.get(evar, 'WHO_WOULD_CALL_THEIR_COMPILER_WITH_THIS_NAME')
@@ -560,14 +553,14 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 if not defines:
                     popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
                     continue
-                gtype = self.get_gnu_compiler_type(defines)
+                compiler_type = self.get_gnu_compiler_type(defines)
                 if guess_gcc_or_lcc == 'lcc':
                     version = self.get_lcc_version_from_defines(defines)
                     cls = ElbrusCCompiler if lang == 'c' else ElbrusCPPCompiler
                 else:
                     version = self.get_gnu_version_from_defines(defines)
                     cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
-                return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version)
+                return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, defines, full_version=full_version)
 
             if 'armclang' in out:
                 # The compiler version is not present in the first line of output,
@@ -587,13 +580,13 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 return cls(ccache + compiler, version, is_cross, exe_wrap, full_version=full_version)
             if 'clang' in out:
                 if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
-                    cltype = CLANG_OSX
+                    compiler_type = CompilerType.CLANG_OSX
                 elif 'windows' in out or mesonlib.for_windows(want_cross, self):
-                    cltype = CLANG_WIN
+                    compiler_type = CompilerType.CLANG_MINGW
                 else:
-                    cltype = CLANG_STANDARD
+                    compiler_type = CompilerType.CLANG_STANDARD
                 cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
-                return cls(ccache + compiler, version, cltype, is_cross, exe_wrap, full_version=full_version)
+                return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
             if 'Microsoft' in out or 'Microsoft' in err:
                 # Latest versions of Visual Studio print version
                 # number to stderr but earlier ones print version
@@ -610,9 +603,9 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 return cls(compiler, version, is_cross, exe_wrap, is_64)
             if '(ICC)' in out:
                 # TODO: add microsoft add check OSX
-                inteltype = ICC_STANDARD
+                compiler_type = CompilerType.ICC_STANDARD
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
-                return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap, full_version=full_version)
+                return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
             if 'ARM' in out:
                 cls = ArmCCompiler if lang == 'c' else ArmCPPCompiler
                 return cls(ccache + compiler, version, is_cross, exe_wrap, full_version=full_version)
@@ -651,14 +644,14 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                     if not defines:
                         popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
                         continue
-                    gtype = self.get_gnu_compiler_type(defines)
+                    compiler_type = self.get_gnu_compiler_type(defines)
                     if guess_gcc_or_lcc == 'lcc':
                         version = self.get_lcc_version_from_defines(defines)
                         cls = ElbrusFortranCompiler
                     else:
                         version = self.get_gnu_version_from_defines(defines)
                         cls = GnuFortranCompiler
-                    return cls(compiler, version, gtype, is_cross, exe_wrap, defines, full_version=full_version)
+                    return cls(compiler, version, compiler_type, is_cross, exe_wrap, defines, full_version=full_version)
 
                 if 'G95' in out:
                     return G95FortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
@@ -704,13 +697,13 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 if not defines:
                     popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
                     continue
-                gtype = self.get_gnu_compiler_type(defines)
+                compiler_type = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
-                return GnuObjCCompiler(ccache + compiler, version, gtype, is_cross, exe_wrap, defines)
+                return GnuObjCCompiler(ccache + compiler, version, compiler_type, is_cross, exe_wrap, defines)
             if out.startswith('Apple LLVM'):
-                return ClangObjCCompiler(ccache + compiler, version, CLANG_OSX, is_cross, exe_wrap)
+                return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_OSX, is_cross, exe_wrap)
             if out.startswith('clang'):
-                return ClangObjCCompiler(ccache + compiler, version, CLANG_STANDARD, is_cross, exe_wrap)
+                return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_STANDARD, is_cross, exe_wrap)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_objcpp_compiler(self, want_cross):
@@ -731,13 +724,13 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 if not defines:
                     popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
                     continue
-                gtype = self.get_gnu_compiler_type(defines)
+                compiler_type = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
-                return GnuObjCPPCompiler(ccache + compiler, version, gtype, is_cross, exe_wrap, defines)
+                return GnuObjCPPCompiler(ccache + compiler, version, compiler_type, is_cross, exe_wrap, defines)
             if out.startswith('Apple LLVM'):
-                return ClangObjCPPCompiler(ccache + compiler, version, CLANG_OSX, is_cross, exe_wrap)
+                return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_OSX, is_cross, exe_wrap)
             if out.startswith('clang'):
-                return ClangObjCPPCompiler(ccache + compiler, version, CLANG_STANDARD, is_cross, exe_wrap)
+                return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_STANDARD, is_cross, exe_wrap)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self):

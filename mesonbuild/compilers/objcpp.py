@@ -52,17 +52,21 @@ class ObjCPPCompiler(CPPCompiler):
 
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None):
         ObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        GnuCompiler.__init__(self, gcc_type, defines)
+        GnuCompiler.__init__(self, compiler_type, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
 
-class ClangObjCPPCompiler(ClangCompiler, GnuObjCPPCompiler):
-    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        GnuObjCPPCompiler.__init__(self, exelist, version, cltype, is_cross, exe_wrapper)
-        ClangCompiler.__init__(self, cltype)
+class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None):
+        ObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        ClangCompiler.__init__(self, compiler_type)
+        default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']

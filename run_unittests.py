@@ -265,7 +265,7 @@ class InternalTests(unittest.TestCase):
     def test_compiler_args_class_gnuld(self):
         cargsfunc = mesonbuild.compilers.CompilerArgs
         ## Test --start/end-group
-        gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', 0, False)
+        gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', mesonbuild.compilers.CompilerType.GCC_STANDARD, False)
         ## Test that 'direct' append and extend works
         l = cargsfunc(gcc, ['-Lfoodir', '-lfoo'])
         self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Wl,--end-group'])
@@ -1642,30 +1642,30 @@ class AllPlatformTests(BasePlatformTests):
             if isinstance(cc, gnu):
                 self.assertIsInstance(linker, ar)
                 if is_osx():
-                    self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_OSX)
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_OSX)
                 elif is_windows():
-                    self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_MINGW)
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_MINGW)
                 elif is_cygwin():
-                    self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_CYGWIN)
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_CYGWIN)
                 else:
-                    self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_STANDARD)
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_STANDARD)
             if isinstance(cc, clang):
                 self.assertIsInstance(linker, ar)
                 if is_osx():
-                    self.assertEqual(cc.clang_type, mesonbuild.compilers.CLANG_OSX)
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.CLANG_OSX)
                 elif is_windows():
                     # Not implemented yet
-                    self.assertEqual(cc.clang_type, mesonbuild.compilers.CLANG_WIN)
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.CLANG_MINGW)
                 else:
-                    self.assertEqual(cc.clang_type, mesonbuild.compilers.CLANG_STANDARD)
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.CLANG_STANDARD)
             if isinstance(cc, intel):
                 self.assertIsInstance(linker, ar)
                 if is_osx():
-                    self.assertEqual(cc.icc_type, mesonbuild.compilers.ICC_OSX)
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.ICC_OSX)
                 elif is_windows():
-                    self.assertEqual(cc.icc_type, mesonbuild.compilers.ICC_WIN)
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.ICC_WIN)
                 else:
-                    self.assertEqual(cc.icc_type, mesonbuild.compilers.ICC_STANDARD)
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.ICC_STANDARD)
             if isinstance(cc, msvc):
                 self.assertTrue(is_windows())
                 self.assertIsInstance(linker, lib)
@@ -3457,11 +3457,11 @@ class LinuxlikeTests(BasePlatformTests):
         for v in compiler.get_options()[lang_std].choices:
             if (compiler.get_id() == 'clang' and '17' in v and
                 (version_compare(compiler.version, '<5.0.0') or
-                 (compiler.clang_type == mesonbuild.compilers.CLANG_OSX and version_compare(compiler.version, '<9.1')))):
+                 (compiler.compiler_type == mesonbuild.compilers.CompilerType.CLANG_OSX and version_compare(compiler.version, '<9.1')))):
                 continue
             if (compiler.get_id() == 'clang' and '2a' in v and
                 (version_compare(compiler.version, '<6.0.0') or
-                 (compiler.clang_type == mesonbuild.compilers.CLANG_OSX and version_compare(compiler.version, '<9.1')))):
+                 (compiler.compiler_type == mesonbuild.compilers.CompilerType.CLANG_OSX and version_compare(compiler.version, '<9.1')))):
                 continue
             if (compiler.get_id() == 'gcc' and '2a' in v and version_compare(compiler.version, '<8.0.0')):
                 continue
