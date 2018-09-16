@@ -334,6 +334,7 @@ of the module.
 * `mkdb_args`: a list of arguments to pass to `gtkdoc-mkdb`
 * `scan_args`: a list of arguments to pass to `gtkdoc-scan`
 * `scanobjs_args`: a list of arguments to pass to `gtkdoc-scangobj`
+* `c_args`: (*Added 0.48.0*) additional compile arguments to pass
 * `src_dir`: include_directories to include
 
 This creates a `$module-doc` target that can be ran to build docs and

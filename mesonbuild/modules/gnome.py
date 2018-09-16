@@ -882,6 +882,7 @@ This will become a hard error in the future.''')
         rv = [inscript, pottarget, potarget]
         return ModuleReturnValue(None, rv)
 
+    @FeatureNewKwargs('gnome.gtkdoc', '0.48.0', ['c_args'])
     @FeatureNewKwargs('gnome.gtkdoc', '0.37.0', ['namespace', 'mode'])
     @permittedKwargs({'main_xml', 'main_sgml', 'src_dir', 'dependencies', 'install',
                       'install_dir', 'scan_args', 'scanobjs_args', 'gobject_typesfile',
@@ -989,7 +990,9 @@ This will become a hard error in the future.''')
     def _get_build_args(self, kwargs, state, depends):
         args = []
         deps = extract_as_list(kwargs, 'dependencies', unholder=True)
-        cflags, internal_ldflags, external_ldflags, gi_includes = \
+        cflags = OrderedSet()
+        cflags.update(mesonlib.stringlistify(kwargs.pop('c_args', [])))
+        deps_cflags, internal_ldflags, external_ldflags, gi_includes = \
             self._get_dependencies_flags(deps, state, depends, include_rpath=True)
         inc_dirs = mesonlib.extract_as_list(kwargs, 'include_directories')
         for incd in inc_dirs:
@@ -997,6 +1000,7 @@ This will become a hard error in the future.''')
                 raise MesonException(
                     'Gir include dirs should be include_directories().')
 
+        cflags.update(deps_cflags)
         cflags.update(get_include_args(inc_dirs))
         ldflags = OrderedSet()
         ldflags.update(internal_ldflags)
