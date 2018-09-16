@@ -1451,7 +1451,7 @@ class ClangCompiler:
             return GNU_LD_AS_NEEDED
 
     def get_pic_args(self):
-        if self.compiler_type in (CompilerType.CLANG_MINGW, CompilerType.CLANG_OSX):
+        if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
@@ -1615,18 +1615,30 @@ class IntelCompiler:
         self.compiler_type = compiler_type
         self.lang_header = 'none'
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_colorout', 'b_ndebug', 'b_staticpic', 'b_lundef', 'b_asneeded']
+                             'b_colorout', 'b_ndebug', 'b_staticpic', 'b_asneeded']
+        if not self.compiler_type.is_osx_compiler:
+            self.base_options.append('b_lundef')
         # Assembly
         self.can_compile_suffixes.add('s')
 
     def get_pic_args(self):
+        if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
+            return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
 
     def get_buildtype_linker_args(self, buildtype):
+        if self.compiler_type.is_osx_compiler:
+            return apple_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
+
+    def get_optimization_args(self, optimization_level):
+        return gnu_optimization_args[optimization_level]
+
+    def get_debug_args(self, is_debug):
+        return clike_debug_args[is_debug]
 
     def get_pch_suffix(self):
         return 'pchi'
@@ -1669,6 +1681,9 @@ class IntelCompiler:
 
     def get_link_whole_for(self, args):
         return GnuCompiler.get_link_whole_for(self, args)
+
+    def gnu_symbol_visibility_args(self, vistype):
+        return gnu_symbol_visibility_args[vistype]
 
 
 class ArmCompiler:

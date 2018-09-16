@@ -3472,7 +3472,11 @@ class LinuxlikeTests(BasePlatformTests):
             std_opt = '{}={}'.format(lang_std, v)
             self.init(testdir, ['-D' + std_opt])
             cmd = self.get_compdb()[0]['command']
-            if v != 'none':
+            # c++03 and gnu++03 are not understood by ICC, don't try to look for them
+            skiplist = frozenset([
+                ('intel', 'c++03'),
+                ('intel', 'gnu++03')])
+            if v != 'none' and not (compiler.get_id(), v) in skiplist:
                 cmd_std = " -std={} ".format(v)
                 self.assertIn(cmd_std, cmd)
             try:
@@ -3683,23 +3687,26 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '6 std override')
         self.init(testdir)
         compdb = self.get_compdb()
+        # Don't try to use -std=c++03 as a check for the
+        # presence of a compiler flag, as ICC does not
+        # support it.
         for i in compdb:
-            if 'prog03' in i['file']:
-                c03_comp = i['command']
+            if 'prog98' in i['file']:
+                c98_comp = i['command']
             if 'prog11' in i['file']:
                 c11_comp = i['command']
             if 'progp' in i['file']:
                 plain_comp = i['command']
         self.assertNotEqual(len(plain_comp), 0)
-        self.assertIn('-std=c++03', c03_comp)
-        self.assertNotIn('-std=c++11', c03_comp)
+        self.assertIn('-std=c++98', c98_comp)
+        self.assertNotIn('-std=c++11', c98_comp)
         self.assertIn('-std=c++11', c11_comp)
-        self.assertNotIn('-std=c++03', c11_comp)
-        self.assertNotIn('-std=c++03', plain_comp)
+        self.assertNotIn('-std=c++98', c11_comp)
+        self.assertNotIn('-std=c++98', plain_comp)
         self.assertNotIn('-std=c++11', plain_comp)
         # Now werror
         self.assertIn('-Werror', plain_comp)
-        self.assertNotIn('-Werror', c03_comp)
+        self.assertNotIn('-Werror', c98_comp)
 
     def test_run_installed(self):
         if is_cygwin() or is_osx():

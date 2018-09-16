@@ -602,8 +602,13 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
                 return cls(compiler, version, is_cross, exe_wrap, is_64)
             if '(ICC)' in out:
-                # TODO: add microsoft add check OSX
-                compiler_type = CompilerType.ICC_STANDARD
+                if mesonlib.for_darwin(want_cross, self):
+                    compiler_type = CompilerType.ICC_OSX
+                elif mesonlib.for_windows(want_cross, self):
+                    # TODO: fix ICC on Windows
+                    compiler_type = CompilerType.ICC_WIN
+                else:
+                    compiler_type = CompilerType.ICC_STANDARD
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
             if 'ARM' in out:
