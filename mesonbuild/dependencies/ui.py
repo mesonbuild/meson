@@ -39,13 +39,13 @@ class GLDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('gl', environment, None, kwargs)
 
-        if mesonlib.is_osx():
+        if mesonlib.for_darwin(self.want_cross, self.env):
             self.is_found = True
             # FIXME: Use AppleFrameworks dependency
             self.link_args = ['-framework', 'OpenGL']
             # FIXME: Detect version using self.clib_compiler
             return
-        if mesonlib.is_windows():
+        if mesonlib.for_windows(self.want_cross, self.env):
             self.is_found = True
             # FIXME: Use self.clib_compiler.find_library()
             self.link_args = ['-lopengl32']
