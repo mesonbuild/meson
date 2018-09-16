@@ -4,9 +4,13 @@ usr/include/enums3.h
 usr/include/enums5.h
 usr/include/marshaller.h
 usr/lib/?libgir_lib.so
+?cygwin:usr/lib/libgir_lib.dll.a
 usr/lib/?libgir_lib2.so
+?cygwin:usr/lib/libgir_lib2.dll.a
 usr/lib/?libdep1lib.so
+?cygwin:usr/lib/libdep1lib.dll.a
 usr/lib/?libdep2lib.so
+?cygwin:usr/lib/libdep2lib.dll.a
 usr/lib/girepository-1.0/Meson-1.0.typelib
 usr/lib/girepository-1.0/MesonDep1-1.0.typelib
 usr/lib/girepository-1.0/MesonDep2-1.0.typelib
