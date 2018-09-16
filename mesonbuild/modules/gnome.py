@@ -326,6 +326,7 @@ class GnomeModule(ExtensionModule):
 
         for dep in deps:
             if isinstance(dep, InternalDependency):
+                cflags.update(dep.compile_args)
                 cflags.update(get_include_args(dep.include_directories))
                 for lib in dep.libraries:
                     if hasattr(lib, 'held_object'):
