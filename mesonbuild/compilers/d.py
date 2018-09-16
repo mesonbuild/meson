@@ -68,12 +68,12 @@ class DCompiler(Compiler):
         'mtd': ['-mscrtlib=libcmtd'],
     }
 
-    def __init__(self, exelist, version, is_cross, is_64, **kwargs):
+    def __init__(self, exelist, version, is_cross, arch, **kwargs):
         self.language = 'd'
         super().__init__(exelist, version, **kwargs)
         self.id = 'unknown'
         self.is_cross = is_cross
-        self.is_64 = is_64
+        self.arch = arch
 
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanity.d')
@@ -274,7 +274,7 @@ class DCompiler(Compiler):
         # LDC2 on Windows targets to current OS architecture, but
         # it should follow the target specified by the MSVC toolchain.
         if is_windows():
-            if self.is_64:
+            if self.arch == 'x86_64':
                 return ['-m64']
             return ['-m32']
         return []
@@ -410,8 +410,8 @@ class DCompiler(Compiler):
         return []
 
 class GnuDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross, is_64, **kwargs):
-        DCompiler.__init__(self, exelist, version, is_cross, is_64, **kwargs)
+    def __init__(self, exelist, version, is_cross, arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, is_cross, arch, **kwargs)
         self.id = 'gcc'
         default_warn_args = ['-Wall', '-Wdeprecated']
         self.warn_args = {'1': default_warn_args,
@@ -465,8 +465,8 @@ class GnuDCompiler(DCompiler):
         return gnu_optimization_args[optimization_level]
 
 class LLVMDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross, is_64, **kwargs):
-        DCompiler.__init__(self, exelist, version, is_cross, is_64, **kwargs)
+    def __init__(self, exelist, version, is_cross, arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, is_cross, arch, **kwargs)
         self.id = 'llvm'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
 
@@ -501,11 +501,10 @@ class LLVMDCompiler(DCompiler):
 
 
 class DmdDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross, is_64, **kwargs):
-        DCompiler.__init__(self, exelist, version, is_cross, is_64, **kwargs)
+    def __init__(self, exelist, version, is_cross, arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, is_cross, arch, **kwargs)
         self.id = 'dmd'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
-        self.is_msvc = 'VCINSTALLDIR' in os.environ
 
     def get_colorout_args(self, colortype):
         if colortype == 'always':
@@ -521,9 +520,9 @@ class DmdDCompiler(DCompiler):
         if is_windows():
             # DMD links against D runtime only when main symbol is found,
             # so these needs to be inserted when linking static D libraries.
-            if self.is_64:
+            if self.arch == 'x86_64':
                 return ['phobos64.lib']
-            elif self.is_msvc:
+            elif self.arch == 'x86_mscoff':
                 return ['phobos32mscoff.lib']
             return ['phobos.lib']
         return []
@@ -536,9 +535,9 @@ class DmdDCompiler(DCompiler):
         # Force the target to 64-bit in order to stay consistent
         # across the different platforms.
         if is_windows():
-            if self.is_64:
+            if self.arch == 'x86_64':
                 return ['-m64']
-            elif self.is_msvc:
+            elif self.arch == 'x86_mscoff':
                 return ['-m32mscoff']
             return ['-m32']
         return []

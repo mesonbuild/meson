@@ -870,11 +870,8 @@ class DubDependency(ExternalDependency):
         mlog.debug('Determining dependency {!r} with DUB executable '
                    '{!r}'.format(name, self.dubbin.get_path()))
 
-        # we need to know the correct architecture on Windows
-        if self.compiler.is_64:
-            arch = 'x86_64'
-        else:
-            arch = 'x86'
+        # we need to know the target architecture
+        arch = self.compiler.arch
 
         # Ask dub for the package
         ret, res = self._call_dubbin(['describe', name, '--arch=' + arch])
@@ -885,8 +882,8 @@ class DubDependency(ExternalDependency):
 
         comp = self.compiler.get_id().replace('llvm', 'ldc').replace('gcc', 'gdc')
         packages = []
-        j = json.loads(res)
-        for package in j['packages']:
+        description = json.loads(res)
+        for package in description['packages']:
             packages.append(package['name'])
             if package['name'] == name:
                 self.is_found = True
@@ -897,14 +894,24 @@ class DubDependency(ExternalDependency):
                         not_lib = False
 
                 if not_lib:
-                    mlog.error(mlog.bold(name), 'found but it isn\'t a library')
+                    mlog.error(mlog.bold(name), "found but it isn't a library")
                     self.is_found = False
                     return
 
-                self.module_path = self._find_right_lib_path(package['path'], comp, j, True, package['targetFileName'])
-
+                self.module_path = self._find_right_lib_path(package['path'], comp, description, True, package['targetFileName'])
                 if not os.path.exists(self.module_path):
-                    mlog.error(mlog.bold(name), 'found but it wasn\'t compiled with', mlog.bold(comp))
+                    # check if the dependency was built for other archs
+                    archs = [['x86_64'], ['x86'], ['x86', 'x86_mscoff']]
+                    for a in archs:
+                        description_a = copy.deepcopy(description)
+                        description_a['architecture'] = a
+                        arch_module_path = self._find_right_lib_path(package['path'], comp, description_a, True, package['targetFileName'])
+                        if arch_module_path:
+                            mlog.error(mlog.bold(name), "found but it wasn't compiled for", mlog.bold(arch))
+                            self.is_found = False
+                            return
+
+                    mlog.error(mlog.bold(name), "found but it wasn't compiled with", mlog.bold(comp))
                     self.is_found = False
                     return
 
@@ -943,26 +950,29 @@ class DubDependency(ExternalDependency):
                             for arg in pkgdep.get_link_args(raw=True):
                                 self.raw_link_args.append(arg)
 
-        for target in j['targets']:
+        for target in description['targets']:
             if target['rootPackage'] in packages:
                 add_lib_args('libs', target)
                 add_lib_args('libs-{}'.format(platform.machine()), target)
                 for file in target['buildSettings']['linkerFiles']:
-                    self.link_args.append(self._find_right_lib_path(file, comp, j))
+                    lib_path = self._find_right_lib_path(file, comp, description)
+                    if lib_path:
+                        self.link_args.append(lib_path)
+                    else:
+                        self.is_found = False
 
     def get_compiler(self):
         return self.compiler
 
-    def _find_right_lib_path(self, default_path, comp, j, folder_only=False, file_name=''):
-        path = ''
-
-        module_build_path = lib_file_name = ''
+    def _find_right_lib_path(self, default_path, comp, description, folder_only=False, file_name=''):
+        module_path = lib_file_name = ''
         if folder_only:
-            module_build_path = default_path
+            module_path = default_path
             lib_file_name = file_name
         else:
-            module_build_path = os.path.dirname(default_path)
+            module_path = os.path.dirname(default_path)
             lib_file_name = os.path.basename(default_path)
+        module_build_path = os.path.join(module_path, '.dub', 'build')
 
         # Get D version implemented in the compiler
         # gdc doesn't support this
@@ -970,7 +980,6 @@ class DubDependency(ExternalDependency):
 
         if ret != 0:
             mlog.error('Failed to run {!r}', mlog.bold(comp))
-            self.is_found = False
             return
 
         d_ver = re.search('v[0-9].[0-9][0-9][0-9].[0-9]', res) # Ex.: v2.081.2
@@ -979,19 +988,21 @@ class DubDependency(ExternalDependency):
         else:
             d_ver = '' # gdc
 
+        if not os.path.isdir(module_build_path):
+            return ''
+
         # Ex.: library-debug-linux.posix-x86_64-ldc_2081-EF934983A3319F8F8FF2F0E107A363BA
-        build_name = 'library-{}-{}-{}-{}_{}'.format(j['buildType'], '.'.join(j['platform']), j['architecture'][0], comp, d_ver)
-        for entry in os.listdir(os.path.join(module_build_path, '.dub', 'build')):
+        build_name = 'library-{}-{}-{}-{}_{}'.format(description['buildType'], '.'.join(description['platform']), '.'.join(description['architecture']), comp, d_ver)
+        for entry in os.listdir(module_build_path):
             if entry.startswith(build_name):
-                for file in os.listdir(os.path.join(module_build_path, '.dub', 'build', entry)):
+                for file in os.listdir(os.path.join(module_build_path, entry)):
                     if file == lib_file_name:
                         if folder_only:
-                            path = os.path.join(module_build_path, '.dub', 'build', entry)
+                            return os.path.join(module_build_path, entry)
                         else:
-                            path = os.path.join(module_build_path, '.dub', 'build', entry, lib_file_name)
-                        break
+                            return os.path.join(module_build_path, entry, lib_file_name)
 
-        return path
+        return ''
 
     def _call_dubbin(self, args, env=None):
         p, out = Popen_safe(self.dubbin.get_command() + args, env=env)[0:2]
