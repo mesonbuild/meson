@@ -3111,6 +3111,10 @@ class DarwinTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '4 shared')
         # Try with bitcode enabled
         out = self.init(testdir, extra_args='-Db_bitcode=true')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = env.detect_c_compiler(False)
+        if cc.id != 'clang':
+            raise unittest.SkipTest('Not using Clang on OSX')
         # Warning was printed
         self.assertRegex(out, 'WARNING:.*b_bitcode')
         # Compiler options were added
