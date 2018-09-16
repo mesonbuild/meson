@@ -46,7 +46,6 @@ REMOVE_SOURCE = 1
 class AstInterpreter(interpreterbase.InterpreterBase):
     def __init__(self, source_root, subdir):
         super().__init__(source_root, subdir)
-        self.asts = {}
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
                            'benchmark': self.func_do_nothing,
@@ -76,7 +75,49 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'vcs_tag': self.func_do_nothing,
                            'add_languages': self.func_do_nothing,
                            'declare_dependency': self.func_do_nothing,
-                           'files': self.func_files,
+                           'files': self.func_do_nothing,
+                           'executable': self.func_do_nothing,
+                           'static_library': self.func_do_nothing,
+                           'shared_library': self.func_do_nothing,
+                           'library': self.func_do_nothing,
+                           'build_target': self.func_do_nothing,
+                           'custom_target': self.func_do_nothing,
+                           'run_target': self.func_do_nothing,
+                           'subdir': self.func_do_nothing,
+                           'set_variable': self.func_do_nothing,
+                           'get_variable': self.func_do_nothing,
+                           'is_variable': self.func_do_nothing,
+                           })
+
+    def func_do_nothing(self, node, args, kwargs):
+        return True
+
+    def method_call(self, node):
+        return True
+
+    def evaluate_arithmeticstatement(self, cur):
+        return 0
+
+    def evaluate_plusassign(self, node):
+        return 0
+
+    def evaluate_indexing(self, node):
+        return 0
+
+    def unknown_function_called(self, func_name):
+        mlog.warning('Unknown function called: ' + func_name)
+
+    def reduce_arguments(self, args):
+        assert(isinstance(args, mparser.ArgumentNode))
+        if args.incorrect_order():
+            raise InvalidArguments('All keyword arguments must be after positional arguments.')
+        return args.arguments, args.kwargs
+
+class RewriterInterpreter(AstInterpreter):
+    def __init__(self, source_root, subdir):
+        super().__init__(source_root, subdir)
+        self.asts = {}
+        self.funcs.update({'files': self.func_files,
                            'executable': self.func_executable,
                            'static_library': self.func_static_lib,
                            'shared_library': self.func_shared_lib,
@@ -89,12 +130,6 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'get_variable': self.func_get_variable,
                            'is_variable': self.func_is_variable,
                            })
-
-    def func_do_nothing(self, node, args, kwargs):
-        return True
-
-    def method_call(self, node):
-        return True
 
     def func_executable(self, node, args, kwargs):
         if args[0] == self.targetname:
@@ -147,21 +182,6 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             return [args]
         return args
 
-    def evaluate_arithmeticstatement(self, cur):
-        return 0
-
-    def evaluate_plusassign(self, node):
-        return 0
-
-    def evaluate_indexing(self, node):
-        return 0
-
-    def reduce_arguments(self, args):
-        assert(isinstance(args, mparser.ArgumentNode))
-        if args.incorrect_order():
-            raise InvalidArguments('All keyword arguments must be after positional arguments.')
-        return args.arguments, args.kwargs
-
     def transform(self):
         self.load_root_meson_file()
         self.asts[''] = self.ast
@@ -180,9 +200,6 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         self.targetname = targetname
         self.filename = filename
         self.transform()
-
-    def unknown_function_called(self, func_name):
-        mlog.warning('Unknown function called: ' + func_name)
 
     def add_source_to_target(self, node, args, kwargs):
         namespan = node.args.arguments[0].bytespan
