@@ -33,7 +33,7 @@ class AppleFrameworks(ExternalDependency):
         for f in self.frameworks:
             self.link_args += ['-framework', f]
 
-        self.is_found = mesonlib.is_osx()
+        self.is_found = mesonlib.for_darwin(self.want_cross, self.env)
 
     def log_tried(self):
         return 'framework'
