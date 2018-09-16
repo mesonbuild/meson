@@ -1191,7 +1191,7 @@ class IntelCCompiler(IntelCompiler, CCompiler):
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark', '-Wpch-messages']
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
-                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+                          '3': default_warn_args + ['-Wextra']}
 
     def get_options(self):
         opts = CCompiler.get_options(self)
@@ -1214,8 +1214,14 @@ class IntelCCompiler(IntelCompiler, CCompiler):
     def get_std_shared_lib_link_args(self):
         return ['-shared']
 
+    def get_std_shared_module_link_args(self, options):
+        if self.compiler_type.is_osx_compiler:
+            return ['-bundle', '-Wl,-undefined,dynamic_lookup']
+        return ['-shared']
+
     def has_arguments(self, args, env, code, mode):
-        return super().has_arguments(args + ['-diag-error', '10006'], env, code, mode)
+        # -diag-error 10148 is required to catch invalid -W options
+        return super().has_arguments(args + ['-diag-error', '10006', '-diag-error', '10148'], env, code, mode)
 
 
 class VisualStudioCCompiler(CCompiler):

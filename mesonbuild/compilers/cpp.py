@@ -261,12 +261,15 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
                              '-Wpch-messages', '-Wnon-virtual-dtor']
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
-                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+                          '3': default_warn_args + ['-Wextra']}
 
     def get_options(self):
         opts = CPPCompiler.get_options(self)
-        c_stds = []
-        g_stds = ['gnu++98']
+        # Every Unix compiler under the sun seems to accept -std=c++03,
+        # with the exception of ICC. Instead of preventing the user from
+        # globally requesting C++03, we transparently remap it to C++98
+        c_stds = ['c++98', 'c++03']
+        g_stds = ['gnu++98', 'gnu++03']
         if version_compare(self.version, '>=15.0.0'):
             c_stds += ['c++11', 'c++14']
             g_stds += ['gnu++11']
@@ -286,13 +289,21 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
         args = []
         std = options['cpp_std']
         if std.value != 'none':
-            args.append('-std=' + std.value)
+            remap_cpp03 = {
+                'c++03': 'c++98',
+                'gnu++03': 'gnu++98'
+            }
+            args.append('-std=' + remap_cpp03.get(std.value, std.value))
         if options['cpp_debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
 
     def get_option_link_args(self, options):
         return []
+
+    def has_arguments(self, args, env, code, mode):
+        # -diag-error 10148 is required to catch invalid -W options
+        return super().has_arguments(args + ['-diag-error', '10006', '-diag-error', '10148'], env, code, mode)
 
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):

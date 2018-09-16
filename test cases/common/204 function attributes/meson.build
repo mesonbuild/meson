@@ -50,8 +50,14 @@ attributes = [
   'used',
   'warn_unused_result',
   'weak',
-  'weakref',
 ]
+
+if c.get_id() != 'intel'
+  # not supported by icc as of 19.0.0
+  attributes += 'weakref'
+endif
+
+expected_result = c.get_id() != 'msvc'
 
 # These are unsupported on darwin with apple clang 9.1.0
 if host_machine.system() != 'darwin'
