@@ -1285,9 +1285,7 @@ class GnuCompiler:
         self.defines = defines or {}
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_colorout', 'b_ndebug', 'b_staticpic']
-        if self.compiler_type.is_osx_compiler:
-            self.base_options.append('b_bitcode')
-        else:
+        if not self.compiler_type.is_osx_compiler:
             self.base_options.append('b_lundef')
         self.base_options.append('b_asneeded')
         # All GCC backends can do assembly
@@ -1322,7 +1320,7 @@ class GnuCompiler:
             return self.defines[define]
 
     def get_pic_args(self):
-        if self.compiler_type in (CompilerType.GCC_CYGWIN, CompilerType.GCC_MINGW, CompilerType.GCC_OSX):
+        if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
@@ -1352,7 +1350,17 @@ class GnuCompiler:
     def get_std_shared_lib_link_args(self):
         return ['-shared']
 
+    def get_std_shared_module_link_args(self, options):
+        if self.compiler_type.is_osx_compiler:
+            return ['-bundle', '-Wl,-undefined,dynamic_lookup']
+        return ['-shared']
+
     def get_link_whole_for(self, args):
+        if self.compiler_type.is_osx_compiler:
+            result = []
+            for a in args:
+                result += ['-Wl,-force_load', a]
+            return result
         return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
 
     def gen_vs_module_defs_args(self, defsfile):
