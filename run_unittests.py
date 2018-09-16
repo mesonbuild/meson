@@ -3335,23 +3335,23 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertIn(" -Werror ", c_command)
 
     @skipIfNoPkgconfig
-    def test_qt5dependency_pkgconfig_detection(self):
+    def test_qtdependency_pkgconfig_detection(self):
         '''
         Test that qt4 and qt5 detection with pkgconfig works.
         '''
         # Verify Qt4 or Qt5 can be found with pkg-config
         qt4 = subprocess.call(['pkg-config', '--exists', 'QtCore'])
         qt5 = subprocess.call(['pkg-config', '--exists', 'Qt5Core'])
-        if qt4 != 0 or qt5 != 0:
-            raise unittest.SkipTest('Qt not found with pkg-config')
         testdir = os.path.join(self.framework_test_dir, '4 qt')
         self.init(testdir, ['-Dmethod=pkg-config'])
         # Confirm that the dependency was found with pkg-config
         mesonlog = self.get_meson_log()
-        self.assertRegex('\n'.join(mesonlog),
-                         r'Dependency qt4 \(modules: Core\) found: YES .*, `pkg-config`\n')
-        self.assertRegex('\n'.join(mesonlog),
-                         r'Dependency qt5 \(modules: Core\) found: YES .*, `pkg-config`\n')
+        if qt4 == 0:
+            self.assertRegex('\n'.join(mesonlog),
+                             r'Dependency qt4 \(modules: Core\) found: YES 4.* \(pkg-config\)\n')
+        if qt5 == 0:
+            self.assertRegex('\n'.join(mesonlog),
+                             r'Dependency qt5 \(modules: Core\) found: YES 5.* \(pkg-config\)\n')
 
     def test_generate_gir_with_address_sanitizer(self):
         if is_cygwin():
