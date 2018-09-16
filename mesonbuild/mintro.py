@@ -178,14 +178,18 @@ def add_keys(optlist, options, section):
         optdict['description'] = opt.description
         optlist.append(optdict)
 
-def list_buildsystem_files(builddata):
-    src_dir = builddata.environment.get_source_dir()
+def find_buildsystem_files_list(src_dir):
     # I feel dirty about this. But only slightly.
     filelist = []
     for root, _, files in os.walk(src_dir):
         for f in files:
             if f == 'meson.build' or f == 'meson_options.txt':
                 filelist.append(os.path.relpath(os.path.join(root, f), src_dir))
+    return filelist
+
+def list_buildsystem_files(builddata):
+    src_dir = builddata.environment.get_source_dir()
+    filelist = find_buildsystem_files_list(src_dir)
     print(json.dumps(filelist))
 
 def list_deps(coredata):
