@@ -278,11 +278,14 @@ class ThreadDependency(ExternalDependency):
 class Python3Dependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('python3', environment, None, kwargs)
+
+        if self.want_cross:
+            return
+
         self.name = 'python3'
         self.static = kwargs.get('static', False)
         # We can only be sure that it is Python 3 at this point
         self.version = '3'
-        self.pkgdep = None
         self._find_libpy3_windows(environment)
 
     @classmethod
@@ -434,6 +437,11 @@ class PcapDependency(ExternalDependency):
 
     @staticmethod
     def get_pcap_lib_version(ctdep):
+        # Since we seem to need to run a program to discover the pcap version,
+        # we can't do that when cross-compiling
+        if ctdep.want_cross:
+            return None
+
         v = ctdep.clib_compiler.get_return_value('pcap_lib_version', 'string',
                                                  '#include <pcap.h>', ctdep.env, [], [ctdep])
         v = re.sub(r'libpcap version ', '', v)
