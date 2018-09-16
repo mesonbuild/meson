@@ -158,6 +158,11 @@ def platform_fix_name(fname, compiler, env):
         if compiler == 'cl':
             return None
 
+    if fname.startswith('?cygwin:'):
+        fname = fname[8:]
+        if compiler == 'cl' or not mesonlib.for_cygwin(env.is_cross_build(), env):
+            return None
+
     return fname
 
 def validate_install(srcdir, installdir, compiler, env):
@@ -183,17 +188,11 @@ def validate_install(srcdir, installdir, compiler, env):
             expected[fname] = True
     for (fname, found) in expected.items():
         if not found:
-            # Ignore missing PDB files if we aren't using cl
-            if fname.endswith('.pdb') and compiler != 'cl':
-                continue
             ret_msg += 'Expected file {0} missing.\n'.format(fname)
     # Check if there are any unexpected files
     found = get_relative_files_list_from_dir(installdir)
     for fname in found:
-        # Windows-specific tests check for the existence of installed PDB
-        # files, but common tests do not, for obvious reasons. Ignore any
-        # extra PDB files found.
-        if fname not in expected and not fname.endswith('.pdb') and compiler == 'cl':
+        if fname not in expected:
             ret_msg += 'Extra file {0} found.\n'.format(fname)
     return ret_msg
 

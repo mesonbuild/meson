@@ -2,3 +2,4 @@ usr/bin/app_d?exe
 ?msvc:usr/bin/stuff.dll
 ?msvc:usr/lib/stuff.lib
 ?gcc:usr/lib/libstuff.so
+usr/lib/pkgconfig/test.pc

@@ -1,2 +1,3 @@
 usr/bin/user?exe
+?msvc:usr/bin/user.pdb
 usr/share/sublib/sublib.depmf

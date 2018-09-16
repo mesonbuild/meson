@@ -1,2 +1,3 @@
-usr/lib/?libfoo.so
+?gcc:usr/lib/?libfoo.so
+?cygwin:usr/lib/libfoo.dll.a
 usr/share/gir-1.0/Foo-1.0.gir
