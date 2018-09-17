@@ -301,10 +301,6 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
     def get_option_link_args(self, options):
         return []
 
-    def has_arguments(self, args, env, code, mode):
-        # -diag-error 10148 is required to catch invalid -W options
-        return super().has_arguments(args + ['-diag-error', '10006', '-diag-error', '10148'], env, code, mode)
-
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap, is_64):

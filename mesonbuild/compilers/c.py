@@ -1152,9 +1152,6 @@ class GnuCCompiler(GnuCompiler, CCompiler):
             return options['c_winlibs'].value[:]
         return []
 
-    def get_std_shared_lib_link_args(self):
-        return ['-shared']
-
     def get_pch_use_args(self, pch_dir, header):
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
 
@@ -1210,18 +1207,6 @@ class IntelCCompiler(IntelCompiler, CCompiler):
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
-
-    def get_std_shared_lib_link_args(self):
-        return ['-shared']
-
-    def get_std_shared_module_link_args(self, options):
-        if self.compiler_type.is_osx_compiler:
-            return ['-bundle', '-Wl,-undefined,dynamic_lookup']
-        return ['-shared']
-
-    def has_arguments(self, args, env, code, mode):
-        # -diag-error 10148 is required to catch invalid -W options
-        return super().has_arguments(args + ['-diag-error', '10006', '-diag-error', '10148'], env, code, mode)
 
 
 class VisualStudioCCompiler(CCompiler):
