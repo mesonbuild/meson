@@ -92,13 +92,15 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder):
     def auto_method(self, args, kwargs):
         return self.held_object.is_auto()
 
-def extract_required_kwarg(kwargs, subproject):
+def extract_required_kwarg(kwargs, subproject, feature_check=None):
     val = kwargs.get('required', True)
     disabled = False
     required = False
     feature = None
     if isinstance(val, FeatureOptionHolder):
-        FeatureNew('User option "feature"', '0.47.0').use(subproject)
+        if not feature_check:
+            feature_check = FeatureNew('User option "feature"', '0.47.0')
+        feature_check.use(subproject)
         option = val.held_object
         feature = val.name
         if option.is_disabled():

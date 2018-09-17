@@ -477,7 +477,8 @@ class PythonModule(ExtensionModule):
 
     @permittedKwargs(['required'])
     def find_installation(self, interpreter, state, args, kwargs):
-        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject)
+        feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
+        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
         if disabled:
             mlog.log('find_installation skipped: feature', mlog.bold(feature), 'disabled')
             return ExternalProgramHolder(NonExistingExternalProgram())
