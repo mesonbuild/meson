@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib, enum, os.path, re, tempfile, shlex
+import abc, contextlib, enum, os.path, re, tempfile, shlex
 import subprocess
 
 from ..linkers import StaticLinker
@@ -1171,13 +1171,6 @@ class CompilerType(enum.Enum):
         return self.name in ('GCC_MINGW', 'GCC_CYGWIN', 'CLANG_MINGW', 'ICC_WIN')
 
 
-# GNU ld cannot be installed on macOS
-# https://github.com/Homebrew/homebrew-core/issues/17794#issuecomment-328174395
-# Hence, we don't need to differentiate between OS and ld
-# for the sake of adding as-needed support
-GNU_LD_AS_NEEDED = '-Wl,--as-needed'
-APPLE_LD_AS_NEEDED = '-Wl,-dead_strip_dylibs'
-
 def get_macos_dylib_install_name(prefix, shlib_name, suffix, soversion):
     install_name = prefix + shlib_name
     if soversion is not None:
@@ -1277,47 +1270,32 @@ def gnulike_default_include_dirs(compiler, lang):
         mlog.warning('No include directory found parsing "{cmd}" output'.format(cmd=" ".join(cmd)))
     return paths
 
-class GnuCompiler:
-    # Functionality that is common to all GNU family compilers.
-    def __init__(self, compiler_type, defines):
-        self.id = 'gcc'
+
+class GnuLikeCompiler(abc.ABC):
+    """
+    GnuLikeCompiler is a common interface to all compilers implementing
+    the GNU-style commandline interface. This includes GCC, Clang
+    and ICC. Certain functionality between them is different and requires
+    that the actual concrete subclass define their own implementation.
+    """
+    def __init__(self, compiler_type):
         self.compiler_type = compiler_type
-        self.defines = defines or {}
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_colorout', 'b_ndebug', 'b_staticpic']
+                             'b_ndebug', 'b_staticpic', 'b_asneeded']
         if not self.compiler_type.is_osx_compiler:
             self.base_options.append('b_lundef')
-        self.base_options.append('b_asneeded')
-        # All GCC backends can do assembly
+        # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
 
-    # TODO: centralise this policy more globally, instead
-    # of fragmenting it into GnuCompiler and ClangCompiler
     def get_asneeded_args(self):
+        # GNU ld cannot be installed on macOS
+        # https://github.com/Homebrew/homebrew-core/issues/17794#issuecomment-328174395
+        # Hence, we don't need to differentiate between OS and ld
+        # for the sake of adding as-needed support
         if self.compiler_type.is_osx_compiler:
-            return APPLE_LD_AS_NEEDED
+            return '-Wl,-dead_strip_dylibs'
         else:
-            return GNU_LD_AS_NEEDED
-
-    def get_colorout_args(self, colortype):
-        if mesonlib.version_compare(self.version, '>=4.9.0'):
-            return gnu_color_args[colortype][:]
-        return []
-
-    def get_warn_args(self, level):
-        args = super().get_warn_args(level)
-        if mesonlib.version_compare(self.version, '<4.8.0') and '-Wpedantic' in args:
-            # -Wpedantic was added in 4.8.0
-            # https://gcc.gnu.org/gcc-4.8/changes.html
-            args[args.index('-Wpedantic')] = '-pedantic'
-        return args
-
-    def has_builtin_define(self, define):
-        return define in self.defines
-
-    def get_builtin_define(self, define):
-        if define in self.defines:
-            return self.defines[define]
+            return '-Wl,--as-needed'
 
     def get_pic_args(self):
         if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
@@ -1327,8 +1305,9 @@ class GnuCompiler:
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
 
+    @abc.abstractmethod
     def get_optimization_args(self, optimization_level):
-        return gnu_optimization_args[optimization_level]
+        raise NotImplementedError("get_optimization_args not implemented")
 
     def get_debug_args(self, is_debug):
         return clike_debug_args[is_debug]
@@ -1338,8 +1317,9 @@ class GnuCompiler:
             return apple_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
 
+    @abc.abstractmethod
     def get_pch_suffix(self):
-        return 'gch'
+        raise NotImplementedError("get_pch_suffix not implemented")
 
     def split_shlib_to_parts(self, fname):
         return os.path.dirname(fname), fname
@@ -1363,6 +1343,57 @@ class GnuCompiler:
             return result
         return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
 
+    def get_instruction_set_args(self, instruction_set):
+        return gnulike_instruction_set_args.get(instruction_set, None)
+
+    def get_default_include_dirs(self):
+        return gnulike_default_include_dirs(self.exelist, self.language)
+
+    @abc.abstractmethod
+    def openmp_flags(self):
+        raise NotImplementedError("openmp_flags not implemented")
+
+    def gnu_symbol_visibility_args(self, vistype):
+        return gnu_symbol_visibility_args[vistype]
+
+
+class GnuCompiler(GnuLikeCompiler):
+    """
+    GnuCompiler represents an actual GCC in its many incarnations.
+    Compilers imitating GCC (Clang/Intel) should use the GnuLikeCompiler ABC.
+    """
+    def __init__(self, compiler_type, defines):
+        super().__init__(compiler_type)
+        self.id = 'gcc'
+        self.defines = defines or {}
+        self.base_options.append('b_colorout')
+
+    def get_colorout_args(self, colortype):
+        if mesonlib.version_compare(self.version, '>=4.9.0'):
+            return gnu_color_args[colortype][:]
+        return []
+
+    def get_warn_args(self, level):
+        args = super().get_warn_args(level)
+        if mesonlib.version_compare(self.version, '<4.8.0') and '-Wpedantic' in args:
+            # -Wpedantic was added in 4.8.0
+            # https://gcc.gnu.org/gcc-4.8/changes.html
+            args[args.index('-Wpedantic')] = '-pedantic'
+        return args
+
+    def has_builtin_define(self, define):
+        return define in self.defines
+
+    def get_builtin_define(self, define):
+        if define in self.defines:
+            return self.defines[define]
+
+    def get_optimization_args(self, optimization_level):
+        return gnu_optimization_args[optimization_level]
+
+    def get_pch_suffix(self):
+        return 'gch'
+
     def gen_vs_module_defs_args(self, defsfile):
         if not isinstance(defsfile, str):
             raise RuntimeError('Module definitions file should be str')
@@ -1378,17 +1409,9 @@ class GnuCompiler:
             return ['-mwindows']
         return []
 
-    def get_instruction_set_args(self, instruction_set):
-        return gnulike_instruction_set_args.get(instruction_set, None)
-
-    def get_default_include_dirs(self):
-        return gnulike_default_include_dirs(self.exelist, self.language)
-
     def openmp_flags(self):
         return ['-fopenmp']
 
-    def gnu_symbol_visibility_args(self, vistype):
-        return gnu_symbol_visibility_args[vistype]
 
 class ElbrusCompiler(GnuCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
@@ -1428,49 +1451,22 @@ class ElbrusCompiler(GnuCompiler):
                 break
         return paths
 
-class ClangCompiler:
+
+class ClangCompiler(GnuLikeCompiler):
     def __init__(self, compiler_type):
+        super().__init__(compiler_type)
         self.id = 'clang'
-        self.compiler_type = compiler_type
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_ndebug', 'b_staticpic', 'b_colorout']
+        self.base_options.append('b_colorout')
         if self.compiler_type.is_osx_compiler:
             self.base_options.append('b_bitcode')
-        else:
-            self.base_options.append('b_lundef')
-        self.base_options.append('b_asneeded')
-        # All Clang backends can do assembly and LLVM IR
-        self.can_compile_suffixes.update(['ll', 's'])
-
-    # TODO: centralise this policy more globally, instead
-    # of fragmenting it into GnuCompiler and ClangCompiler
-    def get_asneeded_args(self):
-        if self.compiler_type.is_osx_compiler:
-            return APPLE_LD_AS_NEEDED
-        else:
-            return GNU_LD_AS_NEEDED
-
-    def get_pic_args(self):
-        if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
-            return [] # On Window and OS X, pic is always on.
-        return ['-fPIC']
+        # All Clang backends can also do LLVM IR
+        self.can_compile_suffixes.add('ll')
 
     def get_colorout_args(self, colortype):
         return clang_color_args[colortype][:]
 
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype):
-        if self.compiler_type.is_osx_compiler:
-            return apple_buildtype_linker_args[buildtype]
-        return gnulike_buildtype_linker_args[buildtype]
-
     def get_optimization_args(self, optimization_level):
         return clike_optimization_args[optimization_level]
-
-    def get_debug_args(self, is_debug):
-        return clike_debug_args[is_debug]
 
     def get_pch_suffix(self):
         return 'pch'
@@ -1480,9 +1476,6 @@ class ClangCompiler:
         # This flag is internal to Clang (or at least not documented on the man page)
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
-
-    def get_soname_args(self, *args):
-        return get_gcc_soname_args(self.compiler_type, *args)
 
     def has_multi_arguments(self, args, env):
         myargs = ['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument']
@@ -1503,25 +1496,6 @@ class ClangCompiler:
             extra_args.append('-Wl,-no_weak_imports')
         return super().has_function(funcname, prefix, env, extra_args, dependencies)
 
-    def get_std_shared_module_link_args(self, options):
-        if self.compiler_type.is_osx_compiler:
-            return ['-bundle', '-Wl,-undefined,dynamic_lookup']
-        return ['-shared']
-
-    def get_link_whole_for(self, args):
-        if self.compiler_type.is_osx_compiler:
-            result = []
-            for a in args:
-                result += ['-Wl,-force_load', a]
-            return result
-        return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
-
-    def get_instruction_set_args(self, instruction_set):
-        return gnulike_instruction_set_args.get(instruction_set, None)
-
-    def get_default_include_dirs(self):
-        return gnulike_default_include_dirs(self.exelist, self.language)
-
     def openmp_flags(self):
         if version_compare(self.version, '>=3.8.0'):
             return ['-fopenmp']
@@ -1531,8 +1505,6 @@ class ClangCompiler:
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
 
-    def gnu_symbol_visibility_args(self, vistype):
-        return gnu_symbol_visibility_args[vistype]
 
 class ArmclangCompiler:
     def __init__(self):
@@ -1609,36 +1581,14 @@ class ArmclangCompiler:
 
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
-class IntelCompiler:
+class IntelCompiler(GnuLikeCompiler):
     def __init__(self, compiler_type):
+        super().__init__(compiler_type)
         self.id = 'intel'
-        self.compiler_type = compiler_type
         self.lang_header = 'none'
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_colorout', 'b_ndebug', 'b_staticpic', 'b_asneeded']
-        if not self.compiler_type.is_osx_compiler:
-            self.base_options.append('b_lundef')
-        # Assembly
-        self.can_compile_suffixes.add('s')
-
-    def get_pic_args(self):
-        if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
-            return [] # On Window and OS X, pic is always on.
-        return ['-fPIC']
-
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype):
-        if self.compiler_type.is_osx_compiler:
-            return apple_buildtype_linker_args[buildtype]
-        return gnulike_buildtype_linker_args[buildtype]
 
     def get_optimization_args(self, optimization_level):
         return gnu_optimization_args[optimization_level]
-
-    def get_debug_args(self, is_debug):
-        return clike_debug_args[is_debug]
 
     def get_pch_suffix(self):
         return 'pchi'
@@ -1650,40 +1600,15 @@ class IntelCompiler:
     def get_pch_name(self, header_name):
         return os.path.basename(header_name) + '.' + self.get_pch_suffix()
 
-    def split_shlib_to_parts(self, fname):
-        return os.path.dirname(fname), fname
-
-    def get_soname_args(self, *args):
-        return get_gcc_soname_args(self.compiler_type, *args)
-
-    # TODO: centralise this policy more globally, instead
-    # of fragmenting it into GnuCompiler and ClangCompiler
-    def get_asneeded_args(self):
-        if self.compiler_type.is_osx_compiler:
-            return APPLE_LD_AS_NEEDED
-        else:
-            return GNU_LD_AS_NEEDED
-
-    def get_std_shared_lib_link_args(self):
-        # FIXME: Don't know how icc works on OSX
-        # if self.compiler_type.is_osx_compiler:
-        #     return ['-bundle']
-        return ['-shared']
-
-    def get_default_include_dirs(self):
-        return gnulike_default_include_dirs(self.exelist, self.language)
-
     def openmp_flags(self):
         if version_compare(self.version, '>=15.0.0'):
             return ['-qopenmp']
         else:
             return ['-openmp']
 
-    def get_link_whole_for(self, args):
-        return GnuCompiler.get_link_whole_for(self, args)
-
-    def gnu_symbol_visibility_args(self, vistype):
-        return gnu_symbol_visibility_args[vistype]
+    def has_arguments(self, args, env, code, mode):
+        # -diag-error 10148 is required to catch invalid -W options
+        return super().has_arguments(args + ['-diag-error', '10006', '-diag-error', '10148'], env, code, mode)
 
 
 class ArmCompiler:
