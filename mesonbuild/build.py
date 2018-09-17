@@ -363,6 +363,8 @@ a hard error in the future.''' % name)
             result[k] = v
         return result
 
+    def is_linkable_target(self):
+        return False
 
 class BuildTarget(Target):
     known_kwargs = known_build_target_kwargs
@@ -1101,9 +1103,6 @@ You probably should put it in link_with instead.''')
         # Mixing many languages with MSVC is not supported yet so ignore stdlibs.
         if linker and linker.get_id() in ['msvc', 'llvm', 'dmd']:
             return True
-        return False
-
-    def is_linkable_target(self):
         return False
 
     def check_module_linking(self):
