@@ -1,4 +1,4 @@
-project('mpi', 'c', 'cpp')
+project('mpi', 'c', 'cpp', default_options: ['b_asneeded=false'])
 
 cc = meson.get_compiler('c')
 
