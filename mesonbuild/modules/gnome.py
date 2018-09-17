@@ -331,14 +331,15 @@ class GnomeModule(ExtensionModule):
                 for lib in dep.libraries:
                     if hasattr(lib, 'held_object'):
                         lib = lib.held_object
-                    internal_ldflags.update(self._get_link_args(state, lib, depends, include_rpath))
-                    libdepflags = self._get_dependencies_flags(lib.get_external_deps(), state, depends, include_rpath,
-                                                               use_gir_args, True)
-                    cflags.update(libdepflags[0])
-                    internal_ldflags.update(libdepflags[1])
-                    external_ldflags.update(libdepflags[2])
-                    external_ldflags_nodedup += libdepflags[3]
-                    gi_includes.update(libdepflags[4])
+                    if isinstance(lib, build.SharedLibrary):
+                        internal_ldflags.update(self._get_link_args(state, lib, depends, include_rpath))
+                        libdepflags = self._get_dependencies_flags(lib.get_external_deps(), state, depends, include_rpath,
+                                                                   use_gir_args, True)
+                        cflags.update(libdepflags[0])
+                        internal_ldflags.update(libdepflags[1])
+                        external_ldflags.update(libdepflags[2])
+                        external_ldflags_nodedup += libdepflags[3]
+                        gi_includes.update(libdepflags[4])
                 extdepflags = self._get_dependencies_flags(dep.ext_deps, state, depends, include_rpath,
                                                            use_gir_args, True)
                 cflags.update(extdepflags[0])
