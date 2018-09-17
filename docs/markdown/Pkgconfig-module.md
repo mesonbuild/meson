@@ -17,13 +17,13 @@ keyword arguments.
 - `description` a string describing the library
 - `extra_cflags` a list of extra compiler flags to be added to the
   `Cflags` field after the header search path
-- `filebase`, the base name to use for the pkg-config file, as an
-  example the value of `libfoo` would produce a pkg-config file called
+- `filebase` the base name to use for the pkg-config file; as an
+  example, the value of `libfoo` would produce a pkg-config file called
   `libfoo.pc`
 - `install_dir` the directory to install to, defaults to the value of
   option `libdir` followed by `/pkgconfig`
 - `libraries` a list of built libraries (usually results of
-  shared_library) that the user needs to link against. Arbitraty strings can
+  shared_library) that the user needs to link against. Arbitrary strings can
   also be provided and they will be added into the `Libs` field. Since 0.45.0
   dependencies of built libraries will be automatically added to `Libs.private`
   field. If a dependency is provided by pkg-config then it will be added in
