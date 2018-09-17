@@ -3,4 +3,6 @@ usr/bin/appdc_s?exe
 usr/lib/libstuff.a
 ?gcc:usr/lib/libstuff.so
 ?msvc:usr/bin/stuff.dll
+?msvc:usr/bin/stuff.pdb
 ?msvc:usr/lib/stuff.lib
+?msvc:usr/lib/stuff.pdb
