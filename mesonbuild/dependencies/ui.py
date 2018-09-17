@@ -526,7 +526,7 @@ class SDL2Dependency(ExternalDependency):
 
 class WxDependency(ConfigToolDependency):
 
-    tools = ['wx-config-3.0', 'wx-config']
+    tools = ['wx-config-3.0', 'wx-config', 'wx-config-gtk3']
     tool_name = 'wx-config'
 
     def __init__(self, environment, kwargs):

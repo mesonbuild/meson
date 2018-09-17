@@ -2856,15 +2856,15 @@ class FailureTests(BasePlatformTests):
 
     def test_wx_notfound_dependency(self):
         # Want to test failure, so skip if available
-        if shutil.which('wx-config-3.0') or shutil.which('wx-config'):
-            raise unittest.SkipTest('wx-config or wx-config-3.0 found')
+        if shutil.which('wx-config-3.0') or shutil.which('wx-config') or shutil.which('wx-config-gtk3'):
+            raise unittest.SkipTest('wx-config, wx-config-3.0 or wx-config-gtk3 found')
         self.assertMesonRaises("dependency('wxwidgets')", self.dnf)
         self.assertMesonOutputs("dependency('wxwidgets', required : false)",
                                 "Dependency .*WxWidgets.* found: .*NO.*")
 
     def test_wx_dependency(self):
-        if not shutil.which('wx-config-3.0') and not shutil.which('wx-config'):
-            raise unittest.SkipTest('Neither wx-config nor wx-config-3.0 found')
+        if not shutil.which('wx-config-3.0') and not shutil.which('wx-config') and not shutil.which('wx-config-gtk3'):
+            raise unittest.SkipTest('Neither wx-config, wx-config-3.0 nor wx-config-gtk3 found')
         self.assertMesonRaises("dependency('wxwidgets', modules : 1)",
                                "module argument is not a string")
 
