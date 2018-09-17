@@ -26,3 +26,5 @@ i18n.merge_file(
   install: true,
   install_dir: join_paths(get_option('datadir'), 'applications')
 )
+
+subdir('data3')
