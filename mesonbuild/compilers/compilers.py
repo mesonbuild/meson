@@ -1588,7 +1588,7 @@ class IntelCompiler(GnuLikeCompiler):
         self.lang_header = 'none'
 
     def get_optimization_args(self, optimization_level):
-        return gnu_optimization_args[optimization_level]
+        return clike_optimization_args[optimization_level]
 
     def get_pch_suffix(self):
         return 'pchi'
