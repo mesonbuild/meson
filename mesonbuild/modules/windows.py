@@ -49,8 +49,8 @@ class WindowsModule(ExtensionModule):
         if state.environment.is_cross_build():
             # If cross compiling see if windres has been specified in the
             # cross file before trying to find it another way.
-            cross_info = state.environment.cross_info
-            rescomp = ExternalProgram.from_cross_info(cross_info, 'windres')
+            bins = state.environment.cross_info.config['binaries']
+            rescomp = ExternalProgram.from_bin_list(bins, 'windres')
 
         if not rescomp or not rescomp.found():
             if 'WINDRES' in os.environ:

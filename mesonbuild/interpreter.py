@@ -2757,7 +2757,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 continue # Always points to a local (i.e. self generated) file.
             if not isinstance(p, str):
                 raise InterpreterException('Executable name must be a string')
-            prog = ExternalProgram.from_cross_info(cross_info, p)
+            prog = ExternalProgram.from_bin_list(bins, p)
             if prog.found():
                 return ExternalProgramHolder(prog)
         return None

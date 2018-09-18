@@ -303,7 +303,7 @@ class QtBaseDependency(ExternalDependency):
         # Even when cross-compiling, if a cross-info qmake is not specified, we
         # fallback to using the qmake in PATH because that's what we used to do
         if self.env.is_cross_build() and 'qmake' in self.env.cross_info.config['binaries']:
-            return ExternalProgram.from_cross_info(self.env.cross_info, 'qmake')
+            return ExternalProgram.from_bin_list(self.env.cross_info.config['binaries'], 'qmake')
         return ExternalProgram(qmake, silent=True)
 
     def _qmake_detect(self, mods, kwargs):

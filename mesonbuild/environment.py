@@ -340,7 +340,8 @@ class Environment:
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)
             if 'exe_wrapper' in self.cross_info.config['binaries']:
                 from .dependencies import ExternalProgram
-                self.exe_wrapper = ExternalProgram.from_cross_info(self.cross_info, 'exe_wrapper')
+                self.exe_wrapper = ExternalProgram.from_bin_list(
+                    self.cross_info.config['binaries'], 'exe_wrapper')
             if 'host_machine' in self.cross_info.config:
                 self.machines.host = MachineInfo.from_literal(
                     self.cross_info.config['host_machine'])
