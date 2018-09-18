@@ -4557,6 +4557,14 @@ class NativeFileTests(BasePlatformTests):
     def test_python3_module(self):
         self._simple_test('python3', 'python3')
 
+    def test_python_module(self):
+        if is_windows():
+            # Bat adds extra crap to stdout, so the version check logic in the
+            # python module breaks. This is fine on other OSes because they
+            # don't need the extra indirection.
+            raise unittest.SkipTest('bat indirection breaks internal sanity checks.')
+        self._simple_test('python', 'python')
+
 
 def unset_envs():
     # For unit tests we must fully control all command lines

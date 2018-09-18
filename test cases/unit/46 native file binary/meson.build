@@ -14,4 +14,8 @@ elif case == 'python3'
   prog = import('python3').find_python()
   result = run_command(prog, ['--version'])
   assert(result.stdout().strip().endswith('12345'), 'Didn\'t load python3 from config file')
+elif case == 'python'
+  prog = import('python').find_installation()
+  result = run_command(prog, ['--version'])
+  assert(result.stdout().strip().endswith('12345'), 'Didn\'t load python from config file')
 endif
