@@ -127,19 +127,24 @@ gnulike_buildtype_args = {'plain': [],
                           'debug': [],
                           'debugoptimized': [],
                           'release': [],
-                          'minsize': []}
+                          'minsize': [],
+                          'custom': [],
+                          }
 
 armclang_buildtype_args = {'plain': [],
                            'debug': ['-O0', '-g'],
                            'debugoptimized': ['-O1', '-g'],
                            'release': ['-Os'],
-                           'minsize': ['-Oz']}
+                           'minsize': ['-Oz'],
+                           'custom': [],
+                           }
 
 arm_buildtype_args = {'plain': [],
                       'debug': ['-O0', '--debug'],
                       'debugoptimized': ['-O1', '--debug'],
                       'release': ['-O3', '-Otime'],
                       'minsize': ['-O3', '-Ospace'],
+                      'custom': [],
                       }
 
 msvc_buildtype_args = {'plain': [],
@@ -147,6 +152,7 @@ msvc_buildtype_args = {'plain': [],
                        'debugoptimized': ["/Zi", "/Ob1"],
                        'release': ["/Ob2", "/Gw"],
                        'minsize': ["/Zi", "/Gw"],
+                       'custom': [],
                        }
 
 apple_buildtype_linker_args = {'plain': [],
@@ -154,6 +160,7 @@ apple_buildtype_linker_args = {'plain': [],
                                'debugoptimized': [],
                                'release': [],
                                'minsize': [],
+                               'custom': [],
                                }
 
 gnulike_buildtype_linker_args = {'plain': [],
@@ -161,6 +168,7 @@ gnulike_buildtype_linker_args = {'plain': [],
                                  'debugoptimized': [],
                                  'release': ['-Wl,-O1'],
                                  'minsize': [],
+                                 'custom': [],
                                  }
 
 arm_buildtype_linker_args = {'plain': [],
@@ -168,6 +176,7 @@ arm_buildtype_linker_args = {'plain': [],
                              'debugoptimized': [],
                              'release': [],
                              'minsize': [],
+                             'custom': [],
                              }
 
 msvc_buildtype_linker_args = {'plain': [],
@@ -178,6 +187,7 @@ msvc_buildtype_linker_args = {'plain': [],
                               # REF implies ICF.
                               'release': ['/OPT:REF'],
                               'minsize': ['/INCREMENTAL:NO', '/OPT:REF'],
+                              'custom': [],
                               }
 
 java_buildtype_args = {'plain': [],
@@ -185,6 +195,7 @@ java_buildtype_args = {'plain': [],
                        'debugoptimized': ['-g'],
                        'release': [],
                        'minsize': [],
+                       'custom': [],
                        }
 
 rust_buildtype_args = {'plain': [],
@@ -192,6 +203,7 @@ rust_buildtype_args = {'plain': [],
                        'debugoptimized': [],
                        'release': [],
                        'minsize': [],
+                       'custom': [],
                        }
 
 d_gdc_buildtype_args = {'plain': [],
@@ -199,6 +211,7 @@ d_gdc_buildtype_args = {'plain': [],
                         'debugoptimized': ['-finline-functions'],
                         'release': ['-frelease', '-finline-functions'],
                         'minsize': [],
+                        'custom': [],
                         }
 
 d_ldc_buildtype_args = {'plain': [],
@@ -206,6 +219,7 @@ d_ldc_buildtype_args = {'plain': [],
                         'debugoptimized': ['-enable-inlining', '-Hkeep-all-bodies'],
                         'release': ['-release', '-enable-inlining', '-Hkeep-all-bodies'],
                         'minsize': [],
+                        'custom': [],
                         }
 
 d_dmd_buildtype_args = {'plain': [],
@@ -213,6 +227,7 @@ d_dmd_buildtype_args = {'plain': [],
                         'debugoptimized': ['-inline'],
                         'release': ['-release', '-inline'],
                         'minsize': [],
+                        'custom': [],
                         }
 
 mono_buildtype_args = {'plain': [],
@@ -220,6 +235,7 @@ mono_buildtype_args = {'plain': [],
                        'debugoptimized': ['-optimize+'],
                        'release': ['-optimize+'],
                        'minsize': [],
+                       'custom': [],
                        }
 
 swift_buildtype_args = {'plain': [],
@@ -227,6 +243,7 @@ swift_buildtype_args = {'plain': [],
                         'debugoptimized': [],
                         'release': [],
                         'minsize': [],
+                        'custom': [],
                         }
 
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
