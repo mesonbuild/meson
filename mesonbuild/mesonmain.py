@@ -14,69 +14,35 @@
 
 import sys
 import os.path
+import importlib
 
 from . import mesonlib
 from . import mlog
 from .mesonlib import MesonException
 from .environment import detect_msys2_arch
 
-def run_script_command(args):
-    cmdname = args[0]
-    cmdargs = args[1:]
-    if cmdname == 'exe':
-        import mesonbuild.scripts.meson_exe as abc
-        cmdfunc = abc.run
-    elif cmdname == 'cleantrees':
-        import mesonbuild.scripts.cleantrees as abc
-        cmdfunc = abc.run
-    elif cmdname == 'commandrunner':
-        import mesonbuild.scripts.commandrunner as abc
-        cmdfunc = abc.run
-    elif cmdname == 'delsuffix':
-        import mesonbuild.scripts.delwithsuffix as abc
-        cmdfunc = abc.run
-    elif cmdname == 'dirchanger':
-        import mesonbuild.scripts.dirchanger as abc
-        cmdfunc = abc.run
-    elif cmdname == 'gtkdoc':
-        import mesonbuild.scripts.gtkdochelper as abc
-        cmdfunc = abc.run
-    elif cmdname == 'msgfmthelper':
-        import mesonbuild.scripts.msgfmthelper as abc
-        cmdfunc = abc.run
-    elif cmdname == 'hotdoc':
-        import mesonbuild.scripts.hotdochelper as abc
-        cmdfunc = abc.run
-    elif cmdname == 'regencheck':
-        import mesonbuild.scripts.regen_checker as abc
-        cmdfunc = abc.run
-    elif cmdname == 'symbolextractor':
-        import mesonbuild.scripts.symbolextractor as abc
-        cmdfunc = abc.run
-    elif cmdname == 'scanbuild':
-        import mesonbuild.scripts.scanbuild as abc
-        cmdfunc = abc.run
-    elif cmdname == 'vcstagger':
-        import mesonbuild.scripts.vcstagger as abc
-        cmdfunc = abc.run
-    elif cmdname == 'gettext':
-        import mesonbuild.scripts.gettext as abc
-        cmdfunc = abc.run
-    elif cmdname == 'yelphelper':
-        import mesonbuild.scripts.yelphelper as abc
-        cmdfunc = abc.run
-    elif cmdname == 'uninstall':
-        import mesonbuild.scripts.uninstall as abc
-        cmdfunc = abc.run
-    elif cmdname == 'dist':
-        import mesonbuild.scripts.dist as abc
-        cmdfunc = abc.run
-    elif cmdname == 'coverage':
-        import mesonbuild.scripts.coverage as abc
-        cmdfunc = abc.run
-    else:
-        raise MesonException('Unknown internal command {}.'.format(cmdname))
-    return cmdfunc(cmdargs)
+def run_script_command(script_name, script_args):
+    # Map script name to module name for those that doesn't match
+    script_map = {'exe': 'meson_exe',
+                  'install': 'meson_install',
+                  'delsuffix': 'delwithsuffix',
+                  'gtkdoc': 'gtkdochelper',
+                  'hotdoc': 'hotdochelper',
+                  'regencheck': 'regen_checker'}
+    module_name = script_map.get(script_name, script_name)
+
+    try:
+        module = importlib.import_module('mesonbuild.scripts.' + module_name)
+    except ModuleNotFoundError as e:
+        mlog.exception(e)
+        return 1
+
+    try:
+        return module.run(script_args)
+    except MesonException as e:
+        mlog.error('Error in {} helper script:'.format(script_name))
+        mlog.exception(e)
+        return 1
 
 def run(original_args, mainfile):
     if sys.version_info < (3, 5):
@@ -107,13 +73,7 @@ def run(original_args, mainfile):
             # "meson --reconfigure"
             args = ['--reconfigure'] + args[2:]
         else:
-            script = args[1]
-            try:
-                sys.exit(run_script_command(args[1:]))
-            except MesonException as e:
-                mlog.error('\nError in {} helper script:'.format(script))
-                mlog.exception(e)
-                sys.exit(1)
+            return run_script_command(args[1], args[2:])
 
     if len(args) > 0:
         # First check if we want to run a subcommand.
