@@ -253,21 +253,6 @@ def run_script_command(args):
         raise MesonException('Unknown internal command {}.'.format(cmdname))
     return cmdfunc(cmdargs)
 
-def set_meson_command(mainfile):
-    # On UNIX-like systems `meson` is a Python script
-    # On Windows `meson` and `meson.exe` are wrapper exes
-    if not mainfile.endswith('.py'):
-        mesonlib.meson_command = [mainfile]
-    elif os.path.isabs(mainfile) and mainfile.endswith('mesonmain.py'):
-        # Can't actually run meson with an absolute path to mesonmain.py, it must be run as -m mesonbuild.mesonmain
-        mesonlib.meson_command = mesonlib.python_command + ['-m', 'mesonbuild.mesonmain']
-    else:
-        # Either run uninstalled, or full path to meson-script.py
-        mesonlib.meson_command = mesonlib.python_command + [mainfile]
-    # We print this value for unit tests.
-    if 'MESON_COMMAND_TESTS' in os.environ:
-        mlog.log('meson_command is {!r}'.format(mesonlib.meson_command))
-
 def run(original_args, mainfile):
     if sys.version_info < (3, 5):
         print('Meson works correctly only with python 3.5+.')
@@ -284,7 +269,7 @@ def run(original_args, mainfile):
             mlog.error('Please download and use Python as detailed at: https://mesonbuild.com/Getting-meson.html')
         return 2
     # Set the meson command that will be used to run scripts and so on
-    set_meson_command(mainfile)
+    mesonlib.set_meson_command(mainfile)
     args = original_args[:]
     if len(args) > 0:
         # First check if we want to run a subcommand.
