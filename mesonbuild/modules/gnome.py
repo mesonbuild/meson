@@ -326,7 +326,7 @@ class GnomeModule(ExtensionModule):
 
         for dep in deps:
             if isinstance(dep, InternalDependency):
-                cflags.update(dep.compile_args)
+                cflags.update(dep.get_compile_args())
                 cflags.update(get_include_args(dep.include_directories))
                 for lib in dep.libraries:
                     if hasattr(lib, 'held_object'):
@@ -1018,6 +1018,10 @@ This will become a hard error in the future.''')
             ldflags.update(state.environment.coredata.get_external_link_args('c'))
             compiler = state.environment.coredata.compilers.get('c')
 
+        compiler_flags = self._get_langs_compilers_flags(state, [('c', compiler)])
+        cflags.update(compiler_flags[0])
+        ldflags.update(compiler_flags[1])
+        ldflags.update(compiler_flags[2])
         if compiler:
             args += ['--cc=%s' % ' '.join(compiler.get_exelist())]
             args += ['--ld=%s' % ' '.join(compiler.get_linker_exelist())]
