@@ -263,6 +263,22 @@ clang_color_args = {'auto': ['-Xclang', '-fcolor-diagnostics'],
                     'never': ['-Xclang', '-fno-color-diagnostics'],
                     }
 
+arm_optimization_args = {'0': ['-O0'],
+                         'g': ['-g'],
+                         '1': ['-O1'],
+                         '2': ['-O2'],
+                         '3': ['-O3'],
+                         's': [],
+                         }
+
+armclang_optimization_args = {'0': ['-O0'],
+                              'g': ['-g'],
+                              '1': ['-O1'],
+                              '2': ['-O2'],
+                              '3': ['-O3'],
+                              's': ['-Os']
+                              }
+
 clike_optimization_args = {'0': [],
                            'g': [],
                            '1': ['-O1'],
@@ -1596,6 +1612,12 @@ class ArmclangCompiler:
     def get_linker_exelist(self):
         return [self.linker_exe]
 
+    def get_optimization_args(self, optimization_level):
+        return armclang_optimization_args[optimization_level]
+
+    def get_debug_args(self, is_debug):
+        return clike_debug_args[is_debug]
+
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
 class IntelCompiler(GnuLikeCompiler):
@@ -1696,3 +1718,9 @@ class ArmCompiler:
 
     def get_coverage_link_args(self):
         return []
+
+    def get_optimization_args(self, optimization_level):
+        return arm_optimization_args[optimization_level]
+
+    def get_debug_args(self, is_debug):
+        return clike_debug_args[is_debug]
