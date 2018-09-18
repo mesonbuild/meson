@@ -1172,6 +1172,9 @@ and subdirectory the target was defined in, respectively.
 Assigns a value to the given variable name. Calling
 `set_variable('foo', bar)` is equivalent to `foo = bar`.
 
+**Note:** Prior to v0.46.1, the `value` parameter could not be an
+array type, due to flattening of the function parameters.
+
 ### shared_library()
 
 ``` meson
