@@ -26,7 +26,7 @@ class XCodeBackend(backends.Backend):
         self.name = 'xcode'
         self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
         self.project_conflist = self.gen_id()
-        self.indent = '	' # tab
+        self.indent = '\t' # Recent versions of Xcode uses tabs
         self.indent_level = 0
         self.xcodetypemap = {'c': 'sourcecode.c.c',
                              'a': 'archive.ar',
