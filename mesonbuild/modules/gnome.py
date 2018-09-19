@@ -25,7 +25,7 @@ from .. import mlog
 from .. import mesonlib
 from .. import compilers
 from .. import interpreter
-from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
+from . import GResourceTarget, GResourceHeaderTarget, GResourceObjectTarget, GirTarget, TypelibTarget, VapiTarget
 from . import get_include_args
 from . import ExtensionModule
 from . import ModuleReturnValue
@@ -39,6 +39,8 @@ from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewK
 # https://github.com/ninja-build/ninja/issues/1184
 # https://bugzilla.gnome.org/show_bug.cgi?id=774368
 gresource_dep_needed_version = '>= 2.51.1'
+
+gresource_ld_binary_needed_version = '>= 2.60'
 
 native_glib_version = None
 girwarning_printed = False
@@ -164,7 +166,11 @@ class GnomeModule(ExtensionModule):
             cmd += ['--sourcedir', source_dir]
 
         if 'c_name' in kwargs:
-            cmd += ['--c-name', kwargs.pop('c_name')]
+            c_name = kwargs.pop('c_name')
+            cmd += ['--c-name', c_name]
+        else:
+            c_name = os.path.basename(ifile).partition('.')[0]
+        c_name_no_underscores = c_name.replace('_', '')
         export = kwargs.pop('export', False)
         if not export:
             cmd += ['--internal']
@@ -173,13 +179,25 @@ class GnomeModule(ExtensionModule):
 
         cmd += mesonlib.stringlistify(kwargs.pop('extra_args', []))
 
+        gresource_ld_binary = False
+        if mesonlib.is_linux() and mesonlib.version_compare(glib_version, gresource_ld_binary_needed_version):
+            ld_obj = self.interpreter.find_program_impl('ld', required=False)
+            if ld_obj.found():
+                gresource_ld_binary = True
+                ld = ld_obj.get_command()
+                objcopy_object = self.interpreter.find_program_impl('objcopy', required=False)
+                if objcopy_object.found():
+                   objcopy = objcopy_object.get_command()
+                else:
+                   objcopy = None
+
         gresource = kwargs.pop('gresource_bundle', False)
-        if gresource:
-            output = args[0] + '.gresource'
-            name = args[0] + '_gresource'
-        else:
-            output = args[0] + '.c'
-            name = args[0] + '_c'
+        if gresource or gresource_ld_binary:
+            g_output = args[0] + '.gresource'
+            g_name = args[0] + '_gresource'
+
+        output = args[0] + '.c'
+        name = args[0] + '_c'
 
         if kwargs.get('install', False) and not gresource:
             raise MesonException('The install kwarg only applies to gresource bundles, see install_header')
@@ -193,18 +211,42 @@ class GnomeModule(ExtensionModule):
         kwargs['input'] = args[1]
         kwargs['output'] = output
         kwargs['depends'] = depends
+        if gresource or gresource_ld_binary:
+            g_kwargs = copy.deepcopy(kwargs)
+            g_kwargs['input'] = args[1]
+            g_kwargs['output'] = g_output
+            g_kwargs['depends'] = depends
         if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
             # This will eventually go out of sync if dependencies are added
             kwargs['depend_files'] = depend_files
-            kwargs['command'] = cmd
+            if gresource_ld_binary:
+                kwargs['command'] = copy.copy(cmd) + ["--external-data"]
+            else:
+                kwargs['command'] = cmd
+            if gresource or gresource_ld_binary:
+                # This will eventually go out of sync if dependencies are added
+                g_kwargs['depend_files'] = depend_files
+                g_kwargs['command'] = cmd
         else:
             depfile = kwargs['output'] + '.d'
             kwargs['depfile'] = depfile
-            kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
-        target_c = GResourceTarget(name, state.subdir, state.subproject, kwargs)
+            if gresource_ld_binary:
+                kwargs['command'] = copy.copy(cmd) + ["--external-data", '--dependency-file', '@DEPFILE@']
+            else:
+                kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
+            if gresource or gresource_ld_binary:
+                g_kwargs['depfile'] = depfile
+                g_kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
 
-        if gresource: # Only one target for .gresource files
-            return ModuleReturnValue(target_c, [target_c])
+        if gresource or gresource_ld_binary:
+            target_g = GResourceTarget(g_name, state.subdir, state.subproject, g_kwargs)
+            if gresource: # Only one target for .gresource files
+                if target_g.get_id() not in self.interpreter.build.targets:
+                   return ModuleReturnValue(target_g, [target_g])
+                else:
+                   return ModuleReturnValue(target_g, [])
+
+        target_c = GResourceTarget(name, state.subdir, state.subproject, kwargs)
 
         h_kwargs = {
             'command': cmd,
@@ -220,7 +262,77 @@ class GnomeModule(ExtensionModule):
             h_kwargs['install_dir'] = kwargs.get('install_dir',
                                                  state.environment.coredata.get_builtin_option('includedir'))
         target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, state.subproject, h_kwargs)
-        rv = [target_c, target_h]
+
+        if gresource_ld_binary:
+            o_kwargs = {
+                'command': [ld, '-r', '-b', 'binary', '@INPUT@', '-o', '@OUTPUT@'],
+                'input': target_g,
+                'output': args[0] + '.o'
+            }
+
+            target_o = GResourceObjectTarget(args[0] + '_o', state.subdir, state.subproject, o_kwargs)
+
+            builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
+            linkerscript_name = args[0] + '_map.ld'
+            linkerscript_path = os.path.join(builddir, linkerscript_name)
+            linkerscript_file = open(linkerscript_path, 'w')
+
+            binary_name = os.path.join(state.subdir, g_output)
+            symbol_name = ''.join([ c if c.isalnum() else '_' for c in binary_name ])
+
+            linkerscript_string =  'SECTIONS\n'
+            linkerscript_string += '{\n'
+            linkerscript_string += '  .gresource.' + c_name_no_underscores + ' : ALIGN(8)\n'
+            linkerscript_string += '  {\n'
+            linkerscript_string += '    ' + c_name + '_resource_data = _binary_' + symbol_name + '_start;\n'
+            linkerscript_string += '  }\n'
+            linkerscript_string += '  .data :\n'
+            linkerscript_string += '  {\n'
+            linkerscript_string += '    *(.data)\n'
+            linkerscript_string += '  }\n'
+            linkerscript_string += '}'
+
+            linkerscript_file.write(linkerscript_string)
+
+            o2_kwargs = {
+                'command': [ld, '-r', '-T', os.path.join(state.subdir, linkerscript_name), '@INPUT@', '-o', '@OUTPUT@'],
+                'input': target_o,
+                'output': args[0] + '2.o',
+            }
+            target_o2 = GResourceObjectTarget(args[0] + '2_o', state.subdir, state.subproject, o2_kwargs)
+
+            if objcopy != None:
+                objcopy_cmd = [objcopy, '--set-section-flags', '.gresource.' + c_name + '=readonly,alloc,load,data']
+                objcopy_cmd += ['-N', '_binary_' + symbol_name + '_start']
+                objcopy_cmd += ['-N', '_binary_' + symbol_name + '_end']
+                objcopy_cmd += ['-N', '_binary_' + symbol_name + '_size']
+                objcopy_cmd += ['@INPUT@','@OUTPUT@']
+
+                o3_kwargs = {
+                   'command': objcopy_cmd,
+                   'input': target_o2,
+                   'output': args[0] + '3.o'
+                }
+
+                target_o3 = GResourceObjectTarget(args[0] + '3_o', state.subdir, state.subproject, o3_kwargs)
+
+                rv1 = [target_c, target_h, target_o3]
+                if target_g.get_id() not in self.interpreter.build.targets:
+                   rv2 = rv1 + [target_g, target_o, target_o2]
+                else:
+                   rv2 = rv1 + [target_o, target_o2]
+            else:
+                rv1 = [target_c, target_h, target_o2]
+                if target_g.get_id() not in self.interpreter.build.targets:
+                   rv2 = rv1 + [target_g, target_o]
+                else:
+                   rv2 = rv1 + [target_o]
+
+            return ModuleReturnValue(rv1, rv2)
+
+        else:
+            rv = [target_c, target_h]
+
         return ModuleReturnValue(rv, rv)
 
     def _get_gresource_dependencies(self, state, input_file, source_dirs, dependencies):
