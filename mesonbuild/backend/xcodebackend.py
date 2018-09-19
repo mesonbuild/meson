@@ -24,7 +24,7 @@ class XCodeBackend(backends.Backend):
     def __init__(self, build):
         super().__init__(build)
         self.name = 'xcode'
-        self.project_uid = self.environment.coredata.guid.replace('-', '')[:24]
+        self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
         self.project_conflist = self.gen_id()
         self.indent = '       '
         self.indent_level = 0
