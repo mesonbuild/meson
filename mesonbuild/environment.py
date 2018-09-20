@@ -905,11 +905,11 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             if p.returncode == 0 and ('armar' in linker or 'armar.exe' in linker):
                 return ArmarLinker(linker)
             if 'DMD32 D Compiler' in out or 'DMD64 D Compiler' in out:
-                return DLinker(linker, compiler.is_64, compiler.is_msvc)
+                return DLinker(linker, compiler.arch)
             if 'LDC - the LLVM D compiler' in out:
-                return DLinker(linker, compiler.is_64, compiler.is_msvc)
+                return DLinker(linker, compiler.arch)
             if 'GDC' in out and ' based on D ' in out:
-                return DLinker(linker, compiler.is_64, compiler.is_msvc)
+                return DLinker(linker, compiler.arch)
             if p.returncode == 0:
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('usage'): # OSX
