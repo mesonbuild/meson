@@ -1298,9 +1298,11 @@ class GnuLikeCompiler(abc.ABC):
     def __init__(self, compiler_type):
         self.compiler_type = compiler_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_ndebug', 'b_staticpic', 'b_asneeded']
-        if not self.compiler_type.is_osx_compiler:
+                             'b_ndebug', 'b_staticpic']
+        if not self.compiler_type.is_osx_compiler and not self.compiler_type.is_windows_compiler:
             self.base_options.append('b_lundef')
+        if not self.compiler_type.is_windows_compiler:
+            self.base_options.append('b_asneeded')
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
 
