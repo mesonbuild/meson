@@ -230,7 +230,9 @@ class GnomeModule(ExtensionModule):
         else:
             depfile = kwargs['output'] + '.d'
             if gresource_ld_binary:
-                kwargs['command'] = copy.copy(cmd) + ['--external-data']
+                depfile2 = kwargs['output'] + '.2.d'
+                kwargs['depfile'] = depfile2
+                kwargs['command'] = copy.copy(cmd) + ['--external-data', '--dependency-file', '@DEPFILE@']
             else:
                 kwargs['depfile'] = depfile
                 kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
