@@ -7,7 +7,7 @@ cc = meson.get_compiler('c')
 
 if ['gcc', 'lcc', 'clang'].contains(cc.get_id())
   expected = 'gcc'
-elif cc.get_id() == 'msvc'
+elif ['msvc', 'clang-cl'].contains(cc.get_id())
   expected = 'msvc'
 elif cc.get_id() == 'intel'
   if host_machine.system() == 'windows'

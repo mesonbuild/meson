@@ -170,7 +170,7 @@ class CCompiler(Compiler):
             else:
                 # GNU ld and LLVM lld
                 return ['-Wl,--allow-shlib-undefined']
-        elif self.id == 'msvc':
+        elif isinstance(self, VisualStudioCCompiler):
             # link.exe
             return ['/FORCE:UNRESOLVED']
         # FIXME: implement other linkers
@@ -890,7 +890,7 @@ class CCompiler(Compiler):
         stlibext = ['a']
         # We've always allowed libname to be both `foo` and `libfoo`,
         # and now people depend on it
-        if strict and self.id != 'msvc': # lib prefix is not usually used with msvc
+        if strict and not isinstance(self, VisualStudioCCompiler): # lib prefix is not usually used with msvc
             prefixes = ['lib']
         else:
             prefixes = ['lib', '']
@@ -900,7 +900,7 @@ class CCompiler(Compiler):
         elif for_windows(env.is_cross_build(), env):
             # FIXME: .lib files can be import or static so we should read the
             # file, figure out which one it is, and reject the wrong kind.
-            if self.id == 'msvc':
+            if isinstance(self, VisualStudioCCompiler):
                 shlibext = ['lib']
             else:
                 shlibext = ['dll.a', 'lib', 'dll']
@@ -1546,6 +1546,10 @@ class VisualStudioCCompiler(CCompiler):
     def get_argument_syntax(self):
         return 'msvc'
 
+class ClangClCCompiler(VisualStudioCCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
+        super().__init__(exelist, version, is_cross, exe_wrap, is_64)
+        self.id = 'clang-cl'
 
 class ArmCCompiler(ArmCompiler, CCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):

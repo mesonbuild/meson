@@ -39,6 +39,8 @@ from .compilers import (
     ClangCPPCompiler,
     ClangObjCCompiler,
     ClangObjCPPCompiler,
+    ClangClCCompiler,
+    ClangClCPPCompiler,
     G95FortranCompiler,
     GnuCCompiler,
     GnuCPPCompiler,
@@ -190,6 +192,8 @@ def detect_windows_arch(compilers):
                 platform = os.environ.get('Platform', 'x86').lower()
             if platform == 'x86':
                 return platform
+        if compiler.id == 'clang-cl' and not compiler.is_64:
+            return 'x86'
         if compiler.id == 'gcc' and compiler.has_builtin_define('__i386__'):
             return 'x86'
     return os_arch
@@ -344,8 +348,8 @@ class Environment:
 
         # List of potential compilers.
         if mesonlib.is_windows():
-            self.default_c = ['cl', 'cc', 'gcc', 'clang']
-            self.default_cpp = ['cl', 'c++', 'g++', 'clang++']
+            self.default_c = ['cl', 'cc', 'gcc', 'clang', 'clang-cl']
+            self.default_cpp = ['cl', 'c++', 'g++', 'clang++', 'clang-cl']
         else:
             self.default_c = ['cc', 'gcc', 'clang']
             self.default_cpp = ['c++', 'g++', 'clang++']
@@ -537,7 +541,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
-            if 'cl' in compiler or 'cl.exe' in compiler:
+            if not set(['cl', 'cl.exe', 'clang-cl', 'clang-cl.exe']).isdisjoint(compiler):
                 # Watcom C provides it's own cl.exe clone that mimics an older
                 # version of Microsoft's compiler. Since Watcom's cl.exe is
                 # just a wrapper, we skip using it if we detect its presence
@@ -606,6 +610,18 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 compiler_type = CompilerType.ARM_WIN
                 cls = ArmclangCCompiler if lang == 'c' else ArmclangCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
+            if 'CL.EXE COMPATIBILITY' in out:
+                # if this is clang-cl masquerading as cl, detect it as cl, not
+                # clang
+                arg = '--version'
+                try:
+                    p, out, err = Popen_safe(compiler + [arg])
+                except OSError as e:
+                    popen_exceptions[' '.join(compiler + [arg])] = e
+                version = search_version(out)
+                is_64 = 'Target: x86_64' in out
+                cls = ClangClCCompiler if lang == 'c' else ClangClCPPCompiler
+                return cls(compiler, version, is_cross, exe_wrap, is_64)
             if 'clang' in out:
                 if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
                     compiler_type = CompilerType.CLANG_OSX

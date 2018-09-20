@@ -624,10 +624,6 @@ class InternalTests(unittest.TestCase):
             with PatchModule(mesonbuild.compilers.c.for_windows,
                              'mesonbuild.compilers.c.for_windows', true):
                 self._test_all_naming(cc, env, patterns, 'windows-mingw')
-            cc.id = 'msvc'
-            with PatchModule(mesonbuild.compilers.c.for_windows,
-                             'mesonbuild.compilers.c.for_windows', true):
-                self._test_all_naming(cc, env, patterns, 'windows-msvc')
 
     def test_pkgconfig_parse_libs(self):
         '''

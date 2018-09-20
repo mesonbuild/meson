@@ -19,7 +19,7 @@ from .. import coredata
 from .. import mlog
 from ..mesonlib import MesonException, version_compare
 
-from .c import CCompiler, VisualStudioCCompiler
+from .c import CCompiler, VisualStudioCCompiler, ClangClCCompiler
 from .compilers import (
     CompilerType,
     gnu_winlibs,
@@ -378,6 +378,10 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         # so just use the plain C args.
         return VisualStudioCCompiler.get_compiler_check_args(self)
 
+class ClangClCPPCompiler(VisualStudioCPPCompiler, ClangClCCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
+        VisualStudioCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, is_64)
+        self.id = 'clang-cl'
 
 class ArmCPPCompiler(ArmCompiler, CPPCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrap=None, **kwargs):

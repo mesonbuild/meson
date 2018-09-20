@@ -1168,7 +1168,7 @@ You probably should put it in link_with instead.''')
         '''
         linker, _ = self.get_clink_dynamic_linker_and_stdlibs()
         # Mixing many languages with MSVC is not supported yet so ignore stdlibs.
-        if linker and linker.get_id() in ['msvc', 'llvm', 'dmd']:
+        if linker and linker.get_id() in ['msvc', 'clang-cl', 'llvm', 'dmd']:
             return True
         return False
 
