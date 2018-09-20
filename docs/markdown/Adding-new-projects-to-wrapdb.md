@@ -74,7 +74,7 @@ First you need to fork the repository to your own page. Then you can create the 
     emacs upstream.wrap meson.build
     <verify that your project builds and runs>
     git add upstream.wrap meson.build
-    git commit -a -m 'Created wrap files for libfoo-1.0.0.'
+    git commit -a -m 'Create wrap files for libfoo-1.0.0.'
     git push origin 1.0.0
 
 Now you can file a merge request. Remember to file it against branch
