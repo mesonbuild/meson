@@ -354,10 +354,33 @@ else
 endif
 
 opt = get_option('someoption')
-if opt == 'foo'
+if opt != 'foo'
   do_something()
 endif
 ```
+
+Logical operations
+--
+
+Meson has the standard range of logical operations which can be used in
+`if` statements.
+
+```meson
+if a and b
+  # do something
+endif
+if c or d
+  # do something
+endif
+if not e
+  # do something
+endif
+if not (f or g)
+  # do something
+endif
+```
+
+Logical operations work only on boolean values.
 
 ## Foreach statements
 
@@ -408,28 +431,6 @@ foreach name, sources : components
   endif
 endforeach
 ```
-
-Logical operations
---
-
-Meson has the standard range of logical operations.
-
-```meson
-if a and b
-  # do something
-endif
-if c or d
-  # do something
-endif
-if not e
-  # do something
-endif
-if not (f or g)
-  # do something
-endif
-```
-
-Logical operations work only on boolean values.
 
 Comments
 --
