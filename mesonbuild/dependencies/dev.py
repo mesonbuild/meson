@@ -196,10 +196,11 @@ class LLVMDependency(ConfigToolDependency):
     # newest back to oldest (3.5 is arbitrary), and finally the devel version.
     # Please note that llvm-config-6.0 is a development snapshot and it should
     # not be moved to the beginning of the list. The only difference between
-    # llvm-config-7 and llvm-config-devel is that the former is used by
+    # llvm-config-8 and llvm-config-devel is that the former is used by
     # Debian and the latter is used by FreeBSD.
     tools = [
         'llvm-config', # base
+        'llvm-config-7',   'llvm-config70',
         'llvm-config-6.0', 'llvm-config60',
         'llvm-config-5.0', 'llvm-config50',
         'llvm-config-4.0', 'llvm-config40',
@@ -208,7 +209,7 @@ class LLVMDependency(ConfigToolDependency):
         'llvm-config-3.7', 'llvm-config37',
         'llvm-config-3.6', 'llvm-config36',
         'llvm-config-3.5', 'llvm-config35',
-        'llvm-config-7',   'llvm-config-devel', # development snapshot
+        'llvm-config-8',   'llvm-config-devel', # development snapshot
     ]
     tool_name = 'llvm-config'
     __cpp_blacklist = {'-DNDEBUG'}
