@@ -1,0 +1,5 @@
+option(
+  'case',
+  type : 'combo',
+  choices : []
+)

@@ -4446,6 +4446,83 @@ class RewriterTests(unittest.TestCase):
         self.assertEqual(s2, self.read_contents('sub2/meson.build'))
 
 
+class NativeFileTests(BasePlatformTests):
+
+    def setUp(self):
+        super().setUp()
+        self.testcase = os.path.join(self.unit_test_dir, '46 native file binary')
+        self.current_config = 0
+        self.current_wrapper = 0
+
+    def helper_create_native_file(self, values):
+        """Create a config file as a temporary file.
+
+        values should be a nested dictionary structure of {section: {key:
+        value}}
+        """
+        filename = os.path.join(self.builddir, 'generated{}.config'.format(self.current_config))
+        self.current_config += 1
+        with open(filename, 'wt') as f:
+            for section, entries in values.items():
+                f.write('[{}]\n'.format(section))
+                for k, v in entries.items():
+                    f.write("{}='{}'\n".format(k, v))
+        return filename
+
+    def helper_create_binary_wrapper(self, binary, **kwargs):
+        """Creates a wrapper around a binary that overrides specific values."""
+        filename = os.path.join(self.builddir, 'binary_wrapper{}.py'.format(self.current_wrapper))
+        self.current_wrapper += 1
+        if is_haiku():
+            chbang = '#!/bin/env python3'
+        else:
+            chbang = '#!/usr/bin/env python3'
+
+        with open(filename, 'wt') as f:
+            f.write(textwrap.dedent('''\
+                {}
+                #!/usr/bin/env python3
+                import argparse
+                import subprocess
+                import sys
+
+                def main():
+                    parser = argparse.ArgumentParser()
+                '''.format(chbang)))
+            for name in kwargs:
+                f.write('    parser.add_argument("--{}", action="store_true")\n'.format(name))
+            f.write('    args, extra_args = parser.parse_known_args()\n')
+            for name, value in kwargs.items():
+                f.write('    if args.{}:\n'.format(name))
+                f.write('        print({})\n'.format(value))
+                f.write('        sys.exit(0)\n')
+            f.write(textwrap.dedent('''
+                    ret = subprocess.run(
+                        ["{}"] + extra_args,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        encoding='utf-8')
+                    print(ret.stdout)
+                    print(ret.stderr, file=sys.stderr)
+                    sys.exit(ret.returncode)
+
+                if __name__ == '__main__':
+                    main()
+                '''.format(binary)))
+
+        if not is_windows():
+            os.chmod(filename, 0o755)
+            return filename
+
+        # On windows we need yet another level of indirection, as cmd cannot
+        # invoke python files itself, so instead we generate a .bat file, which
+        # invokes our python wrapper
+        batfile = os.path.join(self.builddir, 'binary_wrapper{}.bat'.format(self.current_wrapper))
+        with open(batfile, 'wt') as f:
+            f.write('py -3 {} %*'.format(filename))
+        return batfile
+
+
 def unset_envs():
     # For unit tests we must fully control all command lines
     # so that there are no unexpected changes coming from the
@@ -4463,7 +4540,8 @@ def should_run_cross_mingw_tests():
 
 def main():
     unset_envs()
-    cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests', 'PythonTests']
+    cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
+             'PythonTests', 'NativeFileTests']
     if not is_windows():
         cases += ['LinuxlikeTests']
         if should_run_cross_arm_tests():
