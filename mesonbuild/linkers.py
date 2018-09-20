@@ -139,11 +139,10 @@ class ArmarLinker(ArLinker):
         return False
 
 class DLinker(StaticLinker):
-    def __init__(self, exelist, is_64, is_msvc):
+    def __init__(self, exelist, arch):
         self.exelist = exelist
         self.id = exelist[0]
-        self.is_64 = is_64
-        self.is_msvc = is_msvc
+        self.arch = arch
 
     def can_linker_accept_rsp(self):
         return mesonlib.is_windows()
@@ -165,9 +164,9 @@ class DLinker(StaticLinker):
 
     def get_linker_always_args(self):
         if is_windows():
-            if self.is_64:
+            if self.arch == 'x86_64':
                 return ['-m64']
-            elif self.is_msvc and self.id == 'dmd':
+            elif self.arch == 'x86_mscoff' and self.id == 'dmd':
                 return ['-m32mscoff']
             return ['-m32']
         return []
