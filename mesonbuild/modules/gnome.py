@@ -220,7 +220,7 @@ class GnomeModule(ExtensionModule):
             # This will eventually go out of sync if dependencies are added
             kwargs['depend_files'] = depend_files
             if gresource_ld_binary:
-                kwargs['command'] = copy.copy(cmd) + ["--external-data"]
+                kwargs['command'] = copy.copy(cmd) + ['--external-data']
             else:
                 kwargs['command'] = cmd
             if gresource or gresource_ld_binary:
@@ -229,10 +229,10 @@ class GnomeModule(ExtensionModule):
                 g_kwargs['command'] = cmd
         else:
             depfile = kwargs['output'] + '.d'
-            kwargs['depfile'] = depfile
             if gresource_ld_binary:
-                kwargs['command'] = copy.copy(cmd) + ["--external-data", '--dependency-file', '@DEPFILE@']
+                kwargs['command'] = copy.copy(cmd) + ['--external-data']
             else:
+                kwargs['depfile'] = depfile
                 kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
             if gresource or gresource_ld_binary:
                 g_kwargs['depfile'] = depfile
