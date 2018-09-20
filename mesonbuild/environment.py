@@ -69,6 +69,7 @@ build_filename = 'meson.build'
 
 known_cpu_families = (
     'aarch64',
+    'arc',
     'arm',
     'e2k',
     'ia64',

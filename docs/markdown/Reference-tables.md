@@ -48,6 +48,7 @@ set in the cross file.
 | x86_64              | 64 bit x86 processor  |
 | ia64                | Itanium processor     |
 | arm                 | 32 bit ARM processor  |
+| arc                 | 32 bit ARC processor  |
 | aarch64             | 64 bit ARM processor  |
 | mips                | 32 bit MIPS processor |
 | mips64              | 64 bit MIPS processor |
