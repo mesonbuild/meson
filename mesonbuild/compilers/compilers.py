@@ -914,6 +914,12 @@ class Compiler:
     def get_id(self):
         return self.id
 
+    def get_version_string(self):
+        details = [self.id, self.version]
+        if self.full_version:
+            details += ['"%s"' % (self.full_version)]
+        return '(%s)' % (' '.join(details))
+
     def get_language(self):
         return self.language
 
