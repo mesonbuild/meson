@@ -167,12 +167,16 @@ methods section](#build-target-object) below.
 ### configuration_data()
 
 ``` meson
-    configuration_data_object = configuration_data()
+    configuration_data_object = configuration_data(...)
 ```
 
 Creates an empty configuration object. You should add your
 configuration with [its method calls](#configuration-data-object) and
 finally use it in a call to `configure_file`.
+
+Since *0.49.0* takes an optional dictionary as first argument. If provided, each
+key/value pair is added into the `configuration_data` as if `set()` method was
+called for each of them.
 
 ### configure_file()
 
@@ -187,7 +191,8 @@ When a [`configuration_data()`](#configuration_data) object is passed
 to the `configuration:` keyword argument, it takes a template file as
 the `input:` (optional) and produces the `output:` (required) by
 substituting values from the configuration data as detailed in [the
-configuration file documentation](Configuration.md).
+configuration file documentation](Configuration.md). Since *0.49.0* a dictionary
+can be passed instead of a [`configuration_data()`](#configuration_data) object.
 
 When a list of strings is passed to the `command:` keyword argument,
 it takes any source or configured file as the `input:` and assumes
