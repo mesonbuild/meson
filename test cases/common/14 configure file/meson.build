@@ -246,3 +246,27 @@ test('configure-file', test_file)
 
 cdata = configuration_data()
 cdata.set('invalid_value', ['array'])
+
+# Dictionaries
+
+cdata = configuration_data({
+  'A_STRING' : '"foo"',
+  'A_INT' : 42,
+  'A_DEFINED' : true,
+  'A_UNDEFINED' : false,
+})
+
+configure_file(output : 'config9a.h',
+  configuration : cdata,
+)
+
+configure_file(output : 'config9b.h',
+  configuration : {
+    'B_STRING' : '"foo"',
+    'B_INT' : 42,
+    'B_DEFINED' : true,
+    'B_UNDEFINED' : false,
+  }
+)
+
+test('test9', executable('prog9', 'prog9.c'))

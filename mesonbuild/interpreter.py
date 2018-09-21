@@ -2372,9 +2372,18 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @noKwargs
     def func_configuration_data(self, node, args, kwargs):
-        if args:
-            raise InterpreterException('configuration_data takes no arguments')
-        return ConfigurationDataHolder(self.subproject)
+        if len(args) > 1:
+            raise InterpreterException('configuration_data takes only one optional positional arguments')
+        elif len(args) == 1:
+            initial_values = args[0]
+            if not isinstance(initial_values, dict):
+                raise InterpreterException('configuration_data first argument must be a dictionary')
+        else:
+            initial_values = {}
+        cdata = ConfigurationDataHolder(self.subproject)
+        for k, v in initial_values.items():
+            cdata.set_method([k, v], {})
+        return cdata
 
     def set_options(self, default_options):
         # Set default options as if they were passed to the command line.
@@ -3552,7 +3561,12 @@ root and issuing %s.
         # Perform the appropriate action
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
-            if not isinstance(conf, ConfigurationDataHolder):
+            if isinstance(conf, dict):
+                cdata = ConfigurationDataHolder(self.subproject)
+                for k, v in conf.items():
+                    cdata.set_method([k, v], {})
+                conf = cdata
+            elif not isinstance(conf, ConfigurationDataHolder):
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
             mlog.log('Configuring', mlog.bold(output), 'using configuration')
             if inputfile is not None:
