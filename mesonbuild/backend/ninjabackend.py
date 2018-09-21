@@ -185,7 +185,8 @@ int dummy;
         # and locale dependent. Any attempt at converting it to
         # Python strings leads to failure. We _must_ do this detection
         # in raw byte mode and write the result in raw bytes.
-        pc = subprocess.Popen(['cl', '/showIncludes', '/c', 'incdetect.c'],
+        pc = subprocess.Popen([compiler.get_exelist(),
+                               '/showIncludes', '/c', 'incdetect.c'],
                               cwd=self.environment.get_scratch_dir(),
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdo, _) = pc.communicate()
@@ -195,7 +196,7 @@ int dummy;
         # different locales have different messages with a different
         # number of colons. Match up to the the drive name 'd:\'.
         matchre = re.compile(rb"^(.*\s)[a-zA-Z]:\\.*stdio.h$")
-        for line in stdo.split(b'\r\n'):
+        for line in re.split(rb'\r?\n', stdo):
             match = matchre.match(line)
             if match:
                 with open(tempfilename, 'ab') as binfile:
