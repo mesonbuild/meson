@@ -392,6 +392,8 @@ class CCompiler(Compiler):
         return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
+        if callable(extra_args):
+            extra_args = extra_args(mode)
         if extra_args is None:
             extra_args = []
         elif isinstance(extra_args, str):

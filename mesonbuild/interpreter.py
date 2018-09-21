@@ -38,6 +38,7 @@ import subprocess
 from collections import namedtuple
 from pathlib import PurePath
 import traceback
+import functools
 
 import importlib
 
@@ -965,7 +966,7 @@ class CompilerHolder(InterpreterObject):
     def cmd_array_method(self, args, kwargs):
         return self.compiler.exelist
 
-    def determine_args(self, kwargs):
+    def determine_args(self, kwargs, mode='link'):
         nobuiltins = kwargs.get('no_builtin_args', False)
         if not isinstance(nobuiltins, bool):
             raise InterpreterException('Type of no_builtin_args not a boolean.')
@@ -981,7 +982,8 @@ class CompilerHolder(InterpreterObject):
         if not nobuiltins:
             opts = self.environment.coredata.compiler_options
             args += self.compiler.get_option_compile_args(opts)
-            args += self.compiler.get_option_link_args(opts)
+            if mode == 'link':
+                args += self.compiler.get_option_link_args(opts)
         args += mesonlib.stringlistify(kwargs.get('args', []))
         return args
 
@@ -1039,7 +1041,7 @@ class CompilerHolder(InterpreterObject):
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
-        extra_args = self.determine_args(kwargs)
+        extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs, endl=None)
         result = self.compiler.run(code, self.environment, extra_args, deps)
         if len(testname) > 0:
@@ -1094,7 +1096,7 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_member must be a string.')
-        extra_args = self.determine_args(kwargs)
+        extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         had = self.compiler.has_members(typename, [membername], prefix,
                                         self.environment, extra_args, deps)
@@ -1122,7 +1124,7 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_members must be a string.')
-        extra_args = self.determine_args(kwargs)
+        extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         had = self.compiler.has_members(typename, membernames, prefix,
                                         self.environment, extra_args, deps)
@@ -1175,7 +1177,7 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_type must be a string.')
-        extra_args = self.determine_args(kwargs)
+        extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         had = self.compiler.has_type(typename, prefix, self.environment, extra_args, deps)
         if had:
@@ -1213,7 +1215,7 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('High argument of compute_int must be an int.')
         if guess is not None and not isinstance(guess, int):
             raise InterpreterException('Guess argument of compute_int must be an int.')
-        extra_args = self.determine_args(kwargs)
+        extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         res = self.compiler.compute_int(expression, low, high, guess, prefix, self.environment, extra_args, deps)
         mlog.log('Computing int of', mlog.bold(expression, True), msg, res)
@@ -1234,7 +1236,7 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of sizeof must be a string.')
-        extra_args = self.determine_args(kwargs)
+        extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         esize = self.compiler.sizeof(element, prefix, self.environment, extra_args, deps)
         mlog.log('Checking for size of', mlog.bold(element, True), msg, esize)
@@ -1256,7 +1258,7 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of get_define() must be a string.')
-        extra_args = self.determine_args(kwargs)
+        extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         value = self.compiler.get_define(element, prefix, self.environment, extra_args, deps)
         mlog.log('Fetching value of define', mlog.bold(element, True), msg, value)
@@ -1281,7 +1283,7 @@ class CompilerHolder(InterpreterObject):
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
-        extra_args = self.determine_args(kwargs)
+        extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs, endl=None)
         result = self.compiler.compiles(code, self.environment, extra_args, deps)
         if len(testname) > 0:
@@ -1311,7 +1313,7 @@ class CompilerHolder(InterpreterObject):
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
-        extra_args = self.determine_args(kwargs)
+        extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs, endl=None)
         result = self.compiler.links(code, self.environment, extra_args, deps)
         if len(testname) > 0:
@@ -1338,7 +1340,7 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header must be a string.')
-        extra_args = self.determine_args(kwargs)
+        extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         haz = self.compiler.check_header(hname, prefix, self.environment, extra_args, deps)
         if haz:
@@ -1363,7 +1365,7 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header must be a string.')
-        extra_args = self.determine_args(kwargs)
+        extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         haz = self.compiler.has_header(hname, prefix, self.environment, extra_args, deps)
         if haz:
@@ -1389,7 +1391,7 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header_symbol must be a string.')
-        extra_args = self.determine_args(kwargs)
+        extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         haz = self.compiler.has_header_symbol(hname, symbol, prefix, self.environment, extra_args, deps)
         if haz:
