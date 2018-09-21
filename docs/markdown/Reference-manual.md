@@ -1795,7 +1795,7 @@ The following keyword arguments can be used:
   required to find the header or symbol. For example, you might need
   to pass the include path `-Isome/path/to/header` if a header is not
   in the default include path. In versions newer than 0.38.0 you
-  should use the `include_directories` keyword described above. You
+  should use the `include_directories` keyword described below. You
   may also want to pass a library name `-lfoo` for `has_function` to
   check for a function. Supported by all methods except `get_id`,
   `version`, and `find_library`.
@@ -1808,6 +1808,9 @@ The following keyword arguments can be used:
   `run()`. If this keyword argument is not passed to those methods, no
   message will be printed about the check.
 
+- `no_builtin_args` when set to true, the compiler arguments controlled
+  by built-in configuration options are not added.
+
 - `prefix` can be used to add #includes and other things that are
   required for the symbol to be declared. System definitions should be
   passed via compiler args (eg: `_GNU_SOURCE` is often required for
@@ -1816,7 +1819,7 @@ The following keyword arguments can be used:
   `sizeof`, `has_type`, `has_function`, `has_member`, `has_members`,
   `check_header`, `has_header`, `has_header_symbol`.
 
-**Note:** These compiler checks do not use compiler arguments added with 
+**Note:** These compiler checks do not use compiler arguments added with
 `add_*_arguments()`, via `-Dlang_args` on the command-line, or through
 `CFLAGS`/`LDFLAGS`, etc in the environment. Hence, you can trust that
 the tests will be fully self-contained, and won't fail because of custom
