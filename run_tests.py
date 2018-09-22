@@ -143,7 +143,9 @@ def get_backend_commands(backend, debug=False):
         test_cmd = cmd + ['RUN_TESTS.vcxproj']
     elif backend is Backend.xcode:
         cmd = ['xcodebuild']
-        clean_cmd = cmd + ['-alltargets', 'clean']
+        # In Xcode9 new build system's clean command fails when using a custom build directory.
+        # Maybe use it when CI uses Xcode10 we can remove '-UseNewBuildSystem=FALSE'
+        clean_cmd = cmd + ['-alltargets', 'clean', '-UseNewBuildSystem=FALSE']
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
         # We need at least 1.6 because of -w dupbuild=err
