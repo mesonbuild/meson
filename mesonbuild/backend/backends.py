@@ -361,6 +361,7 @@ class Backend:
 
     @staticmethod
     def _libdir_is_system(libdir, compilers, env):
+        libdir = os.path.normpath(libdir)
         for cc in compilers.values():
             if libdir in cc.get_library_dirs(env):
                 return True
