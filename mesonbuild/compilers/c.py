@@ -927,9 +927,22 @@ class CCompiler(Compiler):
         return [f.as_posix()]
 
     @staticmethod
-    def _get_file_from_list(files):
+    def _get_file_from_list(files, elf_class = None):
         for f in files:
             if os.path.isfile(f):
+                if elf_class is None:
+                    return f
+                with open(f, 'rb') as fd:
+                    bts = fd.read(5)
+                    # check its an elf object
+                    if bts[1:4] == b'ELF':
+                        # check it's the right kind
+                        if int(bts[4]) == elf_class:
+                            return f
+                        else:
+                            continue # incompatible, skip file
+
+                # not an elf-type file    
                 return f
         return None
 
@@ -945,6 +958,7 @@ class CCompiler(Compiler):
             # Don't do a manual search for internal libs
             if libname in self.internal_libs:
                 return None
+        elf_class = self.sizeof('void *', '', env) / 4  # 2 == 64-bit, 1 == 32-bit
         # Not found or we want to use a specific libtype? Try to find the
         # library file itself.
         patterns = self.get_library_naming(env, libtype)
@@ -957,7 +971,7 @@ class CCompiler(Compiler):
                 # We just check whether the library exists. We can't do a link
                 # check because the library might have unresolved symbols that
                 # require other libraries.
-                trial = self._get_file_from_list(trial)
+                trial = self._get_file_from_list(trial, elf_class)
                 if not trial:
                     continue
                 return [trial]
