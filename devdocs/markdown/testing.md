@@ -1,6 +1,6 @@
 # Testing
 
-See [this here](http://mesonbuild.com/Contributing.html#tests).
+See [this here](https://mesonbuild.com/Contributing.html#tests).
 
 TODO
 
