@@ -22,6 +22,7 @@ from pathlib import Path
 
 from .. import mlog
 from .. import coredata
+from .. import linkers
 from . import compilers
 from ..mesonlib import (
     EnvironmentException, MesonException, version_compare, Popen_safe, listify,
@@ -927,7 +928,7 @@ class CCompiler(Compiler):
         return [f.as_posix()]
 
     @staticmethod
-    def _get_file_from_list(files, elf_class = None):
+    def _get_file_from_list(files, elf_class = None, static_linker=None):
         for f in files:
             if os.path.isfile(f):
                 if elf_class is None:
@@ -935,14 +936,30 @@ class CCompiler(Compiler):
                 with open(f, 'rb') as fd:
                     bts = fd.read(5)
                     # check its an elf object
-                    if bts[1:4] == b'ELF':
+                    if len(bts) >= 5 and bts[1:4] == b'ELF':
                         # check it's the right kind
                         if int(bts[4]) == elf_class:
                             return f
                         else:
                             continue # incompatible, skip file
 
-                # not an elf-type file    
+                # not an elf-type file
+                # check for static libs, which is trickier
+                if static_linker is None:
+                    return f
+                ar = static_linker
+                if f.endswith('.a') and isinstance(ar, linkers.ArLinker):
+                    with subprocess.Popen(ar.get_exelist() + ['p', f], stdout=subprocess.PIPE) as p:
+                        bts = p.stdout.read(5)
+                        # check its an elf object
+                        if len(bts) >= 5 and bts[1:4] == b'ELF':
+                            # check it's the right kind
+                            if int(bts[4]) == elf_class:
+                                return f
+                            else:
+                                continue # incompatible, skip file
+
+                # not an elf object, or a .a file we can check
                 return f
         return None
 
@@ -959,6 +976,7 @@ class CCompiler(Compiler):
             if libname in self.internal_libs:
                 return None
         elf_class = self.sizeof('void *', '', env) / 4  # 2 == 64-bit, 1 == 32-bit
+        static_linker = env.detect_static_linker(self)
         # Not found or we want to use a specific libtype? Try to find the
         # library file itself.
         patterns = self.get_library_naming(env, libtype)
@@ -971,7 +989,7 @@ class CCompiler(Compiler):
                 # We just check whether the library exists. We can't do a link
                 # check because the library might have unresolved symbols that
                 # require other libraries.
-                trial = self._get_file_from_list(trial, elf_class)
+                trial = self._get_file_from_list(trial, elf_class, static_linker)
                 if not trial:
                     continue
                 return [trial]
