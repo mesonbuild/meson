@@ -9,8 +9,9 @@ This method takes the following keyword arguments:
  - `moc_headers`, `moc_sources`, `ui_files`, `qresources`, which define the files that require preprocessing with `moc`, `uic` and `rcc`
  - `include_directories`, the directories to add to header search path for `moc` (optional)
  - `moc_extra_arguments`, any additional arguments to `moc` (optional). Available since v0.44.0.
+ - `uic_extra_arguments`, any additional arguments to `uic` (optional). Available since v0.49.0.
  - `dependencies`, dependency objects needed by moc. Available since v0.48.0.
- 
+
 It returns an opaque object that should be passed to a main build target.
 
 ## compile_translations (since v0.44.0)
