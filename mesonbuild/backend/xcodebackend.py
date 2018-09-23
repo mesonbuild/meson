@@ -60,6 +60,12 @@ class XCodeBackend(backends.Backend):
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
+    def target_to_build_root(self, target):
+        if self.get_target_dir(target) == '':
+            return ''
+        directories = os.path.normpath(self.get_target_dir(target)).split(os.sep)
+        return os.sep.join(['..'] * len(directories))
+
     def write_line(self, text):
         self.ofile.write(self.indent * self.indent_level + text)
         if not text.endswith('\n'):
@@ -749,6 +755,15 @@ class XCodeBackend(backends.Backend):
                 self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = YES;')
                 self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
                 self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
+                if target.has_pch:
+                    # FIXME: GCC_PREFIX_HEADER accepts only one file so temporary we get the pch for the first language available and apply it to the entire target
+                    # If more than pch are found we should add a compiler flag per each file
+                    pch_headers = target.get_pch('c') + target.get_pch('cpp') + target.get_pch('objc') + target.get_pch('objcpp')
+                    # Find path relative to target so we can use "$(PROJECT_DIR)"
+                    relative_pch_path = os.path.join(self.get_target_dir(target), pch_headers[0])
+                    if relative_pch_path:
+                        self.write_line('GCC_PRECOMPILE_PREFIX_HEADER = YES;')
+                        self.write_line('GCC_PREFIX_HEADER = "$(PROJECT_DIR)/%s";' % relative_pch_path)
                 self.write_line('GCC_PREPROCESSOR_DEFINITIONS = "";')
                 self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
                 if len(headerdirs) > 0:
