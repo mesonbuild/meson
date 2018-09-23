@@ -29,6 +29,7 @@ from .wrap import wraptool
 class CommandLineParser:
     def __init__(self):
         self.commands = {}
+        self.hidden_commands = []
         self.parser = argparse.ArgumentParser(prog='meson')
         self.subparsers = self.parser.add_subparsers(title='Commands',
                                                      description='If no command is specified it defaults to setup command.')
@@ -44,17 +45,25 @@ class CommandLineParser:
                          help='Create a new project')
         self.add_command('test', mtest.add_arguments, mtest.run,
                          help='Run tests')
-        self.add_command('rewrite', rewriter.add_arguments, rewriter.run,
-                         help='Edit project files')
         self.add_command('wrap', wraptool.add_arguments, wraptool.run,
                          help='Wrap tools')
-        self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,
-                         help='Run a python script')
         self.add_command('help', self.add_help_arguments, self.run_help_command,
                          help='Print help of a subcommand')
 
+        # Hidden commands
+        self.add_command('rewrite', rewriter.add_arguments, rewriter.run,
+                         help=argparse.SUPPRESS)
+        self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,
+                         help=argparse.SUPPRESS)
+
     def add_command(self, name, add_arguments_func, run_func, help):
-        p = self.subparsers.add_parser(name, help=help)
+        # FIXME: Cannot have hidden subparser:
+        # https://bugs.python.org/issue22848
+        if help == argparse.SUPPRESS:
+            p = argparse.ArgumentParser(prog='meson ' + name)
+            self.hidden_commands.append(name)
+        else:
+            p = self.subparsers.add_parser(name, help=help)
         add_arguments_func(p)
         p.set_defaults(run_func=run_func)
         self.commands[name] = p
@@ -86,8 +95,15 @@ class CommandLineParser:
         if len(args) == 0 or args[0] not in known_commands:
             args = ['setup'] + args
 
+        # Hidden commands have their own parser instead of using the global one
+        if args[0] in self.hidden_commands:
+            parser = self.commands[args[0]]
+            args = args[1:]
+        else:
+            parser = self.parser
+
         args = mesonlib.expand_arguments(args)
-        options = self.parser.parse_args(args)
+        options = parser.parse_args(args)
 
         try:
             return options.run_func(options)
