@@ -18,7 +18,7 @@ from .base import (  # noqa: F401
     ExternalDependency, NotFoundDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
     PkgConfigDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language)
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
-from .misc import (MPIDependency, OpenMPDependency, Python3Dependency, ThreadDependency, PcapDependency, CupsDependency, LibWmfDependency)
+from .misc import (MPIDependency, OpenMPDependency, Python3Dependency, ThreadDependency, PcapDependency, CupsDependency, LibWmfDependency, LibGCryptDependency)
 from .platform import AppleFrameworks
 from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, VulkanDependency
 
@@ -39,6 +39,7 @@ packages.update({
     'pcap': PcapDependency,
     'cups': CupsDependency,
     'libwmf': LibWmfDependency,
+    'libgcrypt': LibGCryptDependency,
 
     # From platform:
     'appleframeworks': AppleFrameworks,

@@ -506,3 +506,34 @@ class LibWmfDependency(ExternalDependency):
     @staticmethod
     def get_methods():
         return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
+
+
+class LibGCryptDependency(ExternalDependency):
+    def __init__(self, environment, kwargs):
+        super().__init__('libgcrypt', environment, None, kwargs)
+
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
+
+        if DependencyMethods.PKGCONFIG in methods:
+            candidates.append(functools.partial(PkgConfigDependency, 'libgcrypt', environment, kwargs))
+
+        if DependencyMethods.CONFIG_TOOL in methods:
+            candidates.append(functools.partial(ConfigToolDependency.factory,
+                                                'libgcrypt', environment, None, kwargs, ['libgcrypt-config'],
+                                                'libgcrypt-config',
+                                                LibGCryptDependency.tool_finish_init))
+
+        return candidates
+
+    @staticmethod
+    def tool_finish_init(ctdep):
+        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+        ctdep.version = ctdep.get_config_value(['--version'], 'version')[0]
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]

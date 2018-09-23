@@ -15,3 +15,8 @@ whose contents should look like this:
 
     A short description explaining the new feature and how it should be used.
 
+## Libgcrypt dependency now supports libgcrypt-config
+
+Earlier, `dependency('libgcrypt')` could only detect the library with pkg-config
+files. Now, if pkg-config files are not found, Meson will look for
+`libgcrypt-config` and if it's found, will use that to find the library.
