@@ -1040,6 +1040,9 @@ class CrossBuildInfo:
                 if entry == 'cpu_family' and res not in known_cpu_families:
                     mlog.warning('Unknown CPU family %s, please report this at https://github.com/mesonbuild/meson/issues/new' % value)
 
+                if entry == 'endian' and res not in ('little', 'big'):
+                    mlog.warning('Unknown endian %s in cross file' % res)
+
                 if self.ok_type(res):
                     self.config[s][entry] = res
                 elif isinstance(res, list):
