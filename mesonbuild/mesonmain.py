@@ -113,7 +113,7 @@ class MesonApp:
                       '\nIf build failures persist, manually wipe your build directory to clear any\n'
                       'stored system data.\n'
                       '\nTo change option values, run "meson configure" instead.')
-                sys.exit(1)
+                sys.exit(0)
         else:
             if reconfigure:
                 print('Directory does not contain a valid build tree:\n{}'.format(build_dir))
