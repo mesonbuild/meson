@@ -27,7 +27,7 @@ Visual Studio C runtime to use. By default it uses the debug runtime
 DLL debug builds and release DLL for release builds but this can be
 manually changed with the new base option `b_vscrt`.
 
-## Meson warns if two calls to configure_file() write to the same file
+## Meson warns if two calls to `configure_file()` write to the same file
 
 If two calls to [`configure_file()`](#Reference-manual.md#configure_file)
 write to the same file Meson will print a `WARNING:` message during
@@ -145,7 +145,7 @@ warning message printed by Meson will be fatal and raise an exception. It is
 intended to be used by developers and CIs to easily catch deprecation warnings,
 or any other potential issues.
 
-## Helper methods added for checking GNU style attributes: __attribute__(...)
+## Helper methods added for checking GNU style attributes: `__attribute__(...)`
 
 A set of new helpers have been added to the C and C++ compiler objects for
 checking GNU style function attributes. These are not just simpler to use, they
@@ -175,7 +175,7 @@ foreach s : cc.get_supported_function_attributes(['hidden', 'alias'])
 endforeach
 ```
 
-## gnome.generate_gir() now optionally accepts multiple libraries
+## `gnome.generate_gir()` now optionally accepts multiple libraries
 
 The GNOME module can now generate a single gir for multiple libraries, which
 is something `g-ir-scanner` supported, but had not been exposed yet.
@@ -208,7 +208,7 @@ hotdoc.generate_doc(
 )
 ```
 
-## i18n.merge_file() now fully supports variable substitutions defined in custom_target()
+## `i18n.merge_file()` now fully supports variable substitutions defined in `custom_target()`
 
 Filename substitutions like @BASENAME@ and @PLAINNAME@ were previously
 accepted but the name of the build target wasn't altered leading to
