@@ -16,6 +16,7 @@ from . import backends
 from .. import build
 from .. import dependencies
 from .. import mesonlib
+from .. import mlog
 import uuid, os, operator
 
 from ..mesonlib import MesonException
@@ -756,12 +757,16 @@ class XCodeBackend(backends.Backend):
                 self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
                 self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
                 if target.has_pch:
-                    # FIXME: GCC_PREFIX_HEADER accepts only one file so temporary we get the pch for the first language available and apply it to the entire target
-                    # If more than pch are found we should add a compiler flag per each file
-                    pch_headers = target.get_pch('c') + target.get_pch('cpp') + target.get_pch('objc') + target.get_pch('objcpp')
-                    # Find path relative to target so we can use "$(PROJECT_DIR)"
-                    relative_pch_path = os.path.join(self.get_target_dir(target), pch_headers[0])
-                    if relative_pch_path:
+                    # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
+                    # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each
+                    # file. Since Xcode itself already discourages precompiled headers in favor of modules we don't try much harder here.
+                    pchs = target.get_pch('c') + target.get_pch('cpp') + target.get_pch('objc') + target.get_pch('objcpp')
+                    # Make sure to use headers (other backends require implementation files like *.c *.cpp, etc; these should not be used here)
+                    pchs = [pch for pch in pchs if pch.endswith('.h') or pch.endswith('.hh') or pch.endswith('hpp')]
+                    if pchs:
+                        if len(pchs) > 1:
+                            mlog.warning('Unsupported Xcode configuration: More than 1 precompiled header found "%s". Target "%s" might not compile correctly.' % (str(pchs), target.name))
+                        relative_pch_path = os.path.join(target.get_subdir(), pchs[0]) # Path relative to target so it can be used with "$(PROJECT_DIR)"
                         self.write_line('GCC_PRECOMPILE_PREFIX_HEADER = YES;')
                         self.write_line('GCC_PREFIX_HEADER = "$(PROJECT_DIR)/%s";' % relative_pch_path)
                 self.write_line('GCC_PREPROCESSOR_DEFINITIONS = "";')
