@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os, pickle, re
+import textwrap
 from .. import build
 from .. import dependencies
 from .. import mesonlib
@@ -729,10 +730,11 @@ class Backend:
     def exe_object_to_cmd_array(self, exe):
         if self.environment.is_cross_build() and \
            isinstance(exe, build.BuildTarget) and exe.is_cross:
-            if self.environment.exe_wrapper is None:
-                s = 'Can not use target %s as a generator because it is cross-built\n'
-                s += 'and no exe wrapper is defined. You might want to set it to native instead.'
-                s = s % exe.name
+            if self.environment.exe_wrapper is None and self.environment.cross_info.need_exe_wrapper():
+                s = textwrap.dedent('''
+                    Can not use target {} as a generator because it is cross-built
+                    and no exe wrapper is defined or needs_exe_wrapper is true.
+                    You might want to set it to native instead.'''.format(exe.name))
                 raise MesonException(s)
         if isinstance(exe, build.BuildTarget):
             exe_arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
