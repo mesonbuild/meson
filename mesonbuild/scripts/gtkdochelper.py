@@ -66,7 +66,7 @@ def gtkdoc_run_check(cmd, cwd, library_paths=None):
     # This preserves the order of messages.
     p, out = Popen_safe(cmd, cwd=cwd, env=env, stderr=subprocess.STDOUT)[0:2]
     if p.returncode != 0:
-        err_msg = ["{!r} failed with status {:d}".format(cmd[0], p.returncode)]
+        err_msg = ["{!r} failed with status {:d}".format(cmd, p.returncode)]
         if out:
             err_msg.append(out)
         raise MesonException('\n'.join(err_msg))
