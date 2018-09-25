@@ -1012,6 +1012,8 @@ This will become a hard error in the future.''')
         ldflags.update(external_ldflags)
 
         if state.environment.is_cross_build():
+            cflags.update(state.environment.cross_info.config["properties"].get('c_args', ""))
+            ldflags.update(state.environment.cross_info.config["properties"].get('c_link_args', ""))
             compiler = state.environment.coredata.cross_compilers.get('c')
         else:
             cflags.update(state.environment.coredata.get_external_args('c'))
