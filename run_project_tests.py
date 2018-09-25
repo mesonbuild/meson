@@ -393,6 +393,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
 
 def gather_tests(testdir: Path):
     tests = [t.name for t in testdir.glob('*')]
+    tests = [t for t in tests if not t.startswith('.')] # Filter non-tests files (dot files, etc)
     testlist = [(int(t.split()[0]), t) for t in tests]
     testlist.sort()
     tests = [testdir / t[1] for t in testlist]

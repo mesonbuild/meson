@@ -16,7 +16,8 @@ from . import backends
 from .. import build
 from .. import dependencies
 from .. import mesonlib
-import uuid, os
+from .. import mlog
+import uuid, os, operator
 
 from ..mesonlib import MesonException
 
@@ -59,6 +60,12 @@ class XCodeBackend(backends.Backend):
         dirname = os.path.join(target.get_subdir(), self.environment.coredata.get_builtin_option('buildtype'))
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
+
+    def target_to_build_root(self, target):
+        if self.get_target_dir(target) == '':
+            return ''
+        directories = os.path.normpath(self.get_target_dir(target)).split(os.sep)
+        return os.sep.join(['..'] * len(directories))
 
     def write_line(self, text):
         self.ofile.write(self.indent * self.indent_level + text)
@@ -202,38 +209,38 @@ class XCodeBackend(backends.Backend):
             self.source_phase[t] = self.gen_id()
 
     def generate_pbx_aggregate_target(self):
+        target_dependencies = list(map(lambda t: self.pbx_dep_map[t], self.build.targets))
+        aggregated_targets = []
+        aggregated_targets.append((self.all_id, 'ALL_BUILD', self.all_buildconf_id, [], target_dependencies))
+        aggregated_targets.append((self.test_id, 'RUN_TESTS', self.test_buildconf_id, [self.test_command_id], []))
+        # Sort objects by ID before writing
+        sorted_aggregated_targets = sorted(aggregated_targets, key=operator.itemgetter(0))
         self.ofile.write('\n/* Begin PBXAggregateTarget section */\n')
-        self.write_line('%s /* ALL_BUILD */ = {' % self.all_id)
-        self.indent_level += 1
-        self.write_line('isa = PBXAggregateTarget;')
-        self.write_line('buildConfigurationList = %s /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */;' % self.all_buildconf_id)
-        self.write_line('buildPhases = (')
-        self.write_line(');')
-        self.write_line('dependencies = (')
-        self.indent_level += 1
-        for t in self.build.targets:
-            self.write_line('%s /* PBXTargetDependency */,' % self.pbx_dep_map[t])
-        self.indent_level -= 1
-        self.write_line(');')
-        self.write_line('name = ALL_BUILD;')
-        self.write_line('productName = ALL_BUILD;')
-        self.indent_level -= 1
-        self.write_line('};')
-        self.write_line('%s /* RUN_TESTS */ = {' % self.test_id)
-        self.indent_level += 1
-        self.write_line('isa = PBXAggregateTarget;')
-        self.write_line('buildConfigurationList = %s /* Build configuration list for PBXAggregateTarget "RUN_TESTS" */;' % self.test_buildconf_id)
-        self.write_line('buildPhases = (')
-        self.indent_level += 1
-        self.write_line('%s /* ShellScript */,' % self.test_command_id)
-        self.indent_level -= 1
-        self.write_line(');')
-        self.write_line('dependencies = (')
-        self.write_line(');')
-        self.write_line('name = RUN_TESTS;')
-        self.write_line('productName = RUN_TESTS;')
-        self.indent_level -= 1
-        self.write_line('};')
+        for t in sorted_aggregated_targets:
+            name = t[1]
+            buildconf_id = t[2]
+            build_phases = t[3]
+            dependencies = t[4]
+            self.write_line('%s /* %s */ = {' % (t[0], name))
+            self.indent_level += 1
+            self.write_line('isa = PBXAggregateTarget;')
+            self.write_line('buildConfigurationList = %s /* Build configuration list for PBXAggregateTarget "%s" */;' % (buildconf_id, name))
+            self.write_line('buildPhases = (')
+            self.indent_level += 1
+            for bp in build_phases:
+                self.write_line('%s /* ShellScript */,' % bp)
+            self.indent_level -= 1
+            self.write_line(');')
+            self.write_line('dependencies = (')
+            self.indent_level += 1
+            for td in dependencies:
+                self.write_line('%s /* PBXTargetDependency */,' % td)
+            self.indent_level -= 1
+            self.write_line(');')
+            self.write_line('name = %s;' % name)
+            self.write_line('productName = %s;' % name)
+            self.indent_level -= 1
+            self.write_line('};')
         self.ofile.write('/* End PBXAggregateTarget section */\n')
 
     def generate_pbx_build_file(self):
@@ -594,14 +601,20 @@ class XCodeBackend(backends.Backend):
         self.ofile.write('/* End PBXSourcesBuildPhase section */\n')
 
     def generate_pbx_target_dependency(self):
-        self.ofile.write('\n/* Begin PBXTargetDependency section */\n')
+        targets = []
         for t in self.build.targets:
             idval = self.pbx_dep_map[t] # VERIFY: is this correct?
-            self.write_line('%s /* PBXTargetDependency */ = {' % idval)
+            targets.append((idval, self.native_targets[t], t, self.containerproxy_map[t]))
+
+        # Sort object by ID
+        sorted_targets = sorted(targets, key=operator.itemgetter(0))
+        self.ofile.write('\n/* Begin PBXTargetDependency section */\n')
+        for t in sorted_targets:
+            self.write_line('%s /* PBXTargetDependency */ = {' % t[0])
             self.indent_level += 1
             self.write_line('isa = PBXTargetDependency;')
-            self.write_line('target = %s /* %s */;' % (self.native_targets[t], t))
-            self.write_line('targetProxy = %s /* PBXContainerItemProxy */;' % self.containerproxy_map[t])
+            self.write_line('target = %s /* %s */;' % (t[1], t[2]))
+            self.write_line('targetProxy = %s /* PBXContainerItemProxy */;' % t[3])
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End PBXTargetDependency section */\n')
@@ -743,6 +756,19 @@ class XCodeBackend(backends.Backend):
                 self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = YES;')
                 self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
                 self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
+                if target.has_pch:
+                    # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
+                    # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each
+                    # file. Since Xcode itself already discourages precompiled headers in favor of modules we don't try much harder here.
+                    pchs = target.get_pch('c') + target.get_pch('cpp') + target.get_pch('objc') + target.get_pch('objcpp')
+                    # Make sure to use headers (other backends require implementation files like *.c *.cpp, etc; these should not be used here)
+                    pchs = [pch for pch in pchs if pch.endswith('.h') or pch.endswith('.hh') or pch.endswith('hpp')]
+                    if pchs:
+                        if len(pchs) > 1:
+                            mlog.warning('Unsupported Xcode configuration: More than 1 precompiled header found "%s". Target "%s" might not compile correctly.' % (str(pchs), target.name))
+                        relative_pch_path = os.path.join(target.get_subdir(), pchs[0]) # Path relative to target so it can be used with "$(PROJECT_DIR)"
+                        self.write_line('GCC_PRECOMPILE_PREFIX_HEADER = YES;')
+                        self.write_line('GCC_PREFIX_HEADER = "$(PROJECT_DIR)/%s";' % relative_pch_path)
                 self.write_line('GCC_PREPROCESSOR_DEFINITIONS = "";')
                 self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
                 if len(headerdirs) > 0:
@@ -764,12 +790,13 @@ class XCodeBackend(backends.Backend):
                 self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
                 self.indent_level -= 1
                 self.write_line('};')
-                self.write_line('name = "%s";' % buildtype)
+                self.write_line('name = %s;' % buildtype)
                 self.indent_level -= 1
                 self.write_line('};')
         self.ofile.write('/* End XCBuildConfiguration section */\n')
 
     def generate_xc_configurationList(self):
+        # FIXME: sort items
         self.ofile.write('\n/* Begin XCConfigurationList section */\n')
         self.write_line('%s /* Build configuration list for PBXProject "%s" */ = {' % (self.project_conflist, self.build.project_name))
         self.indent_level += 1
@@ -828,7 +855,7 @@ class XCodeBackend(backends.Backend):
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('defaultConfigurationIsVisible = 0;')
-            self.write_line('defaultConfigurationName = "%s";' % typestr)
+            self.write_line('defaultConfigurationName = %s;' % typestr)
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End XCConfigurationList section */\n')
