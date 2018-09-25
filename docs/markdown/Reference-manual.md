@@ -679,6 +679,7 @@ argument also accepts the following:
 
 - `@OUTPUT@`: the full path to the output file
 - `@INPUT@`: the full path to the input file
+- `@DEPFILE@`: the full path to the depfile
 - `@SOURCE_DIR@`: the full path to the root of the source tree
 - `@CURRENT_SOURCE_DIR@`: this is the directory where the currently processed meson.build is located in
 - `@BUILD_DIR@`: the full path to the root of the build dir where the output will be placed
