@@ -518,7 +518,12 @@ class GnomeModule(ExtensionModule):
         ret = []
 
         for lang in langs:
-            for link_arg in state.environment.coredata.get_external_link_args(lang):
+            if state.environment.is_cross_build():
+                link_args = state.environment.cross_info.config["properties"].get(lang + '_link_args', "")
+            else:
+                link_args = state.environment.coredata.get_external_link_args(lang)
+
+            for link_arg in link_args:
                 if link_arg.startswith('-L'):
                     ret.append(link_arg)
 
@@ -691,7 +696,10 @@ class GnomeModule(ExtensionModule):
     def _get_external_args_for_langs(self, state, langs):
         ret = []
         for lang in langs:
-            ret += state.environment.coredata.get_external_args(lang)
+            if state.environment.is_cross_build():
+                ret += state.environment.cross_info.config["properties"].get(lang + '_args', "")
+            else:
+                ret += state.environment.coredata.get_external_args(lang)
         return ret
 
     @staticmethod
