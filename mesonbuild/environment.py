@@ -375,7 +375,7 @@ class Environment:
 
     def get_build_command(self, unbuffered=False):
         cmd = mesonlib.meson_command[:]
-        if unbuffered and 'python' in cmd[0]:
+        if unbuffered and 'python' in os.path.basename(cmd[0]):
             cmd.insert(1, '-u')
         return cmd
 
