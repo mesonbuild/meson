@@ -28,6 +28,7 @@ parser.add_argument('--subdir', dest='subdir')
 parser.add_argument('--headerdirs', dest='headerdirs')
 parser.add_argument('--mainfile', dest='mainfile')
 parser.add_argument('--modulename', dest='modulename')
+parser.add_argument('--moduleversion', dest='moduleversion')
 parser.add_argument('--htmlargs', dest='htmlargs', default='')
 parser.add_argument('--scanargs', dest='scanargs', default='')
 parser.add_argument('--scanobjsargs', dest='scanobjsargs', default='')
@@ -73,7 +74,7 @@ def gtkdoc_run_check(cmd, cwd, library_paths=None):
         print(out)
 
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
-                 main_file, module,
+                 main_file, module, module_version,
                  html_args, scan_args, fixxref_args, mkdb_args,
                  gobject_typesfile, scanobjs_args, run, ld, cc, ldflags, cflags,
                  html_assets, content_files, ignore_headers, namespace,
@@ -191,13 +192,17 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
     else:
         mkhtml_cmd.append('%s-docs.xml' % module)
     # html gen must be run in the HTML dir
-    gtkdoc_run_check(mkhtml_cmd, os.path.join(abs_out, 'html'))
+    gtkdoc_run_check(mkhtml_cmd, htmldir)
 
     # Fix cross-references in HTML files
     fixref_cmd = ['gtkdoc-fixxref',
                   '--module=' + module,
                   '--module-dir=html'] + fixxref_args
     gtkdoc_run_check(fixref_cmd, abs_out)
+
+    if module_version:
+        shutil.move(os.path.join(htmldir, '{}.devhelp2'.format(module)),
+                    os.path.join(htmldir, '{}-{}.devhelp2'.format(module, module_version)))
 
 def install_gtkdoc(build_root, doc_subdir, install_prefix, datadir, module):
     source = os.path.join(build_root, doc_subdir, 'html')
@@ -234,6 +239,7 @@ def run(args):
         options.headerdirs.split('@@'),
         options.mainfile,
         options.modulename,
+        options.moduleversion,
         htmlargs,
         scanargs,
         fixxrefargs,
@@ -255,7 +261,12 @@ def run(args):
     if 'MESON_INSTALL_PREFIX' in os.environ:
         destdir = os.environ.get('DESTDIR', '')
         install_prefix = destdir_join(destdir, os.environ['MESON_INSTALL_PREFIX'])
-        install_dir = options.install_dir if options.install_dir else options.modulename
+        if options.install_dir:
+            install_dir = options.install_dir
+        else:
+            install_dir = options.modulename
+            if options.moduleversion:
+                install_dir += '-' + options.moduleversion
         if os.path.isabs(install_dir):
             install_dir = destdir_join(destdir, install_dir)
         install_gtkdoc(options.builddir,

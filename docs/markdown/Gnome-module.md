@@ -323,6 +323,7 @@ of the module.
 * `dependencies`: a list of dependencies
 * `fixxref_args`: a list of arguments to pass to `gtkdoc-fixxref`
 * `gobject_typesfile`: a list of type files
+* `include_directories`: extra include paths to pass to `gtkdoc-scangobj`
 * `ignore_headers`: a list of header files to ignore
 * `html_assets`: a list of assets for the HTML pages
 * `html_args` a list of arguments to pass to `gtkdoc-mkhtml`
@@ -332,6 +333,7 @@ of the module.
 * `main_xml`: specifies the main XML file
 * `main_sgml`: equal to `main_xml`
 * `mkdb_args`: a list of arguments to pass to `gtkdoc-mkdb`
+* `module_version`: the version of the module, affects the installed location and the devhelp2 file location
 * `scan_args`: a list of arguments to pass to `gtkdoc-scan`
 * `scanobjs_args`: a list of arguments to pass to `gtkdoc-scangobj`
 * `c_args`: (*Added 0.48.0*) additional compile arguments to pass
