@@ -1074,6 +1074,16 @@ class ClangCCompiler(ClangCompiler, CCompiler):
                                                        'none')})
         return opts
 
+    def thread_flags(self, env):
+        if for_darwin(self.is_cross, env):
+            return []
+        return super().thread_flags()
+
+    def thread_link_flags(self, env):
+        if for_darwin(self.is_cross, env):
+            return []
+        return super().thread_link_flags()
+
     def get_option_compile_args(self, options):
         args = []
         std = options['c_std']
