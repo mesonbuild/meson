@@ -217,7 +217,7 @@ class CCompiler(Compiler):
         paths = []
         for p in pathstr.split(sep):
             p = Path(p)
-            if p.exists():
+            if p.exists() and p.resolve().as_posix() not in paths:
                 paths.append(p.resolve().as_posix())
         return tuple(paths)
 
@@ -232,8 +232,34 @@ class CCompiler(Compiler):
         return ()
 
     @functools.lru_cache()
-    def get_library_dirs(self, env):
-        return self.get_compiler_dirs(env, 'libraries')
+    def get_library_dirs(self, env, elf_class = None):
+        dirs = self.get_compiler_dirs(env, 'libraries')
+        if elf_class is None or elf_class == 0:
+            return dirs
+
+        # if we do have an elf class for 32-bit or 64-bit, we want to check that
+        # the directory in question contains libraries of the appropriate class. Since
+        # system directories aren't mixed, we only need to check one file for each
+        # directory and go by that. If we can't check the file for some reason, assume
+        # the compiler knows what it's doing, and accept the directory anyway.
+        retval = []
+        for d in dirs:
+            files = [f for f in os.listdir(d) if f.endswith('.so') and os.path.isfile(os.path.join(d, f))]
+            # if no files, accept directory and move on
+            if len(files) == 0:
+                retval.append(d)
+                continue
+            file_to_check = os.path.join(d, files[0])
+            with open(file_to_check, 'rb') as fd:
+                header = fd.read(5)
+                # if file is not an ELF file, it's weird, but accept dir
+                # if it is elf, and the class matches, accept dir
+                if header[1:4] != b'ELF' or int(header[4]) == elf_class:
+                    retval.append(d)
+                # at this point, it's an ELF file which doesn't match the
+                # appropriate elf_class, so skip this one
+                pass
+        return tuple(retval)
 
     @functools.lru_cache()
     def get_program_dirs(self, env):
@@ -935,6 +961,13 @@ class CCompiler(Compiler):
                 return f
         return None
 
+    @functools.lru_cache()
+    def output_is_64bit(self, env):
+        '''
+        returns true if the output produced is 64-bit, false if 32-bit
+        '''
+        return self.sizeof('void *', '', env) == 8
+
     def find_library_real(self, libname, env, extra_dirs, code, libtype):
         # First try if we can just add the library as -l.
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
@@ -950,8 +983,18 @@ class CCompiler(Compiler):
         # Not found or we want to use a specific libtype? Try to find the
         # library file itself.
         patterns = self.get_library_naming(env, libtype)
+        # try to detect if we are 64-bit or 32-bit. If we can't
+        # detect, we will just skip path validity checks done in
+        # get_library_dirs() call
+        try:
+            if self.output_is_64bit(env):
+                elf_class = 2
+            else:
+                elf_class = 1
+        except:
+            elf_class = 0
         # Search in the specified dirs, and then in the system libraries
-        for d in itertools.chain(extra_dirs, self.get_library_dirs(env)):
+        for d in itertools.chain(extra_dirs, self.get_library_dirs(env, elf_class)):
             for p in patterns:
                 trial = self._get_trials_from_pattern(p, d, libname)
                 if not trial:
