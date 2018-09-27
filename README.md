@@ -65,7 +65,7 @@ you may need to run this command with sudo.
 
 #### Contributing
 
-We love code contributions. See the contributing.txt file for
+We love code contributions. See the [contributing.md](contributing.md) file for
 details.
 
 
@@ -73,10 +73,13 @@ details.
 
 The irc channel for Meson is `#mesonbuild` over at Freenode.
 
+You can use [FreeNode's official webchat](https://webchat.freenode.net/#mesonbuild) 
+to connect to this channel.
+
 
 #### Further info
 
 More information about the Meson build system can be found at the
 [project's home page](http://mesonbuild.com).
 
-Meson is a registered trademark of Jussi Pakkanen
+Meson is a registered trademark of Jussi Pakkanen.
