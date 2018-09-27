@@ -25,6 +25,7 @@ import shlex
 import shutil
 import textwrap
 import platform
+import fnmatch
 from enum import Enum
 from pathlib import PurePath
 
@@ -227,7 +228,12 @@ class ExternalDependency(Dependency):
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
         self.static = kwargs.get('static', False)
-        if not isinstance(self.static, bool):
+        if isinstance(self.static, (list, str)):
+            self.static_patterns = mesonlib.stringlistify(self.static)
+            self.static = True
+        elif isinstance(self.static, bool):
+            self.static_patterns = None
+        else:
             raise DependencyException('Static keyword must be boolean')
         # Is this dependency for cross-compilation?
         if 'native' in kwargs and self.env.is_cross_build():
@@ -606,6 +612,51 @@ class PkgConfigDependency(ExternalDependency):
                                       (self.name, out))
         self.compile_args = self._convert_mingw_paths(shlex.split(out))
 
+    def _match_static_patterns(self, path):
+        if self.static_patterns is None:
+            return True
+        for pattern in self.static_patterns:
+            if fnmatch.fnmatch(path, pattern):
+                return True
+        return False
+
+    def _resolve_lib(self, lib, libpaths, libtype):
+        if not self.clib_compiler:
+            # If the project only uses a non-clib language such as D, Rust,
+            # C#, Python, etc, all we can do is limp along by adding the
+            # arguments as-is and then adding the libpaths at the end.
+            return lib, True
+
+        args = self.clib_compiler.find_library(lib[2:], self.env, libpaths, libtype)
+
+        if libtype == 'static' and args is None:
+            # Couldn't find the static library, resolve the shared library.
+            # Print a warning if we wanted everything as static.
+            if self.static_patterns is None:
+                mlog.warning('Static library {!r} not found for dependency {!r}, may '
+                             'not be statically linked'.format(lib[2:], self.name))
+            return self._resolve_lib(lib, libpaths, 'default')
+
+        if libtype == 'static' and args and not self._match_static_patterns(args[0]):
+            # We found the static library but we don't want to use it, resolve
+            # the shared library instead.
+            return self._resolve_lib(lib, libpaths, 'default')
+
+        if args is None:
+            # Library wasn't found, maybe we're looking in the wrong
+            # places or the library will be provided with LDFLAGS or
+            # LIBRARY_PATH from the environment (on macOS), and many
+            # other edge cases that we can't account for.
+            #
+            # Add all -L paths and use it as -lfoo
+            return lib, True
+
+        if not args:
+            # Library is either to be ignored, or is provided by the compiler.
+            return None, False
+
+        return args[0], False
+
     def _search_libs(self, out, out_raw):
         '''
         @out: PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 pkg-config --libs
@@ -648,9 +699,8 @@ class PkgConfigDependency(ExternalDependency):
         # Use this re-ordered path list for library resolution
         libpaths = list(prefix_libpaths) + list(system_libpaths)
         # Track -lfoo libraries to avoid duplicate work
-        libs_found = OrderedSet()
-        # Track not-found libraries to know whether to add library paths
-        libs_notfound = []
+        libs_processed = OrderedSet()
+        add_Lpaths = False
         libtype = 'static' if self.static else 'default'
         # Generate link arguments for this library
         link_args = []
@@ -663,39 +713,13 @@ class PkgConfigDependency(ExternalDependency):
                 continue
             elif lib.startswith('-l'):
                 # Don't resolve the same -lfoo argument again
-                if lib in libs_found:
+                if lib in libs_processed:
                     continue
-                if self.clib_compiler:
-                    args = self.clib_compiler.find_library(lib[2:], self.env,
-                                                           libpaths, libtype)
-                # If the project only uses a non-clib language such as D, Rust,
-                # C#, Python, etc, all we can do is limp along by adding the
-                # arguments as-is and then adding the libpaths at the end.
-                else:
-                    args = None
-                if args is not None:
-                    libs_found.add(lib)
-                    # Replace -l arg with full path to library if available
-                    # else, library is either to be ignored, or is provided by
-                    # the compiler, can't be resolved, and should be used as-is
-                    if args:
-                        if not args[0].startswith('-l'):
-                            lib = args[0]
-                    else:
-                        continue
-                else:
-                    # Library wasn't found, maybe we're looking in the wrong
-                    # places or the library will be provided with LDFLAGS or
-                    # LIBRARY_PATH from the environment (on macOS), and many
-                    # other edge cases that we can't account for.
-                    #
-                    # Add all -L paths and use it as -lfoo
-                    if lib in libs_notfound:
-                        continue
-                    if self.static:
-                        mlog.warning('Static library {!r} not found for dependency {!r}, may '
-                                     'not be statically linked'.format(lib[2:], self.name))
-                    libs_notfound.append(lib)
+                libs_processed.add(lib)
+                lib, needs_Lpaths = self._resolve_lib(lib, libpaths, libtype)
+                if not lib:
+                    continue
+                add_Lpaths |= needs_Lpaths
             elif lib.endswith(".la"):
                 shared_libname = self.extract_libtool_shlib(lib)
                 shared_lib = os.path.join(os.path.dirname(lib), shared_libname)
@@ -712,7 +736,7 @@ class PkgConfigDependency(ExternalDependency):
                     continue
             link_args.append(lib)
         # Add all -Lbar args if we have -lfoo args in link_args
-        if libs_notfound:
+        if add_Lpaths:
             # Order of -L flags doesn't matter with ld, but it might with other
             # linkers such as MSVC, so prepend them.
             link_args = ['-L' + lp for lp in prefix_libpaths] + link_args

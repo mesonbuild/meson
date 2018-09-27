@@ -397,7 +397,10 @@ otherwise. This function supports the following keyword arguments:
   [`feature`](Build-options.md#features) option can also be passed.
 - `static` tells the dependency provider to try to get static
   libraries instead of dynamic ones (note that this is not supported
-  by all dependency backends)
+  by all dependency backends). Since *0.49.0* it can be a list of Unix
+  shell-style wildcards strings. A static library will be used only if its
+  absolute path matches at least one of the patterns, otherwsise it will be kept
+  dynamic.
 - `version` specifies the required version, a string containing a
   comparison operator followed by the version string, examples include
   `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. (*Added 0.37.0*)

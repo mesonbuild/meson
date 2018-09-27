@@ -2105,36 +2105,24 @@ int main(int argc, char **argv) {
         since system libraries -lm will never be found statically.
         https://github.com/mesonbuild/meson/issues/2785
         '''
-        (cc, stlinker, objext, shext) = self.detect_prebuild_env()
-        testdir = os.path.join(self.unit_test_dir, '18 pkgconfig static')
-        source = os.path.join(testdir, 'foo.c')
-        objectfile = os.path.join(testdir, 'foo.' + objext)
-        stlibfile = os.path.join(testdir, 'libfoo.a')
-        impfile = os.path.join(testdir, 'foo.lib')
-        if cc.get_argument_syntax() == 'msvc':
-            shlibfile = os.path.join(testdir, 'foo.' + shext)
-        elif is_cygwin():
-            shlibfile = os.path.join(testdir, 'cygfoo.' + shext)
-        else:
-            shlibfile = os.path.join(testdir, 'libfoo.' + shext)
-        # Build libs
-        self.build_static_lib(cc, stlinker, source, objectfile, stlibfile, extra_args=['-DFOO_STATIC'])
-        self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
-        # Run test
-        os.environ['PKG_CONFIG_LIBDIR'] = self.builddir
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.prefix = tmpdir
+            testdir = os.path.join(self.unit_test_dir, '18 pkgconfig static', 'libfoo')
+            self.init(testdir)
+            self.build()
+            self.install(use_destdir=False)
+
+            libdir = os.path.join(tmpdir, self.libdir)
+            os.environ['PKG_CONFIG_LIBDIR'] = os.path.join(libdir, 'pkgconfig')
+            os.environ['LD_LIBRARY_PATH'] = libdir
+            if is_windows():
+                os.environ['PATH'] += os.pathsep + libdir
+            self.new_builddir()
+
+            testdir = os.path.join(self.unit_test_dir, '18 pkgconfig static')
             self.init(testdir)
             self.build()
             self.run_tests()
-        finally:
-            os.unlink(stlibfile)
-            os.unlink(shlibfile)
-            if mesonbuild.mesonlib.is_windows():
-                # Clean up all the garbage MSVC writes in the
-                # source tree.
-                for fname in glob(os.path.join(testdir, 'foo.*')):
-                    if os.path.splitext(fname)[1] not in ['.c', '.h', '.in']:
-                        os.unlink(fname)
 
     @skipIfNoPkgconfig
     def test_pkgconfig_gen_escaping(self):
@@ -2890,7 +2878,6 @@ class FailureTests(BasePlatformTests):
         if subprocess.call(['pkg-config', '--exists', 'zlib']) != 0:
             raise unittest.SkipTest('zlib not found with pkg-config')
         a = (("dependency('zlib', method : 'fail')", "'fail' is invalid"),
-             ("dependency('zlib', static : '1')", "[Ss]tatic.*boolean"),
              ("dependency('zlib', version : 1)", "[Vv]ersion.*string or list"),
              ("dependency('zlib', required : 1)", "[Rr]equired.*boolean"),
              ("dependency('zlib', method : 1)", "[Mm]ethod.*string"),
