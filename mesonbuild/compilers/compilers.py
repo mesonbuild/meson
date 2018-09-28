@@ -1191,6 +1191,8 @@ class CompilerType(enum.Enum):
     ICC_OSX = 21
     ICC_WIN = 22
 
+    ARM_WIN = 30
+
     @property
     def is_standard_compiler(self):
         return self.name in ('GCC_STANDARD', 'CLANG_STANDARD', 'ICC_STANDARD')
@@ -1201,7 +1203,7 @@ class CompilerType(enum.Enum):
 
     @property
     def is_windows_compiler(self):
-        return self.name in ('GCC_MINGW', 'GCC_CYGWIN', 'CLANG_MINGW', 'ICC_WIN')
+        return self.name in ('GCC_MINGW', 'GCC_CYGWIN', 'CLANG_MINGW', 'ICC_WIN', 'ARM_WIN')
 
 
 def get_macos_dylib_install_name(prefix, shlib_name, suffix, soversion):
@@ -1542,7 +1544,7 @@ class ClangCompiler(GnuLikeCompiler):
 
 
 class ArmclangCompiler:
-    def __init__(self):
+    def __init__(self, compiler_type):
         if not self.is_cross:
             raise EnvironmentException('armclang supports only cross-compilation.')
         # Check whether 'armlink.exe' is available in path
@@ -1568,6 +1570,7 @@ class ArmclangCompiler:
         if not version_compare(self.version, '==' + linker_ver):
             raise EnvironmentException('armlink version does not match with compiler version')
         self.id = 'armclang'
+        self.compiler_type = compiler_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_ndebug', 'b_staticpic', 'b_colorout']
         # Assembly
@@ -1654,10 +1657,11 @@ class IntelCompiler(GnuLikeCompiler):
 
 class ArmCompiler:
     # Functionality that is common to all ARM family compilers.
-    def __init__(self):
+    def __init__(self, compiler_type):
         if not self.is_cross:
             raise EnvironmentException('armcc supports only cross-compilation.')
         self.id = 'arm'
+        self.compiler_type = compiler_type
         default_warn_args = []
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + [],
