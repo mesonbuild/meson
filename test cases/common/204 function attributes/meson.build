@@ -63,7 +63,7 @@ if host_machine.system() != 'darwin'
   attributes += 'visibility'
 endif
 
-if c.get_id() == 'gcc'
+if ['gcc', 'intel'].contains(c.get_id())
   # not supported by clang as of 5.0.0 (at least up to 6.0.1)
   attributes += 'artificial'
   attributes += 'error'
@@ -73,7 +73,7 @@ if c.get_id() == 'gcc'
   attributes += 'optimize'
   attributes += 'warning'
 
-  if c.version().version_compare('>= 7.0.0')
+  if c.get_id() == 'gcc' and c.version().version_compare('>= 7.0.0')
     attributes += 'fallthrough'
   endif
 endif
