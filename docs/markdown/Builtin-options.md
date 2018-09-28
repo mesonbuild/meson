@@ -119,4 +119,8 @@ compiler being used:
 
 The default values of `c_winlibs` and `cpp_winlibs` are in compiler-specific
 argument forms, but the libraries are: kernel32, user32, gdi32, winspool,
-shell32, ole32, oleaut32, uuid, comdlg32, advapi32
+shell32, ole32, oleaut32, uuid, comdlg32, advapi32.
+
+c_args, cpp_args, c_link_args, and cpp_link_args only affect native builds,
+when cross compiling they will not be applied to binaries or libraries
+targeting the host system, only those being run on the build system.
