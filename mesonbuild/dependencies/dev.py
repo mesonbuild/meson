@@ -260,13 +260,15 @@ class LLVMDependency(ConfigToolDependency):
 
     def _set_new_link_args(self):
         """How to set linker args for LLVM versions >= 3.9"""
-        if ((mesonlib.is_dragonflybsd() or mesonlib.is_freebsd()) and not
-                self.static and version_compare(self.version, '>= 4.0')):
+        if (not self.static and (mesonlib.is_osx() or
+                ((mesonlib.is_dragonflybsd() or mesonlib.is_freebsd()) and
+                 version_compare(self.version, '>= 4.0')))):
             # llvm-config on DragonFly BSD and FreeBSD for versions 4.0, 5.0,
             # and 6.0 have an error when generating arguments for shared mode
-            # linking, even though libLLVM.so is installed, because for some
-            # reason the tool expects to find a .so for each static library.
-            # This works around that.
+            # linking, even though libLLVM.so is installed, because llvm-config
+            # is misconfigured at build time.
+            # MacOS from brew has the same problem, except that it applies to
+            # all versions (3.9 - 7.0)
             self.link_args = self.get_config_value(['--ldflags'], 'link_args')
             self.link_args.append('-lLLVM')
             return
