@@ -577,8 +577,9 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 # Override previous values
                 version = search_version(arm_ver_str)
                 full_version = arm_ver_str
+                compiler_type = CompilerType.ARM_WIN
                 cls = ArmclangCCompiler if lang == 'c' else ArmclangCPPCompiler
-                return cls(ccache + compiler, version, is_cross, exe_wrap, full_version=full_version)
+                return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
             if 'clang' in out:
                 if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
                     compiler_type = CompilerType.CLANG_OSX
@@ -613,8 +614,9 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
             if 'ARM' in out:
+                compiler_type = CompilerType.ARM_WIN
                 cls = ArmCCompiler if lang == 'c' else ArmCPPCompiler
-                return cls(ccache + compiler, version, is_cross, exe_wrap, full_version=full_version)
+                return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, want_cross):

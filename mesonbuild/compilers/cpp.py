@@ -157,9 +157,9 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
 
 
 class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
-        ArmclangCompiler.__init__(self)
+        ArmclangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -336,9 +336,9 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
 
 
 class ArmCPPCompiler(ArmCompiler, CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap=None, **kwargs):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrap=None, **kwargs):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
-        ArmCompiler.__init__(self)
+        ArmCompiler.__init__(self, compiler_type)
 
     def get_options(self):
         opts = CPPCompiler.get_options(self)
