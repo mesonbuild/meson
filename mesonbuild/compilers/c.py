@@ -986,12 +986,12 @@ class CCompiler(Compiler):
         return self.find_library_impl(libname, env, extra_dirs, code, libtype)
 
     def thread_flags(self, env):
-        if for_haiku(self.is_cross, env):
+        if for_haiku(self.is_cross, env) or for_darwin(self.is_cross, env):
             return []
         return ['-pthread']
 
     def thread_link_flags(self, env):
-        if for_haiku(self.is_cross, env):
+        if for_haiku(self.is_cross, env) or for_darwin(self.is_cross, env):
             return []
         return ['-pthread']
 
@@ -1075,16 +1075,6 @@ class ClangCCompiler(ClangCompiler, CCompiler):
                                                         'gnu89', 'gnu99', 'gnu11'],
                                                        'none')})
         return opts
-
-    def thread_flags(self, env):
-        if for_darwin(self.is_cross, env):
-            return []
-        return super().thread_flags()
-
-    def thread_link_flags(self, env):
-        if for_darwin(self.is_cross, env):
-            return []
-        return super().thread_link_flags()
 
     def get_option_compile_args(self, options):
         args = []
