@@ -37,7 +37,7 @@ import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.mesonlib import (
-    is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd,
+    is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku,
     windows_proof_rmtree, python_command, version_compare,
     BuildDirLock, Version
 )
@@ -3270,17 +3270,17 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(sorted(out), sorted(['libfoo >= 1.0']))
 
         out = self._run(cmd + ['--cflags-only-other']).strip().split()
-        self.assertEqual(sorted(out), sorted(['-pthread', '-DCUSTOM']))
+        self.check_pkg_flags_are_same(out, ['-pthread', '-DCUSTOM'])
 
         out = self._run(cmd + ['--libs-only-l', '--libs-only-other']).strip().split()
-        self.assertEqual(sorted(out), sorted(['-pthread', '-lcustom',
-                                              '-llibmain', '-llibexposed']))
+        self.check_pkg_flags_are_same(out, ['-pthread', '-lcustom',
+                                            '-llibmain', '-llibexposed'])
 
         out = self._run(cmd + ['--libs-only-l', '--libs-only-other', '--static']).strip().split()
-        self.assertEqual(sorted(out), sorted(['-pthread', '-lcustom',
-                                              '-llibmain', '-llibexposed',
-                                              '-llibinternal', '-lcustom2',
-                                              '-lfoo']))
+        self.check_pkg_flags_are_same(out, ['-pthread', '-lcustom',
+                                            '-llibmain', '-llibexposed',
+                                            '-llibinternal', '-lcustom2',
+                                            '-lfoo'])
 
         cmd = ['pkg-config', 'requires-test']
         out = self._run(cmd + ['--print-requires']).strip().split('\n')
@@ -3289,6 +3289,11 @@ class LinuxlikeTests(BasePlatformTests):
         cmd = ['pkg-config', 'requires-private-test']
         out = self._run(cmd + ['--print-requires-private']).strip().split('\n')
         self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo >= 1.0', 'libhello']))
+
+    def check_pkg_flags_are_same(self, output, expected):
+        if is_osx() or is_haiku():
+            expected = [x for x in expected if x != '-pthread']
+        self.assertEqual(sorted(output), sorted(expected))
 
     def test_pkg_unfound(self):
         testdir = os.path.join(self.unit_test_dir, '23 unfound pkgconfig')
