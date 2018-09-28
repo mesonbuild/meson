@@ -26,6 +26,7 @@ from glob import glob
 from mesonbuild.environment import detect_ninja
 from mesonbuild.dependencies import ExternalProgram
 from mesonbuild.mesonlib import windows_proof_rmtree
+from mesonbuild import mlog
 
 def create_hash(fname):
     hashname = fname + '.sha256sum'
@@ -91,7 +92,15 @@ def run_dist_scripts(dist_root, dist_scripts):
         if pc.returncode != 0:
             sys.exit('Dist script errored out')
 
+
+def git_have_dirty_index(src_root):
+    '''Check whether there are uncommitted changes in git'''
+    ret = subprocess.call(['git', '-C', src_root, 'diff-index', '--quiet', 'HEAD'])
+    return ret == 1
+
 def create_dist_git(dist_name, src_root, bld_root, dist_sub, dist_scripts):
+    if git_have_dirty_index(src_root):
+        mlog.warning('Repository has uncommitted changes that will not be included in the dist tarball')
     distdir = os.path.join(dist_sub, dist_name)
     if os.path.exists(distdir):
         shutil.rmtree(distdir)
@@ -111,14 +120,21 @@ def create_dist_git(dist_name, src_root, bld_root, dist_sub, dist_scripts):
     return (xzname, )
 
 
-def create_dist_hg(dist_name, src_root, bld_root, dist_sub, dist_scripts):
-    os.makedirs(dist_sub, exist_ok=True)
+def hg_have_dirty_index(src_root):
+    '''Check whether there are uncommitted changes in hg'''
+    out = subprocess.check_output(['hg', '-R', src_root, 'summary'])
+    return b'commit: (clean)' not in out
 
+def create_dist_hg(dist_name, src_root, bld_root, dist_sub, dist_scripts):
+    if hg_have_dirty_index(src_root):
+        mlog.warning('Repository has uncommitted changes that will not be included in the dist tarball')
+
+    os.makedirs(dist_sub, exist_ok=True)
     tarname = os.path.join(dist_sub, dist_name + '.tar')
     xzname = tarname + '.xz'
     subprocess.check_call(['hg', 'archive', '-R', src_root, '-S', '-t', 'tar', tarname])
     if len(dist_scripts) > 0:
-        print('dist scripts are not supported in Mercurial projects')
+        mlog.warning('dist scripts are not supported in Mercurial projects')
     with lzma.open(xzname, 'wb') as xf, open(tarname, 'rb') as tf:
         shutil.copyfileobj(tf, xf)
     os.unlink(tarname)
