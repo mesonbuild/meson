@@ -116,11 +116,12 @@ class QtBaseModule:
         except Exception:
             return []
 
+    @FeatureNewKwargs('qt.preprocess', '0.49.0', ['uic_extra_arguments'])
     @FeatureNewKwargs('qt.preprocess', '0.44.0', ['moc_extra_arguments'])
-    @permittedKwargs({'moc_headers', 'moc_sources', 'moc_extra_arguments', 'include_directories', 'dependencies', 'ui_files', 'qresources', 'method'})
+    @permittedKwargs({'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'include_directories', 'dependencies', 'ui_files', 'qresources', 'method'})
     def preprocess(self, state, args, kwargs):
-        rcc_files, ui_files, moc_headers, moc_sources, moc_extra_arguments, sources, include_directories, dependencies \
-            = extract_as_list(kwargs, 'qresources', 'ui_files', 'moc_headers', 'moc_sources', 'moc_extra_arguments', 'sources', 'include_directories', 'dependencies', pop = True)
+        rcc_files, ui_files, moc_headers, moc_sources, uic_extra_arguments, moc_extra_arguments, sources, include_directories, dependencies \
+            = extract_as_list(kwargs, 'qresources', 'ui_files', 'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'sources', 'include_directories', 'dependencies', pop = True)
         sources += args[1:]
         method = kwargs.get('method', 'auto')
         self._detect_tools(state.environment, method)
@@ -160,8 +161,9 @@ class QtBaseModule:
         if len(ui_files) > 0:
             if not self.uic.found():
                 raise MesonException(err_msg.format('UIC', 'uic-qt' + self.qt_version))
+            arguments = uic_extra_arguments + ['-o', '@OUTPUT@', '@INPUT@']
             ui_kwargs = {'output': 'ui_@BASENAME@.h',
-                         'arguments': ['-o', '@OUTPUT@', '@INPUT@']}
+                         'arguments': arguments}
             ui_gen = build.Generator([self.uic], ui_kwargs)
             ui_output = ui_gen.process_files('Qt{} ui'.format(self.qt_version), ui_files, state)
             sources.append(ui_output)
