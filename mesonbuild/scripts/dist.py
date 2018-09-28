@@ -80,16 +80,16 @@ def run_dist_scripts(dist_root, dist_scripts):
     env = os.environ.copy()
     env['MESON_DIST_ROOT'] = dist_root
     for d in dist_scripts:
-        print('Processing dist script %s.' % d)
+        print('Processing dist script %s' % d)
         ddir, dname = os.path.split(d)
         ep = ExternalProgram(dname,
                              search_dir=os.path.join(dist_root, ddir),
                              silent=True)
         if not ep.found():
-            sys.exit('Script %s could not be found in dist directory.' % d)
+            sys.exit('Script %s could not be found in dist directory' % d)
         pc = subprocess.run(ep.command, env=env)
         if pc.returncode != 0:
-            sys.exit('Dist script errored out.')
+            sys.exit('Dist script errored out')
 
 def create_dist_git(dist_name, src_root, bld_root, dist_sub, dist_scripts):
     distdir = os.path.join(dist_sub, dist_name)
@@ -118,7 +118,7 @@ def create_dist_hg(dist_name, src_root, bld_root, dist_sub, dist_scripts):
     xzname = tarname + '.xz'
     subprocess.check_call(['hg', 'archive', '-R', src_root, '-S', '-t', 'tar', tarname])
     if len(dist_scripts) > 0:
-        print('WARNING: dist scripts not supported in Mercurial projects.')
+        print('dist scripts are not supported in Mercurial projects')
     with lzma.open(xzname, 'wb') as xf, open(tarname, 'rb') as tf:
         shutil.copyfileobj(tf, xf)
     os.unlink(tarname)
@@ -129,7 +129,7 @@ def create_dist_hg(dist_name, src_root, bld_root, dist_sub, dist_scripts):
 
 
 def check_dist(packagename, meson_command):
-    print('Testing distribution package %s.' % packagename)
+    print('Testing distribution package %s' % packagename)
     unpackdir = tempfile.mkdtemp()
     builddir = tempfile.mkdtemp()
     installdir = tempfile.mkdtemp()
@@ -142,21 +142,21 @@ def check_dist(packagename, meson_command):
             print('Running Meson on distribution package failed')
             return 1
         if subprocess.call([ninja_bin], cwd=builddir) != 0:
-            print('Compiling the distribution package failed.')
+            print('Compiling the distribution package failed')
             return 1
         if subprocess.call([ninja_bin, 'test'], cwd=builddir) != 0:
-            print('Running unit tests on the distribution package failed.')
+            print('Running unit tests on the distribution package failed')
             return 1
         myenv = os.environ.copy()
         myenv['DESTDIR'] = installdir
         if subprocess.call([ninja_bin, 'install'], cwd=builddir, env=myenv) != 0:
-            print('Installing the distribution package failed.')
+            print('Installing the distribution package failed')
             return 1
     finally:
         shutil.rmtree(unpackdir)
         shutil.rmtree(builddir)
         shutil.rmtree(installdir)
-    print('Distribution package %s tested.' % packagename)
+    print('Distribution package %s tested' % packagename)
     return 0
 
 def run(args):
@@ -177,7 +177,7 @@ def run(args):
     elif os.path.isdir(os.path.join(src_root, '.hg')):
         names = create_dist_hg(dist_name, src_root, bld_root, dist_sub, build.dist_scripts)
     else:
-        print('Dist currently only works with Git or Mercurial repos.')
+        print('Dist currently only works with Git or Mercurial repos')
         return 1
     if names is None:
         return 1
