@@ -27,9 +27,6 @@ from collections import OrderedDict
 import shlex
 from functools import lru_cache
 
-@lru_cache(maxsize=None)
-def get_target_macos_dylib_install_name(ld):
-    return get_macos_dylib_install_name(ld.prefix, ld.name, ld.suffix, ld.soversion)
 
 
 class CleanTrees:
@@ -970,29 +967,6 @@ class Backend:
         with open(install_data_file, 'wb') as ofile:
             pickle.dump(d, ofile)
 
-    def get_target_link_deps_mappings(self, t, prefix):
-        '''
-        On macOS, we need to change the install names of all built libraries
-        that a target depends on using install_name_tool so that the target
-        continues to work after installation. For this, we need a dictionary
-        mapping of the install_name value to the new one, so we can change them
-        on install.
-        '''
-        result = {}
-        if isinstance(t, build.StaticLibrary):
-            return result
-        for ld in t.get_all_link_deps():
-            if ld is t or not isinstance(ld, build.SharedLibrary):
-                continue
-            old = get_target_macos_dylib_install_name(ld)
-            if old in result:
-                continue
-            fname = ld.get_filename()
-            outdirs, _ = ld.get_install_dir(self.environment)
-            new = os.path.join(prefix, outdirs[0], fname)
-            result.update({old: new})
-        return result
-
     def generate_target_install(self, d):
         for t in self.build.get_targets().values():
             if not t.should_install():
@@ -1012,7 +986,7 @@ class Backend:
                 # Install primary build output (library/executable/jar, etc)
                 # Done separately because of strip/aliases/rpath
                 if outdirs[0] is not False:
-                    mappings = self.get_target_link_deps_mappings(t, d.prefix)
+                    mappings = t.get_link_deps_mapping(d.prefix, self.environment)
                     i = TargetInstallData(self.get_target_filename(t), outdirs[0],
                                           t.get_aliases(), should_strip, mappings,
                                           t.install_rpath, install_mode)

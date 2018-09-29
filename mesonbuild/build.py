@@ -25,7 +25,7 @@ from .mesonlib import File, MesonException, listify, extract_as_list, OrderedSet
 from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
 from .mesonlib import for_windows, for_darwin, for_cygwin, for_android, has_path_sep
-from .compilers import is_object, clink_langs, sort_clink, lang_suffixes
+from .compilers import is_object, clink_langs, sort_clink, lang_suffixes, get_macos_dylib_install_name
 from .interpreterbase import FeatureNew
 
 pch_kwargs = set(['c_pch', 'cpp_pch'])
@@ -88,6 +88,10 @@ known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_mo
 known_shmod_kwargs = known_build_target_kwargs
 known_stlib_kwargs = known_build_target_kwargs | {'pic'}
 known_jar_kwargs = known_exe_kwargs | {'main_class'}
+
+@lru_cache(maxsize=None)
+def get_target_macos_dylib_install_name(ld):
+    return get_macos_dylib_install_name(ld.prefix, ld.name, ld.suffix, ld.soversion)
 
 class InvalidArguments(MesonException):
     pass
@@ -690,6 +694,20 @@ class BuildTarget(Target):
         result = []
         for i in self.link_targets:
             result += i.get_all_link_deps()
+        return result
+
+    def get_link_deps_mapping(self, prefix, environment):
+        return self.get_transitive_link_deps_mapping(prefix, environment)
+
+    @lru_cache(maxsize=None)
+    def get_transitive_link_deps_mapping(self, prefix, environment):
+        result = {}
+        for i in self.link_targets:
+            mapping = i.get_link_deps_mapping(prefix, environment)
+            #we are merging two dictionaries, while keeping the earlier one dominant
+            result_tmp = mapping.copy()
+            result_tmp.update(result)
+            result = result_tmp
         return result
 
     @lru_cache(maxsize=None)
@@ -1404,6 +1422,9 @@ class StaticLibrary(BuildTarget):
         self.filename = self.prefix + self.name + '.' + self.suffix
         self.outputs = [self.filename]
 
+    def get_link_deps_mapping(self, prefix, environment):
+        return {}
+
     def get_default_install_dir(self, environment):
         return environment.get_static_lib_dir()
 
@@ -1452,6 +1473,18 @@ class SharedLibrary(BuildTarget):
             self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames(is_cross, environment)
+
+    def get_link_deps_mapping(self, prefix, environment):
+        result = {}
+        mappings = self.get_transitive_link_deps_mapping(prefix, environment)
+        old = get_target_macos_dylib_install_name(self)
+        if old not in mappings:
+            fname = self.get_filename()
+            outdirs, _ = self.get_install_dir(self.environment)
+            new = os.path.join(prefix, outdirs[0], fname)
+            result.update({old: new})
+        mappings.update(result)
+        return mappings
 
     def get_default_install_dir(self, environment):
         return environment.get_shared_lib_dir()
