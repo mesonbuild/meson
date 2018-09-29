@@ -970,33 +970,6 @@ class Backend:
         with open(install_data_file, 'wb') as ofile:
             pickle.dump(d, ofile)
 
-    def get_target_install_dirs(self, t):
-        # Find the installation directory.
-        if isinstance(t, build.SharedModule):
-            default_install_dir = self.environment.get_shared_module_dir()
-        elif isinstance(t, build.SharedLibrary):
-            default_install_dir = self.environment.get_shared_lib_dir()
-        elif isinstance(t, build.StaticLibrary):
-            default_install_dir = self.environment.get_static_lib_dir()
-        elif isinstance(t, build.Executable):
-            default_install_dir = self.environment.get_bindir()
-        elif isinstance(t, build.CustomTarget):
-            default_install_dir = None
-        else:
-            assert(isinstance(t, build.BuildTarget))
-            # XXX: Add BuildTarget-specific install dir cases here
-            default_install_dir = self.environment.get_libdir()
-        outdirs = t.get_custom_install_dir()
-        if outdirs[0] is not None and outdirs[0] != default_install_dir and outdirs[0] is not True:
-            # Either the value is set to a non-default value, or is set to
-            # False (which means we want this specific output out of many
-            # outputs to not be installed).
-            custom_install_dir = True
-        else:
-            custom_install_dir = False
-            outdirs[0] = default_install_dir
-        return outdirs, custom_install_dir
-
     def get_target_link_deps_mappings(self, t, prefix):
         '''
         On macOS, we need to change the install names of all built libraries
@@ -1015,7 +988,7 @@ class Backend:
             if old in result:
                 continue
             fname = ld.get_filename()
-            outdirs, _ = self.get_target_install_dirs(ld)
+            outdirs, _ = ld.get_install_dir(self.environment)
             new = os.path.join(prefix, outdirs[0], fname)
             result.update({old: new})
         return result
@@ -1024,7 +997,7 @@ class Backend:
         for t in self.build.get_targets().values():
             if not t.should_install():
                 continue
-            outdirs, custom_install_dir = self.get_target_install_dirs(t)
+            outdirs, custom_install_dir = t.get_install_dir(self.environment)
             # Sanity-check the outputs and install_dirs
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs != 1 and num_outdirs != num_out:
