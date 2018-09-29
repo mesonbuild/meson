@@ -1,8 +1,8 @@
-# Adding new projects to wrap
+# Adding new projects to WrapDB
 
-**If you don't have permissions to do something on this page, please
-  open issue against https://github.com/mesonbuild/wrapweb/issues to
-  let us know that you want to start new project.**
+If you don't have permissions to do something on this page, please
+open an issue at [wrapweb](https://github.com/mesonbuild/wrapweb/issues) to
+let us know that you want to start new project.
 
 ## Overview
 
