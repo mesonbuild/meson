@@ -85,9 +85,9 @@ slightly different wrap file.
 
 ```ini
 [wrap-git]
-directory=samplesubproject
-url=https://github.com/jpakkane/samplesubproject.git
-revision=head
+directory = samplesubproject
+url = https://github.com/jpakkane/samplesubproject.git
+revision = head
 ```
 
 The format is straightforward. The only thing to note is the revision
@@ -106,14 +106,14 @@ these cases you can specify the upload URL by adding the following at
 the end of your wrap file:
 
 ```ini
-push-url=git@git.example.com:projects/someproject.git # Supported since version 0.37.0
+push-url = git@git.example.com:projects/someproject.git # Supported since version 0.37.0
 ```
 
 If the git repo contains submodules, you can tell Meson to clone them
 automatically by adding the following *(since 0.48.0)*:
 
 ```ini
-clone-recursive=true
+clone-recursive = true
 ```
 
 ## Using wrapped projects
@@ -121,12 +121,12 @@ clone-recursive=true
 To use a subproject simply do this in your top level `meson.build`.
 
 ```meson
-foobar_sp = subproject('foobar')
+foobar_proj = subproject('foobar')
 ```
 
 Usually dependencies consist of some header files plus a library to
-link against. To do this you would declare this internal dependency
-like this:
+link against. To do this in a project so it can be used as a subproject you 
+would declare this internal dependency like this:
 
 ```meson
 foobar_dep = declare_dependency(link_with : mylib,
@@ -137,7 +137,7 @@ Then in your main project you would use them like this:
 
 ```meson
 executable('toplevel_exe', 'prog.c',
-  dependencies : foobar_sp.get_variable('foobar_dep'))
+  dependencies : foobar_proj.get_variable('foobar_dep'))
 ```
 
 Note that the subproject object is *not* used as the dependency, but
@@ -160,10 +160,10 @@ available.
 foobar_dep = dependency('foobar', required : false)
 
 if not foobar_dep.found()
-  foobar_subproj = subproject('foobar')
+  foobar_proj = subproject('foobar')
   # the subproject defines an internal dependency with
   # the command declare_dependency().
-  foobar_dep = foobar_subproj.get_variable('foobar_dep')
+  foobar_dep = foobar_proj.get_variable('foobar_dep')
 endif
 
 executable('toplevel_exe', 'prog.c',
