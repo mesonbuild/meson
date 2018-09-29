@@ -73,13 +73,7 @@ class WindowsModule(ExtensionModule):
         if not rescomp.found():
             raise MesonException('Could not find Windows resource compiler')
 
-        if 'rc' in rescomp.get_path():
-            # RC is used to generate .res files, a special binary resource
-            # format, which can be passed directly to LINK (apparently LINK uses
-            # CVTRES internally to convert this to a COFF object)
-            suffix = 'res'
-            res_args = extra_args + ['/nologo', '/fo@OUTPUT@', '@INPUT@']
-        else:
+        if 'windres' in rescomp.get_path():
             # ld only supports object files, so windres is used to generate a
             # COFF object
             suffix = 'o'
@@ -90,6 +84,12 @@ class WindowsModule(ExtensionModule):
             for arg in extra_args:
                 if ' ' in arg:
                     mlog.warning(m.format(arg))
+        else:
+            # RC is used to generate .res files, a special binary resource
+            # format, which can be passed directly to LINK (apparently LINK uses
+            # CVTRES internally to convert this to a COFF object)
+            suffix = 'res'
+            res_args = extra_args + ['/nologo', '/fo@OUTPUT@', '@INPUT@']
 
         res_targets = []
 
