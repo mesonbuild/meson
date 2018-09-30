@@ -266,6 +266,9 @@ following.
 - `build_by_default` *(added 0.38)* causes, when set to true, to
   have this target be built by default, that is, when invoking plain
   `ninja`; the default value is false
+  *(changed in 0.50)* if `build_by_default` is explicitly set to false, `install`
+  will no longer override it. If `build_by_default` is not set, `install` will
+  still determine its default.
 - `build_always` (deprecated) if `true` this target is always considered out of
   date and is rebuilt every time.  Equivalent to setting both
   `build_always_stale` and `build_by_default` to true.

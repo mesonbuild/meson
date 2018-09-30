@@ -813,7 +813,7 @@ class Backend:
         result = OrderedDict()
         # Get all build and custom targets that must be built by default
         for name, t in self.build.get_targets().items():
-            if t.build_by_default or t.install:
+            if t.build_by_default:
                 result[name] = t
         # Get all targets used as test executables and arguments. These must
         # also be built by default. XXX: Sometime in the future these should be
@@ -1074,7 +1074,8 @@ class Backend:
                 if num_outdirs == 1 and num_out > 1:
                     for output in t.get_outputs():
                         f = os.path.join(self.get_target_dir(t), output)
-                        i = TargetInstallData(f, outdirs[0], {}, False, {}, None, install_mode)
+                        i = TargetInstallData(f, outdirs[0], {}, False, {}, None, install_mode,
+                                              optional=not t.build_by_default)
                         d.targets.append(i)
                 else:
                     for output, outdir in zip(t.get_outputs(), outdirs):
@@ -1082,7 +1083,8 @@ class Backend:
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        i = TargetInstallData(f, outdir, {}, False, {}, None, install_mode)
+                        i = TargetInstallData(f, outdir, {}, False, {}, None, install_mode,
+                                              optional=not t.build_by_default)
                         d.targets.append(i)
 
     def generate_custom_install_script(self, d):
