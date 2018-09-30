@@ -2386,7 +2386,8 @@ rule FORTRAN_DEP_HACK%s
         # Add buildtype linker args: optimization level, etc.
         commands += linker.get_buildtype_linker_args(self.get_option_for_target('buildtype', target))
         # Add /DEBUG and the pdb filename when using MSVC
-        commands += self.get_link_debugfile_args(linker, target, outname)
+        if self.get_option_for_target('debug', target):
+            commands += self.get_link_debugfile_args(linker, target, outname)
         # Add link args specific to this BuildTarget type, such as soname args,
         # PIC, import library generation, etc.
         commands += self.get_target_type_link_args(target, linker)
