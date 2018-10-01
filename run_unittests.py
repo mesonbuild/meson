@@ -37,7 +37,7 @@ import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.mesonlib import (
-    is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd,
+    is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku,
     windows_proof_rmtree, python_command, version_compare,
     BuildDirLock, Version
 )
@@ -3260,6 +3260,11 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir)
         privatedir2 = self.privatedir
 
+        if is_osx() or is_haiku():
+            pthreads = []
+        else:
+            pthreads = ['-pthread']
+
         os.environ['PKG_CONFIG_LIBDIR'] = os.pathsep.join([privatedir1, privatedir2])
         cmd = ['pkg-config', 'dependency-test']
 
@@ -3270,17 +3275,15 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(sorted(out), sorted(['libfoo >= 1.0']))
 
         out = self._run(cmd + ['--cflags-only-other']).strip().split()
-        self.assertEqual(sorted(out), sorted(['-pthread', '-DCUSTOM']))
+        self.assertEqual(sorted(out), sorted(pthreads + ['-DCUSTOM']))
 
         out = self._run(cmd + ['--libs-only-l', '--libs-only-other']).strip().split()
-        self.assertEqual(sorted(out), sorted(['-pthread', '-lcustom',
-                                              '-llibmain', '-llibexposed']))
+        self.assertEqual(sorted(out), sorted(pthreads + ['-lcustom', '-llibmain', '-llibexposed']))
 
         out = self._run(cmd + ['--libs-only-l', '--libs-only-other', '--static']).strip().split()
-        self.assertEqual(sorted(out), sorted(['-pthread', '-lcustom',
-                                              '-llibmain', '-llibexposed',
-                                              '-llibinternal', '-lcustom2',
-                                              '-lfoo']))
+        self.assertEqual(sorted(out), sorted(['-lcustom', '-llibmain',
+                                              '-llibexposed', '-llibinternal',
+                                              '-lcustom2', '-lfoo'] + pthreads))
 
         cmd = ['pkg-config', 'requires-test']
         out = self._run(cmd + ['--print-requires']).strip().split('\n')
