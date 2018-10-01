@@ -1316,6 +1316,8 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_pch_use_args(self, pch_dir, header):
         base = os.path.basename(header)
+        if self.id == 'clang-cl':
+            base = header
         pchname = self.get_pch_name(header)
         return ['/FI' + base, '/Yu' + base, '/Fp' + os.path.join(pch_dir, pchname)]
 
