@@ -1451,6 +1451,8 @@ class VisualStudioCCompiler(CCompiler):
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
     def has_arguments(self, args, env, code, mode):
         warning_text = '4044' if mode == 'link' else '9002'
+        if self.id == 'clang-cl' and mode != 'link':
+            args = args + ['-Werror=unknown-argument']
         with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
                 return False
