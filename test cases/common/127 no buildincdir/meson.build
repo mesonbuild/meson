@@ -1,5 +1,5 @@
 project('nobuilddir', 'c',
-  default_options : 'werror=true')
+  default_options : ['werror=true', 'buildtype=plain'])
 
 cc = meson.get_compiler('c')
 
