@@ -1627,6 +1627,9 @@ the following methods:
   the positional argument, you can specify external dependencies to
   use with `dependencies` keyword argument.
 
+- `cmd_array()` returns an array containing the command arguments for
+  the current compiler.
+
 - `compiles(code)` returns true if the code fragment given in the
   positional argument compiles, you can specify external dependencies
   to use with `dependencies` keyword argument, `code` can be either a
