@@ -37,7 +37,7 @@ import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.mesonlib import (
-    is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd,
+    is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku,
     windows_proof_rmtree, python_command, version_compare,
     BuildDirLock, Version
 )
@@ -3260,7 +3260,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir)
         privatedir2 = self.privatedir
 
-        if is_osx():
+        if is_osx() or is_haiku():
             pthreads = []
         else:
             pthreads = ['-pthread']
