@@ -786,6 +786,7 @@ class XCodeBackend(backends.Backend):
                 self.write_line('PRODUCT_NAME = %s;' % product_name)
                 self.write_line('SECTORDER_FLAGS = "";')
                 self.write_line('SYMROOT = "%s";' % symroot)
+                self.write_build_setting_line('SYSTEM_HEADER_SEARCH_PATHS', [self.environment.get_build_dir()])
                 self.write_line('USE_HEADERMAP = NO;')
                 self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
                 self.indent_level -= 1
@@ -860,16 +861,29 @@ class XCodeBackend(backends.Backend):
             self.write_line('};')
         self.ofile.write('/* End XCConfigurationList section */\n')
 
-    def write_build_setting_line(self, flag_name, flag_values):
+    def write_build_setting_line(self, flag_name, flag_values, explicit=False):
         if flag_values:
-            self.write_line('%s = (' % flag_name)
-            self.indent_level += 1
-            for value in flag_values:
-                self.write_line('"%s",' % value)
-            self.indent_level -= 1
-            self.write_line(');')
+            if len(flag_values) == 1:
+                value = flag_values[0]
+                if (' ' in value):
+                    # If path contains spaces surround it with double colon
+                    self.write_line('%s = "\\"%s\\"";' % (flag_name, value))
+                else:
+                    self.write_line('"%s",' % value)
+            else:
+                self.write_line('%s = (' % flag_name)
+                self.indent_level += 1
+                for value in flag_values:
+                    if (' ' in value):
+                        # If path contains spaces surround it with double colon
+                        self.write_line('"\\"%s\\"",' % value)
+                    else:
+                        self.write_line('"%s",' % value)
+                self.indent_level -= 1
+                self.write_line(');')
         else:
-            self.write_line('%s = "";' % flag_name)
+            if explicit:
+                self.write_line('%s = "";' % flag_name)
 
     def generate_prefix(self):
         self.ofile.write('// !$*UTF8*$!\n{\n')
