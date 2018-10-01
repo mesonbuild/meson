@@ -3,7 +3,8 @@ py3_bin = import('python3').find_python()
 
 buildtype = get_option('buildtype')
 buildtype_args = '-Dfooxxx' # a useless compiler argument
-if meson.get_compiler('c').get_id() == 'msvc'
+cc = meson.get_compiler('c')
+if cc.get_argument_syntax() == 'msvc'
   # We need our manually generated code to use the same CRT as the executable.
   # Taken from compilers.py since build files do not have access to this.
   if buildtype == 'debug'
@@ -21,5 +22,5 @@ endif
 generated = custom_target('manygen',
   output : outfiles,
   input : ['funcinfo.def'],
-  command : [py3_bin, gen[0], '@INPUT@', '@OUTDIR@', buildtype_args],
+  command : [py3_bin, gen[0], '@INPUT@', '@OUTDIR@', buildtype_args, cc.get_argument_syntax(), cc.cmd_array()],
 )

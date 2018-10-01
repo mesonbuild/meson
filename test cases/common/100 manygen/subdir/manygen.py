@@ -6,38 +6,30 @@ from __future__ import print_function
 # file and a header file.
 
 import sys, os
-import shutil, subprocess
+import subprocess
 
 with open(sys.argv[1]) as f:
     funcname = f.readline().strip()
 outdir = sys.argv[2]
 buildtype_args = sys.argv[3]
+compiler_type = sys.argv[4]
+compiler = sys.argv[5:]
 
 if not os.path.isdir(outdir):
     print('Outdir does not exist.')
     sys.exit(1)
 
-# Emulate the environment.detect_c_compiler() logic
-compiler = os.environ.get('CC', None)
-if not compiler:
-    compiler = shutil.which('cl') or \
-        shutil.which('gcc') or \
-        shutil.which('clang') or \
-        shutil.which('cc')
-
-compbase = os.path.basename(compiler)
-if 'cl' in compbase and 'clang' not in compbase:
+if compiler_type == 'msvc':
     libsuffix = '.lib'
     is_vs = True
-    compiler = 'cl'
-    linker = 'lib'
+    if any(['clang-cl' in c for c in compiler]):
+        linker = 'llvm-lib'
+    else:
+        linker = 'lib'
 else:
     libsuffix = '.a'
     is_vs = False
     linker = 'ar'
-    if compiler is None:
-        print('No known compilers found.')
-        sys.exit(1)
 
 objsuffix = '.o'
 
@@ -70,9 +62,9 @@ with open(tmpc, 'w') as f:
 ''' % funcname)
 
 if is_vs:
-    subprocess.check_call([compiler, '/nologo', '/c', buildtype_args, '/Fo' + outo, tmpc])
+    subprocess.check_call(compiler + ['/nologo', '/c', buildtype_args, '/Fo' + outo, tmpc])
 else:
-    subprocess.check_call([compiler, '-c', '-o', outo, tmpc])
+    subprocess.check_call(compiler + ['-c', '-o', outo, tmpc])
 
 with open(tmpc, 'w') as f:
     f.write('''int %s_in_lib() {
@@ -81,10 +73,10 @@ with open(tmpc, 'w') as f:
 ''' % funcname)
 
 if is_vs:
-    subprocess.check_call([compiler, '/nologo', '/c', '/Fo' + tmpo, tmpc])
+    subprocess.check_call(compiler + ['/nologo', '/c', '/Fo' + tmpo, tmpc])
     subprocess.check_call([linker, '/NOLOGO', '/OUT:' + outa, tmpo])
 else:
-    subprocess.check_call([compiler, '-c', '-o', tmpo, tmpc])
+    subprocess.check_call(compiler + ['-c', '-o', tmpo, tmpc])
     subprocess.check_call([linker, 'csr', outa, tmpo])
 
 os.unlink(tmpo)
