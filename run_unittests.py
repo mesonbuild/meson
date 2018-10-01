@@ -3270,17 +3270,16 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(sorted(out), sorted(['libfoo >= 1.0']))
 
         out = self._run(cmd + ['--cflags-only-other']).strip().split()
-        self.assertEqual(sorted(out), sorted(['-pthread', '-DCUSTOM']))
+        self.assertEqual(sorted(out), sorted(['-DCUSTOM'] + [] if is_osx() else ['-pthread']))
 
         out = self._run(cmd + ['--libs-only-l', '--libs-only-other']).strip().split()
-        self.assertEqual(sorted(out), sorted(['-pthread', '-lcustom',
-                                              '-llibmain', '-llibexposed']))
+        self.assertEqual(sorted(out), sorted(['-lcustom', '-llibmain', '-llibexposed'] +
+                                             [] if is_osx() else ['-pthread']))
 
         out = self._run(cmd + ['--libs-only-l', '--libs-only-other', '--static']).strip().split()
-        self.assertEqual(sorted(out), sorted(['-pthread', '-lcustom',
-                                              '-llibmain', '-llibexposed',
-                                              '-llibinternal', '-lcustom2',
-                                              '-lfoo']))
+        self.assertEqual(sorted(out), sorted(['-lcustom', '-llibmain', '-llibexposed',
+                                              '-llibinternal', '-lcustom2', '-lfoo'] +
+                                             [] if is_osx() else ['-pthread']))
 
         cmd = ['pkg-config', 'requires-test']
         out = self._run(cmd + ['--print-requires']).strip().split('\n')
