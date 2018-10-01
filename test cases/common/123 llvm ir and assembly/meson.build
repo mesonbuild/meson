@@ -31,11 +31,14 @@ foreach lang : ['c', 'cpp']
   if cc.get_argument_syntax() == 'msvc'
     cl = cc.cmd_array()
     if cpu == 'x86'
-      ml = find_program('ml')
+      ml = find_program('ml', required: false)
     elif cpu == 'x86_64'
-      ml = find_program('ml64')
+      ml = find_program('ml64', required: false)
     else
       error('Unsupported cpu family: "' + cpu + '"')
+    endif
+    if not ml.found()
+      error('MESON_SKIP_TEST: ML (masm) not found')
     endif
     # Preprocess file (ml doesn't support pre-processing)
     preproc_name = lang + square_base + '.i'
