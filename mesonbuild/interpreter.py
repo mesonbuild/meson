@@ -1686,12 +1686,15 @@ class MesonMain(InterpreterObject):
 
     @permittedKwargs({})
     def add_dist_script_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('add_dist_script takes exactly one argument')
+        if len(args) < 1:
+            raise InterpreterException('add_dist_script takes one or more arguments')
+        if len(args) > 1:
+            FeatureNew('Calling "add_dist_script" with multiple arguments', '0.49.0').use(self.interpreter.subproject)
         check_stringlist(args, 'add_dist_script argument must be a string')
         if self.interpreter.subproject != '':
             raise InterpreterException('add_dist_script may not be used in a subproject.')
-        self.build.dist_scripts.append(os.path.join(self.interpreter.subdir, args[0]))
+        script = self._find_source_script(args[0], args[1:])
+        self.build.dist_scripts.append(script)
 
     @noPosargs
     @permittedKwargs({})

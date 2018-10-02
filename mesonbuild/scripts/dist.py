@@ -81,16 +81,17 @@ def run_dist_scripts(dist_root, dist_scripts):
     env = os.environ.copy()
     env['MESON_DIST_ROOT'] = dist_root
     for d in dist_scripts:
-        print('Processing dist script %s' % d)
-        ddir, dname = os.path.split(d)
-        ep = ExternalProgram(dname,
-                             search_dir=os.path.join(dist_root, ddir),
-                             silent=True)
-        if not ep.found():
-            sys.exit('Script %s could not be found in dist directory' % d)
-        pc = subprocess.run(ep.command, env=env)
-        if pc.returncode != 0:
-            sys.exit('Dist script errored out')
+        script = d['exe']
+        args = d['args']
+        name = ' '.join(script + args)
+        print('Running custom dist script {!r}'.format(name))
+        try:
+            rc = subprocess.call(script + args, env=env)
+            if rc != 0:
+                sys.exit('Dist script errored out')
+        except OSError:
+            print('Failed to run dist script {!r}'.format(name))
+            sys.exit(1)
 
 
 def git_have_dirty_index(src_root):

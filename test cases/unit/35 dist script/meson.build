@@ -4,4 +4,4 @@ project('dist script', 'c',
 exe = executable('comparer', 'prog.c')
 test('compare', exe)
 
-meson.add_dist_script('replacer.py')
+meson.add_dist_script('replacer.py', '"incorrect"', '"correct"')
