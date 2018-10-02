@@ -12,20 +12,20 @@ assert(conf.get('var', 'default') == 'mystring', 'Get function is not working.')
 assert(conf.get('notthere', 'default') == 'default', 'Default value getting is not working.')
 
 cfile = configure_file(input : 'config.h.in',
-output : 'config.h',
-configuration : conf)
+  output : 'config.h',
+  configuration : conf)
 
 e = executable('inctest', 'prog.c',
 # Note that you should NOT do this. Don't add generated headers here
 # This tests that we do the right thing even if people add in conf files
 # to their sources.
-cfile)
+  cfile)
 test('inctest', e)
 
 # Test if we can also pass files() as input
 configure_file(input : files('config.h.in'),
-               output : 'config2.h',
-               configuration : conf)
+  output : 'config2.h',
+  configuration : conf)
 
 # Now generate a header file with an external script.
 genprog = import('python3').find_python()
@@ -93,8 +93,7 @@ dump = configuration_data()
 dump.set('ZERO', 0)
 config_templates = files(['config4a.h.in', 'config4b.h.in'])
 foreach config_template : config_templates
-  configure_file(input : config_template, output : '@BASENAME@',
-                 configuration : dump)
+  configure_file(input : config_template, output : '@BASENAME@', configuration : dump)
 endforeach
 
 test('Substituted', executable('prog4', 'prog4.c'))
@@ -123,8 +122,7 @@ conf5.set('var2', 'error')
 configure_file(
   input : 'config5.h.in',
   output : '@BASENAME@',
-  configuration : conf5
-)
+  configuration : conf5)
 test('test5', executable('prog5', 'prog5.c'))
 
 # Test escaping
@@ -134,8 +132,7 @@ conf6.set('var2', 'bar')
 configure_file(
   input : 'config6.h.in',
   output : '@BASENAME@',
-  configuration : conf6
-)
+  configuration : conf6)
 test('test6', executable('prog6', 'prog6.c'))
 
 # test empty install dir string
@@ -152,8 +149,7 @@ configure_file(
   input : 'config7.h.in',
   output : '@BASENAME@',
   format : 'cmake',
-  configuration : conf7
-)
+  configuration : conf7)
 test('test7', executable('prog7', 'prog7.c'))
 
 # Test copying of an empty configuration data object
@@ -182,24 +178,21 @@ configure_file(
   input : 'config8.h.in',
   output : '@BASENAME@',
   encoding : 'koi8-r',
-  configuration : conf8
-)
+  configuration : conf8)
 
 # Test that passing an empty configuration_data() object to a file with
 # #mesondefine substitutions does not print the warning.
 configure_file(
   input: 'nosubst-nocopy1.txt.in',
   output: 'nosubst-nocopy1.txt',
-  configuration : configuration_data()
-)
+  configuration : configuration_data())
 
 # test that passing an empty configuration_data() object to a file with
 # @foo@ substitutions does not print the warning.
 configure_file(
   input: 'nosubst-nocopy2.txt.in',
   output: 'nosubst-nocopy2.txt',
-  configuration : configuration_data()
-)
+  configuration : configuration_data())
 
 # test that passing a configured file object to test() works, and that passing
 # an empty configuration_data() object to a file that leads to no substitutions
@@ -207,27 +200,23 @@ configure_file(
 test_file = configure_file(
   input: 'test.py.in',
   output: 'test.py',
-  configuration: configuration_data()
-)
+  configuration: configuration_data())
 
 # Test that overwriting an existing file creates a warning.
 configure_file(
   input: 'test.py.in',
   output: 'double_output.txt',
-  configuration: conf
-)
+  configuration: conf)
 configure_file(
   input: 'test.py.in',
   output: 'double_output.txt',
-  configuration: conf
-)
+  configuration: conf)
 
 # Test that the same file name in a different subdir will not create a warning
 configure_file(
   input: 'test.py.in',
   output: 'no_write_conflict.txt',
-  configuration: conf
-)
+  configuration: conf)
 
 test('configure-file', test_file)
 
