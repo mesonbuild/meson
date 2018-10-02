@@ -331,6 +331,9 @@ base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled he
                 'b_staticpic': coredata.UserBooleanOption('b_staticpic',
                                                           'Build static libraries as position independent',
                                                           True),
+                'b_pie': coredata.UserBooleanOption('b_pie',
+                                                    'Build executables as position independent',
+                                                    False),
                 'b_bitcode': coredata.UserBooleanOption('b_bitcode',
                                                         'Generate and embed bitcode (only macOS and iOS)',
                                                         False),
@@ -1180,6 +1183,18 @@ class Compiler:
         raise EnvironmentException(
             'Language {} does not support function attributes.'.format(self.get_display_language()))
 
+    def get_pic_args(self):
+        m = 'Language {} does not support position-independent code'
+        raise EnvironmentException(m.format(self.get_display_language()))
+
+    def get_pie_args(self):
+        m = 'Language {} does not support position-independent executable'
+        raise EnvironmentException(m.format(self.get_display_language()))
+
+    def get_pie_link_args(self):
+        m = 'Language {} does not support position-independent executable'
+        raise EnvironmentException(m.format(self.get_display_language()))
+
 
 @enum.unique
 class CompilerType(enum.Enum):
@@ -1322,7 +1337,7 @@ class GnuLikeCompiler(abc.ABC):
     def __init__(self, compiler_type):
         self.compiler_type = compiler_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_ndebug', 'b_staticpic']
+                             'b_ndebug', 'b_staticpic', 'b_pie']
         if not self.compiler_type.is_osx_compiler and not self.compiler_type.is_windows_compiler:
             self.base_options.append('b_lundef')
         if not self.compiler_type.is_windows_compiler:
@@ -1344,6 +1359,12 @@ class GnuLikeCompiler(abc.ABC):
         if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
+
+    def get_pie_args(self):
+        return ['-fPIE']
+
+    def get_pie_link_args(self):
+        return ['-pie']
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]

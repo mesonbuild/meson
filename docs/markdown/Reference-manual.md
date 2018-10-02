@@ -552,6 +552,7 @@ be passed to [shared and static libraries](#library).
 - `d_unittest`, when set to true, the D modules are compiled in debug mode
 - `d_module_versions` list of module version identifiers set when compiling D sources
 - `d_debug` list of module debug identifiers set when compiling D sources
+- `pie` *(added 0.49.0)* build a position-independent executable
 
 The list of `sources`, `objects`, and `dependencies` is always
 flattened, which means you can freely nest and add lists while
