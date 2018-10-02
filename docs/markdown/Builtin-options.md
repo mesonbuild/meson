@@ -82,6 +82,7 @@ platforms or with all compilers:
 | b_pgo       | off           | off, generate, use      | Use profile guided optimization |
 | b_sanitize  | none          | see below               | Code sanitizer to use |
 | b_staticpic | true          | true, false             | Build static libraries as position independent |
+| b_pie       | false         | true, false             | Build position-independent executables (since 0.49.0)|
 
 The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
 `undefined`, `memory`, `address,undefined`.

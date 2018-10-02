@@ -2245,6 +2245,8 @@ rule FORTRAN_DEP_HACK%s
             # If implib, and that's significant on this platform (i.e. Windows using either GCC or Visual Studio)
             if target.import_filename:
                 commands += linker.gen_import_library_args(os.path.join(self.get_target_dir(target), target.import_filename))
+            if target.pie:
+                commands += linker.get_pie_link_args()
         elif isinstance(target, build.SharedLibrary):
             if isinstance(target, build.SharedModule):
                 options = self.environment.coredata.base_options
