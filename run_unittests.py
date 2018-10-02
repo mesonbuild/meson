@@ -1598,6 +1598,7 @@ class AllPlatformTests(BasePlatformTests):
         clang = mesonbuild.compilers.ClangCompiler
         intel = mesonbuild.compilers.IntelCompiler
         msvc = mesonbuild.compilers.VisualStudioCCompiler
+        clangcl = mesonbuild.compilers.ClangClCCompiler
         ar = mesonbuild.linkers.ArLinker
         lib = mesonbuild.linkers.VisualStudioLinker
         langs = [('c', 'CC'), ('cpp', 'CXX')]
@@ -1619,6 +1620,9 @@ class AllPlatformTests(BasePlatformTests):
                 if ebase.startswith('g') or ebase.endswith(('-gcc', '-g++')):
                     self.assertIsInstance(ecc, gnu)
                     self.assertIsInstance(elinker, ar)
+                elif 'clang-cl' in ebase:
+                    self.assertIsInstance(ecc, clangcl)
+                    self.assertIsInstance(elinker, lib)
                 elif 'clang' in ebase:
                     self.assertIsInstance(ecc, clang)
                     self.assertIsInstance(elinker, ar)
