@@ -81,6 +81,8 @@ def run_exe(exe):
     if exe.capture and p.returncode == 0:
         with open(exe.capture, 'wb') as output:
             output.write(stdout)
+    else:
+        sys.stdout.buffer.write(stdout)
     if stderr:
         sys.stderr.buffer.write(stderr)
     return p.returncode
