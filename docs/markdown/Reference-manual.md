@@ -537,7 +537,8 @@ be passed to [shared and static libraries](#library).
 - `d_import_dirs` list of directories to look in for string imports used
   in the D programming language
 - `d_unittest`, when set to true, the D modules are compiled in debug mode
-- `d_module_versions` list of module versions set when compiling D sources
+- `d_module_versions` list of module version identifiers set when compiling D sources
+- `d_debug` list of module debug identifiers set when compiling D sources
 
 The list of `sources`, `objects`, and `dependencies` is always
 flattened, which means you can freely nest and add lists while
