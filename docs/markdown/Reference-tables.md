@@ -65,6 +65,11 @@ set in the cross file.
 Any cpu family not listed in the above list is not guaranteed to
 remain stable in future releases.
 
+Those porting from autotools should note that meson does not add
+endianness to the name of the cpu_family. For example, autotools
+will call little endian PPC64 "ppc64le", meson will not, you must
+also check the `.endian()` value of the machine for this information.
+
 ## Operating system names
 
 These are provided by the `.system()` method call.
