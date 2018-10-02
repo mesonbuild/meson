@@ -16,6 +16,7 @@
 # development purposes, such as testing, debugging, etc..
 
 import functools
+import glob
 import os
 import re
 
@@ -25,6 +26,17 @@ from .base import (
     DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
     strip_system_libdirs, ConfigToolDependency,
 )
+
+
+def get_shared_library_suffix(environment, native):
+    """This is only gauranteed to work for languages that compile to machine
+    code, not for languages like C# that use a bytecode and always end in .dll
+    """
+    if mesonlib.for_windows(native, environment):
+        return '.dll'
+    elif mesonlib.for_darwin(native, environment):
+        return '.dylib'
+    return '.so'
 
 
 class GTestDependency(ExternalDependency):
@@ -235,7 +247,7 @@ class LLVMDependency(ConfigToolDependency):
         self.compile_args = list(cargs.difference(self.__cpp_blacklist))
 
         if version_compare(self.version, '>= 3.9'):
-            self._set_new_link_args()
+            self._set_new_link_args(environment)
         else:
             self._set_old_link_args()
         self.link_args = strip_system_libdirs(environment, self.link_args)
@@ -258,18 +270,63 @@ class LLVMDependency(ConfigToolDependency):
                 new_args.append(arg)
         return new_args
 
-    def _set_new_link_args(self):
+    def __check_libfiles(self, shared):
+        """Use llvm-config's --libfiles to check if libraries exist."""
+        mode = '--link-shared' if shared else '--link-static'
+
+        # Set self.required to true to force an exception in get_config_value
+        # if the returncode != 0
+        restore = self.required
+        self.required = True
+
+        try:
+            # It doesn't matter what the stage is, the caller needs to catch
+            # the exception anyway.
+            self.link_args = self.get_config_value(['--libfiles', mode], '')
+        finally:
+            self.required = restore
+
+    def _set_new_link_args(self, environment):
         """How to set linker args for LLVM versions >= 3.9"""
-        if ((mesonlib.is_dragonflybsd() or mesonlib.is_freebsd()) and not
-                self.static and version_compare(self.version, '>= 4.0')):
-            # llvm-config on DragonFly BSD and FreeBSD for versions 4.0, 5.0,
-            # and 6.0 have an error when generating arguments for shared mode
-            # linking, even though libLLVM.so is installed, because for some
-            # reason the tool expects to find a .so for each static library.
-            # This works around that.
-            self.link_args = self.get_config_value(['--ldflags'], 'link_args')
-            self.link_args.append('-lLLVM')
-            return
+        mode = self.get_config_value(['--shared-mode'], 'link_args')[0]
+        if not self.static and mode == 'static':
+            # If llvm is configured with LLVM_BUILD_LLVM_DYLIB but not with
+            # LLVM_LINK_LLVM_DYLIB and not LLVM_BUILD_SHARED_LIBS (which
+            # upstreams doesn't recomend using), then llvm-config will lie to
+            # you about how to do shared-linking. It wants to link to a a bunch
+            # of individual shared libs (which don't exist because llvm wasn't
+            # built with LLVM_BUILD_SHARED_LIBS.
+            #
+            # Therefore, we'll try to get the libfiles, if the return code is 0
+            # or we get an empty list, then we'll try to build a working
+            # configuration by hand.
+            try:
+                self.__check_libfiles(True)
+            except DependencyException:
+                lib_ext = get_shared_library_suffix(environment, self.native)
+                libdir = self.get_config_value(['--libdir'], 'link_args')[0]
+                # Sort for reproducability
+                matches = sorted(glob.iglob(os.path.join(libdir, 'libLLVM*{}'.format(lib_ext))))
+                if not matches:
+                    if self.required:
+                        raise
+                    return
+
+                self.link_args = self.get_config_value(['--ldflags'], 'link_args')
+                libname = os.path.basename(matches[0]).rstrip(lib_ext).lstrip('lib')
+                self.link_args.append('-l{}'.format(libname))
+                return
+        elif self.static and mode == 'shared':
+            # If, however LLVM_BUILD_SHARED_LIBS is true # (*cough* gentoo *cough*)
+            # then this is correct. Building with LLVM_BUILD_SHARED_LIBS has a side
+            # effect, it stops the generation of static archives. Therefore we need
+            # to check for that and error out on static if this is the case
+            try:
+                self.__check_libfiles(False)
+            except DependencyException:
+                if self.required:
+                    raise
+
         link_args = ['--link-static', '--system-libs'] if self.static else ['--link-shared']
         self.link_args = self.get_config_value(
             ['--libs', '--ldflags'] + link_args + list(self.required_modules),
