@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import enum
 import os
+import re
 
 from .. import mlog
 from .. import mesonlib, build
@@ -24,6 +26,10 @@ from ..interpreter import CustomTargetHolder
 from ..interpreterbase import permittedKwargs, FeatureNewKwargs
 from ..dependencies import ExternalProgram
 
+class ResourceCompilerType(enum.Enum):
+    windres = 1
+    rc = 2
+
 class WindowsModule(ExtensionModule):
 
     def detect_compiler(self, compilers):
@@ -32,26 +38,14 @@ class WindowsModule(ExtensionModule):
                 return compilers[l]
         raise MesonException('Resource compilation requires a C or C++ compiler.')
 
-    @FeatureNewKwargs('windows.compile_resources', '0.47.0', ['depend_files', 'depends'])
-    @permittedKwargs({'args', 'include_directories', 'depend_files', 'depends'})
-    def compile_resources(self, state, args, kwargs):
-        comp = self.detect_compiler(state.compilers)
+    def _find_resource_compiler(self, state):
+        # FIXME: Does not handle `native: true` executables, see
+        # See https://github.com/mesonbuild/meson/issues/1531
 
-        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
-        wrc_depend_files = extract_as_list(kwargs, 'depend_files', pop = True)
-        wrc_depends = extract_as_list(kwargs, 'depends', pop = True)
-        for d in wrc_depends:
-            if isinstance(d, CustomTargetHolder):
-                extra_args += get_include_args([d.outdir_include()])
-        inc_dirs = extract_as_list(kwargs, 'include_directories', pop = True)
-        for incd in inc_dirs:
-            if not isinstance(incd.held_object, (str, build.IncludeDirs)):
-                raise MesonException('Resource include dirs should be include_directories().')
-        extra_args += get_include_args(inc_dirs)
+        if hasattr(self, '_rescomp'):
+            return self._rescomp
 
         rescomp = None
-        # FIXME: Does not handle `native: true` executables, see
-        # https://github.com/mesonbuild/meson/issues/1531
         if state.environment.is_cross_build():
             # If cross compiling see if windres has been specified in the
             # cross file before trying to find it another way.
@@ -65,6 +59,7 @@ class WindowsModule(ExtensionModule):
                 rescomp = ExternalProgram('windres', command=os.environ.get('WINDRES'), silent=True)
 
         if not rescomp or not rescomp.found():
+            comp = self.detect_compiler(state.compilers)
             if comp.id == 'msvc':
                 rescomp = ExternalProgram('rc', silent=True)
             else:
@@ -73,7 +68,38 @@ class WindowsModule(ExtensionModule):
         if not rescomp.found():
             raise MesonException('Could not find Windows resource compiler')
 
-        if 'rc' in rescomp.get_path():
+        for (arg, match, type) in [
+                ('/?', '^.*Microsoft.*Resource Compiler.*$', ResourceCompilerType.rc),
+                ('--version', '^.*GNU windres.*$', ResourceCompilerType.windres),
+        ]:
+            p, o, e = mesonlib.Popen_safe(rescomp.get_command() + [arg])
+            m = re.search(match, o, re.MULTILINE)
+            if m:
+                mlog.log('Windows resource compiler: %s' % m.group())
+                self._rescomp = (rescomp, type)
+                break
+        else:
+            raise MesonException('Could not determine type of Windows resource compiler')
+
+        return self._rescomp
+
+    @FeatureNewKwargs('windows.compile_resources', '0.47.0', ['depend_files', 'depends'])
+    @permittedKwargs({'args', 'include_directories', 'depend_files', 'depends'})
+    def compile_resources(self, state, args, kwargs):
+        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        wrc_depend_files = extract_as_list(kwargs, 'depend_files', pop = True)
+        wrc_depends = extract_as_list(kwargs, 'depends', pop = True)
+        for d in wrc_depends:
+            if isinstance(d, CustomTargetHolder):
+                extra_args += get_include_args([d.outdir_include()])
+        inc_dirs = extract_as_list(kwargs, 'include_directories', pop = True)
+        for incd in inc_dirs:
+            if not isinstance(incd.held_object, (str, build.IncludeDirs)):
+                raise MesonException('Resource include dirs should be include_directories().')
+        extra_args += get_include_args(inc_dirs)
+
+        rescomp, rescomp_type = self._find_resource_compiler(state)
+        if rescomp_type == ResourceCompilerType.rc:
             # RC is used to generate .res files, a special binary resource
             # format, which can be passed directly to LINK (apparently LINK uses
             # CVTRES internally to convert this to a COFF object)
@@ -129,7 +155,7 @@ class WindowsModule(ExtensionModule):
             }
 
             # instruct binutils windres to generate a preprocessor depfile
-            if 'windres' in rescomp.get_path():
+            if rescomp_type == ResourceCompilerType.windres:
                 res_kwargs['depfile'] = res_kwargs['output'] + '.d'
                 res_kwargs['command'] += ['--preprocessor-arg=-MD', '--preprocessor-arg=-MQ@OUTPUT@', '--preprocessor-arg=-MF@DEPFILE@']
 
