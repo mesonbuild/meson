@@ -44,6 +44,7 @@ from mesonbuild.mesonlib import (
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
+from mesonbuild.build import Target
 import mesonbuild.modules.pkgconfig
 
 from run_tests import exe_suffix, get_fake_env, get_meson_script
@@ -1551,7 +1552,8 @@ class AllPlatformTests(BasePlatformTests):
         incs = [a for a in shlex.split(execmd) if a.startswith("-I")]
         self.assertEqual(len(incs), 9)
         # target private dir
-        self.assertPathEqual(incs[0], "-Isub4/sub4@@someexe@exe")
+        someexe_id = Target.construct_id_from_path("sub4", "someexe", "@exe")
+        self.assertPathEqual(incs[0], "-I" + os.path.join("sub4", someexe_id))
         # target build subdir
         self.assertPathEqual(incs[1], "-Isub4")
         # target source subdir
@@ -2744,6 +2746,19 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(opts['debug'], True)
         self.assertEqual(opts['optimization'], '0')
 
+    def test_target_construct_id_from_path(self):
+        # This id is stable but not guessable.
+        # The test is supposed to prevent unintentional
+        # changes of target ID generation.
+        target_id = Target.construct_id_from_path('some/obscure/subdir',
+                                                  'target-id', '@suffix')
+        expected_id = 'D3NTVV4UCJT2SAC3XL5N4HHWFAK7VB62=@@target-id@suffix'
+        self.assertEqual(expected_id, target_id)
+        target_id = Target.construct_id_from_path('subproject/foo/subdir/bar',
+                                                  'target2-id', '@other')
+        expected_id = 'TEY7EZB3DZMXUVLPHVRCBSZMCHY3P4SN=@@target2-id@other'
+        self.assertEqual(expected_id, target_id)
+
 
 class FailureTests(BasePlatformTests):
     '''
@@ -3526,8 +3541,10 @@ class LinuxlikeTests(BasePlatformTests):
     def test_unity_subproj(self):
         testdir = os.path.join(self.common_test_dir, '46 subproject')
         self.init(testdir, extra_args='--unity=subprojects')
-        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib/subprojects@sublib@@simpletest@exe/simpletest-unity.c'))
-        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib/subprojects@sublib@@sublib@sha/sublib-unity.c'))
+        simpletest_id = Target.construct_id_from_path('subprojects/sublib', 'simpletest', '@exe')
+        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib', simpletest_id, 'simpletest-unity.c'))
+        sublib_id = Target.construct_id_from_path('subprojects/sublib', 'sublib', '@sha')
+        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib', sublib_id, 'sublib-unity.c'))
         self.assertPathDoesNotExist(os.path.join(self.builddir, 'user@exe/user-unity.c'))
         self.build()
 

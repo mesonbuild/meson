@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import copy, os, re
 from collections import OrderedDict
 import itertools, pathlib
+import hashlib
 import pickle
 from functools import lru_cache
 
@@ -331,19 +333,38 @@ a hard error in the future.''' % name)
     def get_subdir(self):
         return self.subdir
 
-    def get_id(self):
+    @staticmethod
+    def _get_id_hash(target_id):
+        # We don't really need cryptographic security here.
+        # Small-digest hash function with unlikely collision is good enough.
+        h = hashlib.sha1()
+        h.update(target_id.encode(encoding='utf-8', errors='replace'))
+        # Base32 is safe for both case-insensitive filesystems and
+        # Visual Studio IDs. It is also shorter than hex.
+        return base64.b32encode(h.digest()).decode(encoding='utf-8') + '==' # let's test it
+
+    @staticmethod
+    def construct_id_from_path(subdir, name, type_suffix):
+        """Construct target ID from subdir, name and type suffix.
+
+        This helper function is made public mostly for tests."""
         # This ID must also be a valid file name on all OSs.
         # It should also avoid shell metacharacters for obvious
         # reasons. '@' is not used as often as '_' in source code names.
         # In case of collisions consider using checksums.
         # FIXME replace with assert when slash in names is prohibited
-        name_part = self.name.replace('/', '@').replace('\\', '@')
-        assert not has_path_sep(self.type_suffix())
-        myid = name_part + self.type_suffix()
-        if self.subdir:
-            subdir_part = self.subdir.replace('/', '@').replace('\\', '@')
-            myid = subdir_part + '@@' + myid
-        return myid
+        name_part = name.replace('/', '@').replace('\\', '@')
+        assert not has_path_sep(type_suffix)
+        my_id = name_part + type_suffix
+        if subdir:
+            subdir_part = Target._get_id_hash(subdir)
+            # preserve myid for better debuggability
+            return subdir_part + '@@' + my_id
+        return my_id
+
+    def get_id(self):
+        return self.construct_id_from_path(
+            self.subdir, self.name, self.type_suffix())
 
     def process_kwargs(self, kwargs):
         if 'build_by_default' in kwargs:
