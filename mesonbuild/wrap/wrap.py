@@ -17,6 +17,7 @@ import contextlib
 import urllib.request, os, hashlib, shutil, tempfile, stat
 import subprocess
 import sys
+import configparser
 from pathlib import Path
 from . import WrapMode
 from ..mesonlib import Popen_safe
@@ -70,28 +71,13 @@ def open_wrapdburl(urlstring):
 
 class PackageDefinition:
     def __init__(self, fname):
-        self.values = {}
-        with open(fname) as ifile:
-            first = ifile.readline().strip()
-
-            if first == '[wrap-file]':
-                self.type = 'file'
-            elif first == '[wrap-git]':
-                self.type = 'git'
-            elif first == '[wrap-hg]':
-                self.type = 'hg'
-            elif first == '[wrap-svn]':
-                self.type = 'svn'
-            else:
-                raise RuntimeError('Invalid format of package file')
-            for line in ifile:
-                line = line.strip()
-                if line == '':
-                    continue
-                (k, v) = line.split('=', 1)
-                k = k.strip()
-                v = v.strip()
-                self.values[k] = v
+        self.config = configparser.ConfigParser()
+        self.config.read(fname)
+        self.wrap_section = self.config.sections()[0]
+        if not self.wrap_section.startswith('wrap-'):
+            raise RuntimeError('Invalid format of package file')
+        self.type = self.wrap_section[5:]
+        self.values = dict(self.config[self.wrap_section])
 
     def get(self, key):
         return self.values[key]
@@ -100,60 +86,71 @@ class PackageDefinition:
         return 'patch_url' in self.values
 
 class Resolver:
-    def __init__(self, subdir_root, wrap_mode=WrapMode(1)):
+    def __init__(self, subdir_root, wrap_mode=WrapMode.default):
         self.wrap_mode = wrap_mode
         self.subdir_root = subdir_root
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
 
     def resolve(self, packagename):
-        # Check if the directory is already resolved
-        dirname = Path(os.path.join(self.subdir_root, packagename))
-        subprojdir = os.path.join(*dirname.parts[-2:])
-        if dirname.is_dir():
-            if (dirname / 'meson.build').is_file():
-                # The directory is there and has meson.build? Great, use it.
-                return packagename
-            # Is the dir not empty and also not a git submodule dir that is
-            # not checkout properly? Can't do anything, exception!
-            elif next(dirname.iterdir(), None) and not (dirname / '.git').is_file():
-                m = '{!r} is not empty and has no meson.build files'
+        # We always have to load the wrap file, if it exists, because it could
+        # override the default directory name.
+        p = self.load_wrap(packagename)
+        directory = packagename
+        if p and 'directory' in p.values:
+            directory = p.get('directory')
+        dirname = os.path.join(self.subdir_root, directory)
+        subprojdir = os.path.join(*Path(dirname).parts[-2:])
+        meson_file = os.path.join(dirname, 'meson.build')
+
+        # The directory is there and has meson.build? Great, use it.
+        if os.path.exists(meson_file):
+            return directory
+
+        # Check if the subproject is a git submodule
+        self.resolve_git_submodule(dirname)
+
+        if os.path.exists(dirname):
+            if not os.path.isdir(dirname):
+                m = '{!r} already exists and is not a dir; cannot use as subproject'
                 raise RuntimeError(m.format(subprojdir))
-        elif dirname.exists():
-            m = '{!r} already exists and is not a dir; cannot use as subproject'
+        else:
+            # Don't download subproject data based on wrap file if requested.
+            # Git submodules are ok (see above)!
+            if self.wrap_mode is WrapMode.nodownload:
+                m = 'Automatic wrap-based subproject downloading is disabled'
+                raise RuntimeError(m)
+
+            # A wrap file is required to download
+            if not p:
+                m = 'No {}.wrap found for {!r}'
+                raise RuntimeError(m.format(packagename, subprojdir))
+
+            if p.type == 'file':
+                if not os.path.isdir(self.cachedir):
+                    os.mkdir(self.cachedir)
+                self.download(p, packagename)
+                self.extract_package(p)
+            elif p.type == 'git':
+                self.get_git(p)
+            elif p.type == "hg":
+                self.get_hg(p)
+            elif p.type == "svn":
+                self.get_svn(p)
+            else:
+                raise AssertionError('Unreachable code.')
+
+        # A meson.build file is required in the directory
+        if not os.path.exists(meson_file):
+            m = '{!r} is not empty and has no meson.build files'
             raise RuntimeError(m.format(subprojdir))
 
-        dirname = str(dirname)
-        # Check if the subproject is a git submodule
-        if self.resolve_git_submodule(dirname):
-            return packagename
+        return directory
 
-        # Don't download subproject data based on wrap file if requested.
-        # Git submodules are ok (see above)!
-        if self.wrap_mode is WrapMode.nodownload:
-            m = 'Automatic wrap-based subproject downloading is disabled'
-            raise RuntimeError(m)
-
-        # Check if there's a .wrap file for this subproject
+    def load_wrap(self, packagename):
         fname = os.path.join(self.subdir_root, packagename + '.wrap')
-        if not os.path.isfile(fname):
-            # No wrap file with this name? Give up.
-            m = 'No {}.wrap found for {!r}'
-            raise RuntimeError(m.format(packagename, subprojdir))
-        p = PackageDefinition(fname)
-        if p.type == 'file':
-            if not os.path.isdir(self.cachedir):
-                os.mkdir(self.cachedir)
-            self.download(p, packagename)
-            self.extract_package(p)
-        elif p.type == 'git':
-            self.get_git(p)
-        elif p.type == "hg":
-            self.get_hg(p)
-        elif p.type == "svn":
-            self.get_svn(p)
-        else:
-            raise AssertionError('Unreachable code.')
-        return p.get('directory')
+        if os.path.isfile(fname):
+            return PackageDefinition(fname)
+        return None
 
     def resolve_git_submodule(self, dirname):
         # Are we in a git repository?
@@ -181,6 +178,9 @@ class Resolver:
             # Even if checkout failed, try building it anyway and let the user
             # handle any problems manually.
             return True
+        elif out == b'':
+            # It is not a submodule, just a folder that exists in the main repository.
+            return False
         m = 'Unknown git submodule output: {!r}'
         raise RuntimeError(m.format(out))
 
