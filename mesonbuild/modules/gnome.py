@@ -40,7 +40,7 @@ from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewK
 # https://bugzilla.gnome.org/show_bug.cgi?id=774368
 gresource_dep_needed_version = '>= 2.51.1'
 
-gresource_ld_binary_needed_version = '>= 2.60'
+gresource_ld_binary_needed_version = '>= 2.59'
 
 native_glib_version = None
 girwarning_printed = False
@@ -170,6 +170,7 @@ class GnomeModule(ExtensionModule):
             cmd += ['--c-name', c_name]
         else:
             c_name = os.path.basename(ifile).partition('.')[0]
+        c_name = c_name.replace('-', '_')
         c_name_no_underscores = c_name.replace('_', '')
         export = kwargs.pop('export', False)
         if not export:
