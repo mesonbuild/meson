@@ -340,7 +340,7 @@ a hard error in the future.''' % name)
         h.update(target_id.encode(encoding='utf-8', errors='replace'))
         # Base32 is safe for both case-insensitive filesystems and
         # Visual Studio IDs. It is also shorter than hex.
-        return base64.b32encode(h.digest()).decode(encoding='utf-8')
+        return base64.b32encode(h.digest()).decode(encoding='utf-8') + '==' # let's test it
 
     @staticmethod
     def construct_id_from_path(subdir, name, type_suffix):
