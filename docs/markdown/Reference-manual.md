@@ -242,7 +242,7 @@ Create a custom top level build target. The only positional argument
 is the name of this target and the keyword arguments are the
 following.
 
-- `build_by_default` *(added 0.38.0)* causes, when set to true, to
+- `build_by_default` *(added 0.38)* causes, when set to true, to
   have this target be built by default, that is, when invoking plain
   `ninja`; the default value is false
 - `build_always` (deprecated) if `true` this target is always considered out of
@@ -256,7 +256,7 @@ following.
   this argument is set to true, Meson captures `stdout` and writes it
   to the target file. Note that your command argument list may not
   contain `@OUTPUT@` when capture mode is active.
-- `console` keyword argument conflicts with `capture`, and is meant
+- `console` *(added 0.48)* keyword argument conflicts with `capture`, and is meant
   for commands that are resource-intensive and take a long time to
   finish. With the Ninja backend, setting this will add this target
   to [Ninja's `console` pool](https://ninja-build.org/manual.html#_the_literal_console_literal_pool),
