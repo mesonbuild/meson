@@ -283,6 +283,17 @@ Note appending to an array will always create a new array object and
 assign it to `my_array` instead of modifying the original since all
 objects in Meson are immutable.
 
+Since 0.49.0, you can check if an array contains an element like this:
+```meson
+my_array = [1, 2]
+if 1 in my_array
+# This condition is true
+endif
+if 1 not in my_array
+# This condition is false
+endif
+```
+
 #### Array methods
 
 The following methods are defined for all arrays:
@@ -315,6 +326,20 @@ Dictionaries are available since 0.47.0.
 
 Visit the [Reference Manual](Reference-manual.md#dictionary-object) to read
 about the methods exposed by dictionaries.
+
+Since 0.49.0, you can check if a dictionary contains a key like this:
+```meson
+my_dict = {'foo': 42, 'foo': 43}
+if 'foo' in my_dict
+# This condition is true
+endif
+if 42 in my_dict
+# This condition is false
+endif
+if 'foo' not in my_dict
+# This condition is false
+endif
+```
 
 Function calls
 --
@@ -430,6 +455,24 @@ foreach name, sources : components
     sources_to_compile += sources
   endif
 endforeach
+```
+
+### Foreach `break` and `continue`
+
+Since 0.49.0 `break` and `continue` keywords can be used inside foreach loops.
+
+```meson
+items = ['a', 'continue', 'b', 'break', 'c']
+result = []
+foreach i : items
+  if i == 'continue'
+    continue
+  elif i == 'break'
+    break
+  endif
+  result += i
+endforeach
+# result is ['a', 'b']
 ```
 
 Comments
