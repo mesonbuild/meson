@@ -223,7 +223,6 @@ class CoreData:
         self.base_options = {}
         self.external_preprocess_args = {} # CPPFLAGS only
         self.cross_file = self.__load_cross_file(options.cross_file)
-        self.wrap_mode = options.wrap_mode if options.wrap_mode is not None else WrapMode.default
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
         self.deps = OrderedDict()
@@ -338,7 +337,10 @@ class CoreData:
 
     def get_builtin_option(self, optname):
         if optname in self.builtins:
-            return self.builtins[optname].value
+            v = self.builtins[optname]
+            if optname == 'wrap_mode':
+                return WrapMode.from_string(v.value)
+            return v.value
         raise RuntimeError('Tried to get unknown builtin option %s.' % optname)
 
     def set_builtin_option(self, optname, value):
@@ -616,7 +618,11 @@ builtin_options = {
     'install_umask':   [UserUmaskOption, 'Default umask to apply on permissions of installed files', '022'],
     'auto_features':   [UserFeatureOption, "Override value of all 'auto' features", 'auto'],
     'optimization':    [UserComboOption, 'Optimization level', ['0', 'g', '1', '2', '3', 's'], '0'],
-    'debug':           [UserBooleanOption, 'Debug', True]
+    'debug':           [UserBooleanOption, 'Debug', True],
+    'wrap_mode':       [UserComboOption, 'Wrap mode', ['default',
+                                                       'nofallback',
+                                                       'nodownload',
+                                                       'forcefallback'], 'default'],
 }
 
 # Special prefix-dependent defaults for installation directories that reside in
