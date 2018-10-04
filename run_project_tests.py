@@ -247,12 +247,12 @@ def run_test_inprocess(testdir):
     os.chdir(testdir)
     test_log_fname = Path('meson-logs', 'testlog.txt')
     try:
-        returncode_test = mtest.run(['--no-rebuild'])
+        returncode_test = mtest.run_with_args(['--no-rebuild'])
         if test_log_fname.exists():
             test_log = test_log_fname.open(errors='ignore').read()
         else:
             test_log = ''
-        returncode_benchmark = mtest.run(['--no-rebuild', '--benchmark', '--logbase', 'benchmarklog'])
+        returncode_benchmark = mtest.run_with_args(['--no-rebuild', '--benchmark', '--logbase', 'benchmarklog'])
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr

@@ -14,7 +14,6 @@
 
 import sys, pickle, os, shutil, subprocess, gzip, errno
 import shlex
-import argparse
 from glob import glob
 from .scripts import depfixer
 from .scripts import destdir_join
@@ -33,15 +32,13 @@ build definitions so that it will not break when the change happens.'''
 
 selinux_updates = []
 
-def buildparser():
-    parser = argparse.ArgumentParser(prog='meson install')
+def add_arguments(parser):
     parser.add_argument('-C', default='.', dest='wd',
                         help='directory to cd into before running')
     parser.add_argument('--no-rebuild', default=False, action='store_true',
                         help='Do not rebuild before installing.')
     parser.add_argument('--only-changed', default=False, action='store_true',
                         help='Only overwrite files that are older than the copied file.')
-    return parser
 
 class DirMaker:
     def __init__(self, lf):
@@ -501,9 +498,7 @@ class Installer:
                     else:
                         raise
 
-def run(args):
-    parser = buildparser()
-    opts = parser.parse_args(args)
+def run(opts):
     datafilename = 'meson-private/install.dat'
     private_dir = os.path.dirname(datafilename)
     log_dir = os.path.join(private_dir, '../meson-logs')
@@ -520,6 +515,3 @@ def run(args):
         append_to_log(lf, '# Does not contain files installed by custom scripts.')
         installer.do_install(datafilename)
     return 0
-
-if __name__ == '__main__':
-    sys.exit(run(sys.argv[1:]))

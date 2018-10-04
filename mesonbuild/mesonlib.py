@@ -48,6 +48,23 @@ else:
     python_command = [sys.executable]
 meson_command = None
 
+def set_meson_command(mainfile):
+    global python_command
+    global meson_command
+    # On UNIX-like systems `meson` is a Python script
+    # On Windows `meson` and `meson.exe` are wrapper exes
+    if not mainfile.endswith('.py'):
+        meson_command = [mainfile]
+    elif os.path.isabs(mainfile) and mainfile.endswith('mesonmain.py'):
+        # Can't actually run meson with an absolute path to mesonmain.py, it must be run as -m mesonbuild.mesonmain
+        meson_command = python_command + ['-m', 'mesonbuild.mesonmain']
+    else:
+        # Either run uninstalled, or full path to meson-script.py
+        meson_command = python_command + [mainfile]
+    # We print this value for unit tests.
+    if 'MESON_COMMAND_TESTS' in os.environ:
+        mlog.log('meson_command is {!r}'.format(meson_command))
+
 def is_ascii_string(astring):
     try:
         if isinstance(astring, str):
