@@ -1,5 +1,6 @@
 * @jpakkane
 /mesonbuild/modules/pkgconfig.py @xclaesse
 /mesonbuild/modules/cmake.py @mensinda
+/mesonbuild/modules/unstable_external_project.py @xclaesse
 /mesonbuild/ast/* @mensinda
 /mesonbuild/cmake/* @mensinda

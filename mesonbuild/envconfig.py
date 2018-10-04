@@ -339,6 +339,7 @@ class BinaryTable:
         'cmake': 'CMAKE',
         'qmake': 'QMAKE',
         'pkgconfig': 'PKG_CONFIG',
+        'make': 'MAKE',
     }  # type: T.Dict[str, str]
 
     # Deprecated environment variables mapped from the new variable to the old one
