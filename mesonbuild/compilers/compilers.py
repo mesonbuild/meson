@@ -96,6 +96,9 @@ cflags_mapping = {'c': 'CFLAGS',
                   'vala': 'VALAFLAGS',
                   'rust': 'RUSTFLAGS'}
 
+cexe_mapping = {'c': 'CC',
+                'cpp': 'CXX'}
+
 # All these are only for C-linkable languages; see `clink_langs` above.
 
 def sort_clink(lang):
