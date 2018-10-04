@@ -58,6 +58,7 @@ from mesonbuild.mesonlib import (
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
+import mesonbuild.dependencies.base
 from mesonbuild.build import Target
 import mesonbuild.modules.pkgconfig
 
@@ -1169,6 +1170,25 @@ class InternalTests(unittest.TestCase):
             mesonbuild.mlog.warning('bar', once=True)
             actual = f.getvalue().strip()
             self.assertEqual(actual.count('bar'), 1, actual)
+
+    def test_sort_libpaths(self):
+        sort_libpaths = mesonbuild.dependencies.base.sort_libpaths
+        self.assertEqual(sort_libpaths(
+            ['/home/mesonuser/.local/lib', '/usr/local/lib', '/usr/lib'],
+            ['/home/mesonuser/.local/lib/pkgconfig', '/usr/local/lib/pkgconfig']),
+            ['/home/mesonuser/.local/lib', '/usr/local/lib', '/usr/lib'])
+        self.assertEqual(sort_libpaths(
+            ['/usr/local/lib', '/home/mesonuser/.local/lib', '/usr/lib'],
+            ['/home/mesonuser/.local/lib/pkgconfig', '/usr/local/lib/pkgconfig']),
+            ['/home/mesonuser/.local/lib', '/usr/local/lib', '/usr/lib'])
+        self.assertEqual(sort_libpaths(
+            ['/usr/lib', '/usr/local/lib', '/home/mesonuser/.local/lib'],
+            ['/home/mesonuser/.local/lib/pkgconfig', '/usr/local/lib/pkgconfig']),
+            ['/home/mesonuser/.local/lib', '/usr/local/lib', '/usr/lib'])
+        self.assertEqual(sort_libpaths(
+            ['/usr/lib', '/usr/local/lib', '/home/mesonuser/.local/lib'],
+            ['/home/mesonuser/.local/lib/pkgconfig', '/usr/local/libdata/pkgconfig']),
+            ['/home/mesonuser/.local/lib', '/usr/local/lib', '/usr/lib'])
 
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
