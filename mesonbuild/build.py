@@ -25,7 +25,7 @@ from .mesonlib import File, MesonException, listify, extract_as_list, OrderedSet
 from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
 from .mesonlib import for_windows, for_darwin, for_cygwin, for_android, has_path_sep
-from .compilers import is_object, clink_langs, sort_clink, lang_suffixes
+from .compilers import is_object, clink_langs, sort_clink, lang_suffixes, get_macos_dylib_install_name
 from .interpreterbase import FeatureNew
 
 pch_kwargs = set(['c_pch', 'cpp_pch'])
@@ -89,6 +89,10 @@ known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_mo
 known_shmod_kwargs = known_build_target_kwargs
 known_stlib_kwargs = known_build_target_kwargs | {'pic'}
 known_jar_kwargs = known_exe_kwargs | {'main_class'}
+
+@lru_cache(maxsize=None)
+def get_target_macos_dylib_install_name(ld):
+    return get_macos_dylib_install_name(ld.prefix, ld.name, ld.suffix, ld.soversion)
 
 class InvalidArguments(MesonException):
     pass
@@ -324,6 +328,20 @@ a hard error in the future.''' % name)
         self.install = False
         self.build_always_stale = False
         self.option_overrides = {}
+
+    def get_install_dir(self, environment):
+        # Find the installation directory.
+        default_install_dir = self.get_default_install_dir(environment)
+        outdirs = self.get_custom_install_dir()
+        if outdirs[0] is not None and outdirs[0] != default_install_dir and outdirs[0] is not True:
+            # Either the value is set to a non-default value, or is set to
+            # False (which means we want this specific output out of many
+            # outputs to not be installed).
+            custom_install_dir = True
+        else:
+            custom_install_dir = False
+            outdirs[0] = default_install_dir
+        return outdirs, custom_install_dir
 
     def get_basename(self):
         return self.name
@@ -679,6 +697,20 @@ class BuildTarget(Target):
             result += i.get_all_link_deps()
         return result
 
+    def get_link_deps_mapping(self, prefix, environment):
+        return self.get_transitive_link_deps_mapping(prefix, environment)
+
+    @lru_cache(maxsize=None)
+    def get_transitive_link_deps_mapping(self, prefix, environment):
+        result = {}
+        for i in self.link_targets:
+            mapping = i.get_link_deps_mapping(prefix, environment)
+            #we are merging two dictionaries, while keeping the earlier one dominant
+            result_tmp = mapping.copy()
+            result_tmp.update(result)
+            result = result_tmp
+        return result
+
     @lru_cache(maxsize=None)
     def get_link_dep_subdirs(self):
         result = OrderedSet()
@@ -686,6 +718,9 @@ class BuildTarget(Target):
             result.add(i.get_subdir())
             result.update(i.get_link_dep_subdirs())
         return result
+
+    def get_default_install_dir(self, environment):
+        return environment.get_libdir()
 
     def get_custom_install_dir(self):
         return self.install_dir
@@ -1327,6 +1362,9 @@ class Executable(BuildTarget):
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
 
+    def get_default_install_dir(self, environment):
+        return environment.get_bindir()
+
     def description(self):
         '''Human friendly description of the executable'''
         return self.name
@@ -1388,6 +1426,12 @@ class StaticLibrary(BuildTarget):
         self.filename = self.prefix + self.name + '.' + self.suffix
         self.outputs = [self.filename]
 
+    def get_link_deps_mapping(self, prefix, environment):
+        return {}
+
+    def get_default_install_dir(self, environment):
+        return environment.get_static_lib_dir()
+
     def type_suffix(self):
         return "@sta"
 
@@ -1433,6 +1477,21 @@ class SharedLibrary(BuildTarget):
             self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames(is_cross, environment)
+
+    def get_link_deps_mapping(self, prefix, environment):
+        result = {}
+        mappings = self.get_transitive_link_deps_mapping(prefix, environment)
+        old = get_target_macos_dylib_install_name(self)
+        if old not in mappings:
+            fname = self.get_filename()
+            outdirs, _ = self.get_install_dir(self.environment)
+            new = os.path.join(prefix, outdirs[0], fname)
+            result.update({old: new})
+        mappings.update(result)
+        return mappings
+
+    def get_default_install_dir(self, environment):
+        return environment.get_shared_lib_dir()
 
     def determine_filenames(self, is_cross, env):
         """
@@ -1705,6 +1764,10 @@ class SharedModule(SharedLibrary):
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
 
+    def get_default_install_dir(self, environment):
+        return environment.get_shared_module_dir()
+
+
 class CustomTarget(Target):
     known_kwargs = set([
         'input',
@@ -1741,6 +1804,9 @@ class CustomTarget(Target):
         if len(unknowns) > 0:
             mlog.warning('Unknown keyword arguments in target %s: %s' %
                          (self.name, ', '.join(unknowns)))
+
+    def get_default_install_dir(self, environment):
+        return None
 
     def __lt__(self, other):
         return self.get_id() < other.get_id()
