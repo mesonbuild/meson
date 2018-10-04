@@ -29,3 +29,5 @@ endif
 if get_option('integer_opt') != 3
   error('Incorrect value in integer option.')
 endif
+
+assert(get_option('wrap_mode') == 'default', 'Wrap mode option is broken.')

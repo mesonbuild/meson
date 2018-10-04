@@ -2265,7 +2265,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
             return subproject
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
-        r = wrap.Resolver(subproject_dir_abs, self.coredata.wrap_mode)
+        r = wrap.Resolver(subproject_dir_abs, self.coredata.get_builtin_option('wrap_mode'))
         try:
             resolved = r.resolve(dirname)
         except RuntimeError as e:
@@ -2940,7 +2940,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             dep = NotFoundDependency(self.environment)
 
             # Unless a fallback exists and is forced ...
-            if self.coredata.wrap_mode == WrapMode.forcefallback and 'fallback' in kwargs:
+            if self.coredata.get_builtin_option('wrap_mode') == WrapMode.forcefallback and 'fallback' in kwargs:
                 pass
             # ... search for it outside the project
             elif name != '':
@@ -3007,12 +3007,12 @@ root and issuing %s.
 
     def dependency_fallback(self, name, kwargs):
         display_name = name if name else '(anonymous)'
-        if self.coredata.wrap_mode in (WrapMode.nofallback, WrapMode.nodownload):
+        if self.coredata.get_builtin_option('wrap_mode') in (WrapMode.nofallback, WrapMode.nodownload):
             mlog.log('Not looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback'
                      'dependencies is disabled.')
             return None
-        elif self.coredata.wrap_mode == WrapMode.forcefallback:
+        elif self.coredata.get_builtin_option('wrap_mode') == WrapMode.forcefallback:
             mlog.log('Looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback dependencies is forced.')
         else:

@@ -32,10 +32,6 @@ def add_arguments(parser):
                         help='File describing cross compilation environment.')
     parser.add_argument('-v', '--version', action='version',
                         version=coredata.version)
-    # See the mesonlib.WrapMode enum for documentation
-    parser.add_argument('--wrap-mode', default=None,
-                        type=wrapmodetype, choices=WrapMode,
-                        help='Special wrap mode to use')
     parser.add_argument('--profile-self', action='store_true', dest='profile',
                         help=argparse.SUPPRESS)
     parser.add_argument('--fatal-meson-warnings', action='store_true', dest='fatal_warnings',
