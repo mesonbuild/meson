@@ -788,6 +788,22 @@ class PkgConfigDependency(ExternalDependency):
                     # Resolve the path as a compiler in the build directory would
                     path = os.path.join(self.env.get_build_dir(), path)
                 prefix_libpaths.add(path)
+        # Library paths are not always ordered in a meaningful way
+        #
+        # Instead of relying on pkg-config or pkgconf to provide -L flags in a
+        # specific order, we reorder library paths ourselves, according to th
+        # order specified in PKG_CONFIG_PATH. See:
+        # https://github.com/mesonbuild/meson/issues/4271
+        #
+        # Only prefix_libpaths are reordered here because there should not be
+        # too many system_libpaths to cause library version issues.
+        pkg_config_path = os.environ.get('PKG_CONFIG_PATH')
+        if pkg_config_path:
+            pkg_config_path = pkg_config_path.split(os.pathsep)
+        else:
+            pkg_config_path = []
+        pkg_config_path = self._convert_mingw_paths(pkg_config_path)
+        prefix_libpaths = sort_libpaths(prefix_libpaths, pkg_config_path)
         system_libpaths = OrderedSet()
         full_args = self._convert_mingw_paths(self._split_args(out))
         for arg in full_args:
@@ -2306,6 +2322,30 @@ def _build_external_dependency_list(name, env: Environment, kwargs: Dict[str, An
         candidates.append(functools.partial(CMakeDependency, name, env, kwargs))
 
     return candidates
+
+
+def sort_libpaths(libpaths: List[str], refpaths: List[str]) -> List[str]:
+    """Sort <libpaths> according to <refpaths>
+
+    It is intended to be used to sort -L flags returned by pkg-config.
+    Pkg-config returns flags in random order which cannot be relied on.
+    """
+    if len(refpaths) == 0:
+        return list(libpaths)
+
+    def key_func(libpath):
+        common_lengths = []
+        for refpath in refpaths:
+            try:
+                common_path = os.path.commonpath([libpath, refpath])
+            except ValueError:
+                common_path = ''
+            common_lengths.append(len(common_path))
+        max_length = max(common_lengths)
+        max_index = common_lengths.index(max_length)
+        reversed_max_length = len(refpaths[max_index]) - max_length
+        return (max_index, reversed_max_length)
+    return sorted(libpaths, key=key_func)
 
 
 def strip_system_libdirs(environment, for_machine: MachineChoice, link_args):
