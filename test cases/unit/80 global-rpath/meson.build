@@ -1,3 +1,5 @@
 project('global-rpath', 'cpp')
-yonder_dep = dependency('yonder')
+cpp = meson.get_compiler('cpp')
+yonder_libdir = get_option('yonder_libdir')
+yonder_dep = cpp.find_library('yonder', dirs: [yonder_libdir])
 executable('rpathified', 'rpathified.cpp', dependencies: [yonder_dep], install: true)
