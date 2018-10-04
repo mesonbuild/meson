@@ -103,6 +103,9 @@ unixy_compiler_internal_libs = ('m', 'c', 'pthread', 'dl', 'rt')
 if mesonlib.is_freebsd() or mesonlib.is_netbsd():
     unixy_compiler_internal_libs += ('execinfo',)
 
+cexe_mapping = {'c': 'CC',
+                'cpp': 'CXX'}
+
 # All these are only for C-linkable languages; see `clink_langs` above.
 
 def sort_clink(lang):

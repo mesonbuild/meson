@@ -49,6 +49,7 @@ index.md
 			Windows-module.md
 			Cuda-module.md
 			Kconfig-module.md
+			External-Project-module.md
 		Java.md
 		Vala.md
 		D.md

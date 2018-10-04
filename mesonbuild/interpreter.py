@@ -2372,6 +2372,8 @@ class Interpreter(InterpreterBase):
             return ExternalProgramHolder(item)
         elif hasattr(item, 'held_object'):
             return item
+        elif isinstance(item, InterpreterObject):
+            return item
         else:
             raise InterpreterException('Module returned a value of unknown type.')
 
@@ -2397,6 +2399,8 @@ class Interpreter(InterpreterBase):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
                 self.process_new_values(v.sources[0])
+            elif isinstance(v, InstallDir):
+                self.build.install_dirs.append(v)
             elif hasattr(v, 'held_object'):
                 pass
             elif isinstance(v, (int, str, bool)):
