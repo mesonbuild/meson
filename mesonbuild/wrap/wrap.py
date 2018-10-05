@@ -193,8 +193,15 @@ class Resolver:
                     raise WrapException('Unknown wrap type {!r}'.format(self.wrap.type))
 
         # A meson.build or CMakeLists.txt file is required in the directory
-        if method == 'meson' and not os.path.exists(meson_file):
-            raise WrapException('Subproject exists but has no meson.build file')
+        if method == 'meson':
+            if not os.path.exists(meson_file):
+                meson_filename = self.wrap.values.get('meson_filename')
+                if meson_filename:
+                    path = os.path.join(self.subdir_root, meson_filename)
+                    mlog.log('Using', mlog.bold(self.packagename), 'meson.build', 'from {}.'.format(meson_filename))
+                    shutil.copy2(path, meson_file)
+                else:
+                    raise WrapException('Subproject exists but has no meson.build file')
         if method == 'cmake' and not os.path.exists(cmake_file):
             raise WrapException('Subproject exists but has no CMakeLists.txt file')
 

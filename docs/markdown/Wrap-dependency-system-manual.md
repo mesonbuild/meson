@@ -125,6 +125,11 @@ put them somewhere where you can download them.
 Meson build patches are only supported for wrap-file mode. When using
 wrap-git, the repository must contain all Meson build definitions.
 
+Since *0.49.0* `meson_filename` can be a the path relative to project's
+`subprojects` directory to a `meson.build` file that will be copied to the root
+of subproject's directory. This is easier than providing a patch in the case
+the build system consist of a single `meson.build` file.
+
 ## Using wrapped projects
 
 Wraps provide a convenient way of obtaining a project into your subproject directory. 
