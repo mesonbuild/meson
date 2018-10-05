@@ -1161,6 +1161,68 @@ class MachineInfo:
             literal['cpu'],
             literal['endian'])
 
+    def is_windows(self):
+        """
+        Machine is windows?
+        """
+        return self.system == 'windows'
+
+    def is_cygwin(self):
+        """
+        Machine is cygwin?
+        """
+        return self.system == 'cygwin'
+
+    def is_linux(self):
+        """
+        Machine is linux?
+        """
+        return self.system == 'linux'
+
+    def is_darwin(self):
+        """
+        Machine is Darwin (iOS/OS X)?
+        """
+        return self.system in ('darwin', 'ios')
+
+    def is_android(self):
+        """
+        Machine is Android?
+        """
+        return self.system == 'android'
+
+    def is_haiku(self):
+        """
+        Machine is Haiku?
+        """
+        return self.system == 'haiku'
+
+    def is_openbsd(self):
+        """
+        Machine is OpenBSD?
+        """
+        return self.system == 'openbsd'
+
+    # Various prefixes and suffixes for import libraries, shared libraries,
+    # static libraries, and executables.
+    # Versioning is added to these names in the backends as-needed.
+
+    def get_exe_suffix(self):
+        if self.is_windows() or self.is_cygwin():
+            return 'exe'
+        else:
+            return ''
+
+    def get_object_suffix(self):
+        if self.is_windows():
+            return 'obj'
+        else:
+            return 'o'
+
+    def libdir_layout_is_win(self):
+        return self.is_windows() \
+            or self.is_cygwin()
+
 class MachineInfos(PerMachine):
     def __init__(self):
         super().__init__(None, None, None)
