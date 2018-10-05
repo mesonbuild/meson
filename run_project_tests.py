@@ -31,7 +31,7 @@ from mesonbuild import compilers
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
-from mesonbuild.mesonlib import stringlistify, Popen_safe
+from mesonbuild.mesonlib import MachineChoice, stringlistify, Popen_safe
 from mesonbuild.coredata import backendlist
 import argparse
 import xml.etree.ElementTree as ET
@@ -465,12 +465,12 @@ def have_objc_compiler():
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
-            objc_comp = env.detect_objc_compiler(False)
+            objc_comp = env.detect_objc_compiler(MachineChoice.HOST)
         except mesonlib.MesonException:
             return False
         if not objc_comp:
             return False
-        env.coredata.process_new_compilers('objc', objc_comp, None, env)
+        env.coredata.process_new_compiler('objc', objc_comp, env)
         try:
             objc_comp.sanity_check(env.get_scratch_dir(), env)
         except mesonlib.MesonException:
@@ -481,12 +481,12 @@ def have_objcpp_compiler():
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
-            objcpp_comp = env.detect_objcpp_compiler(False)
+            objcpp_comp = env.detect_objcpp_compiler(MachineChoice.HOST)
         except mesonlib.MesonException:
             return False
         if not objcpp_comp:
             return False
-        env.coredata.process_new_compilers('objcpp', objcpp_comp, None, env)
+        env.coredata.process_new_compiler('objcpp', objcpp_comp, env)
         try:
             objcpp_comp.sanity_check(env.get_scratch_dir(), env)
         except mesonlib.MesonException:
@@ -793,7 +793,7 @@ def detect_system_compiler():
         print()
         for lang in sorted(compilers.all_languages):
             try:
-                comp = env.compiler_from_language(lang, env.is_cross_build())
+                comp = env.compiler_from_language(lang, MachineChoice.HOST)
                 details = '%s %s' % (' '.join(comp.get_exelist()), comp.get_version_string())
             except mesonlib.MesonException:
                 comp = None

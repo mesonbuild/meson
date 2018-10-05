@@ -18,7 +18,7 @@ import re
 
 from .. import mlog
 from .. import mesonlib, build
-from ..mesonlib import MesonException, extract_as_list
+from ..mesonlib import MachineChoice, MesonException, extract_as_list
 from . import get_include_args
 from . import ModuleReturnValue
 from . import ExtensionModule
@@ -41,16 +41,17 @@ class WindowsModule(ExtensionModule):
     def _find_resource_compiler(self, state):
         # FIXME: Does not handle `native: true` executables, see
         # See https://github.com/mesonbuild/meson/issues/1531
-        # But given a machine, we can un-hardcode `binaries.host` below.
+        # Take a parameter instead of the hardcoded definition below
+        for_machine = MachineChoice.HOST
 
         if hasattr(self, '_rescomp'):
             return self._rescomp
 
         # Will try cross / native file and then env var
-        rescomp = ExternalProgram.from_bin_list(state.environment.binaries.host, 'windres')
+        rescomp = ExternalProgram.from_bin_list(state.environment.binaries[for_machine], 'windres')
 
         if not rescomp or not rescomp.found():
-            comp = self.detect_compiler(state.environment.coredata.compilers)
+            comp = self.detect_compiler(state.environment.coredata.compilers[for_machine])
             if comp.id in {'msvc', 'clang-cl', 'intel-cl'}:
                 rescomp = ExternalProgram('rc', silent=True)
             else:

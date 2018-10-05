@@ -73,11 +73,10 @@ class DCompiler(Compiler):
         'mtd': ['-mscrtlib=libcmtd'],
     }
 
-    def __init__(self, exelist, version, is_cross, arch, **kwargs):
+    def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
         self.language = 'd'
-        super().__init__(exelist, version, **kwargs)
+        super().__init__(exelist, version, for_machine, **kwargs)
         self.id = 'unknown'
-        self.is_cross = is_cross
         self.arch = arch
 
     def sanity_check(self, work_dir, environment):
@@ -308,17 +307,12 @@ class DCompiler(Compiler):
                 # Add link flags needed to find dependencies
                 args += d.get_link_args()
 
-        if env.is_cross_build() and not self.is_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-
         if mode == 'compile':
             # Add DFLAGS from the env
-            args += env.coredata.get_external_args(for_machine, self.language)
+            args += env.coredata.get_external_args(self.for_machine, self.language)
         elif mode == 'link':
             # Add LDFLAGS from the env
-            args += env.coredata.get_external_link_args(for_machine, self.language)
+            args += env.coredata.get_external_link_args(self.for_machine, self.language)
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args
@@ -494,8 +488,8 @@ class DCompiler(Compiler):
         return ['-pthread']
 
 class GnuDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, is_cross, arch, **kwargs)
+    def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
         self.id = 'gcc'
         default_warn_args = ['-Wall', '-Wdeprecated']
         self.warn_args = {'0': [],
@@ -557,8 +551,8 @@ class GnuDCompiler(DCompiler):
         return gnu_optimization_args[optimization_level]
 
 class LLVMDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, is_cross, arch, **kwargs)
+    def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
         self.id = 'llvm'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
 
@@ -595,8 +589,8 @@ class LLVMDCompiler(DCompiler):
 
 
 class DmdDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, is_cross, arch, **kwargs)
+    def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
         self.id = 'dmd'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
 

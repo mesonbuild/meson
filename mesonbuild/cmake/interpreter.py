@@ -20,6 +20,7 @@ from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCo
 from .. import mlog
 from ..build import Build
 from ..environment import Environment
+from ..mesonlib import MachineChoice
 from ..mparser import Token, BaseNode, CodeBlockNode, FunctionNode, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, StringNode, IdNode, MethodNode
 from ..backend.backends import Backend
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes
@@ -300,8 +301,9 @@ class CMakeInterpreter:
         self.generated_targets = {}
 
     def configure(self, extra_cmake_options: List[str]) -> None:
+        for_machine = MachineChoice.HOST # TODO make parameter
         # Find CMake
-        cmake_exe, cmake_vers, _ = CMakeDependency.find_cmake_binary(self.env)
+        cmake_exe, cmake_vers, _ = CMakeDependency.find_cmake_binary(self.env, for_machine)
         if cmake_exe is None or cmake_exe is False:
             raise CMakeException('Unable to find CMake')
         assert(isinstance(cmake_exe, ExternalProgram))
@@ -312,7 +314,7 @@ class CMakeInterpreter:
         cmake_args = cmake_exe.get_command()
 
         # Map meson compiler to CMake variables
-        for lang, comp in self.env.coredata.compilers.items():
+        for lang, comp in self.env.coredata.compilers[for_machine].items():
             if lang not in language_map:
                 continue
             cmake_lang = language_map[lang]

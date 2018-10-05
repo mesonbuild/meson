@@ -14,7 +14,7 @@
 
 import subprocess, os.path
 
-from ..mesonlib import EnvironmentException, Popen_safe
+from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
 
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
@@ -27,12 +27,12 @@ rust_optimization_args = {'0': [],
                           }
 
 class RustCompiler(Compiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None):
         self.language = 'rust'
-        super().__init__(exelist, version)
-        self.is_cross = is_cross
+        super().__init__(exelist, version, for_machine)
         self.exe_wrapper = exe_wrapper
         self.id = 'rustc'
+        self.is_cross = is_cross
 
     def needs_static_linker(self):
         return False

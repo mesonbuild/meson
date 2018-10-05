@@ -123,13 +123,13 @@ class BoostDependency(ExternalDependency):
             self.libdir = os.environ['BOOST_LIBRARYDIR']
 
         if self.boost_root is None:
-            if mesonlib.for_windows(self.env):
+            if self.env.machines[self.for_machine].is_windows():
                 self.boost_roots = self.detect_win_roots()
             else:
                 self.boost_roots = self.detect_nix_roots()
 
         if self.incdir is None:
-            if mesonlib.for_windows(self.env):
+            if self.env.machines[self.for_machine].is_windows():
                 self.incdir = self.detect_win_incdir()
             else:
                 self.incdir = self.detect_nix_incdir()
@@ -268,7 +268,7 @@ class BoostDependency(ExternalDependency):
             pass
         # 2. Fall back to the old method
         else:
-            if mesonlib.for_windows(self.env):
+            if self.env.machines[self.for_machine].is_windows():
                 self.detect_lib_modules_win()
             else:
                 self.detect_lib_modules_nix()
@@ -289,8 +289,8 @@ class BoostDependency(ExternalDependency):
 
     def compiler_tag(self):
         tag = None
-        compiler = self.env.detect_cpp_compiler(self.want_cross)
-        if mesonlib.for_windows(self.env):
+        compiler = self.env.detect_cpp_compiler(self.for_machine)
+        if self.env.machines[self.for_machine].is_windows():
             if compiler.get_id() in ['msvc', 'clang-cl']:
                 comp_ts_version = compiler.get_toolset_version()
                 compiler_ts = comp_ts_version.split('.')
@@ -304,10 +304,10 @@ class BoostDependency(ExternalDependency):
         if not self.is_multithreading:
             return ''
 
-        if mesonlib.for_darwin(self.env):
+        if self.env.machines[self.for_machine].is_darwin():
             # - Mac:      requires -mt for multithreading, so should not fall back to non-mt libraries.
             return '-mt'
-        elif mesonlib.for_windows(self.env):
+        elif self.env.machines[self.for_machine].is_windows():
             # - Windows:  requires -mt for multithreading, so should not fall back to non-mt libraries.
             return '-mt'
         else:
@@ -323,12 +323,12 @@ class BoostDependency(ExternalDependency):
 
     def arch_tag(self):
         # currently only applies to windows msvc installed binaries
-        if self.env.detect_cpp_compiler(self.want_cross).get_id() not in ['msvc', 'clang-cl']:
+        if self.env.detect_cpp_compiler(self.for_machine).get_id() not in ['msvc', 'clang-cl']:
             return ''
         # pre-compiled binaries only added arch tag for versions > 1.64
         if float(self.version) < 1.65:
             return ''
-        arch = detect_cpu_family(self.env.coredata.compilers)
+        arch = detect_cpu_family(self.env.coredata.compilers.host)
         if arch == 'x86':
             return '-x32'
         elif arch == 'x86_64':
@@ -340,16 +340,16 @@ class BoostDependency(ExternalDependency):
 
     # FIXME - how to handle different distributions, e.g. for Mac? Currently we handle homebrew and macports, but not fink.
     def abi_tags(self):
-        if mesonlib.for_windows(self.env):
+        if self.env.machines[self.for_machine].is_windows():
             return [self.versioned_abi_tag(), self.threading_tag()]
         else:
             return [self.threading_tag()]
 
     def sourceforge_dir(self):
-        if self.env.detect_cpp_compiler(self.want_cross).get_id() != 'msvc':
+        if self.env.detect_cpp_compiler(self.for_machine).get_id() != 'msvc':
             return None
-        comp_ts_version = self.env.detect_cpp_compiler(self.want_cross).get_toolset_version()
-        arch = detect_cpu_family(self.env.coredata.compilers)
+        comp_ts_version = self.env.detect_cpp_compiler(self.for_machine).get_toolset_version()
+        arch = detect_cpu_family(self.env.coredata.compilers.host)
         if arch == 'x86':
             return 'lib32-msvc-{}'.format(comp_ts_version)
         elif arch == 'x86_64':
@@ -437,7 +437,7 @@ class BoostDependency(ExternalDependency):
     def detect_lib_modules_nix(self):
         if self.static:
             libsuffix = 'a'
-        elif mesonlib.for_darwin(self.env):
+        elif self.env.machines[self.for_machine].is_darwin():
             libsuffix = 'dylib'
         else:
             libsuffix = 'so'

@@ -213,7 +213,7 @@ class MPIDependency(ExternalDependency):
 
         if not self.is_found and mesonlib.is_windows():
             # only Intel Fortran compiler is compatible with Microsoft MPI at this time.
-            if language == 'fortran' and environment.detect_fortran_compiler(False).name_string() != 'intel':
+            if language == 'fortran' and environment.detect_fortran_compiler(self.for_machine).name_string() != 'intel':
                 return
             result = self._try_msmpi()
             if result is not None:
@@ -228,7 +228,7 @@ class MPIDependency(ExternalDependency):
         result = []
         multi_args = ('-I', )
         if self.language == 'fortran':
-            fc = self.env.coredata.compilers['fortran']
+            fc = self.env.coredata.compilers[self.for_machine]['fortran']
             multi_args += fc.get_module_incdir_args()
 
         include_next = False
@@ -325,7 +325,7 @@ class MPIDependency(ExternalDependency):
         if 'MSMPI_INC' not in os.environ:
             return
         incdir = os.environ['MSMPI_INC']
-        arch = detect_cpu_family(self.env.coredata.compilers)
+        arch = detect_cpu_family(self.env.coredata.compilers.host)
         if arch == 'x86':
             if 'MSMPI_LIB32' not in os.environ:
                 return
@@ -396,7 +396,7 @@ class Python3Dependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('python3', environment, None, kwargs)
 
-        if self.want_cross:
+        if not environment.machines.matches_build_machine(self.for_machine):
             return
 
         self.name = 'python3'
@@ -480,7 +480,7 @@ class Python3Dependency(ExternalDependency):
         if pyarch is None:
             self.is_found = False
             return
-        arch = detect_cpu_family(env.coredata.compilers)
+        arch = detect_cpu_family(env.coredata.compilers.host)
         if arch == 'x86':
             arch = '32'
         elif arch == 'x86_64':
@@ -560,7 +560,7 @@ class PcapDependency(ExternalDependency):
     def get_pcap_lib_version(ctdep):
         # Since we seem to need to run a program to discover the pcap version,
         # we can't do that when cross-compiling
-        if ctdep.want_cross:
+        if not ctdep.env.machines.matches_build_machine(ctdep.for_machine):
             return None
 
         v = ctdep.clib_compiler.get_return_value('pcap_lib_version', 'string',

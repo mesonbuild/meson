@@ -14,6 +14,7 @@
 
 
 from . import coredata as cdata
+from .mesonlib import MachineChoice
 
 import os.path
 import pprint
@@ -91,18 +92,11 @@ def run(options):
             if v:
                 print('Native File: ' + ' '.join(v))
         elif k == 'compilers':
-            print('Cached native compilers:')
-            dump_compilers(v)
-        elif k == 'cross_compilers':
-            print('Cached cross compilers:')
-            dump_compilers(v)
+            for for_machine in MachineChoice:
+                print('Cached {} machine compilers:'.format(
+                    for_machine.get_lower_case_name()))
+                dump_compilers(v[for_machine])
         elif k == 'deps':
-            native = list(sorted(v.build.items()))
-            if v.host is not v.build:
-                cross = list(sorted(v.host.items()))
-            else:
-                cross = []
-
             def print_dep(dep_key, dep):
                 print('  ' + dep_key[0] + ": ")
                 print('      compile args: ' + repr(dep.get_compile_args()))
@@ -111,16 +105,13 @@ def run(options):
                     print('      sources: ' + repr(dep.get_sources()))
                 print('      version: ' + repr(dep.get_version()))
 
-            if native:
-                print('Cached native dependencies:')
-                for dep_key, deps in native:
-                    for dep in deps:
-                        print_dep(dep_key, dep)
-            if cross:
-                print('Cached dependencies:')
-                for dep_key, deps in cross:
-                    for dep in deps:
-                        print_dep(dep_key, dep)
+            for for_machine in iter(MachineChoice):
+                items_list = list(sorted(v[for_machine].items()))
+                if items_list:
+                    print('Cached dependencies for {} machine' % for_machine.get_lower_case_name())
+                    for dep_key, deps in items_list:
+                        for dep in deps:
+                            print_dep(dep_key, dep)
         else:
             print(k + ':')
             print(textwrap.indent(pprint.pformat(v), '  '))

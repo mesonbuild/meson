@@ -15,15 +15,15 @@
 import re, os.path
 
 from .. import mlog
-from ..mesonlib import EnvironmentException, Popen_safe
+from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
                         cuda_debug_args, CompilerType, get_gcc_soname_args)
 
 class CudaCompiler(Compiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None):
         if not hasattr(self, 'language'):
             self.language = 'cuda'
-        super().__init__(exelist, version)
+        super().__init__(exelist, version, for_machine)
         self.is_cross = is_cross
         self.exe_wrapper = exe_wrapper
         self.id = 'nvcc'

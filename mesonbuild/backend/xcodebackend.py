@@ -742,10 +742,10 @@ class XCodeBackend(backends.Backend):
                     if lang not in langnamemap:
                         continue
                     # Add compile args added using add_project_arguments()
-                    pargs = self.build.projects_args.get(target.subproject, {}).get(lang, [])
+                    pargs = self.build.projects_args[target.for_machine].get(target.subproject, {}).get(lang, [])
                     # Add compile args added using add_global_arguments()
                     # These override per-project arguments
-                    gargs = self.build.global_args.get(lang, [])
+                    gargs = self.build.global_args[target.for_machine].get(lang, [])
                     targs = target.get_extra_args(lang)
                     args = pargs + gargs + targs
                     if args:

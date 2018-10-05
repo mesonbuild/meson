@@ -30,7 +30,7 @@ import typing
 from pathlib import Path
 
 from .. import mesonlib
-from ..mesonlib import MachineChoice, LibType
+from ..mesonlib import LibType
 from .. import mlog
 from . import compilers
 
@@ -277,7 +277,7 @@ class CLikeCompiler:
         m = env.machines[self.for_machine]
         if m.is_windows() or m.is_cygwin():
             return ['-Wl,--export-all-symbols']
-        elif mesonlib.for_darwin(env):
+        elif env.machines[self.for_machine].is_darwin():
             return []
         else:
             return ['-Wl,-export-dynamic']
@@ -384,13 +384,9 @@ class CLikeCompiler:
         # Select a CRT if needed since we're linking
         if mode == 'link':
             args += self.get_linker_debug_crt_args()
-        if env.is_cross_build() and not self.is_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
         if mode in {'compile', 'preprocess'}:
             # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
-            sys_args = env.coredata.get_external_args(for_machine, self.language)
+            sys_args = env.coredata.get_external_args(self.for_machine, self.language)
             # Apparently it is a thing to inject linker flags both
             # via CFLAGS _and_ LDFLAGS, even though the former are
             # also used during linking. These flags can break
@@ -399,7 +395,7 @@ class CLikeCompiler:
             args += cleaned_sys_args
         elif mode == 'link':
             # Add LDFLAGS from the env
-            args += env.coredata.get_external_link_args(for_machine, self.language)
+            args += env.coredata.get_external_link_args(self.for_machine, self.language)
         return args
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
@@ -885,7 +881,7 @@ class CLikeCompiler:
         for p in prefixes:
             for s in suffixes:
                 patterns.append(p + '{}.' + s)
-        if shared and mesonlib.for_openbsd(env):
+        if shared and env.machines[self.for_machine].is_openbsd():
             # Shared libraries on OpenBSD can be named libfoo.so.X.Y:
             # https://www.openbsd.org/faq/ports/specialtopics.html#SharedLibs
             #
@@ -912,9 +908,9 @@ class CLikeCompiler:
         else:
             prefixes = ['lib', '']
         # Library suffixes and prefixes
-        if mesonlib.for_darwin(env):
+        if env.machines[self.for_machine].is_darwin():
             shlibext = ['dylib', 'so']
-        elif mesonlib.for_windows(env):
+        elif env.machines[self.for_machine].is_windows():
             # FIXME: .lib files can be import or static so we should read the
             # file, figure out which one it is, and reject the wrong kind.
             if isinstance(self, compilers.VisualStudioLikeCompiler):
@@ -923,7 +919,7 @@ class CLikeCompiler:
                 shlibext = ['dll.a', 'lib', 'dll']
             # Yep, static libraries can also be foo.lib
             stlibext += ['lib']
-        elif mesonlib.for_cygwin(env):
+        elif env.machines[self.for_machine].is_cygwin():
             shlibext = ['dll', 'dll.a']
             prefixes = ['cyg'] + prefixes
         else:
@@ -1074,11 +1070,7 @@ class CLikeCompiler:
         commands = self.get_exelist() + ['-v', '-E', '-']
         commands += self.get_always_args()
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
-        if env.is_cross_build() and not self.is_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-        commands += env.coredata.get_external_args(for_machine, self.language)
+        commands += env.coredata.get_external_args(self.for_machine, self.language)
         mlog.debug('Finding framework path by running: ', ' '.join(commands), '\n')
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
@@ -1127,12 +1119,14 @@ class CLikeCompiler:
         return self.find_framework_impl(name, env, extra_dirs, allow_system)
 
     def thread_flags(self, env):
-        if mesonlib.for_haiku(env) or mesonlib.for_darwin(env):
+        host_m = env.machines[self.for_machine]
+        if host_m.is_haiku() or host_m.is_darwin():
             return []
         return ['-pthread']
 
     def thread_link_flags(self, env):
-        if mesonlib.for_haiku(env) or mesonlib.for_darwin(env):
+        host_m = env.machines[self.for_machine]
+        if host_m.is_haiku() or host_m.is_darwin():
             return []
         return ['-pthread']
 
@@ -1190,8 +1184,8 @@ class CLikeCompiler:
     def has_func_attribute(self, name, env):
         # Just assume that if we're not on windows that dllimport and dllexport
         # don't work
-        if not (mesonlib.for_windows(env) or
-                mesonlib.for_cygwin(env)):
+        m = env.machines[self.for_machine]
+        if not (m.is_windows() or m.is_cygwin()):
             if name in ['dllimport', 'dllexport']:
                 return False, False
 

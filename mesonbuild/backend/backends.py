@@ -195,14 +195,9 @@ class Backend:
                                    self.environment.coredata.base_options)
 
     def get_compiler_options_for_target(self, target):
-        if self.environment.is_cross_build() and not target.is_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-
         return OptionOverrideProxy(
             target.option_overrides,
-            self.environment.coredata.compiler_options[for_machine])
+            self.environment.coredata.compiler_options[target.for_machine])
 
     def get_option_for_target(self, option_name, target):
         if option_name in target.option_overrides:
@@ -357,17 +352,15 @@ class Backend:
         with open(exe_data, 'wb') as f:
             if isinstance(exe, dependencies.ExternalProgram):
                 exe_cmd = exe.get_command()
-                exe_is_native = True
+                exe_for_machine = exe.for_machine
             elif isinstance(exe, (build.BuildTarget, build.CustomTarget)):
                 exe_cmd = [self.get_target_filename_abs(exe)]
-                exe_is_native = not exe.is_cross
+                exe_for_machine = exe.for_machine
             else:
                 exe_cmd = [exe]
-                exe_is_native = True
-            is_cross_built = (not exe_is_native) and \
-                self.environment.is_cross_build() and \
-                self.environment.need_exe_wrapper()
-            if is_cross_built:
+                exe_for_machine = MachineChoice.BUILD
+            is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
+            if is_cross_built and self.environment.need_exe_wrapper():
                 exe_wrapper = self.environment.get_exe_wrapper()
                 if not exe_wrapper.found():
                     msg = 'The exe_wrapper {!r} defined in the cross file is ' \
@@ -397,10 +390,7 @@ class Backend:
         Otherwise, we query the target for the dynamic linker.
         '''
         if isinstance(target, build.StaticLibrary):
-            if target.is_cross:
-                return self.build.static_cross_linker, []
-            else:
-                return self.build.static_linker, []
+            return self.build.static_linker[target.for_machine], []
         l, stdlib_args = target.get_clink_dynamic_linker_and_stdlibs()
         return l, stdlib_args
 
@@ -476,7 +466,8 @@ class Backend:
             else:
                 source = os.path.relpath(os.path.join(build_dir, rel_src),
                                          os.path.join(self.environment.get_source_dir(), target.get_subdir()))
-        return source.replace('/', '_').replace('\\', '_') + '.' + self.environment.get_object_suffix()
+        machine = self.environment.machines[target.for_machine]
+        return source.replace('/', '_').replace('\\', '_') + '.' + machine.get_object_suffix()
 
     def determine_ext_objs(self, extobj, proj_dir_to_build_root):
         result = []
@@ -608,18 +599,14 @@ class Backend:
         commands += compiler.get_optimization_args(self.get_option_for_target('optimization', target))
         commands += compiler.get_debug_args(self.get_option_for_target('debug', target))
         # Add compile args added using add_project_arguments()
-        commands += self.build.get_project_args(compiler, target.subproject, target.is_cross)
+        commands += self.build.get_project_args(compiler, target.subproject, target.for_machine)
         # Add compile args added using add_global_arguments()
         # These override per-project arguments
-        commands += self.build.get_global_args(compiler, target.is_cross)
-        if self.environment.is_cross_build() and not target.is_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
+        commands += self.build.get_global_args(compiler, target.for_machine)
         # Compile args added from the env: CFLAGS/CXXFLAGS, etc, or the cross
         # file. We want these to override all the defaults, but not the
         # per-target compile args.
-        commands += self.environment.coredata.get_external_args(for_machine, compiler.get_language())
+        commands += self.environment.coredata.get_external_args(target.for_machine, compiler.get_language())
         # Always set -fPIC for shared libraries
         if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_args()
@@ -679,11 +666,11 @@ class Backend:
     def get_mingw_extra_paths(self, target):
         paths = OrderedSet()
         # The cross bindir
-        root = self.environment.properties.host.get_root()
+        root = self.environment.properties[target.for_machine].get_root()
         if root:
             paths.add(os.path.join(root, 'bin'))
         # The toolchain bindir
-        sys_root = self.environment.properties.host.get_sys_root()
+        sys_root = self.environment.properties[target.for_machine].get_sys_root()
         if sys_root:
             paths.add(os.path.join(sys_root, 'bin'))
         # Get program and library dirs from all target compilers
@@ -693,7 +680,7 @@ class Backend:
                 paths.update(cc.get_library_dirs(self.environment))
         return list(paths)
 
-    def determine_windows_extra_paths(self, target, extra_bdeps, is_cross=False):
+    def determine_windows_extra_paths(self, target: typing.Union[build.BuildTarget, str], extra_bdeps):
         '''On Windows there is no such thing as an rpath.
         We must determine all locations of DLLs that this exe
         links to and return them so they can be used in unit
@@ -713,7 +700,8 @@ class Backend:
                 continue
             dirseg = os.path.join(self.environment.get_build_dir(), self.get_target_dir(ld))
             result.add(dirseg)
-        if is_cross:
+        if (isinstance(target, build.BuildTarget) and
+                not self.environment.machines.matches_build_machine(target.for_machine)):
             result.update(self.get_mingw_extra_paths(target))
         return list(result)
 
@@ -731,24 +719,23 @@ class Backend:
                 cmd = exe.get_command()
             else:
                 cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))]
-            is_cross = self.environment.is_cross_build() and \
-                self.environment.need_exe_wrapper()
-            if isinstance(exe, build.BuildTarget):
-                is_cross = is_cross and exe.is_cross
-            if isinstance(exe, dependencies.ExternalProgram):
+            if isinstance(exe, (build.BuildTarget, dependencies.ExternalProgram)):
+                test_for_machine = exe.for_machine
+            else:
                 # E.g. an external verifier or simulator program run on a generated executable.
                 # Can always be run without a wrapper.
-                is_cross = False
-            if is_cross:
+                test_for_machine = MachineChoice.BUILD
+            is_cross = not self.environment.machines.matches_build_machine(test_for_machine)
+            if is_cross and self.environment.need_exe_wrapper():
                 exe_wrapper = self.environment.get_exe_wrapper()
             else:
                 exe_wrapper = None
-            if mesonlib.for_windows(self.environment) or \
-               mesonlib.for_cygwin(self.environment):
+            machine = self.environment.machines[exe.for_machine]
+            if machine.is_windows() or machine.is_cygwin():
                 extra_bdeps = []
                 if isinstance(exe, build.CustomTarget):
                     extra_bdeps = exe.get_transitive_build_target_deps()
-                extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps, is_cross)
+                extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps)
             else:
                 extra_paths = []
             cmd_args = []
@@ -811,15 +798,22 @@ class Backend:
         return deps
 
     def exe_object_to_cmd_array(self, exe):
-        if self.environment.is_cross_build() and \
-           isinstance(exe, build.BuildTarget) and exe.is_cross:
-            if self.environment.exe_wrapper is None and self.environment.need_exe_wrapper():
-                s = textwrap.dedent('''
-                    Can not use target {} as a generator because it is cross-built
-                    and no exe wrapper is defined or needs_exe_wrapper is true.
-                    You might want to set it to native instead.'''.format(exe.name))
-                raise MesonException(s)
         if isinstance(exe, build.BuildTarget):
+            if exe.for_machine is not MachineChoice.BUILD:
+                if (self.environment.is_cross_build() and
+                        self.environment.exe_wrapper is None and
+                        self.environment.need_exe_wrapper()):
+                    s = textwrap.dedent('''
+                        Cannot use target {} as a generator because it is built for the
+                        host machine and no exe wrapper is defined or needs_exe_wrapper is
+                        true. You might want to set `native: true` instead to build it for
+                        the build machine.'''.format(exe.name))
+                    raise MesonException(s)
+                else:
+                    mlog.warning('''
+                        Target {} is used as a generator, but is built for the host
+                        machine. This means most cross builds will fail. You might want to
+                        set `native: true` instead to build it for the build machine.'''.format(exe.name))
             exe_arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
         else:
             exe_arr = exe.get_command()

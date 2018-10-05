@@ -25,10 +25,9 @@ from . import environment
 from . import dependencies
 from . import mlog
 from .mesonlib import (
-    File, MesonException, listify, extract_as_list, OrderedSet,
-    typeslistify, stringlistify, classify_unity_sources,
-    get_filenames_templates_dict, substitute_values,
-    for_windows, for_darwin, for_cygwin, for_android, has_path_sep
+    File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
+    extract_as_list, typeslistify, stringlistify, classify_unity_sources,
+    get_filenames_templates_dict, substitute_values, has_path_sep,
 )
 from .compilers import Compiler, is_object, clink_langs, sort_clink, lang_suffixes, get_macos_dylib_install_name
 from .interpreterbase import FeatureNew
@@ -114,21 +113,16 @@ class Build:
         self.environment = environment
         self.projects = {}
         self.targets = OrderedDict()
-        self.global_args = {}
-        self.projects_args = {}
-        self.global_link_args = {}
-        self.projects_link_args = {}
-        self.cross_global_args = {}
-        self.cross_projects_args = {}
-        self.cross_global_link_args = {}
-        self.cross_projects_link_args = {}
+        self.global_args = PerMachine({}, {})
+        self.projects_args = PerMachine({}, {})
+        self.global_link_args = PerMachine({}, {})
+        self.projects_link_args = PerMachine({}, {})
         self.tests = []
         self.benchmarks = []
         self.headers = []
         self.man = []
         self.data = []
-        self.static_linker = None
-        self.static_cross_linker = None
+        self.static_linker = PerMachine(None, None)
         self.subprojects = {}
         self.subproject_dir = ''
         self.install_scripts = []
@@ -137,7 +131,7 @@ class Build:
         self.install_dirs = []
         self.dep_manifest_name = None
         self.dep_manifest = {}
-        self.cross_stdlibs = {}
+        self.stdlibs = PerMachine({}, {})
         self.test_setups = {}                         # type: typing.Dict[str, TestSetup]
         self.test_setup_default_name = None
         self.find_overrides = {}
@@ -157,12 +151,8 @@ class Build:
             self.__dict__[k] = v
 
     def ensure_static_linker(self, compiler):
-        if self.static_linker is None and compiler.needs_static_linker():
-            self.static_linker = self.environment.detect_static_linker(compiler)
-
-    def ensure_static_cross_linker(self, compiler):
-        if self.static_cross_linker is None and compiler.needs_static_linker():
-            self.static_cross_linker = self.environment.detect_static_linker(compiler)
+        if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
+            self.static_linker[compiler.for_machine] = self.environment.detect_static_linker(compiler)
 
     def get_project(self):
         return self.projects['']
@@ -191,23 +181,23 @@ class Build:
     def get_install_subdirs(self):
         return self.install_dirs
 
-    def get_global_args(self, compiler, for_cross):
-        d = self.cross_global_args if for_cross else self.global_args
+    def get_global_args(self, compiler, for_machine):
+        d = self.global_args[for_machine]
         return d.get(compiler.get_language(), [])
 
-    def get_project_args(self, compiler, project, for_cross):
-        d = self.cross_projects_args if for_cross else self.projects_args
+    def get_project_args(self, compiler, project, for_machine):
+        d = self.projects_args[for_machine]
         args = d.get(project)
         if not args:
             return []
         return args.get(compiler.get_language(), [])
 
-    def get_global_link_args(self, compiler, for_cross):
-        d = self.cross_global_link_args if for_cross else self.global_link_args
+    def get_global_link_args(self, compiler, for_machine):
+        d = self.global_link_args[for_machine]
         return d.get(compiler.get_language(), [])
 
-    def get_project_link_args(self, compiler, project, for_cross):
-        d = self.cross_projects_link_args if for_cross else self.projects_link_args
+    def get_project_link_args(self, compiler, project, for_machine):
+        d = self.projects_link_args[for_machine]
 
         link_args = d.get(project)
         if not link_args:
@@ -336,7 +326,7 @@ class EnvironmentVariables:
         return env
 
 class Target:
-    def __init__(self, name, subdir, subproject, build_by_default):
+    def __init__(self, name, subdir, subproject, build_by_default, for_machine: MachineChoice):
         if has_path_sep(name):
             # Fix failing test 53 when this becomes an error.
             mlog.warning('''Target "%s" has a path separator in its name.
@@ -346,6 +336,7 @@ a hard error in the future.''' % name)
         self.subdir = subdir
         self.subproject = subproject
         self.build_by_default = build_by_default
+        self.for_machine = for_machine
         self.install = False
         self.build_always_stale = False
         self.option_overrides = {}
@@ -438,9 +429,8 @@ a hard error in the future.''' % name)
 class BuildTarget(Target):
     known_kwargs = known_build_target_kwargs
 
-    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
-        super().__init__(name, subdir, subproject, True)
-        self.is_cross = is_cross
+    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
+        super().__init__(name, subdir, subproject, True, for_machine)
         unity_opt = environment.coredata.get_builtin_option('unity')
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
         self.environment = environment
@@ -483,7 +473,7 @@ class BuildTarget(Target):
             raise InvalidArguments('Build target %s has no sources.' % name)
         self.process_compilers_late()
         self.validate_sources()
-        self.validate_cross_install(environment)
+        self.validate_install(environment)
         self.check_module_linking()
 
     def __lt__(self, other):
@@ -493,9 +483,12 @@ class BuildTarget(Target):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.filename)
 
-    def validate_cross_install(self, environment):
-        if environment.is_cross_build() and not self.is_cross and self.need_install:
-            raise InvalidArguments('Tried to install a natively built target in a cross build.')
+    def validate_install(self, environment):
+        if self.for_machine is MachineChoice.BUILD and self.need_install:
+            if environment.is_cross_build():
+                raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
+            else:
+                mlog.warning('Installing target build for the build machine. This will fail in a cross build.')
 
     def check_unknown_kwargs(self, kwargs):
         # Override this method in derived classes that have more
@@ -562,10 +555,7 @@ class BuildTarget(Target):
         which compiler to use if one hasn't been selected already.
         """
         # Populate list of compilers
-        if self.is_cross:
-            compilers = self.environment.coredata.cross_compilers
-        else:
-            compilers = self.environment.coredata.compilers
+        compilers = self.environment.coredata.compilers[self.for_machine]
 
         # did user override clink_langs for this target?
         link_langs = [self.link_language] if self.link_language else clink_langs
@@ -602,10 +592,7 @@ class BuildTarget(Target):
         if not self.sources and not self.generated and not self.objects:
             return
         # Populate list of compilers
-        if self.is_cross:
-            compilers = self.environment.coredata.cross_compilers
-        else:
-            compilers = self.environment.coredata.compilers
+        compilers = self.environment.coredata.compilers[self.for_machine]
         # Pre-existing sources
         sources = list(self.sources)
         # All generated sources
@@ -928,13 +915,14 @@ This will become a hard error in a future Meson release.''')
             # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
             # PIC is always on for Windows (all code is position-independent
             # since library loading is done differently)
-            if for_darwin(self.environment) or for_windows(self.environment):
+            m = self.environment.machines[self.for_machine]
+            if m.is_darwin() or m.is_windows():
                 self.pic = True
             else:
                 self.pic = self._extract_pic_pie(kwargs, 'pic')
         if isinstance(self, Executable):
             # Executables must be PIE on Android
-            if for_android(self.is_cross, self.environment):
+            if self.environment.machines[self.for_machine].is_android():
                 self.pie = True
             else:
                 self.pie = self._extract_pic_pie(kwargs, 'pie')
@@ -1073,8 +1061,12 @@ You probably should put it in link_with instead.''')
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if not isinstance(t, (CustomTarget, CustomTargetIndex)) and self.is_cross != t.is_cross:
-                raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
+            if self.for_machine is not t.for_machine:
+                msg = 'Tried to mix libraries for machines {1} and {2} in target {!r}'.format(self.name, self.for_machine, t.for_machine)
+                if self.environment.is_cross_build():
+                    raise InvalidArguments(msg + ' This is not possible in a cross build.')
+                else:
+                    mlog.warning(msg + ' This will fail in cross build.')
             self.link_targets.append(t)
 
     def link_whole(self, target):
@@ -1090,8 +1082,12 @@ You probably should put it in link_with instead.''')
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if not isinstance(t, (CustomTarget, CustomTargetIndex)) and self.is_cross != t.is_cross:
-                raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
+            if self.for_machine is not t.for_machine:
+                msg = 'Tried to mix libraries for machines {1} and {2} in target {!r}'.format(self.name, self.for_machine, t.for_machine)
+                if self.environment.is_cross_build():
+                    raise InvalidArguments(msg + ' This is not possible in a cross build.')
+                else:
+                    mlog.warning(msg + ' This will fail in cross build.')
             self.link_whole_targets.append(t)
 
     def add_pch(self, language, pchlist):
@@ -1192,10 +1188,7 @@ You probably should put it in link_with instead.''')
         '''
         # Populate list of all compilers, not just those being used to compile
         # sources in this target
-        if self.is_cross:
-            all_compilers = self.environment.coredata.cross_compilers
-        else:
-            all_compilers = self.environment.coredata.compilers
+        all_compilers = self.environment.coredata.compilers[self.for_machine]
         # Languages used by dependencies
         dep_langs = self.get_langs_used_by_deps()
         # Pick a compiler based on the language priority-order
@@ -1253,7 +1246,7 @@ You probably should put it in link_with instead.''')
         '''
         for link_target in self.link_targets:
             if isinstance(link_target, SharedModule):
-                if for_darwin(self.environment):
+                if self.environment.machines[self.for_machine].is_darwin():
                     raise MesonException('''target links against shared modules.
 This is not permitted on OSX''')
                 else:
@@ -1425,19 +1418,19 @@ class GeneratedList:
 class Executable(BuildTarget):
     known_kwargs = known_exe_kwargs
 
-    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
         self.typename = 'executable'
         if 'pie' not in kwargs and 'b_pie' in environment.coredata.base_options:
             kwargs['pie'] = environment.coredata.base_options['b_pie'].value
-        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
+        super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         # Unless overridden, executables have no suffix or prefix. Except on
         # Windows and with C#/Mono executables where the suffix is 'exe'
         if not hasattr(self, 'prefix'):
             self.prefix = ''
         if not hasattr(self, 'suffix'):
+            machine = environment.machines[for_machine]
             # Executable for Windows or C#/Mono
-            if (for_windows(environment) or
-                    for_cygwin(environment) or 'cs' in self.compilers):
+            if machine.is_windows() or machine.is_cygwin() or 'cs' in self.compilers:
                 self.suffix = 'exe'
             elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('arm') or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('arm')):
@@ -1446,7 +1439,7 @@ class Executable(BuildTarget):
                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('ccrx')):
                 self.suffix = 'abs'
             else:
-                self.suffix = ''
+                self.suffix = environment.machines[for_machine].get_exe_suffix()
         self.filename = self.name
         if self.suffix:
             self.filename += '.' + self.suffix
@@ -1475,7 +1468,8 @@ class Executable(BuildTarget):
             implib_basename = self.name + '.exe'
             if not isinstance(kwargs.get('implib', False), bool):
                 implib_basename = kwargs['implib']
-            if for_windows(environment) or for_cygwin(environment):
+            m = environment.machines[for_machine]
+            if m.is_windows() or m.is_cygwin():
                 self.vs_import_filename = '{0}.lib'.format(implib_basename)
                 self.gcc_import_filename = 'lib{0}.a'.format(implib_basename)
                 if self.get_using_msvc():
@@ -1515,11 +1509,11 @@ class Executable(BuildTarget):
 class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
 
-    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
         self.typename = 'static library'
         if 'pic' not in kwargs and 'b_staticpic' in environment.coredata.base_options:
             kwargs['pic'] = environment.coredata.base_options['b_staticpic'].value
-        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
+        super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         if 'cs' in self.compilers:
             raise InvalidArguments('Static libraries not supported for C#.')
         if 'rust' in self.compilers:
@@ -1575,7 +1569,7 @@ class StaticLibrary(BuildTarget):
 class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
 
-    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
         self.typename = 'shared library'
         self.soversion = None
         self.ltversion = None
@@ -1588,7 +1582,7 @@ class SharedLibrary(BuildTarget):
         self.vs_import_filename = None
         # The import library that GCC would generate (and prefer)
         self.gcc_import_filename = None
-        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
+        super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         if 'rust' in self.compilers:
             # If no crate type is specified, or it's the generic lib type, use dylib
             if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'lib':
@@ -1602,7 +1596,7 @@ class SharedLibrary(BuildTarget):
         if not hasattr(self, 'suffix'):
             self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        self.determine_filenames(is_cross, environment)
+        self.determine_filenames(environment)
 
     def get_link_deps_mapping(self, prefix, environment):
         result = {}
@@ -1619,7 +1613,7 @@ class SharedLibrary(BuildTarget):
     def get_default_install_dir(self, environment):
         return environment.get_shared_lib_dir()
 
-    def determine_filenames(self, is_cross, env):
+    def determine_filenames(self, env):
         """
         See https://github.com/mesonbuild/meson/pull/417 for details.
 
@@ -1652,7 +1646,7 @@ class SharedLibrary(BuildTarget):
         # C, C++, Swift, Vala
         # Only Windows uses a separate import library for linking
         # For all other targets/platforms import_filename stays None
-        elif for_windows(env):
+        elif env.machines[self.for_machine].is_windows():
             suffix = 'dll'
             self.vs_import_filename = '{0}{1}.lib'.format(self.prefix if self.prefix is not None else '', self.name)
             self.gcc_import_filename = '{0}{1}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
@@ -1677,7 +1671,7 @@ class SharedLibrary(BuildTarget):
                 self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
             else:
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        elif for_cygwin(env):
+        elif env.machines[self.for_machine].is_cygwin():
             suffix = 'dll'
             self.gcc_import_filename = '{0}{1}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
             # Shared library is of the form cygfoo.dll
@@ -1689,7 +1683,7 @@ class SharedLibrary(BuildTarget):
                 self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
             else:
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        elif for_darwin(env):
+        elif env.machines[self.for_machine].is_darwin():
             prefix = 'lib'
             suffix = 'dylib'
             # On macOS, the filename can only contain the major version
@@ -1699,7 +1693,7 @@ class SharedLibrary(BuildTarget):
             else:
                 # libfoo.dylib
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        elif for_android(env):
+        elif env.machines[self.for_machine].is_android():
             prefix = 'lib'
             suffix = 'so'
             # Android doesn't support shared_library versioning
@@ -1764,7 +1758,7 @@ class SharedLibrary(BuildTarget):
     def process_kwargs(self, kwargs, environment):
         super().process_kwargs(kwargs, environment)
 
-        if not for_android(self.environment):
+        if not self.environment.machines[self.for_machine].is_android():
             supports_versioning = True
         else:
             supports_versioning = False
@@ -1884,12 +1878,12 @@ class SharedLibrary(BuildTarget):
 class SharedModule(SharedLibrary):
     known_kwargs = known_shmod_kwargs
 
-    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
-        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
+        super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         self.typename = 'shared module'
 
     def get_default_install_dir(self, environment):
@@ -1917,7 +1911,8 @@ class CustomTarget(Target):
 
     def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False):
         self.typename = 'custom'
-        super().__init__(name, subdir, subproject, False)
+        # TODO expose keyword arg to make MachineChoice.HOST configurable
+        super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
         self.dependencies = []
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
@@ -2171,7 +2166,8 @@ class CustomTarget(Target):
 class RunTarget(Target):
     def __init__(self, name, command, args, dependencies, subdir, subproject):
         self.typename = 'run'
-        super().__init__(name, subdir, subproject, False)
+        # These don't produce output artifacts
+        super().__init__(name, subdir, subproject, False, MachineChoice.BUILD)
         self.command = command
         self.args = args
         self.dependencies = dependencies
@@ -2212,9 +2208,9 @@ class RunTarget(Target):
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
 
-    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
         self.typename = 'jar'
-        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
+        super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
                 raise InvalidArguments('Jar source %s is not a java file.' % s)
@@ -2234,7 +2230,7 @@ class Jar(BuildTarget):
     def get_java_args(self):
         return self.java_args
 
-    def validate_cross_install(self, environment):
+    def validate_install(self, environment):
         # All jar targets are installable.
         pass
 
@@ -2260,6 +2256,7 @@ class CustomTargetIndex:
         self.typename = 'custom'
         self.target = target
         self.output = output
+        self.for_machine = target.for_machine
 
     def __repr__(self):
         return '<CustomTargetIndex: {!r}[{}]>'.format(

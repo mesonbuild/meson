@@ -397,7 +397,7 @@ class PkgConfigModule(ExtensionModule):
 
         dversions = kwargs.get('d_module_versions', None)
         if dversions:
-            compiler = state.environment.coredata.compilers.get('d')
+            compiler = state.environment.coredata.compilers.host.get('d')
             if compiler:
                 deps.add_cflags(compiler.get_feature_args({'versions': dversions}, None))
 

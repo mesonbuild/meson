@@ -18,6 +18,7 @@
 from .common import CMakeException
 from ..environment import Environment
 from ..dependencies.base import CMakeDependency, ExternalProgram
+from ..mesonlib import MachineChoice
 from .. import mlog
 from contextlib import contextmanager
 from subprocess import Popen, PIPE, TimeoutExpired
@@ -473,8 +474,8 @@ class CMakeClient:
     def startup(self) -> None:
         if self.proc is not None:
             raise CMakeException('The CMake server was already started')
-
-        cmake_exe, cmake_vers, _ = CMakeDependency.find_cmake_binary(self.env)
+        for_machine = MachineChoice.HOST # TODO make parameter
+        cmake_exe, cmake_vers, _ = CMakeDependency.find_cmake_binary(self.env, for_machine)
         if cmake_exe is None or cmake_exe is False:
             raise CMakeException('Unable to find CMake')
         assert(isinstance(cmake_exe, ExternalProgram))
