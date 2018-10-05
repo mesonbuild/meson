@@ -1119,6 +1119,20 @@ class MachineInfo:
         self.cpu = cpu
         self.endian = endian
 
+    def __eq__(self, other):
+        if self.__class__ is not other.__class__:
+            return NotImplemented
+        return \
+            self.system == other.system and \
+            self.cpu_family == other.cpu_family and \
+            self.cpu == other.cpu and \
+            self.endian == other.endian
+
+    def __ne__(self, other):
+        if self.__class__ is not other.__class__:
+            return NotImplemented
+        return not self.__eq__(other)
+
     @staticmethod
     def detect(compilers = None):
         """Detect the machine we're running on
