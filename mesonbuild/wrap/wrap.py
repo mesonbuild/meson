@@ -92,9 +92,10 @@ class Resolver:
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
 
     def resolve(self, packagename):
+        self.packagename = packagename
         # We always have to load the wrap file, if it exists, because it could
         # override the default directory name.
-        p = self.load_wrap(packagename)
+        p = self.load_wrap()
         directory = packagename
         if p and 'directory' in p.values:
             directory = p.get('directory')
@@ -114,30 +115,23 @@ class Resolver:
                 m = '{!r} already exists and is not a dir; cannot use as subproject'
                 raise RuntimeError(m.format(subprojdir))
         else:
-            # Don't download subproject data based on wrap file if requested.
-            # Git submodules are ok (see above)!
-            if self.wrap_mode is WrapMode.nodownload:
-                m = 'Automatic wrap-based subproject downloading is disabled'
-                raise RuntimeError(m)
-
             # A wrap file is required to download
             if not p:
                 m = 'No {}.wrap found for {!r}'
                 raise RuntimeError(m.format(packagename, subprojdir))
 
             if p.type == 'file':
-                if not os.path.isdir(self.cachedir):
-                    os.mkdir(self.cachedir)
-                self.download(p, packagename)
-                self.extract_package(p)
-            elif p.type == 'git':
-                self.get_git(p)
-            elif p.type == "hg":
-                self.get_hg(p)
-            elif p.type == "svn":
-                self.get_svn(p)
+                self.get_file(p)
             else:
-                raise AssertionError('Unreachable code.')
+                self.check_can_download()
+                if p.type == 'git':
+                    self.get_git(p)
+                elif p.type == "hg":
+                    self.get_hg(p)
+                elif p.type == "svn":
+                    self.get_svn(p)
+                else:
+                    raise AssertionError('Unreachable code.')
 
         # A meson.build file is required in the directory
         if not os.path.exists(meson_file):
@@ -146,11 +140,18 @@ class Resolver:
 
         return directory
 
-    def load_wrap(self, packagename):
-        fname = os.path.join(self.subdir_root, packagename + '.wrap')
+    def load_wrap(self):
+        fname = os.path.join(self.subdir_root, self.packagename + '.wrap')
         if os.path.isfile(fname):
             return PackageDefinition(fname)
         return None
+
+    def check_can_download(self):
+        # Don't download subproject data based on wrap file if requested.
+        # Git submodules are ok (see above)!
+        if self.wrap_mode is WrapMode.nodownload:
+            m = 'Automatic wrap-based subproject downloading is disabled'
+            raise RuntimeError(m)
 
     def resolve_git_submodule(self, dirname):
         # Are we in a git repository?
@@ -183,6 +184,22 @@ class Resolver:
             return False
         m = 'Unknown git submodule output: {!r}'
         raise RuntimeError(m.format(out))
+
+    def get_file(self, p):
+        path = self.get_file_internal(p, 'source')
+        target_dir = os.path.join(self.subdir_root, p.get('directory'))
+        extract_dir = self.subdir_root
+        # Some upstreams ship packages that do not have a leading directory.
+        # Create one for them.
+        try:
+            p.get('lead_directory_missing')
+            os.mkdir(target_dir)
+            extract_dir = target_dir
+        except KeyError:
+            pass
+        shutil.unpack_archive(path, extract_dir)
+        if p.has_patch():
+            self.apply_patch(p)
 
     def get_git(self, p):
         checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
@@ -312,41 +329,48 @@ class Resolver:
             hashvalue = h.hexdigest()
         return hashvalue, tmpfile.name
 
-    def get_hash(self, data):
+    def check_hash(self, p, what, path):
+        expected = p.get(what + '_hash')
         h = hashlib.sha256()
-        h.update(data)
-        hashvalue = h.hexdigest()
-        return hashvalue
+        with open(path, 'rb') as f:
+            h.update(f.read())
+        dhash = h.hexdigest()
+        if dhash != expected:
+            raise RuntimeError('Incorrect hash for %s:\n %s expected\n %s actual.' % (what, expected, dhash))
 
-    def download(self, p, packagename):
-        ofname = os.path.join(self.cachedir, p.get('source_filename'))
-        if os.path.exists(ofname):
-            mlog.log('Using', mlog.bold(packagename), 'from cache.')
-        else:
-            srcurl = p.get('source_url')
-            mlog.log('Downloading', mlog.bold(packagename), 'from', mlog.bold(srcurl))
-            dhash, tmpfile = self.get_data(srcurl)
-            expected = p.get('source_hash')
-            if dhash != expected:
-                os.remove(tmpfile)
-                raise RuntimeError('Incorrect hash for source %s:\n %s expected\n %s actual.' % (packagename, expected, dhash))
-            os.rename(tmpfile, ofname)
-        if p.has_patch():
-            patch_filename = p.get('patch_filename')
-            filename = os.path.join(self.cachedir, patch_filename)
-            if os.path.exists(filename):
-                mlog.log('Using', mlog.bold(patch_filename), 'from cache.')
-            else:
-                purl = p.get('patch_url')
-                mlog.log('Downloading patch from', mlog.bold(purl))
-                phash, tmpfile = self.get_data(purl)
-                expected = p.get('patch_hash')
-                if phash != expected:
-                    os.remove(tmpfile)
-                    raise RuntimeError('Incorrect hash for patch %s:\n %s expected\n %s actual' % (packagename, expected, phash))
-                os.rename(tmpfile, filename)
-        else:
-            mlog.log('Package does not require patch.')
+    def download(self, p, what, ofname):
+        self.check_can_download()
+        srcurl = p.get(what + '_url')
+        mlog.log('Downloading', mlog.bold(self.packagename), what, 'from', mlog.bold(srcurl))
+        dhash, tmpfile = self.get_data(srcurl)
+        expected = p.get(what + '_hash')
+        if dhash != expected:
+            os.remove(tmpfile)
+            raise RuntimeError('Incorrect hash for %s:\n %s expected\n %s actual.' % (what, expected, dhash))
+        os.rename(tmpfile, ofname)
+
+    def get_file_internal(self, p, what):
+        filename = p.get(what + '_filename')
+        cache_path = os.path.join(self.cachedir, filename)
+
+        if os.path.exists(cache_path):
+            self.check_hash(p, what, cache_path)
+            mlog.log('Using', mlog.bold(self.packagename), what, 'from cache.')
+            return cache_path
+
+        if not os.path.isdir(self.cachedir):
+            os.mkdir(self.cachedir)
+        self.download(p, what, cache_path)
+        return cache_path
+
+    def apply_patch(self, p):
+        path = self.get_file_internal(p, 'patch')
+        try:
+            shutil.unpack_archive(path, self.subdir_root)
+        except Exception:
+            with tempfile.TemporaryDirectory() as workdir:
+                shutil.unpack_archive(path, workdir)
+                self.copy_tree(workdir, self.subdir_root)
 
     def copy_tree(self, root_src_dir, root_dst_dir):
         """
@@ -366,36 +390,3 @@ class Resolver:
                         os.chmod(dst_file, stat.S_IWUSR)
                         os.remove(dst_file)
                 shutil.copy2(src_file, dst_dir)
-
-    def extract_package(self, package):
-        if sys.version_info < (3, 5):
-            try:
-                import lzma # noqa: F401
-                del lzma
-            except ImportError:
-                pass
-            else:
-                try:
-                    shutil.register_unpack_format('xztar', ['.tar.xz', '.txz'], shutil._unpack_tarfile, [], "xz'ed tar-file")
-                except shutil.RegistryError:
-                    pass
-        target_dir = os.path.join(self.subdir_root, package.get('directory'))
-        if os.path.isdir(target_dir):
-            return
-        extract_dir = self.subdir_root
-        # Some upstreams ship packages that do not have a leading directory.
-        # Create one for them.
-        try:
-            package.get('lead_directory_missing')
-            os.mkdir(target_dir)
-            extract_dir = target_dir
-        except KeyError:
-            pass
-        shutil.unpack_archive(os.path.join(self.cachedir, package.get('source_filename')), extract_dir)
-        if package.has_patch():
-            try:
-                shutil.unpack_archive(os.path.join(self.cachedir, package.get('patch_filename')), self.subdir_root)
-            except Exception:
-                with tempfile.TemporaryDirectory() as workdir:
-                    shutil.unpack_archive(os.path.join(self.cachedir, package.get('patch_filename')), workdir)
-                    self.copy_tree(workdir, self.subdir_root)
