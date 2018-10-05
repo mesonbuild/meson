@@ -20,6 +20,8 @@ import stat
 import time
 import platform, subprocess, operator, os, shutil, re
 import collections
+from enum import Enum
+
 from mesonbuild import mlog
 
 have_fcntl = False
@@ -276,6 +278,53 @@ def classify_unity_sources(compilers, sources):
         else:
             compsrclist[comp].append(src)
     return compsrclist
+
+class OrderedEnum(Enum):
+    """
+    An Enum which additionally offers homogeneous ordered comparison.
+    """
+    def __ge__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value >= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value > other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value <= other.value
+        return NotImplemented
+
+    def __lt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value < other.value
+        return NotImplemented
+
+MachineChoice = OrderedEnum('MachineChoice', ['BUILD', 'HOST', 'TARGET'])
+
+class PerMachine:
+    def __init__(self, build, host, target):
+        self.build = build,
+        self.host = host
+        self.target = target
+
+    def __getitem__(self, machine: MachineChoice):
+        return {
+            MachineChoice.BUILD:  self.build,
+            MachineChoice.HOST:   self.host,
+            MachineChoice.TARGET: self.target
+        }[machine]
+
+    def __setitem__(self, machine: MachineChoice, val):
+        key = {
+            MachineChoice.BUILD:  'build',
+            MachineChoice.HOST:   'host',
+            MachineChoice.TARGET: 'target'
+        }[machine]
+        setattr(self, key, val)
 
 def is_osx():
     return platform.system().lower() == 'darwin'

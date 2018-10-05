@@ -17,7 +17,7 @@ import configparser, os, platform, re, sys, shlex, shutil, subprocess
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker
 from . import mesonlib
-from .mesonlib import EnvironmentException, Popen_safe
+from .mesonlib import EnvironmentException, PerMachine, Popen_safe
 from . import mlog
 
 from . import compilers
@@ -1147,11 +1147,9 @@ class MachineInfo:
             literal['cpu'],
             literal['endian'])
 
-class MachineInfos:
+class MachineInfos(PerMachine):
     def __init__(self):
-        self.build = None
-        self.host = None
-        self.target = None
+        super().__init__(None, None, None)
 
     def default_missing(self):
         """Default host to buid and target to host.
