@@ -132,8 +132,8 @@ class Backend:
         self.build = build
         self.environment = build.environment
         self.processed_targets = {}
-        self.build_to_src = os.path.relpath(self.environment.get_source_dir(),
-                                            self.environment.get_build_dir())
+        self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
+                                             self.environment.get_build_dir())
 
     def get_target_filename(self, t):
         if isinstance(t, build.CustomTarget):

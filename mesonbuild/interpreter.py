@@ -1540,8 +1540,8 @@ class ModuleHolder(InterpreterObject, ObjectHolder):
         # because the Build object contains dicts and lists.
         num_targets = len(self.interpreter.build.targets)
         state = ModuleState(
-            build_to_src=os.path.relpath(self.interpreter.environment.get_source_dir(),
-                                         self.interpreter.environment.get_build_dir()),
+            build_to_src=mesonlib.relpath(self.interpreter.environment.get_source_dir(),
+                                          self.interpreter.environment.get_build_dir()),
             subproject=self.interpreter.subproject,
             subdir=self.interpreter.subdir,
             current_lineno=self.interpreter.current_lineno,
@@ -2182,14 +2182,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Program or command {!r} not found '
                                            'or not executable'.format(cmd))
             cmd = prog
-        try:
-            cmd_path = os.path.relpath(cmd.get_path(), start=srcdir)
-        except ValueError:
-            # On Windows a relative path can't be evaluated for
-            # paths on two different drives (i.e. c:\foo and f:\bar).
-            # The only thing left to is is to use the original absolute
-            # path.
-            cmd_path = cmd.get_path()
+        cmd_path = mesonlib.relpath(cmd.get_path(), start=srcdir)
         if not cmd_path.startswith('..') and cmd_path not in self.build_def_files:
             self.build_def_files.append(cmd_path)
         expanded_args = []
@@ -2206,7 +2199,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not os.path.isabs(a):
                 a = os.path.join(builddir if in_builddir else srcdir, self.subdir, a)
             if os.path.isfile(a):
-                a = os.path.relpath(a, start=srcdir)
+                a = mesonlib.relpath(a, start=srcdir)
                 if not a.startswith('..'):
                     if a not in self.build_def_files:
                         self.build_def_files.append(a)
