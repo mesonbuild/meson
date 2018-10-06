@@ -1,4 +1,4 @@
-# Use filename substitution
+# Target name will contain a path separator
 i18n.merge_file(
   input: 'test.desktop.in',
   output: 'test4.desktop',
