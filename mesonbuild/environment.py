@@ -366,7 +366,8 @@ class Environment:
             self.object_suffix = 'o'
             self.win_libdir_layout = False
         if 'STRIP' in os.environ:
-            self.native_strip_bin = shlex.split(os.environ['STRIP'])
+            self.native_strip_bin = shlex.split(
+                os.environ[BinaryTable.evarMap['strip']])
         else:
             self.native_strip_bin = ['strip']
 
@@ -465,47 +466,32 @@ class Environment:
             return CompilerType.GCC_CYGWIN
         return CompilerType.GCC_STANDARD
 
-    def warn_about_lang_pointing_to_cross(self, compiler_exe, evar):
-        evar_str = os.environ.get(evar, 'WHO_WOULD_CALL_THEIR_COMPILER_WITH_THIS_NAME')
-        if evar_str == compiler_exe:
-            mlog.warning('''Env var %s seems to point to the cross compiler.
-This is probably wrong, it should always point to the native compiler.''' % evar)
-
-    def _get_compilers(self, lang, evar, want_cross):
+    def _get_compilers(self, lang, want_cross):
         '''
         The list of compilers is detected in the exact same way for
         C, C++, ObjC, ObjC++, Fortran, CS so consolidate it here.
         '''
+        evar = BinaryTable.evarMap[lang]
         if self.is_cross_build() and want_cross:
             if lang not in self.cross_info.config['binaries']:
                 raise EnvironmentException('{!r} compiler binary not defined in cross file'.format(lang))
-            compilers = mesonlib.stringlistify(self.cross_info.config['binaries'][lang])
-            # Ensure ccache exists and remove it if it doesn't
-            if compilers[0] == 'ccache':
-                compilers = compilers[1:]
-                ccache = self.detect_ccache()
-            else:
-                ccache = []
-            self.warn_about_lang_pointing_to_cross(compilers[0], evar)
+            compilers, ccache = BinaryTable.parse_entry(
+                mesonlib.stringlistify(self.cross_info.config['binaries'][lang]))
+            BinaryTable.warn_about_lang_pointing_to_cross(compilers[0], evar)
             # Return value has to be a list of compiler 'choices'
             compilers = [compilers]
             is_cross = True
             exe_wrap = self.get_exe_wrapper()
         elif evar in os.environ:
-            compilers = shlex.split(os.environ[evar])
-            # Ensure ccache exists and remove it if it doesn't
-            if compilers[0] == 'ccache':
-                compilers = compilers[1:]
-                ccache = self.detect_ccache()
-            else:
-                ccache = []
+            compilers, ccache = BinaryTable.parse_entry(
+                shlex.split(os.environ[evar]))
             # Return value has to be a list of compiler 'choices'
             compilers = [compilers]
             is_cross = False
             exe_wrap = None
         else:
             compilers = getattr(self, 'default_' + lang)
-            ccache = self.detect_ccache()
+            ccache = BinaryTable.detect_ccache()
             is_cross = False
             exe_wrap = None
         return compilers, ccache, is_cross, exe_wrap
@@ -518,9 +504,9 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
         raise EnvironmentException(errmsg)
 
-    def _detect_c_or_cpp_compiler(self, lang, evar, want_cross):
+    def _detect_c_or_cpp_compiler(self, lang, want_cross):
         popen_exceptions = {}
-        compilers, ccache, is_cross, exe_wrap = self._get_compilers(lang, evar, want_cross)
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers(lang, want_cross)
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -631,14 +617,14 @@ This is probably wrong, it should always point to the native compiler.''' % evar
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, want_cross):
-        return self._detect_c_or_cpp_compiler('c', 'CC', want_cross)
+        return self._detect_c_or_cpp_compiler('c', want_cross)
 
     def detect_cpp_compiler(self, want_cross):
-        return self._detect_c_or_cpp_compiler('cpp', 'CXX', want_cross)
+        return self._detect_c_or_cpp_compiler('cpp', want_cross)
 
     def detect_fortran_compiler(self, want_cross):
         popen_exceptions = {}
-        compilers, ccache, is_cross, exe_wrap = self._get_compilers('fortran', 'FC', want_cross)
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('fortran', want_cross)
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -700,7 +686,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
 
     def detect_objc_compiler(self, want_cross):
         popen_exceptions = {}
-        compilers, ccache, is_cross, exe_wrap = self._get_compilers('objc', 'OBJC', want_cross)
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('objc', want_cross)
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -727,7 +713,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
 
     def detect_objcpp_compiler(self, want_cross):
         popen_exceptions = {}
-        compilers, ccache, is_cross, exe_wrap = self._get_compilers('objcpp', 'OBJCXX', want_cross)
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('objcpp', want_cross)
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -764,7 +750,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_cs_compiler(self):
-        compilers, ccache, is_cross, exe_wrap = self._get_compilers('cs', 'CSC', False)
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('cs', False)
         popen_exceptions = {}
         for comp in compilers:
             if not isinstance(comp, list):
@@ -799,7 +785,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
 
     def detect_rust_compiler(self, want_cross):
         popen_exceptions = {}
-        compilers, ccache, is_cross, exe_wrap = self._get_compilers('rust', 'RUSTC', want_cross)
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('rust', want_cross)
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -884,7 +870,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 linker = [linker]
             linkers = [linker]
         else:
-            evar = 'AR'
+            evar = BinaryTable.evarMap['ar']
             if evar in os.environ:
                 linkers = [shlex.split(os.environ[evar])]
             elif isinstance(compiler, compilers.VisualStudioCCompiler):
@@ -930,17 +916,6 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                 return ArLinker(linker)
         self._handle_exceptions(popen_exceptions, linkers, 'linker')
         raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linkers))
-
-    def detect_ccache(self):
-        try:
-            has_ccache = subprocess.call(['ccache', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except OSError:
-            has_ccache = 1
-        if has_ccache == 0:
-            cmdlist = ['ccache']
-        else:
-            cmdlist = []
-        return cmdlist
 
     def get_source_dir(self):
         return self.source_dir
@@ -1179,3 +1154,53 @@ class MachineInfos:
 
     def detect_build(self, compilers = None):
         self.build = MachineInfo.detect(compilers)
+
+class BinaryTable:
+    # Map from language identifiers to environment variables.
+    evarMap = {
+        # Compilers
+        'c': 'CC',
+        'cpp': 'CXX',
+        'cs': 'CSC',
+        'd': 'DC',
+        'fortran': 'FC',
+        'objc': 'OBJC',
+        'objcpp': 'OBJCXX',
+        'rust': 'RUSTC',
+        'vala': 'VALAC',
+
+        # Binutils
+        'strip': 'STRIP',
+        'ar': 'AR',
+    }
+
+    @classmethod
+    def detect_ccache(cls):
+        try:
+            has_ccache = subprocess.call(['ccache', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except OSError:
+            has_ccache = 1
+        if has_ccache == 0:
+            cmdlist = ['ccache']
+        else:
+            cmdlist = []
+        return cmdlist
+
+    @classmethod
+    def warn_about_lang_pointing_to_cross(cls, compiler_exe, evar):
+        evar_str = os.environ.get(evar, 'WHO_WOULD_CALL_THEIR_COMPILER_WITH_THIS_NAME')
+        if evar_str == compiler_exe:
+            mlog.warning('''Env var %s seems to point to the cross compiler.
+This is probably wrong, it should always point to the native compiler.''' % evar)
+
+    @classmethod
+    def parse_entry(cls, entry):
+        compiler = mesonlib.stringlistify(entry)
+        # Ensure ccache exists and remove it if it doesn't
+        if compiler[0] == 'ccache':
+            compiler = compiler[1:]
+            ccache = cls.detect_ccache()
+        else:
+            ccache = []
+        # Return value has to be a list of compiler 'choices'
+        return compiler, ccache
