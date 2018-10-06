@@ -2844,35 +2844,33 @@ external dependencies (including libraries) must go to "dependencies".''')
         return True
 
     def get_subproject_dep(self, name, dirname, varname, required):
+        dep = DependencyHolder(NotFoundDependency(self.environment), self.subproject)
         try:
             subproject = self.subprojects[dirname]
-            if not subproject.found():
-                if not required:
-                    return DependencyHolder(NotFoundDependency(self.environment), self.subproject)
-
-                raise DependencyException('Subproject %s was not found.' % (name))
-
-            dep = self.subprojects[dirname].get_variable_method([varname], {})
+            if subproject.found():
+                dep = self.subprojects[dirname].get_variable_method([varname], {})
         except InvalidArguments as e:
+            pass
+
+        if not isinstance(dep, DependencyHolder):
+            raise InvalidCode('Fetched variable {!r} in the subproject {!r} is '
+                              'not a dependency object.'.format(varname, dirname))
+
+        if not dep.found():
             if required:
-                raise DependencyException('Could not find dependency {} in subproject {}; {}'
-                                          ''.format(varname, dirname, str(e)))
+                raise DependencyException('Could not find dependency {} in subproject {}'
+                                          ''.format(varname, dirname))
             # If the dependency is not required, don't raise an exception
             subproj_path = os.path.join(self.subproject_dir, dirname)
             mlog.log('Dependency', mlog.bold(name), 'from subproject',
                      mlog.bold(subproj_path), 'found:', mlog.red('NO'))
-            return None
-        if not isinstance(dep, DependencyHolder):
-            raise InvalidCode('Fetched variable {!r} in the subproject {!r} is '
-                              'not a dependency object.'.format(varname, dirname))
+
         return dep
 
     def _find_cached_fallback_dep(self, name, dirname, varname, wanted, required):
         if dirname not in self.subprojects:
             return False
         dep = self.get_subproject_dep(name, dirname, varname, required)
-        if not dep:
-            return False
         if not dep.found():
             return dep
 
@@ -3053,8 +3051,8 @@ root and issuing %s.
             return None
         required = kwargs.get('required', True)
         dep = self.get_subproject_dep(name, dirname, varname, required)
-        if not dep:
-            return None
+        if not dep.found():
+            return dep
         subproj_path = os.path.join(self.subproject_dir, dirname)
         # Check if the version of the declared dependency matches what we want
         if 'version' in kwargs:
