@@ -2682,6 +2682,8 @@ recommended as it is not supported on some platforms''')
         self.assertRegex(out, "WARNING:.*\"double_output.txt\".*overwrites")
         self.assertRegex(out, "WARNING:.*\"subdir.double_output2.txt\".*overwrites")
         self.assertNotRegex(out, "WARNING:.*no_write_conflict.txt.*overwrites")
+        self.assertNotRegex(out, "WARNING:.*@BASENAME@.*overwrites")
+        self.assertRegex(out, "WARNING:.*\"sameafterbasename\".*overwrites")
         # No warnings about empty configuration data objects passed to files with substitutions
         self.assertNotRegex(out, "WARNING:.*empty configuration_data.*nosubst-nocopy1.txt.in")
         self.assertNotRegex(out, "WARNING:.*empty configuration_data.*nosubst-nocopy2.txt.in")
