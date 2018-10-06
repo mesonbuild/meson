@@ -218,6 +218,30 @@ configure_file(
   output: 'no_write_conflict.txt',
   configuration: conf)
 
+# Test that @BASENAME@ is substituted before checking and does not create a warning.
+configure_file(
+  input: 'differentafterbasename1.in',
+  output: '@BASENAME@',
+  configuration: conf
+)
+configure_file(
+  input: 'differentafterbasename2.in',
+  output: '@BASENAME@',
+  configuration: conf
+)
+
+# Test that @BASENAME@ is substituted before checking and does create a warning on conflict.
+configure_file(
+  input: 'sameafterbasename.in',
+  output: '@BASENAME@',
+  configuration: conf
+)
+configure_file(
+  input: 'sameafterbasename.in2',
+  output: '@BASENAME@',
+  configuration: conf
+)
+
 test('configure-file', test_file)
 
 cdata = configuration_data()
