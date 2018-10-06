@@ -1052,12 +1052,6 @@ class CrossBuildInfo:
                 except Exception:
                     raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
 
-                if entry == 'cpu_family' and res not in known_cpu_families:
-                    mlog.warning('Unknown CPU family %s, please report this at https://github.com/mesonbuild/meson/issues/new' % value)
-
-                if entry == 'endian' and res not in ('little', 'big'):
-                    mlog.warning('Unknown endian %s in cross file' % res)
-
                 if self.ok_type(res):
                     self.config[s][entry] = res
                 elif isinstance(res, list):
@@ -1143,11 +1137,20 @@ class MachineInfo:
             raise EnvironmentException(
                 'Machine info is currently {}\n'.format(literal) +
                 'but is missing {}.'.format(minimum_literal - set(literal)))
+
+        cpu_family = literal['cpu_family']
+        if cpu_family not in known_cpu_families:
+            mlog.warning('Unknown CPU family %s, please report this at https://github.com/mesonbuild/meson/issues/new' % cpu_family)
+
+        endian = literal['endian']
+        if endian not in ('little', 'big'):
+            mlog.warning('Unknown endian %s' % endian)
+
         return MachineInfo(
             literal['system'],
-            literal['cpu_family'],
+            cpu_family,
             literal['cpu'],
-            literal['endian'])
+            endian)
 
 class MachineInfos:
     def __init__(self):
