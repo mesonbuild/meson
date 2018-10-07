@@ -1944,6 +1944,8 @@ rule FORTRAN_DEP_HACK%s
             if not isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
                 continue
             idir = self.get_target_dir(i)
+            if not idir:
+                continue
             if idir not in custom_target_include_dirs:
                 custom_target_include_dirs.append(idir)
         incs = []
