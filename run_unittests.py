@@ -81,7 +81,7 @@ def is_tarball():
     return False
 
 def is_ci():
-    if 'TRAVIS' in os.environ or 'APPVEYOR' in os.environ:
+    if 'CI' in os.environ:
         return True
     return False
 
@@ -98,8 +98,8 @@ def _git_init(project_dir):
 
 def skipIfNoPkgconfig(f):
     '''
-    Skip this test if no pkg-config is found, unless we're on Travis or
-    Appveyor CI.  This allows users to run our test suite without having
+    Skip this test if no pkg-config is found, unless we're on CI.
+    This allows users to run our test suite without having
     pkg-config installed on, f.ex., macOS, while ensuring that our CI does not
     silently skip the test because of misconfiguration.
 
@@ -1671,7 +1671,7 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertIsInstance(linker, lib)
                 self.assertEqual(cc.id, 'msvc')
                 self.assertTrue(hasattr(cc, 'is_64'))
-                # If we're in the appveyor CI, we know what the compiler will be
+                # If we're on Windows CI, we know what the compiler will be
                 if 'arch' in os.environ:
                     if os.environ['arch'] == 'x64':
                         self.assertTrue(cc.is_64)

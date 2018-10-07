@@ -17,7 +17,7 @@ exec = executable('exec',
 test('MPI C', exec)
 
 if build_machine.system() != 'windows'
-  # C++ MPI not supported by MS-MPI used on AppVeyor.
+  # C++ MPI not supported by MS-MPI
   mpicpp = dependency('mpi', language : 'cpp')
   execpp = executable('execpp',
     'main.cpp',

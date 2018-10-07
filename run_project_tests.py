@@ -81,7 +81,7 @@ class AutoDeletedDir:
 
 failing_logs = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
-under_ci = not {'TRAVIS', 'APPVEYOR'}.isdisjoint(os.environ)
+under_ci = 'CI' in os.environ
 do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
