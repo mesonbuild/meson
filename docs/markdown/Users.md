@@ -16,6 +16,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [dbus-broker](https://github.com/bus1/dbus-broker), Linux D-Bus Message Broker
  - [Dpdk](http://dpdk.org/browse/dpdk), Data plane development kit, a set of libraries and drivers for fast packet processing
  - [DXVK](https://github.com/doitsujin/dxvk), a Vulkan-based Direct3D 11 implementation for Linux using Wine
+ - [elementary OS](https://github.com/elementary/), Linux desktop oriented distribution 
  - [Emeus](https://github.com/ebassi/emeus), Constraint based layout manager for GTK+
  - [ESP8266 Arduino sample project](https://github.com/trilader/arduino-esp8266-meson) Sample project for using the ESP8266 Arduino port with Meson
  - [Fractal](https://wiki.gnome.org/Apps/Fractal/), a Matrix messaging client for GNOME
