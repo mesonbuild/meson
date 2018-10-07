@@ -137,3 +137,18 @@ assert(2 != 'st', 'not equal')
 assert(not ([] == 'st'), 'not equal')
 assert(not ([] == 1), 'not equal')
 assert(not (2 == 'st'), 'not equal')
+
+# "in" and "not in" operators
+
+assert(1 in [1, 2], '''1 should be in [1, 2]''')
+assert(3 not in [1, 2], '''3 shouldn't be in [1, 2]''')
+assert(not (3 in [1, 2]), '''3 shouldn't be in [1, 2]''')
+
+assert('b' in ['a', 'b'], ''''b' should be in ['a', 'b']''')
+assert('c' not in ['a', 'b'], ''''c' shouldn't be in ['a', 'b']''')
+
+assert(exe1 in [exe1, exe2], ''''exe1 should be in [exe1, exe2]''')
+assert(exe3 not in [exe1, exe2], ''''exe3 shouldn't be in [exe1, exe2]''')
+
+assert('a' in {'a': 'b'}, '''1 should be in {'a': 'b'}''')
+assert('b' not in {'a': 'b'}, '''1 should be in {'a': 'b'}''')

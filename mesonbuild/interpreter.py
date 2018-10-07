@@ -29,6 +29,7 @@ from .interpreterbase import check_stringlist, flatten, noPosargs, noKwargs, str
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler
 from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
+from .interpreterbase import ObjectHolder
 from .modules import ModuleReturnValue
 
 import os, shutil, uuid
@@ -56,14 +57,6 @@ def stringifyUserArguments(args):
         return "'%s'" % args
     raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
 
-
-class ObjectHolder:
-    def __init__(self, obj, subproject=None):
-        self.held_object = obj
-        self.subproject = subproject
-
-    def __repr__(self):
-        return '<Holder: {!r}>'.format(self.held_object)
 
 class FeatureOptionHolder(InterpreterObject, ObjectHolder):
     def __init__(self, env, option):

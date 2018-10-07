@@ -18,3 +18,16 @@ foreach i : tests
   # we definitely don't want that.
   tests = ['test4', 'prog4', 'prog4.c']
 endforeach
+
+items = ['a', 'continue', 'b', 'break', 'c']
+result = []
+foreach i : items
+  if i == 'continue'
+    continue
+  elif i == 'break'
+    break
+  endif
+  result += i
+endforeach
+
+assert(result == ['a', 'b'], 'Continue or break in foreach failed')

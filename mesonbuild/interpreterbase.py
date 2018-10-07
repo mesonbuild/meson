@@ -21,6 +21,14 @@ from . import environment, dependencies
 import os, copy, re, types
 from functools import wraps
 
+class ObjectHolder:
+    def __init__(self, obj, subproject=None):
+        self.held_object = obj
+        self.subproject = subproject
+
+    def __repr__(self):
+        return '<Holder: {!r}>'.format(self.held_object)
+
 # Decorators for method calls.
 
 def check_stringlist(a, msg='Arguments must be strings.'):
@@ -292,6 +300,12 @@ class InvalidArguments(InterpreterException):
 class SubdirDoneRequest(BaseException):
     pass
 
+class ContinueRequest(BaseException):
+    pass
+
+class BreakRequest(BaseException):
+    pass
+
 class InterpreterObject:
     def __init__(self):
         self.methods = {}
@@ -445,6 +459,10 @@ class InterpreterBase:
             return self.evaluate_indexing(cur)
         elif isinstance(cur, mparser.TernaryNode):
             return self.evaluate_ternary(cur)
+        elif isinstance(cur, mparser.ContinueNode):
+            raise ContinueRequest()
+        elif isinstance(cur, mparser.BreakNode):
+            raise BreakRequest()
         elif self.is_elementary_type(cur):
             return cur
         else:
@@ -487,6 +505,13 @@ class InterpreterBase:
             return False
         return True
 
+    def evaluate_in(self, val1, val2):
+        if not isinstance(val1, (str, int, float, ObjectHolder)):
+            raise InvalidArguments('lvalue of "in" operator must be a string, integer, float, or object')
+        if not isinstance(val2, (list, dict)):
+            raise InvalidArguments('rvalue of "in" operator must be an array or a dict')
+        return val1 in val2
+
     def evaluate_comparison(self, node):
         val1 = self.evaluate_statement(node.left)
         if is_disabler(val1):
@@ -494,6 +519,10 @@ class InterpreterBase:
         val2 = self.evaluate_statement(node.right)
         if is_disabler(val2):
             return val2
+        if node.ctype == 'in':
+            return self.evaluate_in(val1, val2)
+        elif node.ctype == 'notin':
+            return not self.evaluate_in(val1, val2)
         valid = self.validate_comparison_types(val1, val2)
         # Ordering comparisons of different types isn't allowed since PR #1810
         # (0.41.0).  Since PR #2884 we also warn about equality comparisons of
@@ -622,7 +651,12 @@ The result of this is undefined and will become a hard error in a future Meson r
                 return items
             for item in items:
                 self.set_variable(varname, item)
-                self.evaluate_codeblock(node.block)
+                try:
+                    self.evaluate_codeblock(node.block)
+                except ContinueRequest:
+                    continue
+                except BreakRequest:
+                    break
         elif isinstance(items, dict):
             if len(node.varnames) != 2:
                 raise InvalidArguments('Foreach on dict unpacks key and value')
@@ -631,7 +665,12 @@ The result of this is undefined and will become a hard error in a future Meson r
             for key, value in items.items():
                 self.set_variable(node.varnames[0].value, key)
                 self.set_variable(node.varnames[1].value, value)
-                self.evaluate_codeblock(node.block)
+                try:
+                    self.evaluate_codeblock(node.block)
+                except ContinueRequest:
+                    continue
+                except BreakRequest:
+                    break
         else:
             raise InvalidArguments('Items of foreach loop must be an array or a dict')
 
