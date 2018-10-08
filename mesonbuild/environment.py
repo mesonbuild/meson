@@ -363,6 +363,7 @@ class Environment:
         self.default_rust = ['rustc']
         self.default_static_linker = ['ar']
         self.vs_static_linker = ['lib']
+        self.clang_cl_static_linker = ['llvm-lib']
         self.gcc_static_linker = ['gcc-ar']
         self.clang_static_linker = ['llvm-ar']
 
@@ -919,7 +920,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             if evar in os.environ:
                 linkers = [shlex.split(os.environ[evar])]
             elif isinstance(compiler, compilers.VisualStudioCCompiler):
-                linkers = [self.vs_static_linker]
+                linkers = [self.vs_static_linker, self.clang_cl_static_linker]
             elif isinstance(compiler, compilers.GnuCompiler):
                 # Use gcc-ar if available; needed for LTO
                 linkers = [self.gcc_static_linker, self.default_static_linker]
@@ -929,14 +930,14 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             elif isinstance(compiler, compilers.DCompiler):
                 # Prefer static linkers over linkers used by D compilers
                 if mesonlib.is_windows():
-                    linkers = [self.vs_static_linker, compiler.get_linker_exelist()]
+                    linkers = [self.vs_static_linker, self.clang_cl_static_linker, compiler.get_linker_exelist()]
                 else:
                     linkers = [self.default_static_linker, compiler.get_linker_exelist()]
             else:
                 linkers = [self.default_static_linker]
         popen_exceptions = {}
         for linker in linkers:
-            if 'lib' in linker or 'lib.exe' in linker:
+            if not set(['lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe']).isdisjoint(linker):
                 arg = '/?'
             else:
                 arg = '--version'
@@ -945,7 +946,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             except OSError as e:
                 popen_exceptions[' '.join(linker + [arg])] = e
                 continue
-            if '/OUT:' in out or '/OUT:' in err:
+            if '/OUT:' in out.upper() or '/OUT:' in err.upper():
                 return VisualStudioLinker(linker)
             if p.returncode == 0 and ('armar' in linker or 'armar.exe' in linker):
                 return ArmarLinker(linker)
