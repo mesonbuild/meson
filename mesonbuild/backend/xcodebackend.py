@@ -44,6 +44,8 @@ class XCodeBackend(backends.Backend):
                              'inc': 'sourcecode.c.h',
                              'dylib': 'compiled.mach-o.dylib',
                              'o': 'compiled.mach-o.objfile',
+                             's': 'sourcecode.asm',
+                             'asm': 'sourcecode.asm',
                              }
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
@@ -112,7 +114,11 @@ class XCodeBackend(backends.Backend):
             self.generate_suffix()
 
     def get_xcodetype(self, fname):
-        return self.xcodetypemap[fname.split('.')[-1]]
+        xcodetype = self.xcodetypemap.get(fname.split('.')[-1].lower())
+        if not xcodetype:
+            xcodetype = 'sourcecode.unknown'
+            mlog.warning('Unknown file type "%s" fallbacking to "%s". Xcode project might be malformed.' % (fname, xcodetype))
+        return xcodetype
 
     def generate_filemap(self):
         self.filemap = {} # Key is source file relative to src root.
