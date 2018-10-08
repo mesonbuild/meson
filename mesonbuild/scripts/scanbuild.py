@@ -13,16 +13,17 @@
 # limitations under the License.
 
 import os
+import shlex
 import subprocess
 import shutil
 import tempfile
 from ..environment import detect_ninja
 from ..mesonlib import Popen_safe
 
-def scanbuild(exename, srcdir, blddir, privdir, logdir, args):
+def scanbuild(exelist, srcdir, blddir, privdir, logdir, args):
     with tempfile.TemporaryDirectory(dir=privdir) as scandir:
-        meson_cmd = [exename] + args
-        build_cmd = [exename, '-o', logdir, detect_ninja(), '-C', scandir]
+        meson_cmd = exelist + args
+        build_cmd = exelist + ['-o', logdir, detect_ninja(), '-C', scandir]
         rc = subprocess.call(meson_cmd + [srcdir, scandir])
         if rc != 0:
             return rc
@@ -58,8 +59,14 @@ def run(args):
             toolname = tool
             break
 
-    exename = os.environ.get('SCANBUILD', toolname)
-    if not shutil.which(exename):
-        print('Scan-build not installed.')
+    if 'SCANBUILD' in os.environ:
+        exelist = shlex.split(os.environ['SCANBUILD'])
+    else:
+        exelist = [toolname]
+
+    try:
+        Popen_safe(exelist + ['--help'])
+    except OSError:
+        print('Could not execute scan-build "%s"' % ' '.join(exelist))
         return 1
-    return scanbuild(exename, srcdir, blddir, privdir, logdir, meson_cmd)
+    return scanbuild(exelist, srcdir, blddir, privdir, logdir, meson_cmd)
