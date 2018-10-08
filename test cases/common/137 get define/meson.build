@@ -32,6 +32,9 @@ foreach lang : ['c', 'cpp']
   elif host_system == 'netbsd'
     d = cc.get_define('__NetBSD__')
     assert(d == '1', '__NetBSD__ value is @0@ instead of 1'.format(d))
+  elif host_system == 'gnu'
+    d = cc.get_define('__GNU__')
+    assert(d == '1', '__GNU__ value is @0@ instead of 1'.format(d))
   else
     error('Please report a bug and help us improve support for this platform')
   endif
