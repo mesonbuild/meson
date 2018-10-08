@@ -77,16 +77,19 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
             subprocess.check_call([lcov_exe,
                                    '-a', initial_tracefile,
                                    '-a', run_tracefile,
+                                   '--rc', 'lcov_branch_coverage=1',
                                    '-o', raw_tracefile])
             # Remove all directories outside the source_root from the covinfo
             subprocess.check_call([lcov_exe,
                                    '--extract', raw_tracefile,
                                    os.path.join(source_root, '*'),
+                                   '--rc', 'lcov_branch_coverage=1',
                                    '--output-file', covinfo])
             # Remove all directories inside subproject dir
             subprocess.check_call([lcov_exe,
                                    '--remove', covinfo,
                                    os.path.join(subproject_root, '*'),
+                                   '--rc', 'lcov_branch_coverage=1',
                                    '--output-file', covinfo])
             subprocess.check_call([genhtml_exe,
                                    '--prefix', build_root,
