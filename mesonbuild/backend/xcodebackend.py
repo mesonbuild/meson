@@ -739,9 +739,13 @@ class XCodeBackend(backends.Backend):
                 for lang in self.environment.coredata.compilers:
                     if lang not in langnamemap:
                         continue
+                    # Add compile args added using add_project_arguments()
+                    pargs = self.build.projects_args.get(target.subproject, {}).get(lang, [])
+                    # Add compile args added using add_global_arguments()
+                    # These override per-project arguments
                     gargs = self.build.global_args.get(lang, [])
                     targs = target.get_extra_args(lang)
-                    args = gargs + targs
+                    args = pargs + gargs + targs
                     if len(args) > 0:
                         langargs[langnamemap[lang]] = args
                 symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
@@ -785,8 +789,7 @@ class XCodeBackend(backends.Backend):
                 if isinstance(target, build.SharedLibrary):
                     self.write_line('LIBRARY_STYLE = DYNAMIC;')
                 for langname, args in langargs.items():
-                    argstr = ' '.join(args)
-                    self.write_line('OTHER_%sFLAGS = "%s";' % (langname, argstr))
+                    self.write_build_setting_line('OTHER_%sFLAGS' % langname, args)
                 self.write_line('OTHER_LDFLAGS = "%s";' % ldstr)
                 self.write_line('OTHER_REZFLAGS = "";')
                 self.write_line('PRODUCT_NAME = %s;' % product_name)
@@ -875,7 +878,7 @@ class XCodeBackend(backends.Backend):
                     # If path contains spaces surround it with double colon
                     self.write_line('%s = "\\"%s\\"";' % (flag_name, value))
                 else:
-                    self.write_line('"%s",' % value)
+                    self.write_line('%s = "%s";' % (flag_name, value))
             else:
                 self.write_line('%s = (' % flag_name)
                 self.indent_level += 1
