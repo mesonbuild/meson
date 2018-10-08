@@ -1731,10 +1731,17 @@ class ArmclangCompiler:
         return ['--symdefs=' + implibname]
 
 
-# Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
+# Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1, 19.0.0
 class IntelCompiler(GnuLikeCompiler):
     def __init__(self, compiler_type):
         super().__init__(compiler_type)
+        # As of 19.0.0 ICC doesn't have sanitizer, color, or lto support.
+        #
+        # It does have IPO, which serves much the same purpose as LOT, but
+        # there is an unfortunate rule for using IPO (you can't control the
+        # name of the output file) which break assumptions meson makes
+        self.base_options = ['b_pch', 'b_lundef', 'b_asneeded', 'b_pgo',
+                             'b_coverage', 'b_ndebug', 'b_staticpic', 'b_pie']
         self.id = 'intel'
         self.lang_header = 'none'
 
