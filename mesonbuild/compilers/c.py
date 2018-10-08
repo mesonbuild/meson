@@ -1345,7 +1345,12 @@ class VisualStudioCCompiler(CCompiler):
         return []
 
     def get_linker_exelist(self):
-        return ['link'] # FIXME, should have same path as compiler.
+        # FIXME, should have same path as compiler.
+        # FIXME, should be controllable via cross-file.
+        if self.id == 'clang-cl':
+            return ['lld-link']
+        else:
+            return ['link']
 
     def get_linker_always_args(self):
         return ['/nologo']

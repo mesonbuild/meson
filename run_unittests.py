@@ -2050,8 +2050,9 @@ int main(int argc, char **argv) {
         if extra_args is None:
             extra_args = []
         if compiler.get_argument_syntax() == 'msvc':
-            link_cmd = ['link', '/NOLOGO', '/DLL', '/DEBUG',
-                        '/IMPLIB:' + impfile, '/OUT:' + outfile, objectfile]
+            link_cmd = compiler.get_linker_exelist() + [
+                '/NOLOGO', '/DLL', '/DEBUG', '/IMPLIB:' + impfile,
+                '/OUT:' + outfile, objectfile]
         else:
             extra_args += ['-fPIC']
             link_cmd = compiler.get_exelist() + ['-shared', '-o', outfile, objectfile]
