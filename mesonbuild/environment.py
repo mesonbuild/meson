@@ -120,7 +120,7 @@ def find_coverage_tools():
     return gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe
 
 def detect_ninja(version='1.5', log=False):
-    for n in ['ninja', 'ninja-build']:
+    for n in ['ninja', 'ninja-build', 'samu']:
         try:
             p, found = Popen_safe([n, '--version'])[0:2]
         except (FileNotFoundError, PermissionError):

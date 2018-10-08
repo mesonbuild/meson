@@ -921,11 +921,11 @@ class BasePlatformTests(unittest.TestCase):
         # Misc stuff
         self.orig_env = os.environ.copy()
         if self.backend is Backend.ninja:
-            self.no_rebuild_stdout = 'ninja: no work to do.'
+            self.no_rebuild_stdout = ['ninja: no work to do.', 'samu: nothing to do']
         else:
             # VS doesn't have a stable output when no changes are done
             # XCode backend is untested with unit tests, help welcome!
-            self.no_rebuild_stdout = 'UNKNOWN BACKEND {!r}'.format(self.backend.name)
+            self.no_rebuild_stdout = ['UNKNOWN BACKEND {!r}'.format(self.backend.name)]
 
         self.builddirs = []
         self.new_builddir()
@@ -1076,8 +1076,11 @@ class BasePlatformTests(unittest.TestCase):
     def get_compdb(self):
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('Compiler db not available with {} backend'.format(self.backend.name))
-        with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
-            contents = json.load(ifile)
+        try:
+            with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
+                contents = json.load(ifile)
+        except FileNotFoundError:
+            raise unittest.SkipTest('Compiler db not found')
         # If Ninja is using .rsp files, generate them, read their contents, and
         # replace it as the command for all compile commands in the parsed json.
         if len(contents) > 0 and contents[0]['command'].endswith('.rsp'):
@@ -1131,7 +1134,7 @@ class BasePlatformTests(unittest.TestCase):
     def assertBuildIsNoop(self):
         ret = self.build()
         if self.backend is Backend.ninja:
-            self.assertEqual(ret.split('\n')[-2], self.no_rebuild_stdout)
+            self.assertIn(ret.split('\n')[-2], self.no_rebuild_stdout)
         elif self.backend is Backend.vs:
             # Ensure that some target said that no rebuild was done
             self.assertIn('CustomBuild:\n  All outputs are up-to-date.', ret)
