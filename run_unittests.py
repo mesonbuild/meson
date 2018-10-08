@@ -1696,6 +1696,8 @@ class AllPlatformTests(BasePlatformTests):
                 wrapperlinker_s += shlex.quote(w) + ' '
             os.environ['AR'] = wrapperlinker_s
             wlinker = env.detect_static_linker(wcc)
+            # Pop it so we don't use it for the next detection
+            evalue = os.environ.pop('AR')
             # Must be the same type since it's a wrapper around the same exelist
             self.assertIs(type(cc), type(wcc))
             self.assertIs(type(linker), type(wlinker))
