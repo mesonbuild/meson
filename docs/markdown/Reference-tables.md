@@ -84,6 +84,7 @@ These are provided by the `.system()` method call.
 | freebsd             | FreeBSD and its derivatives |
 | dragonfly           | DragonFly BSD |
 | netbsd              | |
+| gnu                 | GNU Hurd |
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.
