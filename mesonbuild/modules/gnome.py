@@ -17,6 +17,7 @@ functionality such as gobject-introspection, gresources and gtk-doc'''
 
 import os
 import copy
+import shlex
 import subprocess
 
 from .. import build
@@ -1034,12 +1035,12 @@ This will become a hard error in the future.''')
         ldflags.update(compiler_flags[1])
         ldflags.update(compiler_flags[2])
         if compiler:
-            args += ['--cc=%s' % ' '.join(compiler.get_exelist())]
-            args += ['--ld=%s' % ' '.join(compiler.get_linker_exelist())]
+            args += ['--cc=%s' % ' '.join([shlex.quote(x) for x in compiler.get_exelist()])]
+            args += ['--ld=%s' % ' '.join([shlex.quote(x) for x in compiler.get_linker_exelist()])]
         if cflags:
-            args += ['--cflags=%s' % ' '.join(cflags)]
+            args += ['--cflags=%s' % ' '.join([shlex.quote(x) for x in cflags])]
         if ldflags:
-            args += ['--ldflags=%s' % ' '.join(ldflags)]
+            args += ['--ldflags=%s' % ' '.join([shlex.quote(x) for x in ldflags])]
 
         return args
 
