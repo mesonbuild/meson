@@ -3918,7 +3918,7 @@ class LinuxlikeTests(BasePlatformTests):
         # when all tests are run (but works when only this test is run),
         # but doing this explicitly works.
         env = os.environ.copy()
-        env['LD_LIBRARY_PATH'] = installed_libdir
+        env['LD_LIBRARY_PATH'] = ':'.join([installed_libdir, env.get('LD_LIBRARY_PATH', '')])
         self.assertEqual(subprocess.call(installed_exe, env=env), 0)
         # Ensure that introspect --installed works
         installed = self.introspect('--installed')
@@ -4119,7 +4119,7 @@ endian = 'little'
             self.init(testdir2)
             self.build()
             myenv = os.environ.copy()
-            myenv['LD_LIBRARY_PATH'] = lib_dir
+            myenv['LD_LIBRARY_PATH'] = ':'.join([lib_dir, myenv.get('LD_LIBRARY_PATH', '')])
             if is_cygwin():
                 bin_dir = os.path.join(tempdirname, 'bin')
                 myenv['PATH'] = bin_dir + os.pathsep + myenv['PATH']
