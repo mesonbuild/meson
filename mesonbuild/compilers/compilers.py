@@ -868,10 +868,10 @@ class Compiler:
     def compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies):
         raise EnvironmentException('%s does not support compute_int ' % self.get_id())
 
-    def has_members(self, typename, membernames, prefix, env, extra_args=None, dependencies=None):
+    def has_members(self, typename, membernames, prefix, env, *, extra_args=None, dependencies=None):
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
 
-    def has_type(self, typename, prefix, env, extra_args, dependencies=None):
+    def has_type(self, typename, prefix, env, extra_args, *, dependencies=None):
         raise EnvironmentException('%s does not support has_type ' % self.get_id())
 
     def symbols_have_underscore_prefix(self, env):
@@ -1614,7 +1614,7 @@ class ClangCompiler(GnuLikeCompiler):
             myargs + args,
             env)
 
-    def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
+    def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         # Starting with XCode 8, we need to pass this to force linker
@@ -1623,7 +1623,8 @@ class ClangCompiler(GnuLikeCompiler):
         # https://github.com/Homebrew/homebrew-core/issues/3727
         if self.compiler_type.is_osx_compiler and version_compare(self.version, '>=8.0'):
             extra_args.append('-Wl,-no_weak_imports')
-        return super().has_function(funcname, prefix, env, extra_args, dependencies)
+        return super().has_function(funcname, prefix, env, extra_args=extra_args,
+                                    dependencies=dependencies)
 
     def openmp_flags(self):
         if version_compare(self.version, '>=3.8.0'):
