@@ -144,6 +144,24 @@ def skip_if_env_value(value):
         return wrapped
     return wrapper
 
+def skip_if_not_base_option(feature):
+    """Skip tests if The compiler does not support a given base option.
+
+    for example, ICC doesn't currently support b_sanitize.
+    """
+    def actual(f):
+        @functools.wraps(f)
+        def wrapped(*args, **kwargs):
+            env = get_fake_env('', '', '')
+            cc = env.detect_c_compiler(False)
+            if feature not in cc.base_options:
+                raise unittest.SkipTest(
+                    '{} not available with {}'.format(feature, cc.id))
+            return f(*args, **kwargs)
+        return wrapped
+    return actual
+
+
 class PatchModule:
     '''
     Fancy monkey-patching! Whee! Can't use mock.patch because it only
@@ -3522,6 +3540,7 @@ class LinuxlikeTests(BasePlatformTests):
             self.assertRegex('\n'.join(mesonlog),
                              r'Dependency qt5 \(modules: Core\) found: YES 5.* \(pkg-config\)\n')
 
+    @skip_if_not_base_option('b_sanitize')
     def test_generate_gir_with_address_sanitizer(self):
         if is_cygwin():
             raise unittest.SkipTest('asan not available on Cygwin')
@@ -3984,6 +4003,7 @@ class LinuxlikeTests(BasePlatformTests):
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/progcxx'))
         self.assertEqual(install_rpath, 'baz')
 
+    @skip_if_not_base_option('b_sanitize')
     def test_pch_with_address_sanitizer(self):
         if is_cygwin():
             raise unittest.SkipTest('asan not available on Cygwin')
