@@ -209,7 +209,9 @@ class CCompiler(Compiler):
     def _get_search_dirs(self, env):
         extra_args = ['--print-search-dirs']
         stdo = None
-        with self._build_wrapper('', env, extra_args, None, 'compile', True) as p:
+        with self._build_wrapper('', env, extra_args=extra_args,
+                                 dependencies=None, mode='compile',
+                                 want_output=True) as p:
             stdo = p.stdo
         return stdo
 
@@ -361,13 +363,14 @@ class CCompiler(Compiler):
         code = 'int main(int argc, char **argv) { int class=0; return class; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
-    def check_header(self, hname, prefix, env, extra_args=None, dependencies=None):
+    def check_header(self, hname, prefix, env, *, extra_args=None, dependencies=None):
         fargs = {'prefix': prefix, 'header': hname}
         code = '''{prefix}
         #include <{header}>'''
-        return self.compiles(code.format(**fargs), env, extra_args, dependencies)
+        return self.compiles(code.format(**fargs), env, extra_args=extra_args,
+                             dependencies=dependencies)
 
-    def has_header(self, hname, prefix, env, extra_args=None, dependencies=None):
+    def has_header(self, hname, prefix, env, *, extra_args=None, dependencies=None):
         fargs = {'prefix': prefix, 'header': hname}
         code = '''{prefix}
         #ifdef __has_include
@@ -377,10 +380,10 @@ class CCompiler(Compiler):
         #else
          #include <{header}>
         #endif'''
-        return self.compiles(code.format(**fargs), env, extra_args,
-                             dependencies, 'preprocess')
+        return self.compiles(code.format(**fargs), env, extra_args=extra_args,
+                             dependencies=dependencies, mode='preprocess')
 
-    def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
+    def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
         t = '''{prefix}
         #include <{header}>
@@ -390,7 +393,8 @@ class CCompiler(Compiler):
                 {symbol};
             #endif
         }}'''
-        return self.compiles(t.format(**fargs), env, extra_args, dependencies)
+        return self.compiles(t.format(**fargs), env, extra_args=extra_args,
+                             dependencies=dependencies)
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         if callable(extra_args):
@@ -437,7 +441,7 @@ class CCompiler(Compiler):
         args += extra_args
         return args
 
-    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
+    def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile'):
         with self._build_wrapper(code, env, extra_args, dependencies, mode) as p:
             return p.returncode == 0
 
@@ -445,10 +449,11 @@ class CCompiler(Compiler):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
         return self.compile(code, args, mode, want_output=want_output)
 
-    def links(self, code, env, extra_args=None, dependencies=None):
-        return self.compiles(code, env, extra_args, dependencies, mode='link')
+    def links(self, code, env, *, extra_args=None, dependencies=None):
+        return self.compiles(code, env, extra_args=extra_args,
+                             dependencies=dependencies, mode='link')
 
-    def run(self, code, env, extra_args=None, dependencies=None):
+    def run(self, code, env, *, extra_args=None, dependencies=None):
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
         with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
@@ -478,7 +483,8 @@ class CCompiler(Compiler):
         t = '''#include <stdio.h>
         {prefix}
         int main() {{ static int a[1-2*!({expression})]; a[0]=0; return 0; }}'''
-        return self.compiles(t.format(**fargs), env, extra_args, dependencies)
+        return self.compiles(t.format(**fargs), env, extra_args=extra_args,
+                             dependencies=dependencies)
 
     def cross_compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies):
         # Try user's guess first
@@ -528,7 +534,7 @@ class CCompiler(Compiler):
 
         return low
 
-    def compute_int(self, expression, low, high, guess, prefix, env, extra_args=None, dependencies=None):
+    def compute_int(self, expression, low, high, guess, prefix, env, *, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         if self.is_cross:
@@ -540,14 +546,15 @@ class CCompiler(Compiler):
             printf("%ld\\n", (long)({expression}));
             return 0;
         }};'''
-        res = self.run(t.format(**fargs), env, extra_args, dependencies)
+        res = self.run(t.format(**fargs), env, extra_args=extra_args,
+                       dependencies=dependencies)
         if not res.compiled:
             return -1
         if res.returncode != 0:
             raise EnvironmentException('Could not run compute_int test binary.')
         return int(res.stdout)
 
-    def cross_sizeof(self, typename, prefix, env, extra_args=None, dependencies=None):
+    def cross_sizeof(self, typename, prefix, env, *, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         fargs = {'prefix': prefix, 'type': typename}
@@ -556,30 +563,33 @@ class CCompiler(Compiler):
         int main(int argc, char **argv) {{
             {type} something;
         }}'''
-        if not self.compiles(t.format(**fargs), env, extra_args, dependencies):
+        if not self.compiles(t.format(**fargs), env, extra_args=extra_args,
+                             dependencies=dependencies):
             return -1
         return self.cross_compute_int('sizeof(%s)' % typename, None, None, None, prefix, env, extra_args, dependencies)
 
-    def sizeof(self, typename, prefix, env, extra_args=None, dependencies=None):
+    def sizeof(self, typename, prefix, env, *, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         fargs = {'prefix': prefix, 'type': typename}
         if self.is_cross:
-            return self.cross_sizeof(typename, prefix, env, extra_args, dependencies)
+            return self.cross_sizeof(typename, prefix, env, extra_args=extra_args,
+                                     dependencies=dependencies)
         t = '''#include<stdio.h>
         {prefix}
         int main(int argc, char **argv) {{
             printf("%ld\\n", (long)(sizeof({type})));
             return 0;
         }};'''
-        res = self.run(t.format(**fargs), env, extra_args, dependencies)
+        res = self.run(t.format(**fargs), env, extra_args=extra_args,
+                       dependencies=dependencies)
         if not res.compiled:
             return -1
         if res.returncode != 0:
             raise EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout)
 
-    def cross_alignment(self, typename, prefix, env, extra_args=None, dependencies=None):
+    def cross_alignment(self, typename, prefix, env, *, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         fargs = {'prefix': prefix, 'type': typename}
@@ -588,7 +598,8 @@ class CCompiler(Compiler):
         int main(int argc, char **argv) {{
             {type} something;
         }}'''
-        if not self.compiles(t.format(**fargs), env, extra_args, dependencies):
+        if not self.compiles(t.format(**fargs), env, extra_args=extra_args,
+                             dependencies=dependencies):
             return -1
         t = '''#include <stddef.h>
         {prefix}
@@ -598,11 +609,12 @@ class CCompiler(Compiler):
         }};'''
         return self.cross_compute_int('offsetof(struct tmp, target)', None, None, None, t.format(**fargs), env, extra_args, dependencies)
 
-    def alignment(self, typename, prefix, env, extra_args=None, dependencies=None):
+    def alignment(self, typename, prefix, env, *, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         if self.is_cross:
-            return self.cross_alignment(typename, prefix, env, extra_args, dependencies)
+            return self.cross_alignment(typename, prefix, env, extra_args=extra_args,
+                                        dependencies=dependencies)
         fargs = {'prefix': prefix, 'type': typename}
         t = '''#include <stdio.h>
         #include <stddef.h>
@@ -615,7 +627,8 @@ class CCompiler(Compiler):
             printf("%d", (int)offsetof(struct tmp, target));
             return 0;
         }}'''
-        res = self.run(t.format(**fargs), env, extra_args, dependencies)
+        res = self.run(t.format(**fargs), env, extra_args=extra_args,
+                       dependencies=dependencies)
         if not res.compiled:
             raise EnvironmentException('Could not compile alignment test.')
         if res.returncode != 0:
@@ -659,7 +672,7 @@ class CCompiler(Compiler):
         int main(int argc, char *argv[]) {{
             printf ("{fmt}", {cast} {f}());
         }}'''.format(**fargs)
-        res = self.run(code, env, extra_args, dependencies)
+        res = self.run(code, env, extra_args=extra_args, dependencies=dependencies)
         if not res.compiled:
             m = 'Could not get return value of {}()'
             raise EnvironmentException(m.format(fname))
@@ -728,7 +741,7 @@ class CCompiler(Compiler):
         }}'''
         return head, main
 
-    def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
+    def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
         """
         First, this function looks for the symbol in the default libraries
         provided by the compiler (stdlib + a few others usually). If that
@@ -776,7 +789,8 @@ class CCompiler(Compiler):
             head, main = self._no_prototype_templ()
         templ = head + stubs_fail + main
 
-        if self.links(templ.format(**fargs), env, extra_args, dependencies):
+        if self.links(templ.format(**fargs), env, extra_args=extra_args,
+                      dependencies=dependencies):
             return True
 
         # MSVC does not have compiler __builtin_-s.
@@ -809,9 +823,10 @@ class CCompiler(Compiler):
             #endif
         #endif
         }}'''
-        return self.links(t.format(**fargs), env, extra_args, dependencies)
+        return self.links(t.format(**fargs), env, extra_args=extra_args,
+                          dependencies=dependencies)
 
-    def has_members(self, typename, membernames, prefix, env, extra_args=None, dependencies=None):
+    def has_members(self, typename, membernames, prefix, env, *, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         fargs = {'prefix': prefix, 'type': typename, 'name': 'foo'}
@@ -825,7 +840,8 @@ class CCompiler(Compiler):
             {type} {name};
             {members}
         }};'''
-        return self.compiles(t.format(**fargs), env, extra_args, dependencies)
+        return self.compiles(t.format(**fargs), env, extra_args=extra_args,
+                             dependencies=dependencies)
 
     def has_type(self, typename, prefix, env, extra_args, dependencies=None):
         fargs = {'prefix': prefix, 'type': typename}
@@ -833,7 +849,8 @@ class CCompiler(Compiler):
         void bar() {{
             sizeof({type});
         }};'''
-        return self.compiles(t.format(**fargs), env, extra_args, dependencies)
+        return self.compiles(t.format(**fargs), env, extra_args=extra_args,
+                             dependencies=dependencies)
 
     def symbols_have_underscore_prefix(self, env):
         '''
@@ -1221,11 +1238,13 @@ class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
 
     # Elbrus C compiler does not have lchmod, but there is only linker warning, not compiler error.
     # So we should explicitly fail at this case.
-    def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
+    def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
         if funcname == 'lchmod':
             return False
         else:
-            return super().has_function(funcname, prefix, env, extra_args, dependencies)
+            return super().has_function(funcname, prefix, env,
+                                        extra_args=extra_args,
+                                        dependencies=dependencies)
 
 
 class IntelCCompiler(IntelCompiler, CCompiler):

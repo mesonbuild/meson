@@ -210,16 +210,18 @@ end program prog
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         return CCompiler._get_compiler_check_args(self, env, extra_args, dependencies, mode='compile')
 
-    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
-        return CCompiler.compiles(self, code, env, extra_args, dependencies, mode)
+    def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile'):
+        return CCompiler.compiles(self, code, env, extra_args=extra_args,
+                                  dependencies=dependencies, mode=mode)
 
     def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False):
         return CCompiler._build_wrapper(self, code, env, extra_args, dependencies, mode, want_output)
 
-    def links(self, code, env, extra_args=None, dependencies=None):
-        return CCompiler.links(self, code, env, extra_args, dependencies)
+    def links(self, code, env, *, extra_args=None, dependencies=None):
+        return CCompiler.links(self, code, env, extra_args=extra_args,
+                               dependencies=dependencies)
 
-    def run(self, code, env, extra_args=None, dependencies=None):
+    def run(self, code, env, *, extra_args=None, dependencies=None):
         return CCompiler.run(self, code, env, extra_args, dependencies)
 
     def _get_patterns(self, *args, **kwargs):

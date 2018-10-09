@@ -62,9 +62,11 @@ class CPPCompiler(CCompiler):
         # too strict without this and always fails.
         return super().get_compiler_check_args() + ['-fpermissive']
 
-    def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
+    def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
         # Check if it's a C-like symbol
-        if super().has_header_symbol(hname, symbol, prefix, env, extra_args, dependencies):
+        if super().has_header_symbol(hname, symbol, prefix, env,
+                                     extra_args=extra_args,
+                                     dependencies=dependencies):
             return True
         # Check if it's a class or a template
         if extra_args is None:
@@ -74,7 +76,8 @@ class CPPCompiler(CCompiler):
         #include <{header}>
         using {symbol};
         int main () {{ return 0; }}'''
-        return self.compiles(t.format(**fargs), env, extra_args, dependencies)
+        return self.compiles(t.format(**fargs), env, extra_args=extra_args,
+                             dependencies=dependencies)
 
     def _test_cpp_std_arg(self, cpp_std_value):
         # Test whether the compiler understands a -std=XY argument
@@ -246,11 +249,13 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
 
     # Elbrus C++ compiler does not have lchmod, but there is only linker warning, not compiler error.
     # So we should explicitly fail at this case.
-    def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
+    def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
         if funcname == 'lchmod':
             return False
         else:
-            return super().has_function(funcname, prefix, env, extra_args, dependencies)
+            return super().has_function(funcname, prefix, env,
+                                        extra_args=extra_args,
+                                        dependencies=dependencies)
 
 
 class IntelCPPCompiler(IntelCompiler, CPPCompiler):

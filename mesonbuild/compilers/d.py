@@ -303,7 +303,7 @@ class DCompiler(Compiler):
         args += extra_args
         return args
 
-    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
+    def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile'):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
 
         with self.compile(code, args, mode) as p:
