@@ -25,6 +25,7 @@ import shutil
 import sys
 import unittest
 import platform
+import functools
 from itertools import chain
 from unittest import mock
 from configparser import ConfigParser
@@ -112,6 +113,24 @@ def skipIfNoPkgconfig(f):
             raise unittest.SkipTest('pkg-config not found')
         return f(*args, **kwargs)
     return wrapped
+
+def skip_if_not_base_option(feature):
+    """Skip tests if The compiler does not support a given base option.
+
+    for example, ICC doesn't currently support b_sanitize.
+    """
+    def actual(f):
+        @functools.wraps(f)
+        def wrapped(*args, **kwargs):
+            env = get_fake_env('', '', '')
+            cc = env.detect_c_compiler(False)
+            if feature not in cc.base_options:
+                raise unittest.SkipTest(
+                    '{} not available with {}'.format(feature, cc.id))
+            return f(*args, **kwargs)
+        return wrapped
+    return actual
+
 
 class PatchModule:
     '''
@@ -3392,6 +3411,7 @@ class LinuxlikeTests(BasePlatformTests):
                              r'Dependency qt5 \(modules: Core\) found: YES 5.* \(pkg-config\)\n')
 
     @unittest.skipIf(is_openbsd(), 'Asan not available on OpenBSD')
+    @skip_if_not_base_option('b_sanitize')
     def test_generate_gir_with_address_sanitizer(self):
         if is_cygwin():
             raise unittest.SkipTest('asan not available on Cygwin')
@@ -3855,6 +3875,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(install_rpath, 'baz')
 
     @unittest.skipIf(is_openbsd(), 'Asan not available on OpenBSD')
+    @skip_if_not_base_option('b_sanitize')
     def test_pch_with_address_sanitizer(self):
         if is_cygwin():
             raise unittest.SkipTest('asan not available on Cygwin')
