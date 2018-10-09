@@ -410,12 +410,12 @@ class CCompiler(Compiler):
                              dependencies=dependencies)
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
-        if callable(extra_args):
-            extra_args = extra_args(mode)
         if extra_args is None:
             extra_args = []
-        elif isinstance(extra_args, str):
-            extra_args = [extra_args]
+        else:
+            extra_args = listify(extra_args)
+        extra_args = listify([e(mode) if callable(e) else e for e in extra_args])
+
         if dependencies is None:
             dependencies = []
         elif not isinstance(dependencies, list):
