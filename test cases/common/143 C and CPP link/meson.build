@@ -26,8 +26,9 @@ libc = static_library('cfoo', ['foo.c', 'foo.h'])
 cxx = meson.get_compiler('cpp')
 
 if cxx.get_argument_syntax() == 'msvc'
+  static_linker = find_program('lib', 'llvm-lib')
   compile_cmd = ['/c', '@INPUT@', '/Fo@OUTPUT@']
-  stlib_cmd = ['lib', '/OUT:@OUTPUT@', '@INPUT@']
+  stlib_cmd = [static_linker, '/OUT:@OUTPUT@', '@INPUT@']
 else
   compile_cmd = ['-c', '-fPIC', '@INPUT@', '-o', '@OUTPUT@']
   stlib_cmd = ['ar', 'csr', '@OUTPUT@', '@INPUT@']
