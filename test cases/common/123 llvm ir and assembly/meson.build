@@ -29,7 +29,7 @@ foreach lang : ['c', 'cpp']
   # cl.exe pre-processor first and then assemble it with the ml.exe assembler.
   # Then we can link it into the executable.
   if cc.get_argument_syntax() == 'msvc'
-    cl = find_program('cl')
+    cl = cc.cmd_array()
     if cpu == 'x86'
       ml = find_program('ml')
     elif cpu == 'x86_64'
