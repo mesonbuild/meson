@@ -1694,6 +1694,9 @@ rule FORTRAN_DEP_HACK%s
         return args
 
     def generate_genlist_for_target(self, genlist, target, outfile):
+        for generated in genlist.generated:
+            self.generate_genlist_for_target(generated, target, outfile)
+
         generator = genlist.get_generator()
         subdir = genlist.subdir
         exe = generator.get_exe()
@@ -1707,7 +1710,10 @@ rule FORTRAN_DEP_HACK%s
             else:
                 sole_output = ''
             curfile = infilelist[i]
-            infilename = curfile.rel_to_builddir(self.build_to_src)
+            if curfile.is_built:
+                infilename = File.from_built_file(self.get_target_private_dir(target), curfile.fname).relative_name()
+            else:
+                infilename = curfile.rel_to_builddir(self.build_to_src)
             base_args = generator.get_arglist(infilename)
             outfiles = genlist.get_outputs_for(curfile)
             outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
