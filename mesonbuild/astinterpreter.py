@@ -18,7 +18,7 @@
 from . import interpreterbase, mlog, mparser, mesonlib
 from . import environment
 
-from .interpreterbase import InterpreterException, InvalidArguments
+from .interpreterbase import InterpreterException, InvalidArguments, BreakRequest, ContinueRequest
 
 import os, sys
 
@@ -105,13 +105,36 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         return 0
 
     def unknown_function_called(self, func_name):
-        mlog.warning('Unknown function called: ' + func_name)
+        pass
 
     def reduce_arguments(self, args):
         assert(isinstance(args, mparser.ArgumentNode))
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
         return args.arguments, args.kwargs
+
+    def evaluate_comparison(self, node):
+        return False
+
+    def evaluate_foreach(self, node):
+        try:
+            self.evaluate_codeblock(node.block)
+        except ContinueRequest:
+            pass
+        except BreakRequest:
+            pass
+
+    def evaluate_if(self, node):
+        for i in node.ifs:
+            self.evaluate_codeblock(i.block)
+        if not isinstance(node.elseblock, mparser.EmptyNode):
+            self.evaluate_codeblock(node.elseblock)
+
+    def get_variable(self, varname):
+        return 0
+
+    def assignment(self, node):
+        pass
 
 class RewriterInterpreter(AstInterpreter):
     def __init__(self, source_root, subdir):
