@@ -25,6 +25,7 @@ Eventually migrate to something fancier.'''
 import sys
 import os
 from pathlib import Path
+import argparse
 
 from run_project_tests import gather_tests, run_tests, StopException, setup_commands
 from run_project_tests import failing_logs
@@ -40,11 +41,16 @@ def runtests(cross_file):
     print('Total skipped cross tests:', skipped_tests)
     if failing_tests > 0 and ('TRAVIS' in os.environ or 'APPVEYOR' in os.environ):
         print('\nMesonlogs of failing tests\n')
-        for l in failing_logs:
-            print(l, '\n')
-    sys.exit(failing_tests)
+        for log in failing_logs:
+            print(log, '\n')
+    return failing_tests
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('cross_file')
+    options = parser.parse_args()
+    setup_commands('ninja')
+    return runtests(options.cross_file)
 
 if __name__ == '__main__':
-    setup_commands('ninja')
-    cross_file = sys.argv[1]
-    runtests(cross_file)
+    sys.exit(main())
