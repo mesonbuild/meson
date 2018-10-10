@@ -342,6 +342,12 @@ class IntelFortranCompiler(IntelCompiler, FortranCompiler):
     def get_preprocess_only_args(self):
         return ['-cpp', '-EP']
 
+    def get_always_args(self):
+        """Ifort doesn't have -pipe."""
+        val = super().get_always_args()
+        val.remove('-pipe')
+        return val
+
 
 class PathScaleFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
