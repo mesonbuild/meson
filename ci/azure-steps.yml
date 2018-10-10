@@ -31,8 +31,11 @@ steps:
      DownloadFile -Source 'http://nirbheek.in/files/binaries/pkg-config/win32/pkg-config.exe' -Destination $(System.WorkFolder)\pkg-config.exe
      DownloadFile -Source 'https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/msmpisdk.msi' -Destination msmpisdk.msi
      DownloadFile -Source 'https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/MSMpiSetup.exe' -Destination MSMpiSetup.exe
-     Start-Process msiexec.exe -ArgumentList '/i msmpisdk.msi /quiet' -Wait
-     Start-Process .\MSMpiSetup.exe -ArgumentList '-unattend -full' -Wait
+     if ($env:compiler -ne 'msvc2015') {
+       Start-Process msiexec.exe -ArgumentList '/i msmpisdk.msi /quiet' -Wait
+       # installer fails "requires an interactive window station" with vs2015 image
+       Start-Process .\MSMpiSetup.exe -ArgumentList '-unattend -full' -Wait
+     }
 
      # import ms-mpi env vars (set by installer)
      foreach ($p in "MSMPI_INC", "MSMPI_LIB32", "MSMPI_LIB64") {
