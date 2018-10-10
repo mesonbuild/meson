@@ -4,6 +4,10 @@ short-description: Videos about Meson
 
 # Videos
 
+ - [Compiling Multi-Million Line C++ Code Bases Effortlessly with the
+   Meson Build system](https://www.youtube.com/watch?v=SCZLnopmYBM),
+   CppCon 2018
+
  - [The Meson Build System, 4+ years of work to become an overnight
    success](https://www.youtube.com/watch?v=gHdTzdXkhRY), Linux.conf.au 2018
 
