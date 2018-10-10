@@ -49,6 +49,12 @@ steps:
      $vsver = $env:compiler.Replace('msvc', '')
      Import-VisualStudioVars -VisualStudioVersion $vsver -Architecture $(arch)
 
+     # add .NET framework tools to path for resgen for C# tests
+     # (always use 32-bit tool, as there doesn't seem to be a 64-bit tool)
+     if ((Get-Command "resgen.exe" -ErrorAction SilentlyContinue) -eq $null) {
+       $env:Path = "$env:WindowsSDK_ExecutablePath_x86;$env:Path"
+     }
+
      if ($env:backend -eq 'ninja') {
        ninja --version
      } else {
