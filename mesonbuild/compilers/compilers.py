@@ -457,9 +457,9 @@ def get_base_compile_args(options, compiler):
     try:
         pgo_val = options['b_pgo'].value
         if pgo_val == 'generate':
-            args.append('-fprofile-generate')
+            args.extend(compiler.get_profile_generate_args())
         elif pgo_val == 'use':
-            args.extend(['-fprofile-use', '-fprofile-correction'])
+            args.extend(compiler.get_profile_use_args())
     except KeyError:
         pass
     try:
@@ -503,9 +503,9 @@ def get_base_link_args(options, linker, is_shared_module):
     try:
         pgo_val = options['b_pgo'].value
         if pgo_val == 'generate':
-            args.append('-fprofile-generate')
+            args.extend(linker.get_profile_generate_args())
         elif pgo_val == 'use':
-            args.extend(['-fprofile-use', '-fprofile-correction'])
+            args.extend(linker.get_profile_use_args())
     except KeyError:
         pass
     try:
@@ -674,7 +674,6 @@ class CompilerArgs(list):
         to recursively search for symbols in the libraries. This is not needed
         with other linkers.
         '''
-
         # A standalone argument must never be deduplicated because it is
         # defined by what comes _after_ it. Thus dedupping this:
         # -D FOO -D BAR
@@ -1258,6 +1257,14 @@ class Compiler:
         """
         return 'other'
 
+    def get_profile_generate_args(self):
+        raise EnvironmentException(
+            '%s does not support get_profile_generate_args ' % self.get_id())
+
+    def get_profile_use_args(self):
+        raise EnvironmentException(
+            '%s does not support get_profile_use_args ' % self.get_id())
+
 
 @enum.unique
 class CompilerType(enum.Enum):
@@ -1497,6 +1504,12 @@ class GnuLikeCompiler(abc.ABC):
 
     def get_argument_syntax(self):
         return 'gcc'
+
+    def get_profile_generate_args(self):
+        return ['-fprofile-generate']
+
+    def get_profile_use_args(self):
+        return ['-fprofile-use', '-fprofile-correction']
 
 
 class GnuCompiler(GnuLikeCompiler):
@@ -1778,6 +1791,12 @@ class IntelCompiler(GnuLikeCompiler):
             '-diag-error', '10148',  # Option not supported
         ]
         return super().compiles(*args, **kwargs)
+
+    def get_profile_generate_args(self):
+        return ['-prof-gen=threadsafe']
+
+    def get_profile_use_args(self):
+        return ['-prof-use']
 
 
 class ArmCompiler:
