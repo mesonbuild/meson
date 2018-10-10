@@ -175,7 +175,11 @@ class CCompiler(Compiler):
             # link.exe
             return ['/FORCE:UNRESOLVED']
         elif self.id == 'intel':
-            return ['-Wl,--allow-shlib-undefined']
+            if self.compiler_type.is_osx_compiler:
+                # Apple ld
+                return ['-Wl,-undefined,dynamic_lookup']
+            else:
+                return ['-Wl,--allow-shlib-undefined']
         # FIXME: implement other linkers
         return []
 
