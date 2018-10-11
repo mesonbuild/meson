@@ -44,4 +44,6 @@ if uburesult.returncode() != 0 and add_languages('fortran', required : false)
 endif
 
 # Check we can apply a version constraint
-dependency('mpi', version: '>=@0@'.format(mpic.version()))
+if mpic.version() != 'unknown'
+  dependency('mpi', version: '>=@0@'.format(mpic.version()))
+endif

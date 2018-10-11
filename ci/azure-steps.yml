@@ -39,6 +39,12 @@ steps:
      Start-Process msiexec.exe -ArgumentList '/i msmpisdk.msi /quiet' -Wait
      Start-Process .\MSMpiSetup.exe -ArgumentList '-unattend -full' -Wait
 
+     # import ms-mpi env vars (set by installer)
+     foreach ($p in "MSMPI_INC", "MSMPI_LIB32", "MSMPI_LIB64") {
+       $v = [Environment]::GetEnvironmentVariable($p, "Machine")
+       Set-Content "env:$p" "$v"
+     }
+
      # add downloads to PATH
      $env:Path = "$env:SYSTEM_WORKFOLDER;$env:Path"
 
