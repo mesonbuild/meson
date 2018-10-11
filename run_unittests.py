@@ -16,11 +16,13 @@
 import stat
 import shlex
 import subprocess
-import re, json
+import re
+import json
 import tempfile
 import textwrap
 import os
 import shutil
+import sys
 import unittest
 import platform
 from itertools import chain
@@ -4329,7 +4331,7 @@ def should_run_cross_arm_tests():
 def should_run_cross_mingw_tests():
     return shutil.which('x86_64-w64-mingw32-gcc') and not (is_windows() or is_cygwin())
 
-if __name__ == '__main__':
+def main():
     unset_envs()
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests', 'PythonTests']
     if not is_windows():
@@ -4343,4 +4345,7 @@ if __name__ == '__main__':
     if is_osx():
         cases += ['DarwinTests']
 
-    unittest.main(defaultTest=cases, buffer=True)
+    return unittest.main(defaultTest=cases, buffer=True)
+
+if __name__ == '__main__':
+    sys.exit(main())
