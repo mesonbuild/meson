@@ -310,6 +310,7 @@ class LLVMDependency(ConfigToolDependency):
                 if not matches:
                     if self.required:
                         raise
+                    self.is_found = False
                     return
 
                 self.link_args = self.get_config_value(['--ldflags'], 'link_args')
@@ -326,6 +327,8 @@ class LLVMDependency(ConfigToolDependency):
             except DependencyException:
                 if self.required:
                     raise
+                self.is_found = False
+                return
 
         link_args = ['--link-static', '--system-libs'] if self.static else ['--link-shared']
         self.link_args = self.get_config_value(
