@@ -112,6 +112,14 @@ Note that all these options are also available while running the
 `meson test` script for running tests instead of `ninja test` or
 `msbuild RUN_TESTS.vcxproj`, etc depending on the backend.
 
+### assert()
+
+``` meson
+    void assert(*condition*, *message*)
+```
+
+Abort with an error message if `condition` evaluates to `false`.
+
 ### benchmark()
 
 ``` meson
