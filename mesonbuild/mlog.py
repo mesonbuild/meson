@@ -96,6 +96,9 @@ def green(text):
 def yellow(text):
     return AnsiDecorator(text, "\033[1;33m")
 
+def blue(text):
+    return AnsiDecorator(text, "\033[1;34m")
+
 def cyan(text):
     return AnsiDecorator(text, "\033[1;36m")
 

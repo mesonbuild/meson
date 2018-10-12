@@ -104,15 +104,23 @@ def install(options):
         f.write(data)
     print('Installed', name, 'branch', branch, 'revision', revision)
 
+def parse_patch_url(patch_url):
+    arr = patch_url.split('/')
+    return arr[-3], int(arr[-2])
+
 def get_current_version(wrapfile):
     cp = configparser.ConfigParser()
     cp.read(wrapfile)
     cp = cp['wrap-file']
     patch_url = cp['patch_url']
-    arr = patch_url.split('/')
-    branch = arr[-3]
-    revision = int(arr[-2])
+    branch, revision = parse_patch_url(patch_url)
     return branch, revision, cp['directory'], cp['source_filename'], cp['patch_filename']
+
+def update_wrap_file(wrapfile, name, new_branch, new_revision):
+    u = open_wrapdburl(API_ROOT + 'projects/%s/%s/%d/get_wrap' % (name, new_branch, new_revision))
+    data = u.read()
+    with open(wrapfile, 'wb') as f:
+        f.write(data)
 
 def update(options):
     name = options.name
@@ -128,8 +136,7 @@ def update(options):
     if new_branch == branch and new_revision == revision:
         print('Project', name, 'is already up to date.')
         sys.exit(0)
-    u = open_wrapdburl(API_ROOT + 'projects/%s/%s/%d/get_wrap' % (name, new_branch, new_revision))
-    data = u.read()
+    update_wrap_file(wrapfile, name, new_branch, new_revision)
     shutil.rmtree(os.path.join('subprojects', subdir), ignore_errors=True)
     try:
         os.unlink(os.path.join('subprojects/packagecache', src_file))
@@ -139,8 +146,6 @@ def update(options):
         os.unlink(os.path.join('subprojects/packagecache', patch_file))
     except FileNotFoundError:
         pass
-    with open(wrapfile, 'wb') as f:
-        f.write(data)
     print('Updated', name, 'to branch', new_branch, 'revision', new_revision)
 
 def info(options):
