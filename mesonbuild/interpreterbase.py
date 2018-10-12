@@ -185,15 +185,24 @@ class FeatureCheckBase:
             return ''
         return mesonlib.project_meson_versions[subproject]
 
+    def feature_used_correctly(self, target_version):
+        '''
+        True if the target version is newer than the version in which the
+        feature was added
+        '''
+        if mesonlib.version_compare_condition_with_min(target_version, self.feature_version):
+            return True
+        return False
+
     def use(self, subproject):
         tv = self.get_target_version(subproject)
         # No target version
         if tv == '':
             return
-        # Target version is new enough
-        if mesonlib.version_compare_condition_with_min(tv, self.feature_version):
+        if self.feature_used_correctly(tv):
             return
-        # Feature is too new for target version, register it
+        # Register the feature and version details if the feature was not used
+        # correctly (deprecated, or added in newer version, etc)
         if subproject not in self.feature_registry:
             self.feature_registry[subproject] = {self.feature_version: set()}
         register = self.feature_registry[subproject]
@@ -257,6 +266,15 @@ class FeatureDeprecated(FeatureCheckBase):
         mlog.deprecation('Project targetting \'{}\' but tried to use feature '
                          'deprecated since \'{}\': {}'
                          ''.format(tv, self.feature_version, self.feature_name))
+
+    def feature_used_correctly(self, target_version):
+        '''
+        False if the target version is newer than the version in which the
+        feature was deprecated
+        '''
+        if mesonlib.version_compare_condition_with_min(target_version, self.feature_version):
+            return False
+        return True
 
 
 class FeatureCheckKwargsBase:

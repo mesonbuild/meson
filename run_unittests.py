@@ -2789,6 +2789,7 @@ class FailureTests(BasePlatformTests):
         with self.assertRaisesRegex(MesonException, match, msg=contents):
             # Must run in-process or we'll get a generic CalledProcessError
             self.init(self.srcdir, extra_args=extra_args, inprocess=True)
+        self.wipe()
 
     def obtainMesonOutput(self, contents, match, extra_args, langs, meson_version=None):
         if langs is None:
@@ -2802,7 +2803,9 @@ class FailureTests(BasePlatformTests):
                 f.write("add_languages('{}', required : false)\n".format(lang))
             f.write(contents)
         # Run in-process for speed and consistency with assertMesonRaises
-        return self.init(self.srcdir, extra_args=extra_args, inprocess=True)
+        ret = self.init(self.srcdir, extra_args=extra_args, inprocess=True)
+        self.wipe()
+        return ret
 
     def assertMesonOutputs(self, contents, match, extra_args=None, langs=None, meson_version=None):
         '''
@@ -2993,6 +2996,14 @@ class FailureTests(BasePlatformTests):
         '''
         msg = '.*WARNING:.*feature.*build_always_stale.*custom_target.*'
         self.assertMesonDoesNotOutput(vcs_tag, msg, meson_version='>=0.43')
+
+    def test_feature_deprecation_messages(self):
+        self.assertMesonOutputs("import('python3')",
+                                ".*DEPRECATION.*Project targetting.*but.*deprecated.*",
+                                meson_version='>= 0.48.0')
+        self.assertMesonDoesNotOutput("import('python3')",
+                                      ".*DEPRECATION.*Project targetting.*but.*deprecated.*",
+                                      meson_version='>= 0.47.0')
 
     def test_missing_subproject_not_required_and_required(self):
         self.assertMesonRaises("sub1 = subproject('not-found-subproject', required: false)\n" +
