@@ -896,7 +896,7 @@ class CCompiler(Compiler):
             prefixes = ['lib', '']
         # Library suffixes and prefixes
         if for_darwin(env.is_cross_build(), env):
-            shlibext = ['dylib']
+            shlibext = ['dylib', 'so']
         elif for_windows(env.is_cross_build(), env):
             # FIXME: .lib files can be import or static so we should read the
             # file, figure out which one it is, and reject the wrong kind.
