@@ -37,6 +37,19 @@ You should set only the most essential flags with this setting, you
 should *not* set debug or optimization flags. Instead they should be
 specified by selecting an appropriate build type.
 
+Project arguments
+--
+
+Project arguments work similar to global arguments except that they
+are valid only within the current subproject. The usage is simple:
+
+```meson
+add_project_arguments('-DMYPROJ=projname', language : 'c')
+```
+
+This would add the compiler flags to all C sources in the current
+project.
+
 Per target arguments
 --
 
