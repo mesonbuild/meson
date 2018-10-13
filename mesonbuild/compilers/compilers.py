@@ -1088,23 +1088,18 @@ class Compiler:
     def get_instruction_set_args(self, instruction_set):
         return None
 
-    def build_osx_rpath_args(self, build_dir, rpath_paths, build_rpath):
-        # Ensure that there is enough space for large RPATHs and install_name
-        args = ['-Wl,-headerpad_max_install_names']
-        if not rpath_paths and not build_rpath:
-            return args
-        # On OSX, rpaths must be absolute.
-        abs_rpaths = [os.path.join(build_dir, p) for p in rpath_paths]
-        if build_rpath != '':
-            abs_rpaths.append(build_rpath)
-        # Need to deduplicate abs_rpaths, as rpath_paths and
-        # build_rpath are not guaranteed to be disjoint sets
-        args += ['-Wl,-rpath,' + rp for rp in OrderedSet(abs_rpaths)]
-        return args
-
     def build_unix_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         if not rpath_paths and not install_rpath and not build_rpath:
             return []
+        args = []
+        if mesonlib.is_osx():
+            # Ensure that there is enough space for install_name_tool in-place editing of large RPATHs
+            args.append('-Wl,-headerpad_max_install_names')
+            # @loader_path is the equivalent of $ORIGIN on macOS
+            # https://stackoverflow.com/q/26280738
+            origin_placeholder = '@loader_path'
+        else:
+            origin_placeholder = '$ORIGIN'
         # The rpaths we write must be relative, because otherwise
         # they have different length depending on the build
         # directory. This breaks reproducible builds.
@@ -1115,19 +1110,14 @@ class Compiler:
             else:
                 relative = os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
             rel_rpaths.append(relative)
-        paths = ':'.join([os.path.join('$ORIGIN', p) for p in rel_rpaths])
+        # Need to deduplicate rpaths, as macOS's install_name_tool
+        # is *very* allergic to duplicate -delete_rpath arguments
+        # when calling depfixer on installation.
+        all_paths = OrderedSet([os.path.join(origin_placeholder, p) for p in rel_rpaths])
         # Build_rpath is used as-is (it is usually absolute).
         if build_rpath != '':
-            if paths != '':
-                paths += ':'
-            paths += build_rpath
-        if len(paths) < len(install_rpath):
-            padding = 'X' * (len(install_rpath) - len(paths))
-            if not paths:
-                paths = padding
-            else:
-                paths = paths + ':' + padding
-        args = []
+            all_paths.add(build_rpath)
+
         if mesonlib.is_dragonflybsd() or mesonlib.is_openbsd():
             # This argument instructs the compiler to record the value of
             # ORIGIN in the .dynamic section of the elf. On Linux this is done
@@ -1135,7 +1125,23 @@ class Compiler:
             # $ORIGIN in the runtime path will be undefined and any binaries
             # linked against local libraries will fail to resolve them.
             args.append('-Wl,-z,origin')
-        args.append('-Wl,-rpath,' + paths)
+
+        if mesonlib.is_osx():
+            # macOS does not support colon-separated strings in LC_RPATH,
+            # hence we have to pass each path component individually
+            args += ['-Wl,-rpath,' + rp for rp in all_paths]
+        else:
+            # In order to avoid relinking for RPATH removal, the binary needs to contain just
+            # enough space in the ELF header to hold the final installation RPATH.
+            paths = ':'.join(all_paths)
+            if len(paths) < len(install_rpath):
+                padding = 'X' * (len(install_rpath) - len(paths))
+                if not paths:
+                    paths = padding
+                else:
+                    paths = paths + ':' + padding
+            args.append('-Wl,-rpath,' + paths)
+
         if get_compiler_is_linuxlike(self):
             # Rpaths to use while linking must be absolute. These are not
             # written to the binary. Needed only with GNU ld:
