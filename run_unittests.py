@@ -584,7 +584,7 @@ class InternalTests(unittest.TestCase):
                                 'static': unix_static},
                     'linux': {'shared': ('lib{}.so', '{}.so'),
                               'static': unix_static},
-                    'darwin': {'shared': ('lib{}.dylib', '{}.dylib', 'lib{}.so', '{}.so'),
+                    'darwin': {'shared': ('lib{}.dylib', 'lib{}.so', '{}.dylib', '{}.so'),
                                'static': unix_static},
                     'cygwin': {'shared': ('cyg{}.dll', 'cyg{}.dll.a', 'lib{}.dll',
                                           'lib{}.dll.a', '{}.dll', '{}.dll.a'),
