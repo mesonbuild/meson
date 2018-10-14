@@ -40,7 +40,7 @@ def runtests(cross_file, failfast):
     print('\nTotal passed cross tests:', passing_tests)
     print('Total failed cross tests:', failing_tests)
     print('Total skipped cross tests:', skipped_tests)
-    if failing_tests > 0 and ('TRAVIS' in os.environ or 'APPVEYOR' in os.environ):
+    if failing_tests > 0 and ('CI' in os.environ):
         print('\nMesonlogs of failing tests\n')
         for log in failing_logs:
             print(log, '\n')

@@ -17,7 +17,7 @@ exec = executable('exec',
 test('MPI C', exec)
 
 if build_machine.system() != 'windows'
-  # C++ MPI not supported by MS-MPI used on AppVeyor.
+  # C++ MPI not supported by MS-MPI
   mpicpp = dependency('mpi', language : 'cpp')
   execpp = executable('execpp',
     'main.cpp',
@@ -44,4 +44,6 @@ if uburesult.returncode() != 0 and add_languages('fortran', required : false)
 endif
 
 # Check we can apply a version constraint
-dependency('mpi', version: '>=@0@'.format(mpic.version()))
+if mpic.version() != 'unknown'
+  dependency('mpi', version: '>=@0@'.format(mpic.version()))
+endif

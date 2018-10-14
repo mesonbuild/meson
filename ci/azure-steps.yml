@@ -1,0 +1,94 @@
+steps:
+- powershell: |
+     # test_find_program exercises some behaviour which relies on .py being in PATHEXT
+     $env:PATHEXT += ';.py'
+
+     where.exe python
+
+     python ./skip_ci.py --base-branch-env=SYSTEM_PULLREQUEST_TARGETBRANCH --is-pull-env=SYSTEM_PULLREQUEST_PULLREQUESTID --base-branch-origin
+     if ($LastExitCode -ne 0) {
+        throw ('error in skip_ci.py')
+     }
+
+     # remove MinGW from path, so we don't find gfortran and try to use it
+     $env:Path = ($env:Path.Split(';') | Where-Object { $_ -notlike '*mingw*' }) -join ';'
+
+     # download and install prerequisites
+     function DownloadFile([String] $Source, [String] $Destination) {
+       $retries = 10
+       for ($i = 1; $i -le $retries; $i++) {
+           try {
+               (New-Object net.webclient).DownloadFile($Source, $Destination)
+               break # succeeded
+           } catch [net.WebException] {
+               if ($i -eq $retries) {
+                   throw # fail on last retry
+               }
+               $backoff = (10 * $i) # backoff 10s, 20s, 30s...
+               echo ('{0}: {1}' -f $Source, $_.Exception.Message)
+               echo ('Retrying in {0}s...' -f $backoff)
+               Start-Sleep -m ($backoff * 1000)
+              }
+          }
+     }
+
+     DownloadFile -Source 'https://github.com/mesonbuild/cidata/raw/master/ninja.exe' -Destination $(System.WorkFolder)\ninja.exe
+     DownloadFile -Source 'http://nirbheek.in/files/binaries/pkg-config/win32/pkg-config.exe' -Destination $(System.WorkFolder)\pkg-config.exe
+     DownloadFile -Source 'https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/msmpisdk.msi' -Destination msmpisdk.msi
+     DownloadFile -Source 'https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/MSMpiSetup.exe' -Destination MSMpiSetup.exe
+     Start-Process msiexec.exe -ArgumentList '/i msmpisdk.msi /quiet' -Wait
+     Start-Process .\MSMpiSetup.exe -ArgumentList '-unattend -full' -Wait
+
+     # import ms-mpi env vars (set by installer)
+     foreach ($p in "MSMPI_INC", "MSMPI_LIB32", "MSMPI_LIB64") {
+       $v = [Environment]::GetEnvironmentVariable($p, "Machine")
+       Set-Content "env:$p" "$v"
+     }
+
+     # add downloads to PATH
+     $env:Path = "$env:SYSTEM_WORKFOLDER;$env:Path"
+
+     # import visual studio variables
+     Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+     Install-Module Pscx -Scope CurrentUser -AllowClobber
+     Install-Module VSSetup -Scope CurrentUser
+     $vsver = $env:compiler.Replace('msvc', '')
+     Import-VisualStudioVars -VisualStudioVersion $vsver -Architecture $(arch)
+
+     # add .NET framework tools to path for resgen for C# tests
+     # (always use 32-bit tool, as there doesn't seem to be a 64-bit tool)
+     if ((Get-Command "resgen.exe" -ErrorAction SilentlyContinue) -eq $null) {
+       $env:Path = "$env:WindowsSDK_ExecutablePath_x86;$env:Path"
+     }
+
+     if ($env:backend -eq 'ninja') {
+       ninja --version
+     } else {
+       MSBuild /version
+     }
+
+     python run_tests.py --backend $(backend)
+
+     echo "##vso[task.setvariable variable=test_status]$LastExitCode"
+
+  continueOnError: true
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFiles: meson-test-run.xml
+    testRunTitle: $(System.JobName)
+    publishRunAttachments: true
+
+- task: CopyFiles@2
+  inputs:
+    contents: 'meson-test-run.*'
+    targetFolder: $(Build.ArtifactStagingDirectory)
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    artifactName: $(System.JobName)
+
+- powershell: |
+     # after publishing test results, even if some failed
+     # exit with the test status
+     exit $(test_status)

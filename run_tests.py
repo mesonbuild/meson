@@ -261,7 +261,7 @@ def main():
     cross = options.cross
     backend, _ = guess_backend(options.backend, shutil.which('msbuild'))
     # Running on a developer machine? Be nice!
-    if not mesonlib.is_windows() and not mesonlib.is_haiku() and 'TRAVIS' not in os.environ:
+    if not mesonlib.is_windows() and not mesonlib.is_haiku() and 'CI' not in os.environ:
         os.nice(20)
     # Appveyor sets the `platform` environment variable which completely messes
     # up building with the vs2010 and vs2015 backends.

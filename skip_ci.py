@@ -54,9 +54,13 @@ def main():
                             help='Branch push is targeted to')
         parser.add_argument('--is-pull-env', required=True,
                             help='Variable set if it is a PR')
+        parser.add_argument('--base-branch-origin', action='store_true',
+                            help='Base branch reference is only in origin remote')
         args = parser.parse_args()
         check_pr(args.is_pull_env)
         base = get_base_branch(args.base_branch_env)
+        if args.base_branch_origin:
+            base = 'origin/' + base
         if all(is_documentation(f) for f in get_git_files(base)):
             print("Don't run CI for documentation-only changes, add '[skip ci]' to commit title.")
             print('See http://mesonbuild.com/Contributing.html#skipping-integration-tests')
