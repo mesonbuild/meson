@@ -157,32 +157,6 @@ class CCompiler(Compiler):
         '''
         return self.get_no_optimization_args()
 
-    def get_allow_undefined_link_args(self):
-        '''
-        Get args for allowing undefined symbols when linking to a shared library
-        '''
-        if self.id in ('clang', 'gcc'):
-            if self.compiler_type.is_osx_compiler:
-                # Apple ld
-                return ['-Wl,-undefined,dynamic_lookup']
-            elif self.compiler_type.is_windows_compiler:
-                # For PE/COFF this is impossible
-                return []
-            else:
-                # GNU ld and LLVM lld
-                return ['-Wl,--allow-shlib-undefined']
-        elif isinstance(self, VisualStudioCCompiler):
-            # link.exe
-            return ['/FORCE:UNRESOLVED']
-        elif self.id == 'intel':
-            if self.compiler_type.is_osx_compiler:
-                # Apple ld
-                return ['-Wl,-undefined,dynamic_lookup']
-            else:
-                return ['-Wl,--allow-shlib-undefined']
-        # FIXME: implement other linkers
-        return []
-
     def get_output_args(self, target):
         return ['-o', target]
 
@@ -1600,10 +1574,16 @@ class VisualStudioCCompiler(CCompiler):
     def get_argument_syntax(self):
         return 'msvc'
 
+    def get_allow_undefined_link_args(self):
+        # link.exe
+        return ['/FORCE:UNRESOLVED']
+
+
 class ClangClCCompiler(VisualStudioCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
         super().__init__(exelist, version, is_cross, exe_wrap, is_64)
         self.id = 'clang-cl'
+
 
 class ArmCCompiler(ArmCompiler, CCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):

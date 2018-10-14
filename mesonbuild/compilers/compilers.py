@@ -1265,6 +1265,12 @@ class Compiler:
         raise EnvironmentException(
             '%s does not support get_profile_use_args ' % self.get_id())
 
+    def get_undefined_link_args(self):
+        '''
+        Get args for allowing undefined symbols when linking to a shared library
+        '''
+        return []
+
 
 @enum.unique
 class CompilerType(enum.Enum):
@@ -1510,6 +1516,14 @@ class GnuLikeCompiler(abc.ABC):
 
     def get_profile_use_args(self):
         return ['-fprofile-use', '-fprofile-correction']
+
+    def get_allow_undefined_link_args(self):
+        if self.compiler_type.is_osx_compiler:
+            # Apple ld
+            return ['-Wl,-undefined,dynamic_lookup']
+        else:
+            # GNU ld and LLVM lld
+            return ['-Wl,--allow-shlib-undefined']
 
 
 class GnuCompiler(GnuLikeCompiler):
