@@ -3179,6 +3179,18 @@ class DarwinTests(BasePlatformTests):
         self.assertEqual(self._get_darwin_versions(targets['intstringver']), ('1111.0.0', '2.5.0'))
         self.assertEqual(self._get_darwin_versions(targets['stringlistvers']), ('2.6.0', '2.6.1'))
 
+    def test_duplicate_rpath(self):
+        testdir = os.path.join(self.unit_test_dir, '10 build_rpath')
+        # We purposely pass a duplicate rpath to Meson, in order
+        # to ascertain that Meson does not call install_name_tool
+        # with duplicate -delete_rpath arguments, which would
+        # lead to erroring out on installation
+        os.environ["LDFLAGS"] = "-Wl,-rpath,/foo/bar"
+        self.init(testdir)
+        self.build()
+        self.install()
+        del os.environ["LDFLAGS"]
+
 
 class LinuxlikeTests(BasePlatformTests):
     '''
