@@ -87,6 +87,8 @@ steps:
 - task: PublishBuildArtifacts@1
   inputs:
     artifactName: $(System.JobName)
+  # publishing artifacts from PRs from a fork is currently blocked
+  condition: eq(variables['system.pullrequest.isfork'], false)
 
 - powershell: |
      # after publishing test results, even if some failed
