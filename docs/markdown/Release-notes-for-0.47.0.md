@@ -34,11 +34,10 @@ The environment path should be set properly for the ARM compiler executables.
 The `--target`, `-mcpu` options with the appropriate values should be mentioned
 in the cross file as shown in the snippet below.
 
-```
+```ini
 [properties]
 c_args      = ['--target=arm-arm-none-eabi', '-mcpu=cortex-m0plus']
 cpp_args    = ['--target=arm-arm-none-eabi', '-mcpu=cortex-m0plus']
-
 ```
 
 Note:
@@ -106,7 +105,7 @@ When called without an input file, `configure_file` generates a
 C header file by default. A keyword argument was added to allow
 specifying the output format, for example for use with nasm or yasm:
 
-```
+```meson
 conf = configuration_data()
 conf.set('FOO', 1)
 
