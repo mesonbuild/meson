@@ -38,7 +38,10 @@ gio = dependency('gio-2.0')
 giounix = dependency('gio-unix-2.0')
 glib = dependency('glib-2.0')
 gobj = dependency('gobject-2.0')
-gir = dependency('gobject-introspection-1.0')
+gir = dependency('gobject-introspection-1.0', required: false)
+if not gir.found()
+  error('MESON_SKIP_TEST gobject-introspection-1.0 not found.')
+endif
 gmod = dependency('gmodule-2.0')
 
 # Test that static deps don't error out when static libraries aren't found
