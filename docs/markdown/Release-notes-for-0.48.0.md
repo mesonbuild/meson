@@ -36,16 +36,15 @@ configuration. For example:
 project('configure_file', 'cpp')
 
 configure_file(
-      input: 'a.in',
-      output: 'out',
-      command: ['./foo.sh']
-    )
+  input: 'a.in',
+  output: 'out',
+  command: ['./foo.sh']
+)
 configure_file(
   input: 'a.in',
   output: 'out',
   command: ['./foo.sh']
 )
-
 ```
 
 This will output:
@@ -231,15 +230,15 @@ namely `add_global_arguments`, `add_global_link_arguments`,
 `add_project_arguments` and `add_project_link_arguments` that behaves
 like the following:
 
-```
-## Added to native builds when compiling natively and to cross
-## compilations when doing cross compiles.
+```meson
+# Added to native builds when compiling natively and to cross
+# compilations when doing cross compiles.
 add_project_arguments(...)
 
-## Added only to native compilations, not used in cross compilations.
+# Added only to native compilations, not used in cross compilations.
 add_project_arguments(..., native : true)
 
-## Added only to cross compilations, not used in native compilations.
+# Added only to cross compilations, not used in native compilations.
 add_project_arguments(..., native : false)
 ```
 
