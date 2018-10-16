@@ -1543,6 +1543,9 @@ class VisualStudioCCompiler(CCompiler):
         # false without compiling anything
         return name in ['dllimport', 'dllexport']
 
+    def get_argument_syntax(self):
+        return 'msvc'
+
 
 class ArmCCompiler(ArmCompiler, CCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):

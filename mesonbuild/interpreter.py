@@ -935,6 +935,7 @@ class CompilerHolder(InterpreterObject):
                              'first_supported_link_argument': self.first_supported_link_argument_method,
                              'unittest_args': self.unittest_args_method,
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
+                             'get_argument_syntax': self.get_argument_syntax_method,
                              })
 
     def _dep_msg(self, deps, endl):
@@ -1531,6 +1532,12 @@ class CompilerHolder(InterpreterObject):
     def get_supported_function_attributes_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         return [a for a in args if self.has_func_attribute_method(a, kwargs)]
+
+    @FeatureNew('compiler.get_argument_syntax_method', '0.49.0')
+    @noPosargs
+    @noKwargs
+    def get_argument_syntax_method(self, args, kwargs):
+        return self.compiler.get_argument_syntax()
 
 
 ModuleState = namedtuple('ModuleState', [

@@ -29,9 +29,17 @@ Compiler id
 ==
 
 The compiler object has a method called `get_id`, which returns a
-lower case string describing the "family" of the compiler. See
-[reference tables](Reference-tables.md) for a list of supported
-compiler ids.
+lower case string describing the "family" of the compiler.
+
+The compiler object also has a method `get_argument_syntax` which 
+returns a lower case string of `gcc`, `msvc`, or another undefined string
+value; identifying whether the compiler arguments use the same syntax as
+either `gcc` or `msvc`, or that its arguments are not like either. This should
+only be used to select the syntax of the arguments, such as those to test
+with `has_argument`.
+
+See [reference tables](Reference-tables.md#compiler-ids) for a list of supported compiler
+ids and their argument type.
 
 Does code compile?
 ==
