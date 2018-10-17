@@ -63,6 +63,8 @@ def gir_has_extra_lib_arg(gir_dep, intr_obj):
 
 class GnomeModule(ExtensionModule):
     gir_dep = None
+    glib_dep = None
+    gio_dep = None
 
     @staticmethod
     def _get_native_glib_version(state):
@@ -77,6 +79,39 @@ class GnomeModule(ExtensionModule):
                              'You may get build errors if your glib is older.')
                 native_glib_version = '2.54'
         return native_glib_version
+
+    def _get_glib_dep(self, state):
+        try:
+            glib_dep = self.glib_dep or PkgConfigDependency('glib-2.0',
+                                                            state.environment,
+                                                            {'native': True})
+        except Exception:
+            raise MesonException('glib dependency was not found.')
+        return glib_dep
+
+    def _get_gio_dep(self, state):
+        try:
+            gio_dep = self.gio_dep or PkgConfigDependency('gio-2.0',
+                                                          state.environment,
+                                                          {'native': True})
+        except Exception:
+            raise MesonException('gio dependency was not found.')
+        return gio_dep
+
+    def _get_glib_tool(self, state, tool_name):
+        self.glib_dep = self._get_glib_dep(state)
+        tool_path = self.glib_dep.get_pkgconfig_variable(tool_name, {})
+        return self.interpreter.find_program_impl(tool_path)
+
+    def _get_gio_tool(self, state, tool_name):
+        self.gio_dep = self._get_gio_dep(state)
+        tool_path = self.gio_dep.get_pkgconfig_variable(tool_name, {})
+        return self.interpreter.find_program_impl(tool_path)
+
+    def _get_gi_tool(self, state, tool_name):
+        self.gir_dep, _ = self._get_gir_dep(state)
+        tool_path = self.gir_dep.get_pkgconfig_variable(tool_name, {})
+        return self.interpreter.find_program_impl(tool_path)
 
     def __print_gresources_warning(self, state):
         global gresource_warning_printed
@@ -104,7 +139,7 @@ class GnomeModule(ExtensionModule):
         self.__print_gresources_warning(state)
         glib_version = self._get_native_glib_version(state)
 
-        cmd = ['glib-compile-resources', '@INPUT@']
+        cmd = [self._get_gio_tool(state, 'glib_compile_resources'), '@INPUT@']
 
         source_dirs, dependencies = mesonlib.extract_as_list(kwargs, 'source_dir', 'dependencies', pop=True)
 
@@ -225,7 +260,7 @@ class GnomeModule(ExtensionModule):
 
     def _get_gresource_dependencies(self, state, input_file, source_dirs, dependencies):
 
-        cmd = ['glib-compile-resources',
+        cmd = [self._get_gio_tool(state, 'glib_compile_resources'),
                input_file,
                '--generate-dependencies']
 
@@ -734,10 +769,8 @@ class GnomeModule(ExtensionModule):
 
         self.gir_dep, pkgargs = self._get_gir_dep(state)
 
-        giscanner_path = self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {})
-        gicompiler_path = self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {})
-        giscanner = self.interpreter.find_program_impl(giscanner_path)
-        gicompiler = self.interpreter.find_program_impl(gicompiler_path)
+        giscanner = self._get_gi_tool(state, 'g_ir_scanner')
+        gicompiler = self._get_gi_tool(state, 'g_ir_compiler')
 
         girtargets = [self._unwrap_gir_target(arg) for arg in args]
 
@@ -818,8 +851,8 @@ class GnomeModule(ExtensionModule):
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
 
-        cmd = [self.interpreter.find_program_impl('glib-compile-schemas')]
-        cmd += ['--targetdir', outdir, srcdir]
+        glib_compile_schemas = self._get_gio_tool(state, 'glib_compile_schemas')
+        cmd = [glib_compile_schemas, '--targetdir', outdir, srcdir]
         kwargs['command'] = cmd
         kwargs['input'] = []
         kwargs['output'] = 'gschemas.compiled'
@@ -1103,7 +1136,7 @@ This will become a hard error in the future.''')
             raise MesonException('gdbus_codegen takes at most two arguments, name and xml file.')
         namebase = args[0]
         xml_files = args[1:]
-        cmd = [self.interpreter.find_program_impl('gdbus-codegen')]
+        cmd = [self._get_gio_tool(state, 'gdbus_codegen')]
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         cmd += extra_args
         # Autocleanup supported?
@@ -1273,7 +1306,7 @@ This will become a hard error in the future.''')
             elif arg not in known_custom_target_kwargs:
                 raise MesonException(
                     'Mkenums does not take a %s keyword argument.' % (arg, ))
-        cmd = [self.interpreter.find_program_impl(['glib-mkenums', 'mkenums'])] + cmd
+        cmd = [self._get_glib_tool(state, 'glib_mkenums')] + cmd
         custom_kwargs = {}
         for arg in known_custom_target_kwargs:
             if arg in kwargs:
@@ -1470,7 +1503,7 @@ G_END_DECLS'''
 
         new_genmarshal = mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.3')
 
-        cmd = [self.interpreter.find_program_impl('glib-genmarshal')]
+        cmd = [self._get_glib_tool(state, 'glib_genmarshal')]
         known_kwargs = ['internal', 'nostdinc', 'skip_source', 'stdinc',
                         'valist_marshallers', 'extra_args']
         known_custom_target_kwargs = ['build_always', 'depends',
