@@ -506,6 +506,15 @@ def get_base_link_args(options, linker, is_shared_module):
         pass
     return args
 
+def evaluate_rpath(p, build_dir, from_dir):
+    if p == from_dir:
+        return '' # relpath errors out in this case
+    elif os.path.isabs(p):
+        return p # These can be outside of build dir.
+    else:
+        return os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
+
+
 class CrossNoRunException(MesonException):
     pass
 
@@ -1103,20 +1112,14 @@ class Compiler:
             origin_placeholder = '@loader_path'
         else:
             origin_placeholder = '$ORIGIN'
-        # The rpaths we write must be relative, because otherwise
-        # they have different length depending on the build
+        # The rpaths we write must be relative if they point to the build dir,
+        # because otherwise they have different length depending on the build
         # directory. This breaks reproducible builds.
-        rel_rpaths = []
-        for p in rpath_paths:
-            if p == from_dir:
-                relative = '' # relpath errors out in this case
-            else:
-                relative = os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
-            rel_rpaths.append(relative)
+        processed_rpaths = [evaluate_rpath(p, build_dir, from_dir) for p in rpath_paths]
         # Need to deduplicate rpaths, as macOS's install_name_tool
         # is *very* allergic to duplicate -delete_rpath arguments
         # when calling depfixer on installation.
-        all_paths = OrderedSet([os.path.join(origin_placeholder, p) for p in rel_rpaths])
+        all_paths = OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
         # Build_rpath is used as-is (it is usually absolute).
         if build_rpath != '':
             all_paths.add(build_rpath)
