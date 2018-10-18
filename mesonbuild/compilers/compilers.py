@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import contextlib, enum, os.path, re, tempfile, shlex
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 from ..linkers import StaticLinker
 from .. import coredata
@@ -278,10 +278,9 @@ def option_enabled(boptions, options, option):
 
 def get_base_compile_args(options, compiler):
     args = []
-    # FIXME, gcc/clang specific.
     try:
         if options['b_lto'].value:
-            args.append('-flto')
+            args.extend(compiler.get_lto_compile_args())
     except KeyError:
         pass
     try:
@@ -328,10 +327,9 @@ def get_base_compile_args(options, compiler):
 
 def get_base_link_args(options, linker, is_shared_module):
     args = []
-    # FIXME, gcc/clang specific.
     try:
         if options['b_lto'].value:
-            args.append('-flto')
+            args.extend(linker.get_lto_link_args())
     except KeyError:
         pass
     try:
@@ -1196,6 +1194,12 @@ class Compiler:
 
     def remove_linkerlike_args(self, args):
         return [x for x in args if not x.startswith('-Wl')]
+
+    def get_lto_compile_args(self) -> List[str]:
+        return []
+
+    def get_lto_link_args(self) -> List[str]:
+        return []
 
 
 @enum.unique
