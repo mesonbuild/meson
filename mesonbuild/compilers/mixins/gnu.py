@@ -366,6 +366,12 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
                 return self._split_fetch_real_dirs(line.split('=', 1)[1])
         return []
 
+    def get_lto_compile_args(self) -> typing.List[str]:
+        return ['-flto']
+
+    def get_lto_link_args(self) -> typing.List[str]:
+        return ['-flto']
+
 
 class GnuCompiler(GnuLikeCompiler):
     """
