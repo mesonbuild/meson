@@ -77,7 +77,7 @@ class PackageDefinition:
     def __init__(self, fname):
         self.basename = os.path.basename(fname)
         try:
-            self.config = configparser.ConfigParser()
+            self.config = configparser.ConfigParser(interpolation=None)
             self.config.read(fname)
         except:
             raise WrapException('Failed to parse {}'.format(self.basename))
