@@ -114,18 +114,18 @@ class Resolver:
         self.wrap = self.load_wrap()
         if self.wrap and 'directory' in self.wrap.values:
             self.directory = self.wrap.get('directory')
-        dirname = os.path.join(self.subdir_root, self.directory)
-        meson_file = os.path.join(dirname, 'meson.build')
+        self.dirname = os.path.join(self.subdir_root, self.directory)
+        meson_file = os.path.join(self.dirname, 'meson.build')
 
         # The directory is there and has meson.build? Great, use it.
         if os.path.exists(meson_file):
             return self.directory
 
         # Check if the subproject is a git submodule
-        self.resolve_git_submodule(dirname)
+        self.resolve_git_submodule()
 
-        if os.path.exists(dirname):
-            if not os.path.isdir(dirname):
+        if os.path.exists(self.dirname):
+            if not os.path.isdir(self.dirname):
                 raise WrapException('Path already exists but is not a directory')
         else:
             # A wrap file is required to download
@@ -165,13 +165,13 @@ class Resolver:
             m = 'Automatic wrap-based subproject downloading is disabled'
             raise WrapException(m)
 
-    def resolve_git_submodule(self, dirname):
+    def resolve_git_submodule(self):
         # Are we in a git repository?
         ret, out = quiet_git(['rev-parse'], self.subdir_root)
         if not ret:
             return False
         # Is `dirname` a submodule?
-        ret, out = quiet_git(['submodule', 'status', dirname], self.subdir_root)
+        ret, out = quiet_git(['submodule', 'status', self.dirname], self.subdir_root)
         if not ret:
             return False
         # Submodule has not been added, add it
@@ -182,12 +182,12 @@ class Resolver:
             raise WrapException('git submodule has merge conflicts')
         # Submodule exists, but is deinitialized or wasn't initialized
         elif out.startswith(b'-'):
-            if subprocess.call(['git', '-C', self.subdir_root, 'submodule', 'update', '--init', dirname]) == 0:
+            if subprocess.call(['git', '-C', self.subdir_root, 'submodule', 'update', '--init', self.dirname]) == 0:
                 return True
             raise WrapException('git submodule failed to init')
         # Submodule looks fine, but maybe it wasn't populated properly. Do a checkout.
         elif out.startswith(b' '):
-            subprocess.call(['git', 'checkout', '.'], cwd=dirname)
+            subprocess.call(['git', 'checkout', '.'], cwd=self.dirname)
             # Even if checkout failed, try building it anyway and let the user
             # handle any problems manually.
             return True
@@ -199,50 +199,47 @@ class Resolver:
 
     def get_file(self):
         path = self.get_file_internal(self.wrap, 'source')
-        target_dir = os.path.join(self.subdir_root, self.wrap.get('directory'))
         extract_dir = self.subdir_root
         # Some upstreams ship packages that do not have a leading directory.
         # Create one for them.
         if 'lead_directory_missing' in self.wrap.values:
-            os.mkdir(target_dir)
-            extract_dir = target_dir
+            os.mkdir(self.dirname)
+            extract_dir = self.dirname
         shutil.unpack_archive(path, extract_dir)
         if self.wrap.has_patch():
             self.apply_patch()
 
     def get_git(self):
-        checkoutdir = os.path.join(self.subdir_root, self.wrap.get('directory'))
         revno = self.wrap.get('revision')
         if self.wrap.values.get('clone-recursive', '').lower() == 'true':
             subprocess.check_call(['git', 'clone', '--recursive', self.wrap.get('url'),
-                                   self.wrap.get('directory')], cwd=self.subdir_root)
+                                   self.directory], cwd=self.subdir_root)
         else:
             subprocess.check_call(['git', 'clone', self.wrap.get('url'),
-                                   self.wrap.get('directory')], cwd=self.subdir_root)
+                                   self.directory], cwd=self.subdir_root)
         if revno.lower() != 'head':
-            if subprocess.call(['git', 'checkout', revno], cwd=checkoutdir) != 0:
-                subprocess.check_call(['git', 'fetch', self.wrap.get('url'), revno], cwd=checkoutdir)
+            if subprocess.call(['git', 'checkout', revno], cwd=self.dirname) != 0:
+                subprocess.check_call(['git', 'fetch', self.wrap.get('url'), revno], cwd=self.dirname)
                 subprocess.check_call(['git', 'checkout', revno],
-                                      cwd=checkoutdir)
+                                      cwd=self.dirname)
         push_url = self.wrap.values.get('push-url')
         if push_url:
             subprocess.check_call(['git', 'remote', 'set-url',
                                    '--push', 'origin', push_url],
-                                  cwd=checkoutdir)
+                                  cwd=self.dirname)
 
     def get_hg(self):
-        checkoutdir = os.path.join(self.subdir_root, self.wrap.get('directory'))
         revno = self.wrap.get('revision')
         subprocess.check_call(['hg', 'clone', self.wrap.get('url'),
-                               self.wrap.get('directory')], cwd=self.subdir_root)
+                               self.directory], cwd=self.subdir_root)
         if revno.lower() != 'tip':
             subprocess.check_call(['hg', 'checkout', revno],
-                                  cwd=checkoutdir)
+                                  cwd=self.dirname)
 
     def get_svn(self):
         revno = self.wrap.get('revision')
         subprocess.check_call(['svn', 'checkout', '-r', revno, self.wrap.get('url'),
-                               self.wrap.get('directory')], cwd=self.subdir_root)
+                               self.directory], cwd=self.subdir_root)
 
     def get_data(self, url):
         blocksize = 10 * 1024
