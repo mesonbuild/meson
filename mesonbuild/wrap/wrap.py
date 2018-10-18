@@ -18,8 +18,8 @@ import urllib.request, os, hashlib, shutil, tempfile, stat
 import subprocess
 import sys
 import configparser
-from pathlib import Path
 from . import WrapMode
+from ..mesonlib import MesonException
 
 try:
     import ssl
@@ -67,19 +67,35 @@ def open_wrapdburl(urlstring):
         urlstring = 'http' + urlstring[5:]
     return urllib.request.urlopen(urlstring, timeout=req_timeout)
 
+class WrapException(MesonException):
+    pass
+
+class WrapNotFoundException(WrapException):
+    pass
 
 class PackageDefinition:
     def __init__(self, fname):
-        self.config = configparser.ConfigParser()
-        self.config.read(fname)
+        self.basename = os.path.basename(fname)
+        try:
+            self.config = configparser.ConfigParser()
+            self.config.read(fname)
+        except:
+            raise WrapException('Failed to parse {}'.format(self.basename))
+        if len(self.config.sections()) < 1:
+            raise WrapException('Missing sections in {}'.format(self.basename))
         self.wrap_section = self.config.sections()[0]
         if not self.wrap_section.startswith('wrap-'):
-            raise RuntimeError('Invalid format of package file')
+            m = '{!r} is not a valid first section in {}'
+            raise WrapException(m.format(self.wrap_section, self.basename))
         self.type = self.wrap_section[5:]
         self.values = dict(self.config[self.wrap_section])
 
     def get(self, key):
-        return self.values[key]
+        try:
+            return self.values[key]
+        except KeyError:
+            m = 'Missing key {!r} in {}'
+            raise WrapException(m.format(key, self.basename))
 
     def has_patch(self):
         return 'patch_url' in self.values
@@ -92,32 +108,30 @@ class Resolver:
 
     def resolve(self, packagename):
         self.packagename = packagename
+        self.directory = packagename
         # We always have to load the wrap file, if it exists, because it could
         # override the default directory name.
         p = self.load_wrap()
-        directory = packagename
         if p and 'directory' in p.values:
-            directory = p.get('directory')
-        dirname = os.path.join(self.subdir_root, directory)
-        subprojdir = os.path.join(*Path(dirname).parts[-2:])
+            self.directory = p.get('directory')
+        dirname = os.path.join(self.subdir_root, self.directory)
         meson_file = os.path.join(dirname, 'meson.build')
 
         # The directory is there and has meson.build? Great, use it.
         if os.path.exists(meson_file):
-            return directory
+            return self.directory
 
         # Check if the subproject is a git submodule
         self.resolve_git_submodule(dirname)
 
         if os.path.exists(dirname):
             if not os.path.isdir(dirname):
-                m = '{!r} already exists and is not a dir; cannot use as subproject'
-                raise RuntimeError(m.format(subprojdir))
+                raise WrapException('Path already exists but is not a directory')
         else:
             # A wrap file is required to download
             if not p:
-                m = 'No {}.wrap found for {!r}'
-                raise RuntimeError(m.format(packagename, subprojdir))
+                m = 'Subproject directory not found and {}.wrap file not found'
+                raise WrapNotFoundException(m.format(self.packagename))
 
             if p.type == 'file':
                 self.get_file(p)
@@ -130,14 +144,13 @@ class Resolver:
                 elif p.type == "svn":
                     self.get_svn(p)
                 else:
-                    raise AssertionError('Unreachable code.')
+                    raise WrapException('Unknown wrap type {!r}'.format(p.type))
 
         # A meson.build file is required in the directory
         if not os.path.exists(meson_file):
-            m = '{!r} is not empty and has no meson.build files'
-            raise RuntimeError(m.format(subprojdir))
+            raise WrapException('Subproject exists but has no meson.build file')
 
-        return directory
+        return self.directory
 
     def load_wrap(self):
         fname = os.path.join(self.subdir_root, self.packagename + '.wrap')
@@ -150,7 +163,7 @@ class Resolver:
         # Git submodules are ok (see above)!
         if self.wrap_mode is WrapMode.nodownload:
             m = 'Automatic wrap-based subproject downloading is disabled'
-            raise RuntimeError(m)
+            raise WrapException(m)
 
     def resolve_git_submodule(self, dirname):
         # Are we in a git repository?
@@ -163,15 +176,15 @@ class Resolver:
             return False
         # Submodule has not been added, add it
         if out.startswith(b'+'):
-            mlog.warning('git submodule {} might be out of date'.format(dirname))
+            mlog.warning('git submodule might be out of date')
             return True
         elif out.startswith(b'U'):
-            raise RuntimeError('submodule {} has merge conflicts'.format(dirname))
+            raise WrapException('git submodule has merge conflicts')
         # Submodule exists, but is deinitialized or wasn't initialized
         elif out.startswith(b'-'):
             if subprocess.call(['git', '-C', self.subdir_root, 'submodule', 'update', '--init', dirname]) == 0:
                 return True
-            raise RuntimeError('Failed to git submodule init {!r}'.format(dirname))
+            raise WrapException('git submodule failed to init')
         # Submodule looks fine, but maybe it wasn't populated properly. Do a checkout.
         elif out.startswith(b' '):
             subprocess.call(['git', 'checkout', '.'], cwd=dirname)
@@ -182,7 +195,7 @@ class Resolver:
             # It is not a submodule, just a folder that exists in the main repository.
             return False
         m = 'Unknown git submodule output: {!r}'
-        raise RuntimeError(m.format(out))
+        raise WrapException(m.format(out))
 
     def get_file(self, p):
         path = self.get_file_internal(p, 'source')
@@ -190,12 +203,9 @@ class Resolver:
         extract_dir = self.subdir_root
         # Some upstreams ship packages that do not have a leading directory.
         # Create one for them.
-        try:
-            p.get('lead_directory_missing')
+        if 'lead_directory_missing' in p.values:
             os.mkdir(target_dir)
             extract_dir = target_dir
-        except KeyError:
-            pass
         shutil.unpack_archive(path, extract_dir)
         if p.has_patch():
             self.apply_patch(p)
@@ -285,7 +295,7 @@ class Resolver:
             h.update(f.read())
         dhash = h.hexdigest()
         if dhash != expected:
-            raise RuntimeError('Incorrect hash for %s:\n %s expected\n %s actual.' % (what, expected, dhash))
+            raise WrapException('Incorrect hash for %s:\n %s expected\n %s actual.' % (what, expected, dhash))
 
     def download(self, p, what, ofname):
         self.check_can_download()
@@ -295,7 +305,7 @@ class Resolver:
         expected = p.get(what + '_hash')
         if dhash != expected:
             os.remove(tmpfile)
-            raise RuntimeError('Incorrect hash for %s:\n %s expected\n %s actual.' % (what, expected, dhash))
+            raise WrapException('Incorrect hash for %s:\n %s expected\n %s actual.' % (what, expected, dhash))
         os.rename(tmpfile, ofname)
 
     def get_file_internal(self, p, what):

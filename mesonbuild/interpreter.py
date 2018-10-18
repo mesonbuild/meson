@@ -2261,19 +2261,21 @@ external dependencies (including libraries) must go to "dependencies".''')
         r = wrap.Resolver(subproject_dir_abs, self.coredata.get_builtin_option('wrap_mode'))
         try:
             resolved = r.resolve(dirname)
-        except RuntimeError as e:
-            # if the reason subproject execution failed was because
-            # the directory doesn't exist, try to give some helpful
-            # advice if it's a nested subproject that needs
-            # promotion...
-            self.print_nested_info(dirname)
+        except wrap.WrapException as e:
+            subprojdir = os.path.join(self.subproject_dir, r.directory)
+            if not required:
+                mlog.log('\nSubproject ', mlog.bold(subprojdir), 'is buildable:', mlog.red('NO'), '(disabling)\n')
+                return self.disabled_subproject(dirname)
 
-            if required:
-                msg = 'Subproject directory {!r} does not exist and cannot be downloaded:\n{}'
-                raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname), e))
+            if isinstance(e, wrap.WrapNotFoundException):
+                # if the reason subproject execution failed was because
+                # the directory doesn't exist, try to give some helpful
+                # advice if it's a nested subproject that needs
+                # promotion...
+                self.print_nested_info(dirname)
 
-            mlog.log('\nSubproject ', mlog.bold(dirname), 'is buildable:', mlog.red('NO'), '(disabling)\n')
-            return self.disabled_subproject(dirname)
+            msg = 'Failed to initialize {!r}:\n{}'
+            raise InterpreterException(msg.format(subprojdir, e))
 
         subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
@@ -2979,26 +2981,21 @@ external dependencies (including libraries) must go to "dependencies".''')
         return Disabler()
 
     def print_nested_info(self, dependency_name):
-        message_templ = '''\nDependency %s not found but it is available in a sub-subproject.
-To use it in the current project, promote it by going in the project source
-root and issuing %s.
-
-'''
+        message = ['Dependency', mlog.bold(dependency_name), 'not found but it is available in a sub-subproject.\n' +
+                   'To use it in the current project, promote it by going in the project source\n'
+                   'root and issuing']
         sprojs = mesonlib.detect_subprojects('subprojects', self.source_root)
         if dependency_name not in sprojs:
             return
         found = sprojs[dependency_name]
         if len(found) > 1:
-            suffix = 'one of the following commands'
+            message.append('one of the following commands:')
         else:
-            suffix = 'the following command'
-        message = message_templ % (dependency_name, suffix)
-        cmds = []
-        command_templ = 'meson wrap promote '
+            message.append('the following command:')
+        command_templ = '\nmeson wrap promote {}'
         for l in found:
-            cmds.append(command_templ + l[len(self.source_root) + 1:])
-        final_message = message + '\n'.join(cmds)
-        print(final_message)
+            message.append(mlog.bold(command_templ.format(l[len(self.source_root) + 1:])))
+        mlog.warning(*message)
 
     def get_subproject_infos(self, kwargs):
         fbinfo = kwargs['fallback']
