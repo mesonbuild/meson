@@ -12,3 +12,8 @@ case overlay files are local. Every files in that directory, and subdirectories,
 will be copied to the subproject directory. This can be used for example to add
 `meson.build` files to a project not using Meson build system upstream.
 The patch directory must be placed in `subprojects/packagefiles` directory.
+
+## Patch on all wrap types
+
+`patch_*` keys are not limited to `wrap-file` any more, they can be specified for
+all wrap types.

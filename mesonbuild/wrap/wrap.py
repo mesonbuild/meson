@@ -192,6 +192,7 @@ class Resolver:
                     self.get_svn()
                 else:
                     raise WrapException('Unknown wrap type {!r}'.format(self.wrap.type))
+            self.apply_patch()
 
         # A meson.build or CMakeLists.txt file is required in the directory
         if method == 'meson' and not os.path.exists(meson_file):
@@ -251,7 +252,6 @@ class Resolver:
             os.mkdir(self.dirname)
             extract_dir = self.dirname
         shutil.unpack_archive(path, extract_dir)
-        self.apply_patch()
 
     def get_git(self) -> None:
         if not GIT:
