@@ -20,7 +20,6 @@ import sys
 import configparser
 from pathlib import Path
 from . import WrapMode
-from ..mesonlib import Popen_safe
 
 try:
     import ssl
@@ -204,86 +203,36 @@ class Resolver:
     def get_git(self, p):
         checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
         revno = p.get('revision')
-        is_there = os.path.isdir(checkoutdir)
-        if is_there:
-            try:
-                subprocess.check_call(['git', 'rev-parse'], cwd=checkoutdir)
-            except subprocess.CalledProcessError:
-                raise RuntimeError('%s is not empty but is not a valid '
-                                   'git repository, we can not work with it'
-                                   ' as a subproject directory.' % (
-                                       checkoutdir))
-
-            if revno.lower() == 'head':
-                # Failure to do pull is not a fatal error,
-                # because otherwise you can't develop without
-                # a working net connection.
-                subprocess.call(['git', 'pull'], cwd=checkoutdir)
-            else:
-                if subprocess.call(['git', 'checkout', revno], cwd=checkoutdir) != 0:
-                    subprocess.check_call(['git', 'fetch', p.get('url'), revno], cwd=checkoutdir)
-                    subprocess.check_call(['git', 'checkout', revno],
-                                          cwd=checkoutdir)
+        if p.values.get('clone-recursive', '').lower() == 'true':
+            subprocess.check_call(['git', 'clone', '--recursive', p.get('url'),
+                                   p.get('directory')], cwd=self.subdir_root)
         else:
-            if p.values.get('clone-recursive', '').lower() == 'true':
-                subprocess.check_call(['git', 'clone', '--recursive', p.get('url'),
-                                       p.get('directory')], cwd=self.subdir_root)
-            else:
-                subprocess.check_call(['git', 'clone', p.get('url'),
-                                       p.get('directory')], cwd=self.subdir_root)
-            if revno.lower() != 'head':
-                if subprocess.call(['git', 'checkout', revno], cwd=checkoutdir) != 0:
-                    subprocess.check_call(['git', 'fetch', p.get('url'), revno], cwd=checkoutdir)
-                    subprocess.check_call(['git', 'checkout', revno],
-                                          cwd=checkoutdir)
-            push_url = p.values.get('push-url')
-            if push_url:
-                subprocess.check_call(['git', 'remote', 'set-url',
-                                       '--push', 'origin', push_url],
+            subprocess.check_call(['git', 'clone', p.get('url'),
+                                   p.get('directory')], cwd=self.subdir_root)
+        if revno.lower() != 'head':
+            if subprocess.call(['git', 'checkout', revno], cwd=checkoutdir) != 0:
+                subprocess.check_call(['git', 'fetch', p.get('url'), revno], cwd=checkoutdir)
+                subprocess.check_call(['git', 'checkout', revno],
                                       cwd=checkoutdir)
+        push_url = p.values.get('push-url')
+        if push_url:
+            subprocess.check_call(['git', 'remote', 'set-url',
+                                   '--push', 'origin', push_url],
+                                  cwd=checkoutdir)
 
     def get_hg(self, p):
         checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
         revno = p.get('revision')
-        is_there = os.path.isdir(checkoutdir)
-        if is_there:
-            if revno.lower() == 'tip':
-                # Failure to do pull is not a fatal error,
-                # because otherwise you can't develop without
-                # a working net connection.
-                subprocess.call(['hg', 'pull'], cwd=checkoutdir)
-            else:
-                if subprocess.call(['hg', 'checkout', revno], cwd=checkoutdir) != 0:
-                    subprocess.check_call(['hg', 'pull'], cwd=checkoutdir)
-                    subprocess.check_call(['hg', 'checkout', revno],
-                                          cwd=checkoutdir)
-        else:
-            subprocess.check_call(['hg', 'clone', p.get('url'),
-                                   p.get('directory')], cwd=self.subdir_root)
-            if revno.lower() != 'tip':
-                subprocess.check_call(['hg', 'checkout', revno],
-                                      cwd=checkoutdir)
+        subprocess.check_call(['hg', 'clone', p.get('url'),
+                               p.get('directory')], cwd=self.subdir_root)
+        if revno.lower() != 'tip':
+            subprocess.check_call(['hg', 'checkout', revno],
+                                  cwd=checkoutdir)
 
     def get_svn(self, p):
-        checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
         revno = p.get('revision')
-        is_there = os.path.isdir(checkoutdir)
-        if is_there:
-            p, out = Popen_safe(['svn', 'info', '--show-item', 'revision', checkoutdir])
-            current_revno = out
-            if current_revno == revno:
-                return
-
-            if revno.lower() == 'head':
-                # Failure to do pull is not a fatal error,
-                # because otherwise you can't develop without
-                # a working net connection.
-                subprocess.call(['svn', 'update'], cwd=checkoutdir)
-            else:
-                subprocess.check_call(['svn', 'update', '-r', revno], cwd=checkoutdir)
-        else:
-            subprocess.check_call(['svn', 'checkout', '-r', revno, p.get('url'),
-                                   p.get('directory')], cwd=self.subdir_root)
+        subprocess.check_call(['svn', 'checkout', '-r', revno, p.get('url'),
+                               p.get('directory')], cwd=self.subdir_root)
 
     def get_data(self, url):
         blocksize = 10 * 1024
