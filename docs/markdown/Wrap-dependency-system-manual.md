@@ -70,11 +70,7 @@ revision = head
 ## Accepted configuration properties for wraps
 - `directory` - name of the subproject root directory, defaults to the name of the wrap.
 
-### Specific to wrap-file
-- `source_url` - download url to retrieve the wrap-file source archive
-- `source_fallback_url` - fallback URL to be used when download from `source_url` fails *Since: 0.55.0*
-- `source_filename` - filename of the downloaded source archive
-- `source_hash` - sha256 checksum of the downloaded source archive
+Since *0.55.0* those can be used in all wrap types, they were previously reserved to `wrap-file`:
 - `patch_url` - download url to retrieve an optional overlay archive
 - `patch_fallback_url` - fallback URL to be used when download from `patch_url` fails *Since: 0.55.0*
 - `patch_filename` - filename of the downloaded overlay archive
@@ -82,6 +78,12 @@ revision = head
 - `patch_directory` - *Since 0.55.0* Overlay directory, alternative to `patch_filename` in the case
   files are local instead of a downloaded archive. The directory must be placed in
   `subprojects/packagefiles`.
+
+### Specific to wrap-file
+- `source_url` - download url to retrieve the wrap-file source archive
+- `source_fallback_url` - fallback URL to be used when download from `source_url` fails *Since: 0.55.0*
+- `source_filename` - filename of the downloaded source archive
+- `source_hash` - sha256 checksum of the downloaded source archive
 - `lead_directory_missing` - for `wrap-file` create the leading
   directory name. Needed when the source file does not have a leading
   directory.

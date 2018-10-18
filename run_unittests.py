@@ -4999,6 +4999,25 @@ recommended as it is not supported on some platforms''')
             self.assertEqual(values['properties']['cpp_args'],
                              ['--sysroot=/toolchain/sysroot', '-DSOMETHING', '-DSOMETHING_ELSE'])
 
+    @unittest.skipIf(is_windows(), 'Directory cleanup fails for some reason')
+    def test_wrap_git(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            srcdir = os.path.join(tmpdir, 'src')
+            shutil.copytree(os.path.join(self.unit_test_dir, '78 wrap-git'), srcdir)
+            upstream = os.path.join(srcdir, 'subprojects', 'wrap_git_upstream')
+            upstream_uri = Path(upstream).as_uri()
+            _git_init(upstream)
+            with open(os.path.join(srcdir, 'subprojects', 'wrap_git.wrap'), 'w') as f:
+                f.write(textwrap.dedent('''
+                  [wrap-git]
+                  url = {}
+                  patch_directory = wrap_git_builddef
+                  revision = master
+                '''.format(upstream_uri)))
+            self.init(srcdir)
+            self.build()
+            self.run_tests()
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically
