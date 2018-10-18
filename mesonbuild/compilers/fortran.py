@@ -345,6 +345,9 @@ class IntelFortranCompiler(IntelCompiler, FortranCompiler):
         val.remove('-pipe')
         return val
 
+    def language_stdlib_only_link_flags(self):
+        return ['-lifcore', '-limf']
+
 
 class PathScaleFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
