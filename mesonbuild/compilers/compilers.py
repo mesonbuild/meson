@@ -477,10 +477,9 @@ def option_enabled(boptions, options, option):
 
 def get_base_compile_args(options, compiler):
     args = []
-    # FIXME, gcc/clang specific.
     try:
         if options['b_lto'].value:
-            args.append('-flto')
+            args.extend(compiler.get_lto_compile_args())
     except KeyError:
         pass
     try:
@@ -527,10 +526,9 @@ def get_base_compile_args(options, compiler):
 
 def get_base_link_args(options, linker, is_shared_module):
     args = []
-    # FIXME, gcc/clang specific.
     try:
         if options['b_lto'].value:
-            args.append('-flto')
+            args.extend(linker.get_lto_link_args())
     except KeyError:
         pass
     try:
@@ -1388,6 +1386,12 @@ class Compiler:
     def remove_linkerlike_args(self, args):
         return [x for x in args if not x.startswith('-Wl')]
 
+    def get_lto_compile_args(self) -> List[str]:
+        return []
+
+    def get_lto_link_args(self) -> List[str]:
+        return []
+
 
 @enum.unique
 class CompilerType(enum.Enum):
@@ -1995,6 +1999,12 @@ class GnuLikeCompiler(abc.ABC):
 
         return parameter_list
 
+    def get_lto_compile_args(self) -> List[str]:
+        return ['-flto']
+
+    def get_lto_link_args(self) -> List[str]:
+        return ['-flto']
+
 class GnuCompiler(GnuLikeCompiler):
     """
     GnuCompiler represents an actual GCC in its many incarnations.
@@ -2282,6 +2292,12 @@ class ArmclangCompiler:
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
 
         return parameter_list
+
+    def get_lto_compile_args(self) -> List[str]:
+        return ['-flto']
+
+    def get_lto_link_args(self) -> List[str]:
+        return ['-flto']
 
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1, 19.0.0
