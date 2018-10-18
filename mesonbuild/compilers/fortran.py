@@ -169,7 +169,7 @@ end program prog
         return ('-I', )
 
     def get_module_outdir_args(self, path):
-        return ['-module' + path]
+        return ['-module', path]
 
     def module_name_to_filename(self, module_name):
         return module_name.lower() + '.mod'
