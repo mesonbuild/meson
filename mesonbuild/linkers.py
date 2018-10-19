@@ -33,6 +33,10 @@ class StaticLinker:
         """
         return mesonlib.is_windows()
 
+    def get_base_link_args(self, options: 'OptionDictType') -> typing.List[str]:
+        """Like compilers.get_base_link_args, but for the static linker."""
+        return []
+
     def get_exelist(self) -> typing.List[str]:
         return self.exelist.copy()
 
