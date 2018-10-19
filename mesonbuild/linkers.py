@@ -22,6 +22,10 @@ class StaticLinker:
         """
         return mesonlib.is_windows()
 
+    def get_base_link_args(self, options):
+        """Like compilers.get_base_link_args, but for the static linker."""
+        return []
+
 
 class VisualStudioLinker(StaticLinker):
     always_args = ['/NOLOGO']
