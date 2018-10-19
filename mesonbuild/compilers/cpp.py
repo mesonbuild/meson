@@ -309,11 +309,23 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         self.base_options = ['b_pch', 'b_vscrt'] # FIXME add lto, pgo and the like
 
     def get_options(self):
+        cpp_stds = ['none', 'c++11']
+        # Visual Studio 2015 Update 3 and later
+        if version_compare(self.version, '>=19'):
+            cpp_stds.extend(['c++14', 'c++latest'])
+        # Visual Studio 2017 and later
+        if version_compare(self.version, '>=19.11'):
+            cpp_stds.append('c++17')
+
         opts = CPPCompiler.get_options(self)
         opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
                                                         'C++ exception handling type.',
                                                         ['none', 'a', 's', 'sc'],
                                                         'sc'),
+                     'cpp_std': coredata.UserComboOption('cpp_std',
+                                                         'C++ language standard to use',
+                                                         cpp_stds,
+                                                         'none'),
                      'cpp_winlibs': coredata.UserArrayOption('cpp_winlibs',
                                                              'Windows libs to link against.',
                                                              msvc_winlibs)})
@@ -321,9 +333,28 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
 
     def get_option_compile_args(self, options):
         args = []
-        std = options['cpp_eh']
-        if std.value != 'none':
-            args.append('/EH' + std.value)
+
+        eh = options['cpp_eh']
+        if eh.value != 'none':
+            args.append('/EH' + eh.value)
+
+        std = options['cpp_std']
+        if std.value == 'none':
+            pass
+        elif std.value == 'c++11':
+            # Note: there is no explicit flag for supporting C++11; we attempt to do the best we can
+            # which means setting the C++ standard version to C++14, in compilers that support it
+            # (i.e., after VS2015U3)
+            # if one is using anything before that point, one cannot set the standard.
+            if version_compare(self.version, '>=19.00.24210'):
+                mlog.warning('MSVC does not support C++11; '
+                             'attempting best effort; setting the standard to C++14')
+                args.append('/std:c++14')
+            else:
+                mlog.warning('This version of MSVC does not support cpp_std arguments')
+        else:
+            args.append('/std:' + std.value)
+
         return args
 
     def get_option_link_args(self, options):
