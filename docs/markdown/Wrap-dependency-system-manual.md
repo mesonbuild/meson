@@ -45,6 +45,11 @@ If you then use this subproject in your build, Meson will
 automatically download and extract it during build. This makes
 subproject embedding extremely easy.
 
+Since *0.49.0* if `source_filename` is found in project's
+`subprojects/packagecache` directory, it will be used instead of downloading the
+source, even if `wrap-mode` option is set to `nodownload`. The file's hash will
+be checked.
+
 Unfortunately most software projects in the world do not build with
 Meson. Because of this Meson allows you to specify a patch URL. This
 works in much the same way as Debian's distro patches. That is, they
@@ -75,6 +80,11 @@ it inside your own source tree, especially if it contains hundreds of
 thousands of lines of code. Once you have a working build definition,
 just zip up the Meson build files (and others you have changed) and
 put them somewhere where you can download them.
+
+Since *0.49.0* if `patch_filename` is found in project's
+`subprojects/packagecache` directory, it will be used instead of downloading the
+patch, even if `wrap-mode` option is set to `nodownload`. The file's hash will
+be checked.
 
 ## Branching subprojects directly from git
 

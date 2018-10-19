@@ -24,7 +24,6 @@ from . import environment, interpreter, mesonlib
 from . import build
 from . import mlog, coredata
 from .mesonlib import MesonException
-from .wrap import WrapMode
 
 def add_arguments(parser):
     coredata.register_builtin_arguments(parser)
@@ -42,14 +41,6 @@ def add_arguments(parser):
                              'is not working.')
     parser.add_argument('builddir', nargs='?', default=None)
     parser.add_argument('sourcedir', nargs='?', default=None)
-
-def wrapmodetype(string):
-    try:
-        return getattr(WrapMode, string)
-    except AttributeError:
-        msg = ', '.join([t.name.lower() for t in WrapMode])
-        msg = 'invalid argument {!r}, use one of {}'.format(string, msg)
-        raise argparse.ArgumentTypeError(msg)
 
 class MesonApp:
     def __init__(self, options):

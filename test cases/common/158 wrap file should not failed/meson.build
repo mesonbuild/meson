@@ -1,4 +1,6 @@
-project('mainproj', 'c')
+project('mainproj', 'c',
+  default_options : ['wrap_mode=nodownload'],
+)
 
 subproject('zlib')
 
