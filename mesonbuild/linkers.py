@@ -1,4 +1,4 @@
-# Copyright 2012-2017 The Meson development team
+# Copyright 2012-2018 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,6 +65,15 @@ class VisualStudioLinker(StaticLinker):
 
     def get_option_link_args(self, options):
         return []
+
+    def get_base_link_args(self, options):
+        args = []
+        try:
+            if options['b_lto'].value:
+                args.append('/LTCG')
+        except KeyError:
+            pass
+        return args
 
     @classmethod
     def unix_args_to_native(cls, args):
