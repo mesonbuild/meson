@@ -909,8 +909,7 @@ An example value could be `['rwxr-sr-x', 'root', 'root']`.
 Installs the specified man files from the source tree into system's
 man directory during the install step. This directory can be
 overridden by specifying it with the `install_dir` keyword
-argument. All man pages are compressed during installation and
-installed with a `.gz` suffix.
+argument.
 
 The `install_mode` argument can be used to specify the file mode in symbolic
 format and optionally the owner/uid and group/gid for the installed files.

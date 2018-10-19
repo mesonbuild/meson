@@ -379,17 +379,7 @@ class Installer:
             outdir = os.path.dirname(outfilename)
             d.dirmaker.makedirs(outdir, exist_ok=True)
             install_mode = m[2]
-            if outfilename.endswith('.gz') and not full_source_filename.endswith('.gz'):
-                with open(outfilename, 'wb') as of:
-                    with open(full_source_filename, 'rb') as sf:
-                        # Set mtime and filename for reproducibility.
-                        with gzip.GzipFile(fileobj=of, mode='wb', filename='', mtime=0) as gz:
-                            gz.write(sf.read())
-                shutil.copystat(full_source_filename, outfilename)
-                print('Installing %s to %s' % (full_source_filename, outdir))
-                append_to_log(self.lf, outfilename)
-            else:
-                self.do_copyfile(full_source_filename, outfilename)
+            self.do_copyfile(full_source_filename, outfilename)
             set_mode(outfilename, install_mode, d.install_umask)
 
     def install_headers(self, d):

@@ -3621,7 +3621,7 @@ class LinuxlikeTests(BasePlatformTests):
                 ('share', 'drwxr-x---'),
                 ('share/man', 'drwxr-x---'),
                 ('share/man/man1', 'drwxr-x---'),
-                ('share/man/man1/foo.1.gz', '-r--r--r-T'),
+                ('share/man/man1/foo.1', '-r--r--r-T'),
                 ('share/sub1', 'drwxr-x---'),
                 ('share/sub1/second.dat', '-rwxr-x--t'),
                 ('subdir', 'drwxr-x---'),
@@ -3694,7 +3694,7 @@ class LinuxlikeTests(BasePlatformTests):
                 'include/sample.h',
                 'share/datafile.cat',
                 'share/file.dat',
-                'share/man/man1/prog.1.gz',
+                'share/man/man1/prog.1',
                 'share/subdir/datafile.dog',
         ]:
             f = os.path.join(self.installdir, 'usr', *datafile.split('/'))

@@ -26,7 +26,7 @@ Other install commands are the following.
 
 ```meson
 install_headers('header.h', subdir : 'projname') # -> include/projname/header.h
-install_man('foo.1') # -> share/man/man1/foo.1.gz
+install_man('foo.1') # -> share/man/man1/foo.1
 install_data('datafile.dat', install_dir : join_paths(get_option('datadir'), 'progname')) # -> share/progname/datafile.dat
 ```
 
