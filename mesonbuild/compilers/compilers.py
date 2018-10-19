@@ -506,6 +506,22 @@ def get_base_link_args(options, linker, is_shared_module):
         pass
     return args
 
+def prepare_rpaths(raw_rpaths, build_dir, from_dir):
+    internal_format_rpaths = [evaluate_rpath(p, build_dir, from_dir) for p in raw_rpaths]
+    ordered_rpaths = order_rpaths(internal_format_rpaths)
+    return ordered_rpaths
+
+def order_rpaths(rpath_list):
+    # We want rpaths that point inside our build dir to always override
+    # those pointing to other places in the file system. This is so built
+    # binaries prefer our libraries to the ones that may lie somewhere
+    # in the file system, such as /lib/x86_64-linux-gnu.
+    #
+    # The correct thing to do here would be C++'s std::stable_partition.
+    # Python standard library does not have it, so replicate it with
+    # sort, which is guaranteed to be stable.
+    return sorted(rpath_list, key=os.path.isabs)
+
 def evaluate_rpath(p, build_dir, from_dir):
     if p == from_dir:
         return '' # relpath errors out in this case
@@ -1115,7 +1131,7 @@ class Compiler:
         # The rpaths we write must be relative if they point to the build dir,
         # because otherwise they have different length depending on the build
         # directory. This breaks reproducible builds.
-        processed_rpaths = [evaluate_rpath(p, build_dir, from_dir) for p in rpath_paths]
+        processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
         # Need to deduplicate rpaths, as macOS's install_name_tool
         # is *very* allergic to duplicate -delete_rpath arguments
         # when calling depfixer on installation.
