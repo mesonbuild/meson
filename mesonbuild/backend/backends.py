@@ -1083,7 +1083,7 @@ class Backend:
                 if subdir is None:
                     subdir = os.path.join(manroot, 'man' + num)
                 srcabs = f.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
-                dstabs = os.path.join(subdir, os.path.basename(f.fname) + '.gz')
+                dstabs = os.path.join(subdir, os.path.basename(f.fname))
                 i = [srcabs, dstabs, m.get_custom_install_mode()]
                 d.man.append(i)
 
