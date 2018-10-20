@@ -198,7 +198,7 @@ class Resolver:
         raise WrapException(m.format(out))
 
     def get_file(self):
-        path = self.get_file_internal(self.wrap, 'source')
+        path = self.get_file_internal('source')
         extract_dir = self.subdir_root
         # Some upstreams ship packages that do not have a leading directory.
         # Create one for them.
@@ -319,8 +319,8 @@ class Resolver:
         self.download(what, cache_path)
         return cache_path
 
-    def apply_patch(self, p):
-        path = self.get_file_internal(p, 'patch')
+    def apply_patch(self):
+        path = self.get_file_internal('patch')
         try:
             shutil.unpack_archive(path, self.subdir_root)
         except Exception:

@@ -3,6 +3,7 @@ project('mainproj', 'c',
 )
 
 subproject('zlib')
+subproject('foo')
 
 executable('grabprog', files('src/subprojects/prog.c'))
 executable('grabprog2', files('src/subprojects/foo/prog2.c'))
