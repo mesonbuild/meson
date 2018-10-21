@@ -211,6 +211,19 @@ def detect_cpu_family(compilers):
         return 'arm'
     if trial.startswith('ppc64'):
         return 'ppc64'
+    if trial == 'powerpc':
+        # FreeBSD calls both ppc and ppc64 "powerpc".
+        # https://github.com/mesonbuild/meson/issues/4397
+        try:
+            p, stdo, _ = Popen_safe(['uname', '-p'])
+        except (FileNotFoundError, PermissionError):
+            # Not much to go on here.
+            if sys.maxsize > 2**32:
+                return 'ppc64'
+            return 'ppc'
+        if 'powerpc64' in stdo:
+            return 'ppc64'
+        return 'ppc'
     if trial in ('amd64', 'x64'):
         trial = 'x86_64'
     if trial == 'x86_64':
