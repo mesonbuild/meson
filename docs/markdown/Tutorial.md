@@ -9,6 +9,19 @@ definition for a simple project. Then we expand it to use external
 dependencies to show how easily they can be integrated into your
 project.
 
+This tutorial has been written mostly for Linux usage. It assumes that
+you have GTK development libraries available on the system. On
+Debian-derived systems such as Ubuntu they can be installed with the
+following command:
+
+```
+sudo apt install libgtk-3-dev
+```
+
+It is possible to build the GUI application On other platforms such as
+Windows and macOS but it requires for you to install the dependency
+libraries using a dependendy provider of your choice.
+
 The humble beginning
 -----
 
