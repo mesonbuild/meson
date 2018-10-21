@@ -48,6 +48,7 @@ class DependencyMethods(Enum):
     AUTO = 'auto'
     PKGCONFIG = 'pkg-config'
     QMAKE = 'qmake'
+    CMAKE = 'cmake'
     # Just specify the standard link arguments, assuming the operating system provides the library.
     SYSTEM = 'system'
     # This is only supported on OSX - search the frameworks directory by name.
@@ -848,6 +849,244 @@ class PkgConfigDependency(ExternalDependency):
     def log_tried(self):
         return self.type_name
 
+class CMakeTraceLine:
+    def __init__(self, file, line, func, args):
+        self.file = file
+        self.line = line
+        self.func = func.lower()
+        self.args = args
+
+class CMakeDependency(ExternalDependency):
+    # The class's copy of the CMake path. Avoids having to search for it
+    # multiple times in the same Meson invocation.
+    class_cmakebin = None
+    # We cache all pkg-config subprocess invocations to avoid redundant calls
+    cmake_cache = {}
+
+    def __init__(self, name, environment, kwargs, language=None):
+        super().__init__('cmake', environment, language, kwargs)
+        self.name = name
+        self.is_libtool = False
+        # Store a copy of the CMake path on the object itself so it is
+        # stored in the pickled coredata and recovered.
+        self.cmakebin = None
+
+        # When finding dependencies for cross-compiling, we don't care about
+        # the 'native' CMake binary
+        # TODO: Test if this works as expected
+        if self.want_cross:
+            if 'cmake' not in environment.cross_info.config['binaries']:
+                if self.required:
+                    raise DependencyException('CMake binary missing from cross file')
+            else:
+                potential_cmake = ExternalProgram.from_cross_info(environment.cross_info, 'cmake')
+                if potential_cmake.found():
+                    self.cmakebin = potential_cmake
+                    CMakeDependency.class_cmakebin = self.cmakebin
+                else:
+                    mlog.debug('Cross CMake %s not found.' % potential_cmake.name)
+        # Only search for the native CMake the first time and
+        # store the result in the class definition
+        elif CMakeDependency.class_cmakebin is None:
+            self.cmakebin = self.check_pkgconfig()
+            CMakeDependency.class_cmakebin = self.cmakebin
+        else:
+            self.cmakebin = CMakeDependency.class_cmakebin
+
+        if not self.cmakebin:
+            if self.required:
+                raise DependencyException('CMake not found.')
+            return
+
+        self._detect_dep(name)
+
+    def __repr__(self):
+        s = '<{0} {1}: {2} {3}>'
+        return s.format(self.__class__.__name__, self.name, self.is_found,
+                        self.version_reqs)
+
+    def _detect_dep(self, name):
+        mlog.debug('Determining dependency {!r} with CMake executable '
+                   '{!r}'.format(name, self.cmakebin.get_path()))
+
+        ret, out, err = self._call_cmake(['--find-package',
+                                          '--trace', '--trace-expand',
+                                          '-DCOMPILER_ID=GNU',
+                                          '-DLANGUAGE=CXX',
+                                          '-DMODE=LINK',
+                                          '-DNAME={}'.format(name)])
+
+        # Check if exists
+        if ret != 0:
+            mlog.debug('CMake: {} not found:\n{}'.format(name, out))
+            return
+
+        try:
+            # First parse the trace
+            lexer = self._lex_trace(err)
+
+            functions = {
+                'set': self._cmake_set,
+                'unset': self._cmake_unset,
+                'add_library': self._cmake_add_library,
+                'set_property': self._cmake_set_property,
+                'set_target_properties': self._cmake_set_target_properties
+            }
+
+            for l in lexer:
+                fn = functions.get(l.func, None)
+                if(fn):
+                    fn(l)
+
+        except DependencyException as e:
+            if self.required:
+                raise
+            else:
+                self.compile_args = []
+                self.link_args = []
+                self.is_found = False
+                self.reason = e
+                return
+
+        self.is_found = True
+
+    def _cmake_set(self, tline: CMakeTraceLine):
+        # DOC: https://cmake.org/cmake/help/latest/command/set.html
+        mlog.debug('STUB: {}: {}'.format(tline.func, tline.args))
+
+    def _cmake_unset(self, tline: CMakeTraceLine):
+        # DOC: https://cmake.org/cmake/help/latest/command/unset.html
+        mlog.debug('STUB: {}: {}'.format(tline.func, tline.args))
+
+    def _cmake_add_library(self, tline: CMakeTraceLine):
+        # DOC: https://cmake.org/cmake/help/latest/command/add_library.html
+        mlog.debug('STUB: {}: {}'.format(tline.func, tline.args))
+
+    def _cmake_set_property(self, tline: CMakeTraceLine):
+        # DOC: https://cmake.org/cmake/help/latest/command/set_property.html
+        mlog.debug('STUB: {}: {}'.format(tline.func, tline.args))
+
+    def _cmake_set_target_properties(self, tline: CMakeTraceLine):
+        # DOC: https://cmake.org/cmake/help/latest/command/set_target_properties.html
+        mlog.debug('STUB: {}: {}'.format(tline.func, tline.args))
+
+    def _lex_trace(self, trace):
+        # The trace format is: <file>(<line>):  <func>(<args -- can contain \n>)\n
+        reg_tline = re.compile(r'\s*(.*\.cmake)\(([0-9]+)\):\s*(\w+)\(([\s\S]*?)\)\s*\n', re.MULTILINE)
+        loc = 0
+        while loc < len(trace):
+            mo_file_line = reg_tline.match(trace, loc)
+            if not mo_file_line:
+                raise DependencyException('Failed to parse CMake trace')
+
+            loc = mo_file_line.end()
+
+            file = mo_file_line.group(1)
+            line = mo_file_line.group(2)
+            func = mo_file_line.group(3)
+            args = mo_file_line.group(4).split(' ')
+            args = list(map(lambda x: x.strip(), args))
+            args = list(filter(lambda x: len(x) > 0, args))
+
+            yield CMakeTraceLine(file, line, func, args)
+
+    def _call_cmake_real(self, args, env):
+        existed = os.path.exists('CMakeFiles')
+
+        cmd = self.cmakebin.get_command() + args
+        p, out, err = Popen_safe(cmd, env=env)
+        rc = p.returncode
+        call = ' '.join(cmd)
+        mlog.debug("Called `{}` -> {}".format(call, rc))
+
+        # Remove the CMakeFiles dir generated by CMake if it was generated by us
+        if (not existed) and os.path.exists('CMakeFiles'):
+            shutil.rmtree('CMakeFiles')
+
+        return rc, out, err
+
+    def _call_cmake(self, args, env=None):
+        if env is None:
+            fenv = env
+            env = os.environ
+        else:
+            fenv = frozenset(env.items())
+        targs = tuple(args)
+        cache = CMakeDependency.cmake_cache
+        if (self.cmakebin, targs, fenv) not in cache:
+            cache[(self.cmakebin, targs, fenv)] = self._call_cmake_real(args, env)
+        return cache[(self.cmakebin, targs, fenv)]
+
+    def _set_cargs(self):
+        env = None
+        if self.language == 'fortran':
+            # gfortran doesn't appear to look in system paths for INCLUDE files,
+            # so don't allow pkg-config to suppress -I flags for system paths
+            env = os.environ.copy()
+            env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
+        ret, out = self._call_cmake(['--cflags', self.name], env=env)
+        if ret != 0:
+            raise DependencyException('Could not generate cargs for %s:\n\n%s' %
+                                      (self.name, out))
+        self.compile_args = self._convert_mingw_paths(shlex.split(out))
+
+    def _set_libs(self):
+        env = None
+        libcmd = [self.name, '--libs']
+        if self.static:
+            libcmd.append('--static')
+        # Force pkg-config to output -L fields even if they are system
+        # paths so we can do manual searching with cc.find_library() later.
+        env = os.environ.copy()
+        env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
+        ret, out = self._call_cmake(libcmd, env=env)
+        if ret != 0:
+            raise DependencyException('Could not generate libs for %s:\n\n%s' %
+                                      (self.name, out))
+        # Also get the 'raw' output without -Lfoo system paths for adding -L
+        # args with -lfoo when a library can't be found, and also in
+        # gnome.generate_gir + gnome.gtkdoc which need -L -l arguments.
+        ret, out_raw = self._call_cmake(libcmd)
+        if ret != 0:
+            raise DependencyException('Could not generate libs for %s:\n\n%s' %
+                                      (self.name, out_raw))
+        self.link_args, self.raw_link_args = self._search_libs(out, out_raw)
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.CMAKE]
+
+    def check_pkgconfig(self):
+        evar = 'CMAKE'
+        if evar in os.environ:
+            cmakebin = os.environ[evar].strip()
+        else:
+            cmakebin = 'cmake'
+        cmakebin = ExternalProgram(cmakebin, silent=True)
+        if cmakebin.found():
+            try:
+                p, out = Popen_safe(cmakebin.get_command() + ['--version'])[0:2]
+                if p.returncode != 0:
+                    mlog.warning('Found CMake {!r} but couldn\'t run it'
+                                 ''.format(' '.join(cmakebin.get_command())))
+                    # Set to False instead of None to signify that we've already
+                    # searched for it and not found it
+                    cmakebin = False
+            except (FileNotFoundError, PermissionError):
+                cmakebin = False
+        else:
+            cmakebin = False
+        if not self.silent:
+            if cmakebin:
+                mlog.log('Found CMake:', mlog.bold(cmakebin.get_path()),
+                         '(%s)' % out.split('\n')[0].strip())
+            else:
+                mlog.log('Found CMake:', mlog.red('NO'))
+        return cmakebin
+
+    def log_tried(self):
+        return self.type_name
+
 class DubDependency(ExternalDependency):
     class_dubbin = None
 
@@ -1496,15 +1735,26 @@ def _build_external_dependency_list(name, env, kwargs):
     if 'dub' == kwargs.get('method', ''):
         candidates.append(functools.partial(DubDependency, name, env, kwargs))
         return candidates
-    # TBD: other values of method should control what method(s) are used
 
-    # Otherwise, just use the pkgconfig dependency detector
-    candidates.append(functools.partial(PkgConfigDependency, name, env, kwargs))
+    # If it's explicitly requested, use the pkgconfig detection method (only)
+    if 'pkg-config' == kwargs.get('method', ''):
+        candidates.append(functools.partial(PkgConfigDependency, name, env, kwargs))
+        return candidates
 
-    # On OSX, also try framework dependency detector
-    if mesonlib.is_osx():
-        candidates.append(functools.partial(ExtraFrameworkDependency, name,
-                                            False, None, env, None, kwargs))
+    # If it's explicitly requested, use the CMake detection method (only)
+    if 'cmake' == kwargs.get('method', ''):
+        candidates.append(functools.partial(CMakeDependency, name, env, kwargs))
+        return candidates
+
+    # Otherwise, just use the pkgconfig and cmake dependency detector
+    if 'auto' == kwargs.get('method', 'auto'):
+        candidates.append(functools.partial(PkgConfigDependency, name, env, kwargs))
+        candidates.append(functools.partial(CMakeDependency,     name, env, kwargs))
+
+        # On OSX, also try framework dependency detector
+        if mesonlib.is_osx():
+            candidates.append(functools.partial(ExtraFrameworkDependency, name,
+                                                False, None, env, None, kwargs))
 
     return candidates
 
