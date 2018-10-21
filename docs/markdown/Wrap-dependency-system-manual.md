@@ -27,10 +27,24 @@ itself in a way that makes it easy to use (usually this means as a
 static library).
 
 To use this kind of a project as a dependency you could just copy and
-extract it inside your project's `subprojects` directory. However
-there is a simpler way. You can specify a Wrap file that tells Meson
-how to download it for you. An example wrap file would look like this
-and should be put in `subprojects/foobar.wrap`:
+extract it inside your project's `subprojects` directory. 
+
+However there is a simpler way. You can specify a Wrap file that tells Meson
+how to download it for you. If you then use this subproject in your build, 
+Meson will automatically download and extract it during build. This makes
+subproject embedding extremely easy.
+
+All wrap files must have a name of `<project_name>.wrap` form and be in `subprojects` dir.
+
+Currently Meson has three kinds of wraps: 
+- wrap-file
+- wrap-file with Meson build patch
+- wrap-git
+
+## wrap-file
+
+An example wrap file for `libfoobar` would have a name `libfoobar.wrap` 
+and would look like this:
 
 ```ini
 [wrap-file]
@@ -41,21 +55,22 @@ source_filename = foobar-1.0.tar.gz
 source_hash = 5ebeea0dfb75d090ea0e7ff84799b2a7a1550db3fe61eb5f6f61c2e971e57663
 ```
 
-If you then use this subproject in your build, Meson will
-automatically download and extract it during build. This makes
-subproject embedding extremely easy.
+`source_hash` is *sha256sum* of `source_filename`.
 
 Since *0.49.0* if `source_filename` is found in project's
 `subprojects/packagecache` directory, it will be used instead of downloading the
-source, even if `wrap-mode` option is set to `nodownload`. The file's hash will
+source, even if `--wrap-mode` option is set to `nodownload`. The file's hash will
 be checked.
+
+## wrap-file with Meson build patch
 
 Unfortunately most software projects in the world do not build with
 Meson. Because of this Meson allows you to specify a patch URL. This
 works in much the same way as Debian's distro patches. That is, they
 are downloaded and automatically applied to the subproject. These
-files contain a Meson build definition for the given subproject. A
-wrap file with an additional patch URL would look like this.
+files contain a Meson build definition for the given subproject. 
+
+A wrap file with an additional patch URL would look like this:
 
 ```ini
 [wrap-file]
@@ -83,10 +98,12 @@ put them somewhere where you can download them.
 
 Since *0.49.0* if `patch_filename` is found in project's
 `subprojects/packagecache` directory, it will be used instead of downloading the
-patch, even if `wrap-mode` option is set to `nodownload`. The file's hash will
+patch, even if `--wrap-mode` option is set to `nodownload`. The file's hash will
 be checked.
 
-## Branching subprojects directly from git
+## wrap-git
+
+This type of wrap allows branching subprojects directly from git.
 
 The above mentioned scheme assumes that your subproject is working off
 packaged files. Sometimes you want to check code out directly from
@@ -128,79 +145,14 @@ clone-recursive = true
 
 ## Using wrapped projects
 
-To use a subproject simply do this in your top level `meson.build`.
-
-```meson
-foobar_proj = subproject('foobar')
-```
-
-Usually dependencies consist of some header files plus a library to
-link against. To do this in a project so it can be used as a subproject you 
-would declare this internal dependency like this:
-
-```meson
-foobar_dep = declare_dependency(link_with : mylib,
-  include_directories : myinc)
-```
-
-Then in your main project you would use them like this:
-
-```meson
-executable('toplevel_exe', 'prog.c',
-  dependencies : foobar_proj.get_variable('foobar_dep'))
-```
-
-Note that the subproject object is *not* used as the dependency, but
-rather you need to get the declared dependency from it with
-`get_variable` because a subproject may have multiple declared
-dependencies.
-
-## Toggling between distro packages and embedded source
-
-When building distro packages it is very important that you do not
-embed any sources. Some distros have a rule forbidding embedded
-dependencies so your project must be buildable without them or
-otherwise the packager will hate you.
-
-Doing this with Meson and Wrap is simple. Here's how you would use
-distro packages and fall back to embedding if the dependency is not
-available.
-
-```meson
-foobar_dep = dependency('foobar', required : false)
-
-if not foobar_dep.found()
-  foobar_proj = subproject('foobar')
-  # the subproject defines an internal dependency with
-  # the command declare_dependency().
-  foobar_dep = foobar_proj.get_variable('foobar_dep')
-endif
-
-executable('toplevel_exe', 'prog.c',
-  dependencies : foobar_dep)
-```
-
-Because this is such a common operation, Meson provides a shortcut for
-this use case.
-
-```meson
-foobar_dep = dependency('foobar', fallback : ['foobar', 'foobar_dep'])
-```
-
-The `fallback` keyword argument takes two items, the name of the
-subproject and the name of the variable that holds the dependency. If
-you need to do something more complicated, such as extract several
-different variables, then you need to do it yourself with the manual
-method described above.
-
-With this setup when foobar is provided by the system, we use it. When
-that is not the case we use the embedded version. Note that
-`foobar_dep` can point to an external or an internal dependency but
-you don't have to worry about their differences. Meson will take care
-of the details for you.
+Wraps provide a convenient way of obtaining a project into your subproject directory. 
+Then you use it as a regular subproject (see [subprojects](Subprojects.md)).
 
 ## Getting wraps
 
-Usually you don't want to write your wraps by hand. There is an online
-repository called [WrapDB](Using-the-WrapDB.md) that provides many
-dependencies ready to use.
+Usually you don't want to write your wraps by hand. 
+
+There is an online repository called [WrapDB](https://wrapdb.mesonbuild.com) that provides 
+many dependencies ready to use. You can read more about WrapDB [here](Using-the-WrapDB.md).
+
+There is also a Meson subcommand to get and manage wraps (see [using wraptool](Using-wraptool.md)).

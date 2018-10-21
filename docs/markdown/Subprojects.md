@@ -14,45 +14,46 @@ Meson tries to solve this problem by making it extremely easy to
 provide both at the same time. The way this is done is that Meson
 allows you to take any other Meson project and make it a part of your
 build without (in the best case) any changes to its Meson setup. It
-becomes a transparent part of the project. The basic idiom goes
-something like this.
+becomes a transparent part of the project. 
 
-```meson
-dep = dependency('foo', fallback : [subproject_name, variable_name])
-```
+It should be noted that this only works for subprojects that are built
+with Meson. It can not be used with any other build system. The reason
+is the simple fact that there is no possible way to do this reliably
+with mixed build systems.
+
+## A subproject example
+
+Usually dependencies consist of some header files plus a library to link against. 
+To declare this internal dependency use `declare_dependency` function.  
 
 As an example, suppose we have a simple project that provides a shared
-library. It would be set up like this.
+library. It's `meson.build` would look like this.
 
 ```meson
-project('simple', 'c')
-i = include_directories('include')
-l = shared_library('simple', 'simple.c', include_directories : i, install : true)
-simple_dep = declare_dependency(include_directories : i,
-  link_with : l)
+project('libsimple', 'c')
+
+inc = include_directories('include')
+libsimple = shared_library('simple', 
+  'simple.c', 
+  include_directories : inc, 
+  install : true)
+
+libsimple_dep = declare_dependency(include_directories : inc, 
+  link_with : libsimple)
 ```
 
-Then we could use that from a master project. First we generate a
-subdirectory called `subprojects` in the root of the master
-directory. Then we create a subdirectory called `simple` and put the
-subproject in that directory. Now the subproject can be used like
-this.
+### Naming convention for dependency variables
 
-```meson
-project('master', 'c')
-dep = dependency('simple', fallback : ['simple', 'simple_dep'])
-exe = executable('prog', 'prog.c',
-                 dependencies : dep, install : true)
-```
+Ideally the dependency variable name should be of `<project_name>_dep` form. 
+This way one can just use it without even looking inside build definitions of that subproject.
 
-With this setup the system dependency is used when it is available,
-otherwise we fall back on the bundled version. If you wish to always
-use the embedded version, then you would declare it like this:
+In cases where there are multiple dependencies need to be declared, the default one 
+should be named as `<project_name>_dep` (e.g. `gtest_dep`), and others can have 
+`<project_name>_<other>_<name>_dep` form (e.g. `gtest_main_dep` - gtest with main function).
 
-```meson
-simple_sp = subproject('simple')
-dep = simple_sp.get_variable('simple_dep')
-```
+There may be exceptions to these rules where common sense should be applied.
+
+### Build options in subproject
 
 All Meson features of the subproject, such as project options keep
 working and can be set in the master project. There are a few
@@ -62,17 +63,111 @@ must not set global arguments because there is no way to do that
 reliably over multiple subprojects. To check whether you are running
 as a subproject, use the `is_subproject` function.
 
-It should be noted that this only works for subprojects that are built
-with Meson. It can not be used with any other build system. The reason
-is the simple fact that there is no possible way to do this reliably
-with mixed build systems.
+## Using a subproject
+
+All subprojects must be inside `subprojects` directory.  
+The `subprojects` directory must be at the top level of your project.  
+Subproject declaration must be in your top level `meson.build`.  
+
+### A simple example
+
+Let's use `libsimple` as a subproject.
+
+At the top level of your project create `subprojects` directory. 
+Then copy `libsimple` into `subprojects` directory. 
+
+Your project's `meson.build` should look like this.
+
+```meson
+project('my_project', 'cpp')
+
+libsimple_proj = subproject('libsimple')
+libsimple_dep = libsimple_proj.get_variable('libsimple_dep')
+
+executable('my_project', 
+  'my_project.cpp', 
+  dependencies : libsimple_dep, 
+  install : true)
+```
+
+Note that the subproject object is *not* used as the dependency, but
+rather you need to get the declared dependency from it with
+`get_variable` because a subproject may have multiple declared
+dependencies.
+
+### Toggling between system libraries and embedded sources
+
+When building distro packages it is very important that you do not
+embed any sources. Some distros have a rule forbidding embedded
+dependencies so your project must be buildable without them or
+otherwise the packager will hate you.
+
+Here's how you would use system libraries and fall back to embedding sources 
+if the dependency is not available.
+
+```meson
+project('my_project', 'cpp')
+
+libsimple_dep = dependency('libsimple', required : false)
+
+if not libsimple_dep.found()
+  libsimple_proj = subproject('libsimple')
+  libsimple_dep = libsimple_proj.get_variable('libsimple_dep')
+endif
+
+executable('my_project', 
+  'my_project.cpp', 
+  dependencies : libsimple_dep, 
+  install : true)
+```
+
+Because this is such a common operation, Meson provides a shortcut for
+this use case.
+
+```meson
+dep = dependency('foo', fallback : [subproject_name, variable_name])
+```
+
+The `fallback` keyword argument takes two items, the name of the
+subproject and the name of the variable that holds the dependency. If
+you need to do something more complicated, such as extract several
+different variables, then you need to do it yourself with the manual
+method described above.
+
+Using this shortcut the build definition would look like this.
+
+```meson
+project('my_project', 'cpp')
+
+libsimple_dep = dependency('libsimple', fallback : ['libsimple', 'libsimple_dep'])
+
+executable('my_project', 
+  'my_project.cpp', 
+  dependencies : libsimple_dep, 
+  install : true)
+```
+
+With this setup when libsimple is provided by the system, we use it. When
+that is not the case we use the embedded version (the one from subprojects). 
+
+Note that `libsimple_dep` can point to an external or an internal dependency but
+you don't have to worry about their differences. Meson will take care
+of the details for you.
+
+### Subprojects depending on other subprojects
 
 Subprojects can use other subprojects, but all subprojects must reside
 in the top level `subprojects` directory. Recursive use of subprojects
 is not allowed, though, so you can't have subproject `a` that uses
 subproject `b` and have `b` also use `a`.
 
-# Command-line options
+## Obtaining subprojects
+
+Meson ships with a dependency system to automatically obtain
+dependency subprojects. It is documented in the [Wrap dependency
+system manual](Wrap-dependency-system-manual.md).
+
+## Command-line options
 
 The usage of subprojects can be controlled by users and distros with
 the following command-line options:
@@ -101,13 +196,7 @@ the following command-line options:
     want to specifically build against the library sources provided by
     your subprojects.
 
-# Obtaining subprojects
-
-Meson ships with a dependency system to automatically obtain
-dependency subprojects. It is documented in the [Wrap dependency
-system manual](Wrap-dependency-system-manual.md).
-
-# Why must all subprojects be inside a single directory?
+## Why must all subprojects be inside a single directory?
 
 There are several reasons.
 
