@@ -393,10 +393,10 @@ def exe_exists(arglist):
 
 def detect_vcs(source_dir):
     vcs_systems = [
-        dict(name = 'git',        cmd = 'git', repo_dir = '.git', get_rev = 'git describe --dirty=+', rev_regex = '(.*)', dep = '.git/logs/HEAD'),
-        dict(name = 'mercurial',  cmd = 'hg',  repo_dir = '.hg',  get_rev = 'hg id -i',               rev_regex = '(.*)', dep = '.hg/dirstate'),
-        dict(name = 'subversion', cmd = 'svn', repo_dir = '.svn', get_rev = 'svn info',               rev_regex = 'Revision: (.*)', dep = '.svn/wc.db'),
-        dict(name = 'bazaar',     cmd = 'bzr', repo_dir = '.bzr', get_rev = 'bzr revno',              rev_regex = '(.*)', dep = '.bzr'),
+        dict(name = 'git',        cmd = 'git', repo_dir = '.git', get_rev = 'git describe --always --dirty=+', rev_regex = '(.*)', dep = '.git/logs/HEAD'),
+        dict(name = 'mercurial',  cmd = 'hg',  repo_dir = '.hg',  get_rev = 'hg id -i',                        rev_regex = '(.*)', dep = '.hg/dirstate'),
+        dict(name = 'subversion', cmd = 'svn', repo_dir = '.svn', get_rev = 'svn info',                        rev_regex = 'Revision: (.*)', dep = '.svn/wc.db'),
+        dict(name = 'bazaar',     cmd = 'bzr', repo_dir = '.bzr', get_rev = 'bzr revno',                       rev_regex = '(.*)', dep = '.bzr'),
     ]
 
     segs = source_dir.replace('\\', '/').split('/')
