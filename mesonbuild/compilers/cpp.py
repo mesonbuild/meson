@@ -309,13 +309,13 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         self.base_options = ['b_pch', 'b_vscrt'] # FIXME add lto, pgo and the like
 
     def get_options(self):
-        cpp_stds = ['none', 'c++11']
-        # Visual Studio 2015 Update 3 and later
+        cpp_stds = ['none', 'c++11', 'vc++11']
+        # Visual Studio 2015 and later
         if version_compare(self.version, '>=19'):
-            cpp_stds.extend(['c++14', 'c++latest'])
+            cpp_stds.extend(['c++14', 'vc++14', 'c++latest', 'vc++latest'])
         # Visual Studio 2017 and later
         if version_compare(self.version, '>=19.11'):
-            cpp_stds.append('c++17')
+            cpp_stds.extend(['c++17', 'vc++17'])
 
         opts = CPPCompiler.get_options(self)
         opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
@@ -338,10 +338,20 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         if eh.value != 'none':
             args.append('/EH' + eh.value)
 
-        std = options['cpp_std']
-        if std.value == 'none':
+        vc_version_map = {
+            'none': (True, None),
+            'vc++11': (True, 11),
+            'vc++14': (True, 14),
+            'vc++17': (True, 17),
+            'c++11': (False, 11),
+            'c++14': (False, 14),
+            'c++17': (False, 17)}
+
+        permissive, ver = vc_version_map[options['cpp_std'].value]
+
+        if ver is None:
             pass
-        elif std.value == 'c++11':
+        elif ver == 11:
             # Note: there is no explicit flag for supporting C++11; we attempt to do the best we can
             # which means setting the C++ standard version to C++14, in compilers that support it
             # (i.e., after VS2015U3)
@@ -353,7 +363,10 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
             else:
                 mlog.warning('This version of MSVC does not support cpp_std arguments')
         else:
-            args.append('/std:' + std.value)
+            args.append('/std:c++{}'.format(ver))
+
+        if not permissive and version_compare(self.version, '>=19.11'):
+            args.append('/permissive-')
 
         return args
 
