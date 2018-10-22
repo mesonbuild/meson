@@ -25,6 +25,7 @@ import shlex
 import shutil
 import textwrap
 import platform
+import itertools
 from enum import Enum
 from pathlib import PurePath
 
@@ -856,6 +857,23 @@ class CMakeTraceLine:
         self.func = func.lower()
         self.args = args
 
+    def __repr__(self):
+        s = 'CMake TRACE: {0}:{1} {2}({3})'
+        return s.format(self.file, self.line, self.func, self.args)
+
+class CMakeTarget:
+    def __init__(self, name, type, properies = {}):
+        self.name = name
+        self.type = type
+        self.properies = properies
+
+    def __repr__(self):
+        s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- properies: {{\n{}     }}'
+        propSTR = ''
+        for i in self.properies:
+            propSTR += "      '{}': {}\n".format(i, self.properies[i])
+        return s.format(self.name, self.type, propSTR)
+
 class CMakeDependency(ExternalDependency):
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
@@ -870,6 +888,12 @@ class CMakeDependency(ExternalDependency):
         # Store a copy of the CMake path on the object itself so it is
         # stored in the pickled coredata and recovered.
         self.cmakebin = None
+
+        # Dict of CMake variables: '<var_name>': ['list', 'of', 'values']
+        self.vars = {}
+
+        # Dict of CMakeTarget
+        self.targets = {}
 
         # When finding dependencies for cross-compiling, we don't care about
         # the 'native' CMake binary
@@ -888,7 +912,7 @@ class CMakeDependency(ExternalDependency):
         # Only search for the native CMake the first time and
         # store the result in the class definition
         elif CMakeDependency.class_cmakebin is None:
-            self.cmakebin = self.check_pkgconfig()
+            self.cmakebin = self.check_cmake()
             CMakeDependency.class_cmakebin = self.cmakebin
         else:
             self.cmakebin = CMakeDependency.class_cmakebin
@@ -928,7 +952,9 @@ class CMakeDependency(ExternalDependency):
             functions = {
                 'set': self._cmake_set,
                 'unset': self._cmake_unset,
+                'add_executable': self._cmake_add_executable,
                 'add_library': self._cmake_add_library,
+                'add_custom_target': self._cmake_add_custom_target,
                 'set_property': self._cmake_set_property,
                 'set_target_properties': self._cmake_set_target_properties
             }
@@ -937,6 +963,9 @@ class CMakeDependency(ExternalDependency):
                 fn = functions.get(l.func, None)
                 if(fn):
                     fn(l)
+
+            for i in self.targets:
+                mlog.debug(self.targets[i])
 
         except DependencyException as e:
             if self.required:
@@ -952,23 +981,144 @@ class CMakeDependency(ExternalDependency):
 
     def _cmake_set(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/set.html
-        mlog.debug('STUB: {}: {}'.format(tline.func, tline.args))
+
+        # 1st remove PARENT_SCOPE and CACHE from args
+        args = []
+        for i in tline.args:
+            if i == 'PARENT_SCOPE':
+                continue
+
+            # Discard everything after the CACHE keyword
+            if i == 'CACHE':
+                break
+
+            args.append(i)
+
+        if len(args) < 1:
+            raise DependencyException('CMake: set() requires at least one argument\n{}'.format(tline))
+
+        if len(args) == 1:
+            # Same as unset
+            if args[0] in self.vars:
+                del self.vars[args[0]]
+        else:
+            values = list(itertools.chain(*map(lambda x: x.split(';'), args[1:])))
+            self.vars[args[0]] = values
 
     def _cmake_unset(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/unset.html
-        mlog.debug('STUB: {}: {}'.format(tline.func, tline.args))
+        if len(tline.args) < 1:
+            raise DependencyException('CMake: unset() requires at least one argument\n{}'.format(tline))
+
+        if tline.args[0] in self.vars:
+            del self.vars[tline.args[0]]
+
+    def _cmake_add_executable(self, tline: CMakeTraceLine):
+        # DOC: https://cmake.org/cmake/help/latest/command/add_executable.html
+        args = list(tline.args) # Make a working copy
+
+        # Make sure the exe is imported
+        if 'IMPORTED' not in args:
+            raise DependencyException('CMake: add_executable() non imported executables are not supported\n{}'.format(tline))
+
+        args.remove('IMPORTED')
+
+        if len(args) < 1:
+            raise DependencyException('CMake: add_executable() requires at least 1 argument\n{}'.format(tline))
+
+        self.targets[args[0]] = CMakeTarget(args[0], 'EXECUTABLE', {})
 
     def _cmake_add_library(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/add_library.html
-        mlog.debug('STUB: {}: {}'.format(tline.func, tline.args))
+        args = list(tline.args) # Make a working copy
+
+        # Make sure the lib is imported
+        if 'IMPORTED' not in args:
+            raise DependencyException('CMake: add_library() non imported libraries are not supported\n{}'.format(tline))
+
+        args.remove('IMPORTED')
+
+        # No only look at the first two arguments (target_name and target_type) and ignore the rest
+        if len(args) < 2:
+            raise DependencyException('CMake: add_library() requires at least 2 arguments\n{}'.format(tline))
+
+        self.targets[args[0]] = CMakeTarget(args[0], args[1], {})
+
+    def _cmake_add_custom_target(self, tline: CMakeTraceLine):
+        # DOC: https://cmake.org/cmake/help/latest/command/add_custom_target.html
+        # We only the first parameter (the target name) is interesting
+        if len(tline.args) < 1:
+            raise DependencyException('CMake: add_custom_target() requires at least one argument\n{}'.format(tline))
+
+        self.targets[tline.args[0]] = CMakeTarget(tline.args[0], 'CUSTOM', {})
 
     def _cmake_set_property(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/set_property.html
-        mlog.debug('STUB: {}: {}'.format(tline.func, tline.args))
+        args = list(tline.args)
+
+        # We only care for TARGET properties
+        if args.pop(0) != 'TARGET':
+            return
+
+        append = False
+        targets = []
+        while len(args) > 0:
+            curr = args.pop(0)
+            if curr == 'APPEND' or curr == 'APPEND_STRING':
+                append = True
+                continue
+
+            if curr == 'PROPERTY':
+                break
+
+            targets.append(curr)
+
+        if len(args) == 1:
+            # Tries to set property to nothing so nothing has to be done
+            return
+
+        if len(args) < 2:
+            raise DependencyException('CMake: set_property() faild to parse argument list\n{}'.format(tline))
+
+        propName = args[0]
+        propVal = list(itertools.chain(*map(lambda x: x.split(';'), args[1:])))
+
+        for i in targets:
+            if i not in self.targets:
+                raise DependencyException('CMake: set_property() TARGET {} not found\n{}'.format(i, tline))
+
+            if propName not in self.targets[i].properies:
+                self.targets[i].properies[propName] = []
+
+            if append:
+                self.targets[i].properies[propName] += propVal
+            else:
+                self.targets[i].properies[propName] = propVal
 
     def _cmake_set_target_properties(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/set_target_properties.html
-        mlog.debug('STUB: {}: {}'.format(tline.func, tline.args))
+        args = list(tline.args)
+
+        targets = []
+        while len(args) > 0:
+            curr = args.pop(0)
+            if curr == 'PROPERTIES':
+                break
+
+            targets.append(curr)
+
+        if (len(args) % 2) != 0:
+            raise DependencyException('CMake: set_target_properties() uneven number of property arguments\n{}'.format(tline))
+
+        while len(args) > 0:
+            propName = args.pop(0)
+            propVal = args.pop(0).split(';')
+
+            for i in targets:
+                if i not in self.targets:
+                    raise DependencyException('CMake: set_target_properties() TARGET {} not found\n{}'.format(i, tline))
+
+                self.targets[i].properies[propName] = propVal
 
     def _lex_trace(self, trace):
         # The trace format is: <file>(<line>):  <func>(<args -- can contain \n>)\n
@@ -1012,6 +1162,8 @@ class CMakeDependency(ExternalDependency):
         else:
             fenv = frozenset(env.items())
         targs = tuple(args)
+
+        # First check if cached, if not call the real cmake function
         cache = CMakeDependency.cmake_cache
         if (self.cmakebin, targs, fenv) not in cache:
             cache[(self.cmakebin, targs, fenv)] = self._call_cmake_real(args, env)
@@ -1056,7 +1208,7 @@ class CMakeDependency(ExternalDependency):
     def get_methods():
         return [DependencyMethods.CMAKE]
 
-    def check_pkgconfig(self):
+    def check_cmake(self):
         evar = 'CMAKE'
         if evar in os.environ:
             cmakebin = os.environ[evar].strip()
