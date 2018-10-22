@@ -16,13 +16,12 @@
 
 import sys
 
-from mesonbuild.coredata import version
-
 if sys.version_info < (3, 5, 0):
     print('Tried to install with an unsupported version of Python. '
           'Meson requires Python 3.5.0 or greater')
     sys.exit(1)
 
+from mesonbuild.coredata import version
 from setuptools import setup
 
 # On windows, will create Scripts/meson.exe and Scripts/meson-script.py
