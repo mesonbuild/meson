@@ -25,7 +25,7 @@ libc = static_library('cfoo', ['foo.c', 'foo.h'])
 # ourselves at configure time and then 'find' it with cxx.find_library().
 cxx = meson.get_compiler('cpp')
 
-if cxx.get_id() == 'msvc'
+if cxx.get_argument_syntax() == 'msvc'
   compile_cmd = ['/c', '@INPUT@', '/Fo@OUTPUT@']
   stlib_cmd = ['lib', '/OUT:@OUTPUT@', '@INPUT@']
 else

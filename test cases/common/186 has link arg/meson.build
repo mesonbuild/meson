@@ -3,7 +3,7 @@ project('has link arg', 'c', 'cpp')
 cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 
-if cc.get_id() == 'msvc'
+if cc.get_argument_syntax() == 'msvc'
   is_arg = '/OPT:REF'
   useless = '/DEBUG'
   isnt_arg = '/iambroken'

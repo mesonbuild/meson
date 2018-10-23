@@ -28,7 +28,7 @@ foreach lang : ['c', 'cpp']
   # MSVC cannot directly compile assembly files, so we pass it through the
   # cl.exe pre-processor first and then assemble it with the ml.exe assembler.
   # Then we can link it into the executable.
-  if cc_id == 'msvc'
+  if cc.get_argument_syntax() == 'msvc'
     cl = find_program('cl')
     if cpu == 'x86'
       ml = find_program('ml')

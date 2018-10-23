@@ -601,7 +601,7 @@ class InternalTests(unittest.TestCase):
         elif is_cygwin():
             self._test_all_naming(cc, env, patterns, 'cygwin')
         elif is_windows():
-            if cc.get_id() == 'msvc':
+            if cc.get_argument_syntax() == 'msvc':
                 self._test_all_naming(cc, env, patterns, 'windows-msvc')
             else:
                 self._test_all_naming(cc, env, patterns, 'windows-mingw')
@@ -675,7 +675,7 @@ class InternalTests(unittest.TestCase):
             bar_dep = PkgConfigDependency('bar', env, kwargs)
             self.assertEqual(bar_dep.get_link_args(), [(p2 / 'libbar.a').as_posix()])
             internal_dep = PkgConfigDependency('internal', env, kwargs)
-            if compiler.get_id() == 'msvc':
+            if compiler.get_argument_syntax() == 'msvc':
                 self.assertEqual(internal_dep.get_link_args(), [])
             else:
                 link_args = internal_dep.get_link_args()
@@ -1994,7 +1994,7 @@ int main(int argc, char **argv) {
 
     def pbcompile(self, compiler, source, objectfile, extra_args=[]):
         cmd = compiler.get_exelist()
-        if compiler.id == 'msvc':
+        if compiler.get_argument_syntax() == 'msvc':
             cmd += ['/nologo', '/Fo' + objectfile, '/c', source] + extra_args
         else:
             cmd += ['-c', source, '-o', objectfile] + extra_args
@@ -2016,7 +2016,7 @@ int main(int argc, char **argv) {
     def build_static_lib(self, compiler, linker, source, objectfile, outfile, extra_args=None):
         if extra_args is None:
             extra_args = []
-        if compiler.id == 'msvc':
+        if compiler.get_argument_syntax() == 'msvc':
             link_cmd = ['lib', '/NOLOGO', '/OUT:' + outfile, objectfile]
         else:
             link_cmd = ['ar', 'csr', outfile, objectfile]
@@ -2049,7 +2049,7 @@ int main(int argc, char **argv) {
     def build_shared_lib(self, compiler, source, objectfile, outfile, impfile, extra_args=None):
         if extra_args is None:
             extra_args = []
-        if compiler.id == 'msvc':
+        if compiler.get_argument_syntax() == 'msvc':
             link_cmd = ['link', '/NOLOGO', '/DLL', '/DEBUG',
                         '/IMPLIB:' + impfile, '/OUT:' + outfile, objectfile]
         else:
@@ -2069,7 +2069,7 @@ int main(int argc, char **argv) {
         source = os.path.join(tdir, 'alexandria.c')
         objectfile = os.path.join(tdir, 'alexandria.' + object_suffix)
         impfile = os.path.join(tdir, 'alexandria.lib')
-        if cc.id == 'msvc':
+        if cc.get_argument_syntax() == 'msvc':
             shlibfile = os.path.join(tdir, 'alexandria.' + shared_suffix)
         elif is_cygwin():
             shlibfile = os.path.join(tdir, 'cygalexandria.' + shared_suffix)
@@ -2107,7 +2107,7 @@ int main(int argc, char **argv) {
         objectfile = os.path.join(testdir, 'foo.' + objext)
         stlibfile = os.path.join(testdir, 'libfoo.a')
         impfile = os.path.join(testdir, 'foo.lib')
-        if cc.id == 'msvc':
+        if cc.get_argument_syntax() == 'msvc':
             shlibfile = os.path.join(testdir, 'foo.' + shext)
         elif is_cygwin():
             shlibfile = os.path.join(testdir, 'cygfoo.' + shext)
@@ -3058,7 +3058,7 @@ class WindowsTests(BasePlatformTests):
         testdir = os.path.join(self.platform_test_dir, '1 basic')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = env.detect_c_compiler(False)
-        if cc.id != 'msvc':
+        if cc.get_argument_syntax() != 'msvc':
             raise unittest.SkipTest('Not using MSVC')
         # To force people to update this test, and also test
         self.assertEqual(set(cc.ignore_libs), {'c', 'm', 'pthread', 'dl', 'rt'})

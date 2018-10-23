@@ -6,11 +6,9 @@ project('default options', 'cpp', 'c', default_options : [
   'warning_level=3',
   ])
 
-cpp_id = meson.get_compiler('cpp').get_id()
-
 assert(get_option('buildtype') == 'debugoptimized', 'Build type default value wrong.')
 
-if cpp_id == 'msvc'
+if meson.get_compiler('cpp').get_argument_syntax() == 'msvc'
   cpp_eh = get_option('cpp_eh')
   assert(cpp_eh == 'none', 'MSVC eh value is "' + cpp_eh + '" instead of "none"')
 else
@@ -33,4 +31,3 @@ assert(w_level == '3', 'warning level "' + w_level + '" instead of "3"')
 #   assert(not cc.compiles('int foobar;'), 'Default arg not used in test.')
 #   assert(cc.compiles('int foobar;', no_builtin_args : true), 'No_builtin did not disable builtins.')
 # endif
-

@@ -7,7 +7,7 @@ project('comparer', 'c')
 include_dir = meson.current_source_dir() + '/include'
 default_c_args = ['-I' + include_dir]
 
-if meson.get_compiler('c').get_id() == 'msvc'
+if meson.get_compiler('c').get_argument_syntax() == 'msvc'
   default_c_args += ['/Faasm output\\']
   # Hack to create the 'asm output' directory in the builddir
   subdir('asm output')
