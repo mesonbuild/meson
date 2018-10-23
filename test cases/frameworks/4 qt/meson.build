@@ -58,6 +58,10 @@ foreach qt : ['qt4', 'qt5']
     # Test that setting a unique name with a positional argument works
     qtmodule.preprocess(qt + 'teststuff', qresources : files(['stuff.qrc', 'stuff2.qrc']), method : get_option('method'))
 
+    # Test that passing extra arguments to rcc works
+    # qt4-rcc and qt5-rcc take different arguments, for example qt4: ['-compress', '3']; qt5: '--compress=3'
+    qtmodule.preprocess(qt + 'testrccarg', qresources : files(['stuff.qrc', 'stuff2.qrc']), rcc_extra_arguments : '--compress=3', method : get_option('method'))
+
     qexe = executable(qt + 'app',
       sources : ['main.cpp', 'mainWindow.cpp', # Sources that don't need preprocessing.
       prep, prep_rcc],
