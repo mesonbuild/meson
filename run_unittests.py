@@ -3097,6 +3097,19 @@ class WindowsTests(BasePlatformTests):
             self.utime(os.path.join(testdir, 'res', 'resource.h'))
             self.assertRebuiltTarget('prog_1')
 
+    @unittest.skipIf(shutil.which('cl') is None, 'Test only applies to VS')
+    def test_msvc_cpp17(self):
+        testdir = os.path.join(self.unit_test_dir, '45 vscpp17')
+        try:
+            self.init(testdir)
+        except subprocess.CalledProcessError:
+            # According to Python docs, output is only stored when
+            # using check_output. We don't use it, so we can't check
+            # that the output is correct (i.e. that it failed due
+            # to the right reason).
+            return
+        self.build()
+
 class DarwinTests(BasePlatformTests):
     '''
     Tests that should run on macOS
