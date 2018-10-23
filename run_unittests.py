@@ -3070,7 +3070,7 @@ class WindowsTests(BasePlatformTests):
 
         # resource compiler depfile generation is not yet implemented for msvc
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        depfile_works = env.detect_c_compiler(False).get_id() != 'msvc'
+        depfile_works = env.detect_c_compiler(False).get_id() not in ['msvc', 'clang-cl']
 
         self.init(testdir)
         self.build()
