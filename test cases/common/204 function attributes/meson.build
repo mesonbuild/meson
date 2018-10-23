@@ -19,7 +19,7 @@ project('gcc func attributes', ['c', 'cpp'])
 c = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 
-expected_result = c.get_id() != 'msvc'
+expected_result = not ['msvc', 'clang-cl'].contains(c.get_id())
 
 # Q: Why is ifunc not in this list or any of the below lists?
 # A: It's too damn hard to figure out if you actually support it, since it
@@ -56,8 +56,6 @@ if c.get_id() != 'intel'
   # not supported by icc as of 19.0.0
   attributes += 'weakref'
 endif
-
-expected_result = c.get_id() != 'msvc'
 
 # These are unsupported on darwin with apple clang 9.1.0
 if host_machine.system() != 'darwin'
@@ -97,7 +95,7 @@ foreach a : ['dllexport', 'dllimport']
 endforeach
 
 message('checking get_supported_function_attributes')
-if c.get_id() != 'msvc'
+if not ['msvc', 'clang-cl'].contains(c.get_id())
   multi_expected = attributes
 else
   multi_expected = []

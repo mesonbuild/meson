@@ -10,6 +10,9 @@ endif
 if cc.get_id() == 'msvc' and cc.version().version_compare('<17')
   error('MESON_SKIP_TEST msvc is too old to support OpenMP.')
 endif
+if cc.get_id() == 'clang-cl'
+  error('MESON_SKIP_TEST clang-cl does not support OpenMP.')
+endif
 if host_machine.system() == 'darwin'
   error('MESON_SKIP_TEST macOS does not support OpenMP.')
 endif
