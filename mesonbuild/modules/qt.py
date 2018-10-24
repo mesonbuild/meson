@@ -118,10 +118,11 @@ class QtBaseModule:
 
     @FeatureNewKwargs('qt.preprocess', '0.49.0', ['uic_extra_arguments'])
     @FeatureNewKwargs('qt.preprocess', '0.44.0', ['moc_extra_arguments'])
-    @permittedKwargs({'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'include_directories', 'dependencies', 'ui_files', 'qresources', 'method'})
+    @FeatureNewKwargs('qt.preprocess', '0.49.0', ['rcc_extra_arguments'])
+    @permittedKwargs({'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'include_directories', 'dependencies', 'ui_files', 'qresources', 'method'})
     def preprocess(self, state, args, kwargs):
-        rcc_files, ui_files, moc_headers, moc_sources, uic_extra_arguments, moc_extra_arguments, sources, include_directories, dependencies \
-            = extract_as_list(kwargs, 'qresources', 'ui_files', 'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'sources', 'include_directories', 'dependencies', pop = True)
+        rcc_files, ui_files, moc_headers, moc_sources, uic_extra_arguments, moc_extra_arguments, rcc_extra_arguments, sources, include_directories, dependencies \
+            = extract_as_list(kwargs, 'qresources', 'ui_files', 'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'sources', 'include_directories', 'dependencies', pop = True)
         sources += args[1:]
         method = kwargs.get('method', 'auto')
         self._detect_tools(state.environment, method)
@@ -140,7 +141,7 @@ class QtBaseModule:
                 name = args[0]
                 rcc_kwargs = {'input': rcc_files,
                               'output': name + '.cpp',
-                              'command': [self.rcc, '-name', name, '-o', '@OUTPUT@', '@INPUT@'],
+                              'command': [self.rcc, '-name', name, '-o', '@OUTPUT@', rcc_extra_arguments, '@INPUT@'],
                               'depend_files': qrc_deps}
                 res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
                 sources.append(res_target)
@@ -154,7 +155,7 @@ class QtBaseModule:
                     name = 'qt' + str(self.qt_version) + '-' + basename.replace('.', '_')
                     rcc_kwargs = {'input': rcc_file,
                                   'output': name + '.cpp',
-                                  'command': [self.rcc, '-name', '@BASENAME@', '-o', '@OUTPUT@', '@INPUT@'],
+                                  'command': [self.rcc, '-name', '@BASENAME@', '-o', '@OUTPUT@', rcc_extra_arguments, '@INPUT@'],
                                   'depend_files': qrc_deps}
                     res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
                     sources.append(res_target)
