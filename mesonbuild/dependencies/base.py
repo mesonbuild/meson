@@ -1241,8 +1241,8 @@ class ExternalProgram:
 class NonExistingExternalProgram(ExternalProgram):
     "A program that will never exist"
 
-    def __init__(self):
-        self.name = 'nonexistingprogram'
+    def __init__(self, name='nonexistingprogram'):
+        self.name = name
         self.command = [None]
         self.path = None
 

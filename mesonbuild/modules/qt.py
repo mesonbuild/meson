@@ -18,7 +18,7 @@ from .. import build
 from ..mesonlib import MesonException, Popen_safe, extract_as_list, File
 from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency
 import xml.etree.ElementTree as ET
-from . import ModuleReturnValue, get_include_args
+from . import ModuleReturnValue, get_include_args, ExtensionModule
 from ..interpreterbase import permittedKwargs, FeatureNewKwargs
 
 _QT_DEPS_LUT = {
@@ -27,10 +27,11 @@ _QT_DEPS_LUT = {
 }
 
 
-class QtBaseModule:
+class QtBaseModule(ExtensionModule):
     tools_detected = False
 
-    def __init__(self, qt_version=5):
+    def __init__(self, interpreter, qt_version=5):
+        ExtensionModule.__init__(self, interpreter)
         self.qt_version = qt_version
 
     def _detect_tools(self, env, method):
@@ -43,7 +44,7 @@ class QtBaseModule:
         kwargs = {'required': 'true', 'modules': 'Core', 'silent': 'true', 'method': method}
         qt = _QT_DEPS_LUT[self.qt_version](env, kwargs)
         # Get all tools and then make sure that they are the right version
-        self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect()
+        self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect(self.interpreter)
         # Moc, uic and rcc write their version strings to stderr.
         # Moc and rcc return a non-zero result when doing so.
         # What kind of an idiot thought that was a good idea?
