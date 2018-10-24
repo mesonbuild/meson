@@ -443,7 +443,7 @@ class BoostDependency(ExternalDependency):
         if self.libdir:
             libdirs = [self.libdir]
         elif self.boost_root is None:
-            libdirs = mesonlib.get_library_dirs(self.env)
+            libdirs = mesonlib.get_library_dirs()
         else:
             libdirs = [os.path.join(self.boost_root, 'lib')]
         for libdir in libdirs:
