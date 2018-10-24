@@ -28,7 +28,6 @@ from collections import OrderedDict
 import shlex
 
 
-
 class CleanTrees:
     '''
     Directories outputted by custom targets that have to be manually cleaned
