@@ -87,7 +87,7 @@ class I18nModule(ExtensionModule):
         else:
             if isinstance(inputfile, str):
                 inputfile = mesonlib.File.from_source_file(state.environment.source_dir,
-                                                       state.subdir, inputfile)
+                                                           state.subdir, inputfile)
             output = kwargs['output']
             ifile_abs = inputfile.absolute_path(state.environment.source_dir,
                                                 state.environment.build_dir)
