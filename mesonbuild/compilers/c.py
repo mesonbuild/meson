@@ -1298,7 +1298,7 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_buildtype_args(self, buildtype):
         args = compilers.msvc_buildtype_args[buildtype]
-        if version_compare(self.version, '<18.0'):
+        if self.id == 'msvc' and version_compare(self.version, '<18.0'):
             args = [arg for arg in args if arg != '/Gw']
         return args
 
@@ -1470,7 +1470,7 @@ class VisualStudioCCompiler(CCompiler):
         # build obviously, which is why we only do this when PCH is on.
         # This was added in Visual Studio 2013 (MSVC 18.0). Before that it was
         # always on: https://msdn.microsoft.com/en-us/library/dn502518.aspx
-        if pch and version_compare(self.version, '>=18.0'):
+        if pch and self.id == 'msvc' and version_compare(self.version, '>=18.0'):
             args = ['/FS'] + args
         return args
 
@@ -1487,7 +1487,7 @@ class VisualStudioCCompiler(CCompiler):
     def get_instruction_set_args(self, instruction_set):
         if self.is_64:
             return vs64_instruction_set_args.get(instruction_set, None)
-        if self.version.split('.')[0] == '16' and instruction_set == 'avx':
+        if self.id == 'msvc' and self.version.split('.')[0] == '16' and instruction_set == 'avx':
             # VS documentation says that this exists and should work, but
             # it does not. The headers do not contain AVX intrinsics
             # and the can not be called.
@@ -1495,6 +1495,10 @@ class VisualStudioCCompiler(CCompiler):
         return vs32_instruction_set_args.get(instruction_set, None)
 
     def get_toolset_version(self):
+        if self.id == 'clang-cl':
+            # I have no idea
+            return '14.1'
+
         # See boost/config/compiler/visualc.cpp for up to date mapping
         try:
             version = int(''.join(self.version.split('.')[0:2]))

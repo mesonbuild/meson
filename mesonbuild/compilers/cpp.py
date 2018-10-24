@@ -310,12 +310,15 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
 
     def get_options(self):
         cpp_stds = ['none', 'c++11', 'vc++11']
-        # Visual Studio 2015 and later
-        if version_compare(self.version, '>=19'):
-            cpp_stds.extend(['c++14', 'vc++14', 'c++latest', 'vc++latest'])
-        # Visual Studio 2017 and later
-        if version_compare(self.version, '>=19.11'):
-            cpp_stds.extend(['c++17', 'vc++17'])
+        if self.id == 'clang-cl':
+            cpp_stds.extend(['c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest'])
+        else:
+            # Visual Studio 2015 and later
+            if version_compare(self.version, '>=19'):
+                cpp_stds.extend(['c++14', 'vc++14', 'c++latest', 'vc++latest'])
+            # Visual Studio 2017 and later
+            if version_compare(self.version, '>=19.11'):
+                cpp_stds.extend(['c++17', 'vc++17'])
 
         opts = CPPCompiler.get_options(self)
         opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
@@ -356,7 +359,7 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
             # which means setting the C++ standard version to C++14, in compilers that support it
             # (i.e., after VS2015U3)
             # if one is using anything before that point, one cannot set the standard.
-            if version_compare(self.version, '>=19.00.24210'):
+            if self.id == 'clang-cl' or version_compare(self.version, '>=19.00.24210'):
                 mlog.warning('MSVC does not support C++11; '
                              'attempting best effort; setting the standard to C++14')
                 args.append('/std:c++14')
