@@ -16,6 +16,7 @@ import os
 import re
 import shlex
 import pickle
+import json
 import subprocess
 from collections import OrderedDict
 import itertools
@@ -1097,14 +1098,27 @@ int dummy;
     def generate_nim_target(self, target, outfile):
         nim = target.compilers['nim']
         relsrc = []
+        main_nim_file = None
         for i in target.get_sources():
             if not nim.can_compile(i):
                 raise InvalidArguments('Nim target %s contains a non-nim source file.' % target.get_basename())
+            if main_nim_file is None:
+                main_nim_file = i.rel_to_builddir(self.build_to_src)
             relsrc.append(i.rel_to_builddir(self.build_to_src))
         target_name = os.path.join(target.subdir, target.get_filename())
+        # nim always outputs dep files to the name of the entry point nim file
+        main_file_name = os.path.splitext(main_nim_file.fname)[1]
+        nimcache_dir = nim.get_nimcache_dir(self.get_target_private_dir(target))
+        main_json_file = os.path.join(nimcache_dir, main_file_name + '.json')
+        main_deps_file = os.path.join(nimcache_dir, main_file_name + '.deps')
         args = nim.get_always_args()
+        args += nim.get_dependency_gen_args()
+        # we need compile only with gendeps, if you try and compile 
+        # with gendeps it either crashes ( nim <= 0.18) or does not actually
+        # compile (nim == 0.19) This comment was written when 0.19 was the latest nim version
+        args += nim.get_compile_only_args()
         args += nim.get_buildtype_args(self.get_option_for_target('buildtype', target))
-
+        
         args += target.get_extra_args('nim')
         args += nim.get_outdir_args(self.get_target_private_dir(target))
         args += nim.get_output_args(target.get_filename())
@@ -1114,6 +1128,7 @@ int dummy;
             args += nim.get_compiler_static_lib_args()
         element = NinjaBuildElement(self.all_outputs, target_name, 'nim_COMPILER', relsrc)
         element.add_item('ARGS', args)
+        element.add_item('targetdep', main_deps_file)
         element.write(outfile)
 
     def generate_rust_target(self, target, outfile):
@@ -1512,6 +1527,7 @@ int dummy;
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
         command = ' command = %s $ARGS $in\n' % invoc
+        depfile = ' depfile = $targetdep\n'
         description = ' description = Compiling Nim source $in.\n'
         outfile.write(rule)
         outfile.write(command)

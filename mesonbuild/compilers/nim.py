@@ -46,8 +46,11 @@ class NimCompiler(Compiler):
     def get_output_args(self, target):
         return ['--out:' + target]
 
+    def get_nimcache_dir(self, outdir):
+        return os.path.join(outdir, 'nimcache')
+
     def get_outdir_args(self, outdir):
-        return ['--nimcache:{}'.format(os.path.join(outdir, 'nimcache'))]
+        return ['--nimcache:{}'.format(self.get_nimcache_dir(outdir))]
 
     def needs_static_linker(self):
         return False
@@ -58,8 +61,8 @@ class NimCompiler(Compiler):
     def get_compile_only_args(self):
         return ['--compileOnly']
 
-    def get_dependency_gen_args(self, outtarget, outfile):
-        return []
+    def get_dependency_gen_args(self):
+        return ['--genDeps']
 
     def get_linker_exelist(self):
         return self.exelist[:]
