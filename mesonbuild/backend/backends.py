@@ -23,10 +23,9 @@ import subprocess
 from ..mesonlib import MesonException, OrderedSet
 from ..mesonlib import classify_unity_sources
 from ..mesonlib import File
-from ..compilers import CompilerArgs, get_macos_dylib_install_name
+from ..compilers import CompilerArgs
 from collections import OrderedDict
 import shlex
-from functools import lru_cache
 
 
 
