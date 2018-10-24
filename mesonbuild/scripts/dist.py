@@ -24,7 +24,6 @@ import tarfile, zipfile
 import tempfile
 from glob import glob
 from mesonbuild.environment import detect_ninja
-from mesonbuild.dependencies import ExternalProgram
 from mesonbuild.mesonlib import windows_proof_rmtree
 from mesonbuild import mlog
 
