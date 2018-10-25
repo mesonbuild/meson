@@ -78,6 +78,9 @@ __all__ = [
     'PathScaleFortranCompiler',
     'PGIFortranCompiler',
     'RustCompiler',
+    'CcrxCCompiler',
+    'CcrxCompiler',
+    'CcrxCPPCompiler',
     'SunFortranCompiler',
     'SwiftCompiler',
     'ValaCompiler',
@@ -110,6 +113,7 @@ from .compilers import (
     CompilerArgs,
     GnuCompiler,
     IntelCompiler,
+    CcrxCompiler,
 )
 from .c import (
     CCompiler,
@@ -120,6 +124,7 @@ from .c import (
     GnuCCompiler,
     ElbrusCCompiler,
     IntelCCompiler,
+    CcrxCCompiler,
     VisualStudioCCompiler,
 )
 from .cpp import (
@@ -131,6 +136,7 @@ from .cpp import (
     GnuCPPCompiler,
     ElbrusCPPCompiler,
     IntelCPPCompiler,
+    CcrxCPPCompiler,
     VisualStudioCPPCompiler,
 )
 from .cs import MonoCompiler, VisualStudioCsCompiler

@@ -30,6 +30,7 @@ from .compilers import (
     IntelCompiler,
     ArmCompiler,
     ArmclangCompiler,
+    CcrxCompiler,
 )
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES
 
@@ -406,6 +407,34 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
         elif std.value == 'c++03':
             args.append('--cpp')
         return args
+
+    def get_option_link_args(self, options):
+        return []
+
+    def get_compiler_check_args(self):
+        return []
+
+
+class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrap=None, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
+        CcrxCompiler.__init__(self, compiler_type)
+
+    # Override CCompiler.get_always_args
+    def get_always_args(self):
+        return ['-nologo', '-lang=cpp']
+
+    def get_option_compile_args(self, options):
+        return []
+
+    def get_compile_only_args(self):
+        return []
+
+    def get_output_args(self, target):
+        return ['-output=obj=%s' % target]
+
+    def get_linker_output_args(self, outputname):
+        return ['-output=%s' % outputname]
 
     def get_option_link_args(self, options):
         return []
