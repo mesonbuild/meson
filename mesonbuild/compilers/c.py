@@ -164,6 +164,9 @@ class CCompiler(Compiler):
             if self.compiler_type.is_osx_compiler:
                 # Apple ld
                 return ['-Wl,-undefined,dynamic_lookup']
+            elif self.compiler_type.is_windows_compiler:
+                # For PE/COFF this is impossible
+                return []
             else:
                 # GNU ld and LLVM lld
                 return ['-Wl,--allow-shlib-undefined']
