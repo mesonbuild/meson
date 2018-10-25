@@ -174,7 +174,7 @@ class Dependency:
         parent (if any) and the requested values of any dependencies will be
         added as well.
         """
-        RuntimeError('Unreachable code in partial_dependency called')
+        raise RuntimeError('Unreachable code in partial_dependency called')
 
 
 class InternalDependency(Dependency):
