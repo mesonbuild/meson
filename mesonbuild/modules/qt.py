@@ -162,7 +162,7 @@ class QtBaseModule(ExtensionModule):
                     sources.append(res_target)
         if len(ui_files) > 0:
             if not self.uic.found():
-                raise MesonException(err_msg.format('UIC', 'uic-qt' + self.qt_version))
+                raise MesonException(err_msg.format('UIC', 'uic-qt{}'.format(self.qt_version), self.qt_version))
             arguments = uic_extra_arguments + ['-o', '@OUTPUT@', '@INPUT@']
             ui_kwargs = {'output': 'ui_@BASENAME@.h',
                          'arguments': arguments}
