@@ -448,6 +448,9 @@ class ConfigToolDependency(ExternalDependency):
 
     def get_config_value(self, args, stage):
         p, out, err = Popen_safe([self.config] + args)
+        # This is required to keep shlex from stripping path separators on
+        # Windows. Also, don't put escape sequences in config values, okay?
+        out = out.replace('\\', '\\\\')
         if p.returncode != 0:
             if self.required:
                 raise DependencyException(
