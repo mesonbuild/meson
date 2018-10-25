@@ -5,6 +5,16 @@ os: Visual Studio 2015
 environment:
   matrix:
     - arch: x86
+      compiler: msvc2015
+      backend: ninja
+      BOOST_ROOT: C:\Libraries\Boost_1_60_0
+
+    - arch: x86
+      compiler: msvc2015
+      backend: vs2015
+      BOOST_ROOT: C:\Libraries\Boost_1_60_0
+
+    - arch: x86
       compiler: msys2-mingw
       backend: ninja
 
@@ -15,28 +25,6 @@ environment:
     - arch: x64
       compiler: cygwin
       backend: ninja
-
-    - arch: x86
-      compiler: msvc2015
-      backend: ninja
-      BOOST_ROOT: C:\Libraries\Boost_1_60_0
-
-    - arch: x86
-      compiler: msvc2015
-      backend: vs2015
-      BOOST_ROOT: C:\Libraries\Boost_1_60_0
-
-    - arch: x64
-      compiler: msvc2017
-      backend: ninja
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      BOOST_ROOT: C:\Libraries\Boost_1_64_0
-
-    - arch: x64
-      compiler: msvc2017
-      backend: vs2017
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      BOOST_ROOT: C:\Libraries\Boost_1_64_0
 
 platform:
   - x64
