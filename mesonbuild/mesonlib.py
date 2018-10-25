@@ -381,6 +381,16 @@ def for_openbsd(is_cross, env):
         return env.cross_info.config['host_machine']['system'] == 'openbsd'
     return False
 
+def for_bare_metal(is_cross, env):
+    """
+    Host machine is bare metal with no OS or with RTOS
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        raise MesonException('Bare metal system must use cross build')
+    return env.cross_info.get_host_system() == 'bare metal'
+
 def exe_exists(arglist):
     try:
         p = subprocess.Popen(arglist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

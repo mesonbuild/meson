@@ -24,7 +24,7 @@ from . import mlog
 from .mesonlib import File, MesonException, listify, extract_as_list, OrderedSet
 from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
-from .mesonlib import for_windows, for_darwin, for_cygwin, for_android, has_path_sep
+from .mesonlib import for_windows, for_darwin, for_cygwin, for_android, has_path_sep, for_bare_metal
 from .compilers import is_object, clink_langs, sort_clink, lang_suffixes, get_macos_dylib_install_name
 from .interpreterbase import FeatureNew
 
@@ -1375,6 +1375,8 @@ class Executable(BuildTarget):
                     self.import_filename = self.vs_import_filename
                 else:
                     self.import_filename = self.gcc_import_filename
+            elif for_bare_metal(is_cross, environment):
+                self.import_filename = implib_basename
 
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
