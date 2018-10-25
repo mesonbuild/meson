@@ -168,6 +168,10 @@ class MesonApp:
             build.save(b, dumpfile)
             # Post-conf scripts must be run after writing coredata or else introspection fails.
             intr.backend.run_postconf_scripts()
+            if env.first_invocation:
+                coredata.write_cmd_line_file(self.build_dir, self.options)
+            else:
+                coredata.update_cmd_line_file(self.build_dir, self.options)
         except:
             if 'cdf' in locals():
                 old_cdf = cdf + '.prev'
