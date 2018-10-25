@@ -388,7 +388,7 @@ def for_bare_metal(is_cross, env):
     Note: 'host' is the machine on which compiled binaries will run
     """
     if not is_cross:
-        raise MesonException('Bare metal system must use cross build')
+        return False
     return env.cross_info.get_host_system() == 'bare metal'
 
 def exe_exists(arglist):
