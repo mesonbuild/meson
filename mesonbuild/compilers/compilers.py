@@ -1679,7 +1679,7 @@ class ArmclangCompiler:
         """
         The args of the outputted import library
 
-        ArmLinker's symdefs output can be used as implib 
+        ArmLinker's symdefs output can be used as implib
         """
         return ['--symdefs=' + implibname]
 
