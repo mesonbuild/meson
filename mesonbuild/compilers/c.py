@@ -1507,8 +1507,8 @@ class VisualStudioCCompiler(CCompiler):
             return '12.0' # (Visual Studio 2013)
         elif version < 1910:
             return '14.0' # (Visual Studio 2015)
-        elif version < 1920:
-            return '14.1' # (Visual Studio 2017)
+        elif version <= 1920:
+            return '15.0' # (Visual Studio 2017)
         return None
 
     def get_default_include_dirs(self):
