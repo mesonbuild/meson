@@ -1669,6 +1669,20 @@ class ArmclangCompiler:
     def get_debug_args(self, is_debug):
         return clike_debug_args[is_debug]
 
+    def gen_export_dynamic_link_args(self, env):
+        """
+        The args for export dynamic
+        """
+        return ['--export_dynamic']
+
+    def gen_import_library_args(self, implibname):
+        """
+        The args of the outputted import library
+
+        ArmLinker's symdefs output can be used as implib 
+        """
+        return ['--symdefs=' + implibname]
+
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
 class IntelCompiler(GnuLikeCompiler):
