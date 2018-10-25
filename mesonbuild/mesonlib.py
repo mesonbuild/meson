@@ -20,6 +20,8 @@ import stat
 import time
 import platform, subprocess, operator, os, shutil, re
 import collections
+from enum import Enum
+
 from mesonbuild import mlog
 
 have_fcntl = False
@@ -277,6 +279,53 @@ def classify_unity_sources(compilers, sources):
             compsrclist[comp].append(src)
     return compsrclist
 
+class OrderedEnum(Enum):
+    """
+    An Enum which additionally offers homogeneous ordered comparison.
+    """
+    def __ge__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value >= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value > other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value <= other.value
+        return NotImplemented
+
+    def __lt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value < other.value
+        return NotImplemented
+
+MachineChoice = OrderedEnum('MachineChoice', ['BUILD', 'HOST', 'TARGET'])
+
+class PerMachine:
+    def __init__(self, build, host, target):
+        self.build = build,
+        self.host = host
+        self.target = target
+
+    def __getitem__(self, machine: MachineChoice):
+        return {
+            MachineChoice.BUILD:  self.build,
+            MachineChoice.HOST:   self.host,
+            MachineChoice.TARGET: self.target
+        }[machine]
+
+    def __setitem__(self, machine: MachineChoice, val):
+        key = {
+            MachineChoice.BUILD:  'build',
+            MachineChoice.HOST:   'host',
+            MachineChoice.TARGET: 'target'
+        }[machine]
+        setattr(self, key, val)
+
 def is_osx():
     return platform.system().lower() == 'darwin'
 
@@ -309,77 +358,93 @@ def is_dragonflybsd():
 def is_freebsd():
     return platform.system().lower() == 'freebsd'
 
+def _get_machine_is_cross(env, is_cross):
+    """
+    This is not morally correct, but works for now. For cross builds the build
+    and host machines differ. `is_cross == true` means the host machine, while
+    `is_cross == false` means the build machine. Both are used in practice,
+    even though the documentation refers to the host machine implying we should
+    hard-code it. For non-cross builds `is_cross == false` is passed but the
+    host and build machines are identical so it doesn't matter.
+
+    Users for `for_*` should instead specify up front which machine they want
+    and query that like:
+
+        env.machines[MachineChoice.HOST].is_haiku()
+
+    """
+    for_machine = MachineChoice.HOST if is_cross else MachineChoice.BUILD
+    return env.machines[for_machine]
+
 def for_windows(is_cross, env):
     """
     Host machine is windows?
 
+    Deprecated: Please use `env.machines[for_machine].is_windows()`.
+
     Note: 'host' is the machine on which compiled binaries will run
     """
-    if not is_cross:
-        return is_windows()
-    return env.cross_info.get_host_system() == 'windows'
+    return _get_machine_is_cross(env, is_cross).is_windows()
 
 def for_cygwin(is_cross, env):
     """
     Host machine is cygwin?
 
+    Deprecated: Please use `env.machines[for_machine].is_cygwin()`.
+
     Note: 'host' is the machine on which compiled binaries will run
     """
-    if not is_cross:
-        return is_cygwin()
-    return env.cross_info.get_host_system() == 'cygwin'
+    return _get_machine_is_cross(env, is_cross).is_cygwin()
 
 def for_linux(is_cross, env):
     """
     Host machine is linux?
 
+    Deprecated: Please use `env.machines[for_machine].is_linux()`.
+
     Note: 'host' is the machine on which compiled binaries will run
     """
-    if not is_cross:
-        return is_linux()
-    return env.cross_info.get_host_system() == 'linux'
+    return _get_machine_is_cross(env, is_cross).is_linux()
 
 def for_darwin(is_cross, env):
     """
     Host machine is Darwin (iOS/OS X)?
 
+    Deprecated: Please use `env.machines[for_machine].is_darwin()`.
+
     Note: 'host' is the machine on which compiled binaries will run
     """
-    if not is_cross:
-        return is_osx()
-    return env.cross_info.get_host_system() in ('darwin', 'ios')
+    return _get_machine_is_cross(env, is_cross).is_darwin()
 
 def for_android(is_cross, env):
     """
     Host machine is Android?
 
+    Deprecated: Please use `env.machines[for_machine].is_android()`.
+
     Note: 'host' is the machine on which compiled binaries will run
     """
-    if not is_cross:
-        return is_android()
-    return env.cross_info.get_host_system() == 'android'
+    return _get_machine_is_cross(env, is_cross).is_android()
 
 def for_haiku(is_cross, env):
     """
     Host machine is Haiku?
 
+    Deprecated: Please use `env.machines[for_machine].is_haiku()`.
+
     Note: 'host' is the machine on which compiled binaries will run
     """
-    if not is_cross:
-        return is_haiku()
-    return env.cross_info.get_host_system() == 'haiku'
+    return _get_machine_is_cross(env, is_cross).is_haiku()
 
 def for_openbsd(is_cross, env):
     """
     Host machine is OpenBSD?
 
+    Deprecated: Please use `env.machines[for_machine].is_openbsd()`.
+
     Note: 'host' is the machine on which compiled binaries will run
     """
-    if not is_cross:
-        return is_openbsd()
-    elif env.cross_info.has_host():
-        return env.cross_info.config['host_machine']['system'] == 'openbsd'
-    return False
+    return _get_machine_is_cross(env, is_cross).is_openbsd()
 
 def exe_exists(arglist):
     try:
