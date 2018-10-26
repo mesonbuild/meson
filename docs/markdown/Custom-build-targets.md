@@ -27,6 +27,8 @@ This would generate the binary `output.bin` and install it to
 `${prefix}/subdir/output.bin`. Variable substitution works just like
 it does for source generation.
 
+See [Generating Sources](Generating-sources.md) for more information on this topic.
+
 ## Details on compiler invocations
 
 Meson only permits you to specify one command to run. This is by

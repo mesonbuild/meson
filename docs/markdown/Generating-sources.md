@@ -46,9 +46,78 @@ file individually by index.
 
 Then you just put that in your program and you're done.
 
+### Generating headers
+
+Adding a generated header to a source list will ensure that the header is
+generated and that the proper include paths are created for the target:
+
 ```meson
-executable('program', 'main.c', gen_src)
+prog_python = import('python').find_installation('python3')
+
+foo_c = custom_target(
+	'foo.c',
+	output : 'foo.c',
+	input : 'my_gen.py',
+	command : [prog_python, '@INPUT@', '--code', '@OUTPUT@'],
+]
+
+foo_h = custom_target(
+	'foo.h',
+	output : 'foo.h',
+	input : 'my_gen.py',
+	command : [prog_python, '@INPUT@', '--header', '@OUTPUT@'],
+]
+
+libfoo = static_library('foo', [foo_c, foo_h])
+
+executable('myexe', ['main.c', foo_h], link_with : libfoo)
 ```
+
+Each target that depends on a generated header should add that header to it's sources,
+as seen above with `libfoo` and `myexe`. This is because there is no way for
+meson or the backend to know that `myexe` depends on `foo.h` just because
+`libfoo` does, it could be a private header.
+
+### Generating multiple files at a time
+
+Sometimes it makes sense for a single generator to create two or more files at
+a time, (perhaps a header and source file), meson has this case covered as
+well. `custom_target`s can be indexed like a list to get each output file
+separately. The order is the same as the order of the output argument to
+`custom_target`
+
+```meson
+prog_python = import('python').find_installation('python3')
+
+foo_ch = custom_target(
+	'foo.[ch]',
+	output : ['foo.c', 'foo.h'],
+	input : 'my_gen.py',
+	command : [prog_python, '@INPUT@', '@OUTPUT@'],
+]
+
+libfoo = static_library('foo', [foo_ch])
+
+executable('myexe', ['main.c', foo_ch[1]], link_with : libfoo)
+```
+
+In this case `libfoo` depends on both `foo.c` and `foo.h` but `myexe` only
+depends on `foo.h`, the second output.
+
+### Using dependencies to manage generated resources
+
+In some cases it might be easier to use `declare_dependency` to "bundle" the header
+and library dependency, especially if there are many generated headers:
+
+```meson
+idep_foo = declare_dependency(
+	sources : [foo_h, bar_h],
+	link_with : [libfoo],
+)
+```
+
+See [dependencies](Dependencies.md#declaring-your-own), and
+[reference](Reference-manual.md#decalre_dependency) for more information.
 
 ## Using generator()
 
