@@ -3,17 +3,17 @@
 This module provides support for dealing with Python 3. It has the
 following methods.
 
-This module is deprecated and replaced by the [python](Python-module.html) module.
+This module is deprecated and replaced by the [python](Python-module.md) module.
 
 ## find_python
 
 This is a cross platform way of finding the Python 3 executable, which
 may have a different name on different operating systems. Returns an
-[external program](Reference-manual.html#external-program-object) object.
+[external program](Reference-manual.md#external-program-object) object.
 
 *Added 0.38.0*
 
-Deprecated, replaced by [`find_installation`](Python-module.html#find_installation)
+Deprecated, replaced by [`find_installation`](Python-module.md#find_installation)
 function from `python` module.
 
 ## extension_module
@@ -29,7 +29,7 @@ need to add `dependencies : dependency('python3')`, see
 
 *Added 0.38.0*
 
-Deprecated, replaced by [`extension_module`](Python-module.html#extension_module)
+Deprecated, replaced by [`extension_module`](Python-module.md#extension_module)
 method from `python` module.
 
 ## language_version
@@ -38,7 +38,7 @@ Returns a string with the Python language version such as `3.5`.
 
 *Added 0.40.0*
 
-Deprecated, replaced by [`language_version`](Python-module.html#language_version)
+Deprecated, replaced by [`language_version`](Python-module.md#language_version)
 method from `python` module.
 
 ## sysconfig_path
@@ -48,5 +48,5 @@ Returns the Python sysconfig path without prefix, such as
 
 *Added 0.40.0*
 
-Deprecated, replaced by [`get_path`](Python-module.html#get_path)
+Deprecated, replaced by [`get_path`](Python-module.md#get_path)
 method from `python` module.

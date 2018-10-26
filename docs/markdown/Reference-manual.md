@@ -1555,7 +1555,7 @@ the following methods.
   compilation to reduce build time) and `false` otherwise.
 
 - `override_find_program(progname, program)` [*(Added
-  0.46.0)*](Release-notes-for-0-46-0.html#can-override-find_program)
+  0.46.0)*](Release-notes-for-0.46.0.md#can-override-find_program)
   specifies that whenever `find_program` is used to find a program
   named `progname`, Meson should not not look it up on the system but
   instead return `program`, which may either be the result of
@@ -1589,7 +1589,7 @@ methods:
   etc.
 
 - `system()` returns the operating system name.  [This
-  table](Reference-tables.html#operating-system-names) Lists all of
+  table](Reference-tables.md#operating-system-names) Lists all of
   the currently known Operating System names, these are guaranteed to
   continue working.
 
@@ -1691,7 +1691,7 @@ the following methods:
   the compiler would. E.g. `"a" "b"` will become `"ab"`.
 
 - `get_id()` returns a string identifying the compiler. For example,
-  `gcc`, `msvc`, [and more](Reference-tables.html#compiler-ids).
+  `gcc`, `msvc`, [and more](Reference-tables.md#compiler-ids).
 
 - `get_supported_arguments(list_of_string)` *(added 0.43.0)* returns
   an array containing only the arguments supported by the compiler,
@@ -1790,7 +1790,7 @@ the following methods:
   compiler supports the GNU style (`__attribute__(...)`) `name`. This is
   preferable to manual compile checks as it may be optimized for compilers that
   do not support such attributes.
-  [This table](Reference-tables.html#gcc-attribute-support) Lists all of the
+  [This table](Reference-tables.md#gcc-attribute-support) Lists all of the
   supported attributes.
 
 - `get_supported_function_attributes(list_of_names)` *(added in 0.48.0)
