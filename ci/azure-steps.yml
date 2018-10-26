@@ -48,6 +48,7 @@ steps:
      # add downloads to PATH
      $env:Path = "$env:SYSTEM_WORKFOLDER;$env:Path"
 
+     $origPath = $env:Path
      # import visual studio variables
      if ($env:compiler -eq 'msvc2015') {
        $vsver = $env:compiler.Replace('msvc', '')
@@ -59,14 +60,20 @@ steps:
      Install-Module VSSetup -Scope CurrentUser
      Import-VisualStudioVars -VisualStudioVersion $vsver -Architecture $(arch)
 
-     # install llvm for clang-cl builds
-     # (note that we use LIB, WINDRES from VS, so leave those in PATH)
      if ($env:compiler -eq 'clang-cl') {
+       # drop visual studio from PATH
+       # (but leave INCLUDE, LIB and WindowsSdkDir environment variables set)
+       $env:Path = $origPath
+
+       # install llvm for clang-cl builds
        DownloadFile -Source 'http://releases.llvm.org/7.0.0/LLVM-7.0.0-win64.exe' -Destination LLVM-7.0.0-win64.exe
        Start-Process .\LLVM-7.0.0-win64.exe -ArgumentList '/S' -Wait
        $env:Path = "C:\Program Files\LLVM\bin;$env:Path"
        $env:CC = "clang-cl"
        $env:CXX = "clang-cl"
+
+       # and use Windows SDK tools
+       $env:Path = "$env:WindowsSdkDir\bin\$env:Arch;$env:Path"
      }
 
      # add .NET framework tools to path for resgen for C# tests
