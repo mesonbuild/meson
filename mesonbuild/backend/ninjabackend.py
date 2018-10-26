@@ -1537,7 +1537,7 @@ rule FORTRAN_DEP_HACK%s
             command_template = ' command = {executable} $ARGS {cross_args} {output_args} {compile_only_args} $in\n'
         command = command_template.format(
             executable=' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
-            cross_args=' '.join(self.get_cross_info_lang_args(compiler.language, is_cross)),
+            cross_args=' '.join(compiler.get_cross_extra_flags(self.environment, False)) if is_cross else '',
             output_args=' '.join(compiler.get_output_args('$out')),
             compile_only_args=' '.join(compiler.get_compile_only_args())
         )
@@ -1547,14 +1547,6 @@ rule FORTRAN_DEP_HACK%s
         outfile.write(description)
         outfile.write('\n')
         self.created_llvm_ir_rule = True
-
-    def get_cross_info_lang_args(self, lang, is_cross):
-        if is_cross:
-            try:
-                return self.environment.cross_info.config['properties'][lang + '_args']
-            except KeyError:
-                pass
-        return []
 
     def generate_compile_rule_for(self, langname, compiler, is_cross, outfile):
         if langname == 'java':
@@ -1589,7 +1581,11 @@ rule FORTRAN_DEP_HACK%s
             if d != '$out' and d != '$in':
                 d = quote_func(d)
             quoted_depargs.append(d)
-        cross_args = self.get_cross_info_lang_args(langname, is_cross)
+
+        if is_cross:
+            cross_args = compiler.get_cross_extra_flags(self.environment, False)
+        else:
+            cross_args = ''
         if compiler.can_linker_accept_rsp():
             command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
@@ -1628,7 +1624,7 @@ rule FORTRAN_DEP_HACK%s
         cross_args = []
         if is_cross:
             try:
-                cross_args = self.environment.cross_info.config['properties'][langname + '_args']
+                cross_args = compiler.get_cross_extra_flags(self.environment, False)
             except KeyError:
                 pass
 
