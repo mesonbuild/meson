@@ -114,6 +114,8 @@ class Resolver:
         self.wrap = self.load_wrap()
         if self.wrap and 'directory' in self.wrap.values:
             self.directory = self.wrap.get('directory')
+            if os.path.dirname(self.directory):
+                raise WrapException('Directory key must be a name and not a path')
         self.dirname = os.path.join(self.subdir_root, self.directory)
         meson_file = os.path.join(self.dirname, 'meson.build')
 
