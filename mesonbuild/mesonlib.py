@@ -307,7 +307,7 @@ MachineChoice = OrderedEnum('MachineChoice', ['BUILD', 'HOST', 'TARGET'])
 
 class PerMachine:
     def __init__(self, build, host, target):
-        self.build = build,
+        self.build = build
         self.host = host
         self.target = target
 
