@@ -54,6 +54,8 @@ keyword arguments.
   `Version:` field. (*since 0.46.0*) Defaults to the project version if unspecified.
 - `d_module_versions` a list of module version flags used when compiling
    D sources referred to by this pkg-config file
+- `uninstalled_variables` used instead of the `variables` keyword argument, when
+  generating the uninstalled pkg-config file. Since *0.54.0*
 
 Since 0.46 a `StaticLibrary` or `SharedLibrary` object can optionally be passed
 as first positional argument. If one is provided a default value will be
@@ -61,6 +63,15 @@ provided for all required fields of the pc file:
 - `install_dir` is set to `pkgconfig` folder in the same location than the provided library.
 - `description` is set to the project's name followed by the library's name.
 - `name` is set to the library's name.
+
+Since 0.54.0 uninstalled pkg-config files are generated as well. They are
+located in `<build dir>/meson-uninstalled/`. It is sometimes
+useful to build projects against libraries built by meson without having to
+install them into a prefix. In order to do so, just set
+`PKG_CONFIG_PATH=<builddir>/meson-uninstalled` before building your
+application. That will cause pkg-config to prefer those `-uninstalled.pc` files
+and find libraries and headers from the meson builddir. This is an experimental
+feature provided on a best-effort basis, it might not work in all use-cases.
 
 ### Implicit dependencies
 

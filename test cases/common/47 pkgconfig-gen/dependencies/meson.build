@@ -18,6 +18,9 @@ threads_dep = dependency('threads')
 custom_dep = declare_dependency(link_with : custom_lib, compile_args : ['-DCUSTOM'])
 custom2_dep = declare_dependency(link_args : ['-lcustom2'], compile_args : ['-DCUSTOM2'])
 
+exe = executable('test1', 'main.c', dependencies : [pc_dep])
+test('Test1', exe)
+
 # Generate a PC file:
 # - Having libmain in libraries should pull implicitly libexposed and libinternal in Libs.private
 # - Having libexposed in libraries should remove it from Libs.private

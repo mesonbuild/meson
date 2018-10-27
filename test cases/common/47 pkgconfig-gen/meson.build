@@ -1,7 +1,6 @@
 project('pkgconfig-gen', 'c')
 
 # First check we have pkg-config >= 0.29
-
 pkgconfig = find_program('pkg-config', required: false)
 if not pkgconfig.found()
   error('MESON_SKIP_TEST: pkg-config not found')
