@@ -55,17 +55,17 @@ generated and that the proper include paths are created for the target:
 prog_python = import('python').find_installation('python3')
 
 foo_c = custom_target(
-	'foo.c',
-	output : 'foo.c',
-	input : 'my_gen.py',
-	command : [prog_python, '@INPUT@', '--code', '@OUTPUT@'],
+    'foo.c',
+    output : 'foo.c',
+    input : 'my_gen.py',
+    command : [prog_python, '@INPUT@', '--code', '@OUTPUT@'],
 ]
 
 foo_h = custom_target(
-	'foo.h',
-	output : 'foo.h',
-	input : 'my_gen.py',
-	command : [prog_python, '@INPUT@', '--header', '@OUTPUT@'],
+    'foo.h',
+    output : 'foo.h',
+    input : 'my_gen.py',
+    command : [prog_python, '@INPUT@', '--header', '@OUTPUT@'],
 ]
 
 libfoo = static_library('foo', [foo_c, foo_h])
@@ -90,10 +90,10 @@ separately. The order is the same as the order of the output argument to
 prog_python = import('python').find_installation('python3')
 
 foo_ch = custom_target(
-	'foo.[ch]',
-	output : ['foo.c', 'foo.h'],
-	input : 'my_gen.py',
-	command : [prog_python, '@INPUT@', '@OUTPUT@'],
+    'foo.[ch]',
+    output : ['foo.c', 'foo.h'],
+    input : 'my_gen.py',
+    command : [prog_python, '@INPUT@', '@OUTPUT@'],
 ]
 
 libfoo = static_library('foo', [foo_ch])
@@ -111,8 +111,8 @@ and library dependency, especially if there are many generated headers:
 
 ```meson
 idep_foo = declare_dependency(
-	sources : [foo_h, bar_h],
-	link_with : [libfoo],
+    sources : [foo_h, bar_h],
+    link_with : [libfoo],
 )
 ```
 
