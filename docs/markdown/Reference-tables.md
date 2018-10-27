@@ -114,7 +114,7 @@ These are the parameters names that are supported using
 `compiler.has_function_attribute()` or
 `compiler.get_supported_function_attributes()`
 
-### GCC __attribute__
+### GCC `__attribute__`
 
 These values are supported using the GCC style `__attribute__` annotations,
 which are supported by GCC, Clang, and other compilers.

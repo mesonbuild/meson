@@ -1790,7 +1790,7 @@ the following methods:
   compiler supports the GNU style (`__attribute__(...)`) `name`. This is
   preferable to manual compile checks as it may be optimized for compilers that
   do not support such attributes.
-  [This table](Reference-tables.md#gcc-attribute-support) Lists all of the
+  [This table](Reference-tables.md#gcc-__attribute__) lists all of the
   supported attributes.
 
 - `get_supported_function_attributes(list_of_names)` *(added in 0.48.0)
