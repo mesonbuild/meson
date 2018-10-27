@@ -265,19 +265,30 @@ class PkgConfigModule(ExtensionModule):
         return subdir
 
     def generate_pkgconfig_file(self, state, deps, subdirs, name, description,
-                                url, version, pcfile, conflicts, variables):
+                                url, version, pcfile, conflicts, variables,
+                                uninstalled=False):
         deps.remove_dups()
         coredata = state.environment.get_coredata()
-        outdir = state.environment.scratch_dir
+        if uninstalled:
+            outdir = os.path.join(state.environment.build_dir, 'meson-uninstalled')
+            if not os.path.exists(outdir):
+                os.mkdir(outdir)
+            prefix = PurePath(state.environment.get_build_dir())
+            srcdir = PurePath(state.environment.get_source_dir())
+        else:
+            outdir = state.environment.scratch_dir
+            prefix = PurePath(coredata.get_builtin_option('prefix'))
+            # These always return paths relative to prefix
+            libdir = PurePath(coredata.get_builtin_option('libdir'))
+            incdir = PurePath(coredata.get_builtin_option('includedir'))
         fname = os.path.join(outdir, pcfile)
-        prefix = PurePath(coredata.get_builtin_option('prefix'))
-        # These always return paths relative to prefix
-        libdir = PurePath(coredata.get_builtin_option('libdir'))
-        incdir = PurePath(coredata.get_builtin_option('includedir'))
         with open(fname, 'w', encoding='utf-8') as ofile:
             ofile.write('prefix={}\n'.format(self._escape(prefix)))
-            ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
-            ofile.write('includedir={}\n'.format(self._escape('${prefix}' / incdir)))
+            if uninstalled:
+                ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
+            else:
+                ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
+                ofile.write('includedir={}\n'.format(self._escape('${prefix}' / incdir)))
             if variables:
                 ofile.write('\n')
             for k, v in variables:
@@ -307,17 +318,20 @@ class PkgConfigModule(ExtensionModule):
                     if isinstance(l, str):
                         yield l
                     else:
-                        install_dir = l.get_custom_install_dir()[0]
+                        if uninstalled:
+                            install_dir = os.path.dirname(state.backend.get_target_filename_abs(l))
+                        else:
+                            install_dir = l.get_custom_install_dir()[0]
                         if install_dir is False:
                             continue
                         if 'cs' in l.compilers:
                             if isinstance(install_dir, str):
-                                Lflag = '-r${prefix}/%s/%s ' % (self._escape(self._make_relative(prefix, install_dir)), l.filename)
+                                Lflag = '-r${prefix}/%s/%s' % (self._escape(self._make_relative(prefix, install_dir)), l.filename)
                             else:  # install_dir is True
                                 Lflag = '-r${libdir}/%s' % l.filename
                         else:
                             if isinstance(install_dir, str):
-                                Lflag = '-L${prefix}/%s ' % self._escape(self._make_relative(prefix, install_dir))
+                                Lflag = '-L${prefix}/%s' % self._escape(self._make_relative(prefix, install_dir))
                             else:  # install_dir is True
                                 Lflag = '-L${libdir}'
                         if Lflag not in Lflags:
@@ -331,22 +345,47 @@ class PkgConfigModule(ExtensionModule):
                         if 'cs' not in l.compilers:
                             yield '-l%s' % lname
 
+            def get_uninstalled_include_dirs(libs):
+                result = []
+                for l in libs:
+                    if isinstance(l, str):
+                        continue
+                    if l.get_subdir() not in result:
+                        result.append(l.get_subdir())
+                    for i in l.get_include_dirs():
+                        curdir = i.get_curdir()
+                        for d in i.get_incdirs():
+                            path = os.path.join(curdir, d)
+                            if path not in result:
+                                result.append(path)
+                return result
+
+            def generate_uninstalled_cflags(libs):
+                for d in get_uninstalled_include_dirs(libs):
+                    for basedir in ['${prefix}', '${srcdir}']:
+                        path = os.path.join(basedir, d)
+                        yield '-I%s' % self._escape(path)
+
             if len(deps.pub_libs) > 0:
                 ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(deps.pub_libs))))
             if len(deps.priv_libs) > 0:
                 ofile.write('Libs.private: {}\n'.format(' '.join(generate_libs_flags(deps.priv_libs))))
             ofile.write('Cflags:')
-            for h in subdirs:
-                ofile.write(' ')
-                if h == '.':
-                    ofile.write('-I${includedir}')
-                else:
-                    ofile.write(self._escape(PurePath('-I${includedir}') / h))
+            if uninstalled:
+                ofile.write(' '.join(generate_uninstalled_cflags(deps.pub_libs + deps.priv_libs)))
+            else:
+                for h in subdirs:
+                    ofile.write(' ')
+                    if h == '.':
+                        ofile.write('-I${includedir}')
+                    else:
+                        ofile.write(self._escape(PurePath('-I${includedir}') / h))
             for f in deps.cflags:
                 ofile.write(' ')
                 ofile.write(self._escape(f))
             ofile.write('\n')
 
+    @FeatureNewKwargs('pkgconfig.generate', '0.54.0', ['uninstalled_variables'])
     @FeatureNewKwargs('pkgconfig.generate', '0.42.0', ['extra_cflags'])
     @FeatureNewKwargs('pkgconfig.generate', '0.41.0', ['variables'])
     @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
@@ -451,6 +490,11 @@ class PkgConfigModule(ExtensionModule):
         self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                      version, pcfile, conflicts, variables)
         res = build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
+        variables = parse_variable_list(mesonlib.stringlistify(kwargs.get('uninstalled_variables', [])))
+        pcfile = filebase + '-uninstalled.pc'
+        self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,
+                                     version, pcfile, conflicts, variables,
+                                     uninstalled=True)
         # Associate the main library with this generated pc file. If the library
         # is used in any subsequent call to the generated, it will generate a
         # 'Requires:' or 'Requires.private:'.

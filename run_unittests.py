@@ -5011,6 +5011,21 @@ class LinuxlikeTests(BasePlatformTests):
         out = self._run(cmd + ['--libs'], override_envvars=env).strip().split()
         self.assertEqual(out, ['-llibmain2', '-llibinternal'])
 
+    def test_pkgconfig_uninstalled(self):
+        testdir = os.path.join(self.common_test_dir, '47 pkgconfig-gen')
+        self.init(testdir)
+        self.build()
+
+        os.environ['PKG_CONFIG_LIBDIR'] = os.path.join(self.builddir, 'meson-uninstalled')
+        if is_cygwin():
+            os.environ['PATH'] += os.pathsep + self.builddir
+
+        self.new_builddir()
+        testdir = os.path.join(self.common_test_dir, '47 pkgconfig-gen', 'dependencies')
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+
     def test_pkg_unfound(self):
         testdir = os.path.join(self.unit_test_dir, '23 unfound pkgconfig')
         self.init(testdir)
