@@ -1439,6 +1439,16 @@ class GnuLikeCompiler(abc.ABC):
     def gnu_symbol_visibility_args(self, vistype):
         return gnu_symbol_visibility_args[vistype]
 
+    def gen_vs_module_defs_args(self, defsfile):
+        if not isinstance(defsfile, str):
+            raise RuntimeError('Module definitions file should be str')
+        # On Windows targets, .def files may be specified on the linker command
+        # line like an object file.
+        if self.compiler_type.is_windows_compiler:
+            return [defsfile]
+        # For other targets, discard the .def file.
+        return []
+
 
 class GnuCompiler(GnuLikeCompiler):
     """
@@ -1476,16 +1486,6 @@ class GnuCompiler(GnuLikeCompiler):
 
     def get_pch_suffix(self):
         return 'gch'
-
-    def gen_vs_module_defs_args(self, defsfile):
-        if not isinstance(defsfile, str):
-            raise RuntimeError('Module definitions file should be str')
-        # On Windows targets, .def files may be specified on the linker command
-        # line like an object file.
-        if self.compiler_type.is_windows_compiler:
-            return [defsfile]
-        # For other targets, discard the .def file.
-        return []
 
     def get_gui_app_args(self, value):
         if self.compiler_type.is_windows_compiler and value:
