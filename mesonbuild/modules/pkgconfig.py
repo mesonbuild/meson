@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+import os, types
 from pathlib import PurePath
 
 from .. import build
@@ -50,11 +50,24 @@ class DependenciesHelper:
     def add_priv_reqs(self, reqs):
         self.priv_reqs += self._process_reqs(reqs)
 
+    def _check_generated_pc_deprecation(self, obj):
+        if hasattr(obj, 'generated_pc_warn'):
+            mlog.deprecation('Library', mlog.bold(obj.name), 'was passed to the '
+                             '"libraries" keyword argument of a previous call '
+                             'to generate() method instead of first positional '
+                             'argument.', 'Adding', mlog.bold(obj.generated_pc),
+                             'to "Requires" field, but this is a deprecated '
+                             'behaviour that will change in a future version '
+                             'of Meson. Please report the issue if this '
+                             'warning cannot be avoided in your case.',
+                             location=obj.generated_pc_warn)
+
     def _process_reqs(self, reqs):
         '''Returns string names of requirements'''
         processed_reqs = []
         for obj in mesonlib.listify(reqs, unholder=True):
             if hasattr(obj, 'generated_pc'):
+                self._check_generated_pc_deprecation(obj)
                 processed_reqs.append(obj.generated_pc)
             elif hasattr(obj, 'pcdep'):
                 pcdeps = mesonlib.listify(obj.pcdep)
@@ -93,7 +106,8 @@ class DependenciesHelper:
                 for d in pcdeps:
                     processed_reqs.append(d.name)
                     self.add_version_reqs(d.name, obj.version_reqs)
-            elif hasattr(obj, 'generated_pc') and obj.generated_pc != self.name:
+            elif hasattr(obj, 'generated_pc'):
+                self._check_generated_pc_deprecation(obj)
                 processed_reqs.append(obj.generated_pc)
             elif isinstance(obj, dependencies.PkgConfigDependency):
                 if obj.found():
@@ -102,6 +116,14 @@ class DependenciesHelper:
             elif isinstance(obj, dependencies.ThreadDependency):
                 processed_libs += obj.get_compiler().thread_link_flags(obj.env)
                 processed_cflags += obj.get_compiler().thread_flags(obj.env)
+            elif isinstance(obj, dependencies.InternalDependency):
+                if obj.found():
+                    processed_libs += obj.get_link_args()
+                    processed_cflags += obj.get_compile_args()
+                    if public:
+                        self.add_pub_libs(obj.libraries)
+                    else:
+                        self.add_priv_libs(obj.libraries)
             elif isinstance(obj, dependencies.Dependency):
                 if obj.found():
                     processed_libs += obj.get_link_args()
@@ -114,14 +136,8 @@ class DependenciesHelper:
                 # than needed build deps.
                 # See https://bugs.freedesktop.org/show_bug.cgi?id=105572
                 processed_libs.append(obj)
-                if public:
-                    if not hasattr(obj, 'generated_pc'):
-                        obj.generated_pc = self.name
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
-                if public:
-                    if not hasattr(obj, 'generated_pc'):
-                        obj.generated_pc = self.name
                 if isinstance(obj, build.StaticLibrary) and public:
                     self.add_pub_libs(obj.get_dependencies(internal=False))
                     self.add_pub_libs(obj.get_external_deps())
@@ -407,6 +423,22 @@ class PkgConfigModule(ExtensionModule):
         self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                      version, pcfile, conflicts, variables)
         res = build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
+        # Associate the main library with this generated pc file. If the library
+        # is used in any subsequent call to the generated, it will generate a
+        # 'Requires:' or 'Requires.private:'.
+        # Backward compatibility: We used to set 'generated_pc' on all public
+        # libraries instead of just the main one. Keep doing that but warn if
+        # anyone is relying on that deprecated behaviour.
+        if mainlib:
+            if not hasattr(mainlib, 'generated_pc'):
+                mainlib.generated_pc = filebase
+            else:
+                mlog.warning('Already generated a pkg-config file for', mlog.bold(mainlib.name))
+        for lib in deps.pub_libs:
+            if not isinstance(lib, str) and not hasattr(lib, 'generated_pc'):
+                lib.generated_pc = filebase
+                lib.generated_pc_warn = types.SimpleNamespace(subdir=state.subdir,
+                                                              lineno=state.current_lineno)
         return ModuleReturnValue(res, [res])
 
 def initialize(*args, **kwargs):
