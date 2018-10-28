@@ -922,14 +922,17 @@ class CMakeDependency(ExternalDependency):
                 raise DependencyException('CMake not found.')
             return
 
-        self._detect_dep(name)
+        modules = kwargs.get('modules', [])
+        if not isinstance(modules, list):
+            modules = [modules]
+        self._detect_dep(name, modules)
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
-    def _detect_dep(self, name):
+    def _detect_dep(self, name, modules):
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
@@ -939,21 +942,29 @@ class CMakeDependency(ExternalDependency):
         mlog.debug('Determining dependency {!r} with CMake executable '
                    '{!r}'.format(name, self.cmakebin.get_path()))
 
-        ret, out, err = self._call_cmake(['--find-package',
+        ret1, _, err1 = self._call_cmake(['--find-package',
                                           '--trace', '--trace-expand',
                                           '-DCOMPILER_ID=GNU',
                                           '-DLANGUAGE=CXX',
                                           '-DMODE=LINK',
                                           '-DNAME={}'.format(name)])
 
+        ret2, _, err2 = self._call_cmake(['--find-package',
+                                          '--trace', '--trace-expand',
+                                          '-DCOMPILER_ID=GNU',
+                                          '-DLANGUAGE=CXX',
+                                          '-DMODE=COMPILE',
+                                          '-DNAME={}'.format(name)])
+
         # Check if exists
-        if ret != 0:
-            mlog.debug('CMake: {} not found:\n{}'.format(name, out))
+        if ret1 != 0 or ret2 != 0:
+            mlog.debug('CMake: {} not found'.format(name))
             return
 
         try:
             # First parse the trace
-            lexer = self._lex_trace(err)
+            lexer1 = self._lex_trace(err1)
+            lexer2 = self._lex_trace(err2)
 
             # All supported functions
             functions = {
@@ -967,18 +978,17 @@ class CMakeDependency(ExternalDependency):
                 'set_target_properties': self._cmake_set_target_properties
             }
 
-            for l in lexer:
+            # Primary pass -- parse everything
+            for l in lexer1:
                 # "Execute" the CMake function if supported
                 fn = functions.get(l.func, None)
                 if(fn):
                     fn(l)
 
-            mlog.debug('\n\nExtracted information from CMake trace for {}:\n'.format(name))
-            for i in self.targets:
-                mlog.debug(self.targets[i])
-
-            for i in sorted(self.vars.keys()):
-                mlog.debug('{} = {}'.format(i, self.vars[i]))
+            # Secondary pass -- only set PACKAGE_INCLUDE_DIRS
+            for l in lexer2:
+                if l.func == 'set' and l.args[0] == 'PACKAGE_INCLUDE_DIRS':
+                    self._cmake_set(l)
 
         except DependencyException as e:
             if self.required:
@@ -996,16 +1006,36 @@ class CMakeDependency(ExternalDependency):
             return
 
         # Try to detect the version
-        for i in ['PACKAGE_VERSION',
-                  '{}_VERSION'.format(name), '{}_VERSION'.format(name).upper(),
-                  '{}_VERSION_STRING'.format(name), '{}_VERSION_STRING'.format(name).upper()]:
-            if i in self.vars:
-                if len(self.vars[i]) < 1:
-                    continue
+        version_raw = self.get_first_cmake_var_of(['PACKAGE_VERSION', '{}_VERSION'.format(name), '{}_VERSION'.format(name).upper(), '{}_VERSION_STRING'.format(name), '{}_VERSION_STRING'.format(name).upper()])
 
-                self.version = self.vars[i][0]
-                self.version.strip('"\' ')
-                break
+        if len(version_raw) > 0:
+            self.version = version_raw[0]
+            self.version.strip('"\' ')
+
+        if len(modules) == 0:
+            incDirs = self.get_first_cmake_var_of(['PACKAGE_INCLUDE_DIRS'])
+            libs = self.get_first_cmake_var_of(['PACKAGE_LIBRARIES'])
+
+            if len(libs) > 0:
+                self.compile_args = list(map(lambda x: '-I{}'.format(x), incDirs))
+                self.link_args = libs
+                mlog.debug('using old-style CMake variables for dependency {}'.format(name))
+                return
+
+    def get_first_cmake_var_of(self, var_list):
+        # Return the first found CMake variable in list var_list
+        for i in var_list:
+            if i in self.vars:
+                return self.vars[i]
+
+        return []
+
+    def get_cmake_var(self, var):
+        # Return the value of the CMake variable var or an empty list if var does not exist
+        for var in self.vars:
+            return self.vars[var]
+
+        return []
 
     def _var_to_bool(self, var):
         if var not in self.vars:

@@ -114,7 +114,7 @@ of all the work behind the scenes to make this work.
 
 You can use the keyword `method` to let meson know what method to use
 when searching for the dependency. The default value is `auto`.
-Aditional dependencies methods are `pkg-config`, `config-tool`,
+Aditional dependencies methods are `pkg-config`, `config-tool`, `cmake`,
 `system`, `sysconfig`, `qmake`, `extraframework` and `dub`.
 
 ```meson
@@ -218,7 +218,7 @@ libraries that have been compiled for single-threaded use instead.
 
 ## CUPS
 
-`method` may be `auto`, `config-tool`, `pkg-config` or `extraframework`.
+`method` may be `auto`, `config-tool`, `pkg-config`, `cmake` or `extraframework`.
 
 ## GL
 
