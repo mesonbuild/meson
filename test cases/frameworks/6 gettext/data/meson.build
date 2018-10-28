@@ -10,7 +10,7 @@ i18n.merge_file(
 
 # Use filename substitution for another file
 i18n.merge_file(
-  input: 'test2.desktop.in',
+  input: files('test2.desktop.in'),
   output: '@BASENAME@',
   type: 'desktop',
   po_dir: '../po',
