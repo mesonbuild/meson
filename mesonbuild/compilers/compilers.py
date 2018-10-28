@@ -429,7 +429,7 @@ def get_base_compile_args(options, compiler):
         if pgo_val == 'generate':
             args.append('-fprofile-generate')
         elif pgo_val == 'use':
-            args.append('-fprofile-use')
+            args.extend(['-fprofile-use', '-fprofile-correction'])
     except KeyError:
         pass
     try:
@@ -475,7 +475,7 @@ def get_base_link_args(options, linker, is_shared_module):
         if pgo_val == 'generate':
             args.append('-fprofile-generate')
         elif pgo_val == 'use':
-            args.append('-fprofile-use')
+            args.extend(['-fprofile-use', '-fprofile-correction'])
     except KeyError:
         pass
     try:
