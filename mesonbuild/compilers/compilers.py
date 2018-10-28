@@ -1482,13 +1482,13 @@ class GnuCompiler(GnuLikeCompiler):
             raise RuntimeError('Module definitions file should be str')
         # On Windows targets, .def files may be specified on the linker command
         # line like an object file.
-        if self.compiler_type in (CompilerType.GCC_CYGWIN, CompilerType.GCC_MINGW):
+        if self.compiler_type.is_windows_compiler:
             return [defsfile]
         # For other targets, discard the .def file.
         return []
 
     def get_gui_app_args(self, value):
-        if self.compiler_type in (CompilerType.GCC_CYGWIN, CompilerType.GCC_MINGW) and value:
+        if self.compiler_type.is_windows_compiler and value:
             return ['-mwindows']
         return []
 

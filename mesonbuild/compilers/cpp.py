@@ -202,7 +202,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
                      'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
                                                                 'STL debug mode',
                                                                 False)})
-        if self.compiler_type == CompilerType.GCC_MINGW:
+        if self.compiler_type.is_windows_compiler:
             opts.update({
                 'cpp_winlibs': coredata.UserArrayOption('cpp_winlibs', 'Standard Win libraries to link against',
                                                         gnu_winlibs), })
@@ -218,7 +218,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         return args
 
     def get_option_link_args(self, options):
-        if self.compiler_type == CompilerType.GCC_MINGW:
+        if self.compiler_type.is_windows_compiler:
             return options['cpp_winlibs'].value[:]
         return []
 

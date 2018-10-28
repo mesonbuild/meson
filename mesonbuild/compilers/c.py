@@ -1179,7 +1179,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
                                                        ['none', 'c89', 'c99', 'c11',
                                                         'gnu89', 'gnu99', 'gnu11'],
                                                        'none')})
-        if self.compiler_type == CompilerType.GCC_MINGW:
+        if self.compiler_type.is_windows_compiler:
             opts.update({
                 'c_winlibs': coredata.UserArrayOption('c_winlibs', 'Standard Win libraries to link against',
                                                       gnu_winlibs), })
@@ -1193,7 +1193,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         return args
 
     def get_option_link_args(self, options):
-        if self.compiler_type == CompilerType.GCC_MINGW:
+        if self.compiler_type.is_windows_compiler:
             return options['c_winlibs'].value[:]
         return []
 
