@@ -29,7 +29,7 @@ from ..environment import detect_cpu_family
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency,
     ExternalProgram, ExtraFrameworkDependency, PkgConfigDependency,
-    ConfigToolDependency,
+    CMakeDependency, ConfigToolDependency,
 )
 
 
@@ -475,6 +475,9 @@ class CupsDependency(ExternalDependency):
                     ExtraFrameworkDependency, 'cups', False, None, environment,
                     kwargs.get('language', None), kwargs))
 
+        if DependencyMethods.CMAKE in methods:
+            candidates.append(functools.partial(CMakeDependency, 'Cups', environment, kwargs))
+
         return candidates
 
     @staticmethod
@@ -485,9 +488,9 @@ class CupsDependency(ExternalDependency):
     @staticmethod
     def get_methods():
         if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE]
         else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.CMAKE]
 
 
 class LibWmfDependency(ExternalDependency):
