@@ -85,6 +85,10 @@ class I18nModule(ExtensionModule):
         if hasattr(inputfile, 'held_object'):
             ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, state.subproject, kwargs)
         else:
+            if isinstance(inputfile, list):
+                # We only use this input file to create a name of the custom target.
+                # Thus we can ignore the other entries.
+                inputfile = inputfile[0]
             if isinstance(inputfile, str):
                 inputfile = mesonlib.File.from_source_file(state.environment.source_dir,
                                                            state.subdir, inputfile)
