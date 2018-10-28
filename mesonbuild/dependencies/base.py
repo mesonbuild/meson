@@ -990,7 +990,33 @@ class CMakeDependency(ExternalDependency):
                 self.reason = e
                 return
 
-        self.is_found = True
+        # Whether the package is found or not is always stored in PACKAGE_FOUND
+        self.is_found = self._var_to_bool('PACKAGE_FOUND')
+        if not self.is_found:
+            return
+
+        # Try to detect the version
+        for i in ['PACKAGE_VERSION',
+                  '{}_VERSION'.format(name), '{}_VERSION'.format(name).upper(),
+                  '{}_VERSION_STRING'.format(name), '{}_VERSION_STRING'.format(name).upper()]:
+            if i in self.vars:
+                if len(self.vars[i]) < 1:
+                    continue
+
+                self.version = self.vars[i][0]
+                self.version.strip('"\' ')
+                break
+
+    def _var_to_bool(self, var):
+        if var not in self.vars:
+            return False
+
+        if len(self.vars[var]) < 1:
+            return False
+
+        if self.vars[var][0].upper() in ['1', 'ON', 'TRUE']:
+            return True
+        return False
 
     def _cmake_set(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/set.html
@@ -1248,41 +1274,6 @@ class CMakeDependency(ExternalDependency):
         if (self.cmakebin, targs, fenv) not in cache:
             cache[(self.cmakebin, targs, fenv)] = self._call_cmake_real(args, env)
         return cache[(self.cmakebin, targs, fenv)]
-
-    def _set_cargs(self):
-        env = None
-        if self.language == 'fortran':
-            # gfortran doesn't appear to look in system paths for INCLUDE files,
-            # so don't allow pkg-config to suppress -I flags for system paths
-            env = os.environ.copy()
-            env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
-        ret, out = self._call_cmake(['--cflags', self.name], env=env)
-        if ret != 0:
-            raise DependencyException('Could not generate cargs for %s:\n\n%s' %
-                                      (self.name, out))
-        self.compile_args = self._convert_mingw_paths(shlex.split(out))
-
-    def _set_libs(self):
-        env = None
-        libcmd = [self.name, '--libs']
-        if self.static:
-            libcmd.append('--static')
-        # Force pkg-config to output -L fields even if they are system
-        # paths so we can do manual searching with cc.find_library() later.
-        env = os.environ.copy()
-        env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
-        ret, out = self._call_cmake(libcmd, env=env)
-        if ret != 0:
-            raise DependencyException('Could not generate libs for %s:\n\n%s' %
-                                      (self.name, out))
-        # Also get the 'raw' output without -Lfoo system paths for adding -L
-        # args with -lfoo when a library can't be found, and also in
-        # gnome.generate_gir + gnome.gtkdoc which need -L -l arguments.
-        ret, out_raw = self._call_cmake(libcmd)
-        if ret != 0:
-            raise DependencyException('Could not generate libs for %s:\n\n%s' %
-                                      (self.name, out_raw))
-        self.link_args, self.raw_link_args = self._search_libs(out, out_raw)
 
     @staticmethod
     def get_methods():
