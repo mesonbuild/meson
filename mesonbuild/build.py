@@ -138,6 +138,19 @@ class Build:
         self.find_overrides = {}
         self.searched_programs = set() # The list of all programs that have been searched for.
 
+    def copy(self):
+        other = Build(self.environment)
+        for k, v in self.__dict__.items():
+            if isinstance(v, (list, dict, set, OrderedDict)):
+                other.__dict__[k] = v.copy()
+            else:
+                other.__dict__[k] = v
+        return other
+
+    def merge(self, other):
+        for k, v in other.__dict__.items():
+            self.__dict__[k] = v
+
     def add_compiler(self, compiler):
         if self.static_linker is None and compiler.needs_static_linker():
             self.static_linker = self.environment.detect_static_linker(compiler)

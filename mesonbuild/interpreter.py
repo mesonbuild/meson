@@ -2286,7 +2286,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         with mlog.nested():
             try:
                 mlog.log('\nExecuting subproject', mlog.bold(dirname), '\n')
-                subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
+                new_build = self.build.copy()
+                subi = Interpreter(new_build, self.backend, dirname, subdir, self.subproject_dir,
                                    self.modules, default_options)
                 subi.subprojects = self.subprojects
 
@@ -2312,6 +2313,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.subprojects.update(subi.subprojects)
         self.subprojects[dirname] = SubprojectHolder(subi, self.subproject_dir, dirname)
         self.build_def_files += subi.build_def_files
+        self.build.merge(subi.build)
         return self.subprojects[dirname]
 
     def get_option_internal(self, optname):
