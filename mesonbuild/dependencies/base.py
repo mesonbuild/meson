@@ -1121,8 +1121,8 @@ class CMakeDependency(ExternalDependency):
                 self.targets[i].properies[propName] = propVal
 
     def _lex_trace(self, trace):
-        # The trace format is: <file>(<line>):  <func>(<args -- can contain \n>)\n
-        reg_tline = re.compile(r'\s*(.*\.cmake)\(([0-9]+)\):\s*(\w+)\(([\s\S]*?)\)\s*\n', re.MULTILINE)
+        # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
+        reg_tline = re.compile(r'\s*(.*\.cmake)\(([0-9]+)\):\s*(\w+)\(([\s\S]*?) ?\)\s*\n', re.MULTILINE)
         loc = 0
         while loc < len(trace):
             mo_file_line = reg_tline.match(trace, loc)
@@ -1136,7 +1136,6 @@ class CMakeDependency(ExternalDependency):
             func = mo_file_line.group(3)
             args = mo_file_line.group(4).split(' ')
             args = list(map(lambda x: x.strip(), args))
-            args = list(filter(lambda x: len(x) > 0, args))
 
             yield CMakeTraceLine(file, line, func, args)
 
