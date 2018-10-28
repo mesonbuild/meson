@@ -939,7 +939,7 @@ class CMakeDependency(ExternalDependency):
         # When the trace output is enabled CMake prints all functions with
         # parameters to stderr as they are executed. Since CMake 3.4.0
         # variables ("${VAR}") are also replaced in the trace output.
-        mlog.debug('Determining dependency {!r} with CMake executable '
+        mlog.debug('\nDetermining dependency {!r} with CMake executable '
                    '{!r}'.format(name, self.cmakebin.get_path()))
 
         ret1, _, err1 = self._call_cmake(['--find-package',
@@ -1006,21 +1006,117 @@ class CMakeDependency(ExternalDependency):
             return
 
         # Try to detect the version
-        version_raw = self.get_first_cmake_var_of(['PACKAGE_VERSION', '{}_VERSION'.format(name), '{}_VERSION'.format(name).upper(), '{}_VERSION_STRING'.format(name), '{}_VERSION_STRING'.format(name).upper()])
+        vers_raw = self.get_first_cmake_var_of(['PACKAGE_VERSION',
+                                                '{}_VERSION'.format(name), '{}_VERSION'.format(name).upper(),
+                                                '{}_VERSION_STRING'.format(name), '{}_VERSION_STRING'.format(name).upper()])
 
-        if len(version_raw) > 0:
-            self.version = version_raw[0]
+        if len(vers_raw) > 0:
+            self.version = vers_raw[0]
             self.version.strip('"\' ')
 
+        # Try guessing a CMake target if none is provided
+        if len(modules) == 0:
+            for i in self.targets:
+                tg = i.lower()
+                lname = name.lower()
+                if '{}::{}'.format(lname, lname) == tg or lname == tg.replace('::', ''):
+                    mlog.debug('Guessed CMake target \'{}\''.format(i))
+                    modules = [i]
+                    break
+
+        # Failed to guess a target --> try the old-style method
         if len(modules) == 0:
             incDirs = self.get_first_cmake_var_of(['PACKAGE_INCLUDE_DIRS'])
             libs = self.get_first_cmake_var_of(['PACKAGE_LIBRARIES'])
 
+            # Try to use old style variables if no module is specified
             if len(libs) > 0:
                 self.compile_args = list(map(lambda x: '-I{}'.format(x), incDirs))
                 self.link_args = libs
                 mlog.debug('using old-style CMake variables for dependency {}'.format(name))
                 return
+
+            # Even the old-style approach failed. Nothing else we can do here
+            self.is_found = False
+            raise DependencyException('CMake: failed to guess a CMake target for {}.\n'
+                                      'Try to explicitly specify one or more targets with the "modules" property.\n'
+                                      'Valid targets are:\n{}'.format(name, list(self.targets.keys())))
+
+        # Set dependencies with CMake targets
+        processed_targets = []
+        incDirs = []
+        compileDefinitions = []
+        compileOptions = []
+        libraries = []
+        for i in modules:
+            if i not in self.targets:
+                raise DependencyException('CMake: invalid CMake target {} for {}.\n'
+                                          'Try to explicitly specify one or more targets with the "modules" property.\n'
+                                          'Valid targets are:\n{}'.format(i, name, list(self.targets.keys())))
+
+            targets = [i]
+            while len(targets) > 0:
+                curr = targets.pop(0)
+
+                # Skip already processed targets
+                if curr in processed_targets:
+                    continue
+
+                tgt = self.targets[curr]
+                cfgs = []
+                cfg = ''
+                otherDeps = []
+                mlog.debug(tgt)
+
+                if 'INTERFACE_INCLUDE_DIRECTORIES' in tgt.properies:
+                    incDirs += tgt.properies['INTERFACE_INCLUDE_DIRECTORIES']
+
+                if 'INTERFACE_COMPILE_DEFINITIONS' in tgt.properies:
+                    tempDefs = list(tgt.properies['INTERFACE_COMPILE_DEFINITIONS'])
+                    tempDefs = list(map(lambda x: '-D{}'.format(re.sub('^-D', '', x)), tempDefs))
+                    compileDefinitions += tempDefs
+
+                if 'INTERFACE_COMPILE_OPTIONS' in tgt.properies:
+                    compileOptions += tgt.properies['INTERFACE_COMPILE_OPTIONS']
+
+                if 'IMPORTED_CONFIGURATIONS' in tgt.properies:
+                    cfgs = tgt.properies['IMPORTED_CONFIGURATIONS']
+                    cfg = cfgs[0]
+
+                if 'RELEASE' in cfgs:
+                    cfg = 'RELEASE'
+
+                if 'IMPORTED_LOCATION_{}'.format(cfg) in tgt.properies:
+                    libraries += tgt.properies['IMPORTED_LOCATION_{}'.format(cfg)]
+                elif 'IMPORTED_LOCATION' in tgt.properies:
+                    libraries += tgt.properies['IMPORTED_LOCATION']
+
+                if 'INTERFACE_LINK_LIBRARIES' in tgt.properies:
+                    otherDeps += tgt.properies['INTERFACE_LINK_LIBRARIES']
+
+                if 'IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg) in tgt.properies:
+                    otherDeps += tgt.properies['IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg)]
+                elif 'IMPORTED_LINK_DEPENDENT_LIBRARIES' in tgt.properies:
+                    otherDeps += tgt.properies['IMPORTED_LINK_DEPENDENT_LIBRARIES']
+
+                for j in otherDeps:
+                    if j in self.targets:
+                        targets += [j]
+
+                processed_targets += [curr]
+
+        incDirs = list(sorted(list(set(incDirs))))
+        compileDefinitions = list(sorted(list(set(compileDefinitions))))
+        compileOptions = list(sorted(list(set(compileOptions))))
+        libraries = list(sorted(list(set(libraries))))
+
+        mlog.debug('Include Dirs:         {}'.format(incDirs))
+        mlog.debug('Compiler Definitions: {}'.format(compileDefinitions))
+        mlog.debug('Compiler Options:     {}'.format(compileOptions))
+        mlog.debug('Libraries:            {}'.format(libraries))
+
+        self.compile_args = compileOptions + compileDefinitions + list(map(lambda x: '-I{}'.format(x), incDirs))
+        self.link_args = libraries
 
     def get_first_cmake_var_of(self, var_list):
         # Return the first found CMake variable in list var_list
@@ -1219,6 +1315,10 @@ class CMakeDependency(ExternalDependency):
 
         propName = args[0]
         propVal = list(itertools.chain(*map(lambda x: x.split(';'), args[1:])))
+        propVal = list(filter(lambda x: len(x) > 0, propVal))
+
+        if len(propVal) == 0:
+            return
 
         for i in targets:
             if i not in self.targets:
@@ -1250,6 +1350,10 @@ class CMakeDependency(ExternalDependency):
         while len(args) > 0:
             propName = args.pop(0)
             propVal = args.pop(0).split(';')
+            propVal = list(filter(lambda x: len(x) > 0, propVal))
+
+            if len(propVal) == 0:
+                continue
 
             for i in targets:
                 if i not in self.targets:
@@ -1260,6 +1364,7 @@ class CMakeDependency(ExternalDependency):
     def _lex_trace(self, trace):
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
         reg_tline = re.compile(r'\s*(.*\.cmake)\(([0-9]+)\):\s*(\w+)\(([\s\S]*?) ?\)\s*\n', re.MULTILINE)
+        reg_genexp = re.compile(r'\$<.*>')
         loc = 0
         while loc < len(trace):
             mo_file_line = reg_tline.match(trace, loc)
@@ -1273,6 +1378,7 @@ class CMakeDependency(ExternalDependency):
             func = mo_file_line.group(3)
             args = mo_file_line.group(4).split(' ')
             args = list(map(lambda x: x.strip(), args))
+            args = list(map(lambda x: reg_genexp.sub('', x), args)) # Remove generator expressions
 
             yield CMakeTraceLine(file, line, func, args)
 
