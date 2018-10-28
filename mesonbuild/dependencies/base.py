@@ -930,6 +930,12 @@ class CMakeDependency(ExternalDependency):
                         self.version_reqs)
 
     def _detect_dep(self, name):
+        # Detect a dependency with CMake using the '--find-package' mode
+        # and the trace output (stderr)
+        #
+        # When the trace output is enabled CMake prints all functions with
+        # parameters to stderr as they are executed. Since CMake 3.4.0
+        # variables ("${VAR}") are also replaced in the trace output.
         mlog.debug('Determining dependency {!r} with CMake executable '
                    '{!r}'.format(name, self.cmakebin.get_path()))
 
@@ -949,9 +955,11 @@ class CMakeDependency(ExternalDependency):
             # First parse the trace
             lexer = self._lex_trace(err)
 
+            # All supported functions
             functions = {
                 'set': self._cmake_set,
                 'unset': self._cmake_unset,
+                'string': self._cmake_string,
                 'add_executable': self._cmake_add_executable,
                 'add_library': self._cmake_add_library,
                 'add_custom_target': self._cmake_add_custom_target,
@@ -960,12 +968,17 @@ class CMakeDependency(ExternalDependency):
             }
 
             for l in lexer:
+                # "Execute" the CMake function if supported
                 fn = functions.get(l.func, None)
                 if(fn):
                     fn(l)
 
+            mlog.debug('\n\nExtracted information from CMake trace for {}:\n'.format(name))
             for i in self.targets:
                 mlog.debug(self.targets[i])
+
+            for i in sorted(self.vars.keys()):
+                mlog.debug('{} = {}'.format(i, self.vars[i]))
 
         except DependencyException as e:
             if self.required:
@@ -985,7 +998,7 @@ class CMakeDependency(ExternalDependency):
         # 1st remove PARENT_SCOPE and CACHE from args
         args = []
         for i in tline.args:
-            if i == 'PARENT_SCOPE':
+            if i == 'PARENT_SCOPE' or len(i) == 0:
                 continue
 
             # Discard everything after the CACHE keyword
@@ -1012,6 +1025,74 @@ class CMakeDependency(ExternalDependency):
 
         if tline.args[0] in self.vars:
             del self.vars[tline.args[0]]
+
+    def _cmake_string(self, tline: CMakeTraceLine):
+        # DOC: https://cmake.org/cmake/help/latest/command/string.html
+        args = list(tline.args) # Make a working copy
+
+        if len(args) < 1:
+            raise DependencyException('CMake: string() requires at least one argument\n{}'.format(tline))
+
+        def cm_append():
+            if args[0] not in self.vars:
+                self.vars[args[0]] = ['']
+            old = ' '.join(self.vars[args[0]]) # Just in case the old value was a list
+            self.vars[args[0]] = [old + ' '.join(args[1:])]
+
+        def cm_prepend():
+            if args[0] not in self.vars:
+                self.vars[args[0]] = ['']
+            old = ' '.join(self.vars[args[0]]) # Just in case the old value was a list
+            self.vars[args[0]] = [' '.join(args[1:]) + old]
+
+        def cm_concat():
+            self.vars[args[0]] = [''.join(args[1:])]
+
+        def cm_join():
+            self.vars[args[1]] = [args[0].join(args[1:])]
+
+        def cm_tolower():
+            self.vars[args[-1]] = [' '.join(args[:-1]).lower()]
+
+        def cm_toupper():
+            self.vars[args[-1]] = [' '.join(args[:-1]).upper()]
+
+        def cm_length():
+            self.vars[args[-1]] = [len(' '.join(args[:-1]))]
+
+        def cm_substring():
+            work = ' '.join(args[:-3])
+            begin = args[-3]
+            length = args[-2]
+            end = begin + length
+            if length < 0:
+                end = len(work) + 1
+            self.vars[args[-1]] = [work[begin:end]]
+
+        def cm_strip():
+            self.vars[args[-1]] = [' '.join(args[:-1]).strip()]
+
+        switch = {
+            'APPEND': (cm_append, 1),
+            'PREPEND': (cm_prepend, 1),
+            'CONCAT': (cm_concat, 1),
+            'JOIN': (cm_join, 2),
+            'TOLOWER': (cm_tolower, 2),
+            'TOUPPER': (cm_toupper, 2),
+            'LENGTH': (cm_length, 2),
+            'SUBSTRING': (cm_substring, 4),
+            'STRIP': (cm_strip, 2),
+        }
+
+        cmd = str(args[0])
+        del args[0]
+        fn = switch.get(cmd, None)
+
+        if fn:
+            if len(args) < fn[1]:
+                raise DependencyException('CMake: string({}) requires at least {} argument\n{}'.format(cmd, fn[1], tline))
+
+            fn[0]()
 
     def _cmake_add_executable(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/add_executable.html
