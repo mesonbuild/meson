@@ -27,7 +27,10 @@ test('zlibtest2', exe2)
 
 # Try to find a nonexistent library to ensure requires:false works.
 
-dep = dependency('nvakuhrabnsdfasdf', required : false, method : 'cmake')
+depf1 = dependency('nvakuhrabnsdfasdf', required : false, method : 'cmake')
+depf2 = dependency('ZLIB', required : false, method : 'cmake', modules : 'dfggh::hgfgag')
+
+assert(depf2.found() == false, 'Invalid CMake targets should fail')
 
 # Try to compile a test that takes a dep and an include_directories
 
