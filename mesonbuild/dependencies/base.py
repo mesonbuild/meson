@@ -1442,7 +1442,7 @@ class CMakeDependency(ExternalDependency):
         if not self.silent:
             if cmakebin and invalid_version:
                 mlog.log('Found CMake:', mlog.red('NO'), '(version of', mlog.bold(cmakebin.get_path()),
-                         'is', mlog.bold(cmvers) ,'but version', mlog.bold(CMakeDependency.class_cmake_version),
+                         'is', mlog.bold(cmvers), 'but version', mlog.bold(CMakeDependency.class_cmake_version),
                          'is required)')
             elif cmakebin:
                 mlog.log('Found CMake:', mlog.bold(cmakebin.get_path()),
