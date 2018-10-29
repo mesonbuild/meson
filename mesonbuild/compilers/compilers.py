@@ -360,7 +360,7 @@ def get_base_link_args(options, linker, is_shared_module):
         args.append('-Wl,-bitcode_bundle')
     elif as_needed:
         # -Wl,-dead_strip_dylibs is incompatible with bitcode
-        args.append(linker.get_asneeded_args())
+        args.extend(linker.get_asneeded_args())
     try:
         crt_val = options['b_vscrt'].value
         buildtype = options['buildtype'].value
