@@ -1105,6 +1105,7 @@ class CMakeDependency(ExternalDependency):
 
                 processed_targets += [curr]
 
+        # Make sure all elements in the lists are unique and sorted
         incDirs = list(sorted(list(set(incDirs))))
         compileDefinitions = list(sorted(list(set(compileDefinitions))))
         compileOptions = list(sorted(list(set(compileOptions))))
