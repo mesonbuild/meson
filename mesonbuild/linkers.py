@@ -14,7 +14,6 @@
 
 import typing
 
-from .mesonlib import Popen_safe, is_windows
 from . import mesonlib
 
 if typing.TYPE_CHECKING:
@@ -128,7 +127,7 @@ class ArLinker(StaticLinker):
     def __init__(self, exelist: typing.List[str]):
         super().__init__(exelist)
         self.id = 'ar'
-        pc, stdo = Popen_safe(self.exelist + ['-h'])[0:2]
+        pc, stdo = mesonlib.Popen_safe(self.exelist + ['-h'])[0:2]
         # Enable deterministic builds if they are available.
         if '[D]' in stdo:
             self.std_args = ['csrD']
@@ -166,8 +165,11 @@ class DLinker(StaticLinker):
     def get_output_args(self, target: str) -> typing.List[str]:
         return ['-of=' + target]
 
-    def get_linker_always_args(self) -> typing.List[str]:
-        if is_windows():
+    def get_buildtype_linker_args(self, buildtype):
+        return []
+
+    def get_linker_always_args(self):
+        if mesonlib.is_windows():
             if self.arch == 'x86_64':
                 return ['-m64']
             elif self.arch == 'x86_mscoff' and self.id == 'dmd':
