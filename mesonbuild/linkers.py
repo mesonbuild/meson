@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .mesonlib import Popen_safe, is_windows
 from . import mesonlib
 
 class StaticLinker:
@@ -86,7 +85,7 @@ class ArLinker(StaticLinker):
     def __init__(self, exelist):
         self.exelist = exelist
         self.id = 'ar'
-        pc, stdo = Popen_safe(self.exelist + ['-h'])[0:2]
+        pc, stdo = mesonlib.Popen_safe(self.exelist + ['-h'])[0:2]
         # Enable deterministic builds if they are available.
         if '[D]' in stdo:
             self.std_args = ['csrD']
@@ -172,7 +171,7 @@ class DLinker(StaticLinker):
         return []
 
     def get_linker_always_args(self):
-        if is_windows():
+        if mesonlib.is_windows():
             if self.arch == 'x86_64':
                 return ['-m64']
             elif self.arch == 'x86_mscoff' and self.id == 'dmd':
