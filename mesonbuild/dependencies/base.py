@@ -2084,6 +2084,10 @@ def find_external_dependency(name, env, kwargs):
 
 
 def _build_external_dependency_list(name, env, kwargs):
+    # First check if the method is valid
+    if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:
+        raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
+
     # Is there a specific dependency detector for this dependency?
     lname = name.lower()
     if lname in packages:
