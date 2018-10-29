@@ -121,6 +121,27 @@ Aditional dependencies methods are `pkg-config`, `config-tool`, `cmake`,
 cups_dep = dependency('cups', method : 'pkg-config')
 ```
 
+## CMake
+
+Meson can use the CMake `--find-package` feature to detect
+dependencies with the builtin `Find<NAME>.cmake` modules and exported
+project configurations (usually in `/usr/lib/cmake`). Meson is able
+to use both the old-style `<NAME>_LIBRARIES` variables as well as
+imported targets.
+
+It is possible to manually specify a list of CMake targets that should
+be used with the `modules` property. Howerver, this step is optional
+since meson tries to automatically guess the correct target based on the
+name of the dependency.
+
+Depending on the dependency it may be neccessary to explicitly specify
+a CMake target with the `modules` property if meson is unable to guess
+it automatically.
+
+```meson
+    cmake_dep = dependency('ZLIB', method : 'cmake', modules : ['ZLIB::ZLIB'])
+```
+
 ### Some notes on Dub
 
 Please understand that meson is only able to find dependencies that
