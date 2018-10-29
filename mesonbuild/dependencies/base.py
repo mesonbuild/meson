@@ -1421,6 +1421,7 @@ class CMakeDependency(ExternalDependency):
         else:
             cmakebin = 'cmake'
         cmakebin = ExternalProgram(cmakebin, silent=True)
+        invalid_version = False
         if cmakebin.found():
             try:
                 p, out = Popen_safe(cmakebin.get_command() + ['--version'], cwd=tempfile.gettempdir())[0:2]
@@ -1434,7 +1435,6 @@ class CMakeDependency(ExternalDependency):
                 cmakebin = False
 
             cmvers = re.sub(r'\s*cmake version\s*', '', out.split('\n')[0]).strip()
-            invalid_version = False
             if not version_compare(cmvers, CMakeDependency.class_cmake_version):
                 invalid_version = True
         else:
