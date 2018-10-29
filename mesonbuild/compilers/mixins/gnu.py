@@ -188,15 +188,15 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
 
-    def get_asneeded_args(self) -> str:
+    def get_asneeded_args(self) -> typing.List[str]:
         # GNU ld cannot be installed on macOS
         # https://github.com/Homebrew/homebrew-core/issues/17794#issuecomment-328174395
         # Hence, we don't need to differentiate between OS and ld
         # for the sake of adding as-needed support
         if self.compiler_type.is_osx_compiler:
-            return '-Wl,-dead_strip_dylibs'
+            return ['-Wl,-dead_strip_dylibs']
         else:
-            return '-Wl,--as-needed'
+            return ['-Wl,--as-needed']
 
     def get_pic_args(self) -> typing.List[str]:
         if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
