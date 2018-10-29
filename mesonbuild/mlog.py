@@ -104,6 +104,8 @@ def process_markup(args, keep):
     if log_timestamp_start is not None:
         arr = ['[{:.3f}]'.format(time.monotonic() - log_timestamp_start)]
     for arg in args:
+        if arg is None:
+            continue
         if isinstance(arg, str):
             arr.append(arg)
         elif isinstance(arg, AnsiDecorator):

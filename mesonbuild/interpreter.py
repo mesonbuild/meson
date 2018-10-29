@@ -937,6 +937,23 @@ class CompilerHolder(InterpreterObject):
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
                              })
 
+    def _dep_msg(self, deps, endl):
+        msg_single = 'with dependency {}'
+        msg_many = 'with dependencies {}'
+        if not deps:
+            return endl
+        if endl is None:
+            endl = ''
+        tpl = msg_many if len(deps) > 1 else msg_single
+        names = []
+        for d in deps:
+            if isinstance(d, dependencies.ExternalLibrary):
+                name = '-l' + d.name
+            else:
+                name = d.name
+            names.append(name)
+        return tpl.format(', '.join(names)) + endl
+
     @noPosargs
     @permittedKwargs({})
     def version_method(self, args, kwargs):
@@ -967,7 +984,7 @@ class CompilerHolder(InterpreterObject):
         args += mesonlib.stringlistify(kwargs.get('args', []))
         return args
 
-    def determine_dependencies(self, kwargs):
+    def determine_dependencies(self, kwargs, endl=':'):
         deps = kwargs.get('dependencies', None)
         if deps is not None:
             deps = listify(deps)
@@ -981,7 +998,7 @@ class CompilerHolder(InterpreterObject):
                     raise InterpreterException('Dependencies must be external dependencies')
                 final_deps.append(d)
             deps = final_deps
-        return deps
+        return deps, self._dep_msg(deps, endl)
 
     @permittedKwargs({
         'prefix',
@@ -997,9 +1014,9 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of sizeof must be a string.')
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs)
         result = self.compiler.alignment(typename, prefix, self.environment, extra_args, deps)
-        mlog.log('Checking for alignment of', mlog.bold(typename, True), ':', result)
+        mlog.log('Checking for alignment of', mlog.bold(typename, True), msg, result)
         return result
 
     @permittedKwargs({
@@ -1022,7 +1039,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs, endl=None)
         result = self.compiler.run(code, self.environment, extra_args, deps)
         if len(testname) > 0:
             if not result.compiled:
@@ -1031,7 +1048,7 @@ class CompilerHolder(InterpreterObject):
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO (%d)' % result.returncode)
-            mlog.log('Checking if', mlog.bold(testname, True), 'runs:', h)
+            mlog.log('Checking if', mlog.bold(testname, True), msg, 'runs:', h)
         return TryRunResultHolder(result)
 
     @noPosargs
@@ -1077,7 +1094,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_member must be a string.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs)
         had = self.compiler.has_members(typename, [membername], prefix,
                                         self.environment, extra_args, deps)
         if had:
@@ -1085,7 +1102,7 @@ class CompilerHolder(InterpreterObject):
         else:
             hadtxt = mlog.red('NO')
         mlog.log('Checking whether type', mlog.bold(typename, True),
-                 'has member', mlog.bold(membername, True), ':', hadtxt)
+                 'has member', mlog.bold(membername, True), msg, hadtxt)
         return had
 
     @permittedKwargs({
@@ -1105,7 +1122,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_members must be a string.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs)
         had = self.compiler.has_members(typename, membernames, prefix,
                                         self.environment, extra_args, deps)
         if had:
@@ -1114,7 +1131,7 @@ class CompilerHolder(InterpreterObject):
             hadtxt = mlog.red('NO')
         members = mlog.bold(', '.join(['"{}"'.format(m) for m in membernames]))
         mlog.log('Checking whether type', mlog.bold(typename, True),
-                 'has members', members, ':', hadtxt)
+                 'has members', members, msg, hadtxt)
         return had
 
     @permittedKwargs({
@@ -1133,13 +1150,13 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_function must be a string.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs)
         had = self.compiler.has_function(funcname, prefix, self.environment, extra_args, deps)
         if had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
-        mlog.log('Checking for function', mlog.bold(funcname, True), ':', hadtxt)
+        mlog.log('Checking for function', mlog.bold(funcname, True), msg, hadtxt)
         return had
 
     @permittedKwargs({
@@ -1158,13 +1175,13 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_type must be a string.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs)
         had = self.compiler.has_type(typename, prefix, self.environment, extra_args, deps)
         if had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
-        mlog.log('Checking for type', mlog.bold(typename, True), ':', hadtxt)
+        mlog.log('Checking for type', mlog.bold(typename, True), msg, hadtxt)
         return had
 
     @FeatureNew('compiler.compute_int', '0.40.0')
@@ -1196,9 +1213,9 @@ class CompilerHolder(InterpreterObject):
         if guess is not None and not isinstance(guess, int):
             raise InterpreterException('Guess argument of compute_int must be an int.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs)
         res = self.compiler.compute_int(expression, low, high, guess, prefix, self.environment, extra_args, deps)
-        mlog.log('Computing int of "%s": %d' % (expression, res))
+        mlog.log('Computing int of', mlog.bold(expression, True), msg, res)
         return res
 
     @permittedKwargs({
@@ -1217,9 +1234,9 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of sizeof must be a string.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs)
         esize = self.compiler.sizeof(element, prefix, self.environment, extra_args, deps)
-        mlog.log('Checking for size of "%s": %d' % (element, esize))
+        mlog.log('Checking for size of', mlog.bold(element, True), msg, esize)
         return esize
 
     @FeatureNew('compiler.get_define', '0.40.0')
@@ -1239,9 +1256,9 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of get_define() must be a string.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs)
         value = self.compiler.get_define(element, prefix, self.environment, extra_args, deps)
-        mlog.log('Fetching value of define "%s": %s' % (element, value))
+        mlog.log('Fetching value of define', mlog.bold(element, True), msg, value)
         return value
 
     @permittedKwargs({
@@ -1264,14 +1281,14 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs, endl=None)
         result = self.compiler.compiles(code, self.environment, extra_args, deps)
         if len(testname) > 0:
             if result:
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
-            mlog.log('Checking if', mlog.bold(testname, True), 'compiles:', h)
+            mlog.log('Checking if', mlog.bold(testname, True), msg, 'compiles:', h)
         return result
 
     @permittedKwargs({
@@ -1294,14 +1311,14 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs, endl=None)
         result = self.compiler.links(code, self.environment, extra_args, deps)
         if len(testname) > 0:
             if result:
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
-            mlog.log('Checking if', mlog.bold(testname, True), 'links:', h)
+            mlog.log('Checking if', mlog.bold(testname, True), msg, 'links:', h)
         return result
 
     @FeatureNew('compiler.check_header', '0.47.0')
@@ -1321,13 +1338,13 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header must be a string.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs)
         haz = self.compiler.check_header(hname, prefix, self.environment, extra_args, deps)
         if haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        mlog.log('Check usable header "%s":' % hname, h)
+        mlog.log('Check usable header', mlog.bold(hname, True), msg, h)
         return haz
 
     @permittedKwargs({
@@ -1346,13 +1363,13 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header must be a string.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs)
         haz = self.compiler.has_header(hname, prefix, self.environment, extra_args, deps)
         if haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        mlog.log('Has header "%s":' % hname, h)
+        mlog.log('Has header', mlog.bold(hname, True), msg, h)
         return haz
 
     @permittedKwargs({
@@ -1372,13 +1389,13 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header_symbol must be a string.')
         extra_args = self.determine_args(kwargs)
-        deps = self.determine_dependencies(kwargs)
+        deps, msg = self.determine_dependencies(kwargs)
         haz = self.compiler.has_header_symbol(hname, symbol, prefix, self.environment, extra_args, deps)
         if haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        mlog.log('Header <{0}> has symbol "{1}":'.format(hname, symbol), h)
+        mlog.log('Header <{0}> has symbol'.format(hname), mlog.bold(symbol, True), msg, h)
         return haz
 
     @FeatureNewKwargs('compiler.find_library', '0.49.0', ['disabler'])
