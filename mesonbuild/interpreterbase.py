@@ -382,6 +382,9 @@ class InterpreterBase:
             me.file = environment.build_filename
             raise me
 
+    def join_path_strings(self, args):
+        return os.path.join(*args).replace('\\', '/')
+
     def parse_project(self):
         """
         Parses project() and initializes languages, compilers etc. Do this
@@ -628,9 +631,13 @@ The result of this is undefined and will become a hard error in a future Meson r
                 raise InvalidCode('Multiplication works only with integers.')
             return l * r
         elif cur.operation == 'div':
-            if not isinstance(l, int) or not isinstance(r, int):
-                raise InvalidCode('Division works only with integers.')
-            return l // r
+            if isinstance(l, str) and isinstance(r, str):
+                return self.join_path_strings((l, r))
+            if isinstance(l, int) and isinstance(r, int):
+                if r == 0:
+                    raise InvalidCode('Division by zero.')
+                return l // r
+            raise InvalidCode('Division works only with strings or integers.')
         elif cur.operation == 'mod':
             if not isinstance(l, int) or not isinstance(r, int):
                 raise InvalidCode('Modulo works only with integers.')

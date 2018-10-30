@@ -1005,7 +1005,7 @@ the jar with `java -jar file.jar`.
 ### join_paths()
 
 ``` meson
-   string join_paths(string1, string2, ...)
+string join_paths(string1, string2, ...)
 ```
 
 Joins the given strings into a file system path segment. For example
@@ -1014,6 +1014,15 @@ individual segments is an absolute path, all segments before it are
 dropped. That means that `join_paths('foo', '/bar')` returns `/bar`.
 
 *Added 0.36.0*
+
+Since 0.49.0 using the`/` operator on strings is equivalent to calling
+`join_paths`.
+
+```meson
+# res1 and res2 will have identical values
+res1 = join_paths(foo, bar)
+res2 = foo / bar
+```
 
 ### library()
 
