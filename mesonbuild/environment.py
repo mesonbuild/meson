@@ -166,11 +166,13 @@ def detect_windows_arch(compilers):
     easily detected.
 
     In the end, the sanest method is as follows:
-    1. Check if we're in an MSVC toolchain environment, and if so, return the
-       MSVC toolchain architecture as our 'native' architecture.
-    2. If not, check environment variables that are set by Windows and WOW64 to
-       find out the architecture that Windows is built for, and use that as our
-       'native' architecture.
+    1. Check environment variables that are set by Windows and WOW64 to find out
+       if this is x86 (possibly in WOW64), if so use that as our 'native'
+       architecture.
+    2. If the compiler toolchain target architecture is x86, use that as our
+      'native' architecture.
+    3. Otherwise, use the actual Windows architecture
+
     """
     os_arch = detect_native_windows_arch()
     if os_arch != 'amd64':
@@ -180,31 +182,9 @@ def detect_windows_arch(compilers):
     # 32-bit and pretend like we're running under WOW64. Else, return the
     # actual Windows architecture that we deduced above.
     for compiler in compilers.values():
-        # Check if we're using and inside an MSVC toolchain environment
-        if compiler.id == 'msvc' and 'VCINSTALLDIR' in os.environ:
-            if float(compiler.get_toolset_version()) < 10.0:
-                # On MSVC 2008 and earlier, check 'BUILD_PLAT', where
-                # 'Win32' means 'x86'
-                platform = os.environ.get('BUILD_PLAT', os_arch)
-                if platform == 'Win32':
-                    return 'x86'
-            elif 'VSCMD_ARG_TGT_ARCH' in os.environ:
-                # On MSVC 2017 'Platform' is not set in VsDevCmd.bat
-                return os.environ['VSCMD_ARG_TGT_ARCH']
-            else:
-                # Starting with VS 2017, `Platform` is not always set (f.ex.,
-                # if you use VsDevCmd.bat directly instead of vcvars*.bat), but
-                # `VSCMD_ARG_HOST_ARCH` is always set, so try that first.
-                if 'VSCMD_ARG_HOST_ARCH' in os.environ:
-                    platform = os.environ['VSCMD_ARG_HOST_ARCH'].lower()
-                # On VS 2010-2015, 'Platform' is only set when the
-                # target arch is not 'x86'.  It's 'x64' when targeting
-                # x86_64 and 'arm' when targeting ARM.
-                else:
-                    platform = os.environ.get('Platform', 'x86').lower()
-            if platform == 'x86':
-                return platform
-        if compiler.id == 'clang-cl' and not compiler.is_64:
+        if compiler.id == 'msvc' and compiler.target == 'x86':
+            return 'x86'
+        if compiler.id == 'clang-cl' and compiler.target == 'x86':
             return 'x86'
         if compiler.id == 'gcc' and compiler.has_builtin_define('__i386__'):
             return 'x86'
