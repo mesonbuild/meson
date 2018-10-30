@@ -659,9 +659,13 @@ class Environment:
                 except OSError as e:
                     popen_exceptions[' '.join(compiler + [arg])] = e
                 version = search_version(out)
-                is_64 = 'Target: x86_64' in out
+                match = re.search('^Target: (.*?)-', out, re.MULTILINE)
+                if match:
+                    target = match.group(1)
+                else:
+                    target = 'unknown target'
                 cls = ClangClCCompiler if lang == 'c' else ClangClCPPCompiler
-                return cls(compiler, version, is_cross, exe_wrap, is_64)
+                return cls(compiler, version, is_cross, exe_wrap, target)
             if 'clang' in out:
                 if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
                     compiler_type = CompilerType.CLANG_OSX
@@ -676,15 +680,20 @@ class Environment:
                 # number to stderr but earlier ones print version
                 # on stdout.  Why? Lord only knows.
                 # Check both outputs to figure out version.
-                version = search_version(err)
-                if version == 'unknown version':
-                    version = search_version(out)
-                if version == 'unknown version':
-                    m = 'Failed to detect MSVC compiler arch: stderr was\n{!r}'
+                for lookat in [err, out]:
+                    version = search_version(lookat)
+                    if version != 'unknown version':
+                        break
+                else:
+                    m = 'Failed to detect MSVC compiler version: stderr was\n{!r}'
                     raise EnvironmentException(m.format(err))
-                is_64 = err.split('\n')[0].endswith(' x64')
+                match = re.search(' for (.*)$', lookat.split('\n')[0])
+                if match:
+                    target = match.group(1)
+                else:
+                    target = 'x86'
                 cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
-                return cls(compiler, version, is_cross, exe_wrap, is_64)
+                return cls(compiler, version, is_cross, exe_wrap, target)
             if '(ICC)' in out:
                 if mesonlib.for_darwin(want_cross, self):
                     compiler_type = CompilerType.ICC_OSX

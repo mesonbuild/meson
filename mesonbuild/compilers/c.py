@@ -1290,7 +1290,7 @@ class VisualStudioCCompiler(CCompiler):
                 'mtd': ['/MTd'],
                 }
 
-    def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
+    def __init__(self, exelist, version, is_cross, exe_wrap, target):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'msvc'
         # /showIncludes is needed for build dependency tracking in Ninja
@@ -1300,7 +1300,8 @@ class VisualStudioCCompiler(CCompiler):
                           '2': ['/W3'],
                           '3': ['/W4']}
         self.base_options = ['b_pch', 'b_ndebug', 'b_vscrt'] # FIXME add lto, pgo and the like
-        self.is_64 = is_64
+        self.target = target
+        self.is_64 = ('x64' in target) or ('x86_64' in target)
 
     # Override CCompiler.get_always_args
     def get_always_args(self):
@@ -1588,8 +1589,8 @@ class VisualStudioCCompiler(CCompiler):
 
 
 class ClangClCCompiler(VisualStudioCCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
-        super().__init__(exelist, version, is_cross, exe_wrap, is_64)
+    def __init__(self, exelist, version, is_cross, exe_wrap, target):
+        super().__init__(exelist, version, is_cross, exe_wrap, target)
         self.id = 'clang-cl'
 
 

@@ -308,9 +308,9 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
 
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
+    def __init__(self, exelist, version, is_cross, exe_wrap, target):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
-        VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap, is_64)
+        VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap, target)
         self.base_options = ['b_pch', 'b_vscrt'] # FIXME add lto, pgo and the like
 
     def get_options(self):
@@ -387,8 +387,8 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         return VisualStudioCCompiler.get_compiler_check_args(self)
 
 class ClangClCPPCompiler(VisualStudioCPPCompiler, ClangClCCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
-        VisualStudioCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, is_64)
+    def __init__(self, exelist, version, is_cross, exe_wrap, target):
+        VisualStudioCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, target)
         self.id = 'clang-cl'
 
 class ArmCPPCompiler(ArmCompiler, CPPCompiler):
