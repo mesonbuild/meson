@@ -23,6 +23,7 @@ from mesonbuild.dependencies import ExternalProgram
 from mesonbuild.mesonlib import substring_is_in_list, MesonException
 from mesonbuild import mlog
 
+import tempfile
 import time, datetime, multiprocessing, json
 import concurrent.futures as conc
 import platform
@@ -289,8 +290,8 @@ class SingleTestRunner:
         stdout = None
         stderr = None
         if not self.options.verbose:
-            stdout = subprocess.PIPE
-            stderr = subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT
+            stdout = tempfile.TemporaryFile("wb+")
+            stderr = tempfile.TemporaryFile("wb+") if self.options and self.options.split else stdout
 
         # Let gdb handle ^C instead of us
         if self.options.gdb:
@@ -324,7 +325,7 @@ class SingleTestRunner:
         else:
             timeout = self.test.timeout
         try:
-            (stdo, stde) = p.communicate(timeout=timeout)
+            p.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             if self.options.verbose:
                 print('%s time out (After %d seconds)' % (self.test.name, timeout))
@@ -336,6 +337,8 @@ class SingleTestRunner:
             if self.options.gdb:
                 # Let us accept ^C again
                 signal.signal(signal.SIGINT, previous_sigint_handler)
+
+        additional_error = None
 
         if kill_test or timed_out:
             # Python does not provide multiplatform support for
@@ -353,25 +356,31 @@ class SingleTestRunner:
                     # already died) so carry on.
                     pass
             try:
-                (stdo, stde) = p.communicate(timeout=1)
+                p.communicate(timeout=1)
             except subprocess.TimeoutExpired:
                 # An earlier kill attempt has not worked for whatever reason.
                 # Try to kill it one last time with a direct call.
                 # If the process has spawned children, they will remain around.
                 p.kill()
                 try:
-                    (stdo, stde) = p.communicate(timeout=1)
+                    p.communicate(timeout=1)
                 except subprocess.TimeoutExpired:
-                    stdo = b'Test process could not be killed.'
-                    stde = b''
+                    additional_error = b'Test process could not be killed.'
             except ValueError:
-                stdo = b'Could not read output. Maybe the process has redirected its stdout/stderr?'
-                stde = b''
+                additional_error = b'Could not read output. Maybe the process has redirected its stdout/stderr?'
         endtime = time.time()
         duration = endtime - starttime
-        stdo = decode(stdo)
-        if stde:
-            stde = decode(stde)
+        if additional_error is None:
+            stdout.seek(0)
+            stdo = decode(stdout.read())
+            if stderr != stdout:
+                stderr.seek(0)
+                stde = decode(stderr.read())
+            else:
+                stde = ""
+        else:
+            stdo = ""
+            stde = additional_error
         if timed_out:
             res = TestResult.TIMEOUT
         elif p.returncode == GNU_SKIP_RETURNCODE:
