@@ -3810,7 +3810,7 @@ different subdirectory.
     @stringArgs
     @noKwargs
     def func_join_paths(self, node, args, kwargs):
-        return os.path.join(*args).replace('\\', '/')
+        return self.join_path_strings(args)
 
     def run(self):
         super().run()
