@@ -1464,7 +1464,8 @@ def find_external_dependency(name, env, kwargs):
 
         # we have a list of failed ExternalDependency objects, so we can report
         # the methods we tried to find the dependency
-        raise DependencyException('Dependency "%s" not found, tried %s' % (name, tried))
+        raise DependencyException('Dependency "%s" not found' % (name) +
+                                  (', tried %s' % (tried) if tried else ''))
 
     # return the last failed dependency object
     if pkgdep:
