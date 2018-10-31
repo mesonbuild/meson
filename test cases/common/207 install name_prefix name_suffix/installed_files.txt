@@ -1,0 +1,10 @@
+?msvc:usr/bin/baz.pdb
+?msvc:usr/bin/foo.pdb
+?msvc:usr/lib/baz.pdb
+?msvc:usr/lib/foo.pdb
+usr/lib/?libbaz.cheese
+usr/lib/bar.a
+usr/lib/foo?implib
+usr/lib/foo?so
+usr/lib/libbaz?implib
+usr/lib/libqux.cheese

@@ -119,8 +119,14 @@ def get_relative_files_list_from_dir(fromdir):
 
 def platform_fix_name(fname, compiler, env):
     if '?lib' in fname:
-        if mesonlib.for_cygwin(env.is_cross_build(), env):
+        if mesonlib.for_windows(env.is_cross_build(), env) and compiler == 'msvc':
+            fname = re.sub(r'lib/\?lib(.*)\.', r'bin/\1.', fname)
+        elif mesonlib.for_windows(env.is_cross_build(), env):
+            fname = re.sub(r'lib/\?lib(.*)\.', r'bin/lib\1.', fname)
+            fname = re.sub(r'\?lib(.*)\.dll$', r'lib\1.dll', fname)
+        elif mesonlib.for_cygwin(env.is_cross_build(), env):
             fname = re.sub(r'lib/\?lib(.*)\.so$', r'bin/cyg\1.dll', fname)
+            fname = re.sub(r'lib/\?lib(.*)\.', r'bin/cyg\1.', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'cyg\1.dll', fname)
         else:
             fname = re.sub(r'\?lib', 'lib', fname)
@@ -143,6 +149,33 @@ def platform_fix_name(fname, compiler, env):
     if fname.startswith('?cygwin:'):
         fname = fname[8:]
         if compiler == 'msvc' or not mesonlib.for_cygwin(env.is_cross_build(), env):
+            return None
+
+    if fname.endswith('?so'):
+        if mesonlib.for_windows(env.is_cross_build(), env) and canonical_compiler == 'msvc':
+            fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
+            fname = re.sub(r'/(?:lib|)([^/]*?)\?so$', r'/\1.dll', fname)
+            return fname
+        elif mesonlib.for_windows(env.is_cross_build(), env):
+            fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
+            fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
+            return fname
+        elif mesonlib.for_cygwin(env.is_cross_build(), env):
+            fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
+            fname = re.sub(r'/lib([^/]*?)\?so$', r'/cyg\1.dll', fname)
+            fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
+            return fname
+        elif mesonlib.for_darwin(env.is_cross_build(), env):
+            return fname[:-3] + '.dylib'
+        else:
+            return fname[:-3] + '.so'
+
+    if fname.endswith('?implib'):
+        if mesonlib.for_windows(env.is_cross_build(), env) and compiler == 'msvc':
+            return re.sub(r'/(?:lib|)([^/]*?)\?implib$', r'/\1.lib', fname)
+        elif mesonlib.for_windows(env.is_cross_build(), env) or mesonlib.for_cygwin(env.is_cross_build(), env):
+            return fname[:-7] + '.dll.a'
+        else:
             return None
 
     return fname
