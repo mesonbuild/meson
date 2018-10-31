@@ -412,6 +412,8 @@ def get_base_compile_args(options, compiler):
     args = []
     try:
         if options['b_lto'].value:
+            if compiler.id == 'msvc' and options['buildtype'].value == 'debug':
+                raise MesonException('MSVC does not support LTO with debug buildtype.')
             args.extend(compiler.get_lto_compile_args())
     except KeyError:
         pass
