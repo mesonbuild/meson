@@ -767,6 +767,15 @@ int dummy;
         main_class = target.get_main_class()
         if main_class != '':
             e = 'e'
+
+        # Add possible java generated files to src list
+        generated_sources = self.get_target_generated_sources(target)
+        for rel_src, gensrc in generated_sources.items():
+            dirpart, fnamepart = os.path.split(rel_src)
+            raw_src = File(True, dirpart, fnamepart)
+            if rel_src.endswith('.java'):
+                src_list.append(raw_src)
+
         for src in src_list:
             plain_class_path = self.generate_single_java_compile(src, target, compiler, outfile)
             class_list.append(plain_class_path)
