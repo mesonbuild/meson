@@ -1557,6 +1557,9 @@ class ClangCompiler(GnuLikeCompiler):
         self.base_options.append('b_colorout')
         if self.compiler_type.is_osx_compiler:
             self.base_options.append('b_bitcode')
+        if self.compiler_type is CompilerType.CLANG_OPENBSD:
+            # LTO doesn't work with OpenBSD's clang
+            self.base_options.remove('b_lto')
         # All Clang backends can also do LLVM IR
         self.can_compile_suffixes.add('ll')
 
