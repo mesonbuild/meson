@@ -1603,6 +1603,18 @@ class ClangCompiler(GnuLikeCompiler):
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
 
+    def sanitizer_compile_args(self, value):
+        if self.compiler_type is CompilerType.CLANG_OPENBSD:
+            if value not in ['none', 'memory']:
+                raise EnvironmentException('OpenBSD Clang only supports the "memory" and "none" sanitizers')
+        return super().sanitizer_compile_args(value)
+
+    def sanitizer_link_args(self, value):
+        if self.compiler_type is CompilerType.CLANG_OPENBSD:
+            if value not in ['none', 'memory']:
+                raise EnvironmentException('OpenBSD Clang only supports the "memory" and "none" sanitizers')
+        return super().sanitizer_link_args(value)
+
 
 class ArmclangCompiler:
     def __init__(self, compiler_type):

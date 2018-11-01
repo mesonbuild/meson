@@ -3391,6 +3391,7 @@ class LinuxlikeTests(BasePlatformTests):
             self.assertRegex('\n'.join(mesonlog),
                              r'Dependency qt5 \(modules: Core\) found: YES 5.* \(pkg-config\)\n')
 
+    @unittest.skipIf(is_openbsd(), 'Asan not available on OpenBSD')
     def test_generate_gir_with_address_sanitizer(self):
         if is_cygwin():
             raise unittest.SkipTest('asan not available on Cygwin')
@@ -3853,6 +3854,7 @@ class LinuxlikeTests(BasePlatformTests):
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/progcxx'))
         self.assertEqual(install_rpath, 'baz')
 
+    @unittest.skipIf(is_openbsd(), 'Asan not available on OpenBSD')
     def test_pch_with_address_sanitizer(self):
         if is_cygwin():
             raise unittest.SkipTest('asan not available on Cygwin')
