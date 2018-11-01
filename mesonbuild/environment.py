@@ -713,9 +713,9 @@ This is probably wrong, it should always point to the native compiler.''' % evar
     def get_scratch_dir(self):
         return self.scratch_dir
 
-    def detect_objc_compiler(self, want_cross):
+    def _detect_objc_or_objcpp_compiler(self, lang, evar, want_cross):
         popen_exceptions = {}
-        compilers, ccache, is_cross, exe_wrap = self._get_compilers('objc', 'OBJC', want_cross)
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers(lang, evar, want_cross)
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -733,39 +733,25 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                     continue
                 compiler_type = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
-                return GnuObjCCompiler(ccache + compiler, version, compiler_type, is_cross, exe_wrap, defines)
-            if out.startswith('Apple LLVM'):
-                return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_OSX, is_cross, exe_wrap)
-            if out.startswith('clang'):
-                return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_STANDARD, is_cross, exe_wrap)
+                if lang == 'objc':
+                    return GnuObjCCompiler(ccache + compiler, version, compiler_type, is_cross, exe_wrap, defines)
+                return GnuObjCPPCompiler(ccache + compiler, version, compiler_type, is_cross, exe_wrap, defines)
+            if 'clang' in out:
+                if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
+                    compiler_type = CompilerType.CLANG_OSX
+                elif 'windows' in out or mesonlib.for_windows(want_cross, self):
+                    compiler_type = CompilerType.CLANG_MINGW
+                else:
+                    compiler_type = CompilerType.CLANG_STANDARD
+                cls = ClangObjCCompiler if lang == 'objc' else ClangObjCPPCompiler
+                return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap)
         self._handle_exceptions(popen_exceptions, compilers)
 
+    def detect_objc_compiler(self, want_cross):
+        return self._detect_objc_or_objcpp_compiler('objc', 'OBJC', want_cross)
+
     def detect_objcpp_compiler(self, want_cross):
-        popen_exceptions = {}
-        compilers, ccache, is_cross, exe_wrap = self._get_compilers('objcpp', 'OBJCXX', want_cross)
-        for compiler in compilers:
-            if isinstance(compiler, str):
-                compiler = [compiler]
-            arg = ['--version']
-            try:
-                p, out, err = Popen_safe(compiler + arg)
-            except OSError as e:
-                popen_exceptions[' '.join(compiler + arg)] = e
-                continue
-            version = search_version(out)
-            if 'Free Software Foundation' in out or ('e2k' in out and 'lcc' in out):
-                defines = self.get_gnu_compiler_defines(compiler)
-                if not defines:
-                    popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
-                    continue
-                compiler_type = self.get_gnu_compiler_type(defines)
-                version = self.get_gnu_version_from_defines(defines)
-                return GnuObjCPPCompiler(ccache + compiler, version, compiler_type, is_cross, exe_wrap, defines)
-            if out.startswith('Apple LLVM'):
-                return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_OSX, is_cross, exe_wrap)
-            if out.startswith('clang'):
-                return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_STANDARD, is_cross, exe_wrap)
-        self._handle_exceptions(popen_exceptions, compilers)
+        return self._detect_objc_or_objcpp_compiler('objcpp', 'OBJCXX', want_cross)
 
     def detect_java_compiler(self):
         exelist = ['javac']
