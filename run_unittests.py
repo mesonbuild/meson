@@ -1852,6 +1852,7 @@ class AllPlatformTests(BasePlatformTests):
             self.utime(os.path.join(testdir, f))
             self.assertRebuiltTarget('prog')
 
+    @skip_if_not_base_option('b_lto')
     def test_static_library_lto(self):
         '''
         Test that static libraries can be built with LTO and linked to
