@@ -611,6 +611,8 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                     compiler_type = CompilerType.CLANG_OSX
                 elif 'windows' in out or mesonlib.for_windows(want_cross, self):
                     compiler_type = CompilerType.CLANG_MINGW
+                elif 'OpenBSD' in out or mesonlib.for_openbsd(want_cross, self):
+                    compiler_type = CompilerType.CLANG_OPENBSD
                 else:
                     compiler_type = CompilerType.CLANG_STANDARD
                 cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
@@ -741,6 +743,8 @@ This is probably wrong, it should always point to the native compiler.''' % evar
                     compiler_type = CompilerType.CLANG_OSX
                 elif 'windows' in out or mesonlib.for_windows(want_cross, self):
                     compiler_type = CompilerType.CLANG_MINGW
+                elif 'OpenBSD' in out or mesonlib.for_openbsd(want_cross, self):
+                    compiler_type = CompilerType.CLANG_OPENBSD
                 else:
                     compiler_type = CompilerType.CLANG_STANDARD
                 cls = ClangObjCCompiler if lang == 'objc' else ClangObjCPPCompiler

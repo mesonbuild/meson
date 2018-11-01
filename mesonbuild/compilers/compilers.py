@@ -1143,9 +1143,10 @@ class Compiler:
         if mesonlib.is_dragonflybsd() or mesonlib.is_openbsd():
             # This argument instructs the compiler to record the value of
             # ORIGIN in the .dynamic section of the elf. On Linux this is done
-            # by default, but is not on dragonfly/openbsd for some reason. Without this
-            # $ORIGIN in the runtime path will be undefined and any binaries
-            # linked against local libraries will fail to resolve them.
+            # by default, but is not on dragonfly/openbsd for some reason.
+            # Without this $ORIGIN in the runtime path will be undefined and
+            # any binaries linked against local libraries will fail to resolve
+            # them.
             args.append('-Wl,-z,origin')
 
         if mesonlib.is_osx():
@@ -1225,6 +1226,7 @@ class CompilerType(enum.Enum):
     CLANG_STANDARD = 10
     CLANG_OSX = 11
     CLANG_MINGW = 12
+    CLANG_OPENBSD = 13
     # Possibly clang-cl?
 
     ICC_STANDARD = 20
@@ -1254,7 +1256,7 @@ def get_macos_dylib_install_name(prefix, shlib_name, suffix, soversion):
     return '@rpath/' + install_name
 
 def get_gcc_soname_args(compiler_type, prefix, shlib_name, suffix, soversion, darwin_versions, is_shared_module):
-    if compiler_type.is_standard_compiler:
+    if compiler_type.is_standard_compiler or compiler_type is CompilerType.CLANG_OPENBSD:
         sostr = '' if soversion is None else '.' + soversion
         return ['-Wl,-soname,%s%s.%s%s' % (prefix, shlib_name, suffix, sostr)]
     elif compiler_type.is_windows_compiler:
@@ -1273,7 +1275,8 @@ def get_gcc_soname_args(compiler_type, prefix, shlib_name, suffix, soversion, da
 
 def get_compiler_is_linuxlike(compiler):
     compiler_type = getattr(compiler, 'compiler_type', None)
-    return compiler_type and compiler_type.is_standard_compiler
+    return compiler_type and (compiler_type.is_standard_compiler or
+                              compiler_type is CompilerType.CLANG_OPENBSD)
 
 def get_compiler_uses_gnuld(c):
     # FIXME: Perhaps we should detect the linker in the environment?

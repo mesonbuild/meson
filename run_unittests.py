@@ -1660,6 +1660,8 @@ class AllPlatformTests(BasePlatformTests):
                 elif is_windows():
                     # Not implemented yet
                     self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.CLANG_MINGW)
+                elif is_openbsd():
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.CLANG_OPENBSD)
                 else:
                     self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.CLANG_STANDARD)
             if isinstance(cc, intel):
