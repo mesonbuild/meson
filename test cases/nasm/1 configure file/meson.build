@@ -47,3 +47,9 @@ exe = executable('hello', asm_gen.process('hello.asm'),
 )
 
 test('test-nasm-configure-file', exe)
+
+exe2 = executable('hello2', objects : exe.extract_all_objects(),
+  link_args: link_args,
+)
+
+test('test-nasm-extract-all-objects', exe2)
