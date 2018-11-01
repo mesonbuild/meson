@@ -386,20 +386,6 @@ gnu_symbol_visibility_args = {'': [],
                               'inlineshidden': ['-fvisibility=hidden', '-fvisibility-inlines-hidden'],
                               }
 
-def sanitizer_compile_args(value):
-    if value == 'none':
-        return []
-    args = ['-fsanitize=' + value]
-    if 'address' in value: # For -fsanitize=address,undefined
-        args.append('-fno-omit-frame-pointer')
-    return args
-
-def sanitizer_link_args(value):
-    if value == 'none':
-        return []
-    args = ['-fsanitize=' + value]
-    return args
-
 def option_enabled(boptions, options, option):
     try:
         if option not in boptions:
@@ -421,7 +407,7 @@ def get_base_compile_args(options, compiler):
     except KeyError:
         pass
     try:
-        args += sanitizer_compile_args(options['b_sanitize'].value)
+        args += compiler.sanitizer_compile_args(options['b_sanitize'].value)
     except KeyError:
         pass
     try:
@@ -467,7 +453,7 @@ def get_base_link_args(options, linker, is_shared_module):
     except KeyError:
         pass
     try:
-        args += sanitizer_link_args(options['b_sanitize'].value)
+        args += linker.sanitizer_link_args(options['b_sanitize'].value)
     except KeyError:
         pass
     try:
@@ -1215,6 +1201,18 @@ class Compiler:
         m = 'Language {} does not support position-independent executable'
         raise EnvironmentException(m.format(self.get_display_language()))
 
+    def sanitizer_compile_args(self, value):
+        if value == 'none':
+            return []
+        raise EnvironmentException(
+            'Language or Compiler does not support sanitizer {}.'.format(value))
+
+    def sanitizer_link_args(self, value):
+        if value == 'none':
+            return []
+        raise EnvironmentException(
+            'Language or Compiler does not support sanitizer {}.'.format(value))
+
 
 @enum.unique
 class CompilerType(enum.Enum):
@@ -1451,6 +1449,20 @@ class GnuLikeCompiler(abc.ABC):
             return [defsfile]
         # For other targets, discard the .def file.
         return []
+
+    def sanitizer_compile_args(self, value):
+        if value == 'none':
+            return []
+        args = ['-fsanitize=' + value]
+        if 'address' in value: # For -fsanitize=address,undefined
+            args.append('-fno-omit-frame-pointer')
+        return args
+
+    def sanitizer_link_args(self, value):
+        if value == 'none':
+            return []
+        args = ['-fsanitize=' + value]
+        return args
 
 
 class GnuCompiler(GnuLikeCompiler):
