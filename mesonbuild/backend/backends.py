@@ -443,7 +443,13 @@ class Backend:
                 sources.append(File(True, dirpart, fnamepart))
 
         # Filter out headers and all non-source files
-        sources = [s for s in sources if self.environment.is_source(s) and not self.environment.is_header(s)]
+        filtered_sources = []
+        for s in sources:
+            if self.environment.is_source(s) and not self.environment.is_header(s):
+                filtered_sources.append(s)
+            elif self.environment.is_object(s):
+                result.append(s.relative_name())
+        sources = filtered_sources
 
         # extobj could contain only objects and no sources
         if not sources:
