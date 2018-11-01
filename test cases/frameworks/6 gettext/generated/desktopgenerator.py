@@ -5,5 +5,9 @@ import os, sys, shutil
 ifile = sys.argv[1]
 ofile = sys.argv[2]
 
-os.unlink(ofile)
+try:
+    os.unlink(ofile)
+except FileNotFoundError:
+    pass
+
 shutil.copy(ifile, ofile)

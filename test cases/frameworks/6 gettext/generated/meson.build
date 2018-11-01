@@ -11,4 +11,6 @@ i18n.merge_file(
   output : 'something.desktop',
   type : 'desktop',
   po_dir : '../po',
+  install: true,
+  install_dir: join_paths(get_option('datadir'), 'applications'),
 )
