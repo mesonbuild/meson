@@ -605,6 +605,8 @@ class InternalTests(unittest.TestCase):
                 self._test_all_naming(cc, env, patterns, 'windows-msvc')
             else:
                 self._test_all_naming(cc, env, patterns, 'windows-mingw')
+        elif is_openbsd():
+            self._test_all_naming(cc, env, patterns, 'openbsd')
         else:
             self._test_all_naming(cc, env, patterns, 'linux')
             # Mock OpenBSD since we don't have tests for it
