@@ -1547,13 +1547,9 @@ class SharedLibrary(BuildTarget):
         prefix = ''
         suffix = ''
         self.filename_tpl = self.basic_filename_tpl
-        # If the user already provided the prefix and suffix to us, we don't
-        # need to do any filename suffix/prefix detection.
         # NOTE: manual prefix/suffix override is currently only tested for C/C++
-        if self.prefix is not None and self.suffix is not None:
-            pass
         # C# and Mono
-        elif 'cs' in self.compilers:
+        if 'cs' in self.compilers:
             prefix = ''
             suffix = 'dll'
             self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
