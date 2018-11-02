@@ -3831,7 +3831,8 @@ different subdirectory.
             return
         if 'b_sanitize' not in self.coredata.base_options:
             return
-        if self.coredata.base_options['b_lundef'].value:
+        if (self.coredata.base_options['b_lundef'].value and
+                self.coredata.base_options['b_sanitize'].value != 'none'):
             mlog.warning('''Trying to use {} sanitizer on Clang with b_lundef.
 This will probably not work.
 Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_sanitize'].value))
