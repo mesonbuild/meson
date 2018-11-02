@@ -26,6 +26,7 @@ from ..mesonlib import File
 from ..compilers import CompilerArgs
 from collections import OrderedDict
 import shlex
+from functools import lru_cache
 
 
 class CleanTrees:
@@ -210,6 +211,7 @@ class Backend:
     def get_target_private_dir_abs(self, target):
         return os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
 
+    @lru_cache(maxsize=None)
     def get_target_generated_dir(self, target, gensrc, src):
         """
         Takes a BuildTarget, a generator source (CustomTarget or GeneratedList),
