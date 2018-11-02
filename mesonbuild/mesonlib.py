@@ -21,6 +21,7 @@ import time
 import platform, subprocess, operator, os, shutil, re
 import collections
 from enum import Enum
+from functools import lru_cache
 
 from mesonbuild import mlog
 
@@ -223,6 +224,7 @@ class File:
         return ret.format(self.relative_name())
 
     @staticmethod
+    @lru_cache(maxsize=None)
     def from_source_file(source_root, subdir, fname):
         if not os.path.isfile(os.path.join(source_root, subdir, fname)):
             raise MesonException('File %s does not exist.' % fname)
@@ -236,12 +238,14 @@ class File:
     def from_absolute_file(fname):
         return File(False, '', fname)
 
+    @lru_cache(maxsize=None)
     def rel_to_builddir(self, build_to_src):
         if self.is_built:
             return self.relative_name()
         else:
             return os.path.join(build_to_src, self.subdir, self.fname)
 
+    @lru_cache(maxsize=None)
     def absolute_path(self, srcdir, builddir):
         absdir = srcdir
         if self.is_built:
@@ -260,6 +264,7 @@ class File:
     def __hash__(self):
         return hash((self.fname, self.subdir, self.is_built))
 
+    @lru_cache(maxsize=None)
     def relative_name(self):
         return os.path.join(self.subdir, self.fname)
 
