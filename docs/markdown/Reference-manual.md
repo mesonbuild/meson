@@ -479,7 +479,11 @@ be passed to [shared and static libraries](#library).
 
 - `<languagename>_pch` precompiled header file to use for the given language
 - `<languagename>_args` compiler flags to use for the given language;
-  eg: `cpp_args` for C++
+  eg: `cpp_args` for C++. Since *0.49.0* it can be a dictionary mapping target
+  type to an array of args, the value mapped to the current build type will be
+  used. For example passing `c_args: {'static_library': '-DSTATIC'}` means that
+  if a static library is built `STATIC` is defined, but not for shared
+  libraries, executables, etc.
 - `build_by_default` causes, when set to true, to have this target be
   built by default, that is, when invoking plain `ninja`, the default
   value is true for all built target types, since 0.38.0
@@ -563,6 +567,7 @@ creating the final list.
 
 The returned object also has methods that are documented in the
 [object methods section](#build-target-object) below.
+
 
 ### find_library()
 
@@ -1035,8 +1040,12 @@ The keyword arguments for this are the same as for
 - `name_prefix` the string that will be used as the prefix for the
   target output filename by overriding the default (only used for
   libraries). By default this is `lib` on all platforms and compilers
-  except with MSVC shared libraries where it is omitted to follow
-  convention.
+  except with MSVCshared libraries where it is omitted to follow
+  convention. Since *0.49.0* it can be a dictionary mapping target type to a
+  string, the value mapped to the current build type will be used. For example
+  passing `name_prefix: {'static_library': 'lib'}` means that if a static
+  library is built `name_prefix` is `lib`, but for shared library `name_prefix`
+  is undefined and thus the default value is used.
 - `name_suffix` the string that will be used as the suffix for the
   target output filename by overriding the default (see also:
   [executable()](#executable)). By default, for shared libraries this
@@ -1044,7 +1053,11 @@ The keyword arguments for this are the same as for
   For static libraries, it is `a` everywhere. By convention MSVC
   static libraries use the `lib` suffix, but we use `a` to avoid a
   potential name clash with shared libraries which also generate
-  `xxx.lib` import files.
+  `xxx.lib` import files. Since *0.49.0* it can be a dictionary mapping target
+  type to a string, the value mapped to the current build type will be used.
+  For example passing `name_suffix: {'static_library': 'a'}` means that if a
+  static library is built `name_suffix` is `a`, but for shared library
+  `name_suffix` is undefined and thus the default value is used.
 - `rust_crate_type` specifies the crate type for Rust
   libraries. Defaults to `dylib` for shared libraries and `rlib` for
   static libraries.
