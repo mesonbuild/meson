@@ -3100,9 +3100,14 @@ class WindowsTests(BasePlatformTests):
             self.utime(os.path.join(testdir, 'res', 'resource.h'))
             self.assertRebuiltTarget('prog_1')
 
-    @unittest.skipIf(shutil.which('cl') is None, 'Test only applies to VS')
     def test_msvc_cpp17(self):
         testdir = os.path.join(self.unit_test_dir, '45 vscpp17')
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = env.detect_c_compiler(False)
+        if cc.get_argument_syntax() != 'msvc':
+            raise unittest.SkipTest('Test only applies to MSVC-like compilers')
+
         try:
             self.init(testdir)
         except subprocess.CalledProcessError:
