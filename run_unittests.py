@@ -2751,6 +2751,32 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(opts['debug'], True)
         self.assertEqual(opts['optimization'], '0')
 
+    @skipIfNoPkgconfig
+    @unittest.skipIf(is_windows(), 'Help needed with fixing this test on windows')
+    def test_native_dep_pkgconfig(self):
+        testdir = os.path.join(self.unit_test_dir,
+                               '46 native dep pkgconfig var')
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as crossfile:
+            crossfile.write(textwrap.dedent(
+                '''[binaries]
+                pkgconfig = r'{0}'
+
+                [properties]
+
+                [host_machine]
+                system = 'linux'
+                cpu_family = 'arm'
+                cpu = 'armv7'
+                endian = 'little'
+                '''.format(os.path.join(testdir, 'cross_pkgconfig.py'))))
+            crossfile.flush()
+            self.meson_cross_file = crossfile.name
+
+        os.environ['PKG_CONFIG_LIBDIR'] = os.path.join(testdir,
+                                                       'native_pkgconfig')
+        self.init(testdir, extra_args=['-Dstart_native=false'])
+        self.wipe()
+        self.init(testdir, extra_args=['-Dstart_native=true'])
 
 class FailureTests(BasePlatformTests):
     '''
