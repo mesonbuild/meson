@@ -44,6 +44,10 @@ jobs:
           arch: x64
           compiler: msvc2017
           backend: vs2017
+        clangclx64ninja:
+          arch: x64
+          compiler: clang-cl
+          backend: ninja
 
   steps:
   - template: ci/azure-steps.yml

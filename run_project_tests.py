@@ -132,17 +132,17 @@ def platform_fix_name(fname, compiler, env):
 
     if fname.startswith('?msvc:'):
         fname = fname[6:]
-        if compiler != 'cl':
+        if compiler != 'msvc':
             return None
 
     if fname.startswith('?gcc:'):
         fname = fname[5:]
-        if compiler == 'cl':
+        if compiler == 'msvc':
             return None
 
     if fname.startswith('?cygwin:'):
         fname = fname[8:]
-        if compiler == 'cl' or not mesonlib.for_cygwin(env.is_cross_build(), env):
+        if compiler == 'msvc' or not mesonlib.for_cygwin(env.is_cross_build(), env):
             return None
 
     return fname
@@ -687,14 +687,18 @@ def check_meson_commands_work():
 
 def detect_system_compiler():
     global system_compiler
-    if shutil.which('cl'):
-        system_compiler = 'cl'
-    elif shutil.which('cc'):
-        system_compiler = 'cc'
-    elif shutil.which('gcc'):
-        system_compiler = 'gcc'
-    else:
-        raise RuntimeError("Could not find C compiler.")
+
+    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
+        env = environment.Environment(None, build_dir, get_fake_options('/'))
+        try:
+            comp = env.detect_c_compiler(env.is_cross_build())
+        except:
+            raise RuntimeError("Could not find C compiler.")
+        system_compiler = comp.get_id()
+
+    # canonicalize for platform_fix_name()
+    if system_compiler == 'clang-cl':
+        system_compiler = 'msvc'
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")

@@ -170,7 +170,7 @@ class CCompiler(Compiler):
             else:
                 # GNU ld and LLVM lld
                 return ['-Wl,--allow-shlib-undefined']
-        elif self.id == 'msvc':
+        elif isinstance(self, VisualStudioCCompiler):
             # link.exe
             return ['/FORCE:UNRESOLVED']
         # FIXME: implement other linkers
@@ -392,6 +392,8 @@ class CCompiler(Compiler):
         return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
+        if callable(extra_args):
+            extra_args = extra_args(mode)
         if extra_args is None:
             extra_args = []
         elif isinstance(extra_args, str):
@@ -890,7 +892,7 @@ class CCompiler(Compiler):
         stlibext = ['a']
         # We've always allowed libname to be both `foo` and `libfoo`,
         # and now people depend on it
-        if strict and self.id != 'msvc': # lib prefix is not usually used with msvc
+        if strict and not isinstance(self, VisualStudioCCompiler): # lib prefix is not usually used with msvc
             prefixes = ['lib']
         else:
             prefixes = ['lib', '']
@@ -900,7 +902,7 @@ class CCompiler(Compiler):
         elif for_windows(env.is_cross_build(), env):
             # FIXME: .lib files can be import or static so we should read the
             # file, figure out which one it is, and reject the wrong kind.
-            if self.id == 'msvc':
+            if isinstance(self, VisualStudioCCompiler):
                 shlibext = ['lib']
             else:
                 shlibext = ['dll.a', 'lib', 'dll']
@@ -1296,7 +1298,7 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_buildtype_args(self, buildtype):
         args = compilers.msvc_buildtype_args[buildtype]
-        if version_compare(self.version, '<18.0'):
+        if self.id == 'msvc' and version_compare(self.version, '<18.0'):
             args = [arg for arg in args if arg != '/Gw']
         return args
 
@@ -1314,6 +1316,8 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_pch_use_args(self, pch_dir, header):
         base = os.path.basename(header)
+        if self.id == 'clang-cl':
+            base = header
         pchname = self.get_pch_name(header)
         return ['/FI' + base, '/Yu' + base, '/Fp' + os.path.join(pch_dir, pchname)]
 
@@ -1341,7 +1345,12 @@ class VisualStudioCCompiler(CCompiler):
         return []
 
     def get_linker_exelist(self):
-        return ['link'] # FIXME, should have same path as compiler.
+        # FIXME, should have same path as compiler.
+        # FIXME, should be controllable via cross-file.
+        if self.id == 'clang-cl':
+            return ['lld-link']
+        else:
+            return ['link']
 
     def get_linker_always_args(self):
         return ['/nologo']
@@ -1449,6 +1458,8 @@ class VisualStudioCCompiler(CCompiler):
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
     def has_arguments(self, args, env, code, mode):
         warning_text = '4044' if mode == 'link' else '9002'
+        if self.id == 'clang-cl' and mode != 'link':
+            args = args + ['-Werror=unknown-argument']
         with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
                 return False
@@ -1464,7 +1475,7 @@ class VisualStudioCCompiler(CCompiler):
         # build obviously, which is why we only do this when PCH is on.
         # This was added in Visual Studio 2013 (MSVC 18.0). Before that it was
         # always on: https://msdn.microsoft.com/en-us/library/dn502518.aspx
-        if pch and version_compare(self.version, '>=18.0'):
+        if pch and self.id == 'msvc' and version_compare(self.version, '>=18.0'):
             args = ['/FS'] + args
         return args
 
@@ -1481,7 +1492,7 @@ class VisualStudioCCompiler(CCompiler):
     def get_instruction_set_args(self, instruction_set):
         if self.is_64:
             return vs64_instruction_set_args.get(instruction_set, None)
-        if self.version.split('.')[0] == '16' and instruction_set == 'avx':
+        if self.id == 'msvc' and self.version.split('.')[0] == '16' and instruction_set == 'avx':
             # VS documentation says that this exists and should work, but
             # it does not. The headers do not contain AVX intrinsics
             # and the can not be called.
@@ -1489,6 +1500,10 @@ class VisualStudioCCompiler(CCompiler):
         return vs32_instruction_set_args.get(instruction_set, None)
 
     def get_toolset_version(self):
+        if self.id == 'clang-cl':
+            # I have no idea
+            return '14.1'
+
         # See boost/config/compiler/visualc.cpp for up to date mapping
         try:
             version = int(''.join(self.version.split('.')[0:2]))
@@ -1546,6 +1561,10 @@ class VisualStudioCCompiler(CCompiler):
     def get_argument_syntax(self):
         return 'msvc'
 
+class ClangClCCompiler(VisualStudioCCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
+        super().__init__(exelist, version, is_cross, exe_wrap, is_64)
+        self.id = 'clang-cl'
 
 class ArmCCompiler(ArmCompiler, CCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):

@@ -9,7 +9,7 @@ if not supported_cpus.contains(cpu)
   error('MESON_SKIP_TEST unsupported cpu:' + cpu)
 endif
 
-if meson.get_compiler('c').get_id() == 'msvc'
+if meson.get_compiler('c').get_argument_syntax() == 'msvc'
   error('MESON_SKIP_TEST MSVC can\'t compile assembly')
 endif
 

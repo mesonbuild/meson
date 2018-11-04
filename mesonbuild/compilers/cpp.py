@@ -19,7 +19,7 @@ from .. import coredata
 from .. import mlog
 from ..mesonlib import MesonException, version_compare
 
-from .c import CCompiler, VisualStudioCCompiler
+from .c import CCompiler, VisualStudioCCompiler, ClangClCCompiler
 from .compilers import (
     CompilerType,
     gnu_winlibs,
@@ -310,12 +310,15 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
 
     def get_options(self):
         cpp_stds = ['none', 'c++11', 'vc++11']
-        # Visual Studio 2015 and later
-        if version_compare(self.version, '>=19'):
-            cpp_stds.extend(['c++14', 'vc++14', 'c++latest', 'vc++latest'])
-        # Visual Studio 2017 and later
-        if version_compare(self.version, '>=19.11'):
-            cpp_stds.extend(['c++17', 'vc++17'])
+        if self.id == 'clang-cl':
+            cpp_stds.extend(['c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest'])
+        else:
+            # Visual Studio 2015 and later
+            if version_compare(self.version, '>=19'):
+                cpp_stds.extend(['c++14', 'vc++14', 'c++latest', 'vc++latest'])
+            # Visual Studio 2017 and later
+            if version_compare(self.version, '>=19.11'):
+                cpp_stds.extend(['c++17', 'vc++17'])
 
         opts = CPPCompiler.get_options(self)
         opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
@@ -356,7 +359,7 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
             # which means setting the C++ standard version to C++14, in compilers that support it
             # (i.e., after VS2015U3)
             # if one is using anything before that point, one cannot set the standard.
-            if version_compare(self.version, '>=19.00.24210'):
+            if self.id == 'clang-cl' or version_compare(self.version, '>=19.00.24210'):
                 mlog.warning('MSVC does not support C++11; '
                              'attempting best effort; setting the standard to C++14')
                 args.append('/std:c++14')
@@ -378,6 +381,10 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         # so just use the plain C args.
         return VisualStudioCCompiler.get_compiler_check_args(self)
 
+class ClangClCPPCompiler(VisualStudioCPPCompiler, ClangClCCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
+        VisualStudioCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, is_64)
+        self.id = 'clang-cl'
 
 class ArmCPPCompiler(ArmCompiler, CPPCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrap=None, **kwargs):

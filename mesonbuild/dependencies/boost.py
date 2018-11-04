@@ -288,7 +288,7 @@ class BoostDependency(ExternalDependency):
         tag = None
         compiler = self.env.detect_cpp_compiler(self.want_cross)
         if mesonlib.for_windows(self.want_cross, self.env):
-            if compiler.get_id() == 'msvc':
+            if compiler.get_id() in ['msvc', 'clang-cl']:
                 comp_ts_version = compiler.get_toolset_version()
                 compiler_ts = comp_ts_version.split('.')
                 # FIXME - what about other compilers?
@@ -320,7 +320,7 @@ class BoostDependency(ExternalDependency):
 
     def arch_tag(self):
         # currently only applies to windows msvc installed binaries
-        if self.env.detect_cpp_compiler(self.want_cross).get_id() != 'msvc':
+        if self.env.detect_cpp_compiler(self.want_cross).get_id() not in ['msvc', 'clang-cl']:
             return ''
         # pre-compiled binaries only added arch tag for versions > 1.64
         if float(self.version) < 1.65:

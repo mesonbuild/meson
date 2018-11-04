@@ -29,7 +29,7 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..compilers import CompilerArgs, CCompiler
+from ..compilers import CompilerArgs, CCompiler, VisualStudioCCompiler
 from ..linkers import ArLinker
 from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_compiler_for_source, has_path_sep
@@ -169,7 +169,7 @@ class NinjaBackend(backends.Backend):
         Detect the search prefix to use.'''
         for compiler in self.build.compilers.values():
             # Have to detect the dependency format
-            if compiler.id == 'msvc':
+            if isinstance(compiler, VisualStudioCCompiler):
                 break
         else:
             # None of our compilers are MSVC, we're done.
@@ -185,7 +185,8 @@ int dummy;
         # and locale dependent. Any attempt at converting it to
         # Python strings leads to failure. We _must_ do this detection
         # in raw byte mode and write the result in raw bytes.
-        pc = subprocess.Popen(['cl', '/showIncludes', '/c', 'incdetect.c'],
+        pc = subprocess.Popen([compiler.get_exelist(),
+                               '/showIncludes', '/c', 'incdetect.c'],
                               cwd=self.environment.get_scratch_dir(),
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdo, _) = pc.communicate()
@@ -195,7 +196,7 @@ int dummy;
         # different locales have different messages with a different
         # number of colons. Match up to the the drive name 'd:\'.
         matchre = re.compile(rb"^(.*\s)[a-zA-Z]:\\.*stdio.h$")
-        for line in stdo.split(b'\r\n'):
+        for line in re.split(rb'\r?\n', stdo):
             match = matchre.match(line)
             if match:
                 with open(tempfilename, 'ab') as binfile:
@@ -1604,7 +1605,7 @@ rule FORTRAN_DEP_HACK%s
             compile_only_args=' '.join(compiler.get_compile_only_args())
         )
         description = ' description = Compiling %s object $out.\n' % compiler.get_display_language()
-        if compiler.get_id() == 'msvc':
+        if isinstance(compiler, VisualStudioCCompiler):
             deps = ' deps = msvc\n'
         else:
             deps = ' deps = gcc\n'
@@ -1636,7 +1637,7 @@ rule FORTRAN_DEP_HACK%s
             if d != '$out' and d != '$in':
                 d = quote_func(d)
             quoted_depargs.append(d)
-        if compiler.get_id() == 'msvc':
+        if isinstance(compiler, VisualStudioCCompiler):
             output = ''
         else:
             output = ' '.join(compiler.get_output_args('$out'))
@@ -1648,7 +1649,7 @@ rule FORTRAN_DEP_HACK%s
             compile_only_args=' '.join(compiler.get_compile_only_args())
         )
         description = ' description = Precompiling header %s.\n' % '$in'
-        if compiler.get_id() == 'msvc':
+        if isinstance(compiler, VisualStudioCCompiler):
             deps = ' deps = msvc\n'
         else:
             deps = ' deps = gcc\n'
@@ -1839,7 +1840,7 @@ rule FORTRAN_DEP_HACK%s
         return compiler.get_no_stdinc_args()
 
     def get_compile_debugfile_args(self, compiler, target, objfile):
-        if compiler.id != 'msvc':
+        if not isinstance(compiler, VisualStudioCCompiler):
             return []
         # The way MSVC uses PDB files is documented exactly nowhere so
         # the following is what we have been able to decipher via
@@ -2203,7 +2204,7 @@ rule FORTRAN_DEP_HACK%s
                       ''.format(target.get_basename())
                 raise InvalidArguments(msg)
             compiler = target.compilers[lang]
-            if compiler.id == 'msvc':
+            if isinstance(compiler, VisualStudioCCompiler):
                 src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[-1])
                 (commands, dep, dst, objs) = self.generate_msvc_pch_command(target, compiler, pch)
                 extradep = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])

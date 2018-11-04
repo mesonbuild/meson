@@ -2,8 +2,8 @@ project('generated assembly', 'c')
 
 cc = meson.get_compiler('c')
 
-if cc.get_id() == 'msvc'
-  error('MESON_SKIP_TEST: assembly files cannot be compiled directly by MSVC')
+if ['msvc', 'clang-cl'].contains(cc.get_id())
+  error('MESON_SKIP_TEST: assembly files cannot be compiled directly by the compiler')
 endif
 
 cpu = host_machine.cpu_family()
