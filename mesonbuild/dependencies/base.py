@@ -503,7 +503,6 @@ class PkgConfigDependency(ExternalDependency):
                 potential_pkgbin = ExternalProgram.from_cross_info(environment.cross_info, 'pkgconfig')
                 if potential_pkgbin.found():
                     self.pkgbin = potential_pkgbin
-                    PkgConfigDependency.class_pkgbin = self.pkgbin
                 else:
                     mlog.debug('Cross pkg-config %s not found.' % potential_pkgbin.name)
         # Only search for the native pkg-config the first time and
