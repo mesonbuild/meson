@@ -898,6 +898,9 @@ class Compiler:
     def get_linker_always_args(self):
         return []
 
+    def get_linker_lib_prefix(self):
+        return ''
+
     def gen_import_library_args(self, implibname):
         """
         Used only on Windows for libraries that need an import library.
@@ -1895,6 +1898,9 @@ class CcrxCompiler:
 
     def get_linker_exelist(self):
         return [self.linker_exe]
+
+    def get_linker_lib_prefix(self):
+        return '-lib='
 
     def get_coverage_args(self):
         return []
