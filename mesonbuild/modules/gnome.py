@@ -411,8 +411,10 @@ class GnomeModule(ExtensionModule):
     def _unwrap_gir_target(self, girtarget):
         while hasattr(girtarget, 'held_object'):
             girtarget = girtarget.held_object
-        if not isinstance(girtarget, (build.Executable, build.SharedLibrary)):
-            raise MesonException('Gir target must be an executable or shared library')
+        if not isinstance(girtarget, (build.Executable, build.SharedLibrary,
+                                      build.StaticLibrary)):
+            raise MesonException('Gir target must be an executable or library')
+
         return girtarget
 
     def _get_gir_dep(self, state):
@@ -537,7 +539,7 @@ class GnomeModule(ExtensionModule):
         for girtarget in girtargets:
             if isinstance(girtarget, build.Executable):
                 ret += ['--program', girtarget]
-            elif isinstance(girtarget, build.SharedLibrary):
+            else:
                 libname = girtarget.get_basename()
                 # Needed for the following binutils bug:
                 # https://github.com/mesonbuild/meson/issues/1911
