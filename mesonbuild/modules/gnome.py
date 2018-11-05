@@ -540,7 +540,12 @@ class GnomeModule(ExtensionModule):
             if isinstance(girtarget, build.Executable):
                 ret += ['--program', girtarget]
             else:
-                libname = girtarget.get_basename()
+                # Because of https://gitlab.gnome.org/GNOME/gobject-introspection/merge_requests/72
+                # we can't use the full path until this is merged.
+                if isinstance(girtarget, build.SharedLibrary):
+                    libname = girtarget.get_basename()
+                else:
+                    libname = os.path.join("@PRIVATE_OUTDIR_ABS_%s@" % girtarget.get_id(), girtarget.get_filename())
                 # Needed for the following binutils bug:
                 # https://github.com/mesonbuild/meson/issues/1911
                 # However, g-ir-scanner does not understand -Wl,-rpath
