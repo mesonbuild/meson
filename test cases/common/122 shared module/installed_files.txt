@@ -1,3 +1,3 @@
 usr/lib/modules/libnosyms?so
-?gcc:usr/lib/modules/libnosyms?implib
+usr/lib/modules/libnosyms?implibempty
 ?msvc:usr/lib/modules/nosyms.pdb
