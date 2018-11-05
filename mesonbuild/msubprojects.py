@@ -42,6 +42,11 @@ def git(cmd, workingdir):
     return subprocess.check_output(['git', '-C', workingdir] + cmd,
                                    stderr=subprocess.STDOUT).decode()
 
+def git_show(repo_dir):
+    commit_message = git(['show', '--quiet', '--pretty=format:%h%n%d%n%s%n[%an]'], repo_dir)
+    parts = [s.strip() for s in commit_message.split('\n')]
+    mlog.log('  ->', mlog.yellow(parts[0]), mlog.red(parts[1]), parts[2], mlog.blue(parts[3]))
+
 def update_git(wrap, repo_dir, options):
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not used.')
@@ -88,9 +93,7 @@ def update_git(wrap, repo_dir, options):
             return
 
     git(['submodule', 'update'], repo_dir)
-    commit_message = git(['show', '--quiet', '--pretty=format:%h%n%d%n%s%n[%an]'], repo_dir)
-    parts = [s.strip() for s in commit_message.split('\n')]
-    mlog.log('  ->', mlog.yellow(parts[0]), mlog.red(parts[1]), parts[2], mlog.blue(parts[3]))
+    git_show(repo_dir)
 
 def update_hg(wrap, repo_dir, options):
     if not os.path.isdir(repo_dir):
@@ -124,7 +127,59 @@ def update_svn(wrap, repo_dir, options):
     else:
         subprocess.check_call(['svn', 'update', '-r', revno], cwd=repo_dir)
 
-def update(options):
+def update(wrap, repo_dir, options):
+    mlog.log('Updating %s...' % wrap.name)
+    if wrap.type == 'file':
+        update_file(wrap, repo_dir, options)
+    elif wrap.type == 'git':
+        update_git(wrap, repo_dir, options)
+    elif wrap.type == 'hg':
+        update_hg(wrap, repo_dir, options)
+    elif wrap.type == 'svn':
+        update_svn(wrap, repo_dir, options)
+    else:
+        mlog.log('  -> Cannot update', wrap.type, 'subproject')
+
+def checkout(wrap, repo_dir, options):
+    if wrap.type != 'git' or not os.path.isdir(repo_dir):
+        return
+    branch_name = options.branch_name if options.branch_name else wrap.get('revision')
+    cmd = ['checkout', branch_name, '--']
+    if options.b:
+        cmd.insert(1, '-b')
+    mlog.log('Checkout %s in %s...' % (branch_name, wrap.name))
+    try:
+        git(cmd, repo_dir)
+        git_show(repo_dir)
+    except subprocess.CalledProcessError as e:
+        out = e.output.decode().strip()
+        mlog.log('  -> ', mlog.red(out))
+
+def add_common_arguments(p):
+    p.add_argument('--sourcedir', default='.',
+                   help='Path to source directory')
+    p.add_argument('subprojects', nargs='*',
+                   help='List of subprojects (default: all)')
+
+def add_arguments(parser):
+    subparsers = parser.add_subparsers(title='Commands', dest='command')
+    subparsers.required = True
+
+    p = subparsers.add_parser('update', help='Update all subprojects from wrap files')
+    p.add_argument('--rebase', default=False, action='store_true',
+                   help='Rebase your branch on top of wrap\'s revision (git only)')
+    add_common_arguments(p)
+    p.set_defaults(subprojects_func=update)
+
+    p = subparsers.add_parser('checkout', help='Checkout a branch (git only)')
+    p.add_argument('-b', default=False, action='store_true',
+                   help='Create a new branch')
+    p.add_argument('branch_name', nargs='?',
+                   help='Name of the branch to checkout or create (default: revision set in wrap file)')
+    add_common_arguments(p)
+    p.set_defaults(subprojects_func=checkout)
+
+def run(options):
     src_dir = os.path.relpath(os.path.realpath(options.sourcedir))
     if not os.path.isfile(os.path.join(src_dir, 'meson.build')):
         mlog.error('Directory', mlog.bold(src_dir), 'does not seem to be a Meson source directory.')
@@ -148,32 +203,6 @@ def update(options):
     for f in files:
         wrap = PackageDefinition(f)
         directory = wrap.values.get('directory', wrap.name)
-        dirname = os.path.join(subprojects_dir, directory)
-        mlog.log('Updating %s...' % wrap.name)
-        if wrap.type == 'file':
-            update_file(wrap, dirname, options)
-        elif wrap.type == 'git':
-            update_git(wrap, dirname, options)
-        elif wrap.type == 'hg':
-            update_hg(wrap, dirname, options)
-        elif wrap.type == 'svn':
-            update_svn(wrap, dirname, options)
-        else:
-            mlog.log('  -> Cannot update', wrap.type, 'subproject')
+        repo_dir = os.path.join(subprojects_dir, directory)
+        options.subprojects_func(wrap, repo_dir, options)
     return 0
-
-def add_arguments(parser):
-    subparsers = parser.add_subparsers(title='Commands', dest='command')
-    subparsers.required = True
-
-    p = subparsers.add_parser('update', help='Update all subprojects from wrap files')
-    p.add_argument('--sourcedir', default='.',
-                   help='Path to source directory')
-    p.add_argument('--rebase', default=False, action='store_true',
-                   help='Rebase your branch on top of wrap\'s revision (git only)')
-    p.add_argument('subprojects', nargs='*',
-                   help='List of subprojects (default: all)')
-    p.set_defaults(subprojects_func=update)
-
-def run(options):
-    return options.subprojects_func(options)
