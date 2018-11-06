@@ -371,13 +371,17 @@ class SingleTestRunner:
         endtime = time.time()
         duration = endtime - starttime
         if additional_error is None:
-            stdout.seek(0)
-            stdo = decode(stdout.read())
-            if stderr != stdout:
-                stderr.seek(0)
-                stde = decode(stderr.read())
+            if stdout is None:  # if stdout is None stderr should be as well
+                stdo = ''
+                stde = ''
             else:
-                stde = ""
+                stdout.seek(0)
+                stdo = decode(stdout.read())
+                if stderr != stdout:
+                    stderr.seek(0)
+                    stde = decode(stderr.read())
+                else:
+                    stde = ""
         else:
             stdo = ""
             stde = additional_error
