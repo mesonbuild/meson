@@ -408,12 +408,20 @@ class GnomeModule(ExtensionModule):
         else:
             return cflags, internal_ldflags, external_ldflags, external_ldflags_nodedup, gi_includes
 
-    def _unwrap_gir_target(self, girtarget):
+    def _unwrap_gir_target(self, girtarget, state):
         while hasattr(girtarget, 'held_object'):
             girtarget = girtarget.held_object
+
         if not isinstance(girtarget, (build.Executable, build.SharedLibrary,
                                       build.StaticLibrary)):
             raise MesonException('Gir target must be an executable or library')
+
+        STATIC_BUILD_REQUIRED_VERSION = ">=1.58.1"
+        if isinstance(girtarget, (build.StaticLibrary)) and \
+           not mesonlib.version_compare(
+               self._get_gir_dep(state)[0].get_version(),
+               STATIC_BUILD_REQUIRED_VERSION):
+            raise MesonException('Static libraries can only be introspected with GObject-Introspection ' + STATIC_BUILD_REQUIRED_VERSION)
 
         return girtarget
 
@@ -739,7 +747,7 @@ class GnomeModule(ExtensionModule):
         giscanner = self.interpreter.find_program_impl('g-ir-scanner')
         gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
 
-        girtargets = [self._unwrap_gir_target(arg) for arg in args]
+        girtargets = [self._unwrap_gir_target(arg, state) for arg in args]
 
         if len(girtargets) > 1 and any([isinstance(el, build.Executable) for el in girtargets]):
             raise MesonException('generate_gir only accepts a single argument when one of the arguments is an executable')
