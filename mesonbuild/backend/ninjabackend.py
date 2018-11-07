@@ -877,6 +877,10 @@ int dummy;
 
     def generate_single_java_compile(self, src, target, compiler, outfile):
         deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
+        generated_sources = self.get_target_generated_sources(target)
+        for rel_src, gensrc in generated_sources.items():
+            if rel_src.endswith('.java'):
+                deps.append(rel_src)
         args = []
         args += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
         args += self.build.get_global_args(compiler, target.is_cross)
