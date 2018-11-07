@@ -1,5 +1,7 @@
 #include<simdfuncs.h>
+#include<stdalign.h>
 #include<stdio.h>
+#include<string.h>
 
 /*
  * A function that checks at runtime which simd accelerations are
@@ -8,86 +10,89 @@
  */
 
 int main(int argc, char **argv) {
-    float four[4] = {2.0, 3.0, 4.0, 5.0};
+    static const float four_initial[4] = {2.0, 3.0, 4.0, 5.0};
+    alignas(16) float four[4];
     const float expected[4] = {3.0, 4.0, 5.0, 6.0};
     void (*fptr)(float[4]) = NULL;
     const char *type;
-    int i;
+    int i, r=0;
 
 /* Add here. The first matched one is used so put "better" instruction
  * sets at the top.
  */
 #if HAVE_NEON
-    if(fptr == NULL && neon_available()) {
+    if(neon_available()) {
         fptr = increment_neon;
         type = "NEON";
+    #include<simdtest.h>
     }
 #endif
 #if HAVE_AVX2
-    if(fptr == NULL && avx2_available()) {
+    if(avx2_available()) {
         fptr = increment_avx2;
         type = "AVX2";
+    #include<simdtest.h>
     }
 #endif
 #if HAVE_AVX
-    if(fptr == NULL && avx_available()) {
+    if(avx_available()) {
         fptr = increment_avx;
         type = "AVX";
+    #include<simdtest.h>
     }
 #endif
 #if HAVE_SSE42
-    if(fptr == NULL && sse42_available()) {
+    if(sse42_available()) {
         fptr = increment_sse42;
         type = "SSE42";
+    #include<simdtest.h>
     }
 #endif
 #if HAVE_SSE41
-    if(fptr == NULL && sse41_available()) {
+    if(sse41_available()) {
         fptr = increment_sse41;
         type = "SSE41";
+    #include<simdtest.h>
     }
 #endif
 #if HAVE_SSSE3
-    if(fptr == NULL && ssse3_available()) {
+    if(ssse3_available()) {
         fptr = increment_ssse3;
         type = "SSSE3";
+    #include<simdtest.h>
     }
 #endif
 #if HAVE_SSE3
-    if(fptr == NULL && sse3_available()) {
+    if(sse3_available()) {
         fptr = increment_sse3;
         type = "SSE3";
+    #include<simdtest.h>
     }
 #endif
 #if HAVE_SSE2
-    if(fptr == NULL && sse2_available()) {
+    if(sse2_available()) {
         fptr = increment_sse2;
         type = "SSE2";
+    #include<simdtest.h>
     }
 #endif
 #if HAVE_SSE
-    if(fptr == NULL && sse_available()) {
+    if(sse_available()) {
         fptr = increment_sse;
         type = "SSE";
+    #include<simdtest.h>
     }
 #endif
 #if HAVE_MMX
-    if(fptr == NULL && mmx_available()) {
+    if(mmx_available()) {
         fptr = increment_mmx;
         type = "MMX";
+    #include<simdtest.h>
     }
 #endif
-    if(fptr == NULL) {
-        fptr = increment_fallback;
-        type = "fallback";
-    }
-    printf("Using %s.\n", type);
-    fptr(four);
-    for(i=0; i<4; i++) {
-        if(four[i] != expected[i]) {
-            printf("Increment function failed, got %f expected %f.\n", four[i], expected[i]);
-            return 1;
-        }
-    }
-    return 0;
+    fptr = increment_fallback;
+    type = "fallback";
+    #include<simdtest.h>
+
+    return r;
 }
