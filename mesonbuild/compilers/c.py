@@ -46,6 +46,7 @@ from .compilers import (
     ElbrusCompiler,
     IntelCompiler,
     RunResult,
+    CcrxCompiler,
 )
 
 gnu_compiler_internal_libs = ('m', 'c', 'pthread', 'dl', 'rt')
@@ -1584,3 +1585,45 @@ class ArmCCompiler(ArmCompiler, CCompiler):
         if std.value != 'none':
             args.append('--' + std.value)
         return args
+
+class CcrxCCompiler(CcrxCompiler, CCompiler):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+        CcrxCompiler.__init__(self, compiler_type)
+
+    # Override CCompiler.get_always_args
+    def get_always_args(self):
+        return ['-nologo']
+
+    def get_options(self):
+        opts = CCompiler.get_options(self)
+        opts.update({'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
+                                                       ['none', 'c89', 'c99'],
+                                                       'none')})
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['c_std']
+        if std.value == 'c89':
+            args.append('-lang=c')
+        elif std.value == 'c99':
+            args.append('-lang=c99')
+        return args
+
+    def get_compile_only_args(self):
+        return []
+
+    def get_no_optimization_args(self):
+        return ['-optimize=0']
+
+    def get_output_args(self, target):
+        return ['-output=obj=%s' % target]
+
+    def get_linker_output_args(self, outputname):
+        return ['-output=%s' % outputname]
+
+    def get_include_args(self, path, is_system):
+        if path == '':
+            path = '.'
+        return ['-include=' + path]

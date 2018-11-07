@@ -607,6 +607,8 @@ class Backend:
                 continue
             if compiler.get_language() == 'd':
                 arg = '-Wl,' + arg
+            else:
+                arg = compiler.get_linker_lib_prefix() + arg
             args.append(arg)
         return args
 

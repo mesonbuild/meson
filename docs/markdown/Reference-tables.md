@@ -5,26 +5,27 @@
 These are return values of the `get_id` (Compiler family) and
 `get_argument_syntax` (Argument syntax) method in a compiler object.
 
-| Value     | Compiler family                | Argument syntax                |
-| -----     | ----------------               | -------------------------------|
-| gcc       | The GNU Compiler Collection    | gcc                            |
-| clang     | The Clang compiler             | gcc                            |
-| msvc      | Microsoft Visual Studio        | msvc                           |
-| intel     | Intel compiler                 | msvc on windows, otherwise gcc |
-| llvm      | LLVM-based compiler (Swift, D) |                                |
-| mono      | Xamarin C# compiler            |                                |
-| dmd       | D lang reference compiler      |                                |
-| rustc     | Rust compiler                  |                                |
-| valac     | Vala compiler                  |                                |
-| pathscale | The Pathscale Fortran compiler |                                |
-| pgi       | The Portland Fortran compiler  |                                |
-| sun       | Sun Fortran compiler           |                                |
-| g95       | The G95 Fortran compiler       |                                |
-| open64    | The Open64 Fortran Compiler    |                                |
-| nagfor    | The NAG Fortran compiler       |                                |
-| lcc       | Elbrus C/C++/Fortran Compiler  |                                |
-| arm       | ARM compiler                   |                                |
-| armclang  | ARMCLANG compiler              |                                |
+| Value     | Compiler family                  | Argument syntax                |
+| -----     | ---------------                  | ---------------                |
+| gcc       | The GNU Compiler Collection      | gcc                            |
+| clang     | The Clang compiler               | gcc                            |
+| msvc      | Microsoft Visual Studio          | msvc                           |
+| intel     | Intel compiler                   | msvc on windows, otherwise gcc |
+| llvm      | LLVM-based compiler (Swift, D)   |                                |
+| mono      | Xamarin C# compiler              |                                |
+| dmd       | D lang reference compiler        |                                |
+| rustc     | Rust compiler                    |                                |
+| valac     | Vala compiler                    |                                |
+| pathscale | The Pathscale Fortran compiler   |                                |
+| pgi       | The Portland Fortran compiler    |                                |
+| sun       | Sun Fortran compiler             |                                |
+| g95       | The G95 Fortran compiler         |                                |
+| open64    | The Open64 Fortran Compiler      |                                |
+| nagfor    | The NAG Fortran compiler         |                                |
+| lcc       | Elbrus C/C++/Fortran Compiler    |                                |
+| arm       | ARM compiler                     |                                |
+| armclang  | ARMCLANG compiler                |                                |
+| ccrx      | Renesas RX Family C/C++ compiler |                                |
 
 ## Script environment variables
 
@@ -62,6 +63,7 @@ set in the cross file.
 | sparc               | 32 bit SPARC          |
 | sparc64             | SPARC v9 processor    |
 | s390x               | IBM zSystem s390x     |
+| rx                  | Renesas RX 32 bit MCU |
 
 Any cpu family not listed in the above list is not guaranteed to
 remain stable in future releases.

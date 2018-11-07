@@ -1347,12 +1347,14 @@ class Executable(BuildTarget):
             if (for_windows(is_cross, environment) or
                     for_cygwin(is_cross, environment) or 'cs' in self.compilers):
                 self.suffix = 'exe'
+            elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('arm') or
+                  'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('arm')):
+                self.suffix = 'axf'
+            elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('ccrx') or
+                  'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('ccrx')):
+                self.suffix = 'abs'
             else:
-                if ('c' in self.compilers and self.compilers['c'].get_id().startswith('arm') or
-                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('arm')):
-                    self.suffix = 'axf'
-                else:
-                    self.suffix = ''
+                self.suffix = ''
         self.filename = self.name
         if self.suffix:
             self.filename += '.' + self.suffix

@@ -15,7 +15,7 @@
 import configparser, os, platform, re, sys, shlex, shutil, subprocess
 
 from . import coredata
-from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker
+from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker
 from . import mesonlib
 from .mesonlib import MesonException, EnvironmentException, PerMachine, Popen_safe
 from . import mlog
@@ -61,6 +61,8 @@ from .compilers import (
     PathScaleFortranCompiler,
     PGIFortranCompiler,
     RustCompiler,
+    CcrxCCompiler,
+    CcrxCPPCompiler,
     SunFortranCompiler,
     ValaCompiler,
     VisualStudioCCompiler,
@@ -82,6 +84,7 @@ known_cpu_families = (
     'ppc64',
     'riscv32',
     'riscv64',
+    'rx',
     's390x',
     'sparc',
     'sparc64',
@@ -563,6 +566,8 @@ class Environment:
                 arg = '/?'
             elif 'armcc' in compiler[0]:
                 arg = '--vsn'
+            elif 'ccrx' in compiler[0]:
+                arg = '-v'
             else:
                 arg = '--version'
             try:
@@ -570,8 +575,12 @@ class Environment:
             except OSError as e:
                 popen_exceptions[' '.join(compiler + [arg])] = e
                 continue
-            version = search_version(out)
+
+            if 'ccrx' in compiler[0]:
+                out = err
+
             full_version = out.split('\n', 1)[0]
+            version = search_version(out)
 
             guess_gcc_or_lcc = False
             if 'Free Software Foundation' in out:
@@ -659,6 +668,11 @@ class Environment:
                 compiler_type = CompilerType.ARM_WIN
                 cls = ArmCCompiler if lang == 'c' else ArmCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
+            if 'RX Family' in out:
+                compiler_type = CompilerType.CCRX_WIN
+                cls = CcrxCCompiler if lang == 'c' else CcrxCPPCompiler
+                return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
+
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, want_cross):
@@ -955,6 +969,8 @@ class Environment:
                 return DLinker(linker, compiler.arch)
             if 'GDC' in out and ' based on D ' in out:
                 return DLinker(linker, compiler.arch)
+            if err.startswith('Renesas') and ('rlink' in linker or 'rlink.exe' in linker):
+                return CcrxLinker(linker)
             if p.returncode == 0:
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('usage'): # OSX
