@@ -39,6 +39,10 @@ def add_arguments(parser):
                         help='Set options and reconfigure the project. Useful when new ' +
                              'options have been added to the project and the default value ' +
                              'is not working.')
+    parser.add_argument('--wipe', action='store_true',
+                        help='Wipe build directory and reconfigure using previous command line options. ' +
+                             'Userful when build directory got corrupted, or when rebuilding with a ' +
+                             'newer version of meson.')
     parser.add_argument('builddir', nargs='?', default=None)
     parser.add_argument('sourcedir', nargs='?', default=None)
 
@@ -46,7 +50,28 @@ class MesonApp:
     def __init__(self, options):
         (self.source_dir, self.build_dir) = self.validate_dirs(options.builddir,
                                                                options.sourcedir,
-                                                               options.reconfigure)
+                                                               options.reconfigure,
+                                                               options.wipe)
+
+        if options.wipe:
+            # Make a copy of the cmd line file to make sure we can always
+            # restore that file if anything bad happens. For example if
+            # configuration fails we need to be able to wipe again.
+            filename = coredata.get_cmd_line_file(self.build_dir)
+            with open(filename, 'r') as f:
+                content = f.read()
+
+            coredata.read_cmd_line_file(self.build_dir, options)
+
+            try:
+                mesonlib.windows_proof_rmtree(self.build_dir)
+            finally:
+                # Restore the file
+                path = os.path.dirname(filename)
+                os.makedirs(path, exist_ok=True)
+                with open(filename, 'w') as f:
+                    f.write(content)
+
         self.options = options
 
     def has_build_file(self, dirname):
@@ -83,21 +108,22 @@ class MesonApp:
             return ndir2, ndir1
         raise MesonException('Neither directory contains a build file %s.' % environment.build_filename)
 
-    def validate_dirs(self, dir1, dir2, reconfigure):
+    def validate_dirs(self, dir1, dir2, reconfigure, wipe):
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
         priv_dir = os.path.join(build_dir, 'meson-private/coredata.dat')
         if os.path.exists(priv_dir):
-            if not reconfigure:
+            if not reconfigure and not wipe:
                 print('Directory already configured.\n'
                       '\nJust run your build command (e.g. ninja) and Meson will regenerate as necessary.\n'
                       'If ninja fails, run "ninja reconfigure" or "meson --reconfigure"\n'
                       'to force Meson to regenerate.\n'
-                      '\nIf build failures persist, manually wipe your build directory to clear any\n'
-                      'stored system data.\n'
+                      '\nIf build failures persist, run "meson setup --wipe" to rebuild from scratch\n'
+                      'using the same options as passed when configuring the build.'
                       '\nTo change option values, run "meson configure" instead.')
                 sys.exit(0)
         else:
-            if reconfigure:
+            has_cmd_line_file = os.path.exists(coredata.get_cmd_line_file(build_dir))
+            if (wipe and not has_cmd_line_file) or (not wipe and reconfigure):
                 print('Directory does not contain a valid build tree:\n{}'.format(build_dir))
                 sys.exit(1)
         return src_dir, build_dir
@@ -168,6 +194,10 @@ class MesonApp:
             build.save(b, dumpfile)
             # Post-conf scripts must be run after writing coredata or else introspection fails.
             intr.backend.run_postconf_scripts()
+            if env.first_invocation:
+                coredata.write_cmd_line_file(self.build_dir, self.options)
+            else:
+                coredata.update_cmd_line_file(self.build_dir, self.options)
         except:
             if 'cdf' in locals():
                 old_cdf = cdf + '.prev'

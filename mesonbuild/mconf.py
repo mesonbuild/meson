@@ -153,6 +153,7 @@ def run(options):
         save = False
         if len(options.cmd_line_options) > 0:
             c.set_options(options.cmd_line_options)
+            coredata.update_cmd_line_file(builddir, options)
             save = True
         elif options.clearcache:
             c.clear_cache()

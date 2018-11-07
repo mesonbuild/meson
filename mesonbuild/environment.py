@@ -17,7 +17,7 @@ import configparser, os, platform, re, sys, shlex, shutil, subprocess
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker
 from . import mesonlib
-from .mesonlib import EnvironmentException, PerMachine, Popen_safe
+from .mesonlib import MesonException, EnvironmentException, PerMachine, Popen_safe
 from . import mlog
 
 from . import compilers
@@ -317,13 +317,17 @@ class Environment:
             self.coredata = coredata.load(self.get_build_dir())
             self.first_invocation = False
         except FileNotFoundError:
-            # WARNING: Don't use any values from coredata in __init__. It gets
-            # re-initialized with project options by the interpreter during
-            # build file parsing.
-            self.coredata = coredata.CoreData(options)
-            # Used by the regenchecker script, which runs meson
-            self.coredata.meson_command = mesonlib.meson_command
-            self.first_invocation = True
+            self.create_new_coredata(options)
+        except MesonException as e:
+            # If we stored previous command line options, we can recover from
+            # a broken/outdated coredata.
+            if os.path.isfile(coredata.get_cmd_line_file(self.build_dir)):
+                mlog.warning('Regenerating configuration from scratch.')
+                mlog.log('Reason:', mlog.red(str(e)))
+                coredata.read_cmd_line_file(self.build_dir, options)
+                self.create_new_coredata(options)
+            else:
+                raise e
         self.exe_wrapper = None
 
         self.machines = MachineInfos()
@@ -388,6 +392,15 @@ class Environment:
                 os.environ[BinaryTable.evarMap['strip']])
         else:
             self.native_strip_bin = ['strip']
+
+    def create_new_coredata(self, options):
+        # WARNING: Don't use any values from coredata in __init__. It gets
+        # re-initialized with project options by the interpreter during
+        # build file parsing.
+        self.coredata = coredata.CoreData(options)
+        # Used by the regenchecker script, which runs meson
+        self.coredata.meson_command = mesonlib.meson_command
+        self.first_invocation = True
 
     def is_cross_build(self):
         return self.cross_info is not None

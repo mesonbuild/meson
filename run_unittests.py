@@ -25,6 +25,7 @@ import shutil
 import sys
 import unittest
 import platform
+import pickle
 from itertools import chain
 from unittest import mock
 from configparser import ConfigParser
@@ -2777,6 +2778,41 @@ recommended as it is not supported on some platforms''')
         self.init(testdir, extra_args=['-Dstart_native=false'])
         self.wipe()
         self.init(testdir, extra_args=['-Dstart_native=true'])
+
+    def test_reconfigure(self):
+        testdir = os.path.join(self.unit_test_dir, '46 reconfigure')
+        self.init(testdir, extra_args=['-Dopt1=val1'])
+        self.setconf('-Dopt2=val2')
+
+        # Set an older version to force a reconfigure from scratch
+        filename = os.path.join(self.privatedir, 'coredata.dat')
+        with open(filename, 'rb') as f:
+            obj = pickle.load(f)
+        obj.version = '0.47.0'
+        with open(filename, 'wb') as f:
+            pickle.dump(obj, f)
+
+        out = self.init(testdir, extra_args=['--reconfigure', '-Dopt3=val3'])
+        self.assertRegex(out, 'WARNING:.*Regenerating configuration from scratch')
+        self.assertRegex(out, 'opt1 val1')
+        self.assertRegex(out, 'opt2 val2')
+        self.assertRegex(out, 'opt3 val3')
+        self.assertRegex(out, 'opt4 default4')
+        self.build()
+        self.run_tests()
+
+        # Create a file in builddir and verify wipe command removes it
+        filename = os.path.join(self.builddir, 'something')
+        open(filename, 'w').close()
+        self.assertTrue(os.path.exists(filename))
+        out = self.init(testdir, extra_args=['--wipe', '-Dopt4=val4'])
+        self.assertFalse(os.path.exists(filename))
+        self.assertRegex(out, 'opt1 val1')
+        self.assertRegex(out, 'opt2 val2')
+        self.assertRegex(out, 'opt3 val3')
+        self.assertRegex(out, 'opt4 val4')
+        self.build()
+        self.run_tests()
 
 class FailureTests(BasePlatformTests):
     '''
