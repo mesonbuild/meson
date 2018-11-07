@@ -136,7 +136,7 @@ def detect_ninja(version='1.5', log=False):
 
 def detect_native_windows_arch():
     """
-    The architecture of Windows itself: x86 or amd64
+    The architecture of Windows itself: x86, amd64 or arm64
     """
     # These env variables are always available. See:
     # https://msdn.microsoft.com/en-us/library/aa384274(VS.85).aspx
@@ -175,7 +175,7 @@ def detect_windows_arch(compilers):
 
     """
     os_arch = detect_native_windows_arch()
-    if os_arch != 'amd64':
+    if os_arch == 'x86':
         return os_arch
     # If we're on 64-bit Windows, 32-bit apps can be compiled without
     # cross-compilation. So if we're doing that, just set the native arch as
