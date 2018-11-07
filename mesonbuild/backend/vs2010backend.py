@@ -794,19 +794,6 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
         # Let VS auto-set the RTC level
         ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'Default'
-        o_flags = split_o_flags_args(buildtype_args)
-        if '/Oi' in o_flags:
-            ET.SubElement(type_config, 'IntrinsicFunctions').text = 'true'
-        if '/Ob1' in o_flags:
-            ET.SubElement(type_config, 'InlineFunctionExpansion').text = 'OnlyExplicitInline'
-        elif '/Ob2' in o_flags:
-            ET.SubElement(type_config, 'InlineFunctionExpansion').text = 'AnySuitable'
-        # In modern MSVC parlance "/O1" means size optimization.
-        # "/Os" has been deprecated.
-        if '/O1' in o_flags:
-            ET.SubElement(type_config, 'FavorSizeOrSpeed').text = 'Size'
-        else:
-            ET.SubElement(type_config, 'FavorSizeOrSpeed').text = 'Speed'
         # Incremental linking increases code size
         if '/INCREMENTAL:NO' in buildtype_link_args:
             ET.SubElement(type_config, 'LinkIncremental').text = 'false'
@@ -846,15 +833,6 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'UninitializedLocalUsageCheck'
         elif '/RTCs' in buildtype_args:
             ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'StackFrameRuntimeCheck'
-        # Optimization flags
-        if '/Ox' in o_flags:
-            ET.SubElement(type_config, 'Optimization').text = 'Full'
-        elif '/O2' in o_flags:
-            ET.SubElement(type_config, 'Optimization').text = 'MaxSpeed'
-        elif '/O1' in o_flags:
-            ET.SubElement(type_config, 'Optimization').text = 'MinSpace'
-        elif '/Od' in o_flags:
-            ET.SubElement(type_config, 'Optimization').text = 'Disabled'
         # End configuration
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(target, root)
@@ -1026,6 +1004,27 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'WarningLevel').text = 'Level' + str(1 + int(warning_level))
         if self.get_option_for_target('werror', target):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
+        # Optimization flags
+        o_flags = split_o_flags_args(buildtype_args)
+        if '/Ox' in o_flags:
+            ET.SubElement(clconf, 'Optimization').text = 'Full'
+        elif '/O2' in o_flags:
+            ET.SubElement(clconf, 'Optimization').text = 'MaxSpeed'
+        elif '/O1' in o_flags:
+            ET.SubElement(clconf, 'Optimization').text = 'MinSpace'
+        elif '/Od' in o_flags:
+            ET.SubElement(clconf, 'Optimization').text = 'Disabled'
+        if '/Oi' in o_flags:
+            ET.SubElement(clconf, 'IntrinsicFunctions').text = 'true'
+        if '/Ob1' in o_flags:
+            ET.SubElement(clconf, 'InlineFunctionExpansion').text = 'OnlyExplicitInline'
+        elif '/Ob2' in o_flags:
+            ET.SubElement(clconf, 'InlineFunctionExpansion').text = 'AnySuitable'
+        # Size-preserving flags
+        if '/Os' in o_flags:
+            ET.SubElement(clconf, 'FavorSizeOrSpeed').text = 'Size'
+        else:
+            ET.SubElement(clconf, 'FavorSizeOrSpeed').text = 'Speed'
         # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
         pch_sources = {}
         if self.environment.coredata.base_options.get('b_pch', False):
