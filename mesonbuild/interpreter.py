@@ -3532,6 +3532,7 @@ This will become a hard error in the future.''' % kwargs['input'])
     @FeatureNewKwargs('configure_file', '0.47.0', ['copy', 'output_format', 'install_mode', 'encoding'])
     @FeatureNewKwargs('configure_file', '0.46.0', ['format'])
     @FeatureNewKwargs('configure_file', '0.41.0', ['capture'])
+    @FeatureNewKwargs('configure_file', '0.50.0', ['install'])
     @permittedKwargs(permitted_kwargs['configure_file'])
     def func_configure_file(self, node, args, kwargs):
         if len(args) > 0:
@@ -3691,8 +3692,17 @@ This will become a hard error in the future.''' % kwargs['input'])
         # Install file if requested, we check for the empty string
         # for backwards compatibility. That was the behaviour before
         # 0.45.0 so preserve it.
-        idir = kwargs.get('install_dir', None)
-        if isinstance(idir, str) and idir:
+        idir = kwargs.get('install_dir', '')
+        if not isinstance(idir, str):
+            raise InterpreterException('"install_dir" must be a string')
+        install = kwargs.get('install', idir != '')
+        if not isinstance(install, bool):
+            raise InterpreterException('"install" must be a boolean')
+        if install:
+            if not idir:
+                raise InterpreterException('"install_dir" must be specified '
+                                           'when "install" in a configure_file '
+                                           'is true')
             cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
             install_mode = self._get_kwarg_install_mode(kwargs)
             self.build.data.append(build.Data([cfile], idir, install_mode))
