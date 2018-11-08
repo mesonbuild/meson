@@ -1,10 +1,5 @@
 steps:
 - powershell: |
-     # test_find_program exercises some behaviour which relies on .py being in PATHEXT
-     $env:PATHEXT += ';.py'
-
-     where.exe python
-
      python ./skip_ci.py --base-branch-env=SYSTEM_PULLREQUEST_TARGETBRANCH --is-pull-env=SYSTEM_PULLREQUEST_PULLREQUESTID --base-branch-origin
      if ($LastExitCode -ne 0) {
         throw ('error in skip_ci.py')
@@ -44,6 +39,17 @@ steps:
        $v = [Environment]::GetEnvironmentVariable($p, "Machine")
        Set-Content "env:$p" "$v"
      }
+
+     # download and install python3 and add to path (since it's not installed in vs2015 image!)
+     if ($env:compiler -eq 'msvc2015') {
+       Set-ExecutionPolicy Bypass -Scope Process -Force
+       iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+       choco install python3 -y --no-progress --params "/InstallDir:C:\Python3"
+       $env:Path = "C:\Python3;$env:Path"
+     }
+
+     # test_find_program exercises some behaviour which relies on .py being in PATHEXT
+     $env:PATHEXT += ';.py'
 
      # add downloads to PATH
      $env:Path = "$env:SYSTEM_WORKFOLDER;$env:Path"
@@ -96,6 +102,9 @@ steps:
      } else {
        MSBuild /version
      }
+
+     where.exe python
+     python --version
 
      python run_tests.py --backend $(backend)
 
