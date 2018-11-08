@@ -231,6 +231,11 @@ the `@variable@` syntax.
 - `input` the input file name. If it's not specified in configuration
   mode, all the variables in the `configuration:` object (see above)
   are written to the `output:` file.
+- `install` *(added 0.50.0)* When true, this generated file is installed during
+the install step, and `install_dir` must be set and not empty. When false, this
+generated file is not installed regardless of the value of `install_dir`.
+When omitted it defaults to true when `install_dir` is set and not empty,
+false otherwise.
 - `install_dir` the subdirectory to install the generated file to
   (e.g. `share/myproject`), if omitted or given the value of empty
   string, the file is not installed.
