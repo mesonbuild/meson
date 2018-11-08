@@ -151,7 +151,7 @@ msvc_buildtype_args = {'plain': [],
                        'debug': ["/ZI", "/Ob0", "/Od", "/RTC1"],
                        'debugoptimized': ["/Zi", "/Ob1"],
                        'release': ["/Ob2", "/Gw"],
-                       'minsize': ["/Zi", "/Gw"],
+                       'minsize': ["/Zi", "/Gw", "/Os"],
                        'custom': [],
                        }
 
