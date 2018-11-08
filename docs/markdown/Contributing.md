@@ -129,8 +129,8 @@ can be run with `./run_unittests.py` and project tests with
 
 Each project test is a standalone project that can be compiled on its
 own. They are all in `test cases` subdirectory. The simplest way to
-run a single project test is to do something like `./meson.py test\
-cases/common/1\ trivial builddir`. The one exception to this is `test
+run a single project test is to do something like `./run_project_tests.py -t test\
+cases/common/1\ trivial`. The one exception to this is `test
 cases/unit` directory discussed below.
 
 The test cases in the `common` subdirectory are meant to be run always

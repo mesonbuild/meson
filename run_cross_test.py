@@ -30,8 +30,8 @@ import argparse
 from run_project_tests import gather_tests, run_tests, StopException, setup_commands
 from run_project_tests import failing_logs
 
-def runtests(cross_file, failfast):
-    commontests = [('common', gather_tests(Path('test cases', 'common')), False)]
+def runtests(cross_file, failfast, test_filter):
+    commontests = [('common', gather_tests(Path('test cases', 'common'), test_filter), False)]
     try:
         (passing_tests, failing_tests, skipped_tests) = \
             run_tests(commontests, 'meson-cross-test-run', failfast, ['--cross', cross_file])
@@ -49,10 +49,11 @@ def runtests(cross_file, failfast):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--failfast', action='store_true')
+    parser.add_argument('--testcase', default=None, dest='testcase')
     parser.add_argument('cross_file')
     options = parser.parse_args()
     setup_commands('ninja')
-    return runtests(options.cross_file, options.failfast)
+    return runtests(options.cross_file, options.failfast, options.testcase)
 
 if __name__ == '__main__':
     sys.exit(main())

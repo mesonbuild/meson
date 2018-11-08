@@ -373,8 +373,8 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     return TestResult(validate_install(testdir, install_dir, compiler, builddata.environment),
                       BuildStep.validate, stdo, stde, mesonlog, gen_time, build_time, test_time)
 
-def gather_tests(testdir: Path):
-    tests = [t.name for t in testdir.glob('*')]
+def gather_tests(testdir: Path, test_filter):
+    tests = [t.name for t in testdir.glob('*{}*'.format(test_filter) if test_filter else '*')]
     tests = [t for t in tests if not t.startswith('.')] # Filter non-tests files (dot files, etc)
     testlist = [(int(t.split()[0]), t) for t in tests]
     testlist.sort()
@@ -476,7 +476,7 @@ def skip_csharp(backend):
         return not stdo.startswith(b'2.')
     return True
 
-def detect_tests_to_run():
+def detect_tests_to_run(testcases):
     # Name, subdirectory, skip condition.
     all_tests = [
         ('common', 'common', False),
@@ -502,7 +502,13 @@ def detect_tests_to_run():
         ('frameworks', 'frameworks', False),
         ('nasm', 'nasm', False),
     ]
-    gathered_tests = [(name, gather_tests(Path('test cases', subdir)), skip) for name, subdir, skip in all_tests]
+    test_filter = None
+    testcases = re.sub(r'^test cases[{}]*'.format(re.escape(os.sep)), '', testcases if testcases else '')
+    if testcases:
+        subdir_filter, *test_filter = testcases.split(os.sep, 1)
+        test_filter = test_filter[0].replace(os.sep, '') if test_filter else None
+
+    gathered_tests = [(name, gather_tests(Path('test cases', subdir), test_filter), skip) for name, subdir, skip in all_tests if not testcases or subdir == subdir_filter]
     return gathered_tests
 
 def run_tests(all_tests, log_name_base, failfast, extra_args):
@@ -708,6 +714,8 @@ if __name__ == '__main__':
                         choices=backendlist)
     parser.add_argument('--failfast', action='store_true',
                         help='Stop running if test case fails')
+    parser.add_argument('-t', '--testcase', default=None, dest='testcase',
+                        help='Only run the specified test case')
     options = parser.parse_args()
     setup_commands(options.backend)
 
@@ -718,7 +726,7 @@ if __name__ == '__main__':
     check_format()
     check_meson_commands_work()
     try:
-        all_tests = detect_tests_to_run()
+        all_tests = detect_tests_to_run(options.testcase)
         (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args)
     except StopException:
         pass
