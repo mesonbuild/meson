@@ -124,7 +124,9 @@ class CommandTests(unittest.TestCase):
         pylibdir = prefix / get_pypath()
         bindir = prefix / get_pybindir()
         pylibdir.mkdir(parents=True)
-        os.environ['PYTHONPATH'] = str(pylibdir)
+        # XXX: join with empty name so it always ends with os.sep otherwise
+        # distutils complains that prefix isn't contained in PYTHONPATH
+        os.environ['PYTHONPATH'] = os.path.join(str(pylibdir), '')
         os.environ['PATH'] = str(bindir) + os.pathsep + os.environ['PATH']
         self._run(python_command + ['setup.py', 'install', '--prefix', str(prefix)])
         # Check that all the files were installed correctly
