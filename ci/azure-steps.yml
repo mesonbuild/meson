@@ -111,28 +111,21 @@ steps:
 
      python run_tests.py --backend $(backend)
 
-     echo "##vso[task.setvariable variable=test_status]$LastExitCode"
-
-  continueOnError: true
-
 - task: PublishTestResults@2
   inputs:
     testResultsFiles: meson-test-run.xml
     testRunTitle: $(System.JobName)
     publishRunAttachments: true
+  condition: not(canceled())
 
 - task: CopyFiles@2
   inputs:
     contents: 'meson-test-run.*'
     targetFolder: $(Build.ArtifactStagingDirectory)
+  condition: not(canceled())
 
 - task: PublishBuildArtifacts@1
   inputs:
     artifactName: $(System.JobName)
   # publishing artifacts from PRs from a fork is currently blocked
   condition: eq(variables['system.pullrequest.isfork'], false)
-
-- powershell: |
-     # after publishing test results, even if some failed
-     # exit with the test status
-     exit $(test_status)
