@@ -51,14 +51,23 @@ steps:
      $origPath = $env:Path
      # import visual studio variables
      if ($env:compiler -eq 'msvc2015') {
-       $vsver = $env:compiler.Replace('msvc', '')
+       $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
      } else {
-       $vsver = '2017'
+       $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
      }
-     Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-     Install-Module Pscx -Scope CurrentUser -AllowClobber
-     Install-Module VSSetup -Scope CurrentUser
-     Import-VisualStudioVars -VisualStudioVersion $vsver -Architecture $(arch)
+
+     ## ask cmd.exe to output the environment table after the batch file completes
+     $tempFile = [IO.Path]::GetTempFileName()
+     cmd /c " `"$vcvars`" $env:arch && set > `"$tempFile`" "
+
+     ## go through the environment variables in the temp file.
+     ## for each of them, set the variable in our local environment.
+     Get-Content $tempFile | Foreach-Object {
+       if($_ -match "^(.*?)=(.*)$") {
+         Set-Content "env:\$($matches[1])" $matches[2]
+       }
+     }
+     Remove-Item $tempFile
 
      if ($env:compiler -eq 'clang-cl') {
        # drop visual studio from PATH
