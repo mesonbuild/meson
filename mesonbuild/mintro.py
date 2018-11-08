@@ -29,6 +29,8 @@ import pathlib
 def add_arguments(parser):
     parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
                         help='List top level targets.')
+    parser.add_argument('--target-batch', action='store_true', dest='target_batch', default=False,
+                        help='Batch export info on all targets.')
     parser.add_argument('--installed', action='store_true', dest='list_installed', default=False,
                         help='List all installed files and directories.')
     parser.add_argument('--target-files', action='store', dest='target_files', default=None,
@@ -86,19 +88,7 @@ def list_targets(coredata, builddata, installdata):
         else:
             fname = os.path.join(target.subdir, fname)
         t['filename'] = fname
-        if isinstance(target, build.Executable):
-            typename = 'executable'
-        elif isinstance(target, build.SharedLibrary):
-            typename = 'shared library'
-        elif isinstance(target, build.StaticLibrary):
-            typename = 'static library'
-        elif isinstance(target, build.CustomTarget):
-            typename = 'custom'
-        elif isinstance(target, build.RunTarget):
-            typename = 'run'
-        else:
-            typename = 'unknown'
-        t['type'] = typename
+        t['type'] = target.type_string
         if installdata and target.should_install():
             t['installed'] = True
             t['install_filename'] = determine_installed_path(target, installdata)
@@ -108,18 +98,31 @@ def list_targets(coredata, builddata, installdata):
         tlist.append(t)
     print(json.dumps(tlist))
 
-def list_target_files(target_name, coredata, builddata):
+def batch_targets(coredata, builddata, installdata):
+    batchdata = []
+    for (idname, target) in builddata.get_targets().items():
+        t = {'name': target.get_basename(),
+             'id': idname,
+             'type': target.type_string,
+             'files': get_target_filelist(builddata, idname)}
+        batchdata.append(t)
+    print(json.dumps(batchdata))
+
+def get_target_filelist(builddata, target_id):
     try:
-        t = builddata.targets[target_name]
+        t = builddata.targets[target_id]
         sources = t.sources + t.extra_files
     except KeyError:
-        print("Unknown target %s." % target_name)
-        sys.exit(1)
+        sys.exit("Unknown target %s." % target_id)
     out = []
     for i in sources:
         if isinstance(i, mesonlib.File):
             i = os.path.join(i.subdir, i.fname)
         out.append(i)
+    return out
+
+def list_target_files(target_name, coredata, builddata):
+    out = get_target_filelist(builddata, target_name)
     print(json.dumps(out))
 
 def list_buildoptions(coredata, builddata):
@@ -225,6 +228,8 @@ def run(options):
 
     if options.list_targets:
         list_targets(coredata, builddata, installdata)
+    elif options.target_batch:
+        batch_targets(coredata, builddata, installdata)
     elif options.list_installed:
         list_installed(installdata)
     elif options.target_files is not None:

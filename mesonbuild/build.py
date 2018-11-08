@@ -328,6 +328,9 @@ class EnvironmentVariables:
         return env
 
 class Target:
+
+    type_string = 'target'
+
     def __init__(self, name, subdir, subproject, build_by_default):
         if has_path_sep(name):
             # Fix failing test 53 when this becomes an error.
@@ -400,6 +403,7 @@ a hard error in the future.''' % name)
 
 class BuildTarget(Target):
     known_kwargs = known_build_target_kwargs
+    type_string = 'buildtarget'
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, True)
@@ -1333,6 +1337,7 @@ class GeneratedList:
 
 class Executable(BuildTarget):
     known_kwargs = known_exe_kwargs
+    type_string = 'executable'
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         if 'pie' not in kwargs and 'b_pie' in environment.coredata.base_options:
@@ -1422,6 +1427,7 @@ class Executable(BuildTarget):
 
 class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
+    type_string = 'static_library'
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         if 'pic' not in kwargs and 'b_staticpic' in environment.coredata.base_options:
@@ -1481,6 +1487,7 @@ class StaticLibrary(BuildTarget):
 
 class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
+    type_string = 'shared_library'
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         self.soversion = None
@@ -1788,6 +1795,7 @@ class SharedLibrary(BuildTarget):
 # into something else.
 class SharedModule(SharedLibrary):
     known_kwargs = known_shmod_kwargs
+    type_string = 'shared_module'
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         if 'version' in kwargs:
@@ -1818,6 +1826,7 @@ class CustomTarget(Target):
         'override_options',
         'console',
     ])
+    type_string = 'custom'
 
     def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False):
         super().__init__(name, subdir, subproject, False)
@@ -2060,6 +2069,8 @@ class CustomTarget(Target):
         raise NotImplementedError
 
 class RunTarget(Target):
+    type_string = 'run'
+
     def __init__(self, name, command, args, dependencies, subdir, subproject):
         super().__init__(name, subdir, subproject, False)
         self.command = command
@@ -2093,6 +2104,7 @@ class RunTarget(Target):
 
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
+    type_string = 'jar'
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
