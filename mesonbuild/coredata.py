@@ -460,12 +460,18 @@ class CoreData:
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
             mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options))
 
+class CmdLineFileParser(configparser.ConfigParser):
+    def __init__(self):
+        # We don't want ':' as key delimiter, otherwise it would break when
+        # storing subproject options like "subproject:option=value"
+        super().__init__(delimiters=['='])
+
 def get_cmd_line_file(build_dir):
     return os.path.join(build_dir, 'meson-private', 'cmd_line.txt')
 
 def read_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
-    config = configparser.ConfigParser()
+    config = CmdLineFileParser()
     config.read(filename)
 
     # Do a copy because config is not really a dict. options.cmd_line_options
@@ -480,7 +486,7 @@ def read_cmd_line_file(build_dir, options):
 
 def write_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
-    config = configparser.ConfigParser()
+    config = CmdLineFileParser()
 
     properties = {}
     if options.cross_file is not None:
@@ -493,7 +499,7 @@ def write_cmd_line_file(build_dir, options):
 
 def update_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
-    config = configparser.ConfigParser()
+    config = CmdLineFileParser()
     config.read(filename)
     config['options'].update(options.cmd_line_options)
     with open(filename, 'w') as f:
