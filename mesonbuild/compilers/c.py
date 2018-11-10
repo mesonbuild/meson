@@ -30,7 +30,6 @@ from ..mesonlib import (
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 
 from .compilers import (
-    CompilerType,
     get_largefile_args,
     gnu_winlibs,
     msvc_winlibs,

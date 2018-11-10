@@ -42,7 +42,7 @@ import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.mesonlib import (
     is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku,
-    is_linux, windows_proof_rmtree, python_command, version_compare,
+    windows_proof_rmtree, python_command, version_compare,
     BuildDirLock, Version
 )
 from mesonbuild.environment import detect_ninja

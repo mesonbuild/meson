@@ -21,7 +21,6 @@ from ..mesonlib import MesonException, version_compare
 
 from .c import CCompiler, VisualStudioCCompiler, ClangClCCompiler
 from .compilers import (
-    CompilerType,
     gnu_winlibs,
     msvc_winlibs,
     ClangCompiler,
