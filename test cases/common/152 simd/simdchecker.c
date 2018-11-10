@@ -1,93 +1,143 @@
 #include<simdfuncs.h>
 #include<stdio.h>
+#include<string.h>
 
-/*
- * A function that checks at runtime which simd accelerations are
- * available and calls the best one. Falls
- * back to plain C implementation if SIMD is not available.
- */
+typedef void (*simd_func)(float*);
+
+int check_simd_implementation(float *four,
+        const float *four_initial,
+        const char *simd_type,
+        const float *expected,
+        simd_func fptr,
+        const int blocksize) {
+    int rv = 0;
+    memcpy(four, four_initial, blocksize*sizeof(float));
+    printf("Using %s.\n", simd_type);
+    fptr(four);
+    for(int i=0; i<blocksize; i++) {
+        if(four[i] != expected[i]) {
+            printf("Increment function failed, got %f expected %f.\n", four[i], expected[i]);
+            rv = 1;
+        }
+    }
+    return rv;
+}
 
 int main(int argc, char **argv) {
-    float four[4] = {2.0, 3.0, 4.0, 5.0};
+    static const float four_initial[4] = {2.0, 3.0, 4.0, 5.0};
+    ALIGN_16 float four[4];
     const float expected[4] = {3.0, 4.0, 5.0, 6.0};
-    void (*fptr)(float[4]) = NULL;
-    const char *type;
-    int i;
+    int r=0;
+    const int blocksize = 4;
 
-/* Add here. The first matched one is used so put "better" instruction
- * sets at the top.
+/*
+ * Test all implementations that the current CPU supports.
  */
 #if HAVE_NEON
-    if(fptr == NULL && neon_available()) {
-        fptr = increment_neon;
-        type = "NEON";
+    if(neon_available()) {
+        r += check_simd_implementation(four,
+                four_initial,
+                "NEON",
+                expected,
+                increment_neon,
+                blocksize);
     }
 #endif
 #if HAVE_AVX2
-    if(fptr == NULL && avx2_available()) {
-        fptr = increment_avx2;
-        type = "AVX2";
+    if(avx2_available()) {
+        r += check_simd_implementation(four,
+                four_initial,
+                "AVX2",
+                expected,
+                increment_avx2,
+                blocksize);
     }
 #endif
 #if HAVE_AVX
-    if(fptr == NULL && avx_available()) {
-        fptr = increment_avx;
-        type = "AVX";
+    if(avx_available()) {
+        r += check_simd_implementation(four,
+                four_initial,
+                "AVC",
+                expected,
+                increment_avx,
+                blocksize);
     }
 #endif
 #if HAVE_SSE42
-    if(fptr == NULL && sse42_available()) {
-        fptr = increment_sse42;
-        type = "SSE42";
+    if(sse42_available()) {
+        r += check_simd_implementation(four,
+                four_initial,
+                "SSR42",
+                expected,
+                increment_sse42,
+                blocksize);
     }
 #endif
 #if HAVE_SSE41
-    if(fptr == NULL && sse41_available()) {
-        fptr = increment_sse41;
-        type = "SSE41";
+    if(sse41_available()) {
+        r += check_simd_implementation(four,
+                four_initial,
+                "SSE41",
+                expected,
+                increment_sse41,
+                blocksize);
     }
 #endif
 #if HAVE_SSSE3
-    if(fptr == NULL && ssse3_available()) {
-        fptr = increment_ssse3;
-        type = "SSSE3";
+    if(ssse3_available()) {
+        r += check_simd_implementation(four,
+                four_initial,
+                "SSSE3",
+                expected,
+                increment_ssse3,
+                blocksize);
     }
 #endif
 #if HAVE_SSE3
-    if(fptr == NULL && sse3_available()) {
-        fptr = increment_sse3;
-        type = "SSE3";
+    if(sse3_available()) {
+        r += check_simd_implementation(four,
+                four_initial,
+                "SSE3",
+                expected,
+                increment_sse3,
+                blocksize);
     }
 #endif
 #if HAVE_SSE2
-    if(fptr == NULL && sse2_available()) {
-        fptr = increment_sse2;
-        type = "SSE2";
+    if(sse2_available()) {
+        r += check_simd_implementation(four,
+                four_initial,
+                "SSE2",
+                expected,
+                increment_sse2,
+                blocksize);
     }
 #endif
 #if HAVE_SSE
-    if(fptr == NULL && sse_available()) {
-        fptr = increment_sse;
-        type = "SSE";
+    if(sse_available()) {
+        r += check_simd_implementation(four,
+                four_initial,
+                "SSE",
+                expected,
+                increment_sse,
+                blocksize);
     }
 #endif
 #if HAVE_MMX
-    if(fptr == NULL && mmx_available()) {
-        fptr = increment_mmx;
-        type = "MMX";
+    if(mmx_available()) {
+        r += check_simd_implementation(four,
+                four_initial,
+                "MMX",
+                expected,
+                increment_mmx,
+                blocksize);
     }
 #endif
-    if(fptr == NULL) {
-        fptr = increment_fallback;
-        type = "fallback";
-    }
-    printf("Using %s.\n", type);
-    fptr(four);
-    for(i=0; i<4; i++) {
-        if(four[i] != expected[i]) {
-            printf("Increment function failed, got %f expected %f.\n", four[i], expected[i]);
-            return 1;
-        }
-    }
-    return 0;
+    r += check_simd_implementation(four,
+            four_initial,
+            "fallback",
+            expected,
+            increment_fallback,
+            blocksize);
+    return r;
 }
