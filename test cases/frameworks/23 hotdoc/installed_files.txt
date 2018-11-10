@@ -2,7 +2,8 @@ usr/share/doc/foobar/html/foo.html
 usr/share/doc/foobar/html/c-index.html
 usr/share/doc/foobar/html/index.html
 usr/share/doc/foobar/html/dumped.trie
-usr/share/doc/foobar/html/assets/css/prism.css
+usr/share/doc/foobar/html/assets/theme.json
+usr/share/doc/foobar/html/assets/css/prism-tomorrow.css
 usr/share/doc/foobar/html/assets/css/bootstrap-toc.min.css
 usr/share/doc/foobar/html/assets/css/frontend.css
 usr/share/doc/foobar/html/assets/css/dumped.trie
