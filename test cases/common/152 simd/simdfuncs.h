@@ -2,6 +2,14 @@
 
 #include<simdconfig.h>
 
+#ifdef _MSC_VER
+#define ALIGN_16 __declspec(align(16))
+#else
+#include<stdalign.h>
+#define ALIGN_16 alignas(16)
+#endif
+
+
 /* Yes, I do know that arr[4] decays into a pointer
  * as a function argument. Don't do this in real code
  * but for this test it is ok.

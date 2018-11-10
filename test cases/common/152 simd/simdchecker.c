@@ -1,5 +1,4 @@
 #include<simdfuncs.h>
-#include<stdalign.h>
 #include<stdio.h>
 #include<string.h>
 
@@ -26,7 +25,7 @@ int check_simd_implementation(float *four,
 
 int main(int argc, char **argv) {
     static const float four_initial[4] = {2.0, 3.0, 4.0, 5.0};
-    alignas(16) float four[4];
+    ALIGN_16 float four[4];
     const float expected[4] = {3.0, 4.0, 5.0, 6.0};
     int r=0;
     const int blocksize = 4;
