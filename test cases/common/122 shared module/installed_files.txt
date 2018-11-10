@@ -1,2 +1,3 @@
-usr/lib/libnosyms.so
-?msvc:usr/lib/libnosyms.pdb
+usr/lib/modules/libnosyms?so
+usr/lib/modules/libnosyms?implibempty
+?msvc:usr/lib/modules/nosyms.pdb

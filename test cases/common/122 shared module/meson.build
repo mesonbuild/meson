@@ -13,8 +13,6 @@ e = executable('prog', 'prog.c',
 test('import test', e, args : m)
 
 # Shared module that does not export any symbols
-shared_module('nosyms', 'nosyms.c', install : true,
-              # Because we don't have cross-platform library support in
-              # installed_files.txt
-              name_suffix : 'so',
-              name_prefix : 'lib')
+shared_module('nosyms', 'nosyms.c',
+  install : true,
+  install_dir : join_paths(get_option('libdir'), 'modules'))

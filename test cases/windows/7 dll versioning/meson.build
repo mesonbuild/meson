@@ -49,4 +49,6 @@ shared_library('customdir', 'lib.c',
   install : true,
   install_dir : get_option('libexecdir'))
 
-shared_module('module', 'lib.c', install : true)
+shared_module('module', 'lib.c',
+  install : true,
+  install_dir: join_paths(get_option('libdir'), 'modules'))

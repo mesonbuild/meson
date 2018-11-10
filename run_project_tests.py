@@ -118,10 +118,25 @@ def get_relative_files_list_from_dir(fromdir):
     return paths
 
 def platform_fix_name(fname, compiler, env):
+    # canonicalize compiler
+    if compiler == 'clang-cl':
+        canonical_compiler = 'msvc'
+    else:
+        canonical_compiler = compiler
+
     if '?lib' in fname:
-        if mesonlib.for_cygwin(env.is_cross_build(), env):
+        if mesonlib.for_windows(env.is_cross_build(), env) and canonical_compiler == 'msvc':
+            fname = re.sub(r'lib/\?lib(.*)\.', r'bin/\1.', fname)
+            fname = re.sub(r'/\?lib/', r'/bin/', fname)
+        elif mesonlib.for_windows(env.is_cross_build(), env):
+            fname = re.sub(r'lib/\?lib(.*)\.', r'bin/lib\1.', fname)
+            fname = re.sub(r'\?lib(.*)\.dll$', r'lib\1.dll', fname)
+            fname = re.sub(r'/\?lib/', r'/bin/', fname)
+        elif mesonlib.for_cygwin(env.is_cross_build(), env):
             fname = re.sub(r'lib/\?lib(.*)\.so$', r'bin/cyg\1.dll', fname)
+            fname = re.sub(r'lib/\?lib(.*)\.', r'bin/cyg\1.', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'cyg\1.dll', fname)
+            fname = re.sub(r'/\?lib/', r'/bin/', fname)
         else:
             fname = re.sub(r'\?lib', 'lib', fname)
 
@@ -132,17 +147,47 @@ def platform_fix_name(fname, compiler, env):
 
     if fname.startswith('?msvc:'):
         fname = fname[6:]
-        if compiler != 'msvc':
+        if canonical_compiler != 'msvc':
             return None
 
     if fname.startswith('?gcc:'):
         fname = fname[5:]
-        if compiler == 'msvc':
+        if canonical_compiler == 'msvc':
             return None
 
     if fname.startswith('?cygwin:'):
         fname = fname[8:]
-        if compiler == 'msvc' or not mesonlib.for_cygwin(env.is_cross_build(), env):
+        if not mesonlib.for_cygwin(env.is_cross_build(), env):
+            return None
+
+    if fname.endswith('?so'):
+        if mesonlib.for_windows(env.is_cross_build(), env) and canonical_compiler == 'msvc':
+            fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
+            fname = re.sub(r'/(?:lib|)([^/]*?)\?so$', r'/\1.dll', fname)
+            return fname
+        elif mesonlib.for_windows(env.is_cross_build(), env):
+            fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
+            fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
+            return fname
+        elif mesonlib.for_cygwin(env.is_cross_build(), env):
+            fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
+            fname = re.sub(r'/lib([^/]*?)\?so$', r'/cyg\1.dll', fname)
+            fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
+            return fname
+        elif mesonlib.for_darwin(env.is_cross_build(), env):
+            return fname[:-3] + '.dylib'
+        else:
+            return fname[:-3] + '.so'
+
+    if fname.endswith('?implib') or fname.endswith('?implibempty'):
+        if mesonlib.for_windows(env.is_cross_build(), env) and canonical_compiler == 'msvc':
+            # only MSVC doesn't generate empty implibs
+            if fname.endswith('?implibempty') and compiler == 'msvc':
+                return None
+            return re.sub(r'/(?:lib|)([^/]*?)\?implib(?:empty|)$', r'/\1.lib', fname)
+        elif mesonlib.for_windows(env.is_cross_build(), env) or mesonlib.for_cygwin(env.is_cross_build(), env):
+            return re.sub(r'\?implib(?:empty|)$', r'.dll.a', fname)
+        else:
             return None
 
     return fname
@@ -695,10 +740,6 @@ def detect_system_compiler():
         except:
             raise RuntimeError("Could not find C compiler.")
         system_compiler = comp.get_id()
-
-    # canonicalize for platform_fix_name()
-    if system_compiler == 'clang-cl':
-        system_compiler = 'msvc'
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")

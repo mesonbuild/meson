@@ -9,6 +9,6 @@
   #endif
 #endif
 
-int DLL_PUBLIC myFunc() {
-    return 55;
+int DLL_PUBLIC func() {
+    return 0;
 }

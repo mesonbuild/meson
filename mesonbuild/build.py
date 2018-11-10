@@ -1549,13 +1549,9 @@ class SharedLibrary(BuildTarget):
         prefix = ''
         suffix = ''
         self.filename_tpl = self.basic_filename_tpl
-        # If the user already provided the prefix and suffix to us, we don't
-        # need to do any filename suffix/prefix detection.
         # NOTE: manual prefix/suffix override is currently only tested for C/C++
-        if self.prefix is not None and self.suffix is not None:
-            pass
         # C# and Mono
-        elif 'cs' in self.compilers:
+        if 'cs' in self.compilers:
             prefix = ''
             suffix = 'dll'
             self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
@@ -1564,8 +1560,8 @@ class SharedLibrary(BuildTarget):
         # For all other targets/platforms import_filename stays None
         elif for_windows(is_cross, env):
             suffix = 'dll'
-            self.vs_import_filename = '{0}.lib'.format(self.name)
-            self.gcc_import_filename = 'lib{0}.dll.a'.format(self.name)
+            self.vs_import_filename = '{0}{1}.lib'.format(self.prefix if self.prefix is not None else '', self.name)
+            self.gcc_import_filename = '{0}{1}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
             if self.get_using_msvc():
                 # Shared library is of the form foo.dll
                 prefix = ''
@@ -1584,7 +1580,7 @@ class SharedLibrary(BuildTarget):
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         elif for_cygwin(is_cross, env):
             suffix = 'dll'
-            self.gcc_import_filename = 'lib{0}.dll.a'.format(self.name)
+            self.gcc_import_filename = '{0}{1}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
             # Shared library is of the form cygfoo.dll
             # (ld --dll-search-prefix=cyg is the default)
             prefix = 'cyg'
