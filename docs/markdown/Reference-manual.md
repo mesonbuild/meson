@@ -105,6 +105,9 @@ the following:
 - `exe_wrapper` a list containing the wrapper command or script followed by the arguments to it
 - `gdb` if `true`, the tests are also run under `gdb`
 - `timeout_multiplier` a number to multiply the test timeout with
+- `is_default` a bool to set whether this is the default test setup.
+  If `true`, the setup will be used whenever `meson test` is run
+  without the `--setup` option. Since 0.49.0
 
 To use the test setup, run `meson test --setup=*name*` inside the build dir.
 

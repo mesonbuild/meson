@@ -1461,6 +1461,38 @@ class AllPlatformTests(BasePlatformTests):
         self.assertRaises(subprocess.CalledProcessError, self._run,
                           self.mtest_command + ['--setup=main:onlyinbar'])
 
+    def test_testsetup_default(self):
+        testdir = os.path.join(self.unit_test_dir, '47 testsetup default')
+        self.init(testdir)
+        self.build()
+
+        # Run tests without --setup will cause the default setup to be used
+        self.run_tests()
+        with open(os.path.join(self.logdir, 'testlog.txt')) as f:
+            default_log = f.read()
+
+        # Run tests with explicitly using the same setup that is set as default
+        self._run(self.mtest_command + ['--setup=mydefault'])
+        with open(os.path.join(self.logdir, 'testlog-mydefault.txt')) as f:
+            mydefault_log = f.read()
+
+        # Run tests with another setup
+        self._run(self.mtest_command + ['--setup=other'])
+        with open(os.path.join(self.logdir, 'testlog-other.txt')) as f:
+            other_log = f.read()
+
+        self.assertTrue('ENV_A is 1' in default_log)
+        self.assertTrue('ENV_B is 2' in default_log)
+        self.assertTrue('ENV_C is 2' in default_log)
+
+        self.assertTrue('ENV_A is 1' in mydefault_log)
+        self.assertTrue('ENV_B is 2' in mydefault_log)
+        self.assertTrue('ENV_C is 2' in mydefault_log)
+
+        self.assertTrue('ENV_A is 1' in other_log)
+        self.assertTrue('ENV_B is 3' in other_log)
+        self.assertTrue('ENV_C is 2' in other_log)
+
     def assertFailedTestCount(self, failure_count, command):
         try:
             self._run(command)

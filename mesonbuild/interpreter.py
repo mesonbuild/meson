@@ -3733,6 +3733,14 @@ different subdirectory.
         timeout_multiplier = kwargs.get('timeout_multiplier', 1)
         if not isinstance(timeout_multiplier, int):
             raise InterpreterException('Timeout multiplier must be a number.')
+        is_default = kwargs.get('is_default', False)
+        if not isinstance(is_default, bool):
+            raise InterpreterException('is_default option must be a boolean')
+        if is_default:
+            if self.build.test_setup_default_name is not None:
+                raise InterpreterException('\'%s\' is already set as default. '
+                                           'is_default can be set to true only once' % self.build.test_setup_default_name)
+            self.build.test_setup_default_name = setup_name
         env = self.unpack_env_kwarg(kwargs)
         self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper=exe_wrapper,
                                                              gdb=gdb,
