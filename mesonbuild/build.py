@@ -135,6 +135,7 @@ class Build:
         self.dep_manifest = {}
         self.cross_stdlibs = {}
         self.test_setups = {}
+        self.test_setup_default_name = None
         self.find_overrides = {}
         self.searched_programs = set() # The list of all programs that have been searched for.
 
