@@ -33,13 +33,13 @@ developers. The first one is the mailing list, which is hosted at
 The second way is via IRC. The channel to use is `#mesonbuild` at
 [Freenode](https://freenode.net/).
 
-### [Projects using Meson](http://mesonbuild.com/Users.html)
+### [Projects using Meson](Users.md)
 
 Many projects out there are using Meson and their communities are also
 a great resource for learning about what (and what not too!) do when
 trying to convert to using Meson. 
 
-[A short list of Meson users can be found here](http://mesonbuild.com/Users.html)
+[A short list of Meson users can be found here](Users.md)
 but there are many more. We would love to hear about your success
 stories too and how things could be improved too!
 
