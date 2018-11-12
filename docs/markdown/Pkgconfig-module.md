@@ -14,7 +14,7 @@ can, of course, replace the name `pkg` with anything else.
 The generated file's properties are specified with the following
 keyword arguments.
 
-- `description` a string describing the library
+- `description` a string describing the library, used to set the `Description:` field
 - `extra_cflags` a list of extra compiler flags to be added to the
   `Cflags` field after the header search path
 - `filebase` the base name to use for the pkg-config file; as an
@@ -33,7 +33,7 @@ keyword arguments.
 - `libraries_private` list of built libraries or strings to put in the
   `Libs.private` field. Since 0.45.0 it can also contain dependency objects,
   their `link_args` will be added to `Libs.private`.
-- `name` the name of this library
+- `name` the name of this library, used to set the `Name:` field
 - `subdirs` which subdirs of `include` should be added to the header
   search path, for example if you install headers into
   `${PREFIX}/include/foobar-1`, the correct value for this argument
@@ -48,7 +48,8 @@ keyword arguments.
   reference other pkgconfig variables,
   e.g. `datadir=${prefix}/share`. The names `prefix`, `libdir` and
   `installdir` are reserved and may not be used.
-- `version` a string describing the version of this library
+- `version` a string describing the version of this library, used to set the
+  `Version:` field. Defaults to the project version if unspecified.
 - `d_module_versions` a list of module version flags used when compiling
    D sources referred to by this pkg-config file
 
