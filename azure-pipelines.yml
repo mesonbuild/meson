@@ -17,7 +17,6 @@ jobs:
     vmImage: vs2015-win2012r2
 
   strategy:
-    maxParallel: 10
     matrix:
         vc2015x86ninja:
           arch: x86
@@ -36,7 +35,6 @@ jobs:
     vmImage: VS2017-Win2016
 
   strategy:
-    maxParallel: 10
     matrix:
         vc2017x64ninja:
           arch: x64
