@@ -219,9 +219,22 @@ class CCompiler(Compiler):
     def _split_fetch_real_dirs(pathstr, sep=':'):
         paths = []
         for p in pathstr.split(sep):
-            p = Path(p)
-            if p.exists() and p.resolve().as_posix() not in paths:
-                paths.append(p.resolve().as_posix())
+            # GCC returns paths like this:
+            # /usr/lib/gcc/x86_64-linux-gnu/8/../../../../x86_64-linux-gnu/lib
+            # It would make sense to normalize them to get rid of the .. parts
+            # Sadly when you are on a merged /usr fs it also kills these:
+            # /lib/x86_64-linux-gnu
+            # since /lib is a symlink to /usr/lib. This would mean
+            # paths under /lib would be considered not a "system path",
+            # which is wrong and breaks things. Store everything, just to be sure.
+            pobj = Path(p)
+            unresolved = pobj.as_posix()
+            resolved = Path(p).resolve().as_posix()
+            if pobj.exists():
+                if unresolved not in paths:
+                    paths.append(unresolved)
+                if resolved not in paths:
+                    paths.append(resolved)
         return tuple(paths)
 
     def get_compiler_dirs(self, env, name):
