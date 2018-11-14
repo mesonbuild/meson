@@ -7,3 +7,9 @@ endif
 
 subdir('doc')
 
+assert(hotdoc.has_extensions(['gi-extension']) == true,
+  'GI extension should always be found.')
+
+assert(hotdoc.has_extensions(['gi-extension', 'no-way-you-exist-extension']) == false,
+  'A hotdoc extension called "no-way-you-exist-extension" should never be found.')
+
