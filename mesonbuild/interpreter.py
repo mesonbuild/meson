@@ -1988,6 +1988,7 @@ class Interpreter(InterpreterBase):
                            'generator': self.func_generator,
                            'gettext': self.func_gettext,
                            'get_option': self.func_get_option,
+                           'get_all_user_options': self.get_all_user_options_internal,
                            'get_variable': self.func_get_variable,
                            'files': self.func_files,
                            'find_library': self.func_find_library,
@@ -2401,6 +2402,9 @@ external dependencies (including libraries) must go to "dependencies".''')
             pass
 
         raise InterpreterException('Tried to access unknown option "%s".' % optname)
+
+    def get_all_user_options_internal(self, *args):
+        return [d for d in self.coredata.user_options]
 
     @stringArgs
     @noKwargs

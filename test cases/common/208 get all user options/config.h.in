@@ -1,0 +1,10 @@
+#ifndef __config__
+#define __config__
+
+#mesondefine string_opt
+#mesondefine true_opt
+#mesondefine false_opt
+#mesondefine combo_opt
+#mesondefine integer_opt
+
+#endif
