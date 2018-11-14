@@ -34,6 +34,7 @@ packages = ['mesonbuild',
             'mesonbuild.modules',
             'mesonbuild.scripts',
             'mesonbuild.wrap']
+package_data = {'mesonbuild.dependencies': ['data/CMakeLists.txt']}
 data_files = []
 if sys.platform != 'win32':
     # Only useful on UNIX-like systems
@@ -50,6 +51,7 @@ if __name__ == '__main__':
           license=' Apache License, Version 2.0',
           python_requires='>=3.5',
           packages=packages,
+          package_data=package_data,
           entry_points=entries,
           data_files=data_files,
           classifiers=['Development Status :: 5 - Production/Stable',

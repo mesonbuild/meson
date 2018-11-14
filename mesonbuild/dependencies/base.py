@@ -26,7 +26,7 @@ import shutil
 import textwrap
 import platform
 import itertools
-import tempfile
+import ctypes
 from enum import Enum
 from pathlib import PurePath
 
@@ -879,6 +879,7 @@ class CMakeDependency(ExternalDependency):
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
     class_cmakebin = None
+    class_cmakevers = None
     # We cache all pkg-config subprocess invocations to avoid redundant calls
     cmake_cache = {}
     # Version string for the minimum CMake version
@@ -891,12 +892,16 @@ class CMakeDependency(ExternalDependency):
         # Store a copy of the CMake path on the object itself so it is
         # stored in the pickled coredata and recovered.
         self.cmakebin = None
+        self.cmakevers = None
 
         # Dict of CMake variables: '<var_name>': ['list', 'of', 'values']
         self.vars = {}
 
         # Dict of CMakeTarget
         self.targets = {}
+
+        # Where all CMake "build dirs" are located
+        self.cmake_root_dir = environment.scratch_dir
 
         # When finding dependencies for cross-compiling, we don't care about
         # the 'native' CMake binary
@@ -915,10 +920,12 @@ class CMakeDependency(ExternalDependency):
         # Only search for the native CMake the first time and
         # store the result in the class definition
         elif CMakeDependency.class_cmakebin is None:
-            self.cmakebin = self.check_cmake()
+            self.cmakebin, self.cmakevers = self.check_cmake()
             CMakeDependency.class_cmakebin = self.cmakebin
+            CMakeDependency.class_cmakevers = self.cmakevers
         else:
             self.cmakebin = CMakeDependency.class_cmakebin
+            self.cmakevers = CMakeDependency.class_cmakevers
 
         if not self.cmakebin:
             if self.required:
@@ -945,29 +952,17 @@ class CMakeDependency(ExternalDependency):
         mlog.debug('\nDetermining dependency {!r} with CMake executable '
                    '{!r}'.format(name, self.cmakebin.get_path()))
 
-        ret1, _, err1 = self._call_cmake(['--find-package',
-                                          '--trace', '--trace-expand',
-                                          '-DCOMPILER_ID=GNU',
-                                          '-DLANGUAGE=CXX',
-                                          '-DMODE=LINK',
-                                          '-DNAME={}'.format(name)])
-
-        ret2, _, err2 = self._call_cmake(['--find-package',
-                                          '--trace', '--trace-expand',
-                                          '-DCOMPILER_ID=GNU',
-                                          '-DLANGUAGE=CXX',
-                                          '-DMODE=COMPILE',
-                                          '-DNAME={}'.format(name)])
+        ret1, out1, err1 = self._call_cmake(['--trace-expand', '-DNAME={}'.format(name), '.'])
 
         # Check if exists
-        if ret1 != 0 or ret2 != 0:
+        if ret1 != 0:
             mlog.debug('CMake: {} not found'.format(name))
+            mlog.debug('OUT:\n{}\n\n\nERR:\n{}\n\n'.format(out1, err1))
             return
 
         try:
             # First parse the trace
             lexer1 = self._lex_trace(err1)
-            lexer2 = self._lex_trace(err2)
 
             # All supported functions
             functions = {
@@ -988,11 +983,6 @@ class CMakeDependency(ExternalDependency):
                 if(fn):
                     fn(l)
 
-            # Secondary pass -- only set PACKAGE_INCLUDE_DIRS
-            for l in lexer2:
-                if l.func == 'set' and l.args[0] == 'PACKAGE_INCLUDE_DIRS':
-                    self._cmake_set(l)
-
         except DependencyException as e:
             if self.required:
                 raise
@@ -1009,9 +999,7 @@ class CMakeDependency(ExternalDependency):
             return
 
         # Try to detect the version
-        vers_raw = self.get_first_cmake_var_of(['PACKAGE_VERSION',
-                                                '{}_VERSION'.format(name), '{}_VERSION'.format(name).upper(),
-                                                '{}_VERSION_STRING'.format(name), '{}_VERSION_STRING'.format(name).upper()])
+        vers_raw = self.get_first_cmake_var_of(['PACKAGE_VERSION'])
 
         if len(vers_raw) > 0:
             self.version = vers_raw[0]
@@ -1367,32 +1355,90 @@ class CMakeDependency(ExternalDependency):
 
     def _lex_trace(self, trace):
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
-        reg_tline = re.compile(r'\s*(.*\.cmake)\(([0-9]+)\):\s*(\w+)\(([\s\S]*?) ?\)\s*\n', re.MULTILINE)
+        reg_tline = re.compile(r'\s*(.*\.(cmake|txt))\(([0-9]+)\):\s*(\w+)\(([\s\S]*?) ?\)\s*\n', re.MULTILINE)
+        reg_other = re.compile(r'[^\n]*\n')
         reg_genexp = re.compile(r'\$<.*>')
         loc = 0
         while loc < len(trace):
             mo_file_line = reg_tline.match(trace, loc)
             if not mo_file_line:
-                raise DependencyException('Failed to parse CMake trace')
+                skip_match = reg_other.match(trace, loc)
+                if not skip_match:
+                    print(trace[loc:])
+                    raise 'Failed to parse CMake trace'
+
+                loc = skip_match.end()
+                continue
 
             loc = mo_file_line.end()
 
             file = mo_file_line.group(1)
-            line = mo_file_line.group(2)
-            func = mo_file_line.group(3)
-            args = mo_file_line.group(4).split(' ')
+            line = mo_file_line.group(3)
+            func = mo_file_line.group(4)
+            args = mo_file_line.group(5).split(' ')
             args = list(map(lambda x: x.strip(), args))
             args = list(map(lambda x: reg_genexp.sub('', x), args)) # Remove generator expressions
 
             yield CMakeTraceLine(file, line, func, args)
 
+    def _reset_cmake_cache(self, build_dir):
+        with open('{}/CMakeCache.txt'.format(build_dir), 'w') as fp:
+            fp.write('CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1\n')
+
+    def _setup_compiler(self, build_dir):
+        comp_dir = '{}/CMakeFiles/{}'.format(build_dir, self.cmakevers)
+        os.makedirs(comp_dir, exist_ok=True)
+
+        c_comp = '{}/CMakeCCompiler.cmake'.format(comp_dir)
+        cxx_comp = '{}/CMakeCXXCompiler.cmake'.format(comp_dir)
+
+        if not os.path.exists(c_comp):
+            with open(c_comp, 'w') as fp:
+                fp.write('''# Fake CMake file to skip the boring and slow stuff
+set(CMAKE_C_COMPILER "{}") # Just give CMake a valid full path to any file
+set(CMAKE_C_COMPILER_ID "GNU") # Pretend we have found GCC
+set(CMAKE_COMPILER_IS_GNUCC 1)
+set(CMAKE_C_COMPILER_LOADED 1)
+set(CMAKE_C_COMPILER_WORKS TRUE)
+set(CMAKE_C_ABI_COMPILED TRUE)
+set(CMAKE_SIZEOF_VOID_P "{}")
+'''.format(os.path.realpath(__file__), ctypes.sizeof(ctypes.c_voidp)))
+
+        if not os.path.exists(cxx_comp):
+            with open(cxx_comp, 'w') as fp:
+                fp.write('''# Fake CMake file to skip the boring and slow stuff
+set(CMAKE_CXX_COMPILER "{}") # Just give CMake a valid full path to any file
+set(CMAKE_CXX_COMPILER_ID "GNU") # Pretend we have found GCC
+set(CMAKE_COMPILER_IS_GNUCXX 1)
+set(CMAKE_CXX_COMPILER_LOADED 1)
+set(CMAKE_CXX_COMPILER_WORKS TRUE)
+set(CMAKE_CXX_ABI_COMPILED TRUE)
+set(CMAKE_SIZEOF_VOID_P "{}")
+'''.format(os.path.realpath(__file__), ctypes.sizeof(ctypes.c_voidp)))
+
+    def _setup_cmake_dir(self):
+        # Setup the CMake build environment and return the "build" directory
+        build_dir = '{}/cmake_{}'.format(self.cmake_root_dir, self.name)
+        os.makedirs(build_dir, exist_ok=True)
+
+        # Copy the CMakeLists.txt
+        cmake_lists = '{}/CMakeLists.txt'.format(build_dir)
+        if not os.path.exists(cmake_lists):
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            src_cmake = '{}/data/CMakeLists.txt'.format(dir_path)
+            shutil.copyfile(src_cmake, cmake_lists)
+
+        self._setup_compiler(build_dir)
+        self._reset_cmake_cache(build_dir)
+        return build_dir
+
     def _call_cmake_real(self, args, env):
+        build_dir = self._setup_cmake_dir()
         cmd = self.cmakebin.get_command() + args
-        tmpdir = tempfile.gettempdir()
-        p, out, err = Popen_safe(cmd, env=env, cwd=tmpdir)
+        p, out, err = Popen_safe(cmd, env=env, cwd=build_dir)
         rc = p.returncode
         call = ' '.join(cmd)
-        mlog.debug("Called `{}` in {} -> {}".format(call, tmpdir, rc))
+        mlog.debug("Called `{}` in {} -> {}".format(call, build_dir, rc))
 
         return rc, out, err
 
@@ -1424,7 +1470,7 @@ class CMakeDependency(ExternalDependency):
         invalid_version = False
         if cmakebin.found():
             try:
-                p, out = Popen_safe(cmakebin.get_command() + ['--version'], cwd=tempfile.gettempdir())[0:2]
+                p, out = Popen_safe(cmakebin.get_command() + ['--version'])[0:2]
                 if p.returncode != 0:
                     mlog.warning('Found CMake {!r} but couldn\'t run it'
                                  ''.format(' '.join(cmakebin.get_command())))
@@ -1449,7 +1495,12 @@ class CMakeDependency(ExternalDependency):
                          '(%s)' % cmvers)
             else:
                 mlog.log('Found CMake:', mlog.red('NO'))
-        return cmakebin if not invalid_version else False
+
+        if invalid_version:
+            cmakebin = False
+            cmvers = None
+
+        return cmakebin, cmvers
 
     def log_tried(self):
         return self.type_name
