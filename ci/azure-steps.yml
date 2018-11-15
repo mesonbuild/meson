@@ -1,10 +1,5 @@
 steps:
 - powershell: |
-     # test_find_program exercises some behaviour which relies on .py being in PATHEXT
-     $env:PATHEXT += ';.py'
-
-     where.exe python
-
      python ./skip_ci.py --base-branch-env=SYSTEM_PULLREQUEST_TARGETBRANCH --is-pull-env=SYSTEM_PULLREQUEST_PULLREQUESTID --base-branch-origin
      if ($LastExitCode -ne 0) {
         throw ('error in skip_ci.py')
@@ -36,8 +31,11 @@ steps:
      DownloadFile -Source 'http://nirbheek.in/files/binaries/pkg-config/win32/pkg-config.exe' -Destination $(System.WorkFolder)\pkg-config.exe
      DownloadFile -Source 'https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/msmpisdk.msi' -Destination msmpisdk.msi
      DownloadFile -Source 'https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/MSMpiSetup.exe' -Destination MSMpiSetup.exe
-     Start-Process msiexec.exe -ArgumentList '/i msmpisdk.msi /quiet' -Wait
-     Start-Process .\MSMpiSetup.exe -ArgumentList '-unattend -full' -Wait
+     if ($env:compiler -ne 'msvc2015') {
+       Start-Process msiexec.exe -ArgumentList '/i msmpisdk.msi /quiet' -Wait
+       # installer fails "requires an interactive window station" with vs2015 image
+       Start-Process .\MSMpiSetup.exe -ArgumentList '-unattend -full' -Wait
+     }
 
      # import ms-mpi env vars (set by installer)
      foreach ($p in "MSMPI_INC", "MSMPI_LIB32", "MSMPI_LIB64") {
@@ -45,20 +43,40 @@ steps:
        Set-Content "env:$p" "$v"
      }
 
+     # download and install python3 and add to path (since it's not installed in vs2015 image!)
+     if ($env:compiler -eq 'msvc2015') {
+       Set-ExecutionPolicy Bypass -Scope Process -Force
+       iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+       choco install python3 -y --no-progress --params "/InstallDir:C:\Python3"
+       $env:Path = "C:\Python3;$env:Path"
+     }
+
+     # test_find_program exercises some behaviour which relies on .py being in PATHEXT
+     $env:PATHEXT += ';.py'
+
      # add downloads to PATH
      $env:Path = "$env:SYSTEM_WORKFOLDER;$env:Path"
 
      $origPath = $env:Path
      # import visual studio variables
      if ($env:compiler -eq 'msvc2015') {
-       $vsver = $env:compiler.Replace('msvc', '')
+       $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
      } else {
-       $vsver = '2017'
+       $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
      }
-     Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-     Install-Module Pscx -Scope CurrentUser -AllowClobber
-     Install-Module VSSetup -Scope CurrentUser
-     Import-VisualStudioVars -VisualStudioVersion $vsver -Architecture $(arch)
+
+     ## ask cmd.exe to output the environment table after the batch file completes
+     $tempFile = [IO.Path]::GetTempFileName()
+     cmd /c " `"$vcvars`" $env:arch && set > `"$tempFile`" "
+
+     ## go through the environment variables in the temp file.
+     ## for each of them, set the variable in our local environment.
+     Get-Content $tempFile | Foreach-Object {
+       if($_ -match "^(.*?)=(.*)$") {
+         Set-Content "env:\$($matches[1])" $matches[2]
+       }
+     }
+     Remove-Item $tempFile
 
      if ($env:compiler -eq 'clang-cl') {
        # drop visual studio from PATH
@@ -88,30 +106,26 @@ steps:
        MSBuild /version
      }
 
+     where.exe python
+     python --version
+
      python run_tests.py --backend $(backend)
-
-     echo "##vso[task.setvariable variable=test_status]$LastExitCode"
-
-  continueOnError: true
 
 - task: PublishTestResults@2
   inputs:
     testResultsFiles: meson-test-run.xml
     testRunTitle: $(System.JobName)
     publishRunAttachments: true
+  condition: not(canceled())
 
 - task: CopyFiles@2
   inputs:
     contents: 'meson-test-run.*'
     targetFolder: $(Build.ArtifactStagingDirectory)
+  condition: not(canceled())
 
 - task: PublishBuildArtifacts@1
   inputs:
     artifactName: $(System.JobName)
   # publishing artifacts from PRs from a fork is currently blocked
   condition: eq(variables['system.pullrequest.isfork'], false)
-
-- powershell: |
-     # after publishing test results, even if some failed
-     # exit with the test status
-     exit $(test_status)

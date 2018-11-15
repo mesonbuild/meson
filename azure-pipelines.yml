@@ -4,37 +4,37 @@ trigger:
   branches:
     include:
     - 'master'
+    # Release branches
+    - '0.*'
 
 variables:
   MESON_FIXED_NINJA: 1
   CI: 1
 
 jobs:
-#- job: vs2015
-#  pool:
-#    vmImage: vs2015-win2012r2
-#
-#  strategy:
-#    maxParallel: 10
-#    matrix:
-#        vc2015x86ninja:
-#          arch: x86
-#          compiler: msvc2015
-#          backend: ninja
-#        vc2015x86vs:
-#          arch: x86
-#          compiler: msvc2015
-#          backend: vs2015
-#
-#  steps:
-#  - template: ci/azure-steps.yml
+- job: vs2015
+  pool:
+    vmImage: vs2015-win2012r2
+
+  strategy:
+    matrix:
+        vc2015x86ninja:
+          arch: x86
+          compiler: msvc2015
+          backend: ninja
+        vc2015x86vs:
+          arch: x86
+          compiler: msvc2015
+          backend: vs2015
+
+  steps:
+  - template: ci/azure-steps.yml
 
 - job: vs2017
   pool:
     vmImage: VS2017-Win2016
 
   strategy:
-    maxParallel: 10
     matrix:
         vc2017x64ninja:
           arch: x64
