@@ -417,7 +417,7 @@ class Vs2010Backend(backends.Backend):
         pref = ET.SubElement(ig, 'ProjectReference', Include=include)
         ET.SubElement(pref, 'Project').text = '{%s}' % projid
 
-    def create_basic_crap(self, target):
+    def create_basic_crap(self, target, guid):
         project_name = target.name
         root = ET.Element('Project', {'DefaultTargets': "Build",
                                       'ToolsVersion': '4.0',
@@ -431,7 +431,7 @@ class Vs2010Backend(backends.Backend):
         pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
-        guidelem.text = '{%s}' % self.environment.coredata.test_guid
+        guidelem.text = '{%s}' % guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
@@ -460,7 +460,7 @@ class Vs2010Backend(backends.Backend):
         return root
 
     def gen_run_target_vcxproj(self, target, ofname, guid):
-        root = self.create_basic_crap(target)
+        root = self.create_basic_crap(target, guid)
         action = ET.SubElement(root, 'ItemDefinitionGroup')
         customstep = ET.SubElement(action, 'PostBuildEvent')
         cmd_raw = [target.command] + target.args
@@ -486,7 +486,7 @@ class Vs2010Backend(backends.Backend):
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_custom_target_vcxproj(self, target, ofname, guid):
-        root = self.create_basic_crap(target)
+        root = self.create_basic_crap(target, guid)
         action = ET.SubElement(root, 'ItemDefinitionGroup')
         customstep = ET.SubElement(action, 'CustomBuildStep')
         # We need to always use absolute paths because our invocation is always
@@ -1173,7 +1173,7 @@ class Vs2010Backend(backends.Backend):
         pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
-        guidelem.text = '{%s}' % self.environment.coredata.test_guid
+        guidelem.text = '{%s}' % self.environment.coredata.regen_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
