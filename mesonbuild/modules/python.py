@@ -480,7 +480,9 @@ class PythonModule(ExtensionModule):
         if len(args) > 1:
             raise InvalidArguments('find_installation takes zero or one positional argument.')
 
-        if args:
+        if 'python' in state.environment.config_info.binaries:
+            name_or_path = state.environment.config_info.binaries['python']
+        elif args:
             name_or_path = args[0]
             if not isinstance(name_or_path, str):
                 raise InvalidArguments('find_installation argument must be a string.')

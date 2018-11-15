@@ -14,14 +14,13 @@
 
 from .. import mlog
 from .qt import QtBaseModule
-from . import ExtensionModule
 
 
-class Qt4Module(ExtensionModule, QtBaseModule):
+class Qt4Module(QtBaseModule):
 
     def __init__(self, interpreter):
-        QtBaseModule.__init__(self, qt_version=4)
-        ExtensionModule.__init__(self, interpreter)
+        QtBaseModule.__init__(self, interpreter, qt_version=4)
+
 
 def initialize(*args, **kwargs):
     mlog.warning('rcc dependencies will not work properly until this upstream issue is fixed:',

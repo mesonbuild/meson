@@ -340,7 +340,8 @@ class Environment:
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)
             if 'exe_wrapper' in self.cross_info.config['binaries']:
                 from .dependencies import ExternalProgram
-                self.exe_wrapper = ExternalProgram.from_cross_info(self.cross_info, 'exe_wrapper')
+                self.exe_wrapper = ExternalProgram.from_bin_list(
+                    self.cross_info.config['binaries'], 'exe_wrapper')
             if 'host_machine' in self.cross_info.config:
                 self.machines.host = MachineInfo.from_literal(
                     self.cross_info.config['host_machine'])
@@ -350,6 +351,12 @@ class Environment:
         else:
             self.cross_info = None
         self.machines.default_missing()
+
+        if self.coredata.config_files:
+            self.config_info = coredata.ConfigData(
+                coredata.load_configs(self.coredata.config_files))
+        else:
+            self.config_info = coredata.ConfigData()
 
         self.cmd_line_options = options.cmd_line_options.copy()
 
@@ -505,7 +512,10 @@ class Environment:
         The list of compilers is detected in the exact same way for
         C, C++, ObjC, ObjC++, Fortran, CS so consolidate it here.
         '''
+        is_cross = False
+        exe_wrap = None
         evar = BinaryTable.evarMap[lang]
+
         if self.is_cross_build() and want_cross:
             if lang not in self.cross_info.config['binaries']:
                 raise EnvironmentException('{!r} compiler binary not defined in cross file'.format(lang))
@@ -521,13 +531,13 @@ class Environment:
                 shlex.split(os.environ[evar]))
             # Return value has to be a list of compiler 'choices'
             compilers = [compilers]
-            is_cross = False
-            exe_wrap = None
+        elif lang in self.config_info.binaries:
+            compilers, ccache = BinaryTable.parse_entry(
+                mesonlib.stringlistify(self.config_info.binaries[lang]))
+            compilers = [compilers]
         else:
             compilers = getattr(self, 'default_' + lang)
             ccache = BinaryTable.detect_ccache()
-            is_cross = False
-            exe_wrap = None
         return compilers, ccache, is_cross, exe_wrap
 
     def _handle_exceptions(self, exceptions, binaries, bintype='compiler'):
@@ -798,7 +808,11 @@ class Environment:
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self):
-        exelist = ['javac']
+        if 'java' in self.config_info.binaries:
+            exelist = mesonlib.stringlistify(self.config_info.binaries['java'])
+        else:
+            exelist = ['javac']
+
         try:
             p, out, err = Popen_safe(exelist + ['-version'])
         except OSError:
@@ -831,6 +845,8 @@ class Environment:
     def detect_vala_compiler(self):
         if 'VALAC' in os.environ:
             exelist = shlex.split(os.environ['VALAC'])
+        elif 'vala' in self.config_info.binaries:
+            exelist = mesonlib.stringlistify(self.config_info.binaries['vala'])
         else:
             exelist = ['valac']
         try:
@@ -875,6 +891,8 @@ class Environment:
         elif self.is_cross_build() and want_cross:
             exelist = mesonlib.stringlistify(self.cross_info.config['binaries']['d'])
             is_cross = True
+        elif 'd' in self.config_info.binaries:
+            exelist = mesonlib.stringlistify(self.config_info.binaries['d'])
         elif shutil.which("ldc2"):
             exelist = ['ldc2']
         elif shutil.which("ldc"):
@@ -912,7 +930,10 @@ class Environment:
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_swift_compiler(self):
-        exelist = ['swiftc']
+        if 'swift' in self.config_info.binaries:
+            exelist = mesonlib.stringlistify(self.config_info.binaries['swift'])
+        else:
+            exelist = ['swiftc']
         try:
             p, _, err = Popen_safe(exelist + ['-v'])
         except OSError:

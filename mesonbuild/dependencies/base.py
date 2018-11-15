@@ -399,6 +399,8 @@ class ConfigToolDependency(ExternalDependency):
                              'Falling back to searching PATH. This may find a '
                              'native version of {0}!'.format(self.tool_name))
                 tools = self.tools
+        elif self.tool_name in self.env.config_info.binaries:
+            tools = [self.env.config_info.binaries[self.tool_name]]
         else:
             tools = self.tools
 
@@ -500,7 +502,8 @@ class PkgConfigDependency(ExternalDependency):
                 if self.required:
                     raise DependencyException('Pkg-config binary missing from cross file')
             else:
-                potential_pkgbin = ExternalProgram.from_cross_info(environment.cross_info, 'pkgconfig')
+                potential_pkgbin = ExternalProgram.from_bin_list(
+                    environment.cross_info.config['binaries'], 'pkgconfig')
                 if potential_pkgbin.found():
                     self.pkgbin = potential_pkgbin
                 else:
@@ -1076,10 +1079,10 @@ class ExternalProgram:
         return ' '.join(self.command)
 
     @staticmethod
-    def from_cross_info(cross_info, name):
-        if name not in cross_info.config['binaries']:
+    def from_bin_list(bins, name):
+        if name not in bins:
             return NonExistingExternalProgram()
-        command = cross_info.config['binaries'][name]
+        command = bins[name]
         if not isinstance(command, (list, str)):
             raise MesonException('Invalid type {!r} for binary {!r} in cross file'
                                  ''.format(command, name))
@@ -1238,8 +1241,8 @@ class ExternalProgram:
 class NonExistingExternalProgram(ExternalProgram):
     "A program that will never exist"
 
-    def __init__(self):
-        self.name = 'nonexistingprogram'
+    def __init__(self, name='nonexistingprogram'):
+        self.name = name
         self.command = [None]
         self.path = None
 

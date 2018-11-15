@@ -26,6 +26,7 @@ import sys
 import unittest
 import platform
 import pickle
+import functools
 from itertools import chain
 from unittest import mock
 from configparser import ConfigParser
@@ -41,7 +42,7 @@ import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.mesonlib import (
     is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku,
-    windows_proof_rmtree, python_command, version_compare,
+    is_linux, windows_proof_rmtree, python_command, version_compare,
     BuildDirLock, Version
 )
 from mesonbuild.environment import detect_ninja
@@ -108,11 +109,40 @@ def skipIfNoPkgconfig(f):
 
     Note: Yes, we provide pkg-config even while running Windows CI
     '''
+    @functools.wraps(f)
     def wrapped(*args, **kwargs):
         if not is_ci() and shutil.which('pkg-config') is None:
             raise unittest.SkipTest('pkg-config not found')
         return f(*args, **kwargs)
     return wrapped
+
+def skip_if_not_language(lang):
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped(*args, **kwargs):
+            try:
+                env = get_fake_env('', '', '')
+                f = getattr(env, 'detect_{}_compiler'.format(lang))
+                if lang in ['cs', 'vala', 'java', 'swift']:
+                    f()
+                else:
+                    f(False)
+            except EnvironmentException:
+                raise unittest.SkipTest('No {} compiler found.'.format(lang))
+            return func(*args, **kwargs)
+        return wrapped
+    return wrapper
+
+def skip_if_env_value(value):
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped(*args, **kwargs):
+            if value in os.environ:
+                raise unittest.SkipTest(
+                    'Environment variable "{}" set, skipping.'.format(value))
+            return func(*args, **kwargs)
+        return wrapped
+    return wrapper
 
 class PatchModule:
     '''
@@ -4446,6 +4476,273 @@ class RewriterTests(unittest.TestCase):
         self.assertEqual(s2, self.read_contents('sub2/meson.build'))
 
 
+class NativeFileTests(BasePlatformTests):
+
+    def setUp(self):
+        super().setUp()
+        self.testcase = os.path.join(self.unit_test_dir, '46 native file binary')
+        self.current_config = 0
+        self.current_wrapper = 0
+
+    def helper_create_native_file(self, values):
+        """Create a config file as a temporary file.
+
+        values should be a nested dictionary structure of {section: {key:
+        value}}
+        """
+        filename = os.path.join(self.builddir, 'generated{}.config'.format(self.current_config))
+        self.current_config += 1
+        with open(filename, 'wt') as f:
+            for section, entries in values.items():
+                f.write('[{}]\n'.format(section))
+                for k, v in entries.items():
+                    f.write("{}='{}'\n".format(k, v))
+        return filename
+
+    def helper_create_binary_wrapper(self, binary, **kwargs):
+        """Creates a wrapper around a binary that overrides specific values."""
+        filename = os.path.join(self.builddir, 'binary_wrapper{}.py'.format(self.current_wrapper))
+        self.current_wrapper += 1
+        if is_haiku():
+            chbang = '#!/bin/env python3'
+        else:
+            chbang = '#!/usr/bin/env python3'
+
+        with open(filename, 'wt') as f:
+            f.write(textwrap.dedent('''\
+                {}
+                import argparse
+                import subprocess
+                import sys
+
+                def main():
+                    parser = argparse.ArgumentParser()
+                '''.format(chbang)))
+            for name in kwargs:
+                f.write('    parser.add_argument("-{0}", "--{0}", action="store_true")\n'.format(name))
+            f.write('    args, extra_args = parser.parse_known_args()\n')
+            for name, value in kwargs.items():
+                f.write('    if args.{}:\n'.format(name))
+                f.write('        print("{}", file=sys.{})\n'.format(value, kwargs.get('outfile', 'stdout')))
+                f.write('        sys.exit(0)\n')
+            f.write(textwrap.dedent('''
+                    ret = subprocess.run(
+                        ["{}"] + extra_args,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        encoding='utf-8')
+                    print(ret.stdout)
+                    print(ret.stderr, file=sys.stderr)
+                    sys.exit(ret.returncode)
+
+                if __name__ == '__main__':
+                    main()
+                '''.format(binary)))
+
+        if not is_windows():
+            os.chmod(filename, 0o755)
+            return filename
+
+        # On windows we need yet another level of indirection, as cmd cannot
+        # invoke python files itself, so instead we generate a .bat file, which
+        # invokes our python wrapper
+        batfile = os.path.join(self.builddir, 'binary_wrapper{}.bat'.format(self.current_wrapper))
+        with open(batfile, 'wt') as f:
+            f.write('py -3 {} %*'.format(filename))
+        return batfile
+
+    def helper_for_compiler(self, lang, cb):
+        """Helper for generating tests for overriding compilers for langaugages
+        with more than one implementation, such as C, C++, ObjC, ObjC++, and D.
+        """
+        env = get_fake_env('', '', '')
+        getter = getattr(env, 'detect_{}_compiler'.format(lang))
+        if lang not in ['cs']:
+            getter = functools.partial(getter, False)
+        cc = getter()
+        binary, newid = cb(cc)
+        env.config_info.binaries = {lang: binary}
+        compiler = getter()
+        self.assertEqual(compiler.id, newid)
+
+    def test_multiple_native_files_override(self):
+        wrapper = self.helper_create_binary_wrapper('bash', version='foo')
+        config = self.helper_create_native_file({'binaries': {'bash': wrapper}})
+        wrapper = self.helper_create_binary_wrapper('bash', version='12345')
+        config2 = self.helper_create_native_file({'binaries': {'bash': wrapper}})
+        self.init(self.testcase, extra_args=[
+            '--native-file', config, '--native-file', config2,
+            '-Dcase=find_program'])
+
+    def test_multiple_native_files(self):
+        wrapper = self.helper_create_binary_wrapper('bash', version='12345')
+        config = self.helper_create_native_file({'binaries': {'bash': wrapper}})
+        wrapper = self.helper_create_binary_wrapper('python')
+        config2 = self.helper_create_native_file({'binaries': {'python': wrapper}})
+        self.init(self.testcase, extra_args=[
+            '--native-file', config, '--native-file', config2,
+            '-Dcase=find_program'])
+
+    def _simple_test(self, case, binary):
+        wrapper = self.helper_create_binary_wrapper(binary, version='12345')
+        config = self.helper_create_native_file({'binaries': {binary: wrapper}})
+        self.init(self.testcase, extra_args=['--native-file', config, '-Dcase={}'.format(case)])
+
+    def test_find_program(self):
+        self._simple_test('find_program', 'bash')
+
+    def test_config_tool_dep(self):
+        # Do the skip at this level to avoid screwing up the cache
+        if not shutil.which('llvm-config'):
+            raise unittest.SkipTest('No llvm-installed, cannot test')
+        self._simple_test('config_dep', 'llvm-config')
+
+    def test_python3_module(self):
+        self._simple_test('python3', 'python3')
+
+    def test_python_module(self):
+        if is_windows():
+            # Bat adds extra crap to stdout, so the version check logic in the
+            # python module breaks. This is fine on other OSes because they
+            # don't need the extra indirection.
+            raise unittest.SkipTest('bat indirection breaks internal sanity checks.')
+        self._simple_test('python', 'python')
+
+    @unittest.skipIf(is_windows(), 'Setting up multiple compilers on windows is hard')
+    @skip_if_env_value('CC')
+    def test_c_compiler(self):
+        def cb(comp):
+            if comp.id == 'gcc':
+                if not shutil.which('clang'):
+                    raise unittest.SkipTest('Only one compiler found, cannot test.')
+                return 'clang', 'clang'
+            if not shutil.which('gcc'):
+                raise unittest.SkipTest('Only one compiler found, cannot test.')
+            return 'gcc', 'gcc'
+        self.helper_for_compiler('c', cb)
+
+    @unittest.skipIf(is_windows(), 'Setting up multiple compilers on windows is hard')
+    @skip_if_env_value('CXX')
+    def test_cpp_compiler(self):
+        def cb(comp):
+            if comp.id == 'gcc':
+                if not shutil.which('clang++'):
+                    raise unittest.SkipTest('Only one compiler found, cannot test.')
+                return 'clang++', 'clang'
+            if not shutil.which('g++'):
+                raise unittest.SkipTest('Only one compiler found, cannot test.')
+            return 'g++', 'gcc'
+        self.helper_for_compiler('cpp', cb)
+
+    @skip_if_not_language('objc')
+    @skip_if_env_value('OBJC')
+    def test_objc_compiler(self):
+        def cb(comp):
+            if comp.id == 'gcc':
+                if not shutil.which('clang'):
+                    raise unittest.SkipTest('Only one compiler found, cannot test.')
+                return 'clang', 'clang'
+            if not shutil.which('gcc'):
+                raise unittest.SkipTest('Only one compiler found, cannot test.')
+            return 'gcc', 'gcc'
+        self.helper_for_compiler('objc', cb)
+
+    @skip_if_not_language('objcpp')
+    @skip_if_env_value('OBJCXX')
+    def test_objcpp_compiler(self):
+        def cb(comp):
+            if comp.id == 'gcc':
+                if not shutil.which('clang++'):
+                    raise unittest.SkipTest('Only one compiler found, cannot test.')
+                return 'clang++', 'clang'
+            if not shutil.which('g++'):
+                raise unittest.SkipTest('Only one compiler found, cannot test.')
+            return 'g++', 'gcc'
+        self.helper_for_compiler('objcpp', cb)
+
+    @skip_if_not_language('d')
+    @skip_if_env_value('DC')
+    def test_d_compiler(self):
+        def cb(comp):
+            if comp.id == 'dmd':
+                if shutil.which('ldc'):
+                    return 'ldc', 'ldc'
+                elif shutil.which('gdc'):
+                    return 'gdc', 'gdc'
+                else:
+                    raise unittest.SkipTest('No alternative dlang compiler found.')
+            return 'dmd', 'dmd'
+        self.helper_for_compiler('d', cb)
+
+    @skip_if_not_language('cs')
+    @skip_if_env_value('CSC')
+    def test_cs_compiler(self):
+        def cb(comp):
+            if comp.id == 'csc':
+                if not shutil.which('mcs'):
+                    raise unittest.SkipTest('No alternate C# implementation.')
+                return 'mcs', 'mcs'
+            if not shutil.which('csc'):
+                raise unittest.SkipTest('No alternate C# implementation.')
+            return 'csc', 'csc'
+        self.helper_for_compiler('cs', cb)
+
+    @skip_if_not_language('fortran')
+    @skip_if_env_value('FC')
+    def test_fortran_compiler(self):
+        def cb(comp):
+            if comp.id == 'gcc':
+                if shutil.which('ifort'):
+                    return 'ifort', 'intel'
+                # XXX: there are several other fortran compilers meson
+                # supports, but I don't have any of them to test with
+                raise unittest.SkipTest('No alternate Fortran implementation.')
+            if not shutil.which('gfortran'):
+                raise unittest.SkipTest('No alternate C# implementation.')
+            return 'gfortran', 'gcc'
+        self.helper_for_compiler('fortran', cb)
+
+    def _single_implementation_compiler(self, lang, binary, version_str, version):
+        """Helper for languages with a single (supported) implementation.
+
+        Builds a wrapper around the compiler to override the version.
+        """
+        wrapper = self.helper_create_binary_wrapper(binary, version=version_str)
+        env = get_fake_env('', '', '')
+        getter = getattr(env, 'detect_{}_compiler'.format(lang))
+        if lang in ['rust']:
+            getter = functools.partial(getter, False)
+        env.config_info.binaries = {lang: wrapper}
+        compiler = getter()
+        self.assertEqual(compiler.version, version)
+
+    @skip_if_not_language('vala')
+    @skip_if_env_value('VALAC')
+    def test_vala_compiler(self):
+        self._single_implementation_compiler(
+            'vala', 'valac', 'Vala 1.2345', '1.2345')
+
+    @skip_if_not_language('rust')
+    @skip_if_env_value('RUSTC')
+    def test_rust_compiler(self):
+        self._single_implementation_compiler(
+            'rust', 'rustc', 'rustc 1.2345', '1.2345')
+
+    @skip_if_not_language('java')
+    def test_java_compiler(self):
+        self._single_implementation_compiler(
+            'java', 'javac', 'javac 9.99.77', '9.99.77')
+
+    @skip_if_not_language('swift')
+    def test_swift_compiler(self):
+        wrapper = self.helper_create_binary_wrapper(
+            'swiftc', version='Swift 1.2345', outfile='stderr')
+        env = get_fake_env('', '', '')
+        env.config_info.binaries = {'swift': wrapper}
+        compiler = env.detect_swift_compiler()
+        self.assertEqual(compiler.version, '1.2345')
+
+
 def unset_envs():
     # For unit tests we must fully control all command lines
     # so that there are no unexpected changes coming from the
@@ -4463,7 +4760,8 @@ def should_run_cross_mingw_tests():
 
 def main():
     unset_envs()
-    cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests', 'PythonTests']
+    cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
+             'PythonTests', 'NativeFileTests']
     if not is_windows():
         cases += ['LinuxlikeTests']
         if should_run_cross_arm_tests():

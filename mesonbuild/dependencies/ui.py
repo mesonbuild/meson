@@ -30,7 +30,7 @@ from ..mesonlib import (
 from ..environment import detect_cpu
 
 from .base import DependencyException, DependencyMethods
-from .base import ExternalDependency, ExternalProgram
+from .base import ExternalDependency, ExternalProgram, NonExistingExternalProgram
 from .base import ExtraFrameworkDependency, PkgConfigDependency
 from .base import ConfigToolDependency
 
@@ -230,21 +230,46 @@ class QtBaseDependency(ExternalDependency):
             self.from_text = mlog.format_list(methods)
             self.version = None
 
-    def compilers_detect(self):
+    def compilers_detect(self, interp_obj):
         "Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"
-        if self.bindir or for_windows(self.env.is_cross_build(), self.env):
-            moc = ExternalProgram(os.path.join(self.bindir, 'moc'), silent=True)
-            uic = ExternalProgram(os.path.join(self.bindir, 'uic'), silent=True)
-            rcc = ExternalProgram(os.path.join(self.bindir, 'rcc'), silent=True)
-            lrelease = ExternalProgram(os.path.join(self.bindir, 'lrelease'), silent=True)
-        else:
-            # We don't accept unsuffixed 'moc', 'uic', and 'rcc' because they
-            # are sometimes older, or newer versions.
-            moc = ExternalProgram('moc-' + self.name, silent=True)
-            uic = ExternalProgram('uic-' + self.name, silent=True)
-            rcc = ExternalProgram('rcc-' + self.name, silent=True)
-            lrelease = ExternalProgram('lrelease-' + self.name, silent=True)
-        return moc, uic, rcc, lrelease
+        # It is important that this list does not change order as the order of
+        # the returned ExternalPrograms will change as well
+        bins = ['moc', 'uic', 'rcc', 'lrelease']
+        found = {b: NonExistingExternalProgram(name='{}-{}'.format(b, self.name))
+                 for b in bins}
+
+        def gen_bins():
+            for b in bins:
+                yield '{}-{}'.format(b, self.name), b, False
+                yield b, b, self.required
+
+        for b, name, required in gen_bins():
+            if found[name].found():
+                continue
+
+            # prefer the <tool>-qt<version> of the tool to the plain one, as we
+            # don't know what the unsuffixed one points to without calling it.
+            p = interp_obj.find_program_impl([b], silent=True, required=required).held_object
+            if not p.found():
+                continue
+
+            if b.startswith('lrelease'):
+                arg = ['-version']
+            elif mesonlib.version_compare(self.version, '>= 5'):
+                arg = ['--version']
+            else:
+                arg = ['-v']
+
+            # Ensure that the version of qt and each tool are the same
+            _, out, err = mesonlib.Popen_safe(p.get_command() + arg)
+            if b.startswith('lrelease') or not self.version.startswith('4'):
+                care = out
+            else:
+                care = err
+            if mesonlib.version_compare(self.version, '== {}'.format(care.split(' ')[-1])):
+                found[name] = p
+
+        return tuple([found[b] for b in bins])
 
     def _pkgconfig_detect(self, mods, kwargs):
         # We set the value of required to False so that we can try the
@@ -302,8 +327,15 @@ class QtBaseDependency(ExternalDependency):
     def _find_qmake(self, qmake):
         # Even when cross-compiling, if a cross-info qmake is not specified, we
         # fallback to using the qmake in PATH because that's what we used to do
-        if self.env.is_cross_build() and 'qmake' in self.env.cross_info.config['binaries']:
-            return ExternalProgram.from_cross_info(self.env.cross_info, 'qmake')
+        if self.env.is_cross_build():
+            if 'qmake' in self.env.cross_info.config['binaries']:
+                return ExternalProgram.from_bin_list(self.env.cross_info.config['binaries'], 'qmake')
+        elif self.env.config_info:
+            # Prefer suffixed to unsuffixed version
+            p = ExternalProgram.from_bin_list(self.env.config_info.binaries, 'qmake-' + self.name)
+            if p.found():
+                return p
+            return ExternalProgram.from_bin_list(self.env.config_info.binaries, 'qmake')
         return ExternalProgram(qmake, silent=True)
 
     def _qmake_detect(self, mods, kwargs):

@@ -73,6 +73,7 @@ def get_fake_options(prefix):
     opts.wrap_mode = None
     opts.prefix = prefix
     opts.cmd_line_options = {}
+    opts.native_file = []
     return opts
 
 def get_fake_env(sdir, bdir, prefix):
