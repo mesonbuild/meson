@@ -26,7 +26,7 @@ from .. import mlog
 from .. import compilers
 from ..compilers import CompilerArgs
 from ..mesonlib import MesonException, File, python_command
-from ..environment import Environment
+from ..environment import Environment, build_filename
 
 def autodetect_vs_version(build):
     vs_version = os.getenv('VisualStudioVersion', None)
@@ -1097,6 +1097,9 @@ class Vs2010Backend(backends.Backend):
             targetmachine.text = 'MachineARM'
         else:
             raise MesonException('Unsupported Visual Studio target machine: ' + targetmachine)
+
+        meson_file_group = ET.SubElement(root, 'ItemGroup')
+        ET.SubElement(meson_file_group, 'None', Include=os.path.join(proj_to_src_dir, build_filename))
 
         extra_files = target.extra_files
         if len(headers) + len(gen_hdrs) + len(extra_files) > 0:
