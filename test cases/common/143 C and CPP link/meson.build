@@ -26,7 +26,13 @@ libc = static_library('cfoo', ['foo.c', 'foo.h'])
 cxx = meson.get_compiler('cpp')
 
 if cxx.get_argument_syntax() == 'msvc'
-  static_linker = find_program('lib', 'llvm-lib')
+  if cxx.get_id() == 'msvc'
+    static_linker = find_program('lib')
+  elif cxx.get_id() == 'clang-cl'
+    static_linker = find_program('llvm-lib')
+  else
+     error('unable to determine static linker to use with this compiler')
+  endif
   compile_cmd = ['/c', '@INPUT@', '/Fo@OUTPUT@']
   stlib_cmd = [static_linker, '/OUT:@OUTPUT@', '@INPUT@']
 else

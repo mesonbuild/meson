@@ -58,6 +58,20 @@ steps:
        $env:Path = "C:\java\jdk\jdk1.8.0_102\bin\;$env:Path"
      }
 
+     # install D compiler and dub packages
+     if ($env:backend -eq 'ninja') {
+          & .\ci\install-dmd.ps1
+          $arch = 'x86_mscoff'
+          if ($Env:arch -eq 'x64') {
+            $arch = 'x86_64'
+          }
+          & dub fetch urld
+          & dub build urld --compiler=dmd --arch=$arch
+          & dub fetch dubtestproject
+          & dub build dubtestproject:test1 --compiler=dmd --arch=$arch
+          & dub build dubtestproject:test2 --compiler=dmd --arch=$arch
+        }
+
      # test_find_program exercises some behaviour which relies on .py being in PATHEXT
      $env:PATHEXT += ';.py'
 
