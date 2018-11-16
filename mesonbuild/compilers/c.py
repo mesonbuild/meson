@@ -229,12 +229,15 @@ class CCompiler(Compiler):
             # which is wrong and breaks things. Store everything, just to be sure.
             pobj = Path(p)
             unresolved = pobj.as_posix()
-            resolved = Path(p).resolve().as_posix()
             if pobj.exists():
                 if unresolved not in paths:
                     paths.append(unresolved)
-                if resolved not in paths:
-                    paths.append(resolved)
+                try:
+                    resolved = Path(p).resolve().as_posix()
+                    if resolved not in paths:
+                        paths.append(resolved)
+                except FileNotFoundError:
+                    pass
         return tuple(paths)
 
     def get_compiler_dirs(self, env, name):
