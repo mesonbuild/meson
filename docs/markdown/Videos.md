@@ -11,6 +11,9 @@ short-description: Videos about Meson
  - [The Meson Build System, 4+ years of work to become an overnight
    success](https://www.youtube.com/watch?v=gHdTzdXkhRY), Linux.conf.au 2018
 
+ - [Power through simplicity, using Python in the Meson Build
+   System](https://youtu.be/3jF3oVsjIEM), Piter.py, 2017
+
  - [Meson and the changing Linux build
    landscape](https://media.ccc.de/v/ASG2017-111-meson_and_the_changing_linux_build_landscape),
    All Systems Go 2017
