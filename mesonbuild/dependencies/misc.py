@@ -235,6 +235,7 @@ class OpenMPDependency(ExternalDependency):
     # Map date of specification release (which is the macro value) to a version.
     VERSIONS = {
         '201811': '5.0',
+        '201611': '5.0-revision1',  # This is supported by ICC 19.x
         '201511': '4.5',
         '201307': '4.0',
         '201107': '3.1',

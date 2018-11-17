@@ -144,9 +144,6 @@ end program prog
     def get_compiler_check_args(self):
         return CCompiler.get_compiler_check_args(self)
 
-    def get_allow_undefined_link_args(self):
-        return CCompiler.get_allow_undefined_link_args(self)
-
     def get_output_args(self, target):
         return CCompiler.get_output_args(self, target)
 
@@ -172,7 +169,7 @@ end program prog
         return ('-I', )
 
     def get_module_outdir_args(self, path):
-        return ['-module' + path]
+        return ['-module', path]
 
     def module_name_to_filename(self, module_name):
         return module_name.lower() + '.mod'
@@ -341,6 +338,15 @@ class IntelFortranCompiler(IntelCompiler, FortranCompiler):
 
     def get_preprocess_only_args(self):
         return ['-cpp', '-EP']
+
+    def get_always_args(self):
+        """Ifort doesn't have -pipe."""
+        val = super().get_always_args()
+        val.remove('-pipe')
+        return val
+
+    def language_stdlib_only_link_flags(self):
+        return ['-lifcore', '-limf']
 
 
 class PathScaleFortranCompiler(FortranCompiler):

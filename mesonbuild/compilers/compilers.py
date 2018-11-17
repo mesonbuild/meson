@@ -19,7 +19,10 @@ from ..linkers import StaticLinker
 from .. import coredata
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import EnvironmentException, MesonException, OrderedSet, version_compare, Popen_safe
+from ..mesonlib import (
+    EnvironmentException, MesonException, OrderedSet, version_compare,
+    Popen_safe
+)
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
@@ -454,9 +457,9 @@ def get_base_compile_args(options, compiler):
     try:
         pgo_val = options['b_pgo'].value
         if pgo_val == 'generate':
-            args.append('-fprofile-generate')
+            args.extend(compiler.get_profile_generate_args())
         elif pgo_val == 'use':
-            args.extend(['-fprofile-use', '-fprofile-correction'])
+            args.extend(compiler.get_profile_use_args())
     except KeyError:
         pass
     try:
@@ -500,9 +503,9 @@ def get_base_link_args(options, linker, is_shared_module):
     try:
         pgo_val = options['b_pgo'].value
         if pgo_val == 'generate':
-            args.append('-fprofile-generate')
+            args.extend(linker.get_profile_generate_args())
         elif pgo_val == 'use':
-            args.extend(['-fprofile-use', '-fprofile-correction'])
+            args.extend(linker.get_profile_use_args())
     except KeyError:
         pass
     try:
@@ -671,7 +674,6 @@ class CompilerArgs(list):
         to recursively search for symbols in the libraries. This is not needed
         with other linkers.
         '''
-
         # A standalone argument must never be deduplicated because it is
         # defined by what comes _after_ it. Thus dedupping this:
         # -D FOO -D BAR
@@ -1255,6 +1257,20 @@ class Compiler:
         """
         return 'other'
 
+    def get_profile_generate_args(self):
+        raise EnvironmentException(
+            '%s does not support get_profile_generate_args ' % self.get_id())
+
+    def get_profile_use_args(self):
+        raise EnvironmentException(
+            '%s does not support get_profile_use_args ' % self.get_id())
+
+    def get_undefined_link_args(self):
+        '''
+        Get args for allowing undefined symbols when linking to a shared library
+        '''
+        return []
+
 
 @enum.unique
 class CompilerType(enum.Enum):
@@ -1495,6 +1511,20 @@ class GnuLikeCompiler(abc.ABC):
     def get_argument_syntax(self):
         return 'gcc'
 
+    def get_profile_generate_args(self):
+        return ['-fprofile-generate']
+
+    def get_profile_use_args(self):
+        return ['-fprofile-use', '-fprofile-correction']
+
+    def get_allow_undefined_link_args(self):
+        if self.compiler_type.is_osx_compiler:
+            # Apple ld
+            return ['-Wl,-undefined,dynamic_lookup']
+        else:
+            # GNU ld and LLVM lld
+            return ['-Wl,--allow-shlib-undefined']
+
 
 class GnuCompiler(GnuLikeCompiler):
     """
@@ -1731,10 +1761,18 @@ class ArmclangCompiler:
         return ['--symdefs=' + implibname]
 
 
-# Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
+# Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1, 19.0.0
 class IntelCompiler(GnuLikeCompiler):
+
     def __init__(self, compiler_type):
         super().__init__(compiler_type)
+        # As of 19.0.0 ICC doesn't have sanitizer, color, or lto support.
+        #
+        # It does have IPO, which serves much the same purpose as LOT, but
+        # there is an unfortunate rule for using IPO (you can't control the
+        # name of the output file) which break assumptions meson makes
+        self.base_options = ['b_pch', 'b_lundef', 'b_asneeded', 'b_pgo',
+                             'b_coverage', 'b_ndebug', 'b_staticpic', 'b_pie']
         self.id = 'intel'
         self.lang_header = 'none'
 
@@ -1757,9 +1795,23 @@ class IntelCompiler(GnuLikeCompiler):
         else:
             return ['-openmp']
 
-    def has_arguments(self, args, env, code, mode):
-        # -diag-error 10148 is required to catch invalid -W options
-        return super().has_arguments(args + ['-diag-error', '10006', '-diag-error', '10148'], env, code, mode)
+    def compiles(self, *args, **kwargs):
+        # This covers a case that .get('foo', []) doesn't, that extra_args is
+        # defined and is None
+        extra_args = kwargs.get('extra_args') or []
+        kwargs['extra_args'] = [
+            extra_args,
+            '-diag-error', '10006',  # ignoring unknown option
+            '-diag-error', '10148',  # Option not supported
+            '-diag-error', '1292',   # unknown __attribute__
+        ]
+        return super().compiles(*args, **kwargs)
+
+    def get_profile_generate_args(self):
+        return ['-prof-gen=threadsafe']
+
+    def get_profile_use_args(self):
+        return ['-prof-use']
 
 
 class ArmCompiler:
