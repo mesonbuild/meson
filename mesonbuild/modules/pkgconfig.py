@@ -276,10 +276,16 @@ class PkgConfigModule(ExtensionModule):
                         install_dir = l.get_custom_install_dir()[0]
                         if install_dir is False:
                             continue
-                        if isinstance(install_dir, str):
-                            Lflag = '-L${prefix}/%s ' % self._escape(self._make_relative(prefix, install_dir))
-                        else:  # install_dir is True
-                            Lflag = '-L${libdir}'
+                        if 'cs' in l.compilers:
+                            if isinstance(install_dir, str):
+                                Lflag = '-r${prefix}/%s/%s ' % (self._escape(self._make_relative(prefix, install_dir)), l.filename)
+                            else:  # install_dir is True
+                                Lflag = '-r${libdir}/%s' % l.filename
+                        else:
+                            if isinstance(install_dir, str):
+                                Lflag = '-L${prefix}/%s ' % self._escape(self._make_relative(prefix, install_dir))
+                            else:  # install_dir is True
+                                Lflag = '-L${libdir}'
                         if Lflag not in Lflags:
                             Lflags.append(Lflag)
                             yield Lflag
@@ -288,7 +294,8 @@ class PkgConfigModule(ExtensionModule):
                         # find the library
                         if l.name_suffix_set:
                             mlog.warning(msg.format(l.name, 'name_suffix', lname, pcfile))
-                        yield '-l%s' % lname
+                        if 'cs' not in l.compilers:
+                            yield '-l%s' % lname
 
             if len(deps.pub_libs) > 0:
                 ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(deps.pub_libs))))

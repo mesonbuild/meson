@@ -4162,6 +4162,17 @@ endian = 'little'
             deps.append(b'-lintl')
         self.assertEqual(set(deps), set(stdo.split()))
 
+    @skipIfNoPkgconfig
+    @skip_if_not_language('cs')
+    def test_pkgconfig_csharp_library(self):
+        testdir = os.path.join(self.unit_test_dir, '48 pkgconfig csharp library')
+        self.init(testdir)
+        myenv = os.environ.copy()
+        myenv['PKG_CONFIG_PATH'] = self.privatedir
+        stdo = subprocess.check_output(['pkg-config', '--libs', 'libsomething'], env=myenv)
+
+        self.assertEqual("-r/usr/lib/libsomething.dll", str(stdo.decode('ascii')).strip())
+
     def test_deterministic_dep_order(self):
         '''
         Test that the dependencies are always listed in a deterministic order.
