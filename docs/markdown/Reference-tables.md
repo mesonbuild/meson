@@ -111,6 +111,19 @@ These are the parameter names for passing language specific arguments to your bu
 | Rust          | rust_args |
 | Vala          | vala_args |
 
+## Compiler and linker flag environment variables
+
+These environment variables will be used to modify the compiler and
+linker flags.
+
+| CFLAGS    | Flags for the C compiler                 |
+| CXXFLAGS  | Flags for the C++ compiler               |
+| OBJCFLAGS | Flags for the Objective C compiler       |
+| FFLAGS    | Flags for the Fortran compiler           |
+| DFLAGS    | Flags for the D compiler                 |
+| VALAFLAGS | Flags for the Vala compiler              |
+| RUSTFLAGS | Flags for the Rust compiler              |
+| LDFLAGS   | The linker flags, used for all languages |
 
 ## Function Attributes
 
