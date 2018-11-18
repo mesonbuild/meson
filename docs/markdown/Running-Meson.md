@@ -92,6 +92,22 @@ You can then open the generated solution with Visual Studio and
 compile it in the usual way. A list of backends can be obtained with
 `meson --help`.
 
+Environment Variables
+--
+
+Sometimes you want to add extra compiler flags, this can be done by
+passing them in environment variables when calling meson. See [the
+reference
+tables](Reference-tables.md#compiler-and-linker-flag-envrionment-variables)
+for a list of all the environment variables. Be aware however these
+environment variables are only used for the native compiler and will
+not affect the compiler used for cross-compiling, where the flags
+specified in the cross file will be used.
+
+Furthermore it is possible to stop meson from adding flags itself by
+using the `--buildtype=plain` option, in this case you must provide
+the full compiler and linker arguments needed.
+
 Building the source
 ==
 
