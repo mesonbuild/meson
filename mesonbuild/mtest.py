@@ -521,7 +521,7 @@ Unexpected Pass:    %4d
 Skipped:            %4d
 Timeout:            %4d
 ''' % (self.success_count, self.expectedfail_count, self.fail_count,
-        self.unexpectedpass_count, self.skip_count, self.timeout_count)
+            self.unexpectedpass_count, self.skip_count, self.timeout_count)
         print(msg)
         if self.logfile:
             self.logfile.write(msg)
