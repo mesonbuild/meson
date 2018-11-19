@@ -51,3 +51,50 @@ jobs:
 
   steps:
   - template: ci/azure-steps.yml
+
+- job: cygwin
+  pool:
+    vmImage: VS2017-Win2016
+  strategy:
+    matrix:
+        gccx64ninja: {}
+  variables:
+    CYGWIN_ROOT: $(System.Workfolder)\cygwin
+    CYGWIN_MIRROR: http://cygwin.mirror.constant.com
+  steps:
+    - script: |
+        choco install cygwin --params="/InstallDir:%CYGWIN_ROOT%"
+      displayName: Install Cygwin
+    - script: |
+        %CYGWIN_ROOT%\cygwinsetup.exe -qnNdO -R "%CYGWIN_ROOT%" -s "%CYGWIN_MIRROR%" -g -P ^
+        gcc-objc++,^
+        gcc-objc,^
+        git,^
+        gobject-introspection,^
+        libboost-devel,^
+        libglib2.0-devel,^
+        libgtk3-devel,^
+        ninja,^
+        python3-pip,^
+        vala,^
+        zlib-devel
+      displayName: Install Dependencies
+    - script: |
+        set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
+        env.exe -- python3 run_tests.py --backend=ninja
+      displayName: Run Tests
+    - task: CopyFiles@2
+      condition: not(canceled())
+      inputs:
+        contents: 'meson-test-run.*'
+        targetFolder: $(Build.ArtifactStagingDirectory)
+    - task: PublishBuildArtifacts@1
+      inputs:
+        artifactName: $(System.JobName)
+      # publishing artifacts from PRs from a fork is currently blocked
+      condition: and(eq(variables['system.pullrequest.isfork'], false), not(canceled()))
+    - task: PublishTestResults@2
+      condition: not(canceled())
+      inputs:
+        testResultsFiles: meson-test-run.xml
+        testRunTitle: $(System.JobName)
