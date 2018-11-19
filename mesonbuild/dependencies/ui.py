@@ -240,6 +240,8 @@ class QtBaseDependency(ExternalDependency):
 
         def gen_bins():
             for b in bins:
+                if self.bindir:
+                    yield os.path.join(self.bindir, b), b, False
                 yield '{}-{}'.format(b, self.name), b, False
                 yield b, b, self.required
 
@@ -253,7 +255,7 @@ class QtBaseDependency(ExternalDependency):
             if not p.found():
                 continue
 
-            if b.startswith('lrelease'):
+            if name == 'lrelease':
                 arg = ['-version']
             elif mesonlib.version_compare(self.version, '>= 5'):
                 arg = ['--version']
