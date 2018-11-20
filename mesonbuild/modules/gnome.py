@@ -44,21 +44,22 @@ native_glib_version = None
 girwarning_printed = False
 gdbuswarning_printed = False
 gresource_warning_printed = False
-_gir_has_extra_lib_arg = None
+_gir_has_option = {}
 
-def gir_has_extra_lib_arg(intr_obj):
-    global _gir_has_extra_lib_arg
-    if _gir_has_extra_lib_arg is not None:
-        return _gir_has_extra_lib_arg
+def gir_has_option(intr_obj, option):
+    global _gir_has_option
+    if option in _gir_has_option:
+        return _gir_has_option[option]
 
-    _gir_has_extra_lib_arg = False
+    _gir_has_option[option] = False
     try:
         g_ir_scanner = intr_obj.find_program_impl('g-ir-scanner').get_command()
         opts = Popen_safe(g_ir_scanner + ['--help'], stderr=subprocess.STDOUT)[1]
-        _gir_has_extra_lib_arg = '--extra-library' in opts
+        _gir_has_option[option] = option in opts
     except (MesonException, FileNotFoundError, subprocess.CalledProcessError):
         pass
-    return _gir_has_extra_lib_arg
+
+    return _gir_has_option[option]
 
 class GnomeModule(ExtensionModule):
     gir_dep = None
@@ -308,7 +309,7 @@ class GnomeModule(ExtensionModule):
             if include_rpath:
                 link_command.append('-Wl,-rpath,' + libdir)
             depends.append(lib)
-        if gir_has_extra_lib_arg(self.interpreter) and use_gir_args:
+        if gir_has_option(self.interpreter, '--extra-library') and use_gir_args:
             link_command.append('--extra-library=' + lib.name)
         else:
             link_command.append('-l' + lib.name)
@@ -392,7 +393,7 @@ class GnomeModule(ExtensionModule):
                 mlog.log('dependency {!r} not handled to build gir files'.format(dep))
                 continue
 
-        if gir_has_extra_lib_arg(self.interpreter) and use_gir_args:
+        if gir_has_option(self.interpreter, '--extra-library') and use_gir_args:
             def fix_ldflags(ldflags):
                 fixed_ldflags = OrderedSet()
                 for ldflag in ldflags:
@@ -804,6 +805,10 @@ class GnomeModule(ExtensionModule):
         scan_command += self._scan_gir_targets(state, girtargets)
         scan_command += self._scan_langs(state, [lc[0] for lc in langs_compilers])
         scan_command += list(external_ldflags)
+
+        if gir_has_option(self.interpreter, '--sources-top-dirs'):
+            scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_source_dir(), self.interpreter.subproject_dir, state.subproject)]
+            scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_build_dir(), self.interpreter.subproject_dir, state.subproject)]
 
         scan_target = self._make_gir_target(state, girfile, scan_command, depends, kwargs)
 
