@@ -534,14 +534,14 @@ class Vs2010Backend(backends.Backend):
         # We need to always use absolute paths because our invocation is always
         # from the target dir, not the build root.
         target.absolute_paths = True
-        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, True)
+        (srcs, ofilenames, _, cmd_args) = self.eval_custom_target_command(target, True)
         depend_files = self.get_custom_target_depend_files(target, True)
         # Always use a wrapper because MSBuild eats random characters when
         # there are many arguments.
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
         extra_bdeps = target.get_transitive_build_target_deps()
         extra_paths = self.determine_windows_extra_paths(target.command[0], extra_bdeps)
-        exe_data = self.serialize_executable(target.name, target.command[0], cmd[1:],
+        exe_data = self.serialize_executable(target.name, target.command[0], cmd_args,
                                              # All targets run from the target dir
                                              tdir_abs,
                                              extra_paths=extra_paths,

@@ -555,7 +555,7 @@ int dummy;
 
     def generate_custom_target(self, target, outfile):
         self.custom_target_generator_inputs(target, outfile)
-        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
+        (srcs, ofilenames, exe_args, cmd_args) = self.eval_custom_target_command(target)
         deps = self.unwrap_dep_list(target)
         deps += self.get_custom_target_depend_files(target)
         desc = 'Generating {0} with a {1} command.'
@@ -579,7 +579,7 @@ int dummy;
             serialize = True
         # If the command line requires a newline, also use the wrapper, as
         # ninja does not support them in its build rule syntax.
-        if any('\n' in c for c in cmd):
+        if any('\n' in c for c in cmd_args):
             serialize = True
         # Windows doesn't have -rpath, so for EXEs that need DLLs built within
         # the project, we need to set PATH so the DLLs are found. We use
@@ -595,14 +595,16 @@ int dummy;
             if extra_paths:
                 serialize = True
         if serialize:
-            exe_data = self.serialize_executable(target.name, target.command[0], cmd[1:],
+            exe_data = self.serialize_executable(target.name, target.command[0], cmd_args,
                                                  # All targets are built from the build dir
                                                  self.environment.get_build_dir(),
                                                  extra_paths=extra_paths,
-                                                 capture=ofilenames[0] if target.capture else None)
+                                                 capture=ofilenames[0] if target.capture else None,
+                                                 can_rspfile=target.can_rspfile)
             cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
             cmd_type = 'meson_exe.py custom'
         else:
+            cmd = exe_args + cmd_args
             cmd_type = 'custom'
         if target.depfile is not None:
             depfile = target.get_dep_outname(elem.infilenames)

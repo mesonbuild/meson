@@ -1868,6 +1868,7 @@ class CustomTarget(Target):
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
         self.depfile = None
+        self.can_rspfile = False
         self.process_kwargs(kwargs)
         self.extra_files = []
         # Whether to use absolute paths for all files on the commandline
@@ -1936,7 +1937,7 @@ class CustomTarget(Target):
                     # Can only add a dependency on an external program which we
                     # know the absolute path of
                     self.depend_files.append(File.from_absolute_file(path))
-                final_cmd += c.get_command()
+                final_cmd.append(c)
             elif isinstance(c, (BuildTarget, CustomTarget)):
                 self.dependencies.append(c)
                 final_cmd.append(c)

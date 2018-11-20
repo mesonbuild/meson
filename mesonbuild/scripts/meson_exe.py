@@ -17,6 +17,7 @@ import sys
 import argparse
 import pickle
 import platform
+import tempfile
 import subprocess
 
 from .. import mesonlib
@@ -40,6 +41,16 @@ def run_with_mono(fname):
     if fname.endswith('.exe') and not (is_windows() or is_cygwin()):
         return True
     return False
+
+def get_exe_cmd_args(exe):
+    if not is_windows() or not exe.can_rspfile:
+        return None, exe.cmd_args
+    import shlex
+    with tempfile.NamedTemporaryFile(dir=exe.workdir, mode='w', suffix='.txt',
+                                     prefix='meson_exe_', delete=False) as f:
+        f.write(' '.join([shlex.quote(arg) for arg in exe.cmd_args]))
+        f.flush()
+    return f, ['@' + os.path.basename(f.name)]
 
 def run_exe(exe):
     if exe.fname[0].endswith('.jar'):
@@ -73,8 +84,9 @@ def run_exe(exe):
             else:
                 child_env['WINEPATH'] = wine_path
 
-    p = subprocess.Popen(cmd + exe.cmd_args, env=child_env, cwd=exe.workdir,
-                         close_fds=False,
+    tempf, cmd_args = get_exe_cmd_args(exe)
+    p = subprocess.Popen(cmd + cmd_args, env=child_env,
+                         cwd=exe.workdir, close_fds=False,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
@@ -85,6 +97,8 @@ def run_exe(exe):
         sys.stdout.buffer.write(stdout)
     if stderr:
         sys.stderr.buffer.write(stderr)
+    if tempf is not None:
+        os.unlink(tempf.name)
     return p.returncode
 
 def run(args):
