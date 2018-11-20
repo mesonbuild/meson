@@ -238,7 +238,7 @@ class Installer:
                                    'a file'.format(to_file))
             if self.should_preserve_existing_file(from_file, to_file):
                 append_to_log(self.lf, '# Preserving old file %s\n' % to_file)
-                print('Preserving existing file %s.' % to_file)
+                print('Preserving existing file %s' % to_file)
                 return False
             os.remove(to_file)
         print('Installing %s to %s' % (from_file, outdir))
@@ -316,8 +316,6 @@ class Installer:
                 abs_dst = os.path.join(dst_dir, filepart)
                 if os.path.isdir(abs_dst):
                     print('Tried to copy file %s but a directory of that name already exists.' % abs_dst)
-                if os.path.exists(abs_dst):
-                    os.remove(abs_dst)
                 parent_dir = os.path.dirname(abs_dst)
                 if not os.path.isdir(parent_dir):
                     os.mkdir(parent_dir)
