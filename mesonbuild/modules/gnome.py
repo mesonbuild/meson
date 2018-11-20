@@ -1581,8 +1581,7 @@ G_END_DECLS'''
 
         return ModuleReturnValue([c_file, h_file], [c_file, h_file])
 
-    @staticmethod
-    def _make_mkenum_custom_target(state, sources, output, cmd, kwargs):
+    def _make_mkenum_custom_target(self, state, sources, output, cmd, kwargs):
         custom_kwargs = {
             'input': sources,
             'output': output,
@@ -1590,9 +1589,14 @@ G_END_DECLS'''
             'command': cmd
         }
         custom_kwargs.update(kwargs)
-        return build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs,
+        ct = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs,
                                   # https://github.com/mesonbuild/meson/issues/973
                                   absolute_paths=True)
+        # Use rspfiles on Windows to avoid exceeding the maximum commandline length limit
+        can_rspfile = mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.59.1')
+        if state.build_machine.system == 'windows' and can_rspfile:
+            ct.can_rspfile = True
+        return ct
 
     @permittedKwargs({'sources', 'prefix', 'install_header', 'install_dir', 'stdinc',
                       'nostdinc', 'internal', 'skip_source', 'valist_marshallers',
