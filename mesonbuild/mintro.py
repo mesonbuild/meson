@@ -226,8 +226,7 @@ def list_tests(testdata):
     print(json.dumps(result))
 
 def list_projinfo(builddata):
-    result = {'name': builddata.project_name,
-              'version': builddata.project_version,
+    result = {'version': builddata.project_version,
               'descriptive_name': builddata.project_name}
     subprojects = []
     for k, v in builddata.subprojects.items():
@@ -276,7 +275,7 @@ def list_projinfo_from_source(sourcedir):
             version = None
             if interpreter.project_version is str:
                 version = interpreter.project_version
-            result.update({'name': interpreter.project_name, 'version': version, 'descriptive_name': interpreter.project_name})
+            result.update({'version': version, 'descriptive_name': interpreter.project_name})
             result['buildsystem_files'].append(f)
         elif f.startswith('subprojects/'):
             subproject_id = f.split('/')[1]
