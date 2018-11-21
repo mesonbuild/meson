@@ -98,3 +98,53 @@ jobs:
       inputs:
         testResultsFiles: meson-test-run.xml
         testRunTitle: $(System.JobName)
+
+- job: msys2_mingw
+  pool:
+    vmImage: VS2017-Win2016
+  strategy:
+    matrix:
+      gccx86ninja:
+        MSYSTEM: MINGW32
+        MSYS2_ARCH: i686
+      gccx64ninja:
+        MSYSTEM: MINGW64
+        MSYS2_ARCH: x86_64
+  variables:
+    MSYS2_ROOT: $(System.Workfolder)\msys64
+  steps:
+    - script: |
+        choco install msys2 --params="/InstallDir:%MSYS2_ROOT% /NoUpdate /NoPath"
+      displayName: Install MSYS2
+    - script: |
+        set PATH=%MSYS2_ROOT%\usr\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
+        %MSYS2_ROOT%\usr\bin\pacman --noconfirm -Syyuu
+        %MSYS2_ROOT%\usr\bin\pacman --noconfirm -Syuu
+      displayName: Update MSYS2
+    - script: |
+        set PATH=%MSYS2_ROOT%\usr\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
+        %MSYS2_ROOT%\usr\bin\pacman --noconfirm --needed -S git base-devel mingw-w64-$(MSYS2_ARCH)-toolchain mingw-w64-$(MSYS2_ARCH)-python3 mingw-w64-$(MSYS2_ARCH)-python3-setuptools mingw-w64-$(MSYS2_ARCH)-python2 mercurial
+      displayName: Install Dependencies
+    - script: |
+        set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
+        %MSYS2_ROOT%\usr\bin\bash -lc "wget https://github.com/mesonbuild/cidata/raw/master/ninja.exe; mv ninja.exe /$MSYSTEM/bin"
+        set PATHEXT=%PATHEXT%;.py
+        %MSYS2_ROOT%\usr\bin\bash -lc "MSYSTEM= python3 run_tests.py --backend=ninja"
+      env:
+        CHERE_INVOKING: yes
+      displayName: Run Tests
+    - task: CopyFiles@2
+      condition: not(canceled())
+      inputs:
+        contents: 'meson-test-run.*'
+        targetFolder: $(Build.ArtifactStagingDirectory)
+    - task: PublishBuildArtifacts@1
+      inputs:
+        artifactName: $(System.JobName)
+      # publishing artifacts from PRs from a fork is currently blocked
+      condition: and(eq(variables['system.pullrequest.isfork'], false), not(canceled()))
+    - task: PublishTestResults@2
+      condition: not(canceled())
+      inputs:
+        testResultsFiles: meson-test-run.xml
+        testRunTitle: $(System.JobName)
