@@ -884,6 +884,8 @@ class CMakeDependency(ExternalDependency):
     cmake_cache = {}
     # Version string for the minimum CMake version
     class_cmake_version = '>=3.4'
+    # CMake generators to try (empty for no generator)
+    class_cmake_generators = ['', 'Ninja', 'Unix Makefiles', 'Visual Studio 10 2010']
 
     def __init__(self, name, environment, kwargs, language=None):
         super().__init__('cmake', environment, language, kwargs)
@@ -952,12 +954,28 @@ class CMakeDependency(ExternalDependency):
         mlog.debug('\nDetermining dependency {!r} with CMake executable '
                    '{!r}'.format(name, self.cmakebin.get_path()))
 
-        ret1, out1, err1 = self._call_cmake(['--trace-expand', '-DNAME={}'.format(name), '.'])
+        # Try different CMake generators since specifying no generator may fail
+        # in cygwin for some reason
+        for i in CMakeDependency.class_cmake_generators:
+            mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
 
-        # Check if exists
-        if ret1 != 0:
-            mlog.debug('CMake: {} not found'.format(name))
+            # Prepare options
+            cmake_opts = ['--trace-expand', '-DNAME={}'.format(name), '.']
+            if len(i) > 0:
+                cmake_opts = ['-G', i] + cmake_opts
+
+            # Run CMake
+            ret1, out1, err1 = self._call_cmake(cmake_opts)
+
+            # Current generator was successful
+            if ret1 == 0:
+                break
+
+            mlog.debug('CMake failed for generator {} and package {} with error code {}'.format(i, name, ret1))
             mlog.debug('OUT:\n{}\n\n\nERR:\n{}\n\n'.format(out1, err1))
+
+        # Check if any generator succeeded
+        if ret1 != 0:
             return
 
         try:
