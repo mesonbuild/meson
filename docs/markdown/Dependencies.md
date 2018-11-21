@@ -121,7 +121,7 @@ Aditional dependencies methods are `pkg-config`, `config-tool`, `cmake`,
 cups_dep = dependency('cups', method : 'pkg-config')
 ```
 
-The dependency method tried for `auto` are:
+The dependency method order for `auto` is:
 
   1. `pkg-config`
   2. `cmake`
