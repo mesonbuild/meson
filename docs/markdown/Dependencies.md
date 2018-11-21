@@ -121,9 +121,15 @@ Aditional dependencies methods are `pkg-config`, `config-tool`, `cmake`,
 cups_dep = dependency('cups', method : 'pkg-config')
 ```
 
+The dependency method tried for `auto` are:
+
+  1. `pkg-config`
+  2. `cmake`
+  3. `extraframework` (OSX only)
+
 ## CMake
 
-Meson can use the CMake `--find-package` feature to detect
+Meson can use the CMake `find_package()` function to detect
 dependencies with the builtin `Find<NAME>.cmake` modules and exported
 project configurations (usually in `/usr/lib/cmake`). Meson is able
 to use both the old-style `<NAME>_LIBRARIES` variables as well as

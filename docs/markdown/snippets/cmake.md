@@ -15,5 +15,5 @@ dep1 = dependency('KF5TextEditor')
 dep2 = dependency('ZLIB', method : 'cmake', modules : ['ZLIB::ZLIB'])
 ```
 
-CMake is automatically used aufter `pkg-config` fails when
-no `method` was provided in the dependency options.
+CMake is automatically used after `pkg-config` fails when
+no `method` (or `auto`) was provided in the dependency options.
