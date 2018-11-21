@@ -479,7 +479,7 @@ class BuildTarget(Target):
         return repr_str.format(self.__class__.__name__, self.get_id(), self.filename)
 
     def validate_cross_install(self, environment):
-        if environment.is_cross_build() and not self.is_cross and self.install:
+        if environment.is_cross_build() and not self.is_cross and self.need_install:
             raise InvalidArguments('Tried to install a natively built target in a cross build.')
 
     def check_unknown_kwargs(self, kwargs):
