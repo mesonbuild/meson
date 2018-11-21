@@ -26,6 +26,7 @@ These are return values of the `get_id` (Compiler family) and
 | arm       | ARM compiler                     |                                |
 | armclang  | ARMCLANG compiler                |                                |
 | ccrx      | Renesas RX Family C/C++ compiler |                                |
+| clang-cl  | The Clang compiler (MSVC compatible driver) | msvc                |
 
 ## Script environment variables
 
