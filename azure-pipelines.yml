@@ -67,6 +67,7 @@ jobs:
       displayName: Install Cygwin
     - script: |
         %CYGWIN_ROOT%\cygwinsetup.exe -qnNdO -R "%CYGWIN_ROOT%" -s "%CYGWIN_MIRROR%" -g -P ^
+        cmake,^
         gcc-objc++,^
         gcc-objc,^
         git,^
