@@ -7,36 +7,36 @@ These are return values of the `get_id` (Compiler family) and
 
 | Value     | Compiler family                  | Argument syntax                |
 | -----     | ---------------                  | ---------------                |
-| gcc       | The GNU Compiler Collection      | gcc                            |
-| clang     | The Clang compiler               | gcc                            |
-| msvc      | Microsoft Visual Studio          | msvc                           |
-| intel     | Intel compiler                   | msvc on windows, otherwise gcc |
-| llvm      | LLVM-based compiler (Swift, D)   |                                |
-| mono      | Xamarin C# compiler              |                                |
-| dmd       | D lang reference compiler        |                                |
-| rustc     | Rust compiler                    |                                |
-| valac     | Vala compiler                    |                                |
-| pathscale | The Pathscale Fortran compiler   |                                |
-| pgi       | The Portland Fortran compiler    |                                |
-| sun       | Sun Fortran compiler             |                                |
-| g95       | The G95 Fortran compiler         |                                |
-| open64    | The Open64 Fortran Compiler      |                                |
-| nagfor    | The NAG Fortran compiler         |                                |
-| lcc       | Elbrus C/C++/Fortran Compiler    |                                |
 | arm       | ARM compiler                     |                                |
 | armclang  | ARMCLANG compiler                |                                |
 | ccrx      | Renesas RX Family C/C++ compiler |                                |
+| clang     | The Clang compiler               | gcc                            |
 | clang-cl  | The Clang compiler (MSVC compatible driver) | msvc                |
+| dmd       | D lang reference compiler        |                                |
+| g95       | The G95 Fortran compiler         |                                |
+| gcc       | The GNU Compiler Collection      | gcc                            |
+| intel     | Intel compiler                   | msvc on windows, otherwise gcc |
+| lcc       | Elbrus C/C++/Fortran Compiler    |                                |
+| llvm      | LLVM-based compiler (Swift, D)   |                                |
+| mono      | Xamarin C# compiler              |                                |
+| msvc      | Microsoft Visual Studio          | msvc                           |
+| nagfor    | The NAG Fortran compiler         |                                |
+| open64    | The Open64 Fortran Compiler      |                                |
+| pathscale | The Pathscale Fortran compiler   |                                |
+| pgi       | The Portland Fortran compiler    |                                |
+| rustc     | Rust compiler                    |                                |
+| sun       | Sun Fortran compiler             |                                |
+| valac     | Vala compiler                    |                                |
 
 ## Script environment variables
 
 | Value               | Comment                         |
 | -----               | -------                         |
-| MESON_SOURCE_ROOT   | Absolute path to the source dir |
-| MESON_BUILD_ROOT    | Absolute path to the build dir  |
 | MESONINTROSPECT     | Command to run to run the introspection command, may be of the form `python /path/to/meson introspect`, user is responsible for splitting the path if necessary. |
-| MESON_SUBDIR        | Current subdirectory, only set for `run_command` |
+| MESON_BUILD_ROOT    | Absolute path to the build dir  |
 | MESON_DIST_ROOT     | Points to the root of the staging directory, only set when running `dist` scripts |
+| MESON_SOURCE_ROOT   | Absolute path to the source dir |
+| MESON_SUBDIR        | Current subdirectory, only set for `run_command` |
 
 
 ## CPU families
@@ -47,24 +47,24 @@ set in the cross file.
 
 | Value               | Comment                         |
 | -----               | -------                         |
-| x86                 | 32 bit x86 processor  |
-| x86_64              | 64 bit x86 processor  |
-| ia64                | Itanium processor     |
-| arm                 | 32 bit ARM processor  |
-| arc                 | 32 bit ARC processor  |
 | aarch64             | 64 bit ARM processor  |
+| arc                 | 32 bit ARC processor  |
+| arm                 | 32 bit ARM processor  |
+| e2k                 | MCST Elbrus processor |
+| ia64                | Itanium processor     |
 | mips                | 32 bit MIPS processor |
 | mips64              | 64 bit MIPS processor |
+| parisc              | HP PA-RISC processor  |
 | ppc                 | 32 bit PPC processors |
 | ppc64               | 64 bit PPC processors |
-| e2k                 | MCST Elbrus processor |
-| parisc              | HP PA-RISC processor  |
 | riscv32             | 32 bit RISC-V Open ISA|
 | riscv64             | 64 bit RISC-V Open ISA|
+| rx                  | Renesas RX 32 bit MCU |
+| s390x               | IBM zSystem s390x     |
 | sparc               | 32 bit SPARC          |
 | sparc64             | SPARC v9 processor    |
-| s390x               | IBM zSystem s390x     |
-| rx                  | Renesas RX 32 bit MCU |
+| x86                 | 32 bit x86 processor  |
+| x86_64              | 64 bit x86 processor  |
 
 Any cpu family not listed in the above list is not guaranteed to
 remain stable in future releases.
@@ -80,15 +80,15 @@ These are provided by the `.system()` method call.
 
 | Value               | Comment                         |
 | -----               | -------                         |
-| linux               | |
-| darwin              | Either OSX or iOS |
-| windows             | Any version of Windows |
 | cygwin              | The Cygwin environment for Windows |
-| haiku               | |
-| freebsd             | FreeBSD and its derivatives |
+| darwin              | Either OSX or iOS |
 | dragonfly           | DragonFly BSD |
-| netbsd              | |
+| freebsd             | FreeBSD and its derivatives |
 | gnu                 | GNU Hurd |
+| haiku               | |
+| linux               | |
+| netbsd              | |
+| windows             | Any version of Windows |
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.
