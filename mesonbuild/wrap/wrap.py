@@ -41,8 +41,11 @@ def build_ssl_context():
     return ctx
 
 def quiet_git(cmd, workingdir):
-    pc = subprocess.Popen(['git', '-C', workingdir] + cmd, stdin=subprocess.DEVNULL,
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        pc = subprocess.Popen(['git', '-C', workingdir] + cmd, stdin=subprocess.DEVNULL,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except FileNotFoundError as e:
+        return False, str(e)
     out, err = pc.communicate()
     if pc.returncode != 0:
         return False, err
