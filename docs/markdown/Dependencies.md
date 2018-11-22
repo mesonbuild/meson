@@ -114,11 +114,38 @@ of all the work behind the scenes to make this work.
 
 You can use the keyword `method` to let meson know what method to use
 when searching for the dependency. The default value is `auto`.
-Aditional dependencies methods are `pkg-config`, `config-tool`,
+Aditional dependencies methods are `pkg-config`, `config-tool`, `cmake`,
 `system`, `sysconfig`, `qmake`, `extraframework` and `dub`.
 
 ```meson
 cups_dep = dependency('cups', method : 'pkg-config')
+```
+
+The dependency method order for `auto` is:
+
+  1. `pkg-config`
+  2. `cmake`
+  3. `extraframework` (OSX only)
+
+## CMake
+
+Meson can use the CMake `find_package()` function to detect
+dependencies with the builtin `Find<NAME>.cmake` modules and exported
+project configurations (usually in `/usr/lib/cmake`). Meson is able
+to use both the old-style `<NAME>_LIBRARIES` variables as well as
+imported targets.
+
+It is possible to manually specify a list of CMake targets that should
+be used with the `modules` property. Howerver, this step is optional
+since meson tries to automatically guess the correct target based on the
+name of the dependency.
+
+Depending on the dependency it may be neccessary to explicitly specify
+a CMake target with the `modules` property if meson is unable to guess
+it automatically.
+
+```meson
+    cmake_dep = dependency('ZLIB', method : 'cmake', modules : ['ZLIB::ZLIB'])
 ```
 
 ### Some notes on Dub
@@ -218,7 +245,7 @@ libraries that have been compiled for single-threaded use instead.
 
 ## CUPS
 
-`method` may be `auto`, `config-tool`, `pkg-config` or `extraframework`.
+`method` may be `auto`, `config-tool`, `pkg-config`, `cmake` or `extraframework`.
 
 ## GL
 

@@ -365,10 +365,10 @@ keyword arguments.
 ```
 
 Finds an external dependency (usually a library installed on your
-system) with the given name with `pkg-config` if possible, as a
-framework (OSX only), and with
+system) with the given name with `pkg-config` and [with CMake](Dependencies.md#CMake)
+if `pkg-config` fails. Additionally, frameworks (OSX only) and
 [library-specific fallback detection logic](Dependencies.md#dependencies-with-custom-lookup-functionality)
-otherwise. This function supports the following keyword arguments:
+are also supported. This function supports the following keyword arguments:
 
 - `default_options` *(added 0.37.0)* an array of default option values
   that override those set in the subproject's `meson_options.txt`
@@ -1442,7 +1442,7 @@ be up to date on every build. Keywords are similar to `custom_target`.
 
 Meson will read the contents of `input`, substitute the
 `replace_string` with the detected revision number, and write the
-result to `output`. This method returns a 
+result to `output`. This method returns a
 [`custom_target`](#custom_target) object that (as usual) should be
 used to signal dependencies if other targets use the file outputted
 by this.
