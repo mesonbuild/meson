@@ -25,7 +25,7 @@ from .. import dependencies
 from .. import mlog
 from .. import compilers
 from ..compilers import CompilerArgs
-from ..mesonlib import MesonException, File, python_command
+from ..mesonlib import MesonException, File, python_command, replace_if_different
 from ..environment import Environment, build_filename
 
 def autodetect_vs_version(build):
@@ -68,6 +68,9 @@ def split_o_flags_args(args):
         else:
             o_flags += ['/O' + f for f in flags]
     return o_flags
+
+def generate_guid_from_path(path, path_type):
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, 'meson-vs-' + path_type + ':' + str(path))).upper()
 
 class RegenInfo:
     def __init__(self, source_dir, build_dir, depfiles):
@@ -265,7 +268,7 @@ class Vs2010Backend(backends.Backend):
         for path in iterpaths:
             if path not in self.subdirs:
                 basename = path.name
-                identifier = str(uuid.uuid4()).upper()
+                identifier = generate_guid_from_path(path, 'subdir')
                 # top-level directories have None as their parent_dir
                 parent_dir = path.parent
                 parent_identifier = self.subdirs[parent_dir][0] \
@@ -279,7 +282,8 @@ class Vs2010Backend(backends.Backend):
 
     def generate_solution(self, sln_filename, projlist):
         default_projlist = self.get_build_by_default_targets()
-        with open(sln_filename, 'w', encoding='utf-8') as ofile:
+        sln_filename_tmp = sln_filename + '~'
+        with open(sln_filename_tmp, 'w', encoding='utf-8') as ofile:
             ofile.write('Microsoft Visual Studio Solution File, Format '
                         'Version 11.00\n')
             ofile.write('# Visual Studio ' + self.vs_version + '\n')
@@ -380,6 +384,7 @@ class Vs2010Backend(backends.Backend):
                         ofile.write("\t\t{%s} = {%s}\n" % (subdir[0], subdir[1]))
                 ofile.write('\tEndGlobalSection\n')
             ofile.write('EndGlobal\n')
+        replace_if_different(sln_filename, sln_filename_tmp)
 
     def generate_projects(self):
         startup_project = self.environment.coredata.backend_options['backend_startup_project'].value
@@ -674,11 +679,14 @@ class Vs2010Backend(backends.Backend):
         raise MesonException('Could not find a C or C++ compiler. MSVC can only build C/C++ projects.')
 
     def _prettyprint_vcxproj_xml(self, tree, ofname):
-        tree.write(ofname, encoding='utf-8', xml_declaration=True)
+        ofname_tmp = ofname + '~'
+        tree.write(ofname_tmp, encoding='utf-8', xml_declaration=True)
+
         # ElementTree can not do prettyprinting so do it manually
-        doc = xml.dom.minidom.parse(ofname)
-        with open(ofname, 'w', encoding='utf-8') as of:
+        doc = xml.dom.minidom.parse(ofname_tmp)
+        with open(ofname_tmp, 'w', encoding='utf-8') as of:
             of.write(doc.toprettyxml())
+        replace_if_different(ofname, ofname_tmp)
 
     def gen_vcxproj(self, target, ofname, guid):
         mlog.debug('Generating vcxproj %s.' % target.name)
