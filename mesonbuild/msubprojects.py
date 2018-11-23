@@ -2,7 +2,7 @@ import os, subprocess
 
 from . import mlog
 from .mesonlib import Popen_safe
-from .wrap.wrap import API_ROOT, PackageDefinition
+from .wrap.wrap import API_ROOT, PackageDefinition, Resolver, WrapException
 from .wrap import wraptool
 
 def update_wrapdb_file(wrap, repo_dir, options):
@@ -155,6 +155,18 @@ def checkout(wrap, repo_dir, options):
         out = e.output.decode().strip()
         mlog.log('  -> ', mlog.red(out))
 
+def download(wrap, repo_dir, options):
+    mlog.log('Download %s...' % wrap.name)
+    if os.path.isdir(repo_dir):
+        mlog.log('  -> Already downloaded')
+        return
+    try:
+        r = Resolver(os.path.dirname(repo_dir))
+        r.resolve(wrap.name)
+        mlog.log('  -> done')
+    except WrapException as e:
+        mlog.log('  ->', mlog.red(str(e)))
+
 def add_common_arguments(p):
     p.add_argument('--sourcedir', default='.',
                    help='Path to source directory')
@@ -178,6 +190,12 @@ def add_arguments(parser):
                    help='Name of the branch to checkout or create (default: revision set in wrap file)')
     add_common_arguments(p)
     p.set_defaults(subprojects_func=checkout)
+
+    p = subparsers.add_parser('download', help='Ensure subprojects are fetched, even if not in use. ' +
+                                               'Already downloaded subprojects are not modified. ' +
+                                               'This can be used to pre-fetch all subprojects and avoid downloads during configure.')
+    add_common_arguments(p)
+    p.set_defaults(subprojects_func=download)
 
 def run(options):
     src_dir = os.path.relpath(os.path.realpath(options.sourcedir))
