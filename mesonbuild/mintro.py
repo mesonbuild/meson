@@ -30,8 +30,11 @@ from . import compilers
 from . import optinterpreter
 from .interpreterbase import InvalidArguments
 from .backend import ninjabackend, backends
+from .dependencies import base
+from .compilers import compilers
 import sys, os
 import pathlib
+import re
 
 def add_arguments(parser):
     parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
@@ -88,11 +91,85 @@ def list_installed(installdata):
             res[path] = os.path.join(installdata.prefix, installpath)
     print(json.dumps(res))
 
+def include_dirs_to_path(inc_dirs, src_root, build_root):
+    result = []
+    if isinstance(inc_dirs, build.IncludeDirs):
+        for i in inc_dirs.get_incdirs():
+            abs_src = os.path.join(src_root, inc_dirs.get_curdir(), i)
+            abs_build = os.path.join(build_root, inc_dirs.get_curdir(), i)
+
+            if os.path.isdir(abs_src):
+                result += [abs_src]
+
+            if os.path.isdir(abs_build):
+                result += [abs_build]
+
+    return result
+
+def extract_dependency_infromation(dep):
+    inc_dirs = []
+    args = []
+    if isinstance(dep, base.Dependency):
+        reg = re.compile(r'-I(.*)')
+        for i in dep.get_compile_args():
+            match = reg.match(i)
+            if match:
+                inc_dirs += [match.group(1)]
+            else:
+                args += [i]
+
+    return inc_dirs, args
 
 def list_targets(coredata, builddata, installdata):
     tlist = []
     for (idname, target) in builddata.get_targets().items():
-        t = {'name': target.get_basename(), 'id': idname}
+        src_root = builddata.environment.get_source_dir()
+        build_root = builddata.environment.get_build_dir()
+
+        inc_dirs = []
+        extra_args = {}
+        dep_args = []
+
+        def climb_stack(tgt, inc_dirs, extra_args, dep_args):
+            if isinstance(tgt, build.BuildTarget):
+                # The build directory is always in the include directories
+                absbase_src = os.path.join(src_root, tgt.subdir)
+                absbase_build = os.path.join(build_root, tgt.subdir)
+                inc_dirs += [absbase_src, absbase_build]
+
+                for i in tgt.include_dirs:
+                    inc_dirs += include_dirs_to_path(i, src_root, build_root)
+
+                for i in tgt.external_deps:
+                    dep_inc_dirs, args = extract_dependency_infromation(i)
+                    inc_dirs += dep_inc_dirs
+                    dep_args += args
+
+                for i, comp in tgt.compilers.items():
+                    if isinstance(comp, compilers.Compiler):
+                        lang = comp.get_language()
+                        if lang not in extra_args:
+                            extra_args[lang] = []
+
+                        extra_args[i] += tgt.get_extra_args(lang)
+                        extra_args[i] += builddata.get_global_args(comp, False)
+                        extra_args[i] += builddata.get_project_args(comp, tgt.subproject, False)
+
+                for i in tgt.link_targets:
+                    climb_stack(i, inc_dirs, extra_args, dep_args)
+
+        climb_stack(target, inc_dirs, extra_args, dep_args)
+
+        # Add the dep_args, sort and remove duplicates
+        for i in extra_args:
+            extra_args[i] += dep_args
+            extra_args[i] = list(sorted(list(set(extra_args[i]))))
+
+        # Remove duplicates, sort and make paths pretty
+        inc_dirs = list(sorted(list(set(inc_dirs))))
+        inc_dirs = list(map(lambda x: os.path.realpath(x), inc_dirs))
+
+        t = {'name': target.get_basename(), 'id': idname, 'include_directories': inc_dirs, 'extra_args': extra_args}
         fname = target.get_filename()
         if isinstance(fname, list):
             fname = [os.path.join(target.subdir, x) for x in fname]
