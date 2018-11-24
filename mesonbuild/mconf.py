@@ -115,21 +115,21 @@ class Conf:
         print('  Source dir', self.build.environment.source_dir)
         print('  Build dir ', self.build.environment.build_dir)
 
-        dir_option_names = ['prefix',
+        dir_option_names = ['bindir',
+                            'datadir',
+                            'includedir',
+                            'infodir',
                             'libdir',
                             'libexecdir',
-                            'bindir',
-                            'sbindir',
-                            'includedir',
-                            'datadir',
-                            'mandir',
-                            'infodir',
                             'localedir',
-                            'sysconfdir',
                             'localstatedir',
-                            'sharedstatedir']
-        test_option_names = ['stdsplit',
-                             'errorlogs']
+                            'mandir',
+                            'prefix',
+                            'sbindir',
+                            'sharedstatedir',
+                            'sysconfdir']
+        test_option_names = ['errorlogs',
+                             'stdsplit']
         core_option_names = [k for k in self.coredata.builtins if k not in dir_option_names + test_option_names]
 
         dir_options = {k: o for k, o in self.coredata.builtins.items() if k in dir_option_names}
