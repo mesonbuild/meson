@@ -147,13 +147,12 @@ def list_targets(coredata, builddata, installdata):
 
                 for i, comp in tgt.compilers.items():
                     if isinstance(comp, compilers.Compiler):
-                        lang = comp.get_language()
-                        if lang not in extra_args:
-                            extra_args[lang] = []
+                        if i not in extra_args:
+                            extra_args[i] = []
 
-                        extra_args[i] += tgt.get_extra_args(lang)
-                        extra_args[i] += builddata.get_global_args(comp, False)
-                        extra_args[i] += builddata.get_project_args(comp, tgt.subproject, False)
+                        extra_args[i] += tgt.get_extra_args(i)
+                        extra_args[i] += builddata.get_global_args(comp, tgt.is_cross)
+                        extra_args[i] += builddata.get_project_args(comp, tgt.subproject, tgt.is_cross)
 
                 for i in tgt.link_targets:
                     climb_stack(i, inc_dirs, extra_args, dep_args)
