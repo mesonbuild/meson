@@ -30,11 +30,47 @@ In order to make code completion work, you need the compiler flags for each comp
 
 Note that if the target has dependencies (such as generated sources), then the commands for those show up in this list as well, so you need to do some filtering. Alternatively you can grab every command invocation in the [Clang tools db](https://clang.llvm.org/docs/JSONCompilationDatabase.html) format that is written to a file called `compile_commands.json` in the build directory.
 
+## Build Options
+
 The next thing to display is the list of options that can be set. These include build type and so on. Here's how to extract them.
 
     meson introspect --buildoptions
 
+This command returns a list of all supported buildoptions with the format:
+
+```json
+{
+    "name": "name of the option",
+    "description": "the description",
+    "type": "type ID",
+    "value": "value depends on type",
+    "section": "section ID"
+}
+```
+
+The supported types are:
+
+ - string
+ - boolean
+ - combo
+ - integer
+ - array
+
+For the type `combo` the key `choices` is also present. Here all valid values for the option are stored.
+
+The possible values for `section` are:
+
+ - core
+ - backend
+ - base
+ - compiler
+ - directory
+ - user
+ - test
+
 To set the options, use the `meson configure` command.
+
+## Tests
 
 Compilation and unit tests are done as usual by running the `ninja` and `ninja test` commands. A JSON formatted result log can be found in `workspace/project/builddir/meson-logs/testlog.json`.
 
