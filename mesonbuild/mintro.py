@@ -57,6 +57,10 @@ def add_arguments(parser):
                         help='Information about projects.')
     parser.add_argument('--backend', choices=cdata.backendlist, dest='backend', default='ninja',
                         help='The backend to use for the --buildoptions introspection.')
+    parser.add_argument('-a', '--all', action='store_true', dest='all', default=False,
+                        help='Print all available information.')
+    parser.add_argument('-i', '--indent', dest='indent', type=int, default=0,
+                        help='Number of spaces used for indentation.')
     parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
 
 def determine_installed_path(target, installdata):
@@ -89,7 +93,7 @@ def list_installed(installdata):
             res[path] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
         for path, installpath, unused_custom_install_mode in installdata.man:
             res[path] = os.path.join(installdata.prefix, installpath)
-    print(json.dumps(res))
+    return res
 
 def include_dirs_to_path(inc_dirs, src_root, build_root):
     result = []
@@ -235,7 +239,7 @@ def list_targets(coredata, builddata, installdata):
             t['installed'] = False
         t['build_by_default'] = target.build_by_default
         tlist.append(t)
-    print(json.dumps(tlist, indent=2))
+    return tlist
 
 def list_target_files(target_name, coredata, builddata):
     try:
@@ -249,7 +253,7 @@ def list_target_files(target_name, coredata, builddata):
         if isinstance(i, mesonlib.File):
             i = os.path.join(i.subdir, i.fname)
         out.append(i)
-    print(json.dumps(out))
+    return out
 
 class BuildoptionsOptionHelper:
     # mimic an argparse namespace
@@ -429,7 +433,7 @@ def list_buildoptions(coredata):
     add_keys(optlist, dir_options, 'directory')
     add_keys(optlist, coredata.user_options, 'user')
     add_keys(optlist, test_options, 'test')
-    print(json.dumps(optlist))
+    return optlist
 
 def add_keys(optlist, options, section):
     keys = list(options.keys())
@@ -466,7 +470,7 @@ def find_buildsystem_files_list(src_dir):
 def list_buildsystem_files(builddata):
     src_dir = builddata.environment.get_source_dir()
     filelist = find_buildsystem_files_list(src_dir)
-    print(json.dumps(filelist))
+    return filelist
 
 def list_deps(coredata):
     result = []
@@ -475,7 +479,7 @@ def list_deps(coredata):
             result += [{'name': d.name,
                         'compile_args': d.get_compile_args(),
                         'link_args': d.get_link_args()}]
-    print(json.dumps(result))
+    return result
 
 def list_tests(testdata):
     result = []
@@ -496,7 +500,7 @@ def list_tests(testdata):
         to['suite'] = t.suite
         to['is_parallel'] = t.is_parallel
         result.append(to)
-    print(json.dumps(result))
+    return result
 
 def list_projinfo(builddata):
     result = {'version': builddata.project_version,
@@ -508,7 +512,7 @@ def list_projinfo(builddata):
              'descriptive_name': builddata.projects.get(k)}
         subprojects.append(c)
     result['subprojects'] = subprojects
-    print(json.dumps(result))
+    return result
 
 class ProjectInfoInterperter(astinterpreter.AstInterpreter):
     def __init__(self, source_root, subdir):
@@ -593,25 +597,38 @@ def run(options):
     except FileNotFoundError:
         installdata = None
 
-    if options.list_targets:
-        list_targets(coredata, builddata, installdata)
-    elif options.list_installed:
-        list_installed(installdata)
-    elif options.target_files is not None:
-        list_target_files(options.target_files, coredata, builddata)
-    elif options.buildsystem_files:
-        list_buildsystem_files(builddata)
-    elif options.buildoptions:
-        list_buildoptions(coredata)
-    elif options.tests:
-        list_tests(testdata)
-    elif options.benchmarks:
-        list_tests(benchmarkdata)
-    elif options.dependencies:
-        list_deps(coredata)
-    elif options.projectinfo:
-        list_projinfo(builddata)
-    else:
+    results = []
+
+    if options.all or options.list_targets:
+        results += [('targets', list_targets(coredata, builddata, installdata))]
+    if options.all or options.list_installed:
+        results += [('installed', list_installed(installdata))]
+    if options.target_files is not None:
+        results += [('target_files', list_target_files(options.target_files, coredata, builddata))]
+    if options.all or options.buildsystem_files:
+        results += [('buildsystem_files', list_buildsystem_files(builddata))]
+    if options.all or options.buildoptions:
+        results += [('buildoptions', list_buildoptions(coredata))]
+    if options.all or options.tests:
+        results += [('tests', list_tests(testdata))]
+    if options.all or options.benchmarks:
+        results += [('benchmarks', list_tests(benchmarkdata))]
+    if options.all or options.dependencies:
+        results += [('dependencies', list_deps(coredata))]
+    if options.all or options.projectinfo:
+        results += [('projectinfo', list_projinfo(builddata))]
+
+    indent = options.indent if options.indent > 0 else None
+
+    if len(results) == 0:
         print('No command specified')
         return 1
+    elif len(results) == 1:
+        # Make to keep the existing output format for a single option
+        print(json.dumps(results[0][1], indent=indent))
+    else:
+        out = {}
+        for i in results:
+            out[i[0]] = i[1]
+        print(json.dumps(out, indent=indent))
     return 0
