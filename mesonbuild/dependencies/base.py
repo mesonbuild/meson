@@ -887,6 +887,9 @@ class CMakeDependency(ExternalDependency):
     # CMake generators to try (empty for no generator)
     class_cmake_generators = ['', 'Ninja', 'Unix Makefiles', 'Visual Studio 10 2010']
 
+    def _gen_exception(self, msg):
+        return DependencyException('Dependency {} not found: {}'.format(self.name, msg))
+
     def __init__(self, name, environment, kwargs, language=None):
         super().__init__('cmake', environment, language, kwargs)
         self.name = name
@@ -911,7 +914,7 @@ class CMakeDependency(ExternalDependency):
         if self.want_cross:
             if 'cmake' not in environment.cross_info.config['binaries']:
                 if self.required:
-                    raise DependencyException('CMake binary missing from cross file')
+                    raise self._gen_exception('CMake binary missing from cross file')
             else:
                 potential_cmake = ExternalProgram.from_cross_info(environment.cross_info, 'cmake')
                 if potential_cmake.found():
@@ -931,7 +934,7 @@ class CMakeDependency(ExternalDependency):
 
         if not self.cmakebin:
             if self.required:
-                raise DependencyException('CMake not found.')
+                raise self._gen_exception('CMake not found.')
             return
 
         modules = kwargs.get('modules', [])
@@ -1046,7 +1049,7 @@ class CMakeDependency(ExternalDependency):
 
             # Even the old-style approach failed. Nothing else we can do here
             self.is_found = False
-            raise DependencyException('CMake: failed to guess a CMake target for {}.\n'
+            raise self._gen_exception('CMake: failed to guess a CMake target for {}.\n'
                                       'Try to explicitly specify one or more targets with the "modules" property.\n'
                                       'Valid targets are:\n{}'.format(name, list(self.targets.keys())))
 
@@ -1058,7 +1061,7 @@ class CMakeDependency(ExternalDependency):
         libraries = []
         for i in modules:
             if i not in self.targets:
-                raise DependencyException('CMake: invalid CMake target {} for {}.\n'
+                raise self._gen_exception('CMake: invalid CMake target {} for {}.\n'
                                           'Try to explicitly specify one or more targets with the "modules" property.\n'
                                           'Valid targets are:\n{}'.format(i, name, list(self.targets.keys())))
 
@@ -1169,7 +1172,7 @@ class CMakeDependency(ExternalDependency):
             args.append(i)
 
         if len(args) < 1:
-            raise DependencyException('CMake: set() requires at least one argument\n{}'.format(tline))
+            raise self._gen_exception('CMake: set() requires at least one argument\n{}'.format(tline))
 
         if len(args) == 1:
             # Same as unset
@@ -1182,7 +1185,7 @@ class CMakeDependency(ExternalDependency):
     def _cmake_unset(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/unset.html
         if len(tline.args) < 1:
-            raise DependencyException('CMake: unset() requires at least one argument\n{}'.format(tline))
+            raise self._gen_exception('CMake: unset() requires at least one argument\n{}'.format(tline))
 
         if tline.args[0] in self.vars:
             del self.vars[tline.args[0]]
@@ -1193,12 +1196,12 @@ class CMakeDependency(ExternalDependency):
 
         # Make sure the exe is imported
         if 'IMPORTED' not in args:
-            raise DependencyException('CMake: add_executable() non imported executables are not supported\n{}'.format(tline))
+            raise self._gen_exception('CMake: add_executable() non imported executables are not supported\n{}'.format(tline))
 
         args.remove('IMPORTED')
 
         if len(args) < 1:
-            raise DependencyException('CMake: add_executable() requires at least 1 argument\n{}'.format(tline))
+            raise self._gen_exception('CMake: add_executable() requires at least 1 argument\n{}'.format(tline))
 
         self.targets[args[0]] = CMakeTarget(args[0], 'EXECUTABLE', {})
 
@@ -1208,13 +1211,13 @@ class CMakeDependency(ExternalDependency):
 
         # Make sure the lib is imported
         if 'IMPORTED' not in args:
-            raise DependencyException('CMake: add_library() non imported libraries are not supported\n{}'.format(tline))
+            raise self._gen_exception('CMake: add_library() non imported libraries are not supported\n{}'.format(tline))
 
         args.remove('IMPORTED')
 
         # No only look at the first two arguments (target_name and target_type) and ignore the rest
         if len(args) < 2:
-            raise DependencyException('CMake: add_library() requires at least 2 arguments\n{}'.format(tline))
+            raise self._gen_exception('CMake: add_library() requires at least 2 arguments\n{}'.format(tline))
 
         self.targets[args[0]] = CMakeTarget(args[0], args[1], {})
 
@@ -1222,7 +1225,7 @@ class CMakeDependency(ExternalDependency):
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_target.html
         # We only the first parameter (the target name) is interesting
         if len(tline.args) < 1:
-            raise DependencyException('CMake: add_custom_target() requires at least one argument\n{}'.format(tline))
+            raise self._gen_exception('CMake: add_custom_target() requires at least one argument\n{}'.format(tline))
 
         self.targets[tline.args[0]] = CMakeTarget(tline.args[0], 'CUSTOM', {})
 
@@ -1252,7 +1255,7 @@ class CMakeDependency(ExternalDependency):
             return
 
         if len(args) < 2:
-            raise DependencyException('CMake: set_property() faild to parse argument list\n{}'.format(tline))
+            raise self._gen_exception('CMake: set_property() faild to parse argument list\n{}'.format(tline))
 
         propName = args[0]
         propVal = list(itertools.chain(*map(lambda x: x.split(';'), args[1:])))
@@ -1263,7 +1266,7 @@ class CMakeDependency(ExternalDependency):
 
         for i in targets:
             if i not in self.targets:
-                raise DependencyException('CMake: set_property() TARGET {} not found\n{}'.format(i, tline))
+                raise self._gen_exception('CMake: set_property() TARGET {} not found\n{}'.format(i, tline))
 
             if propName not in self.targets[i].properies:
                 self.targets[i].properies[propName] = []
@@ -1286,7 +1289,7 @@ class CMakeDependency(ExternalDependency):
             targets.append(curr)
 
         if (len(args) % 2) != 0:
-            raise DependencyException('CMake: set_target_properties() uneven number of property arguments\n{}'.format(tline))
+            raise self._gen_exception('CMake: set_target_properties() uneven number of property arguments\n{}'.format(tline))
 
         while len(args) > 0:
             propName = args.pop(0)
@@ -1298,7 +1301,7 @@ class CMakeDependency(ExternalDependency):
 
             for i in targets:
                 if i not in self.targets:
-                    raise DependencyException('CMake: set_target_properties() TARGET {} not found\n{}'.format(i, tline))
+                    raise self._gen_exception('CMake: set_target_properties() TARGET {} not found\n{}'.format(i, tline))
 
                 self.targets[i].properies[propName] = propVal
 
@@ -1314,7 +1317,7 @@ class CMakeDependency(ExternalDependency):
                 skip_match = reg_other.match(trace, loc)
                 if not skip_match:
                     print(trace[loc:])
-                    raise 'Failed to parse CMake trace'
+                    raise self._gen_exception('Failed to parse CMake trace')
 
                 loc = skip_match.end()
                 continue

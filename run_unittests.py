@@ -2922,7 +2922,7 @@ class FailureTests(BasePlatformTests):
     function can fail, and creating failing tests for all of them is tedious
     and slows down testing.
     '''
-    dnf = "[Dd]ependency.*not found"
+    dnf = "[Dd]ependency.*not found(:.*)?"
     nopkg = '[Pp]kg-config not found'
 
     def setUp(self):
