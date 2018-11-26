@@ -1271,6 +1271,9 @@ class Compiler:
         '''
         return []
 
+    def remove_linkerlike_args(self, args):
+        return [x for x in args if not x.startswith('-Wl')]
+
 
 @enum.unique
 class CompilerType(enum.Enum):
