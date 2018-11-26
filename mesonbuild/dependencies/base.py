@@ -1416,7 +1416,7 @@ set(CMAKE_SIZEOF_VOID_P "{}")
         else:
             cmakebin = 'cmake'
         cmakebin = ExternalProgram(cmakebin, silent=True)
-        cmvers = '0.0.0'
+        cmvers = None
         invalid_version = False
         if cmakebin.found():
             try:
