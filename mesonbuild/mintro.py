@@ -61,6 +61,8 @@ def add_arguments(parser):
                         help='Print all available information.')
     parser.add_argument('-i', '--indent', dest='indent', type=int, default=0,
                         help='Number of spaces used for indentation.')
+    parser.add_argument('-f', '--force-new', action='store_true', dest='force_new', default=False,
+                        help='Always use the new JSON format for multiple entries (even for 0 and 1 introspection commands)')
     parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
 
 def determine_installed_path(target, installdata):
@@ -620,10 +622,10 @@ def run(options):
 
     indent = options.indent if options.indent > 0 else None
 
-    if len(results) == 0:
+    if len(results) == 0 and not options.force_new:
         print('No command specified')
         return 1
-    elif len(results) == 1:
+    elif len(results) == 1 and not options.force_new:
         # Make to keep the existing output format for a single option
         print(json.dumps(results[0][1], indent=indent))
     else:
