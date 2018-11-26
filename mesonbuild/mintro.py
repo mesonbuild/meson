@@ -124,18 +124,43 @@ def list_target_files(target_name, coredata, builddata):
 
 def list_buildoptions(coredata, builddata):
     optlist = []
-    add_keys(optlist, coredata.user_options)
-    add_keys(optlist, coredata.compiler_options)
-    add_keys(optlist, coredata.base_options)
-    add_keys(optlist, coredata.builtins)
+
+    dir_option_names = ['bindir',
+                        'datadir',
+                        'includedir',
+                        'infodir',
+                        'libdir',
+                        'libexecdir',
+                        'localedir',
+                        'localstatedir',
+                        'mandir',
+                        'prefix',
+                        'sbindir',
+                        'sharedstatedir',
+                        'sysconfdir']
+    test_option_names = ['errorlogs',
+                         'stdsplit']
+    core_option_names = [k for k in coredata.builtins if k not in dir_option_names + test_option_names]
+
+    dir_options = {k: o for k, o in coredata.builtins.items() if k in dir_option_names}
+    test_options = {k: o for k, o in coredata.builtins.items() if k in test_option_names}
+    core_options = {k: o for k, o in coredata.builtins.items() if k in core_option_names}
+
+    add_keys(optlist, core_options, 'core')
+    add_keys(optlist, coredata.backend_options, 'backend')
+    add_keys(optlist, coredata.base_options, 'base')
+    add_keys(optlist, coredata.compiler_options, 'compiler')
+    add_keys(optlist, dir_options, 'directory')
+    add_keys(optlist, coredata.user_options, 'user')
+    add_keys(optlist, test_options, 'test')
     print(json.dumps(optlist))
 
-def add_keys(optlist, options):
+def add_keys(optlist, options, section):
     keys = list(options.keys())
     keys.sort()
     for key in keys:
         opt = options[key]
-        optdict = {'name': key, 'value': opt.value}
+        optdict = {'name': key, 'value': opt.value, 'section': section}
         if isinstance(opt, cdata.UserStringOption):
             typestr = 'string'
         elif isinstance(opt, cdata.UserBooleanOption):

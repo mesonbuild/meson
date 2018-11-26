@@ -2253,6 +2253,7 @@ int main(int argc, char **argv) {
         expected = {
             'name': 'list',
             'description': 'list',
+            'section': 'user',
             'type': 'array',
             'value': ['foo', 'bar'],
         }
@@ -2277,6 +2278,7 @@ int main(int argc, char **argv) {
         expected = {
             'name': 'list',
             'description': 'list',
+            'section': 'user',
             'type': 'array',
             'value': ['foo', 'bar'],
         }
@@ -2301,6 +2303,7 @@ int main(int argc, char **argv) {
         expected = {
             'name': 'list',
             'description': 'list',
+            'section': 'user',
             'type': 'array',
             'value': [],
         }
