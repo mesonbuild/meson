@@ -156,19 +156,19 @@ subdirectory. They are not run as part of `./run_project_tests.py`.
 ### Skipping integration tests
 
 Meson uses several continuous integration testing systems that have slightly
-different interface. To promote consistent naming policy, use:
-
-- `[skip ci]` in the commit title if you want to disable all integration tests
-- `[skip appveyor]` in the commit title if you want to disable Windows-only tests
+different interfaces for indicating a commit should be skipped.
 
 Continuous integration systems currently used:
-
-- [Travis-CI](https://docs.travis-ci.com/user/customizing-the-build/#Skipping-a-build)
+- [Travis-CI](https://docs.travis-ci.com/user/customizing-the-build#skipping-a-build)
   allows `[skip ci]` anywhere in the commit messages.
-- [AppVeyor](https://www.appveyor.com/docs/how-to/filtering-commits/#skip-directive-in-commit-message)
-  requires `[skip ci]` or `[skip appveyor]` in the commit title.
+- [Azure Pipelines](https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/git-commands?view=vsts&tabs=yaml#how-do-i-avoid-triggering-a-ci-build-when-the-script-pushes)
+  allows `***NO_CI***` in the commit message.
 - [Sider](https://sider.review)
-  runs Flake8 (see below)
+  runs Flake8 ([see below](#python-coding-style))
+
+To promote consistent naming policy, use:
+
+   - `[skip ci]` in the commit title if you want to disable all integration tests
 
 ## Documentation
 
@@ -291,4 +291,3 @@ Environment variables are like global variables, except that they are
 also hidden by default. Envvars should be avoided whenever possible,
 all functionality should be exposed in better ways such as command
 line switches.
-
