@@ -51,17 +51,21 @@ def add_arguments(parser):
     parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
 
 def determine_installed_path(target, installdata):
-    install_target = None
-    for i in installdata.targets:
-        if os.path.basename(i.fname) == target.get_filename(): # FIXME, might clash due to subprojects.
-            install_target = i
-            break
-    if install_target is None:
+    install_targets = []
+    for i in target.outputs:
+        for j in installdata.targets:
+            if os.path.basename(j.fname) == i: # FIXME, might clash due to subprojects.
+                install_targets += [j]
+                break
+    if len(install_targets) == 0:
         raise RuntimeError('Something weird happened. File a bug.')
-    outname = os.path.join(installdata.prefix, i.outdir, os.path.basename(i.fname))
+
     # Normalize the path by using os.path.sep consistently, etc.
     # Does not change the effective path.
-    return str(pathlib.PurePath(outname))
+    install_targets = list(map(lambda x: os.path.join(installdata.prefix, x.outdir, os.path.basename(x.fname)), install_targets))
+    install_targets = list(map(lambda x: str(pathlib.PurePath(x)), install_targets))
+
+    return install_targets
 
 
 def list_installed(installdata):
