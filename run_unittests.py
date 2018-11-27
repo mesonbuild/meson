@@ -1462,8 +1462,25 @@ class AllPlatformTests(BasePlatformTests):
         intro = self.introspect('--targets')
         if intro[0]['type'] == 'executable':
             intro = intro[::-1]
-        self.assertPathEqual(intro[0]['install_filename'], '/usr/lib/libstat.a')
-        self.assertPathEqual(intro[1]['install_filename'], '/usr/bin/prog' + exe_suffix)
+        self.assertListEqual(intro[0]['install_filename'], ['/usr/lib/libstat.a'])
+        self.assertListEqual(intro[1]['install_filename'], ['/usr/bin/prog' + exe_suffix])
+
+    def test_install_introspection_multiple_outputs(self):
+        '''
+        Tests that the Meson introspection API exposes multiple install filenames correctly without crashing
+        https://github.com/mesonbuild/meson/pull/4555
+        '''
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
+        testdir = os.path.join(self.common_test_dir, '145 custom target multiple outputs')
+        self.init(testdir)
+        intro = self.introspect('--targets')
+        if intro[0]['type'] == 'executable':
+            intro = intro[::-1]
+        self.assertListEqual(intro[0]['install_filename'], ['/usr/include/diff.h', '/usr/bin/diff.sh'])
+        self.assertListEqual(intro[1]['install_filename'], ['/opt/same.h', '/opt/same.sh'])
+        self.assertListEqual(intro[2]['install_filename'], ['/usr/include/first.h'])
+        self.assertListEqual(intro[3]['install_filename'], ['/usr/bin/second.sh'])
 
     def test_uninstall(self):
         exename = os.path.join(self.installdir, 'usr/bin/prog' + exe_suffix)
