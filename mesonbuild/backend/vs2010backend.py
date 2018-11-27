@@ -730,8 +730,9 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(type_config, 'InlineFunctionExpansion').text = 'OnlyExplicitInline'
         elif '/Ob2' in o_flags:
             ET.SubElement(type_config, 'InlineFunctionExpansion').text = 'AnySuitable'
-        # Size-preserving flags
-        if '/Os' in o_flags:
+        # In modern MSVC parlance "/O1" means size optimization.
+        # "/Os" has been deprecated.
+        if '/O1' in o_flags:
             ET.SubElement(type_config, 'FavorSizeOrSpeed').text = 'Size'
         else:
             ET.SubElement(type_config, 'FavorSizeOrSpeed').text = 'Speed'
