@@ -41,7 +41,7 @@ def run(options):
     if options.target is None or options.filename is None:
         sys.exit("Must specify both target and filename.")
     print('This tool is highly experimental, use with care.')
-    rewriter = mesonbuild.astinterpreter.AstInterpreter(options.sourcedir, '')
+    rewriter = mesonbuild.astinterpreter.RewriterInterpreter(options.sourcedir, '')
     try:
         if options.commands[0] == 'add':
             rewriter.add_source(options.target, options.filename)

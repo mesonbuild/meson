@@ -1165,6 +1165,13 @@ class BasePlatformTests(unittest.TestCase):
                                       universal_newlines=True)
         return json.loads(out)
 
+    def introspect_directory(self, directory, args):
+        if isinstance(args, str):
+            args = [args]
+        out = subprocess.check_output(self.mintro_command + args + [directory],
+                                      universal_newlines=True)
+        return json.loads(out)
+
     def assertPathEqual(self, path1, path2):
         '''
         Handles a lot of platform-specific quirks related to paths such as
@@ -2912,6 +2919,33 @@ recommended as it is not supported on some platforms''')
         target_id = Target.construct_id_from_path('subproject/foo/subdir/bar',
                                                   'target2-id', '@other')
         self.assertEqual('81d46d1@@target2-id@other', target_id)
+
+    def test_introspect_projectinfo_without_configured_build(self):
+        testfile = os.path.join(self.common_test_dir, '36 run program', 'meson.build')
+        res = self.introspect_directory(testfile, '--projectinfo')
+        self.assertEqual(set(res['buildsystem_files']), set(['meson.build']))
+        self.assertEqual(res['version'], None)
+        self.assertEqual(res['descriptive_name'], 'run command')
+        self.assertEqual(res['subprojects'], [])
+
+        testfile = os.path.join(self.common_test_dir, '44 options', 'meson.build')
+        res = self.introspect_directory(testfile, '--projectinfo')
+        self.assertEqual(set(res['buildsystem_files']), set(['meson_options.txt', 'meson.build']))
+        self.assertEqual(res['version'], None)
+        self.assertEqual(res['descriptive_name'], 'options')
+        self.assertEqual(res['subprojects'], [])
+
+        testfile = os.path.join(self.common_test_dir, '47 subproject options', 'meson.build')
+        res = self.introspect_directory(testfile, '--projectinfo')
+        self.assertEqual(set(res['buildsystem_files']), set(['meson_options.txt', 'meson.build']))
+        self.assertEqual(res['version'], None)
+        self.assertEqual(res['descriptive_name'], 'suboptions')
+        self.assertEqual(len(res['subprojects']), 1)
+        subproject_files = set(f.replace('\\', '/') for f in res['subprojects'][0]['buildsystem_files'])
+        self.assertEqual(subproject_files, set(['subprojects/subproject/meson_options.txt', 'subprojects/subproject/meson.build']))
+        self.assertEqual(res['subprojects'][0]['name'], 'subproject')
+        self.assertEqual(res['subprojects'][0]['version'], 'undefined')
+        self.assertEqual(res['subprojects'][0]['descriptive_name'], 'subproject')
 
 
 class FailureTests(BasePlatformTests):

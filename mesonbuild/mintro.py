@@ -22,6 +22,9 @@ project files and don't need this info."""
 import json
 from . import build, mtest, coredata as cdata
 from . import mesonlib
+from . import astinterpreter
+from . import mparser
+from .interpreterbase import InvalidArguments
 from .backend import ninjabackend
 import sys, os
 import pathlib
@@ -178,14 +181,18 @@ def add_keys(optlist, options, section):
         optdict['description'] = opt.description
         optlist.append(optdict)
 
-def list_buildsystem_files(builddata):
-    src_dir = builddata.environment.get_source_dir()
+def find_buildsystem_files_list(src_dir):
     # I feel dirty about this. But only slightly.
     filelist = []
     for root, _, files in os.walk(src_dir):
         for f in files:
             if f == 'meson.build' or f == 'meson_options.txt':
                 filelist.append(os.path.relpath(os.path.join(root, f), src_dir))
+    return filelist
+
+def list_buildsystem_files(builddata):
+    src_dir = builddata.environment.get_source_dir()
+    filelist = find_buildsystem_files_list(src_dir)
     print(json.dumps(filelist))
 
 def list_deps(coredata):
@@ -219,12 +226,69 @@ def list_tests(testdata):
     print(json.dumps(result))
 
 def list_projinfo(builddata):
-    result = {'name': builddata.project_name, 'version': builddata.project_version}
+    result = {'version': builddata.project_version,
+              'descriptive_name': builddata.project_name}
     subprojects = []
     for k, v in builddata.subprojects.items():
         c = {'name': k,
-             'version': v}
+             'version': v,
+             'descriptive_name': builddata.projects.get(k)}
         subprojects.append(c)
+    result['subprojects'] = subprojects
+    print(json.dumps(result))
+
+class ProjectInfoInterperter(astinterpreter.AstInterpreter):
+    def __init__(self, source_root, subdir):
+        super().__init__(source_root, subdir)
+        self.funcs.update({'project': self.func_project})
+        self.project_name = None
+        self.project_version = None
+
+    def func_project(self, node, args, kwargs):
+        if len(args) < 1:
+            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
+        self.project_name = args[0]
+        self.project_version = kwargs.get('version', 'undefined')
+        if isinstance(self.project_version, mparser.ElementaryNode):
+            self.project_version = self.project_version.value
+
+    def set_variable(self, varname, variable):
+        pass
+
+    def analyze(self):
+        self.load_root_meson_file()
+        self.sanity_check_ast()
+        self.parse_project()
+        self.run()
+
+def list_projinfo_from_source(sourcedir):
+    files = find_buildsystem_files_list(sourcedir)
+
+    result = {'buildsystem_files': []}
+    subprojects = {}
+
+    for f in files:
+        f = f.replace('\\', '/')
+        if f == 'meson.build':
+            interpreter = ProjectInfoInterperter(sourcedir, '')
+            interpreter.analyze()
+            version = None
+            if interpreter.project_version is str:
+                version = interpreter.project_version
+            result.update({'version': version, 'descriptive_name': interpreter.project_name})
+            result['buildsystem_files'].append(f)
+        elif f.startswith('subprojects/'):
+            subproject_id = f.split('/')[1]
+            subproject = subprojects.setdefault(subproject_id, {'buildsystem_files': []})
+            subproject['buildsystem_files'].append(f)
+            if f.count('/') == 2 and f.endswith('meson.build'):
+                interpreter = ProjectInfoInterperter(os.path.join(sourcedir, 'subprojects', subproject_id), '')
+                interpreter.analyze()
+                subproject.update({'name': subproject_id, 'version': interpreter.project_version, 'descriptive_name': interpreter.project_name})
+        else:
+            result['buildsystem_files'].append(f)
+
+    subprojects = [obj for name, obj in subprojects.items()]
     result['subprojects'] = subprojects
     print(json.dumps(result))
 
@@ -232,6 +296,11 @@ def run(options):
     datadir = 'meson-private'
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
+    if options.builddir.endswith('/meson.build') or options.builddir.endswith('\\meson.build') or options.builddir == 'meson.build':
+        if options.projectinfo:
+            sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
+            list_projinfo_from_source(sourcedir)
+            return 0
     if not os.path.isdir(datadir):
         print('Current directory is not a build dir. Please specify it or '
               'change the working directory to it.')
