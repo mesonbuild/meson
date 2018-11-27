@@ -217,8 +217,11 @@ class MesonApp:
             else:
                 coredata.update_cmd_line_file(self.build_dir, self.options)
 
-            # Generate an IDE introspection file with the exact same syntax as the introspection API defined in mintro
-            mintro.generate_introspection_file(b.environment.get_coredata(), b, b.get_tests(), b.get_benchmarks(), intr.backend.create_install_data())
+            # Generate an IDE introspection file with the same syntax as the already existing API
+            intro_tests = intr.backend.create_test_serialisation(b.get_tests())
+            intro_benchmarks = intr.backend.create_test_serialisation(b.get_benchmarks())
+            intro_install = intr.backend.create_install_data()
+            mintro.generate_introspection_file(b.environment.get_coredata(), b, intro_tests, intro_benchmarks, intro_install)
         except:
             if 'cdf' in locals():
                 old_cdf = cdf + '.prev'

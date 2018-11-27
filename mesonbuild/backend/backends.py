@@ -683,7 +683,7 @@ class Backend:
     def write_test_file(self, datafile):
         self.write_test_serialisation(self.build.get_tests(), datafile)
 
-    def write_test_serialisation(self, tests, datafile):
+    def create_test_serialisation(self, tests):
         arr = []
         for t in tests:
             exe = t.get_exe()
@@ -730,7 +730,10 @@ class Backend:
                                    exe_wrapper, t.is_parallel, cmd_args, t.env,
                                    t.should_fail, t.timeout, t.workdir, extra_paths)
             arr.append(ts)
-        pickle.dump(arr, datafile)
+        return arr
+
+    def write_test_serialisation(self, tests, datafile):
+        pickle.dump(self.create_test_serialisation(tests), datafile)
 
     def generate_depmf_install(self, d):
         if self.build.dep_manifest_name is None:

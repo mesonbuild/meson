@@ -645,14 +645,14 @@ def run(options):
 
 def generate_introspection_file(coredata, builddata, testdata, benchmarkdata, installdata):
     intro_info = [
-        #list_benchmarks(benchmarkdata),
+        list_benchmarks(benchmarkdata),
         list_buildoptions(coredata, builddata),
         list_buildsystem_files(builddata),
         list_deps(coredata),
         list_installed(installdata),
         list_projinfo(builddata),
         list_targets(coredata, builddata, installdata),
-        #list_tests(testdata)
+        list_tests(testdata)
     ]
 
     outdict = {}
