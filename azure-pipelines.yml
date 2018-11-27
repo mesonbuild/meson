@@ -124,7 +124,15 @@ jobs:
       displayName: Update MSYS2
     - script: |
         set PATH=%MSYS2_ROOT%\usr\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
-        %MSYS2_ROOT%\usr\bin\pacman --noconfirm --needed -S git base-devel mingw-w64-$(MSYS2_ARCH)-toolchain mingw-w64-$(MSYS2_ARCH)-python3 mingw-w64-$(MSYS2_ARCH)-python3-setuptools mingw-w64-$(MSYS2_ARCH)-python2 mercurial
+        %MSYS2_ROOT%\usr\bin\pacman --noconfirm --needed -S ^
+        base-devel ^
+        git ^
+        mercurial ^
+        mingw-w64-$(MSYS2_ARCH)-cmake ^
+        mingw-w64-$(MSYS2_ARCH)-python2 ^
+        mingw-w64-$(MSYS2_ARCH)-python3 ^
+        mingw-w64-$(MSYS2_ARCH)-python3-setuptools ^
+        mingw-w64-$(MSYS2_ARCH)-toolchain
       displayName: Install Dependencies
     - script: |
         set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
