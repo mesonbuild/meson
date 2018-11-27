@@ -123,12 +123,16 @@ def extract_dependency_infromation(dep):
 def list_targets(coredata, builddata, installdata):
     tlist = []
     for (idname, target) in builddata.get_targets().items():
+        if not isinstance(target, build.Target):
+            raise RuntimeError('Something weird happened. File a bug.')
+
         src_root = builddata.environment.get_source_dir()
         build_root = builddata.environment.get_build_dir()
 
         inc_dirs = []
         extra_args = {}
         dep_args = []
+        sources = {}
 
         def climb_stack(tgt, inc_dirs, extra_args, dep_args):
             if isinstance(tgt, build.BuildTarget):
@@ -157,18 +161,54 @@ def list_targets(coredata, builddata, installdata):
                 for i in tgt.link_targets:
                     climb_stack(i, inc_dirs, extra_args, dep_args)
 
-        climb_stack(target, inc_dirs, extra_args, dep_args)
+        if isinstance(target, build.BuildTarget):
+            climb_stack(target, inc_dirs, extra_args, dep_args)
 
-        # Add the dep_args, sort and remove duplicates
-        for i in extra_args:
-            extra_args[i] += dep_args
-            extra_args[i] = list(sorted(list(set(extra_args[i]))))
+            # Add the dep_args, sort and remove duplicates
+            for i in extra_args:
+                extra_args[i] += dep_args
+                extra_args[i] = list(sorted(list(set(extra_args[i]))))
 
-        # Remove duplicates, sort and make paths pretty
-        inc_dirs = list(sorted(list(set(inc_dirs))))
-        inc_dirs = list(map(lambda x: os.path.realpath(x), inc_dirs))
+            # Remove duplicates, sort and make paths pretty
+            inc_dirs = list(sorted(list(set(inc_dirs))))
+            inc_dirs = list(map(lambda x: os.path.realpath(x), inc_dirs))
 
-        t = {'name': target.get_basename(), 'id': idname, 'include_directories': inc_dirs, 'extra_args': extra_args}
+            comp_list = target.compilers.values()
+            source_list = target.sources + target.extra_files
+            source_list = list(map(lambda x: (mesonlib.get_compiler_for_source(comp_list, x), x), source_list))
+
+            for comp, src in source_list:
+                if isinstance(comp, compilers.Compiler) and isinstance(src, mesonlib.File):
+                    lang = comp.get_language()
+                    if lang not in sources:
+                        parameters = []
+
+                        # Generate include directories
+                        # Not all compilers have the get_include_args method
+                        get_include_args = getattr(comp, 'get_include_args', None)
+                        if callable(get_include_args):
+                            for i in inc_dirs:
+                                parameters += comp.get_include_args(i, False)
+
+                        # Extra args
+                        if lang in extra_args:
+                            parameters += extra_args[lang]
+
+                        sources[lang] = {
+                            'compiler': comp.get_exelist(),
+                            'parameters': parameters,
+                            'source_files': []
+                        }
+
+                    sources[lang]['source_files'] += [os.path.join(src.subdir, src.fname)]
+
+        # Convert the dict to a list and add the language key.
+        # This list approach will also work if the gurantee is removed that all
+        # files in a target are compiled with the same parameters
+        # see https://github.com/mesonbuild/meson/pull/4547
+        sources = list(map(lambda x: {'language': x[0], **x[1]}, sources.items()))
+
+        t = {'name': target.get_basename(), 'id': idname, 'sources': sources}
         fname = target.get_filename()
         if isinstance(fname, list):
             fname = [os.path.join(target.subdir, x) for x in fname]
@@ -195,7 +235,7 @@ def list_targets(coredata, builddata, installdata):
             t['installed'] = False
         t['build_by_default'] = target.build_by_default
         tlist.append(t)
-    print(json.dumps(tlist))
+    print(json.dumps(tlist, indent=2))
 
 def list_target_files(target_name, coredata, builddata):
     try:
