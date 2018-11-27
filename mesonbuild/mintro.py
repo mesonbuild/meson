@@ -663,4 +663,4 @@ def generate_introspection_file(coredata, builddata, testdata, benchmarkdata, in
     outfile = os.path.abspath(outfile)
 
     with open(outfile, 'w') as fp:
-        json.dump(outdict, fp, indent=2)
+        json.dump(outdict, fp)

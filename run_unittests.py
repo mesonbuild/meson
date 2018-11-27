@@ -3110,6 +3110,36 @@ recommended as it is not supported on some platforms''')
         self.maxDiff = None
         self.assertListEqual(res_nb, res_wb)
 
+    def test_introspect_all_command(self):
+        testdir = os.path.join(self.common_test_dir, '6 linkshared')
+        self.init(testdir)
+        res = self.introspect('--all')
+        keylist = [
+            'benchmarks',
+            'buildoptions',
+            'buildsystem_files',
+            'dependencies',
+            'installed',
+            'projectinfo',
+            'targets',
+            'tests'
+        ]
+
+        for i in keylist:
+            self.assertIn(i, res)
+
+    def test_introspect_file_dump_eauals_all(self):
+        testdir = os.path.join(self.common_test_dir, '6 linkshared')
+        self.init(testdir)
+        res_all = self.introspect('--all')
+        res_file = {}
+
+        introfile = os.path.join(self.builddir, 'meson-introspection.json')
+        self.assertPathExists(introfile)
+        with open(introfile, 'r') as fp:
+            res_file = json.load(fp)
+
+        self.assertEqual(res_all, res_file)
 
 class FailureTests(BasePlatformTests):
     '''
