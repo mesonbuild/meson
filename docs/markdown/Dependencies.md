@@ -178,9 +178,10 @@ DC="dmd" meson builddir
 
 Some dependencies have specific detection logic.
 
-Generic dependency names are case-sensitive<sup>[1](#footnote1)</sup>,
-but these dependency names are matched case-insensitively.  The
-recommended style is to write them in all lower-case.
+Generic dependency names are case-sensitive<sup>[1](#footnote1)</sup>.
+The only exception to this rule are these dependencies with custom
+detection logic and CMake dependencies. The recommended style is to
+write them in all lower-case.
 
 In some cases, more than one detection method exists, and the `method` keyword
 may be used to select a detection method to use.  The `auto` method uses any
