@@ -469,12 +469,12 @@ def find_buildsystem_files_list(src_dir):
         for f in files:
             if f == 'meson.build' or f == 'meson_options.txt':
                 filelist.append(os.path.relpath(os.path.join(root, f), src_dir))
-    return ('buildsystem_files', filelist)
+    return filelist
 
 def list_buildsystem_files(builddata):
     src_dir = builddata.environment.get_source_dir()
     filelist = find_buildsystem_files_list(src_dir)
-    return filelist
+    return ('buildsystem_files', filelist)
 
 def list_deps(coredata):
     result = []
