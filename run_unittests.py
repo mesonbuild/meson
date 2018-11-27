@@ -1195,6 +1195,12 @@ class BasePlatformTests(unittest.TestCase):
         '''
         self.assertEqual(PurePath(path1), PurePath(path2))
 
+    def assertPathListEqual(self, pathlist1, pathlist2):
+        self.assertEquals(len(pathlist1), len(pathlist2))
+        worklist = list(zip(pathlist1, pathlist2))
+        for i in worklist:
+            self.assertPathEqual(i[0], i[1])
+
     def assertPathBasenameEqual(self, path, basename):
         msg = '{!r} does not end with {!r}'.format(path, basename)
         # We cannot use os.path.basename because it returns '' when the path
@@ -1462,8 +1468,8 @@ class AllPlatformTests(BasePlatformTests):
         intro = self.introspect('--targets')
         if intro[0]['type'] == 'executable':
             intro = intro[::-1]
-        self.assertListEqual(intro[0]['install_filename'], ['/usr/lib/libstat.a'])
-        self.assertListEqual(intro[1]['install_filename'], ['/usr/bin/prog' + exe_suffix])
+        self.assertPathListEqual(intro[0]['install_filename'], ['/usr/lib/libstat.a'])
+        self.assertPathListEqual(intro[1]['install_filename'], ['/usr/bin/prog' + exe_suffix])
 
     def test_install_introspection_multiple_outputs(self):
         '''
@@ -1477,10 +1483,10 @@ class AllPlatformTests(BasePlatformTests):
         intro = self.introspect('--targets')
         if intro[0]['type'] == 'executable':
             intro = intro[::-1]
-        self.assertListEqual(intro[0]['install_filename'], ['/usr/include/diff.h', '/usr/bin/diff.sh'])
-        self.assertListEqual(intro[1]['install_filename'], ['/opt/same.h', '/opt/same.sh'])
-        self.assertListEqual(intro[2]['install_filename'], ['/usr/include/first.h'])
-        self.assertListEqual(intro[3]['install_filename'], ['/usr/bin/second.sh'])
+        self.assertPathListEqual(intro[0]['install_filename'], ['/usr/include/diff.h', '/usr/bin/diff.sh'])
+        self.assertPathListEqual(intro[1]['install_filename'], ['/opt/same.h', '/opt/same.sh'])
+        self.assertPathListEqual(intro[2]['install_filename'], ['/usr/include/first.h'])
+        self.assertPathListEqual(intro[3]['install_filename'], ['/usr/bin/second.sh'])
 
     def test_uninstall(self):
         exename = os.path.join(self.installdir, 'usr/bin/prog' + exe_suffix)
