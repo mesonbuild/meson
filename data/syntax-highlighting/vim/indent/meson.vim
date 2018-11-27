@@ -29,10 +29,6 @@ setlocal cpo&vim
 
 let s:maxoff = 50	" maximum number of lines to look backwards for ()
 
-" Force sw=2 sts=2 because that's required by convention
-setlocal shiftwidth=2
-setlocal softtabstop=2 
-
 function GetMesonIndent(lnum)
   echom getline(line("."))
 
