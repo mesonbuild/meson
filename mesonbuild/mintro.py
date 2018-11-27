@@ -36,6 +36,8 @@ import sys, os
 import pathlib
 import re
 
+INTROSPECTION_OUTPUT_FILE = 'meson-introspection.json'
+
 def add_arguments(parser):
     parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
                         help='List top level targets.')
@@ -95,7 +97,7 @@ def list_installed(installdata):
             res[path] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
         for path, installpath, unused_custom_install_mode in installdata.man:
             res[path] = os.path.join(installdata.prefix, installpath)
-    return res
+    return ('installed', res)
 
 def include_dirs_to_path(inc_dirs, src_root, build_root):
     result = []
@@ -241,7 +243,7 @@ def list_targets(coredata, builddata, installdata):
             t['installed'] = False
         t['build_by_default'] = target.build_by_default
         tlist.append(t)
-    return tlist
+    return ('targets', tlist)
 
 def list_target_files(target_name, coredata, builddata):
     try:
@@ -255,7 +257,7 @@ def list_target_files(target_name, coredata, builddata):
         if isinstance(i, mesonlib.File):
             i = os.path.join(i.subdir, i.fname)
         out.append(i)
-    return out
+    return ('target_files', out)
 
 class BuildoptionsOptionHelper:
     # mimic an argparse namespace
@@ -435,7 +437,7 @@ def list_buildoptions(coredata):
     add_keys(optlist, dir_options, 'directory')
     add_keys(optlist, coredata.user_options, 'user')
     add_keys(optlist, test_options, 'test')
-    return optlist
+    return ('buildoptions', optlist)
 
 def add_keys(optlist, options, section):
     keys = list(options.keys())
@@ -467,7 +469,7 @@ def find_buildsystem_files_list(src_dir):
         for f in files:
             if f == 'meson.build' or f == 'meson_options.txt':
                 filelist.append(os.path.relpath(os.path.join(root, f), src_dir))
-    return filelist
+    return ('buildsystem_files', filelist)
 
 def list_buildsystem_files(builddata):
     src_dir = builddata.environment.get_source_dir()
@@ -481,9 +483,9 @@ def list_deps(coredata):
             result += [{'name': d.name,
                         'compile_args': d.get_compile_args(),
                         'link_args': d.get_link_args()}]
-    return result
+    return ('dependencies', result)
 
-def list_tests(testdata):
+def get_test_list(testdata):
     result = []
     for t in testdata:
         to = {}
@@ -504,6 +506,12 @@ def list_tests(testdata):
         result.append(to)
     return result
 
+def list_tests(testdata):
+    return ('tests', get_test_list(testdata))
+
+def list_benchmarks(benchdata):
+    return ('benchmarks', get_test_list(benchdata))
+
 def list_projinfo(builddata):
     result = {'version': builddata.project_version,
               'descriptive_name': builddata.project_name}
@@ -514,7 +522,7 @@ def list_projinfo(builddata):
              'descriptive_name': builddata.projects.get(k)}
         subprojects.append(c)
     result['subprojects'] = subprojects
-    return result
+    return ('projectinfo', result)
 
 class ProjectInfoInterperter(astinterpreter.AstInterpreter):
     def __init__(self, source_root, subdir):
@@ -602,23 +610,23 @@ def run(options):
     results = []
 
     if options.all or options.list_targets:
-        results += [('targets', list_targets(coredata, builddata, installdata))]
+        results += [list_targets(coredata, builddata, installdata)]
     if options.all or options.list_installed:
-        results += [('installed', list_installed(installdata))]
+        results += [list_installed(installdata)]
     if options.target_files is not None:
-        results += [('target_files', list_target_files(options.target_files, coredata, builddata))]
+        results += [list_target_files(options.target_files, coredata, builddata)]
     if options.all or options.buildsystem_files:
-        results += [('buildsystem_files', list_buildsystem_files(builddata))]
+        results += [list_buildsystem_files(builddata)]
     if options.all or options.buildoptions:
-        results += [('buildoptions', list_buildoptions(coredata))]
+        results += [list_buildoptions(coredata)]
     if options.all or options.tests:
-        results += [('tests', list_tests(testdata))]
+        results += [list_tests(testdata)]
     if options.all or options.benchmarks:
-        results += [('benchmarks', list_tests(benchmarkdata))]
+        results += [list_benchmarks(benchmarkdata)]
     if options.all or options.dependencies:
-        results += [('dependencies', list_deps(coredata))]
+        results += [list_deps(coredata)]
     if options.all or options.projectinfo:
-        results += [('projectinfo', list_projinfo(builddata))]
+        results += [list_projinfo(builddata)]
 
     indent = options.indent if options.indent > 0 else None
 
@@ -634,3 +642,25 @@ def run(options):
             out[i[0]] = i[1]
         print(json.dumps(out, indent=indent))
     return 0
+
+def generate_introspection_file(coredata, builddata, testdata, benchmarkdata, installdata):
+    intro_info = [
+        #list_benchmarks(benchmarkdata),
+        list_buildoptions(coredata, builddata),
+        list_buildsystem_files(builddata),
+        list_deps(coredata),
+        list_installed(installdata),
+        list_projinfo(builddata),
+        list_targets(coredata, builddata, installdata),
+        #list_tests(testdata)
+    ]
+
+    outdict = {}
+    for i in intro_info:
+        outdict[i[0]] = i[1]
+
+    outfile = os.path.join(builddata.environment.get_build_dir(), INTROSPECTION_OUTPUT_FILE)
+    outfile = os.path.abspath(outfile)
+
+    with open(outfile, 'w') as fp:
+        json.dump(outdict, fp, indent=2)

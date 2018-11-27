@@ -974,9 +974,7 @@ class Backend:
             cmd = s['exe'] + s['args']
             subprocess.check_call(cmd, env=child_env)
 
-    def create_install_data_files(self):
-        install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
-
+    def create_install_data(self):
         strip_bin = self.environment.binaries.host.lookup_entry('strip')
         if strip_bin is None:
             if self.environment.is_cross_build():
@@ -997,8 +995,12 @@ class Backend:
         self.generate_data_install(d)
         self.generate_custom_install_script(d)
         self.generate_subdir_install(d)
+        return d
+
+    def create_install_data_files(self):
+        install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
         with open(install_data_file, 'wb') as ofile:
-            pickle.dump(d, ofile)
+            pickle.dump(self.create_install_data(), ofile)
 
     def generate_target_install(self, d):
         for t in self.build.get_targets().values():
