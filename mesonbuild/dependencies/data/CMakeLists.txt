@@ -13,13 +13,29 @@ if(CMAKE_LIBRARY_ARCHITECTURE_REGEX)
   endif()
 endif()
 
-find_package("${NAME}" QUIET)
-
 set(PACKAGE_FOUND FALSE)
-set(_packageName "${NAME}")
-string(TOUPPER "${_packageName}" PACKAGE_NAME)
 
-if(${_packageName}_FOUND  OR  ${PACKAGE_NAME}_FOUND)
+string(TOUPPER "${NAME}" NAME_A)
+string(TOLOWER "${NAME}" NAME_B)
+string(SUBSTRING "${NAME}" 0 1  NAME_FIRST_CHAR)
+string(SUBSTRING "${NAME}" 1 -1 NAME_REMAINING)
+string(TOUPPER "${NAME_FIRST_CHAR}" NAME_FIRST_CHAR_UPPER)
+string(TOLOWER "${NAME_REMAINING}"  NAME_REMAINING_LOWER)
+
+set(NAMES_TO_TRY "${NAME}" "${NAME_A}" "${NAME_B}" "${NAME_FIRST_CHAR_UPPER}${NAME_REMAINING}" "${NAME_FIRST_CHAR_UPPER}${NAME_REMAINING_LOWER}")
+
+foreach(I IN LISTS NAMES_TO_TRY)
+  find_package("${I}" QUIET)
+
+  set(_packageName "${I}")
+  string(TOUPPER "${_packageName}" PACKAGE_NAME)
+
+  # Check if the package was NOT found, then continue with the next
+  if(NOT ${_packageName}_FOUND AND NOT ${PACKAGE_NAME}_FOUND)
+    continue()
+  endif()
+
+  # Package was found
   set(PACKAGE_FOUND TRUE)
 
   # Check the following variables:
@@ -90,4 +106,6 @@ if(${_packageName}_FOUND  OR  ${PACKAGE_NAME}_FOUND)
   set(PACKAGE_INCLUDE_DIRS "${${includes}}")
   set(PACKAGE_DEFINITIONS  "${${definitions}}")
   set(PACKAGE_LIBRARIES    "${${libs}}")
-endif()
+
+  break()
+endforeach()

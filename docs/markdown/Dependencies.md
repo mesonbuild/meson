@@ -148,6 +148,11 @@ it automatically.
     cmake_dep = dependency('ZLIB', method : 'cmake', modules : ['ZLIB::ZLIB'])
 ```
 
+Meson will also attempt to case convert the dependency name if the original
+name could not be found. This is done because the names for the CMake and
+pkg-config dependencies can differ. For instance CMake can find the
+dependencies `ZLIB` and `Lua`, but pkg-config wants `zlib` and `lua`.
+
 ### Some notes on Dub
 
 Please understand that meson is only able to find dependencies that

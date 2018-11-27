@@ -30,7 +30,12 @@ test('zlibtest2', exe2)
 depf1 = dependency('nvakuhrabnsdfasdf', required : false, method : 'cmake')
 depf2 = dependency('ZLIB', required : false, method : 'cmake', modules : 'dfggh::hgfgag')
 
+assert(depf1.found() == false, 'Nonexistent packages should fail')
 assert(depf2.found() == false, 'Invalid CMake targets should fail')
+
+# Try to find zlib with a different string
+depcs1 = dependency('zlib', method : 'cmake')
+depcs2 = dependency('zLiB', method : 'cmake')
 
 # Try to compile a test that takes a dep and an include_directories
 
