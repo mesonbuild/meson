@@ -245,6 +245,7 @@ def list_targets(coredata, builddata, installdata):
         tlist.append(t)
     return ('targets', tlist)
 
+<<<<<<< HEAD
 def list_target_files(target_name, coredata, builddata):
     try:
         t = builddata.targets[target_name]
@@ -405,6 +406,22 @@ def list_buildoptions_from_source(sourcedir, backend):
     # Reenable logging just in case
     mlog.enable()
     list_buildoptions(intr.coredata)
+=======
+def list_target_files(target_name, targets):
+    return ('error: TODO implement', [])
+    #try:
+    #    t = builddata.targets[target_name]
+    #    sources = t.sources + t.extra_files
+    #except KeyError:
+    #    print("Unknown target %s." % target_name)
+    #    sys.exit(1)
+    #out = []
+    #for i in sources:
+    #    if isinstance(i, mesonlib.File):
+    #        i = os.path.join(i.subdir, i.fname)
+    #    out.append(i)
+    #return ('target_files', out)
+>>>>>>> More refactoring
 
 def list_buildoptions(coredata):
     optlist = []
@@ -581,8 +598,10 @@ def list_projinfo_from_source(sourcedir):
 
 def run(options):
     datadir = 'meson-private'
+    introfile = INTROSPECTION_OUTPUT_FILE
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
+        introfile = os.path.join(options.builddir, introfile)
     if options.builddir.endswith('/meson.build') or options.builddir.endswith('\\meson.build') or options.builddir == 'meson.build':
         sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
         if options.projectinfo:
@@ -591,42 +610,42 @@ def run(options):
         if options.buildoptions:
             list_buildoptions_from_source(sourcedir, options.backend)
             return 0
-    if not os.path.isdir(datadir):
+    if not os.path.isdir(datadir) or not os.path.isfile(introfile):
         print('Current directory is not a build dir. Please specify it or '
               'change the working directory to it.')
         return 1
 
-    coredata = cdata.load(options.builddir)
-    builddata = build.load(options.builddir)
-    testdata = mtest.load_tests(options.builddir)
-    benchmarkdata = mtest.load_benchmarks(options.builddir)
-
-    # Install data is only available with the Ninja backend
-    try:
-        installdata = ninjabackend.load(options.builddir)
-    except FileNotFoundError:
-        installdata = None
+    rawdata = {}
+    with open(introfile, 'r') as fp:
+        rawdata = json.load(fp)
 
     results = []
+    toextract = []
 
-    if options.all or options.list_targets:
-        results += [list_targets(coredata, builddata, installdata)]
-    if options.all or options.list_installed:
-        results += [list_installed(installdata)]
-    if options.target_files is not None:
-        results += [list_target_files(options.target_files, coredata, builddata)]
-    if options.all or options.buildsystem_files:
-        results += [list_buildsystem_files(builddata)]
-    if options.all or options.buildoptions:
-        results += [list_buildoptions(coredata)]
-    if options.all or options.tests:
-        results += [list_tests(testdata)]
     if options.all or options.benchmarks:
-        results += [list_benchmarks(benchmarkdata)]
+        toextract += ['benchmarks']
+    if options.all or options.buildoptions:
+        coredata = cdata.load(options.builddir)
+        results += [list_buildoptions(coredata)]
+    if options.all or options.buildsystem_files:
+        toextract += ['buildsystem_files']
     if options.all or options.dependencies:
-        results += [list_deps(coredata)]
+        toextract += ['dependencies']
+    if options.all or options.list_installed:
+        toextract += ['installed']
     if options.all or options.projectinfo:
-        results += [list_projinfo(builddata)]
+        toextract += ['projectinfo']
+    if options.all or options.list_targets:
+        toextract += ['targets']
+    if options.target_files is not None:
+        results += [list_target_files(options.target_files, rawdata['targets'])]
+    if options.all or options.tests:
+        toextract += ['tests']
+
+    for i in toextract:
+        if i not in rawdata:
+            raise RuntimeError('Key "{}" missing in introspection file. Please report this a bug.'.format(i))
+        results += [(i, rawdata[i])]
 
     indent = options.indent if options.indent > 0 else None
 
@@ -646,7 +665,7 @@ def run(options):
 def generate_introspection_file(coredata, builddata, testdata, benchmarkdata, installdata):
     intro_info = [
         list_benchmarks(benchmarkdata),
-        list_buildoptions(coredata, builddata),
+        list_buildoptions(coredata),
         list_buildsystem_files(builddata),
         list_deps(coredata),
         list_installed(installdata),
