@@ -17,8 +17,9 @@ import pickle, os, uuid, shlex
 import sys
 from pathlib import PurePath
 from collections import OrderedDict
-from .mesonlib import MesonException
-from .mesonlib import default_libdir, default_libexecdir, default_prefix
+from .mesonlib import (
+    MesonException, default_libdir, default_libexecdir, default_prefix
+)
 from .wrap import WrapMode
 import ast
 import argparse

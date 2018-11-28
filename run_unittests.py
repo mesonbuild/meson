@@ -51,11 +51,12 @@ from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 from mesonbuild.build import Target
 import mesonbuild.modules.pkgconfig
 
-from run_tests import exe_suffix, get_fake_env, get_meson_script
-from run_tests import get_builddir_target_args, get_backend_commands, Backend
-from run_tests import ensure_backend_detects_changes, run_configure_inprocess
-from run_tests import run_mtest_inprocess
-from run_tests import FakeBuild, FakeCompilerOptions
+from run_tests import (
+    Backend, FakeBuild, FakeCompilerOptions,
+    ensure_backend_detects_changes, exe_suffix, get_backend_commands,
+    get_builddir_target_args, get_fake_env, get_meson_script,
+    run_configure_inprocess, run_mtest_inprocess
+)
 
 def get_dynamic_section_entry(fname, entry):
     if is_cygwin() or is_osx():
