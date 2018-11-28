@@ -1221,7 +1221,7 @@ class BasePlatformTests(unittest.TestCase):
         self.assertEqual(PurePath(path1), PurePath(path2))
 
     def assertPathListEqual(self, pathlist1, pathlist2):
-        self.assertEquals(len(pathlist1), len(pathlist2))
+        self.assertEqual(len(pathlist1), len(pathlist2))
         worklist = list(zip(pathlist1, pathlist2))
         for i in worklist:
             self.assertPathEqual(i[0], i[1])

@@ -66,24 +66,6 @@ def add_arguments(parser):
                         help='Always use the new JSON format for multiple entries (even for 0 and 1 introspection commands)')
     parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
 
-def determine_installed_path(target, installdata):
-    install_targets = []
-    for i in target.outputs:
-        for j in installdata.targets:
-            if os.path.basename(j.fname) == i: # FIXME, might clash due to subprojects.
-                install_targets += [j]
-                break
-    if len(install_targets) == 0:
-        raise RuntimeError('Something weird happened. File a bug.')
-
-    # Normalize the path by using os.path.sep consistently, etc.
-    # Does not change the effective path.
-    install_targets = list(map(lambda x: os.path.join(installdata.prefix, x.outdir, os.path.basename(x.fname)), install_targets))
-    install_targets = list(map(lambda x: str(pathlib.PurePath(x)), install_targets))
-
-    return install_targets
-
-
 def list_installed(installdata):
     res = {}
     if installdata is not None:
@@ -132,7 +114,7 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
 
             for i in target.outputs:
                 fname = intall_lookuptable.get(i)
-                if i is not None:
+                if fname is not None:
                     t['install_filename'] += [fname]
         else:
             t['installed'] = False
