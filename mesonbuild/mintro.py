@@ -20,7 +20,7 @@ Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
 import json
-from . import build, mtest, coredata as cdata
+from . import build, coredata as cdata
 from . import environment
 from . import mesonlib
 from . import astinterpreter
@@ -34,7 +34,6 @@ from .dependencies import base
 from .compilers import compilers
 import sys, os
 import pathlib
-import re
 
 INTROSPECTION_OUTPUT_FILE = 'meson-introspection.json'
 
@@ -99,138 +98,16 @@ def list_installed(installdata):
             res[path] = os.path.join(installdata.prefix, installpath)
     return ('installed', res)
 
-def include_dirs_to_path(inc_dirs, src_root, build_root):
-    result = []
-    if isinstance(inc_dirs, build.IncludeDirs):
-        for i in inc_dirs.get_incdirs():
-            abs_src = os.path.join(src_root, inc_dirs.get_curdir(), i)
-            abs_build = os.path.join(build_root, inc_dirs.get_curdir(), i)
-
-            if os.path.isdir(abs_src):
-                result += [abs_src]
-
-            if os.path.isdir(abs_build):
-                result += [abs_build]
-
-    return result
-
-def extract_dependency_infromation(dep):
-    inc_dirs = []
-    args = []
-    if isinstance(dep, base.Dependency):
-        reg = re.compile(r'-I(.*)')
-        for i in dep.get_compile_args():
-            match = reg.match(i)
-            if match:
-                inc_dirs += [match.group(1)]
-            else:
-                args += [i]
-
-    return inc_dirs, args
-
-def list_targets(coredata, builddata, installdata):
+def list_targets(builddata: build.Build, installdata, backend: backends.Backend):
     tlist = []
     for (idname, target) in builddata.get_targets().items():
         if not isinstance(target, build.Target):
             raise RuntimeError('Something weird happened. File a bug.')
 
-        src_root = builddata.environment.get_source_dir()
-        build_root = builddata.environment.get_build_dir()
-
-        inc_dirs = []
-        extra_args = {}
-        dep_args = []
-        sources = {}
-
-        def climb_stack(tgt, inc_dirs, extra_args, dep_args):
-            if isinstance(tgt, build.BuildTarget):
-                # The build directory is always in the include directories
-                absbase_src = os.path.join(src_root, tgt.subdir)
-                absbase_build = os.path.join(build_root, tgt.subdir)
-                inc_dirs += [absbase_src, absbase_build]
-
-                for i in tgt.include_dirs:
-                    inc_dirs += include_dirs_to_path(i, src_root, build_root)
-
-                for i in tgt.external_deps:
-                    dep_inc_dirs, args = extract_dependency_infromation(i)
-                    inc_dirs += dep_inc_dirs
-                    dep_args += args
-
-                for i, comp in tgt.compilers.items():
-                    if isinstance(comp, compilers.Compiler):
-                        if i not in extra_args:
-                            extra_args[i] = []
-
-                        extra_args[i] += tgt.get_extra_args(i)
-                        extra_args[i] += builddata.get_global_args(comp, tgt.is_cross)
-                        extra_args[i] += builddata.get_project_args(comp, tgt.subproject, tgt.is_cross)
-
-                for i in tgt.link_targets:
-                    climb_stack(i, inc_dirs, extra_args, dep_args)
-
-        if isinstance(target, build.BuildTarget):
-            climb_stack(target, inc_dirs, extra_args, dep_args)
-
-            # Add the dep_args, sort and remove duplicates
-            for i in extra_args:
-                extra_args[i] += dep_args
-                extra_args[i] = list(sorted(list(set(extra_args[i]))))
-
-            # Remove duplicates, sort and make paths pretty
-            inc_dirs = list(sorted(list(set(inc_dirs))))
-            inc_dirs = list(map(lambda x: os.path.realpath(x), inc_dirs))
-
-            comp_list = target.compilers.values()
-            source_list = target.sources + target.extra_files
-            source_list = list(map(lambda x: (mesonlib.get_compiler_for_source(comp_list, x, True), x), source_list))
-
-            for comp, src in source_list:
-                if isinstance(src, mesonlib.File):
-                    src = os.path.join(src.subdir, src.fname)
-                if isinstance(comp, compilers.Compiler) and isinstance(src, str):
-                    lang = comp.get_language()
-                    if lang not in sources:
-                        parameters = []
-
-                        # Generate include directories
-                        # Not all compilers have the get_include_args method
-                        get_include_args = getattr(comp, 'get_include_args', None)
-                        if callable(get_include_args):
-                            for i in inc_dirs:
-                                parameters += comp.get_include_args(i, False)
-
-                        # Extra args
-                        if lang in extra_args:
-                            parameters += extra_args[lang]
-
-                        sources[lang] = {
-                            'compiler': comp.get_exelist(),
-                            'parameters': parameters,
-                            'source_files': []
-                        }
-
-                    sources[lang]['source_files'] += [src]
-                elif comp is None and isinstance(src, str):
-                    if 'unknown' not in sources:
-                        sources['unknown'] = {'compiler': [], 'parameters': [], 'source_files': []}
-                    sources['unknown']['source_files'] += [src]
-        elif isinstance(target, build.CustomTarget):
-            source_list_raw = target.sources + target.extra_files
-            source_list = []
-            for i in source_list_raw:
-                if isinstance(i, mesonlib.File):
-                    source_list += [os.path.join(i.subdir, i.fname)]
-                elif isinstance(i, str):
-                    source_list += [i]
-
-            sources['unknown'] = {'compiler': [], 'parameters': [], 'source_files': source_list}
-
-        # Convert the dict to a list and add the language key.
-        # This list approach will also work if the gurantee is removed that all
-        # files in a target are compiled with the same parameters
-        # see https://github.com/mesonbuild/meson/pull/4547
-        sources = list(map(lambda x: {'language': x[0], **x[1]}, sources.items()))
+        if isinstance(backend, backends.Backend):
+            sources = backend.get_introspection_data(idname, target)
+        else:
+            raise RuntimeError('Parameter backend has an invalid type. This is a bug.')
 
         t = {'name': target.get_basename(), 'id': idname, 'sources': sources}
         fname = target.get_filename()
@@ -490,7 +367,7 @@ def find_buildsystem_files_list(src_dir):
                 filelist.append(os.path.relpath(os.path.join(root, f), src_dir))
     return filelist
 
-def list_buildsystem_files(builddata):
+def list_buildsystem_files(builddata: build.Build):
     src_dir = builddata.environment.get_source_dir()
     filelist = find_buildsystem_files_list(src_dir)
     return ('buildsystem_files', filelist)
@@ -531,7 +408,7 @@ def list_tests(testdata):
 def list_benchmarks(benchdata):
     return ('benchmarks', get_test_list(benchdata))
 
-def list_projinfo(builddata):
+def list_projinfo(builddata: build.Build):
     result = {'version': builddata.project_version,
               'descriptive_name': builddata.project_name}
     subprojects = []
@@ -664,7 +541,12 @@ def run(options):
         print(json.dumps(out, indent=indent))
     return 0
 
-def generate_introspection_file(coredata, builddata, testdata, benchmarkdata, installdata):
+def generate_introspection_file(builddata: build.Build, backend: backends.Backend):
+    coredata = builddata.environment.get_coredata()
+    benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
+    testdata = backend.create_test_serialisation(builddata.get_tests())
+    installdata = backend.create_install_data()
+
     intro_info = [
         list_benchmarks(benchmarkdata),
         list_buildoptions(coredata),
@@ -672,7 +554,7 @@ def generate_introspection_file(coredata, builddata, testdata, benchmarkdata, in
         list_deps(coredata),
         list_installed(installdata),
         list_projinfo(builddata),
-        list_targets(coredata, builddata, installdata),
+        list_targets(builddata, installdata, backend),
         list_tests(testdata)
     ]
 
