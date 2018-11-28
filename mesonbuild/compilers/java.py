@@ -63,7 +63,7 @@ class JavaCompiler(Compiler):
     def get_std_exe_link_args(self):
         return []
 
-    def get_include_args(self, path):
+    def get_include_args(self, path, is_system):
         return []
 
     def get_pic_args(self):

@@ -183,10 +183,12 @@ def list_targets(coredata, builddata, installdata):
 
             comp_list = target.compilers.values()
             source_list = target.sources + target.extra_files
-            source_list = list(map(lambda x: (mesonlib.get_compiler_for_source(comp_list, x), x), source_list))
+            source_list = list(map(lambda x: (mesonlib.get_compiler_for_source(comp_list, x, True), x), source_list))
 
             for comp, src in source_list:
-                if isinstance(comp, compilers.Compiler) and isinstance(src, mesonlib.File):
+                if isinstance(src, mesonlib.File):
+                    src = os.path.join(src.subdir, src.fname)
+                if isinstance(comp, compilers.Compiler) and isinstance(src, str):
                     lang = comp.get_language()
                     if lang not in sources:
                         parameters = []
@@ -208,7 +210,21 @@ def list_targets(coredata, builddata, installdata):
                             'source_files': []
                         }
 
-                    sources[lang]['source_files'] += [os.path.join(src.subdir, src.fname)]
+                    sources[lang]['source_files'] += [src]
+                elif comp is None and isinstance(src, str):
+                    if 'unknown' not in sources:
+                        sources['unknown'] = {'compiler': [], 'parameters': [], 'source_files': []}
+                    sources['unknown']['source_files'] += [src]
+        elif isinstance(target, build.CustomTarget):
+            source_list_raw = target.sources + target.extra_files
+            source_list = []
+            for i in source_list_raw:
+                if isinstance(i, mesonlib.File):
+                    source_list += [os.path.join(i.subdir, i.fname)]
+                elif isinstance(i, str):
+                    source_list += [i]
+
+            sources['unknown'] = {'compiler': [], 'parameters': [], 'source_files': source_list}
 
         # Convert the dict to a list and add the language key.
         # This list approach will also work if the gurantee is removed that all
@@ -244,21 +260,6 @@ def list_targets(coredata, builddata, installdata):
         t['build_by_default'] = target.build_by_default
         tlist.append(t)
     return ('targets', tlist)
-
-<<<<<<< HEAD
-def list_target_files(target_name, coredata, builddata):
-    try:
-        t = builddata.targets[target_name]
-        sources = t.sources + t.extra_files
-    except KeyError:
-        print("Unknown target %s." % target_name)
-        sys.exit(1)
-    out = []
-    for i in sources:
-        if isinstance(i, mesonlib.File):
-            i = os.path.join(i.subdir, i.fname)
-        out.append(i)
-    return ('target_files', out)
 
 class BuildoptionsOptionHelper:
     # mimic an argparse namespace
@@ -406,22 +407,23 @@ def list_buildoptions_from_source(sourcedir, backend):
     # Reenable logging just in case
     mlog.enable()
     list_buildoptions(intr.coredata)
-=======
+
 def list_target_files(target_name, targets):
-    return ('error: TODO implement', [])
-    #try:
-    #    t = builddata.targets[target_name]
-    #    sources = t.sources + t.extra_files
-    #except KeyError:
-    #    print("Unknown target %s." % target_name)
-    #    sys.exit(1)
-    #out = []
-    #for i in sources:
-    #    if isinstance(i, mesonlib.File):
-    #        i = os.path.join(i.subdir, i.fname)
-    #    out.append(i)
-    #return ('target_files', out)
->>>>>>> More refactoring
+    result = []
+    tgt = None
+
+    for i in targets:
+        if i['id'] == target_name:
+            tgt = i
+            break
+
+    if tgt is None:
+        raise RuntimeError('Target with the ID "{}" could not be found'.format(target_name))
+
+    for i in tgt['sources']:
+        result += i['source_files']
+
+    return ('target_files', result)
 
 def list_buildoptions(coredata):
     optlist = []

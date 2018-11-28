@@ -268,10 +268,12 @@ class File:
     def relative_name(self):
         return os.path.join(self.subdir, self.fname)
 
-def get_compiler_for_source(compilers, src):
+def get_compiler_for_source(compilers, src, canfail=False):
     for comp in compilers:
         if comp.can_compile(src):
             return comp
+    if canfail:
+        return None
     raise MesonException('No specified compiler can handle file {!s}'.format(src))
 
 def classify_unity_sources(compilers, sources):
