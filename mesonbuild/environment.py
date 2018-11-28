@@ -1175,21 +1175,14 @@ class MesonConfigFile:
                 except Exception:
                     raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
 
-                if cls._ok_type(res):
-                    section[entry] = res
-                elif isinstance(res, list):
-                    for i in res:
-                        if not self._ok_type(i):
-                            raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
-                    section[entry] = res
-                else:
-                    raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
+                for i in (res if isinstance(res, list) else [res]):
+                    if not isinstance(i, (str, int, bool)):
+                        raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
+
+                section[entry] = res
+
             out[s] = section
         return out
-
-    @classmethod
-    def _ok_type(cls, i):
-        return isinstance(i, (str, int, bool))
 
 class Properties:
     def __init__(self):
