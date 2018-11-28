@@ -221,7 +221,11 @@ class MesonApp:
             intro_tests = intr.backend.create_test_serialisation(b.get_tests())
             intro_benchmarks = intr.backend.create_test_serialisation(b.get_benchmarks())
             intro_install = intr.backend.create_install_data()
-            mintro.generate_introspection_file(b, intr.backend)
+            if self.options.profile:
+                fname = os.path.join(self.build_dir, 'meson-private', 'profile-introspector.log')
+                profile.runctx('mintro.generate_introspection_file(b, intr.backend)', globals(), locals(), filename=fname)
+            else:
+                mintro.generate_introspection_file(b, intr.backend)
         except:
             if 'cdf' in locals():
                 old_cdf = cdf + '.prev'

@@ -104,37 +104,26 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
         if not isinstance(target, build.Target):
             raise RuntimeError('Something weird happened. File a bug.')
 
-        if isinstance(backend, backends.Backend):
-            sources = backend.get_introspection_data(idname, target)
-        else:
-            raise RuntimeError('Parameter backend has an invalid type. This is a bug.')
-
-        t = {'name': target.get_basename(), 'id': idname, 'sources': sources}
         fname = target.get_filename()
         if isinstance(fname, list):
             fname = [os.path.join(target.subdir, x) for x in fname]
         else:
             fname = os.path.join(target.subdir, fname)
-        t['filename'] = fname
-        if isinstance(target, build.Executable):
-            typename = 'executable'
-        elif isinstance(target, build.SharedLibrary):
-            typename = 'shared library'
-        elif isinstance(target, build.StaticLibrary):
-            typename = 'static library'
-        elif isinstance(target, build.CustomTarget):
-            typename = 'custom'
-        elif isinstance(target, build.RunTarget):
-            typename = 'run'
-        else:
-            typename = 'unknown'
-        t['type'] = typename
+
+        t = {
+            'name': target.get_basename(),
+            'id': idname,
+            'type': target.get_typename(),
+            'filename': fname,
+            'build_by_default': target.build_by_default,
+            'sources': backend.get_introspection_data(idname, target)
+        }
+
         if installdata and target.should_install():
             t['installed'] = True
             t['install_filename'] = determine_installed_path(target, installdata)
         else:
             t['installed'] = False
-        t['build_by_default'] = target.build_by_default
         tlist.append(t)
     return ('targets', tlist)
 

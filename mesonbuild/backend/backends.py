@@ -159,6 +159,7 @@ class Backend:
         self.processed_targets = {}
         self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
                                              self.environment.get_build_dir())
+        self.introspect_data_cache = None # Cache to speed up get_introspection_data
 
     def get_target_filename(self, t):
         if isinstance(t, build.CustomTarget):
@@ -1165,20 +1166,10 @@ class Backend:
 
         This is a limited fallback / reference implementation. The backend should override this method.
         '''
-        def include_dirs_to_path(inc_dirs, src_root, build_root):
-            result = []
-            if isinstance(inc_dirs, build.IncludeDirs):
-                for i in inc_dirs.get_incdirs():
-                    abs_src = os.path.join(src_root, inc_dirs.get_curdir(), i)
-                    abs_build = os.path.join(build_root, inc_dirs.get_curdir(), i)
+        if not self.introspect_data_cache:
+            self.introspect_data_cache = {'targets': {}, 'dependencies': {}}
 
-                    if os.path.isdir(abs_src):
-                        result += [abs_src]
-
-                    if os.path.isdir(abs_build):
-                        result += [abs_build]
-
-            return result
+        reg = re.compile(r'-I(.*)')
 
         def extract_dependency_infromation(dep):
             inc_dirs = []
@@ -1194,21 +1185,64 @@ class Backend:
 
             return inc_dirs, args
 
-        def climb_stack(tgt, inc_dirs, extra_args, dep_args):
+        def process_target(tgt, src_root, build_root):
             if isinstance(tgt, build.BuildTarget):
+                # First check if the target is cached
+                tgtid = tgt.get_id()
+                if tgtid in self.introspect_data_cache['targets']:
+                    c_tgt = self.introspect_data_cache['targets'][tgtid]
+                    return c_tgt['inc_dirs'], c_tgt['dep_args'], c_tgt['extra_args']
+
                 # The build directory is always in the include directories
                 absbase_src = os.path.join(src_root, tgt.subdir)
                 absbase_build = os.path.join(build_root, tgt.subdir)
-                inc_dirs += [absbase_src, absbase_build]
+                inc_dirs = [absbase_src, absbase_build]
+                dep_args = []
+                extra_args = {}
 
+                # Handle include directories
                 for i in tgt.include_dirs:
-                    inc_dirs += include_dirs_to_path(i, src_root, build_root)
+                    if isinstance(i, build.IncludeDirs):
+                        for j in i.get_incdirs():
+                            abs_src = os.path.join(absbase_src, i.get_curdir(), j)
+                            abs_build = os.path.join(absbase_build, i.get_curdir(), j)
 
+                            if os.path.isdir(abs_src):
+                                inc_dirs += [abs_src]
+
+                            if os.path.isdir(abs_build):
+                                inc_dirs += [abs_build]
+
+                # Handle dependencies
                 for i in tgt.external_deps:
-                    dep_inc_dirs, args = extract_dependency_infromation(i)
-                    inc_dirs += dep_inc_dirs
-                    dep_args += args
+                    if not isinstance(i, base.Dependency):
+                        continue
 
+                    did = id(i)
+                    if did in self.introspect_data_cache['dependencies']:
+                        c_entry = self.introspect_data_cache['dependencies'][did]
+                        inc_dirs += c_entry['dep_inc_dirs']
+                        dep_args += c_entry['dep_cur_args']
+                        continue
+
+                    dep_inc_dirs = []
+                    dep_cur_args = []
+
+                    for i in i.get_compile_args():
+                        match = reg.match(i)
+                        if match:
+                            dep_inc_dirs += [match.group(1)]
+                        else:
+                            dep_cur_args += [i]
+
+                    self.introspect_data_cache['dependencies'][did] = {
+                        'dep_inc_dirs': dep_inc_dirs,
+                        'dep_cur_args': dep_cur_args
+                    }
+                    inc_dirs += dep_inc_dirs
+                    dep_args += dep_cur_args
+
+                # Check for language specific extra args
                 for i, comp in tgt.compilers.items():
                     if isinstance(comp, compilers.Compiler):
                         if i not in extra_args:
@@ -1218,19 +1252,32 @@ class Backend:
                         extra_args[i] += self.build.get_global_args(comp, tgt.is_cross)
                         extra_args[i] += self.build.get_project_args(comp, tgt.subproject, tgt.is_cross)
 
+                # Recursively check the other targets
                 for i in tgt.link_targets:
-                    climb_stack(i, inc_dirs, extra_args, dep_args)
+                    t_inc_dirs, t_dep_args, t_extra_args = process_target(i, src_root, build_root)
+                    inc_dirs += t_inc_dirs
+                    dep_args += t_dep_args
+                    for ind, arglist in t_extra_args.items():
+                        if ind in extra_args:
+                            extra_args[ind] += arglist
+                        else:
+                            extra_args[ind] = arglist
+
+                # Update the cache
+                self.introspect_data_cache['targets'][tgtid] = {
+                    'inc_dirs': inc_dirs,
+                    'dep_args': dep_args,
+                    'extra_args': extra_args
+                }
+
+                return inc_dirs, dep_args, extra_args
 
         src_root = self.build.environment.get_source_dir()
         build_root = self.build.environment.get_build_dir()
-
-        inc_dirs = []
-        extra_args = {}
-        dep_args = []
         sources = {}
 
         if isinstance(target, build.BuildTarget):
-            climb_stack(target, inc_dirs, extra_args, dep_args)
+            inc_dirs, dep_args, extra_args = process_target(target, src_root, build_root)
 
             # Add the dep_args, sort and remove duplicates
             for i in extra_args:
