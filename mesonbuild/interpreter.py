@@ -1032,7 +1032,7 @@ class CompilerHolder(InterpreterObject):
         typename = args[0]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
-            raise InterpreterException('Prefix argument of sizeof must be a string.')
+            raise InterpreterException('Prefix argument of alignment must be a string.')
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
         deps, msg = self.determine_dependencies(kwargs)
         result = self.compiler.alignment(typename, prefix, self.environment,
