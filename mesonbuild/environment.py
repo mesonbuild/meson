@@ -346,16 +346,17 @@ class Environment:
         # Similar to coredata.compilers and build.compilers, but lower level in
         # that there is no meta data, only names/paths.
         self.binaries = PerMachineDefaultable()
+        # Just uses hard-coded defaults and environment variables. Might be
+        # overwritten by a native file.
+        self.binaries.build = BinaryTable({})
 
         # Misc other properties about each machine.
         self.properties = PerMachine(Properties(), Properties(), Properties())
 
         if self.coredata.config_files is not None:
-            config_info = coredata.ConfigData(
+            config = MesonConfigFile.from_config_parser(
                 coredata.load_configs(self.coredata.config_files))
-        else:
-            config_info = coredata.ConfigData()
-        self.binaries.build = BinaryTable(config_info.binaries)
+            self.binaries.build = BinaryTable(config.get('binaries', {}))
 
         if self.coredata.cross_file is not None:
             config = MesonConfigFile.parse_datafile(self.coredata.cross_file)
@@ -1168,6 +1169,8 @@ class MesonConfigFile:
             section = {}
             for entry in parser[s]:
                 value = parser[s][entry]
+                # Windows paths...
+                value = value.replace('\\', '\\\\')
                 if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
                     raise EnvironmentException('Malformed variable name %s in cross file..' % entry)
                 try:
