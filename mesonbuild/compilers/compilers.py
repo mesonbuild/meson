@@ -1070,55 +1070,57 @@ class Compiler:
                 mlog.debug('Cached compiler stderr:\n', p.stde)
                 yield p
                 return
-        try:
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                if isinstance(code, str):
-                    srcname = os.path.join(tmpdirname,
-                                           'testfile.' + self.default_suffix)
-                    with open(srcname, 'w') as ofile:
-                        ofile.write(code)
-                elif isinstance(code, mesonlib.File):
-                    srcname = code.fname
+        tmpdirname = tempfile.TemporaryDirectory()
+        if isinstance(code, str):
+            srcname = os.path.join(tmpdirname.name,
+                                   'testfile.' + self.default_suffix)
+            with open(srcname, 'w') as ofile:
+                ofile.write(code)
+        elif isinstance(code, mesonlib.File):
+            srcname = code.fname
 
-                # Construct the compiler command-line
-                commands = CompilerArgs(self)
-                commands.append(srcname)
-                commands += self.get_always_args()
-                if mode == 'compile':
-                    commands += self.get_compile_only_args()
-                # Preprocess mode outputs to stdout, so no output args
-                if mode == 'preprocess':
-                    commands += self.get_preprocess_only_args()
-                else:
-                    output = self._get_compile_output(tmpdirname, mode)
-                    commands += self.get_output_args(output)
-                # extra_args must be last because it could contain '/link' to
-                # pass args to VisualStudio's linker. In that case everything
-                # in the command line after '/link' is given to the linker.
-                commands += extra_args
-                # Generate full command-line with the exelist
-                commands = self.get_exelist() + commands.to_native()
-                mlog.debug('Running compile:')
-                mlog.debug('Working directory: ', tmpdirname)
-                mlog.debug('Command line: ', ' '.join(commands), '\n')
-                mlog.debug('Code:\n', code)
-                os_env = os.environ.copy()
-                os_env['LC_ALL'] = 'C'
-                p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname, env=os_env)
-                mlog.debug('Compiler stdout:\n', p.stdo)
-                mlog.debug('Compiler stderr:\n', p.stde)
-                p.commands = commands
-                p.input_name = srcname
-                if want_output:
-                    p.output_name = output
-                else:
-                    self.compiler_check_cache[key] = p
-                yield p
+        # Construct the compiler command-line
+        commands = CompilerArgs(self)
+        commands.append(srcname)
+        commands += self.get_always_args()
+        if mode == 'compile':
+            commands += self.get_compile_only_args()
+        # Preprocess mode outputs to stdout, so no output args
+        if mode == 'preprocess':
+            commands += self.get_preprocess_only_args()
+        else:
+            output = self._get_compile_output(tmpdirname.name, mode)
+            commands += self.get_output_args(output)
+        # extra_args must be last because it could contain '/link' to
+        # pass args to VisualStudio's linker. In that case everything
+        # in the command line after '/link' is given to the linker.
+        commands += extra_args
+        # Generate full command-line with the exelist
+        commands = self.get_exelist() + commands.to_native()
+        mlog.debug('Running compile:')
+        mlog.debug('Working directory: ', tmpdirname.name)
+        mlog.debug('Command line: ', ' '.join(commands), '\n')
+        mlog.debug('Code:\n', code)
+        os_env = os.environ.copy()
+        os_env['LC_ALL'] = 'C'
+        p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname.name, env=os_env)
+        mlog.debug('Compiler stdout:\n', p.stdo)
+        mlog.debug('Compiler stderr:\n', p.stde)
+        p.commands = commands
+        p.input_name = srcname
+        if want_output:
+            p.output_name = output
+        else:
+            self.compiler_check_cache[key] = p
+        try:
+            tmpdirname.cleanup()
         except (PermissionError, OSError):
             # On Windows antivirus programs and the like hold on to files so
             # they can't be deleted. There's not much to do in this case. Also,
             # catch OSError because the directory is then no longer empty.
             pass
+        finally:
+            yield p
 
     def get_colorout_args(self, colortype):
         return []
