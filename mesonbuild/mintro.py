@@ -100,6 +100,13 @@ def list_installed(installdata):
 
 def list_targets(builddata: build.Build, installdata, backend: backends.Backend):
     tlist = []
+
+    # Fast lookup table for installation files
+    intall_lookuptable = {}
+    for i in installdata.targets:
+        outname = os.path.join(installdata.prefix, i.outdir, os.path.basename(i.fname))
+        intall_lookuptable[os.path.basename(i.fname)] = str(pathlib.PurePath(outname))
+
     for (idname, target) in builddata.get_targets().items():
         if not isinstance(target, build.Target):
             raise RuntimeError('Something weird happened. File a bug.')
@@ -121,7 +128,12 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
 
         if installdata and target.should_install():
             t['installed'] = True
-            t['install_filename'] = determine_installed_path(target, installdata)
+            t['install_filename'] = []
+
+            for i in target.outputs:
+                fname = intall_lookuptable.get(i)
+                if i is not None:
+                    t['install_filename'] += [fname]
         else:
             t['installed'] = False
         tlist.append(t)

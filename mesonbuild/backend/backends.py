@@ -20,11 +20,10 @@ from .. import mesonlib
 from .. import mlog
 import json
 import subprocess
-from ..dependencies import base
 from ..mesonlib import MesonException, OrderedSet
 from ..mesonlib import classify_unity_sources
 from ..mesonlib import File
-from ..compilers import CompilerArgs, VisualStudioCCompiler, compilers
+from ..compilers import CompilerArgs, VisualStudioCCompiler
 from collections import OrderedDict
 import shlex
 from functools import lru_cache
@@ -159,7 +158,6 @@ class Backend:
         self.processed_targets = {}
         self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
                                              self.environment.get_build_dir())
-        self.introspect_data_cache = None # Cache to speed up get_introspection_data
 
     def get_target_filename(self, t):
         if isinstance(t, build.CustomTarget):
@@ -1166,163 +1164,7 @@ class Backend:
 
         This is a limited fallback / reference implementation. The backend should override this method.
         '''
-        if not self.introspect_data_cache:
-            self.introspect_data_cache = {'targets': {}, 'dependencies': {}}
-
-        reg = re.compile(r'-I(.*)')
-
-        def extract_dependency_infromation(dep):
-            inc_dirs = []
-            args = []
-            if isinstance(dep, base.Dependency):
-                reg = re.compile(r'-I(.*)')
-                for i in dep.get_compile_args():
-                    match = reg.match(i)
-                    if match:
-                        inc_dirs += [match.group(1)]
-                    else:
-                        args += [i]
-
-            return inc_dirs, args
-
-        def process_target(tgt, src_root, build_root):
-            if isinstance(tgt, build.BuildTarget):
-                # First check if the target is cached
-                tgtid = tgt.get_id()
-                if tgtid in self.introspect_data_cache['targets']:
-                    c_tgt = self.introspect_data_cache['targets'][tgtid]
-                    return c_tgt['inc_dirs'], c_tgt['dep_args'], c_tgt['extra_args']
-
-                # The build directory is always in the include directories
-                absbase_src = os.path.join(src_root, tgt.subdir)
-                absbase_build = os.path.join(build_root, tgt.subdir)
-                inc_dirs = [absbase_src, absbase_build]
-                dep_args = []
-                extra_args = {}
-
-                # Handle include directories
-                for i in tgt.include_dirs:
-                    if isinstance(i, build.IncludeDirs):
-                        for j in i.get_incdirs():
-                            abs_src = os.path.join(absbase_src, i.get_curdir(), j)
-                            abs_build = os.path.join(absbase_build, i.get_curdir(), j)
-
-                            if os.path.isdir(abs_src):
-                                inc_dirs += [abs_src]
-
-                            if os.path.isdir(abs_build):
-                                inc_dirs += [abs_build]
-
-                # Handle dependencies
-                for i in tgt.external_deps:
-                    if not isinstance(i, base.Dependency):
-                        continue
-
-                    did = id(i)
-                    if did in self.introspect_data_cache['dependencies']:
-                        c_entry = self.introspect_data_cache['dependencies'][did]
-                        inc_dirs += c_entry['dep_inc_dirs']
-                        dep_args += c_entry['dep_cur_args']
-                        continue
-
-                    dep_inc_dirs = []
-                    dep_cur_args = []
-
-                    for i in i.get_compile_args():
-                        match = reg.match(i)
-                        if match:
-                            dep_inc_dirs += [match.group(1)]
-                        else:
-                            dep_cur_args += [i]
-
-                    self.introspect_data_cache['dependencies'][did] = {
-                        'dep_inc_dirs': dep_inc_dirs,
-                        'dep_cur_args': dep_cur_args
-                    }
-                    inc_dirs += dep_inc_dirs
-                    dep_args += dep_cur_args
-
-                # Check for language specific extra args
-                for i, comp in tgt.compilers.items():
-                    if isinstance(comp, compilers.Compiler):
-                        if i not in extra_args:
-                            extra_args[i] = []
-
-                        extra_args[i] += tgt.get_extra_args(i)
-                        extra_args[i] += self.build.get_global_args(comp, tgt.is_cross)
-                        extra_args[i] += self.build.get_project_args(comp, tgt.subproject, tgt.is_cross)
-
-                # Recursively check the other targets
-                for i in tgt.link_targets:
-                    t_inc_dirs, t_dep_args, t_extra_args = process_target(i, src_root, build_root)
-                    inc_dirs += t_inc_dirs
-                    dep_args += t_dep_args
-                    for ind, arglist in t_extra_args.items():
-                        if ind in extra_args:
-                            extra_args[ind] += arglist
-                        else:
-                            extra_args[ind] = arglist
-
-                # Update the cache
-                self.introspect_data_cache['targets'][tgtid] = {
-                    'inc_dirs': inc_dirs,
-                    'dep_args': dep_args,
-                    'extra_args': extra_args
-                }
-
-                return inc_dirs, dep_args, extra_args
-
-        src_root = self.build.environment.get_source_dir()
-        build_root = self.build.environment.get_build_dir()
-        sources = {}
-
-        if isinstance(target, build.BuildTarget):
-            inc_dirs, dep_args, extra_args = process_target(target, src_root, build_root)
-
-            # Add the dep_args, sort and remove duplicates
-            for i in extra_args:
-                extra_args[i] += dep_args
-                extra_args[i] = list(sorted(list(set(extra_args[i]))))
-
-            # Remove duplicates, sort and make paths pretty
-            inc_dirs = list(sorted(list(set(inc_dirs))))
-            inc_dirs = list(map(lambda x: os.path.realpath(x), inc_dirs))
-
-            comp_list = target.compilers.values()
-            source_list = target.sources + target.extra_files
-            source_list = list(map(lambda x: (mesonlib.get_compiler_for_source(comp_list, x, True), x), source_list))
-
-            for comp, src in source_list:
-                if isinstance(src, mesonlib.File):
-                    src = os.path.join(src.subdir, src.fname)
-                if isinstance(comp, compilers.Compiler) and isinstance(src, str):
-                    lang = comp.get_language()
-                    if lang not in sources:
-                        parameters = []
-
-                        # Generate include directories
-                        # Not all compilers have the get_include_args method
-                        get_include_args = getattr(comp, 'get_include_args', None)
-                        if callable(get_include_args):
-                            for i in inc_dirs:
-                                parameters += comp.get_include_args(i, False)
-
-                        # Extra args
-                        if lang in extra_args:
-                            parameters += extra_args[lang]
-
-                        sources[lang] = {
-                            'compiler': comp.get_exelist(),
-                            'parameters': parameters,
-                            'source_files': []
-                        }
-
-                    sources[lang]['source_files'] += [src]
-                elif comp is None and isinstance(src, str):
-                    if 'unknown' not in sources:
-                        sources['unknown'] = {'compiler': [], 'parameters': [], 'source_files': []}
-                    sources['unknown']['source_files'] += [src]
-        elif isinstance(target, build.CustomTarget):
+        if isinstance(target, (build.CustomTarget, build.BuildTarget)):
             source_list_raw = target.sources + target.extra_files
             source_list = []
             for i in source_list_raw:
@@ -1331,12 +1173,16 @@ class Backend:
                 elif isinstance(i, str):
                     source_list += [i]
 
-            sources['unknown'] = {'compiler': [], 'parameters': [], 'source_files': source_list}
+            return [{
+                'language': 'unknown',
+                'compiler': [],
+                'parameters': [],
+                'source_files': source_list
+            }]
 
-        # Convert the dict to a list and add the language key.
-        # This list approach will also work if the gurantee is removed that all
-        # files in a target are compiled with the same parameters
-        # see https://github.com/mesonbuild/meson/pull/4547
-        sources = list(map(lambda x: {'language': x[0], **x[1]}, sources.items()))
-
-        return sources
+        return [{
+            'language': 'unknown',
+            'compiler': [],
+            'parameters': [],
+            'source_files': []
+        }]
