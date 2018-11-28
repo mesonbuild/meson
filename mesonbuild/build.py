@@ -22,10 +22,12 @@ from functools import lru_cache
 from . import environment
 from . import dependencies
 from . import mlog
-from .mesonlib import File, MesonException, listify, extract_as_list, OrderedSet
-from .mesonlib import typeslistify, stringlistify, classify_unity_sources
-from .mesonlib import get_filenames_templates_dict, substitute_values
-from .mesonlib import for_windows, for_darwin, for_cygwin, for_android, has_path_sep
+from .mesonlib import (
+    File, MesonException, listify, extract_as_list, OrderedSet,
+    typeslistify, stringlistify, classify_unity_sources,
+    get_filenames_templates_dict, substitute_values,
+    for_windows, for_darwin, for_cygwin, for_android, has_path_sep
+)
 from .compilers import is_object, clink_langs, sort_clink, lang_suffixes, get_macos_dylib_install_name
 from .interpreterbase import FeatureNew
 
