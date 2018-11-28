@@ -3252,6 +3252,12 @@ external dependencies (including libraries) must go to "dependencies".''')
         'Implementation-only, without FeatureNew checks, for internal use'
         name = args[0]
         kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
+        if 'input' in kwargs:
+            try:
+                kwargs['input'] = self.source_strings_to_files(extract_as_list(kwargs, 'input'))
+            except mesonlib.MesonException:
+                mlog.warning('''Custom target input \'%s\' can\'t be converted to File object(s).
+This will become a hard error in the future.''' % kwargs['input'])
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs), self)
         self.add_target(name, tg.held_object)
         return tg
@@ -3943,7 +3949,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
             sources = [sources]
         for s in sources:
             if isinstance(s, (mesonlib.File, GeneratedListHolder,
-                              CustomTargetHolder, CustomTargetIndexHolder)):
+                              TargetHolder, CustomTargetIndexHolder)):
                 pass
             elif isinstance(s, str):
                 self.validate_within_subproject(self.subdir, s)
