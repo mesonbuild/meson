@@ -188,6 +188,9 @@ def detect_windows_arch(compilers):
                 platform = os.environ.get('BUILD_PLAT', 'x86')
                 if platform == 'Win32':
                     return 'x86'
+            elif 'VSCMD_ARG_TGT_ARCH' in os.environ:
+                # On MSVC 2017 'Platform' is not set in VsDevCmd.bat
+                return os.environ['VSCMD_ARG_TGT_ARCH']
             else:
                 # On MSVC 2010 and later 'Platform' is only set when the
                 # target arch is not 'x86'.  It's 'x64' when targeting

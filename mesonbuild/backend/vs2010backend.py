@@ -189,6 +189,33 @@ class Vs2010Backend(backends.Backend):
         with open(filename, 'wb') as f:
             pickle.dump(regeninfo, f)
 
+    def get_vcvars_command(self):
+        has_arch_values = 'VSCMD_ARG_TGT_ARCH' in os.environ and 'VSCMD_ARG_HOST_ARCH' in os.environ
+
+        # Use vcvarsall.bat if we found it.
+        if 'VCINSTALLDIR' in os.environ:
+            vs_version = os.environ['VisualStudioVersion'] \
+                if 'VisualStudioVersion' in os.environ else None
+            relative_path = 'Auxiliary\\Build\\' if vs_version == '15.0' else ''
+            script_path = os.environ['VCINSTALLDIR'] + relative_path + 'vcvarsall.bat'
+            if os.path.exists(script_path):
+                if has_arch_values:
+                    target_arch = os.environ['VSCMD_ARG_TGT_ARCH']
+                    host_arch = os.environ['VSCMD_ARG_HOST_ARCH']
+                else:
+                    target_arch = os.environ.get('Platform', 'x86')
+                    host_arch = target_arch
+                arch = host_arch + '_' + target_arch if host_arch != target_arch else target_arch
+                return '"%s" %s' % (script_path, arch)
+
+        # Otherwise try the VS2017 Developer Command Prompt.
+        if 'VS150COMNTOOLS' in os.environ and has_arch_values:
+            script_path = os.environ['VS150COMNTOOLS'] + 'VsDevCmd.bat'
+            if os.path.exists(script_path):
+                return '"%s" -arch=%s -host_arch=%s' % \
+                    (script_path, os.environ['VSCMD_ARG_TGT_ARCH'], os.environ['VSCMD_ARG_HOST_ARCH'])
+        return ''
+
     def get_obj_target_deps(self, obj_list):
         result = {}
         for o in obj_list:
@@ -1096,7 +1123,7 @@ class Vs2010Backend(backends.Backend):
         elif targetplatform == 'arm':
             targetmachine.text = 'MachineARM'
         else:
-            raise MesonException('Unsupported Visual Studio target machine: ' + targetmachine)
+            raise MesonException('Unsupported Visual Studio target machine: ' + targetplatform)
 
         meson_file_group = ET.SubElement(root, 'ItemGroup')
         ET.SubElement(meson_file_group, 'None', Include=os.path.join(proj_to_src_dir, build_filename))
@@ -1213,7 +1240,9 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
         regen_command = self.environment.get_build_command() + ['--internal', 'regencheck']
         private_dir = self.environment.get_scratch_dir()
+        vcvars_command = self.get_vcvars_command()
         cmd_templ = '''setlocal
+call %s > NUL
 "%s" "%s"
 if %%errorlevel%% neq 0 goto :cmEnd
 :cmEnd
@@ -1231,7 +1260,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         message = ET.SubElement(custombuild, 'Message')
         message.text = 'Checking whether solution needs to be regenerated.'
         ET.SubElement(custombuild, 'Command').text = cmd_templ % \
-            ('" "'.join(regen_command), private_dir)
+            (vcvars_command, '" "'.join(regen_command), private_dir)
         ET.SubElement(custombuild, 'Outputs').text = Vs2010Backend.get_regen_stampfile(self.environment.get_build_dir())
         deps = self.get_regen_filelist()
         ET.SubElement(custombuild, 'AdditionalInputs').text = ';'.join(deps)
