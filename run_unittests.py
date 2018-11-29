@@ -3110,26 +3110,141 @@ recommended as it is not supported on some platforms''')
         self.maxDiff = None
         self.assertListEqual(res_nb, res_wb)
 
-    def test_introspect_all_command(self):
-        testdir = os.path.join(self.common_test_dir, '6 linkshared')
+    def test_introspect_json_dump(self):
+        testdir = os.path.join(self.unit_test_dir, '49 introspection')
         self.init(testdir)
-        res = self.introspect('--all')
-        keylist = [
-            'benchmarks',
-            'buildoptions',
-            'buildsystem_files',
-            'dependencies',
-            'installed',
-            'projectinfo',
-            'targets',
-            'tests'
+        introfile = os.path.join(self.builddir, 'meson-introspection.json')
+        self.assertPathExists(introfile)
+        with open(introfile, 'r') as fp:
+            res = json.load(fp)
+
+        def assertKeyTypes(key_type_list, obj):
+            for i in key_type_list:
+                self.assertIn(i[0], obj)
+                self.assertIsInstance(obj[i[0]], i[1])
+
+        root_keylist = [
+            ('benchmarks', list),
+            ('buildoptions', list),
+            ('buildsystem_files', list),
+            ('dependencies', list),
+            ('installed', dict),
+            ('projectinfo', dict),
+            ('targets', list),
+            ('tests', list),
         ]
 
-        for i in keylist:
-            self.assertIn(i, res)
+        test_keylist = [
+            ('cmd', list),
+            ('env', dict),
+            ('name', str),
+            ('timeout', int),
+            ('suite', list),
+            ('is_parallel', bool),
+        ]
+
+        buildoptions_keylist = [
+            ('name', str),
+            ('section', str),
+            ('type', str),
+            ('description', str),
+        ]
+
+        buildoptions_typelist = [
+            ('combo', str, [('choices', list)]),
+            ('string', str, []),
+            ('boolean', bool, []),
+            ('integer', int, []),
+            ('array', list, []),
+        ]
+
+        dependencies_typelist = [
+            ('name', str),
+            ('compile_args', list),
+            ('link_args', list),
+        ]
+
+        targets_typelist = [
+            ('name', str),
+            ('id', str),
+            ('type', str),
+            ('filename', str),
+            ('build_by_default', bool),
+            ('sources', list),
+            ('installed', bool),
+        ]
+
+        targets_sources_typelist = [
+            ('language', str),
+            ('compiler', list),
+            ('parameters', list),
+            ('source_files', list),
+        ]
+
+        assertKeyTypes(root_keylist, res)
+
+        # Check Tests and benchmarks
+        tests_to_find = ['test case 1', 'test case 2', 'benchmark 1']
+        for i in res['benchmarks'] + res['tests']:
+            assertKeyTypes(test_keylist, i)
+            if i['name'] in tests_to_find:
+                tests_to_find.remove(i['name'])
+        self.assertListEqual(tests_to_find, [])
+
+        # Check buildoptions
+        buildopts_to_find = {'cpp_std': 'c++11'}
+        for i in res['buildoptions']:
+            assertKeyTypes(buildoptions_keylist, i)
+            valid_type = False
+            for j in buildoptions_typelist:
+                if i['type'] == j[0]:
+                    self.assertIsInstance(i['value'], j[1])
+                    assertKeyTypes(j[2], i)
+                    valid_type = True
+                    break
+
+            self.assertTrue(valid_type)
+            if i['name'] in buildopts_to_find:
+                self.assertEqual(i['value'], buildopts_to_find[i['name']])
+                buildopts_to_find.pop(i['name'], None)
+        self.assertDictEqual(buildopts_to_find, {})
+
+        # Check buildsystem_files
+        self.assertListEqual(res['buildsystem_files'], ['meson.build', 'sharedlib/meson.build', 'staticlib/meson.build'])
+
+        # Check dependencies
+        dependencies_to_find = ['zlib']
+        for i in res['dependencies']:
+            assertKeyTypes(dependencies_typelist, i)
+            if i['name'] in dependencies_to_find:
+                dependencies_to_find.remove(i['name'])
+        self.assertListEqual(dependencies_to_find, [])
+
+        # Check projectinfo
+        self.assertDictEqual(res['projectinfo'], {'version': '1.2.3', 'descriptive_name': 'introspection', 'subprojects': []})
+
+        # Check targets
+        targets_to_find = {
+            'sharedTestLib': ('shared library', True, False),
+            'staticTestLib': ('static library', True, False),
+            'test1': ('executable', True, True),
+            'test2': ('executable', True, False),
+            'test3': ('executable', True, False),
+        }
+        for i in res['targets']:
+            assertKeyTypes(targets_typelist, i)
+            if i['name'] in targets_to_find:
+                tgt = targets_to_find[i['name']]
+                self.assertEqual(i['type'], tgt[0])
+                self.assertEqual(i['build_by_default'], tgt[1])
+                self.assertEqual(i['installed'], tgt[2])
+                targets_to_find.pop(i['name'], None)
+            for j in i['sources']:
+                assertKeyTypes(targets_sources_typelist, j)
+        self.assertDictEqual(targets_to_find, {})
 
     def test_introspect_file_dump_eauals_all(self):
-        testdir = os.path.join(self.common_test_dir, '6 linkshared')
+        testdir = os.path.join(self.unit_test_dir, '49 introspection')
         self.init(testdir)
         res_all = self.introspect('--all')
         res_file = {}

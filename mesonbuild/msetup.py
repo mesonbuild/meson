@@ -218,9 +218,6 @@ class MesonApp:
                 coredata.update_cmd_line_file(self.build_dir, self.options)
 
             # Generate an IDE introspection file with the same syntax as the already existing API
-            intro_tests = intr.backend.create_test_serialisation(b.get_tests())
-            intro_benchmarks = intr.backend.create_test_serialisation(b.get_benchmarks())
-            intro_install = intr.backend.create_install_data()
             if self.options.profile:
                 fname = os.path.join(self.build_dir, 'meson-private', 'profile-introspector.log')
                 profile.runctx('mintro.generate_introspection_file(b, intr.backend)', globals(), locals(), filename=fname)

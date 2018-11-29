@@ -1515,7 +1515,6 @@ class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
-        self.typename = 'shared library'
         self.soversion = None
         self.ltversion = None
         # Max length 2, first element is compatibility_version, second is current_version
@@ -1528,6 +1527,7 @@ class SharedLibrary(BuildTarget):
         # The import library that GCC would generate (and prefer)
         self.gcc_import_filename = None
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
+        self.typename = 'shared library'
         if 'rust' in self.compilers:
             # If no crate type is specified, or it's the generic lib type, use dylib
             if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'lib':

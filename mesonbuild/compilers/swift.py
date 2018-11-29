@@ -85,7 +85,7 @@ class SwiftCompiler(Compiler):
     def build_rpath_args(self, *args):
         return [] # FIXME
 
-    def get_include_args(self, dirname, is_system):
+    def get_include_args(self, dirname):
         return ['-I' + dirname]
 
     def get_compile_only_args(self):
