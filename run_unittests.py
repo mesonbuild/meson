@@ -1224,7 +1224,7 @@ class BasePlatformTests(unittest.TestCase):
         self.assertEqual(len(pathlist1), len(pathlist2))
         worklist = list(zip(pathlist1, pathlist2))
         for i in worklist:
-            if i[0] == None:
+            if i[0] is None:
                 self.assertEqual(i[0], i[1])
             else:
                 self.assertPathEqual(i[0], i[1])
