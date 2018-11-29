@@ -369,7 +369,6 @@ class ConfigToolDependency(ExternalDependency):
     def __init__(self, name, environment, language, kwargs):
         super().__init__('config-tool', environment, language, kwargs)
         self.name = name
-        self.native = kwargs.get('native', False)
         self.tools = listify(kwargs.get('tools', self.tools))
 
         req_version = kwargs.get('version', None)
@@ -423,12 +422,11 @@ class ConfigToolDependency(ExternalDependency):
         if not isinstance(versions, list) and versions is not None:
             versions = listify(versions)
 
-        for_machine = MachineChoice.BUILD if self.native else MachineChoice.HOST
-        tool = self.env.binaries[for_machine].lookup_entry(self.tool_name)
+        tool = self.env.binaries[self.for_machine].lookup_entry(self.tool_name)
         if tool is not None:
             tools = [tool]
         else:
-            if self.env.is_cross_build() and not self.native:
+            if not self.env.machines.matches_build_machine(self.for_machine):
                 mlog.deprecation('No entry for {0} specified in your cross file. '
                                  'Falling back to searching PATH. This may find a '
                                  'native version of {0}! This will become a hard '
