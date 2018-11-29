@@ -1224,7 +1224,10 @@ class BasePlatformTests(unittest.TestCase):
         self.assertEqual(len(pathlist1), len(pathlist2))
         worklist = list(zip(pathlist1, pathlist2))
         for i in worklist:
-            self.assertPathEqual(i[0], i[1])
+            if i[0] == None:
+                self.assertEqual(i[0], i[1])
+            else:
+                self.assertPathEqual(i[0], i[1])
 
     def assertPathBasenameEqual(self, path, basename):
         msg = '{!r} does not end with {!r}'.format(path, basename)
@@ -1510,8 +1513,8 @@ class AllPlatformTests(BasePlatformTests):
             intro = intro[::-1]
         self.assertPathListEqual(intro[0]['install_filename'], ['/usr/include/diff.h', '/usr/bin/diff.sh'])
         self.assertPathListEqual(intro[1]['install_filename'], ['/opt/same.h', '/opt/same.sh'])
-        self.assertPathListEqual(intro[2]['install_filename'], ['/usr/include/first.h'])
-        self.assertPathListEqual(intro[3]['install_filename'], ['/usr/bin/second.sh'])
+        self.assertPathListEqual(intro[2]['install_filename'], ['/usr/include/first.h', None])
+        self.assertPathListEqual(intro[3]['install_filename'], [None, '/usr/bin/second.sh'])
 
     def test_uninstall(self):
         exename = os.path.join(self.installdir, 'usr/bin/prog' + exe_suffix)
@@ -3213,7 +3216,7 @@ recommended as it is not supported on some platforms''')
         self.assertListEqual(res['buildsystem_files'], ['meson.build', 'sharedlib/meson.build', 'staticlib/meson.build'])
 
         # Check dependencies
-        dependencies_to_find = ['zlib']
+        dependencies_to_find = ['threads']
         for i in res['dependencies']:
             assertKeyTypes(dependencies_typelist, i)
             if i['name'] in dependencies_to_find:

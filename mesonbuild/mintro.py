@@ -106,12 +106,7 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
 
         if installdata and target.should_install():
             t['installed'] = True
-            t['install_filename'] = []
-
-            for i in target.outputs:
-                fname = intall_lookuptable.get(i)
-                if fname is not None:
-                    t['install_filename'] += [fname]
+            t['install_filename'] = [intall_lookuptable.get(x, None) for x in target.get_outputs()]
         else:
             t['installed'] = False
         tlist.append(t)

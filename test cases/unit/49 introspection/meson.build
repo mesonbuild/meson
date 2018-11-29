@@ -1,6 +1,6 @@
 project('introspection', ['c', 'cpp'], version: '1.2.3', default_options: ['cpp_std=c++11', 'buildtype=debug'])
 
-dep1 = dependency('zlib')
+dep1 = dependency('threads')
 
 subdir('sharedlib')
 subdir('staticlib')
