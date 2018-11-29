@@ -487,8 +487,7 @@ def run(options):
     if options.all or options.benchmarks:
         toextract += ['benchmarks']
     if options.all or options.buildoptions:
-        coredata = cdata.load(options.builddir)
-        results += [list_buildoptions(coredata)]
+        toextract += ['buildoptions']
     if options.all or options.buildsystem_files:
         toextract += ['buildsystem_files']
     if options.all or options.dependencies:
@@ -547,6 +546,23 @@ def generate_introspection_file(builddata: build.Build, backend: backends.Backen
 
     outfile = os.path.join(builddata.environment.get_build_dir(), INTROSPECTION_OUTPUT_FILE)
     outfile = os.path.abspath(outfile)
+
+    with open(outfile, 'w') as fp:
+        json.dump(outdict, fp)
+
+def update_build_options(coredata, builddir):
+    outfile = os.path.join(builddir, INTROSPECTION_OUTPUT_FILE)
+    outfile = os.path.abspath(outfile)
+
+    with open(outfile, 'r') as fp:
+        outdict = json.load(fp)
+
+    intro_info = [
+        list_buildoptions(coredata)
+    ]
+
+    for i in intro_info:
+        outdict[i[0]] = i[1]
 
     with open(outfile, 'w') as fp:
         json.dump(outdict, fp)

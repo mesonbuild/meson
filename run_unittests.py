@@ -3256,6 +3256,32 @@ recommended as it is not supported on some platforms''')
 
         self.assertEqual(res_all, res_file)
 
+    def test_introspect_config_update(self):
+        testdir = os.path.join(self.unit_test_dir, '49 introspection')
+        introfile = os.path.join(self.builddir, 'meson-introspection.json')
+        self.init(testdir)
+        self.assertPathExists(introfile)
+        with open(introfile, 'r') as fp:
+            res1 = json.load(fp)
+
+        self.setconf('-Dcpp_std=c++14')
+        self.setconf('-Dbuildtype=release')
+
+        for idx, i in enumerate(res1['buildoptions']):
+            if i['name'] == 'cpp_std':
+                res1['buildoptions'][idx]['value'] = 'c++14'
+            if i['name'] == 'buildtype':
+                res1['buildoptions'][idx]['value'] = 'release'
+            if i['name'] == 'optimization':
+                res1['buildoptions'][idx]['value'] = '3'
+            if i['name'] == 'debug':
+                res1['buildoptions'][idx]['value'] = False
+
+        with open(introfile, 'r') as fp:
+            res2 = json.load(fp)
+
+        self.assertDictEqual(res1, res2)
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically
