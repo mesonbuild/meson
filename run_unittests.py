@@ -3213,7 +3213,7 @@ recommended as it is not supported on some platforms''')
         self.assertDictEqual(buildopts_to_find, {})
 
         # Check buildsystem_files
-        self.assertListEqual(res['buildsystem_files'], ['meson.build', 'sharedlib/meson.build', 'staticlib/meson.build'])
+        self.assertPathListEqual(res['buildsystem_files'], ['meson.build', 'sharedlib/meson.build', 'staticlib/meson.build'])
 
         # Check dependencies
         dependencies_to_find = ['threads']
