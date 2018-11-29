@@ -93,11 +93,7 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
         if not isinstance(target, build.Target):
             raise RuntimeError('Something weird happened. File a bug.')
 
-        fname = target.get_filename()
-        if isinstance(fname, list):
-            fname = [os.path.join(target.subdir, x) for x in fname]
-        else:
-            fname = os.path.join(target.subdir, fname)
+        fname = [os.path.join(target.subdir, x) for x in target.get_outputs()]
 
         t = {
             'name': target.get_basename(),

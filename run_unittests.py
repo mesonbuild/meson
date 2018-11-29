@@ -1436,7 +1436,7 @@ class AllPlatformTests(BasePlatformTests):
         # Get name of static library
         targets = self.introspect('--targets')
         self.assertEqual(len(targets), 1)
-        libname = targets[0]['filename']
+        libname = targets[0]['filename'][0]
         # Build and get contents of static library
         self.build()
         before = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
@@ -3168,7 +3168,7 @@ recommended as it is not supported on some platforms''')
             ('name', str),
             ('id', str),
             ('type', str),
-            ('filename', str),
+            ('filename', list),
             ('build_by_default', bool),
             ('sources', list),
             ('installed', bool),
@@ -4368,7 +4368,7 @@ class LinuxlikeTests(BasePlatformTests):
                 break
         self.assertIsInstance(docbook_target, dict)
         ifile = self.introspect(['--target-files', 'generated-gdbus-docbook@cus'])[0]
-        self.assertEqual(t['filename'], 'gdbus/generated-gdbus-doc-' + os.path.basename(ifile))
+        self.assertListEqual(t['filename'], ['gdbus/generated-gdbus-doc-' + os.path.basename(ifile)])
 
     def test_build_rpath(self):
         if is_cygwin():

@@ -2120,6 +2120,9 @@ class RunTarget(Target):
     def get_filename(self):
         return self.name
 
+    def get_outputs(self):
+        return [self.name]
+
     def type_suffix(self):
         return "@run"
 
