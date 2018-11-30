@@ -292,7 +292,7 @@ def main():
         os.environ.pop('platform')
     # Run tests
     print(mlog.bold('Running unittests.').get_text(mlog.colorize_console))
-    print()
+    print(flush=True)
     # Can't pass arguments to unit tests, so set the backend to use in the environment
     env = os.environ.copy()
     env['MESON_UNIT_TEST_BACKEND'] = backend.name
@@ -325,7 +325,7 @@ def main():
         else:
             cross_test_args = mesonlib.python_command + ['run_cross_test.py']
             print(mlog.bold('Running armhf cross tests.').get_text(mlog.colorize_console))
-            print()
+            print(flush=True)
             cmd = cross_test_args + ['cross/ubuntu-armhf.txt']
             if options.failfast:
                 cmd += ['--failfast']
@@ -334,7 +334,7 @@ def main():
                 return returncode
             print(mlog.bold('Running mingw-w64 64-bit cross tests.')
                   .get_text(mlog.colorize_console))
-            print()
+            print(flush=True)
             cmd = cross_test_args + ['cross/linux-mingw-w64-64bit.txt']
             if options.failfast:
                 cmd += ['--failfast']
