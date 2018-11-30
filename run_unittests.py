@@ -4700,7 +4700,10 @@ class NativeFileTests(BasePlatformTests):
         # invokes our python wrapper
         batfile = os.path.join(self.builddir, 'binary_wrapper{}.bat'.format(self.current_wrapper))
         with open(batfile, 'wt') as f:
-            f.write('py -3 {} %*'.format(filename))
+            if mesonbuild.environment.detect_msys2_arch():
+                f.write(r'@python3 {} %*'.format(filename))
+            else:
+                f.write('@py -3 {} %*'.format(filename))
         return batfile
 
     def helper_for_compiler(self, lang, cb):
@@ -4745,6 +4748,8 @@ class NativeFileTests(BasePlatformTests):
 
     def test_config_tool_dep(self):
         # Do the skip at this level to avoid screwing up the cache
+        if mesonbuild.environment.detect_msys2_arch():
+            raise unittest.SkipTest('Skipped due to problems with LLVM on MSYS2')
         if not shutil.which('llvm-config'):
             raise unittest.SkipTest('No llvm-installed, cannot test')
         self._simple_test('config_dep', 'llvm-config')
