@@ -3,7 +3,7 @@ project('winmain', 'c')
 # MinGW windres has a bug due to which it doesn't parse args with space properly:
 # https://github.com/mesonbuild/meson/pull/1346
 # https://sourceware.org/bugzilla/show_bug.cgi?id=4933
-if meson.get_compiler('c').get_id() == 'gcc' and host_machine.system() == 'windows'
+if ['gcc', 'clang'].contains(meson.get_compiler('c').get_id()) and host_machine.system() == 'windows'
   # Construct build_to_src and skip this test if it has spaces
   # because then the -I flag to windres will also have spaces
   # and we know the test will fail
