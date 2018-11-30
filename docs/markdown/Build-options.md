@@ -22,6 +22,8 @@ option('array_opt', type : 'array', choices : ['one', 'two', 'three'], value : [
 option('some_feature', type : 'feature', value : 'enabled')  # Since 0.47.0
 ```
 
+For built-in options, see [Built-in options][builtin_opts].
+
 ## Build option types
 
 All types allow a `description` value to be set describing the option,
@@ -180,8 +182,10 @@ option.
 
 ## Built-in build options
 
-There are a number of built-in options. To get the current list execute `meson
+There are a number of [built-in options][builtin_opts]. To get the current list execute `meson
 configure` in the build directory.
+
+[builtin_opts]: https://mesonbuild.com/Builtin-options.html
 
 ### Visual Studio
 
