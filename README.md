@@ -76,9 +76,10 @@ details.
 
 The irc channel for Meson is `#mesonbuild` over at Freenode.
 
-You can use [FreeNode's official webchat](https://webchat.freenode.net/#mesonbuild) 
+You can use [FreeNode's official webchat][meson_irc]
 to connect to this channel.
 
+[meson_irc]: https://webchat.freenode.net/?channels=%23mesonbuild
 
 #### Further info
 
