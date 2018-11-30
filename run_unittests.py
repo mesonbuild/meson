@@ -1947,6 +1947,11 @@ class AllPlatformTests(BasePlatformTests):
         https://github.com/mesonbuild/meson/issues/1646
         '''
         testdir = os.path.join(self.common_test_dir, '5 linkstatic')
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        if env.detect_c_compiler(False).get_id() == 'clang' and is_windows():
+            raise unittest.SkipTest('LTO not (yet) supported by windows clang')
+
         self.init(testdir, extra_args='-Db_lto=true')
         self.build()
         self.run_tests()
