@@ -12,6 +12,9 @@ were added to print all introspection information in one go, format the
 JSON output (the default is still compact JSON) and foce use the new
 output format, even if only one introspection command was given.
 
+A complete introspection dump is also stored in the `meson-info`
+directory. This dump will alwys be (re)generated on every meson run.
+
 Additionlly the format of target was changed:
   - `filename` is now a list of output filenames
   - `install_filename` is now also a list of installed files

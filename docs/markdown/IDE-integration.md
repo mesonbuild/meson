@@ -6,38 +6,32 @@ short-description: Meson's API to integrate Meson support into an IDE
 
 Meson has exporters for Visual Studio and XCode, but writing a custom backend for every IDE out there is not a scalable approach. To solve this problem, Meson provides an API that makes it easy for any IDE or build tools to integrate Meson builds and provide an experience comparable to a solution native to the IDE.
 
-The basic resource for this is the `meson-introspection.json` file in the build directory.
+All the resources required for such a IDE integration can be found in the `meson-info` directory in the build directory.
 
 The first thing to do when setting up a Meson project in an IDE is to select the source and build directories. For this example we assume that the source resides in an Eclipse-like directory called `workspace/project` and the build tree is nested inside it as `workspace/project/build`. First, we initialize Meson by running the following command in the source directory.
 
     meson builddir
 
-The `meson-introspection.json` can then be found in the root of this build directory. It will be automatically updated when meson is (re)configured, or the build options change. As a result, an IDE can watch for changes in this file to know when something changed.
+With this command meson will configure the project and also generate introspection information that is stored in `intro-*.json` files in the `meson-info` directory. All files will be automatically updated when meson is (re)configured, or the build options change. Thus, an IDE can watch for changes in this directory to know when something changed.
 
-The basic JSON format structure defined as follows:
+The `meson-info` directory should contain the following files:
 
-```json
-{
-    "benchmarks": [],
-    "buildoptions": [],
-    "buildsystem_files": ["just", "a", "list", "of", "meson", "files"],
-    "dependencies": [],
-    "installed": {},
-    "projectinfo": {
-        "version": "1.2.3",
-        "descriptive_name": "Project Name",
-        "subprojects": []
-    },
-    "targets": [],
-    "tests": []
-}
-```
+ File                            | Description
+ ------------------------------- | ---------------------------------------------------------------------
+ `intro-benchmarks.json`         | Lists all benchmarks
+ `intro-buildoptions.json`       | Contains a full list of meson configuration options for the project
+ `intro-buildsystem_files.json`  | Full list of all meson build files
+ `intro-dependencies.json`       | Lists all dependencies used in the project
+ `intro-installed.json`          | Contains mapping of files to their installed location
+ `intro-projectinfo.json`        | Stores basic information about the project (name, version, etc.)
+ `intro-targets.json`            | Full list of all build targets
+ `intro-tests.json`              | Lists all tests with instructions how to run them
 
-The content of each JSON entry in this format is further specified in the remainder of this document.
+The content of the JSON files is further specified in the remainder of this document.
 
 ## The `targets` section
 
-The most important entry for an IDE is probably the `targets` section. Here each target with its sources and compiler parameters is specified. The JSON format for one target is defined as follows:
+The most important file for an IDE is probably `intro-targets.json`. Here each target with its sources and compiler parameters is specified. The JSON format for one target is defined as follows:
 
 ```json
 {
@@ -57,7 +51,7 @@ A target usually generates only one file. However, it is possible for custom tar
 
 ### Target sources
 
-The `sources` entry stores a list of all source objects of the target. With this information, an IDE can provide code completion for all source files.
+The `intro-sources.json` file stores a list of all source objects of the target. With this information, an IDE can provide code completion for all source files.
 
 ```json
 {
@@ -83,7 +77,7 @@ The following table shows all valid types for a target.
 
 ## Build Options
 
-The list of all build options (build type, warning level, etc.) is stored in the `buildoptions` list. Here is the JSON format for each option.
+The list of all build options (build type, warning level, etc.) is stored in the `intro-buildoptions.json` file. Here is the JSON format for each option.
 
 ```json
 {
