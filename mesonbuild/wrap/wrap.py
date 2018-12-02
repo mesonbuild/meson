@@ -78,7 +78,9 @@ class WrapNotFoundException(WrapException):
 
 class PackageDefinition:
     def __init__(self, fname):
+        self.filename = fname
         self.basename = os.path.basename(fname)
+        self.name = self.basename[:-5]
         try:
             self.config = configparser.ConfigParser(interpolation=None)
             self.config.read(fname)

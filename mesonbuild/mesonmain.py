@@ -20,7 +20,7 @@ import argparse
 
 from . import mesonlib
 from . import mlog
-from . import mconf, minit, minstall, mintro, msetup, mtest, rewriter
+from . import mconf, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects
 from .mesonlib import MesonException
 from .environment import detect_msys2_arch
 from .wrap import wraptool
@@ -47,6 +47,8 @@ class CommandLineParser:
                          help='Run tests')
         self.add_command('wrap', wraptool.add_arguments, wraptool.run,
                          help='Wrap tools')
+        self.add_command('subprojects', msubprojects.add_arguments, msubprojects.run,
+                         help='Manage subprojects')
         self.add_command('help', self.add_help_arguments, self.run_help_command,
                          help='Print help of a subcommand')
 

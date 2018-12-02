@@ -179,7 +179,7 @@ the following command-line options:
     This is useful (mostly for distros) when you want to only use the
     sources provided by a software release, and want to manually handle
     or provide missing dependencies.
-    
+
 * **--wrap-mode=nofallback**
 
     Meson will not use subproject fallbacks for any dependency
@@ -195,6 +195,51 @@ the following command-line options:
     them. This is useful when you want to test your fallback setup, or
     want to specifically build against the library sources provided by
     your subprojects.
+
+## Download subprojects
+
+*Since 0.49.0*
+
+Meson will automatically download needed subprojects during configure, unless
+**--wrap-mode=nodownload** option is passed. It is sometimes preferable to
+download all subprojects in advance, so the meson configure can be performed
+offline. The command-line `meson subprojects download` can be used for that, it
+will download all missing subprojects, but will not update already fetched
+subprojects.
+
+## Update subprojects
+
+*Since 0.49.0*
+
+Once a subproject has been fetched, Meson will not update it automatically.
+For example if the wrap file tracks a git branch, it won't pull latest commits.
+
+To pull latest version of all your subprojects at once, just run the command:
+`meson subprojects update`.
+- If the wrap file comes from wrapdb, the latest version of the wrap file will
+  be pulled and used next time meson reconfigure the project. This can be
+  triggered using `meson --reconfigure`. Previous source tree is not deleted, to
+  prevent from any loss of local changes.
+- If the wrap file points to a git commit or tag, a checkout of that commit is
+  performed.
+- If the wrap file points to a git branch, and the current branch has the same
+  name, a `git pull` is performed.
+- If the wrap file points to a git branch, and the current branch is different,
+  it is skipped. Unless `--rebase` option is passed in which case
+  `git pull --rebase` is performed.
+
+## Start a topic branch across all git subprojects
+
+*Since 0.49.0*
+
+The command-line `meson subprojects checkout <branch_name>` will checkout a
+branch, or create one with `-b` argument, in every git subprojects. This is
+useful when starting local changes across multiple subprojects. It is still your
+responsability to commit and push in each repository where you made local
+changes.
+
+To come back to the revision set in wrap file (i.e. master), just run
+`meson subprojects checkout` with no branch name.
 
 ## Why must all subprojects be inside a single directory?
 
