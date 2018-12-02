@@ -1,0 +1,2 @@
+usr/bin/prog?exe
+?msvc:usr/bin/prog.pdb

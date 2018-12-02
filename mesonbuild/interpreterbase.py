@@ -749,6 +749,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             except IndexError:
                 raise InterpreterException('Index %d out of bounds of array of size %d.' % (index, len(iobject)))
 
+
     def function_call(self, node):
         func_name = node.func_name
         (posargs, kwargs) = self.reduce_arguments(node.args)
@@ -990,7 +991,20 @@ The result of this is undefined and will become a hard error in a future Meson r
             a = args.kwargs[key]
             reduced_kw[key] = self.evaluate_statement(a)
         self.argument_depth -= 1
-        return reduced_pos, reduced_kw
+        final_kw = self.expand_default_kwargs(reduced_kw)
+        return reduced_pos, final_kw
+
+    def expand_default_kwargs(self, kwargs):
+        if 'kwargs' not in kwargs:
+            return kwargs
+        to_expand = kwargs.pop('kwargs')
+        if not isinstance(to_expand, dict):
+            raise InterpreterException('Value of "kwarg" must be dictionary.')
+        for k, v in to_expand.items():
+            if k in kwargs:
+                raise InterpreterException('Entry "{}" defined both as a keyword argument and in a "kwarg" entry.'.format(k))
+            kwargs[k] = v
+        return kwargs
 
     def assignment(self, node):
         assert(isinstance(node, mparser.AssignmentNode))
