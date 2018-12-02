@@ -276,7 +276,7 @@ def list_target_files(target_name, targets):
 
     return ('target_files', result)
 
-def list_buildoptions(coredata):
+def list_buildoptions(coredata: cdata.CoreData):
     optlist = []
 
     dir_option_names = ['bindir',
@@ -346,7 +346,7 @@ def list_buildsystem_files(builddata: build.Build):
     filelist = find_buildsystem_files_list(src_dir)
     return ('buildsystem_files', filelist)
 
-def list_deps(coredata):
+def list_deps(coredata: cdata.CoreData):
     result = []
     for d in coredata.deps.values():
         if d.found():
@@ -451,10 +451,10 @@ def list_projinfo_from_source(sourcedir):
 
 def run(options):
     datadir = 'meson-private'
-    introfile = INTROSPECTION_OUTPUT_FILE
+    infodir = 'meson-info'
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
-        introfile = os.path.join(options.builddir, introfile)
+        infodir = os.path.join(options.builddir, infodir)
     if options.builddir.endswith('/meson.build') or options.builddir.endswith('\\meson.build') or options.builddir == 'meson.build':
         sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
         if options.projectinfo:
@@ -463,14 +463,10 @@ def run(options):
         if options.buildoptions:
             list_buildoptions_from_source(sourcedir, options.backend)
             return 0
-    if not os.path.isdir(datadir) or not os.path.isfile(introfile):
+    if not os.path.isdir(datadir) or not os.path.isdir(infodir):
         print('Current directory is not a build dir. Please specify it or '
               'change the working directory to it.')
         return 1
-
-    rawdata = {}
-    with open(introfile, 'r') as fp:
-        rawdata = json.load(fp)
 
     results = []
     toextract = []
@@ -490,14 +486,20 @@ def run(options):
     if options.all or options.list_targets:
         toextract += ['targets']
     if options.target_files is not None:
-        results += [list_target_files(options.target_files, rawdata['targets'])]
+        targets_file = os.path.join(infodir, 'intro-targets.json')
+        with open(targets_file, 'r') as fp:
+            targets = json.load(fp)
+        results += [list_target_files(options.target_files, targets)]
     if options.all or options.tests:
         toextract += ['tests']
 
     for i in toextract:
-        if i not in rawdata:
-            raise RuntimeError('Key "{}" missing in introspection file. Please report this a bug.'.format(i))
-        results += [(i, rawdata[i])]
+        curr = os.path.join(infodir, 'intro-{}.json'.format(i))
+        if not os.path.isfile(curr):
+            print('Introspection file {} does not exist.'.format(curr))
+            return 1
+        with open(curr, 'r') as fp:
+            results += [(i, json.load(fp))]
 
     indent = options.indent if options.indent > 0 else None
 
@@ -513,6 +515,12 @@ def run(options):
             out[i[0]] = i[1]
         print(json.dumps(out, indent=indent))
     return 0
+
+def write_intro_info(intro_info, info_dir):
+    for i in intro_info:
+        out_file = os.path.join(info_dir, 'intro-{}.json'.format(i[0]))
+        with open(out_file, 'w') as fp:
+            json.dump(i[1], fp)
 
 def generate_introspection_file(builddata: build.Build, backend: backends.Backend):
     coredata = builddata.environment.get_coredata()
@@ -531,29 +539,11 @@ def generate_introspection_file(builddata: build.Build, backend: backends.Backen
         list_tests(testdata)
     ]
 
-    outdict = {}
-    for i in intro_info:
-        outdict[i[0]] = i[1]
+    write_intro_info(intro_info, builddata.environment.info_dir)
 
-    outfile = os.path.join(builddata.environment.get_build_dir(), INTROSPECTION_OUTPUT_FILE)
-    outfile = os.path.abspath(outfile)
-
-    with open(outfile, 'w') as fp:
-        json.dump(outdict, fp)
-
-def update_build_options(coredata, builddir):
-    outfile = os.path.join(builddir, INTROSPECTION_OUTPUT_FILE)
-    outfile = os.path.abspath(outfile)
-
-    with open(outfile, 'r') as fp:
-        outdict = json.load(fp)
-
+def update_build_options(coredata: cdata.CoreData, info_dir):
     intro_info = [
         list_buildoptions(coredata)
     ]
 
-    for i in intro_info:
-        outdict[i[0]] = i[1]
-
-    with open(outfile, 'w') as fp:
-        json.dump(outdict, fp)
+    write_intro_info(intro_info, info_dir)

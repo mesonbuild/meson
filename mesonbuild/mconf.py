@@ -163,7 +163,7 @@ def run(options):
             c.print_conf()
         if save:
             c.save()
-            mintro.update_build_options(c.coredata, builddir)
+            mintro.update_build_options(c.coredata, c.build.environment.info_dir)
     except ConfException as e:
         print('Meson configurator encountered an error:')
         raise e

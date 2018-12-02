@@ -3116,10 +3116,8 @@ recommended as it is not supported on some platforms''')
     def test_introspect_json_dump(self):
         testdir = os.path.join(self.unit_test_dir, '49 introspection')
         self.init(testdir)
-        introfile = os.path.join(self.builddir, 'meson-introspection.json')
-        self.assertPathExists(introfile)
-        with open(introfile, 'r') as fp:
-            res = json.load(fp)
+        infodir = os.path.join(self.builddir, 'meson-info')
+        self.assertPathExists(infodir)
 
         def assertKeyTypes(key_type_list, obj):
             for i in key_type_list:
@@ -3183,6 +3181,14 @@ recommended as it is not supported on some platforms''')
             ('parameters', list),
             ('source_files', list),
         ]
+
+        # First load all files
+        res = {}
+        for i in root_keylist:
+            curr = os.path.join(infodir, 'intro-{}.json'.format(i[0]))
+            self.assertPathExists(curr)
+            with open(curr, 'r') as fp:
+                res[i[0]] = json.load(fp)
 
         assertKeyTypes(root_keylist, res)
 
@@ -3252,16 +3258,30 @@ recommended as it is not supported on some platforms''')
         res_all = self.introspect('--all')
         res_file = {}
 
-        introfile = os.path.join(self.builddir, 'meson-introspection.json')
-        self.assertPathExists(introfile)
-        with open(introfile, 'r') as fp:
-            res_file = json.load(fp)
+        root_keylist = [
+            'benchmarks',
+            'buildoptions',
+            'buildsystem_files',
+            'dependencies',
+            'installed',
+            'projectinfo',
+            'targets',
+            'tests',
+        ]
+
+        infodir = os.path.join(self.builddir, 'meson-info')
+        self.assertPathExists(infodir)
+        for i in root_keylist:
+            curr = os.path.join(infodir, 'intro-{}.json'.format(i))
+            self.assertPathExists(curr)
+            with open(curr, 'r') as fp:
+                res_file[i] = json.load(fp)
 
         self.assertEqual(res_all, res_file)
 
     def test_introspect_config_update(self):
         testdir = os.path.join(self.unit_test_dir, '49 introspection')
-        introfile = os.path.join(self.builddir, 'meson-introspection.json')
+        introfile = os.path.join(self.builddir, 'meson-info', 'intro-buildoptions.json')
         self.init(testdir)
         self.assertPathExists(introfile)
         with open(introfile, 'r') as fp:
@@ -3270,20 +3290,20 @@ recommended as it is not supported on some platforms''')
         self.setconf('-Dcpp_std=c++14')
         self.setconf('-Dbuildtype=release')
 
-        for idx, i in enumerate(res1['buildoptions']):
+        for idx, i in enumerate(res1):
             if i['name'] == 'cpp_std':
-                res1['buildoptions'][idx]['value'] = 'c++14'
+                res1[idx]['value'] = 'c++14'
             if i['name'] == 'buildtype':
-                res1['buildoptions'][idx]['value'] = 'release'
+                res1[idx]['value'] = 'release'
             if i['name'] == 'optimization':
-                res1['buildoptions'][idx]['value'] = '3'
+                res1[idx]['value'] = '3'
             if i['name'] == 'debug':
-                res1['buildoptions'][idx]['value'] = False
+                res1[idx]['value'] = False
 
         with open(introfile, 'r') as fp:
             res2 = json.load(fp)
 
-        self.assertDictEqual(res1, res2)
+        self.assertListEqual(res1, res2)
 
 class FailureTests(BasePlatformTests):
     '''
