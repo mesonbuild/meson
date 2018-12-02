@@ -104,13 +104,14 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
             subprocess.check_call([gcovr_exe,
                                    '--html',
                                    '--html-details',
+                                   '--print-summary',
                                    '-r', build_root,
                                    '-e', subproject_root,
                                    '-o', os.path.join(htmloutdir, 'index.html'),
                                    ])
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
         elif outputs:
-            print('lcov/genhtml or gcovr >= 3.1 needed to generate Html coverage report')
+            print('lcov/genhtml or gcovr >= 3.2 needed to generate Html coverage report')
             exitcode = 1
 
     if not outputs and not outfiles:
