@@ -373,8 +373,12 @@ class Environment:
             self.default_cs = ['mcs', 'csc']
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
+        self.default_d = ['ldc2', 'ldc', 'gdc', 'dmd']
         self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77', 'ifort']
+        self.default_java = ['javac']
         self.default_rust = ['rustc']
+        self.default_swift = ['swiftc']
+        self.default_vala = ['valac']
         self.default_static_linker = ['ar']
         self.vs_static_linker = ['lib']
         self.clang_cl_static_linker = ['llvm-lib']
@@ -811,7 +815,8 @@ class Environment:
         if 'java' in self.config_info.binaries:
             exelist = mesonlib.stringlistify(self.config_info.binaries['java'])
         else:
-            exelist = ['javac']
+            # TODO support fallback
+            exelist = [self.default_java[0]]
 
         try:
             p, out, err = Popen_safe(exelist + ['-version'])
@@ -848,7 +853,8 @@ class Environment:
         elif 'vala' in self.config_info.binaries:
             exelist = mesonlib.stringlistify(self.config_info.binaries['vala'])
         else:
-            exelist = ['valac']
+            # TODO support fallback
+            exelist = [self.default_vala[0]]
         try:
             p, out = Popen_safe(exelist + ['--version'])[0:2]
         except OSError:
@@ -893,16 +899,13 @@ class Environment:
             is_cross = True
         elif 'd' in self.config_info.binaries:
             exelist = mesonlib.stringlistify(self.config_info.binaries['d'])
-        elif shutil.which("ldc2"):
-            exelist = ['ldc2']
-        elif shutil.which("ldc"):
-            exelist = ['ldc']
-        elif shutil.which("gdc"):
-            exelist = ['gdc']
-        elif shutil.which("dmd"):
-            exelist = ['dmd']
         else:
-            raise EnvironmentException('Could not find any supported D compiler.')
+            for d in self.default_d:
+                if shutil.which(d):
+                    exelist = [d]
+                    break
+            else:
+                raise EnvironmentException('Could not find any supported D compiler.')
 
         try:
             p, out = Popen_safe(exelist + ['--version'])[0:2]
@@ -933,7 +936,8 @@ class Environment:
         if 'swift' in self.config_info.binaries:
             exelist = mesonlib.stringlistify(self.config_info.binaries['swift'])
         else:
-            exelist = ['swiftc']
+            # TODO support fallback
+            exelist = [self.default_swift[0]]
         try:
             p, _, err = Popen_safe(exelist + ['-v'])
         except OSError:
