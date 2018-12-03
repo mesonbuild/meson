@@ -93,7 +93,7 @@ class DependenciesHelper:
                 for d in pcdeps:
                     processed_reqs.append(d.name)
                     self.add_version_reqs(d.name, obj.version_reqs)
-            elif hasattr(obj, 'generated_pc'):
+            elif hasattr(obj, 'generated_pc') and obj.generated_pc != self.name:
                 processed_reqs.append(obj.generated_pc)
             elif isinstance(obj, dependencies.PkgConfigDependency):
                 if obj.found():
