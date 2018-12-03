@@ -114,14 +114,8 @@ class DependenciesHelper:
                 # than needed build deps.
                 # See https://bugs.freedesktop.org/show_bug.cgi?id=105572
                 processed_libs.append(obj)
-                if public:
-                    if not hasattr(obj, 'generated_pc'):
-                        obj.generated_pc = self.name
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
-                if public:
-                    if not hasattr(obj, 'generated_pc'):
-                        obj.generated_pc = self.name
                 if isinstance(obj, build.StaticLibrary) and public:
                     self.add_pub_libs(obj.get_dependencies(internal=False))
                     self.add_pub_libs(obj.get_external_deps())
@@ -407,6 +401,11 @@ class PkgConfigModule(ExtensionModule):
         self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                      version, pcfile, conflicts, variables)
         res = build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
+        for lib in deps.pub_libs:
+            # If those libraries appear in any subsequent call, they will be
+            # added into 'Requires:' or 'Requires.private:' instead.
+            if not isinstance(lib, str) and not hasattr(lib, 'generated_pc'):
+                lib.generated_pc = filebase
         return ModuleReturnValue(res, [res])
 
 def initialize(*args, **kwargs):
