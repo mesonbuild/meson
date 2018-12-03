@@ -343,7 +343,6 @@ class Backend:
                 exe_is_native = True
             is_cross_built = (not exe_is_native) and \
                 self.environment.is_cross_build() and \
-                self.environment.cross_info.need_cross_compiler() and \
                 self.environment.cross_info.need_exe_wrapper()
             if is_cross_built:
                 exe_wrapper = self.environment.get_exe_wrapper()
@@ -693,7 +692,6 @@ class Backend:
             else:
                 cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))]
             is_cross = self.environment.is_cross_build() and \
-                self.environment.cross_info.need_cross_compiler() and \
                 self.environment.cross_info.need_exe_wrapper()
             if isinstance(exe, build.BuildTarget):
                 is_cross = is_cross and exe.is_cross

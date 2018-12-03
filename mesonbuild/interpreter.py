@@ -2685,7 +2685,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     def add_languages(self, args, required):
         success = True
-        need_cross_compiler = self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler()
+        need_cross_compiler = self.environment.is_cross_build()
         for lang in sorted(args, key=compilers.sort_clink):
             lang = lang.lower()
             if lang in self.coredata.compilers:

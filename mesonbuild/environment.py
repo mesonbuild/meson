@@ -1215,11 +1215,6 @@ class CrossBuildInfo:
     def get_sys_root(self):
         return self.get_properties().get('sys_root', None)
 
-    # When compiling a cross compiler we use the native compiler for everything.
-    # But not when cross compiling a cross compiler.
-    def need_cross_compiler(self):
-        return 'host_machine' in self.config
-
     def need_exe_wrapper(self):
         value = self.config['properties'].get('needs_exe_wrapper', None)
         if value is not None:

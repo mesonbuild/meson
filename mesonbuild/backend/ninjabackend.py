@@ -536,7 +536,6 @@ int dummy;
         # a serialized executable wrapper for that and check if the
         # CustomTarget command needs extra paths first.
         is_cross = self.environment.is_cross_build() and \
-            self.environment.cross_info.need_cross_compiler() and \
             self.environment.cross_info.need_exe_wrapper()
         if mesonlib.for_windows(is_cross, self.environment) or \
            mesonlib.for_cygwin(is_cross, self.environment):
@@ -1338,7 +1337,7 @@ int dummy;
             if not is_cross:
                 self.generate_java_link(outfile)
         if is_cross:
-            if self.environment.cross_info.need_cross_compiler():
+            if self.environment.cross_info.is_cross_build():
                 static_linker = self.build.static_cross_linker
             else:
                 static_linker = self.build.static_linker
@@ -1381,12 +1380,6 @@ int dummy;
         num_pools = self.environment.coredata.backend_options['backend_max_links'].value
         ctypes = [(self.build.compilers, False)]
         if self.environment.is_cross_build():
-            if self.environment.cross_info.need_cross_compiler():
-                ctypes.append((self.build.cross_compilers, True))
-            else:
-                # Native compiler masquerades as the cross compiler.
-                ctypes.append((self.build.compilers, True))
-        else:
             ctypes.append((self.build.cross_compilers, True))
         for (complist, is_cross) in ctypes:
             for langname, compiler in complist.items():
@@ -1667,12 +1660,7 @@ rule FORTRAN_DEP_HACK%s
             self.generate_compile_rule_for(langname, compiler, False, outfile)
             self.generate_pch_rule_for(langname, compiler, False, outfile)
         if self.environment.is_cross_build():
-            # In case we are going a target-only build, make the native compilers
-            # masquerade as cross compilers.
-            if self.environment.cross_info.need_cross_compiler():
-                cclist = self.build.cross_compilers
-            else:
-                cclist = self.build.compilers
+            cclist = self.build.cross_compilers
             for langname, compiler in cclist.items():
                 if compiler.get_id() == 'clang':
                     self.generate_llvm_ir_compile_rule(compiler, True, outfile)
@@ -2235,7 +2223,7 @@ rule FORTRAN_DEP_HACK%s
         targetdir = self.get_target_private_dir(target)
         symname = os.path.join(targetdir, target_name + '.symbols')
         elem = NinjaBuildElement(self.all_outputs, symname, 'SHSYM', target_file)
-        if self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler():
+        if self.environment.is_cross_build():
             elem.add_item('CROSS', '--cross-host=' + self.environment.cross_info.config['host_machine']['system'])
         elem.write(outfile)
 
