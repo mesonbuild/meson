@@ -140,7 +140,10 @@ class BoostDependency(ExternalDependency):
         # 1. check if we can find BOOST headers.
         self.detect_headers_and_version()
 
-        # 2. check if we can find BOOST libraries.
+        # 2. check if version requirements are satisfied
+        self._check_version()
+
+        # 3. check if we can find BOOST libraries.
         if self.is_found:
             self.detect_lib_modules()
             mlog.debug('Boost library directory is', mlog.bold(self.libdir))
