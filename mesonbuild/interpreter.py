@@ -1824,9 +1824,9 @@ class MesonMain(InterpreterObject):
         if not isinstance(native, bool):
             raise InterpreterException('Type of "native" must be a boolean.')
         if native:
-            clist = self.build.compilers
+            clist = self.interpreter.coredata.compilers
         else:
-            clist = self.build.cross_compilers
+            clist = self.interpreter.coredata.cross_compilers
         if cname in clist:
             return CompilerHolder(clist[cname], self.build.environment, self.interpreter.subproject)
         raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
@@ -2208,7 +2208,7 @@ class Interpreter(InterpreterBase):
     def check_cross_stdlibs(self):
         if self.build.environment.is_cross_build():
             props = self.build.environment.properties.host
-            for l in self.build.cross_compilers.keys():
+            for l in self.coredata.cross_compilers.keys():
                 try:
                     di = mesonlib.stringlistify(props.get_stdlib(l))
                     if len(di) != 2:
@@ -3857,7 +3857,7 @@ different subdirectory.
             self.print_extra_warnings()
 
     def print_extra_warnings(self):
-        for c in self.build.compilers.values():
+        for c in self.coredata.compilers.values():
             if c.get_id() == 'clang':
                 self.check_clang_asan_lundef()
                 break
@@ -4074,7 +4074,7 @@ This will become a hard error in the future.''', location=self.current_node)
     def get_used_languages(self, target):
         result = {}
         for i in target.sources:
-            for lang, c in self.build.compilers.items():
+            for lang, c in self.coredata.compilers.items():
                 if c.can_compile(i):
                     result[lang] = True
                     break

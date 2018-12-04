@@ -114,9 +114,6 @@ class Build:
         self.environment = environment
         self.projects = {}
         self.targets = OrderedDict()
-        # Coredata holds the state. This is just here for convenience.
-        self.compilers = environment.coredata.compilers
-        self.cross_compilers = environment.coredata.cross_compilers
         self.global_args = {}
         self.projects_args = {}
         self.global_link_args = {}
@@ -149,10 +146,6 @@ class Build:
     def copy(self):
         other = Build(self.environment)
         for k, v in self.__dict__.items():
-            if k in ['compilers', 'cross_compilers']:
-                # These alias coredata's fields of the same name, and must not
-                # become copies.
-                continue
             if isinstance(v, (list, dict, set, OrderedDict)):
                 other.__dict__[k] = v.copy()
             else:
