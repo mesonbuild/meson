@@ -312,6 +312,7 @@ def print_system_info():
     print('Processor:', platform.processor())
     print('System:', platform.system())
     print('')
+    print(flush=True)
 
 def main():
     print_system_info()
@@ -319,7 +320,7 @@ def main():
     parser.add_argument('--cov', action='store_true')
     parser.add_argument('--backend', default=None, dest='backend',
                         choices=backendlist)
-    parser.add_argument('--cross', default=False, dest='cross', action='store_true')
+    parser.add_argument('--cross', default=[], dest='cross', action='append')
     parser.add_argument('--failfast', action='store_true')
     parser.add_argument('--no-unittests', action='store_true', default=False)
     (options, _) = parser.parse_known_args()
@@ -352,8 +353,6 @@ def main():
     if 'APPVEYOR' in os.environ and os.environ['arch'] == 'x86':
         os.environ.pop('platform')
     # Run tests
-    print(mlog.bold('Running unittests.').get_text(mlog.colorize_console))
-    print(flush=True)
     # Can't pass arguments to unit tests, so set the backend to use in the environment
     env = os.environ.copy()
     env['MESON_UNIT_TEST_BACKEND'] = backend.name
@@ -377,8 +376,11 @@ def main():
                 return returncode
             if no_unittests:
                 print('Skipping all unit tests.')
+                print(flush=True)
                 returncode = 0
             else:
+                print(mlog.bold('Running unittests.').get_text(mlog.colorize_console))
+                print(flush=True)
                 cmd = mesonlib.python_command + ['run_unittests.py', '-v']
                 if options.failfast:
                     cmd += ['--failfast']
@@ -389,21 +391,15 @@ def main():
             returncode += subprocess.call(cmd, env=env)
         else:
             cross_test_args = mesonlib.python_command + ['run_cross_test.py']
-            print(mlog.bold('Running armhf cross tests.').get_text(mlog.colorize_console))
-            print(flush=True)
-            cmd = cross_test_args + ['cross/ubuntu-armhf.txt']
-            if options.failfast:
-                cmd += ['--failfast']
-            returncode += subprocess.call(cmd, env=env)
-            if options.failfast and returncode != 0:
-                return returncode
-            print(mlog.bold('Running mingw-w64 64-bit cross tests.')
-                  .get_text(mlog.colorize_console))
-            print(flush=True)
-            cmd = cross_test_args + ['cross/linux-mingw-w64-64bit.txt']
-            if options.failfast:
-                cmd += ['--failfast']
-            returncode += subprocess.call(cmd, env=env)
+            for cf in options.cross:
+                print(mlog.bold('Running {} cross tests.'.format(cf)).get_text(mlog.colorize_console))
+                print(flush=True)
+                cmd = cross_test_args + ['cross/' + cf]
+                if options.failfast:
+                    cmd += ['--failfast']
+                returncode += subprocess.call(cmd, env=env)
+                if options.failfast and returncode != 0:
+                    return returncode
     return returncode
 
 if __name__ == '__main__':
