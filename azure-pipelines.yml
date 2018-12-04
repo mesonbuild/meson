@@ -56,6 +56,11 @@ jobs:
           arch: x64
           compiler: msvc2019
           backend: vs2019
+        vc2019arm64ninjacross:
+          arch: arm64
+          compiler: msvc2019
+          backend: ninja
+          extraargs: --cross arm64cl.txt --cross-only
 
   steps:
   - task: UsePythonVersion@0
