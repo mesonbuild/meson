@@ -2019,7 +2019,7 @@ def find_external_dependency(name, env, kwargs):
     # build a list of dependency methods to try
     candidates = _build_external_dependency_list(name, env, kwargs)
 
-    pkg_exc = None
+    pkg_exc = []
     pkgdep = []
     details = ''
 
@@ -2030,11 +2030,10 @@ def find_external_dependency(name, env, kwargs):
             d._check_version()
             pkgdep.append(d)
         except Exception as e:
+            pkg_exc.append(e)
             mlog.debug(str(e))
-            # store the first exception we see
-            if not pkg_exc:
-                pkg_exc = e
         else:
+            pkg_exc.append(None)
             details = d.log_details()
             if details:
                 details = '(' + details + ') '
@@ -2069,10 +2068,11 @@ def find_external_dependency(name, env, kwargs):
              '(tried {})'.format(tried) if tried else '')
 
     if required:
-        # if exception(s) occurred, re-raise the first one (on the grounds that
-        # it came from a preferred dependency detection method)
-        if pkg_exc:
-            raise pkg_exc
+        # if an exception occurred with the first detection method, re-raise it
+        # (on the grounds that it came from the preferred dependency detection
+        # method)
+        if pkg_exc[0]:
+            raise pkg_exc[0]
 
         # we have a list of failed ExternalDependency objects, so we can report
         # the methods we tried to find the dependency
