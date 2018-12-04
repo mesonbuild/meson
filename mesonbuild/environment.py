@@ -411,8 +411,8 @@ class Environment:
         # target machine.)
         machines = PerThreeMachineDefaultable()
 
-        # Similar to coredata.compilers and build.compilers, but lower level in
-        # that there is no meta data, only names/paths.
+        # Similar to coredata.compilers, but lower level in that there is no
+        # meta data, only names/paths.
         binaries = PerMachineDefaultable()
 
         # Misc other properties about each machine.
