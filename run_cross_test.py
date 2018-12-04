@@ -29,7 +29,14 @@ def runtests(cross_file, failfast, cross_only):
     tests = ['--only', 'common']
     if not cross_only:
         tests.append('native')
-    cmd = mesonlib.python_command + ['run_project_tests.py', '--backend', 'ninja'] + (['--failfast'] if failfast else []) + tests + ['--cross-file', cross_file]
+    cmd = mesonlib.python_command + ['run_project_tests.py', '--backend', 'ninja']
+    if failfast:
+        cmd += ['--failfast']
+    cmd += tests
+    cmd += ['--cross-file', cross_file]
+    cmd += ['--']  # args following this are passed directly to meson
+    if cross_only:
+        cmd += ['--native-file', 'cross/none.txt']
     return subprocess.call(cmd)
 
 def main():
