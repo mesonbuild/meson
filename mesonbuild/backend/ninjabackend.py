@@ -271,7 +271,7 @@ int dummy;
 ''' % num_pools)
 
         with self.detect_vs_dep_prefix(tempfilename) as outfile:
-            self.generate_rules(outfile)
+            self.generate_rules()
             self.write_rules(outfile)
             self.generate_phony(outfile)
             outfile.write('# Build rules for targets\n\n')
@@ -823,16 +823,16 @@ int dummy;
         # Alias that runs the above-defined meson-benchmark target
         self.create_target_alias('meson-benchmark', outfile)
 
-    def generate_rules(self, outfile):
+    def generate_rules(self):
         self.rules = []
 
         self.add_rule_comment(NinjaComment('Rules for compiling.'))
-        self.generate_compile_rules(outfile)
+        self.generate_compile_rules()
         self.add_rule_comment(NinjaComment('Rules for linking.'))
         if self.environment.is_cross_build():
-            self.generate_static_link_rules(True, outfile)
-        self.generate_static_link_rules(False, outfile)
-        self.generate_dynamic_link_rules(outfile)
+            self.generate_static_link_rules(True)
+        self.generate_static_link_rules(False)
+        self.generate_dynamic_link_rules()
         self.add_rule_comment(NinjaComment('Other rules'))
         # Ninja errors out if you have deps = gcc but no depfile, so we must
         # have two rules for custom commands.
@@ -1025,7 +1025,7 @@ int dummy;
         element.write(outfile)
         return plain_class_path
 
-    def generate_java_link(self, outfile):
+    def generate_java_link(self):
         rule = 'java_LINKER'
         command = 'jar $ARGS'
         description = 'Creating JAR $out.'
@@ -1458,11 +1458,11 @@ int dummy;
         # Introspection information
         self.create_target_source_introspection(target, swiftc, compile_args + header_imports + module_includes, relsrc, rel_generated)
 
-    def generate_static_link_rules(self, is_cross, outfile):
+    def generate_static_link_rules(self, is_cross):
         num_pools = self.environment.coredata.backend_options['backend_max_links'].value
         if 'java' in self.build.compilers:
             if not is_cross:
-                self.generate_java_link(outfile)
+                self.generate_java_link()
         if is_cross:
             if self.environment.is_cross_build():
                 static_linker = self.build.static_cross_linker
@@ -1503,7 +1503,7 @@ int dummy;
                                 rspable=static_linker.can_linker_accept_rsp(),
                                 extra=pool))
 
-    def generate_dynamic_link_rules(self, outfile):
+    def generate_dynamic_link_rules(self):
         num_pools = self.environment.coredata.backend_options['backend_max_links'].value
         ctypes = [(self.build.compilers, False)]
         if self.environment.is_cross_build():
@@ -1549,14 +1549,14 @@ int dummy;
         synstat = 'restat = 1'
         self.add_rule(NinjaRule(symrule, symcmd, '', syndesc, extra=synstat))
 
-    def generate_java_compile_rule(self, compiler, outfile):
+    def generate_java_compile_rule(self, compiler):
         rule = '%s_COMPILER' % compiler.get_language()
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
         command = '%s $ARGS $in' % invoc
         description = 'Compiling Java object $in.'
         self.add_rule(NinjaRule(rule, command, '', description))
 
-    def generate_cs_compile_rule(self, compiler, outfile):
+    def generate_cs_compile_rule(self, compiler):
         rule = '%s_COMPILER' % compiler.get_language()
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
         command = '%s' % invoc
@@ -1565,14 +1565,14 @@ int dummy;
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=mesonlib.is_windows()))
 
-    def generate_vala_compile_rules(self, compiler, outfile):
+    def generate_vala_compile_rules(self, compiler):
         rule = '%s_COMPILER' % compiler.get_language()
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
         command = '%s $ARGS $in' % invoc
         description = 'Compiling Vala source $in.'
         self.add_rule(NinjaRule(rule, command, '', description, extra='restat = 1'))
 
-    def generate_rust_compile_rules(self, compiler, outfile, is_cross):
+    def generate_rust_compile_rules(self, compiler, is_cross):
         crstr = ''
         if is_cross:
             crstr = '_CROSS'
@@ -1585,7 +1585,7 @@ int dummy;
         self.add_rule(NinjaRule(rule, command, '', description, deps=depstyle,
                                 depfile=depfile))
 
-    def generate_swift_compile_rules(self, compiler, outfile):
+    def generate_swift_compile_rules(self, compiler):
         rule = '%s_COMPILER' % compiler.get_language()
         full_exe = [ninja_quote(x) for x in self.environment.get_build_command()] + [
             '--internal',
@@ -1598,7 +1598,7 @@ int dummy;
         description = 'Compiling Swift source $in.'
         self.add_rule(NinjaRule(rule, command, '', description))
 
-    def generate_fortran_dep_hack(self, outfile, crstr):
+    def generate_fortran_dep_hack(self, crstr):
         rule = 'FORTRAN_DEP_HACK%s' % (crstr)
         if mesonlib.is_windows():
             cmd = 'cmd /C ""'
@@ -1609,7 +1609,7 @@ https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_rule(NinjaRule(rule, cmd, '', 'Dep hack', extra='restat = 1'))
 
-    def generate_llvm_ir_compile_rule(self, compiler, is_cross, outfile):
+    def generate_llvm_ir_compile_rule(self, compiler, is_cross):
         if getattr(self, 'created_llvm_ir_rule', False):
             return
         rule = 'llvm_ir{}_COMPILER'.format('_CROSS' if is_cross else '')
@@ -1627,32 +1627,32 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                 rspable=compiler.can_linker_accept_rsp()))
         self.created_llvm_ir_rule = True
 
-    def generate_compile_rule_for(self, langname, compiler, is_cross, outfile):
+    def generate_compile_rule_for(self, langname, compiler, is_cross):
         if langname == 'java':
             if not is_cross:
-                self.generate_java_compile_rule(compiler, outfile)
+                self.generate_java_compile_rule(compiler)
             return
         if langname == 'cs':
             if not is_cross:
-                self.generate_cs_compile_rule(compiler, outfile)
+                self.generate_cs_compile_rule(compiler)
             return
         if langname == 'vala':
             if not is_cross:
-                self.generate_vala_compile_rules(compiler, outfile)
+                self.generate_vala_compile_rules(compiler)
             return
         if langname == 'rust':
-            self.generate_rust_compile_rules(compiler, outfile, is_cross)
+            self.generate_rust_compile_rules(compiler, is_cross)
             return
         if langname == 'swift':
             if not is_cross:
-                self.generate_swift_compile_rules(compiler, outfile)
+                self.generate_swift_compile_rules(compiler)
             return
         if is_cross:
             crstr = '_CROSS'
         else:
             crstr = ''
         if langname == 'fortran':
-            self.generate_fortran_dep_hack(outfile, crstr)
+            self.generate_fortran_dep_hack(crstr)
         rule = '%s%s_COMPILER' % (langname, crstr)
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
         quoted_depargs = []
@@ -1682,7 +1682,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                 rspable=compiler.can_linker_accept_rsp(),
                                 deps=deps, depfile=depfile))
 
-    def generate_pch_rule_for(self, langname, compiler, is_cross, outfile):
+    def generate_pch_rule_for(self, langname, compiler, is_cross):
         if langname != 'c' and langname != 'cpp':
             return
         if is_cross:
@@ -1717,20 +1717,19 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_rule(NinjaRule(rule, command, '', description, deps=deps,
                                 depfile=depfile))
 
-    def generate_compile_rules(self, outfile):
+    def generate_compile_rules(self):
         for langname, compiler in self.build.compilers.items():
             if compiler.get_id() == 'clang':
-                self.generate_llvm_ir_compile_rule(compiler, False, outfile)
-            self.generate_compile_rule_for(langname, compiler, False, outfile)
-            self.generate_pch_rule_for(langname, compiler, False, outfile)
+                self.generate_llvm_ir_compile_rule(compiler, False)
+            self.generate_compile_rule_for(langname, compiler, False)
+            self.generate_pch_rule_for(langname, compiler, False)
         if self.environment.is_cross_build():
             cclist = self.build.cross_compilers
             for langname, compiler in cclist.items():
                 if compiler.get_id() == 'clang':
-                    self.generate_llvm_ir_compile_rule(compiler, True, outfile)
-                self.generate_compile_rule_for(langname, compiler, True, outfile)
-                self.generate_pch_rule_for(langname, compiler, True, outfile)
-        outfile.write('\n')
+                    self.generate_llvm_ir_compile_rule(compiler, True)
+                self.generate_compile_rule_for(langname, compiler, True)
+                self.generate_pch_rule_for(langname, compiler, True)
 
     def generate_generator_list_rules(self, target, outfile):
         # CustomTargets have already written their rules and
