@@ -612,7 +612,10 @@ class CompilerArgs(list):
     dedup2_suffixes = ()
     dedup2_args = ()
     # Arg prefixes and args that must be de-duped by returning 1
-    dedup1_prefixes = ('-l', '-Wl,-l')
+    #
+    # NOTE: not thorough. A list of potential corner cases can be found in
+    # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
+    dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,--export-dynamic')
     dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
     # Match a .so of the form path/to/libfoo.so.0.1.0
     # Only UNIX shared libraries require this. Others have a fixed extension.
@@ -747,6 +750,17 @@ class CompilerArgs(list):
         '''
         for elem in iterable:
             self.append_direct(elem)
+
+    def extend_preserving_lflags(self, iterable):
+        normal_flags = []
+        lflags = []
+        for i in iterable:
+            if i.startswith('-l') or i.startswith('-L'):
+                lflags.append(i)
+            else:
+                normal_flags.append(i)
+        self.extend(normal_flags)
+        self.extend_direct(lflags)
 
     def __add__(self, args):
         new = CompilerArgs(self, self.compiler)

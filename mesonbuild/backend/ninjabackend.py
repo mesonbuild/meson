@@ -2442,7 +2442,7 @@ rule FORTRAN_DEP_HACK%s
             for dep in target.get_external_deps():
                 # Extend without reordering or de-dup to preserve `-L -l` sets
                 # https://github.com/mesonbuild/meson/issues/1718
-                commands.extend_direct(dep.get_link_args())
+                commands.extend_preserving_lflags(dep.get_link_args())
                 need_threads |= dep.need_threads()
                 need_openmp |= dep.need_openmp()
             for d in target.get_dependencies():
@@ -2450,7 +2450,7 @@ rule FORTRAN_DEP_HACK%s
                     for dep in d.get_external_deps():
                         need_threads |= dep.need_threads()
                         need_openmp |= dep.need_openmp()
-                        commands.extend_direct(dep.get_link_args())
+                        commands.extend_preserving_lflags(dep.get_link_args())
             if need_openmp:
                 commands += linker.openmp_flags()
             if need_threads:
