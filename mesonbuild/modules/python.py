@@ -151,8 +151,8 @@ class PythonDependency(ExternalDependency):
         largs = self.clib_compiler.find_library(libname, environment, libdirs)
 
         self.is_found = largs is not None
-
-        self.link_args = largs
+        if self.is_found:
+            self.link_args = largs
 
         inc_paths = mesonlib.OrderedSet([
             self.variables.get('INCLUDEPY'),
