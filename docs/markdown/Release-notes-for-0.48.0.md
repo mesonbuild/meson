@@ -305,3 +305,9 @@ To enable this, the following needs to be added to the `.wrap` file:
 ```ini
 clone-recursive=true
 ```
+
+## `subproject()` function now supports the `required:` kwarg
+
+This allows you to declare an optional subproject. You can now call `found()`
+on the return value of the `subproject()` call to see if the subproject is
+available before calling `get_variable()` to fetch information from it.

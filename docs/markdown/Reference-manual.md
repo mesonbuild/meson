@@ -1356,6 +1356,12 @@ arguments:
  - `version` keyword argument that works just like the one in
    `dependency`. It specifies what version the subproject should be,
    as an example `>=1.0.1`
+ - `required` *(added 0.48.0)* By default, `required` is `true` and
+   Meson will abort if the subproject could not be setup. You can set
+   this to `false` and then use the `.found()` method on the [returned
+   object](#subproject-object). You may also pass the value of a
+   [`feature`](Build-options.md#features) option, same as
+   [`dependency()`](#dependency).
 
 Note that you can use the returned [subproject
 object](#subproject-object) to access any variable in the
@@ -2198,6 +2204,9 @@ an executable (e.g. `idl` files into source code and headers).
 
 This object is returned by [`subproject()`](#subproject) and is an
 opaque object representing it.
+
+- `found()` *(added 0.48.0)* which returns whether the subproject was
+  successfully setup
 
 - `get_variable(name)` fetches the specified variable from inside the
   subproject. This is useful to, for instance, get a [declared
