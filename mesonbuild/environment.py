@@ -210,6 +210,16 @@ def detect_windows_arch(compilers):
             return 'x86'
     return os_arch
 
+def any_compiler_has_define(compilers, define):
+    for c in compilers.values():
+        try:
+            if c.has_builtin_define(define):
+                return True
+        except mesonlib.MesonException:
+            # Ignore compilers that do not support has_builtin_define.
+            pass
+    return False
+
 def detect_cpu_family(compilers):
     """
     Python is inconsistent in its platform module.
@@ -222,12 +232,13 @@ def detect_cpu_family(compilers):
     else:
         trial = platform.machine().lower()
     if trial.startswith('i') and trial.endswith('86'):
-        return 'x86'
-    if trial.startswith('arm'):
-        return 'arm'
-    if trial.startswith('ppc64'):
-        return 'ppc64'
-    if trial == 'powerpc':
+        trial = 'x86'
+    elif trial.startswith('arm'):
+        trial = 'arm'
+    elif trial.startswith('ppc64'):
+        trial = 'ppc64'
+    elif trial == 'powerpc':
+        trial = 'ppc'
         # FreeBSD calls both ppc and ppc64 "powerpc".
         # https://github.com/mesonbuild/meson/issues/4397
         try:
@@ -235,26 +246,19 @@ def detect_cpu_family(compilers):
         except (FileNotFoundError, PermissionError):
             # Not much to go on here.
             if sys.maxsize > 2**32:
-                return 'ppc64'
-            return 'ppc'
+                trial = 'ppc64'
         if 'powerpc64' in stdo:
-            return 'ppc64'
-        return 'ppc'
-    if trial in ('amd64', 'x64'):
+            trial = 'ppc64'
+    elif trial in ('amd64', 'x64'):
         trial = 'x86_64'
+
+    # On Linux (and maybe others) there can be any mixture of 32/64 bit
+    # code in the kernel, Python, system etc. The only reliable way
+    # to know is to check the compiler defines.
     if trial == 'x86_64':
-        # On Linux (and maybe others) there can be any mixture of 32/64 bit
-        # code in the kernel, Python, system etc. The only reliable way
-        # to know is to check the compiler defines.
-        for c in compilers.values():
-            try:
-                if c.has_builtin_define('__i386__'):
-                    return 'x86'
-            except mesonlib.MesonException:
-                # Ignore compilers that do not support has_builtin_define.
-                pass
-        return 'x86_64'
-    # Add fixes here as bugs are reported.
+        if any_compiler_has_define(compilers, '__i386__'):
+            trial = 'x86'
+    # Add more quirks here as bugs are reported.
 
     if trial not in known_cpu_families:
         mlog.warning('Unknown CPU family {!r}, please report this at '
@@ -272,17 +276,12 @@ def detect_cpu(compilers):
         trial = 'x86_64'
     if trial == 'x86_64':
         # Same check as above for cpu_family
-        for c in compilers.values():
-            try:
-                if c.has_builtin_define('__i386__'):
-                    return 'i686' # All 64 bit cpus have at least this level of x86 support.
-            except mesonlib.MesonException:
-                pass
-        return 'x86_64'
-    if trial == 'e2k':
+        if any_compiler_has_define(compilers, '__i386__'):
+            trial = 'i686' # All 64 bit cpus have at least this level of x86 support.
+    elif trial == 'e2k':
         # Make more precise CPU detection for Elbrus platform.
         trial = platform.processor().lower()
-    # Add fixes here as bugs are reported.
+    # Add more quirks here as bugs are reported.
     return trial
 
 def detect_system():
