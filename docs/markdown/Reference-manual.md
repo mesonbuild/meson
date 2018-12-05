@@ -403,7 +403,7 @@ are also supported. This function supports the following keyword arguments:
   by all dependency backends)
 - `version` specifies the required version, a string containing a
   comparison operator followed by the version string, examples include
-  `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. (*Added 0.37.0*)
+  `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. *(Added 0.37.0)*
   You can also specify multiple restrictions by passing a list to this
   keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
   These requirements are never met if the version is unknown.
@@ -597,7 +597,7 @@ Keyword arguments are the following:
 - `required` By default, `required` is set to `true` and Meson will
   abort if no program can be found. If `required` is set to `false`,
   Meson continue even if none of the programs can be found. You can
-  then use the `.found()` method on the returned object to check
+  then use the `.found()` method on the [returned object](#external-program-object) to check
   whether it was found or not. Since *0.47.0*  the value of a
   [`feature`](Build-options.md#features) option can also be passed to the
   `required` keyword argument.
@@ -1280,7 +1280,7 @@ Builds a static library with the given sources. Positional and keyword
 arguments are otherwise the same as for [`library`](#library), but it
 has one argument the others don't have:
 
- - `pic`, (*Added 0.36.0*) builds the library as positional
+ - `pic`, *(Added 0.36.0)* builds the library as positional
    independent code (so it can be linked into a shared library). This
    option has no effect on Windows and OS X since it doesn't make
    sense on Windows and PIC cannot be disabled on OS X.
@@ -1820,7 +1820,7 @@ the following methods:
   [This table](Reference-tables.md#gcc-__attribute__) lists all of the
   supported attributes.
 
-- `get_supported_function_attributes(list_of_names)` *(added in 0.48.0)
+- `get_supported_function_attributes(list_of_names)` *(added in 0.48.0)*
   returns an array containing any names that are supported GCC style
   attributes. Equivalent to `has_function_attribute` was called on each of them
   individually.
@@ -2066,15 +2066,15 @@ an external dependency with the following methods:
 
  - `found()` which returns whether the dependency was found
 
- - `get_pkgconfig_variable(varname)` (*Added 0.36.0*) will get the
+ - `get_pkgconfig_variable(varname)` *(Added 0.36.0)* will get the
    pkg-config variable specified, or, if invoked on a non pkg-config
-   dependency, error out. (*Added 0.44.0*) You can also redefine a
+   dependency, error out. *(Added 0.44.0)* You can also redefine a
    variable by passing a list to the `define_variable` parameter
    that can affect the retrieved variable: `['prefix', '/'])`.
-   (*Added 0.45.0*) A warning is issued if the variable is not defined,
+   *(Added 0.45.0)* A warning is issued if the variable is not defined,
    unless a `default` parameter is specified.
 
- - `get_configtool_variable(varname)` (*Added 0.44.0*) will get the
+ - `get_configtool_variable(varname)` *(Added 0.44.0)* will get the
    command line argument from the config tool (with `--` prepended), or,
    if invoked on a non config-tool dependency, error out.
 
@@ -2088,7 +2088,7 @@ an external dependency with the following methods:
    version.
 
  - `partial_dependency(compile_args : false, link_args : false, links
-   : false, includes : false, source : false)` (*added 0.46.0*) returns
+   : false, includes : false, source : false)` *(Added 0.46.0)* returns
    a new dependency object with the same name, version, found status,
    type name, and methods as the object that called it. This new
    object will only inherit other attributes from its parent as
@@ -2169,13 +2169,13 @@ This object is returned by [`find_library()`](#find_library) and
 contains an external (i.e. not built as part of this project)
 library. This object has the following methods:
 
- - `found` which returns whether the library was found.
+ - `found()` which returns whether the library was found.
 
- - `type_name()` (*added 0.48.0*) which returns a string describing
+ - `type_name()` *(added 0.48.0)* which returns a string describing
    the type of the dependency, which will be `library` in this case.
 
  - `partial_dependency(compile_args : false, link_args : false, links
-   : false, includes : false, source : false)` (*added 0.46.0*) returns
+   : false, includes : false, source : false)` *(Added 0.46.0)* returns
    a new dependency object with the same name, version, found status,
    type name, and methods as the object that called it. This new
    object will only inherit other attributes from its parent as
