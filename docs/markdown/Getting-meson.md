@@ -4,7 +4,7 @@ Meson is implemented in Python 3, and requires 3.5 or newer. If your operating
 system provides a package manager, you should install it with that. For
 platforms that don't have a package manager, you need to download it from
 [Python's home page]. See below for [platform-specific Python3
-quirks](#Platform-specific_install_quirks).
+quirks](#platformspecific-install-quirks).
 
 ## Downloading Meson
 
