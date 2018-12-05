@@ -185,17 +185,23 @@ def detect_windows_arch(compilers):
             if float(compiler.get_toolset_version()) < 10.0:
                 # On MSVC 2008 and earlier, check 'BUILD_PLAT', where
                 # 'Win32' means 'x86'
-                platform = os.environ.get('BUILD_PLAT', 'x86')
+                platform = os.environ.get('BUILD_PLAT', os_arch)
                 if platform == 'Win32':
                     return 'x86'
             elif 'VSCMD_ARG_TGT_ARCH' in os.environ:
                 # On MSVC 2017 'Platform' is not set in VsDevCmd.bat
                 return os.environ['VSCMD_ARG_TGT_ARCH']
             else:
-                # On MSVC 2010 and later 'Platform' is only set when the
+                # Starting with VS 2017, `Platform` is not always set (f.ex.,
+                # if you use VsDevCmd.bat directly instead of vcvars*.bat), but
+                # `VSCMD_ARG_HOST_ARCH` is always set, so try that first.
+                if 'VSCMD_ARG_HOST_ARCH' in os.environ:
+                    platform = os.environ['VSCMD_ARG_HOST_ARCH'].lower()
+                # On VS 2010-2015, 'Platform' is only set when the
                 # target arch is not 'x86'.  It's 'x64' when targeting
                 # x86_64 and 'arm' when targeting ARM.
-                platform = os.environ.get('Platform', 'x86').lower()
+                else:
+                    platform = os.environ.get('Platform', 'x86').lower()
             if platform == 'x86':
                 return platform
         if compiler.id == 'clang-cl' and not compiler.is_64:
