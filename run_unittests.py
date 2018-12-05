@@ -118,6 +118,21 @@ def skipIfNoPkgconfig(f):
         return f(*args, **kwargs)
     return wrapped
 
+def skipIfNoPkgconfigDep(depname):
+    '''
+    Skip this test if the given pkg-config dep is not found, unless we're on CI.
+    '''
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped(*args, **kwargs):
+            if not is_ci() and shutil.which('pkg-config') is None:
+                raise unittest.SkipTest('pkg-config not found')
+            if not is_ci() and subprocess.call(['pkg-config', '--exists', depname]) != 0:
+                raise unittest.SkipTest('pkg-config dependency {} not found.'.format(depname))
+            return func(*args, **kwargs)
+        return wrapped
+    return wrapper
+
 def skip_if_not_language(lang):
     def wrapper(func):
         @functools.wraps(func)
@@ -4393,6 +4408,19 @@ endian = 'little'
     def test_install_subdir_symlinks_with_default_umask_and_mode(self):
         self.install_subdir_invalid_symlinks('196 install_mode', 'sub1')
 
+    @skipIfNoPkgconfigDep('gmodule-2.0')
+    def test_ldflag_dedup(self):
+        testdir = os.path.join(self.unit_test_dir, '49 ldflagdedup')
+        if is_cygwin() or is_osx():
+            raise unittest.SkipTest('Not applicable on Cygwin or OSX.')
+        self.init(testdir)
+        build_ninja = os.path.join(self.builddir, 'build.ninja')
+        max_count = 0
+        search_term = '-Wl,--export-dynamic'
+        with open(build_ninja, 'r', encoding='utf-8') as f:
+            for line in f:
+                max_count = max(max_count, line.count(search_term))
+        self.assertEqual(max_count, 1, 'Export dynamic incorrectly deduplicated.')
 
 class LinuxCrossArmTests(BasePlatformTests):
     '''
