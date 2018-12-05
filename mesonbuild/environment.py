@@ -252,13 +252,17 @@ def detect_cpu_family(compilers):
     elif trial in ('amd64', 'x64'):
         trial = 'x86_64'
 
-    # On Linux (and maybe others) there can be any mixture of 32/64 bit
-    # code in the kernel, Python, system etc. The only reliable way
-    # to know is to check the compiler defines.
+    # On Linux (and maybe others) there can be any mixture of 32/64 bit code in
+    # the kernel, Python, system, 32-bit chroot on 64-bit host, etc. The only
+    # reliable way to know is to check the compiler defines.
     if trial == 'x86_64':
         if any_compiler_has_define(compilers, '__i386__'):
             trial = 'x86'
-    # Add more quirks here as bugs are reported.
+    elif trial == 'aarch64':
+        if any_compiler_has_define(compilers, '__arm__'):
+            trial = 'arm'
+    # Add more quirks here as bugs are reported. Keep in sync with detect_cpu()
+    # below.
 
     if trial not in known_cpu_families:
         mlog.warning('Unknown CPU family {!r}, please report this at '
@@ -278,10 +282,15 @@ def detect_cpu(compilers):
         # Same check as above for cpu_family
         if any_compiler_has_define(compilers, '__i386__'):
             trial = 'i686' # All 64 bit cpus have at least this level of x86 support.
+    elif trial == 'aarch64':
+        # Same check as above for cpu_family
+        if any_compiler_has_define(compilers, '__arm__'):
+            trial = 'arm'
     elif trial == 'e2k':
         # Make more precise CPU detection for Elbrus platform.
         trial = platform.processor().lower()
-    # Add more quirks here as bugs are reported.
+    # Add more quirks here as bugs are reported. Keep in sync with
+    # detect_cpu_family() above.
     return trial
 
 def detect_system():
