@@ -93,6 +93,7 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
                                    '--output-file', covinfo])
             subprocess.check_call([genhtml_exe,
                                    '--prefix', build_root,
+                                   '--prefix', source_root,
                                    '--output-directory', htmloutdir,
                                    '--title', 'Code coverage',
                                    '--legend',
