@@ -420,7 +420,9 @@ If dependency_name is `''`, the dependency is always not found.  So with
 `found()` method returns `false`, and which can be passed like any other
 dependency to the `dependencies:` keyword argument of a `build_target`.  This
 can be used to implement a dependency which is sometimes not required e.g. in
-some branches of a conditional.
+some branches of a conditional, or with a `fallback:` kwarg, can be used to
+declare an optional dependency that only looks in the specified subproject,
+and only if that's allowed by `--wrap-mode`.
 
 The returned object also has methods that are documented in the
 [object methods section](#dependency-object) below.
