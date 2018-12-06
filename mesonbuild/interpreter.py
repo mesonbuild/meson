@@ -3110,10 +3110,9 @@ external dependencies (including libraries) must go to "dependencies".''')
                 msg.append(traceback.format_exc())
             mlog.log(*msg)
             return None
-        required = kwargs.get('required', True)
-        dep = self.get_subproject_dep(name, dirname, varname, required)
+        dep = self.get_subproject_dep(name, dirname, varname, required=False)
         if not dep.found():
-            return dep
+            return None
         subproj_path = os.path.join(self.subproject_dir, dirname)
         # Check if the version of the declared dependency matches what we want
         if 'version' in kwargs:
