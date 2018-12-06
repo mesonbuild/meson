@@ -86,8 +86,8 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder):
     def auto_method(self, args, kwargs):
         return self.held_object.is_auto()
 
-def extract_required_kwarg(kwargs, subproject, feature_check=None):
-    val = kwargs.get('required', True)
+def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True):
+    val = kwargs.get('required', default)
     disabled = False
     required = False
     feature = None
@@ -1344,7 +1344,9 @@ class CompilerHolder(InterpreterObject):
         return result
 
     @FeatureNew('compiler.check_header', '0.47.0')
+    @FeatureNewKwargs('compiler.check_header', '0.50.0', ['required'])
     @permittedKwargs({
+        'required',
         'prefix',
         'no_builtin_args',
         'include_directories',
@@ -1359,19 +1361,27 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header must be a string.')
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Check usable header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         haz = self.compiler.check_header(hname, prefix, self.environment,
                                          extra_args=extra_args,
                                          dependencies=deps)
-        if haz:
+        if required and not haz:
+            raise InterpreterException('{} header {!r} not usable'.format(self.compiler.get_display_language(), hname))
+        elif haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
         mlog.log('Check usable header', mlog.bold(hname, True), msg, h)
         return haz
 
+    @FeatureNewKwargs('compiler.has_header', '0.50.0', ['required'])
     @permittedKwargs({
+        'required',
         'prefix',
         'no_builtin_args',
         'include_directories',
@@ -1386,18 +1396,26 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header must be a string.')
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Has header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         haz = self.compiler.has_header(hname, prefix, self.environment,
                                        extra_args=extra_args, dependencies=deps)
-        if haz:
+        if required and not haz:
+            raise InterpreterException('{} header {!r} not found'.format(self.compiler.get_display_language(), hname))
+        elif haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
         mlog.log('Has header', mlog.bold(hname, True), msg, h)
         return haz
 
+    @FeatureNewKwargs('compiler.has_header_symbol', '0.50.0', ['required'])
     @permittedKwargs({
+        'required',
         'prefix',
         'no_builtin_args',
         'include_directories',
@@ -1413,12 +1431,18 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header_symbol must be a string.')
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Header <{0}> has symbol'.format(hname), mlog.bold(symbol, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         haz = self.compiler.has_header_symbol(hname, symbol, prefix, self.environment,
                                               extra_args=extra_args,
                                               dependencies=deps)
-        if haz:
+        if required and not haz:
+            raise InterpreterException('{} symbol {} not found in header {}'.format(self.compiler.get_display_language(), symbol, hname))
+        elif haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')

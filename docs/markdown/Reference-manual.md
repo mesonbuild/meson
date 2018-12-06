@@ -1760,7 +1760,9 @@ the following methods:
   the `prefix` keyword. In order to look for headers in a specific
   directory you can use `args : '-I/extra/include/dir`, but this
   should only be used in exceptional cases for includes that can't be
-  detected via pkg-config and passed via `dependencies`.
+  detected via pkg-config and passed via `dependencies`. Since *0.50.0* the
+  `required` keyword argument can be used to abort if the header cannot be
+  found.
 
 - `has_header` returns true if the specified header *exists*, and is
   faster than `check_header()` since it only does a pre-processor check.
@@ -1769,13 +1771,16 @@ the following methods:
   the `prefix` keyword. In order to look for headers in a specific
   directory you can use `args : '-I/extra/include/dir`, but this
   should only be used in exceptional cases for includes that can't be
-  detected via pkg-config and passed via `dependencies`.
+  detected via pkg-config and passed via `dependencies`. Since *0.50.0* the
+  `required` keyword argument can be used to abort if the header cannot be
+  found.
 
 - `has_header_symbol(headername, symbolname)` allows one to detect
   whether a particular symbol (function, variable, #define, type
   definition, etc) is declared in the specified header, you can
   specify external dependencies to use with `dependencies` keyword
-  argument.
+  argument. Since *0.50.0* the `required` keyword argument can be used to abort
+  if the symbol cannot be found.
 
 - `has_member(typename, membername)` takes two arguments, type name
   and member name and returns true if the type has the specified
