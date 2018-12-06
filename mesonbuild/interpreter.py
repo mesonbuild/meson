@@ -3075,7 +3075,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     def dependency_fallback(self, name, kwargs):
         display_name = name if name else '(anonymous)'
-        if self.coredata.get_builtin_option('wrap_mode') in (WrapMode.nofallback, WrapMode.nodownload):
+        if self.coredata.get_builtin_option('wrap_mode') == WrapMode.nofallback:
             mlog.log('Not looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback'
                      'dependencies is disabled.')
