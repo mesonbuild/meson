@@ -1704,7 +1704,10 @@ the following methods:
   option can also be passed to the `required` keyword argument.
   *Since 0.49.0* if the keyword argument `disabler` is `true` and the
   dependency couldn't be found, return a [disabler object](#disabler-object)
-  instead of a not-found dependency.
+  instead of a not-found dependency. *Since 0.50.0* the `has_headers` keyword
+  argument can be a list of header files that must be found as well, using
+  `has_header()` method. All keyword arguments prefixed with `header_` will be
+  passed down to `has_header()` method with the prefix removed.
 
 - `first_supported_argument(list_of_strings)`, given a list of
   strings, returns the first argument that passes the `has_argument`
