@@ -999,7 +999,9 @@ The result of this is undefined and will become a hard error in a future Meson r
             return kwargs
         to_expand = kwargs.pop('kwargs')
         if not isinstance(to_expand, dict):
-            raise InterpreterException('Value of "kwarg" must be dictionary.')
+            raise InterpreterException('Value of "kwargs" must be dictionary.')
+        if 'kwargs' in to_expand:
+            raise InterpreterException('Kwargs argument must not contain a "kwargs" entry. Points for thinking meta, though. :P')
         for k, v in to_expand.items():
             if k in kwargs:
                 raise InterpreterException('Entry "{}" defined both as a keyword argument and in a "kwarg" entry.'.format(k))
