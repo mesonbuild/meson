@@ -539,7 +539,11 @@ Timeout:            %4d
                     print('--- Listing only the last 100 lines from a long log. ---')
                     lines = lines[-100:]
                 for line in lines:
-                    print(line)
+                    try:
+                        print(line)
+                    except UnicodeEncodeError:
+                        line = line.encode('ascii', errors='replace').decode()
+                        print(line)
 
     def doit(self):
         if self.is_run:
