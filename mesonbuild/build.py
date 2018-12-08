@@ -2143,7 +2143,10 @@ class Jar(BuildTarget):
 
     def get_classpath_args(self):
         cp_paths = [os.path.join(l.get_subdir(), l.get_filename()) for l in self.link_targets]
-        return ['-cp', os.pathsep.join(cp_paths)]
+        cp_string = os.pathsep.join(cp_paths)
+        if cp_string:
+            return ['-cp', os.pathsep.join(cp_paths)]
+        return []
 
 class CustomTargetIndex:
 
