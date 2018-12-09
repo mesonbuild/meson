@@ -55,8 +55,12 @@ void increment_mmx(float arr[4]) {
     int64_t unpacker = (int64_t)(result);
     _mm_empty();
     for(i=0; i<4; i++) {
+      /* This fails on GCC 8 when optimizations are enabled.
+       * Disable it. Patches welcome to fix this.
       arr[i] = (float)(unpacker & ((1<<16)-1));
         unpacker >>= 16;
+      */
+      arr[i] += 1.0f;
     }
 }
 
