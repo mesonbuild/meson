@@ -1,5 +1,9 @@
 project('external CMake dependency', 'c')
 
+if not find_program('cmake', required: false).found()
+  error('MESON_SKIP_TEST cmake binary not available.')
+endif
+
 # Zlib is probably on all dev machines.
 
 dep = dependency('ZLIB', version : '>=1.2', method : 'cmake')
