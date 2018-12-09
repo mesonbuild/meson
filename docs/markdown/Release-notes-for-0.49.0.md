@@ -44,7 +44,9 @@ target specific arguments to the compiler and linker will need to be
 added explicitly from the
 cross-file(`c_args`/`c_link_args`/`cpp_args`/`cpp_link_args`) or some
 other way.  Refer to the CC-RX User's manual for additional compiler
-and linker options.## CMake `find_package` dependency backend
+and linker options.
+
+## CMake `find_package` dependency backend
 
 Meson can now use the CMake `find_package` ecosystem to
 detect dependencies. Both the old-style `<NAME>_LIBRARIES`
