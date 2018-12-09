@@ -63,7 +63,11 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, option)
         if option.is_auto():
-            self.held_object = env.coredata.builtins['auto_features']
+            override = env.coredata.builtins['auto_features']
+            if option.is_from_combo() and override.is_enabled():
+                m = 'Option {!r} cannot be "auto" when {!r} option is "enabled"'
+                raise InterpreterException(m.format(option.name, override.name))
+            self.held_object = override
         self.name = option.name
         self.methods.update({'enabled': self.enabled_method,
                              'disabled': self.disabled_method,
@@ -2482,12 +2486,18 @@ external dependencies (including libraries) must go to "dependencies".''')
         if len(args) != 1:
             raise InterpreterException('Argument required for get_option.')
         optname = args[0]
-        if ':' in optname:
+        parts = optname.split(':', 1)
+        opt = self.get_option_internal(parts[0])
+        if isinstance(opt, coredata.UserFeatureComboOption):
+            if len(parts) != 2:
+                raise InterpreterException('feature-combo options must be accessed '
+                                           'with "optname:value" format')
+            return FeatureOptionHolder(self.environment, opt.get_feature(parts[1]))
+        elif len(parts) != 1:
             raise InterpreterException('Having a colon in option name is forbidden, '
                                        'projects are not allowed to directly access '
                                        'options of other subprojects.')
-        opt = self.get_option_internal(optname)
-        if isinstance(opt, coredata.UserFeatureOption):
+        elif isinstance(opt, coredata.UserFeatureOption):
             return FeatureOptionHolder(self.environment, opt)
         elif isinstance(opt, coredata.UserOption):
             return opt.value

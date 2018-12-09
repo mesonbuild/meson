@@ -20,6 +20,7 @@ option('integer_opt', type : 'integer', min : 0, max : 5, value : 3) # Since 0.4
 option('free_array_opt', type : 'array', value : ['one', 'two'])  # Since 0.44.0
 option('array_opt', type : 'array', choices : ['one', 'two', 'three'], value : ['one', 'two'])
 option('some_feature', type : 'feature', value : 'enabled')  # Since 0.47.0
+option('some_feature_combo', type : 'feature-combo', choices : ['one', 'two'], value : 'auto')  # Since 0.50.0
 ```
 
 For built-in options, see [Built-in options][builtin_opts].
@@ -103,6 +104,41 @@ required and which are disabled, and not rely on build-deps being installed
 few they don't want, if any.
 
 This type is available since version 0.47.0
+
+### Feature Combos
+
+This type has been added in Meson version *0.50.0*
+
+A `feature-combo` option is like `combo` option but with the implicit extra
+`disabled` and `auto` choices. Its value cannot be directly accessed, instead a
+`feature` option can be obtained for each of the choices using
+`get_option('opt:choice')` syntax.
+
+Example:
+```meson
+option('3d-backend', type : 'feature-combo', choices : ['gl', 'gles', 'vulkan'], value : 'auto')
+...
+gl_dep = dependency('gl', required : get_option('3d-backend:gl'))
+vulkan_dep = dependency('vulkan', required : get_option('3d-backend:vulkan'))
+```
+
+- When `3d-backend` option is set to `gl` (i.e. `-D3d-backend=gl`), calling
+  `get_option('3d-backend:gl')` returns a enabled `feature` option. Calling
+  `get_option('3d-backend:gles')` (or any other choice) returns a disabled
+  `feature` option.
+- When `3d-backend` option is set to `disabled` (i.e. `-D3d-backend=disabled`),
+  calling `get_option('3d-backend:gl')` (or any other choice) returns a disabled
+  `feature` option.
+- When `3d-backend` option is set to `auto` (i.e. the default), calling
+  `get_option('3d-backend:gl')` (or any other choice) returns an auto
+  `feature` option.
+- When `3d-backend` option is set to `auto` and `auto_features` is set to
+  `disabled`, calling `get_option('3d-backend:gl')` (or any other choice) returns
+  a disabled `feature` option.
+- When `3d-backend` option is set to `auto` and `auto_features` is set to
+  `enabled`, calling `get_option('3d-backend:gl')` aborts with an error message.
+  A non-auto value must be set on all `feature-combo` when `auto_features` is
+  set to `enabled`.
 
 ## Using build options
 

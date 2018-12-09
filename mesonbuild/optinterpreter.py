@@ -65,8 +65,7 @@ def BooleanParser(name, description, kwargs):
                                       kwargs.get('value', True),
                                       kwargs.get('yield', coredata.default_yielding))
 
-@permitted_kwargs({'value', 'yield', 'choices'})
-def ComboParser(name, description, kwargs):
+def validate_choices(kwargs):
     if 'choices' not in kwargs:
         raise OptionException('Combo option missing "choices" keyword.')
     choices = kwargs['choices']
@@ -75,6 +74,11 @@ def ComboParser(name, description, kwargs):
     for i in choices:
         if not isinstance(i, str):
             raise OptionException('Combo choice elements must be strings.')
+    return choices
+
+@permitted_kwargs({'value', 'yield', 'choices'})
+def ComboParser(name, description, kwargs):
+    choices = validate_choices(kwargs)
     return coredata.UserComboOption(name,
                                     description,
                                     choices,
@@ -99,13 +103,8 @@ def IntegerParser(name, description, kwargs):
 @permitted_kwargs({'value', 'yield', 'choices'})
 def string_array_parser(name, description, kwargs):
     if 'choices' in kwargs:
-        choices = kwargs['choices']
-        if not isinstance(choices, list):
-            raise OptionException('Array choices must be an array.')
-        for i in choices:
-            if not isinstance(i, str):
-                raise OptionException('Array choice elements must be strings.')
-            value = kwargs.get('value', choices)
+        choices = validate_choices(kwargs)
+        value = kwargs.get('value', choices)
     else:
         choices = None
         value = kwargs.get('value', [])
@@ -124,12 +123,22 @@ def FeatureParser(name, description, kwargs):
                                       kwargs.get('value', 'auto'),
                                       yielding=kwargs.get('yield', coredata.default_yielding))
 
+@permitted_kwargs({'value', 'yield', 'choices'})
+def FeatureComboParser(name, description, kwargs):
+    choices = validate_choices(kwargs)
+    return coredata.UserFeatureComboOption(name,
+                                           description,
+                                           choices,
+                                           kwargs.get('value', 'auto'),
+                                           kwargs.get('yield', coredata.default_yielding))
+
 option_types = {'string': StringParser,
                 'boolean': BooleanParser,
                 'combo': ComboParser,
                 'integer': IntegerParser,
                 'array': string_array_parser,
                 'feature': FeatureParser,
+                'feature-combo': FeatureComboParser,
                 }
 
 class OptionInterpreter:

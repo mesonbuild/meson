@@ -197,8 +197,9 @@ class UserArrayOption(UserOption):
 class UserFeatureOption(UserComboOption):
     static_choices = ['enabled', 'disabled', 'auto']
 
-    def __init__(self, name, description, value, yielding=None):
+    def __init__(self, name, description, value, yielding=None, from_combo=False):
         super().__init__(name, description, self.static_choices, value, yielding)
+        self.from_combo = from_combo
 
     def is_enabled(self):
         return self.value == 'enabled'
@@ -209,6 +210,25 @@ class UserFeatureOption(UserComboOption):
     def is_auto(self):
         return self.value == 'auto'
 
+    def is_from_combo(self):
+        return self.from_combo
+
+class UserFeatureComboOption(UserComboOption):
+    def __init__(self, name, description, choices, value, yielding=None):
+        super().__init__(name, description, choices + ['disabled', 'auto'], value, yielding)
+        self.user_choices = choices
+
+    def get_feature(self, choice):
+        if choice not in self.user_choices:
+            choices_str = ', '.join(['{!r}'.format(c) for c in self.user_choices])
+            raise MesonException('Invalid choice {!r} for feature-combo {!r}, must be one of {}'.format(choice, self.name, choices_str))
+        if self.value == choice:
+            value = 'enabled'
+        elif self.value == 'auto':
+            value = 'auto'
+        else:
+            value = 'disabled'
+        return UserFeatureOption(self.name, self.description, value, from_combo=True)
 
 def load_configs(filenames):
     """Load native files."""

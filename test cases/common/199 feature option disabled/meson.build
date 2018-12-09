@@ -21,3 +21,6 @@ assert(not optional_opt.auto(), 'Auto feature should be disabled')
 assert(not disabled_opt.enabled(), 'Should be disabled option')
 assert(disabled_opt.disabled(), 'Should be disabled option')
 assert(not disabled_opt.auto(), 'Should be disabled option')
+
+opt = get_option('3d-backend:gl')
+assert(opt.disabled(), 'Feature combo should be disabled')
