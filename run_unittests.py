@@ -4816,7 +4816,9 @@ class NativeFileTests(BasePlatformTests):
                     return 'gdc', 'gdc'
                 else:
                     raise unittest.SkipTest('No alternative dlang compiler found.')
-            return 'dmd', 'dmd'
+            if shutil.which('dmd'):
+                return 'dmd', 'dmd'
+            raise unittest.SkipTest('No alternative dlang compiler found.')
         self.helper_for_compiler('d', cb)
 
     @skip_if_not_language('cs')
