@@ -35,13 +35,13 @@ class DependenciesHelper:
 
     def add_pub_libs(self, libs):
         libs, reqs, cflags = self._process_libs(libs, True)
-        self.pub_libs += libs
+        self.pub_libs = libs + self.pub_libs # prepend to preserve dependencies
         self.pub_reqs += reqs
         self.cflags += cflags
 
     def add_priv_libs(self, libs):
         libs, reqs, _ = self._process_libs(libs, False)
-        self.priv_libs += libs
+        self.priv_libs = libs + self.priv_libs
         self.priv_reqs += reqs
 
     def add_pub_reqs(self, reqs):

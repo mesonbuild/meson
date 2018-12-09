@@ -4301,6 +4301,19 @@ endian = 'little'
 
         self.assertEqual("-r/usr/lib/libsomething.dll", str(stdo.decode('ascii')).strip())
 
+    @skipIfNoPkgconfig
+    def test_pkgconfig_link_order(self):
+        '''
+        Test that libraries are listed before their dependencies.
+        '''
+        testdir = os.path.join(self.unit_test_dir, '50 pkgconfig static link order')
+        self.init(testdir)
+        myenv = os.environ.copy()
+        myenv['PKG_CONFIG_PATH'] = self.privatedir
+        stdo = subprocess.check_output(['pkg-config', '--libs', 'libsomething'], env=myenv)
+        deps = stdo.split()
+        self.assertTrue(deps.index(b'-lsomething') < deps.index(b'-ldependency'))
+
     def test_deterministic_dep_order(self):
         '''
         Test that the dependencies are always listed in a deterministic order.
