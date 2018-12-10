@@ -284,9 +284,9 @@ print (json.dumps ({
 }))
 '''
 
-class PythonInstallation(ExternalProgramHolder, InterpreterObject):
+
+class PythonInstallation(ExternalProgramHolder):
     def __init__(self, interpreter, python, info):
-        InterpreterObject.__init__(self)
         ExternalProgramHolder.__init__(self, python)
         self.interpreter = interpreter
         prefix = self.interpreter.environment.coredata.get_builtin_option('prefix')
