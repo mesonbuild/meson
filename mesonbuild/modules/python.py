@@ -311,10 +311,8 @@ class PythonInstallation(ExternalProgramHolder):
             'get_path': self.get_path_method,
             'has_variable': self.has_variable_method,
             'get_variable': self.get_variable_method,
+            'path': self.path_method,
         })
-
-        # Remove this so that an API change is not part of a refactor
-        del self.methods['path_method']
 
     @permittedKwargs(mod_kwargs)
     def extension_module_method(self, args, kwargs):
@@ -451,6 +449,12 @@ class PythonInstallation(ExternalProgramHolder):
                 raise InvalidArguments('{} is not a valid variable name'.format(var_name))
 
         return self.interpreter.module_method_callback(ModuleReturnValue(var, []))
+
+    @noPosargs
+    @noKwargs
+    @FeatureNew('Python module path method', '0.50.0')
+    def path_method(self, args, kwargs):
+        return super().path_method(args, kwargs)
 
 
 class PythonModule(ExtensionModule):
