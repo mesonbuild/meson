@@ -59,6 +59,7 @@ set in the cross file.
 | ppc64               | 64 bit PPC processors |
 | riscv32             | 32 bit RISC-V Open ISA|
 | riscv64             | 64 bit RISC-V Open ISA|
+| rl78                | Renesas RL78          |
 | rx                  | Renesas RX 32 bit MCU |
 | s390x               | IBM zSystem s390x     |
 | sparc               | 32 bit SPARC          |
