@@ -84,6 +84,7 @@ known_cpu_families = (
     'ppc64',
     'riscv32',
     'riscv64',
+    'rl78',
     'rx',
     's390x',
     'sparc',
