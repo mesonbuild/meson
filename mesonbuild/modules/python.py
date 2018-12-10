@@ -301,7 +301,7 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         self.link_libpython = info['link_libpython']
 
     @permittedKwargs(mod_kwargs)
-    def extension_module(self, interpreter, state, args, kwargs):
+    def extension_module(self, state, args, kwargs):
         if 'subdir' in kwargs and 'install_dir' in kwargs:
             raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
 
@@ -334,14 +334,14 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
 
-        return interpreter.func_shared_module(None, args, kwargs)
+        return self.interpreter.func_shared_module(None, args, kwargs)
 
-    def dependency(self, interpreter, state, args, kwargs):
-        dep = PythonDependency(self, interpreter.environment, kwargs)
-        return interpreter.holderify(dep)
+    def dependency(self, state, args, kwargs):
+        dep = PythonDependency(self, self.interpreter.environment, kwargs)
+        return self.interpreter.holderify(dep)
 
     @permittedKwargs(['pure', 'subdir'])
-    def install_sources(self, interpreter, state, args, kwargs):
+    def install_sources(self, state, args, kwargs):
         pure = kwargs.pop('pure', False)
         if not isinstance(pure, bool):
             raise InvalidArguments('"pure" argument must be a boolean.')
@@ -355,7 +355,7 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         else:
             kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
 
-        return interpreter.func_install_data(None, args, kwargs)
+        return self.interpreter.func_install_data(None, args, kwargs)
 
     @noPosargs
     @permittedKwargs(['pure', 'subdir'])
@@ -450,11 +450,11 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         if not getattr(fn, 'no-args-flattening', False):
             args = flatten(args)
 
+        value = fn(None, args, kwargs)
+
         if method_name in ['extension_module', 'dependency', 'install_sources']:
-            value = fn(self.interpreter, None, args, kwargs)
             return self.interpreter.holderify(value)
         elif method_name in ['has_variable', 'get_variable', 'has_path', 'get_path', 'found', 'language_version', 'get_install_dir']:
-            value = fn(None, args, kwargs)
             return self.interpreter.module_method_callback(value)
         else:
             raise InvalidArguments('Python object does not have method %s.' % method_name)
