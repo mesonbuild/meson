@@ -64,3 +64,4 @@ script:
     fi
   # Ensure that llvm is added after $PATH, otherwise the clang from that llvm install will be used instead of the native apple clang.
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib OBJC=$CC OBJCXX=$CXX PATH=$HOME/tools:/usr/local/opt/qt/bin:$PATH:$(brew --prefix llvm)/bin MESON_FIXED_NINJA=1 ./run_tests.py --backend=ninja -- $MESON_ARGS ; fi
+  # Ensure that llvm is added after $PATH, otherwise the clang from that llvm install will be used instead of the native apple clang.
