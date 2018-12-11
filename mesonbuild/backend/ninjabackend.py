@@ -151,7 +151,6 @@ class NinjaBackend(backends.Backend):
         self.fortran_deps = {}
         self.all_outputs = {}
         self.introspection_data = {}
-        self._intro_last_index = 0
 
     def create_target_alias(self, to_target, outfile):
         # We need to use aliases for targets that might be used as directory
@@ -329,38 +328,24 @@ int dummy;
 
         Internal introspection storage formart:
         self.introspection_data = {
-            '<target ID>': [
-                {
+            '<target ID>': {
+                <id tuple>: {
                     'language: 'lang',
                     'compiler': ['comp', 'exe', 'list'],
                     'parameters': ['UNIQUE', 'parameter', 'list'],
                     'sources': [],
                     'generated_sources': [],
-                    'id_hash': 634523234445 # Internal unique hash to identify a compiler / language / paramerter combo
                 }
-            ]
+            }
         }
         '''
         build_dir = self.environment.get_build_dir()
         id = target.get_id()
         lang = comp.get_language()
         tgt = self.introspection_data[id]
-        id_hash = hash((lang, CompilerArgs))
-        src_block = None
         # Find an existing entry or create a new one
-        #   ... first check the last used index
-        if self._intro_last_index < len(tgt):
-            tmp = tgt[self._intro_last_index]
-            if tmp['id_hash'] == id_hash:
-                src_block = tmp
-        #   ... check all entries
-        if src_block is None:
-            for idx, i in enumerate(tgt):
-                if i['id_hash'] == id_hash:
-                    src_block = i
-                    self._intro_last_index = idx
-                    break
-        #   ... create a new one
+        id_hash = (lang, CompilerArgs)
+        src_block = tgt.get(id_hash, None)
         if src_block is None:
             # Convert parameters
             if isinstance(parameters, CompilerArgs):
@@ -377,10 +362,9 @@ int dummy;
                 'parameters': parameters,
                 'sources': [],
                 'generated_sources': [],
-                'id_hash': id_hash
             }
             self._intro_last_index = len(tgt)
-            tgt.append(src_block)
+            tgt[id_hash] = src_block
         # Make source files absolute
         sources = [x.rel_to_builddir(self.build_to_src) if isinstance(x, File) else x for x in sources]
         sources = [os.path.normpath(os.path.join(build_dir, x)) for x in sources]
@@ -400,7 +384,7 @@ int dummy;
             return
         self.processed_targets[name] = True
         # Initialize an empty introspection source list
-        self.introspection_data[name] = []
+        self.introspection_data[name] = {}
         # Generate rules for all dependency targets
         self.process_target_dependencies(target, outfile)
         # If target uses a language that cannot link to C objects,
@@ -2759,9 +2743,9 @@ rule FORTRAN_DEP_HACK%s
         if target_id not in self.introspection_data or len(self.introspection_data[target_id]) == 0:
             return super().get_introspection_data(target_id, target)
 
-        result = self.introspection_data[target_id].copy()
-        for i in result:
-            i.pop('id_hash')
+        result = []
+        for _, i in self.introspection_data[target_id].items():
+            result += [i]
         return result
 
 def load(build_dir):
