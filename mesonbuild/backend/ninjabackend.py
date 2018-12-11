@@ -150,6 +150,8 @@ class NinjaBackend(backends.Backend):
         self.ninja_filename = 'build.ninja'
         self.fortran_deps = {}
         self.all_outputs = {}
+        self.introspection_data = {}
+        self._intro_last_index = 0
 
     def create_target_alias(self, to_target, outfile):
         # We need to use aliases for targets that might be used as directory
@@ -321,6 +323,73 @@ int dummy;
                 return False
         return True
 
+    def create_target_source_introspection(self, target, comp, parameters, sources, generated_sources):
+        '''
+        Adds the source file introspection information for a language of a target
+
+        Internal introspection storage formart:
+        self.introspection_data = {
+            '<target ID>': [
+                {
+                    'language: 'lang',
+                    'compiler': ['comp', 'exe', 'list'],
+                    'parameters': ['UNIQUE', 'parameter', 'list'],
+                    'sources': [],
+                    'generated_sources': [],
+                    'id_hash': 634523234445 # Internal unique hash to identify a compiler / language / paramerter combo
+                }
+            ]
+        }
+        '''
+        build_dir = self.environment.get_build_dir()
+        id = target.get_id()
+        lang = comp.get_language()
+        tgt = self.introspection_data[id]
+        id_hash = hash((lang, CompilerArgs))
+        src_block = None
+        # Find an existing entry or create a new one
+        #   ... first check the last used index
+        if self._intro_last_index < len(tgt):
+            tmp = tgt[self._intro_last_index]
+            if tmp['id_hash'] == id_hash:
+                src_block = tmp
+        #   ... check all entries
+        if src_block is None:
+            for idx, i in enumerate(tgt):
+                if i['id_hash'] == id_hash:
+                    src_block = i
+                    self._intro_last_index = idx
+                    break
+        #   ... create a new one
+        if src_block is None:
+            # Convert parameters
+            if isinstance(parameters, CompilerArgs):
+                parameters = parameters.to_native(copy=True)
+            for idx, i in enumerate(parameters):
+                if i[:2] == '-I' or i[:2] == '/I' or i[:2] == '-L':
+                    parameters[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+            if target.is_cross:
+                parameters += comp.get_cross_extra_flags(self.environment, False)
+            # The new entry
+            src_block = {
+                'language': lang,
+                'compiler': comp.get_exelist(),
+                'parameters': parameters,
+                'sources': [],
+                'generated_sources': [],
+                'id_hash': id_hash
+            }
+            self._intro_last_index = len(tgt)
+            tgt.append(src_block)
+        # Make source files absolute
+        sources = [x.rel_to_builddir(self.build_to_src) if isinstance(x, File) else x for x in sources]
+        sources = [os.path.normpath(os.path.join(build_dir, x)) for x in sources]
+        generated_sources = [x.rel_to_builddir(self.build_to_src) if isinstance(x, File) else x for x in generated_sources]
+        generated_sources = [os.path.normpath(os.path.join(build_dir, x)) for x in generated_sources]
+        # Add the source files
+        src_block['sources'] += sources
+        src_block['generated_sources'] += generated_sources
+
     def generate_target(self, target, outfile):
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target, outfile)
@@ -330,6 +399,8 @@ int dummy;
         if name in self.processed_targets:
             return
         self.processed_targets[name] = True
+        # Initialize an empty introspection source list
+        self.introspection_data[name] = []
         # Generate rules for all dependency targets
         self.process_target_dependencies(target, outfile)
         # If target uses a language that cannot link to C objects,
@@ -770,14 +841,16 @@ int dummy;
 
         # Add possible java generated files to src list
         generated_sources = self.get_target_generated_sources(target)
+        gen_src_list = []
         for rel_src, gensrc in generated_sources.items():
             dirpart, fnamepart = os.path.split(rel_src)
             raw_src = File(True, dirpart, fnamepart)
             if rel_src.endswith('.java'):
-                src_list.append(raw_src)
+                gen_src_list.append(raw_src)
 
-        for src in src_list:
-            plain_class_path = self.generate_single_java_compile(src, target, compiler, outfile)
+        compile_args = self.determine_single_java_compile_args(target, compiler)
+        for src in src_list + gen_src_list:
+            plain_class_path = self.generate_single_java_compile(src, target, compiler, compile_args, outfile)
             class_list.append(plain_class_path)
         class_dep_list = [os.path.join(self.get_target_private_dir(target), i) for i in class_list]
         manifest_path = os.path.join(self.get_target_private_dir(target), 'META-INF', 'MANIFEST.MF')
@@ -803,6 +876,8 @@ int dummy;
         elem.add_dep(class_dep_list)
         elem.add_item('ARGS', commands)
         elem.write(outfile)
+        # Create introspection information
+        self.create_target_source_introspection(target, compiler, compile_args, src_list, gen_src_list)
 
     def generate_cs_resource_tasks(self, target, outfile):
         args = []
@@ -856,10 +931,11 @@ int dummy;
         else:
             outputs = [outname_rel]
         generated_sources = self.get_target_generated_sources(target)
+        generated_rel_srcs = []
         for rel_src in generated_sources.keys():
             dirpart, fnamepart = os.path.split(rel_src)
             if rel_src.lower().endswith('.cs'):
-                rel_srcs.append(os.path.normpath(rel_src))
+                generated_rel_srcs.append(os.path.normpath(rel_src))
             deps.append(os.path.normpath(rel_src))
 
         for dep in target.get_external_deps():
@@ -867,19 +943,15 @@ int dummy;
         commands += self.build.get_project_args(compiler, target.subproject, target.is_cross)
         commands += self.build.get_global_args(compiler, target.is_cross)
 
-        elem = NinjaBuildElement(self.all_outputs, outputs, 'cs_COMPILER', rel_srcs)
+        elem = NinjaBuildElement(self.all_outputs, outputs, 'cs_COMPILER', rel_srcs + generated_rel_srcs)
         elem.add_dep(deps)
         elem.add_item('ARGS', commands)
         elem.write(outfile)
 
         self.generate_generator_list_rules(target, outfile)
+        self.create_target_source_introspection(target, compiler, commands, rel_srcs, generated_rel_srcs)
 
-    def generate_single_java_compile(self, src, target, compiler, outfile):
-        deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
-        generated_sources = self.get_target_generated_sources(target)
-        for rel_src, gensrc in generated_sources.items():
-            if rel_src.endswith('.java'):
-                deps.append(rel_src)
+    def determine_single_java_compile_args(self, target, compiler):
         args = []
         args += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
         args += self.build.get_global_args(compiler, target.is_cross)
@@ -894,6 +966,14 @@ int dummy;
             for idir in i.get_incdirs():
                 sourcepath += os.path.join(self.build_to_src, i.curdir, idir) + os.pathsep
         args += ['-sourcepath', sourcepath]
+        return args
+
+    def generate_single_java_compile(self, src, target, compiler, args, outfile):
+        deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
+        generated_sources = self.get_target_generated_sources(target)
+        for rel_src, gensrc in generated_sources.items():
+            if rel_src.endswith('.java'):
+                deps.append(rel_src)
         rel_src = src.rel_to_builddir(self.build_to_src)
         plain_class_path = src.fname[:-4] + 'class'
         rel_obj = os.path.join(self.get_target_private_dir(target), plain_class_path)
@@ -1102,6 +1182,7 @@ int dummy;
         element.add_item('ARGS', args)
         element.add_dep(extra_dep_files)
         element.write(outfile)
+        self.create_target_source_introspection(target, valac, args, all_files, [])
         return other_src[0], other_src[1], vala_c_src
 
     def generate_rust_target(self, target, outfile):
@@ -1193,6 +1274,7 @@ int dummy;
         element.write(outfile)
         if isinstance(target, build.SharedLibrary):
             self.generate_shsym(outfile, target)
+        self.create_target_source_introspection(target, rustc, args, [main_rust_file], [])
 
     def swift_module_file_name(self, target):
         return os.path.join(self.get_target_private_dir(target),
@@ -1241,12 +1323,14 @@ int dummy;
         module_name = self.target_swift_modulename(target)
         swiftc = target.compilers['swift']
         abssrc = []
+        relsrc = []
         abs_headers = []
         header_imports = []
         for i in target.get_sources():
             if swiftc.can_compile(i):
-                relsrc = i.rel_to_builddir(self.build_to_src)
-                abss = os.path.normpath(os.path.join(self.environment.get_build_dir(), relsrc))
+                rels = i.rel_to_builddir(self.build_to_src)
+                abss = os.path.normpath(os.path.join(self.environment.get_build_dir(), rels))
+                relsrc.append(rels)
                 abssrc.append(abss)
             elif self.environment.is_header(i):
                 relh = i.rel_to_builddir(self.build_to_src)
@@ -1330,6 +1414,8 @@ int dummy;
             elem.write(outfile)
         else:
             raise MesonException('Swift supports only executable and static library targets.')
+        # Introspection information
+        self.create_target_source_introspection(target, swiftc, compile_args + header_imports + module_includes, relsrc, rel_generated)
 
     def generate_static_link_rules(self, is_cross, outfile):
         num_pools = self.environment.coredata.backend_options['backend_max_links'].value
@@ -2049,6 +2135,12 @@ rule FORTRAN_DEP_HACK%s
         commands = self._generate_single_compile(target, compiler, is_generated)
         commands = CompilerArgs(commands.compiler, commands)
 
+        # Create introspection information
+        if is_generated is False:
+            self.create_target_source_introspection(target, compiler, commands, [src], [])
+        else:
+            self.create_target_source_introspection(target, compiler, commands, [], [src])
+
         build_dir = self.environment.get_build_dir()
         if isinstance(src, File):
             rel_src = src.rel_to_builddir(self.build_to_src)
@@ -2662,6 +2754,15 @@ rule FORTRAN_DEP_HACK%s
 
         elem = NinjaBuildElement(self.all_outputs, deps, 'phony', '')
         elem.write(outfile)
+
+    def get_introspection_data(self, target_id, target):
+        if target_id not in self.introspection_data or len(self.introspection_data[target_id]) == 0:
+            return super().get_introspection_data(target_id, target)
+
+        result = self.introspection_data[target_id].copy()
+        for i in result:
+            i.pop('id_hash')
+        return result
 
 def load(build_dir):
     filename = os.path.join(build_dir, 'meson-private', 'install.dat')

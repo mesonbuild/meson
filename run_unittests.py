@@ -2562,6 +2562,7 @@ int main(int argc, char **argv) {
         for t in t_intro:
             id = t['id']
             tf_intro = self.introspect(['--target-files', id])
+            tf_intro = list(map(lambda x: os.path.relpath(x, testdir), tf_intro))
             self.assertEqual(tf_intro, expected[id])
         self.wipe()
 
@@ -2576,6 +2577,9 @@ int main(int argc, char **argv) {
         for t in t_intro:
             id = t['id']
             tf_intro = self.introspect(['--target-files', id])
+            print(tf_intro)
+            tf_intro = list(map(lambda x: os.path.relpath(x, testdir), tf_intro))
+            print(tf_intro)
             self.assertEqual(tf_intro, expected[id])
         self.wipe()
 
@@ -3179,7 +3183,8 @@ recommended as it is not supported on some platforms''')
             ('language', str),
             ('compiler', list),
             ('parameters', list),
-            ('source_files', list),
+            ('sources', list),
+            ('generated_sources', list),
         ]
 
         # First load all files

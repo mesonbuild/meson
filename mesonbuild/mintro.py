@@ -272,7 +272,7 @@ def list_target_files(target_name, targets):
         raise RuntimeError('Target with the ID "{}" could not be found'.format(target_name))
 
     for i in tgt['sources']:
-        result += i['source_files']
+        result += i['sources'] + i['generated_sources']
 
     return ('target_files', result)
 

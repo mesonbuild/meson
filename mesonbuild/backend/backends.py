@@ -1158,7 +1158,8 @@ class Backend:
                 "language": "<LANG>",
                 "compiler": ["result", "of", "comp.get_exelist()"],
                 "parameters": ["list", "of", "compiler", "parameters],
-                "source_files": ["list", "of", "all", "<LANG>", "source", "files"]
+                "sources": ["list", "of", "all", "<LANG>", "source", "files"],
+                "generated_sources": ["list", "of", "generated", "source", "files"]
             }
         ]
 
@@ -1169,20 +1170,23 @@ class Backend:
             source_list = []
             for i in source_list_raw:
                 if isinstance(i, mesonlib.File):
-                    source_list += [os.path.join(i.subdir, i.fname)]
+                    source_list += [i.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())]
                 elif isinstance(i, str):
-                    source_list += [i]
+                    source_list += [os.path.join(self.environment.get_source_dir(), i)]
+            source_list = list(map(lambda x: os.path.normpath(x), source_list))
 
             return [{
                 'language': 'unknown',
                 'compiler': [],
                 'parameters': [],
-                'source_files': source_list
+                'sources': source_list,
+                'generated_sources': []
             }]
 
         return [{
             'language': 'unknown',
             'compiler': [],
             'parameters': [],
-            'source_files': []
+            'sources': [],
+            'generated_sources': []
         }]
