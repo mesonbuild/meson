@@ -78,13 +78,19 @@ class PackageGenerator:
         for sd in self.staging_dirs:
             self.feature_components[sd] = []
 
+    def get_all_modules_from_dir(self, dirname):
+        modname = os.path.basename(dirname)
+        modules = [os.path.splitext(os.path.split(x)[1])[0] for x in glob(os.path.join(dirname, '*'))]
+        modules = ['mesonbuild.' + modname + '.' + x for x in modules if not x.startswith('_')]
+        return modules
+
     def build_dist(self):
         for sdir in self.staging_dirs:
             if os.path.exists(sdir):
                 shutil.rmtree(sdir)
         main_stage, ninja_stage = self.staging_dirs
-        modules = [os.path.splitext(os.path.split(x)[1])[0] for x in glob(os.path.join('mesonbuild/modules/*'))]
-        modules = ['mesonbuild.modules.' + x for x in modules if not x.startswith('_')]
+        modules = self.get_all_modules_from_dir('mesonbuild/modules')
+        modules += self.get_all_modules_from_dir('mesonbuild/scripts')
         modules += ['distutils.version']
         modulestr = ','.join(modules)
         python = shutil.which('python')
