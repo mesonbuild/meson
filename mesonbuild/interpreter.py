@@ -36,6 +36,7 @@ import os, shutil, uuid
 import re, shlex
 import subprocess
 from collections import namedtuple
+from itertools import chain
 from pathlib import PurePath
 import functools
 
@@ -998,8 +999,13 @@ class CompilerHolder(InterpreterObject):
                 idir = os.path.join(self.environment.get_source_dir(),
                                     i.held_object.get_curdir(), idir)
                 args += self.compiler.get_include_args(idir, False)
+        native = kwargs.get('native', None)
+        if native:
+            for_machine = MachineChoice.BUILD
+        else:
+            for_machine = MachineChoice.HOST
         if not nobuiltins:
-            opts = self.environment.coredata.compiler_options
+            opts = self.environment.coredata.compiler_options[for_machine]
             args += self.compiler.get_option_compile_args(opts)
             if mode == 'link':
                 args += self.compiler.get_option_link_args(opts)
@@ -2454,8 +2460,9 @@ external dependencies (including libraries) must go to "dependencies".''')
     def get_option_internal(self, optname):
         # Some base options are not defined in some environments, return the
         # default value from compilers.base_options in that case.
-        for d in [self.coredata.base_options, compilers.base_options,
-                  self.coredata.builtins, self.coredata.compiler_options]:
+        for d in chain(
+                [self.coredata.base_options, compilers.base_options, self.coredata.builtins],
+                self.coredata.get_all_compiler_options()):
             try:
                 return d[optname]
             except KeyError:

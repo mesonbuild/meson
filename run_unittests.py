@@ -798,7 +798,7 @@ class InternalTests(unittest.TestCase):
             env = get_fake_env()
             compiler = env.detect_c_compiler(False)
             env.coredata.compilers = {'c': compiler}
-            env.coredata.compiler_options['c_link_args'] = FakeCompilerOptions()
+            env.coredata.compiler_options.host['c_link_args'] = FakeCompilerOptions()
             p1 = Path(tmpdir) / '1'
             p2 = Path(tmpdir) / '2'
             p1.mkdir()
@@ -2937,10 +2937,10 @@ recommended as it is not supported on some platforms''')
         # c_args value should be parsed with shlex
         self.init(testdir, extra_args=['-Dc_args=foo bar "one two"'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.compiler_options['c_args'].value, ['foo', 'bar', 'one two'])
+        self.assertEqual(obj.compiler_options.host['c_args'].value, ['foo', 'bar', 'one two'])
         self.setconf('-Dc_args="foo bar" one two')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.compiler_options['c_args'].value, ['foo bar', 'one', 'two'])
+        self.assertEqual(obj.compiler_options.host['c_args'].value, ['foo bar', 'one', 'two'])
         self.wipe()
 
         # Setting a 2nd time the same option should override the first value
@@ -2953,7 +2953,7 @@ recommended as it is not supported on some platforms''')
             self.assertEqual(obj.builtins['bindir'].value, 'bar')
             self.assertEqual(obj.builtins['buildtype'].value, 'release')
             self.assertEqual(obj.base_options['b_sanitize'].value, 'thread')
-            self.assertEqual(obj.compiler_options['c_args'].value, ['bar'])
+            self.assertEqual(obj.compiler_options.host['c_args'].value, ['bar'])
             self.setconf(['--bindir=bar', '--bindir=foo',
                           '-Dbuildtype=release', '-Dbuildtype=plain',
                           '-Db_sanitize=thread', '-Db_sanitize=address',
@@ -2962,7 +2962,7 @@ recommended as it is not supported on some platforms''')
             self.assertEqual(obj.builtins['bindir'].value, 'foo')
             self.assertEqual(obj.builtins['buildtype'].value, 'plain')
             self.assertEqual(obj.base_options['b_sanitize'].value, 'address')
-            self.assertEqual(obj.compiler_options['c_args'].value, ['foo'])
+            self.assertEqual(obj.compiler_options.host['c_args'].value, ['foo'])
             self.wipe()
         except KeyError:
             # Ignore KeyError, it happens on CI for compilers that does not

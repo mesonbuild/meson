@@ -20,7 +20,7 @@ from .. import mesonlib
 from .. import mlog
 import json
 import subprocess
-from ..mesonlib import MesonException, OrderedSet
+from ..mesonlib import MachineChoice, MesonException, OrderedSet
 from ..mesonlib import classify_unity_sources
 from ..mesonlib import File
 from ..compilers import CompilerArgs, VisualStudioCCompiler
@@ -185,9 +185,14 @@ class Backend:
                                    self.environment.coredata.base_options)
 
     def get_compiler_options_for_target(self, target):
-        return OptionOverrideProxy(target.option_overrides,
-                                   # no code depends on builtins for now
-                                   self.environment.coredata.compiler_options)
+        if self.environment.is_cross_build() and not target.is_cross:
+            for_machine = MachineChoice.BUILD
+        else:
+            for_machine = MachineChoice.HOST
+
+        return OptionOverrideProxy(
+            target.option_overrides,
+            self.environment.coredata.compiler_options[for_machine])
 
     def get_option_for_target(self, option_name, target):
         if option_name in target.option_overrides:
@@ -574,10 +579,14 @@ class Backend:
         # Add compile args added using add_global_arguments()
         # These override per-project arguments
         commands += self.build.get_global_args(compiler, target.is_cross)
+        if self.environment.is_cross_build() and not target.is_cross:
+            for_machine = MachineChoice.BUILD
+        else:
+            for_machine = MachineChoice.HOST
         if not target.is_cross:
             # Compile args added from the env: CFLAGS/CXXFLAGS, etc. We want these
             # to override all the defaults, but not the per-target compile args.
-            commands += self.environment.coredata.get_external_args(compiler.get_language())
+            commands += self.environment.coredata.get_external_args(for_machine, compiler.get_language())
         # Always set -fPIC for shared libraries
         if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_args()
