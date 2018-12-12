@@ -928,6 +928,10 @@ format and optionally the owner/uid and group/gid for the installed files.
 An example value could be `['rwxr-sr-x', 'root', 'root']`.
 *(Added 0.47.0)*.
 
+Since 0.49.0, [manpages are no longer compressed implicitly][install_man_49].
+
+[install_man_49]: https://mesonbuild.com/Release-notes-for-0-49-0.html#manpages-are-no-longer-compressed-implicitly
+
 ### install_subdir()
 
 ``` meson
