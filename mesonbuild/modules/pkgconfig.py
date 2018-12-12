@@ -438,11 +438,12 @@ class PkgConfigModule(ExtensionModule):
                 mainlib.generated_pc = filebase
             else:
                 mlog.warning('Already generated a pkg-config file for', mlog.bold(mainlib.name))
-        for lib in deps.pub_libs:
-            if not isinstance(lib, str) and not hasattr(lib, 'generated_pc'):
-                lib.generated_pc = filebase
-                lib.generated_pc_warn = types.SimpleNamespace(subdir=state.subdir,
-                                                              lineno=state.current_lineno)
+        else:
+            for lib in deps.pub_libs:
+                if not isinstance(lib, str) and not hasattr(lib, 'generated_pc'):
+                    lib.generated_pc = filebase
+                    lib.generated_pc_warn = types.SimpleNamespace(subdir=state.subdir,
+                                                                  lineno=state.current_lineno)
         return ModuleReturnValue(res, [res])
 
 def initialize(*args, **kwargs):
