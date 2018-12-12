@@ -16,6 +16,7 @@
 what to run, sets up the environment and executes the command."""
 
 import sys, os, subprocess, shutil, shlex
+import re
 
 def run_command(source_dir, build_dir, subdir, meson_command, command, arguments):
     env = {'MESON_SOURCE_ROOT': source_dir,
@@ -49,6 +50,9 @@ def run_command(source_dir, build_dir, subdir, meson_command, command, arguments
         print('Could not execute command "{}": {}'.format(command, err))
         sys.exit(1)
 
+def is_python_command(cmdname):
+    end_py_regex = r'python(3|3\.\d+)?(\.exe)?$'
+    return re.search(end_py_regex, cmdname) is not None
 
 def run(args):
     if len(args) < 4:
@@ -58,7 +62,7 @@ def run(args):
     build_dir = args[1]
     subdir = args[2]
     meson_command = args[3]
-    if 'python' in meson_command: # Hack.
+    if is_python_command(meson_command):
         meson_command = [meson_command, args[4]]
         command = args[5]
         arguments = args[6:]
