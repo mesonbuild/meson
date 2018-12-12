@@ -2625,10 +2625,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.log('Project name:', mlog.bold(proj_name))
         mlog.log('Project version:', mlog.bold(self.project_version))
         self.add_languages(proj_langs, True)
-        langs = self.coredata.compilers.keys()
-        if 'vala' in langs:
-            if 'c' not in langs:
-                raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
         if not self.is_subproject():
             self.check_cross_stdlibs()
 
@@ -2717,6 +2713,12 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.log('Cross', cross_comp.get_display_language(), 'compiler:',
                          mlog.bold(' '.join(cross_comp.get_exelist())), version_string)
                 self.build.ensure_static_cross_linker(cross_comp)
+
+        langs = self.coredata.compilers.keys()
+        if 'vala' in langs:
+            if 'c' not in langs:
+                raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
+
         return success
 
     def program_from_file_for(self, for_machine, prognames, silent):
