@@ -3,7 +3,7 @@ title: Release 0.43
 short-description: Release notes for 0.43
 ...
 
-# Portability improvements to Boost Dependency
+## Portability improvements to Boost Dependency
 
 The Boost dependency has been improved to better detect the various ways to
 install boost on multiple platforms. At the same time the `modules` semantics
@@ -14,12 +14,12 @@ used to specify libraries that require linking.
 This is a breaking change and the fix is to remove all modules that aren't
 found.
 
-# Generator learned capture
+## Generator learned capture
 
 Generators can now be configured to capture the standard output. See
 `test cases/common/98 gen extra/meson.build` for an example.
 
-# Can index CustomTarget objects
+## Can index CustomTarget objects
 
 The `CustomTarget` object can now be indexed like an array. The resulting
 object can be used as a source file for other Targets, this will create a
@@ -43,7 +43,7 @@ exec = executable(
 )
 ```
 
-# Can override executables in the cross file
+## Can override executables in the cross file
 
 The cross file can now be used for overriding the result of
 `find_program`. As an example if you want to find the `objdump`
@@ -63,7 +63,7 @@ objdump, you can specify the `native` keyword like this:
 native_objdump = find_program('objdump', native : true)
 ```
 
-# Easier handling of supported compiler arguments
+## Easier handling of supported compiler arguments
 
 A common pattern for handling multiple desired compiler arguments, was to
 test their presence and add them to an array one-by-one, e.g.:
@@ -91,7 +91,7 @@ warning_flags = [ ... ]
 flags = cc.get_supported_arguments(warning_flags)
 ```
 
-# Better support for shared libraries in non-system paths
+## Better support for shared libraries in non-system paths
 
 Meson has support for prebuilt object files and static libraries.
 This release adds feature parity to shared libraries that are either
@@ -114,7 +114,7 @@ mydep = declare_dependency(include_directories : include_directories('.'),
 
 Then you can use the dependency object in the same way as any other.
 
-# wrap-svn
+## wrap-svn
 
 The [Wrap dependency system](Wrap-dependency-system-manual.md) now
 supports [Subversion](https://subversion.apache.org/) (svn).  This

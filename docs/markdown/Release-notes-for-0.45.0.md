@@ -176,7 +176,8 @@ defined in it.
 ## Can use custom targets as Windows resource files
 
 The `compile_resources()` function of the `windows` module can now be used on custom targets as well as regular files.
-# Can promote dependencies with wrap command
+
+## Can promote dependencies with wrap command
 
 The `promote` command makes it easy to copy nested dependencies to the top level.
 
