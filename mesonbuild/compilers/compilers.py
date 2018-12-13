@@ -1823,6 +1823,10 @@ class IntelCompiler(GnuLikeCompiler):
             extra_args,
             '-diag-error', '10006',  # ignoring unknown option
             '-diag-error', '10148',  # Option not supported
+            '-diag-error', '10155',  # ignoring argument required
+            '-diag-error', '10156',  # ignoring not argument allowed
+            '-diag-error', '10157',  # Ignoring argument of the wrong type
+            '-diag-error', '10158',  # Argument must be separate. Can be hit by trying an option like -foo-bar=foo when -foo=bar is a valid option but -foo-bar isn't
             '-diag-error', '1292',   # unknown __attribute__
         ]
         return super().compiles(*args, **kwargs)
