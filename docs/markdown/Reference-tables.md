@@ -117,6 +117,8 @@ These are the parameter names for passing language specific arguments to your bu
 These environment variables will be used to modify the compiler and
 linker flags.
 
+| Name      | Comment                                  |
+| -----     | -------                                  |
 | CFLAGS    | Flags for the C compiler                 |
 | CXXFLAGS  | Flags for the C++ compiler               |
 | OBJCFLAGS | Flags for the Objective C compiler       |
