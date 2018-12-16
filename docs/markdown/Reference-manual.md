@@ -431,6 +431,16 @@ The returned object also has methods that are documented in the
 
 Returns a [disabler object](#disabler-object). Added in 0.44.0.
 
+### end_message()
+
+Added in 0.50.0. This function can be used to print status messages at
+the end of a Meson run. It is usually used to print a summary of
+essential configuration settings. The function takes either one or two
+strings, so it can be used to print both plain messages as well as
+key-value pairs. Meson will automatically format the latter kind so
+that all values are vertically aligned. Thus it recommended to use
+fairly short message strings.
+
 ### error()
 
 ``` meson

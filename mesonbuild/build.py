@@ -141,6 +141,7 @@ class Build:
         self.test_setup_default_name = None
         self.find_overrides = {}
         self.searched_programs = set() # The list of all programs that have been searched for.
+        self.end_messages = {}
 
     def copy(self):
         other = Build(self.environment)
@@ -219,6 +220,12 @@ class Build:
             return []
 
         return link_args.get(compiler.get_language(), [])
+
+    def add_end_message(self, subproject, message):
+        assert(isinstance(message, list))
+        if subproject not in self.end_messages:
+            self.end_messages[subproject] = []
+        self.end_messages[subproject].append(message)
 
 class IncludeDirs:
     def __init__(self, curdir, dirs, is_system, extra_build_dirs=None):

@@ -1982,6 +1982,7 @@ class Interpreter(InterpreterBase):
                            'declare_dependency': self.func_declare_dependency,
                            'dependency': self.func_dependency,
                            'disabler': self.func_disabler,
+                           'end_message': self.func_end_message,
                            'environment': self.func_environment,
                            'error': self.func_error,
                            'executable': self.func_executable,
@@ -2605,6 +2606,17 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_message(self, node, args, kwargs):
         argstr = self.get_message_string_arg(node)
         mlog.log(mlog.bold('Message:'), argstr)
+
+    @stringArgs
+    @noKwargs
+    @FeatureNew('end_message', '0.50.0')
+    def func_end_message(self, node, args, kwargs):
+        if len(args) == 0 or len(args) > 2:
+            raise InvalidArguments('End_message takes exacly one or two arguments.')
+        if '\n' in ' '.join(args):
+            raise InvalidArguments('The argument strings may not contain linefeeds.')
+        self.build.add_end_message(self.subproject, args)
+        pass
 
     @FeatureNew('warning', '0.44.0')
     @noKwargs

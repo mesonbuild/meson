@@ -80,6 +80,7 @@ syn keyword mesonBuiltin
   \ declare_dependency
   \ dependency
   \ disabler
+  \ end_message
   \ environment
   \ error
   \ executable

@@ -697,6 +697,8 @@ def check_format():
         if '.dub' in root: # external deps are here
             continue
         for fname in files:
+            if fname.startswith('.#') or fname.startswith('#'): # Emacs temp files.
+                continue
             if os.path.splitext(fname)[1].lower() in check_suffixes:
                 bn = os.path.basename(fname)
                 if bn == 'sitemap.txt' or bn == 'meson-test-run.txt':

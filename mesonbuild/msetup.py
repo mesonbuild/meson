@@ -139,6 +139,28 @@ class MesonApp:
                          (env.coredata.pkgconf_envvar, curvar))
             env.coredata.pkgconf_envvar = curvar
 
+    def print_messagelist(self, project_name, messages):
+        max_length = max([len(x[0]) for x in messages])
+        mlog.log(mlog.bold('\n' + project_name + '\n'))
+        for m in messages:
+            if len(m) == 1:
+                mlog.log(m[0])
+            else:
+                padding = ' '*(max_length - len(m[0]) + 2)
+                mlog.log(m[0] + padding, mlog.bold(m[1]))
+
+    def print_end_messages(self, end_messages):
+        if len(end_messages) == 0:
+            return
+        mlog.log(mlog.bold('\nProject status messages'))
+        all_projects = end_messages.keys()
+        for p in sorted(all_projects):
+            if p == '':
+                continue
+            self.print_messagelist(p, end_messages[p])
+        if '' in end_messages:
+            self.print_messagelist('Main project', end_messages[''])
+
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
         mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
@@ -202,6 +224,7 @@ class MesonApp:
                 coredata.write_cmd_line_file(self.build_dir, self.options)
             else:
                 coredata.update_cmd_line_file(self.build_dir, self.options)
+            self.print_end_messages(b.end_messages)
         except:
             if 'cdf' in locals():
                 old_cdf = cdf + '.prev'
