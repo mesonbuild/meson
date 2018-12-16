@@ -2,7 +2,8 @@ project('external dependency', 'c')
 
 # Zlib is probably on all dev machines.
 
-dep = dependency('zlib', version : '>=1.2')
+dep = dependency('zlib', version : '>=1.2',
+  not_found_message: 'DANGER! DANGER! THIS MUST NEVER BE SEEN!')
 exe = executable('zlibprog', 'prog-checkver.c',
   dependencies : dep,
   c_args : '-DFOUND_ZLIB="' + dep.version() + '"')
@@ -29,7 +30,8 @@ test('zlibtest2', exe2)
 
 # Try to find a nonexistent library to ensure requires:false works.
 
-dep = dependency('nvakuhrabnsdfasdf', required : false)
+dep = dependency('nvakuhrabnsdfasdf', required : false,
+  not_found_message : 'This dependency was not found as was expected.')
 
 # Try to compile a test that takes a dep and an include_directories
 
