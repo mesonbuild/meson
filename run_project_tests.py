@@ -543,6 +543,7 @@ def detect_tests_to_run():
         ('fortran', 'fortran', backend is not Backend.ninja or not shutil.which('gfortran')),
         ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         ('python3', 'python3', backend is not Backend.ninja),
+        ('python', 'python', backend is not Backend.ninja),
         ('fpga', 'fpga', shutil.which('yosys') is None),
         ('frameworks', 'frameworks', False),
         ('nasm', 'nasm', False),

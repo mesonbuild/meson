@@ -284,11 +284,12 @@ print (json.dumps ({
 }))
 '''
 
-class PythonInstallation(ExternalProgramHolder, InterpreterObject):
+
+class PythonInstallation(ExternalProgramHolder):
     def __init__(self, interpreter, python, info):
-        InterpreterObject.__init__(self)
         ExternalProgramHolder.__init__(self, python)
         self.interpreter = interpreter
+        self.subproject = self.interpreter.subproject
         prefix = self.interpreter.environment.coredata.get_builtin_option('prefix')
         self.variables = info['variables']
         self.paths = info['paths']
@@ -299,9 +300,22 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         self.platform = info['platform']
         self.is_pypy = info['is_pypy']
         self.link_libpython = info['link_libpython']
+        self.methods.update({
+            'extension_module': self.extension_module_method,
+            'dependency': self.dependency_method,
+            'install_sources': self.install_sources_method,
+            'get_install_dir': self.get_install_dir_method,
+            'language_version': self.language_version_method,
+            'found': self.found_method,
+            'has_path': self.has_path_method,
+            'get_path': self.get_path_method,
+            'has_variable': self.has_variable_method,
+            'get_variable': self.get_variable_method,
+            'path': self.path_method,
+        })
 
     @permittedKwargs(mod_kwargs)
-    def extension_module(self, interpreter, state, args, kwargs):
+    def extension_module_method(self, args, kwargs):
         if 'subdir' in kwargs and 'install_dir' in kwargs:
             raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
 
@@ -320,7 +334,7 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
             for holder in mesonlib.extract_as_list(kwargs, 'dependencies'):
                 dep = holder.held_object
                 if isinstance(dep, PythonDependency):
-                    holder = interpreter.holderify(dep.get_partial_dependency(compile_args=True))
+                    holder = self.interpreter.holderify(dep.get_partial_dependency(compile_args=True))
                 new_deps.append(holder)
             kwargs['dependencies'] = new_deps
 
@@ -334,14 +348,14 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
 
-        return interpreter.func_shared_module(None, args, kwargs)
+        return self.interpreter.func_shared_module(None, args, kwargs)
 
-    def dependency(self, interpreter, state, args, kwargs):
-        dep = PythonDependency(self, interpreter.environment, kwargs)
-        return interpreter.holderify(dep)
+    def dependency_method(self, args, kwargs):
+        dep = PythonDependency(self, self.interpreter.environment, kwargs)
+        return self.interpreter.holderify(dep)
 
     @permittedKwargs(['pure', 'subdir'])
-    def install_sources(self, interpreter, state, args, kwargs):
+    def install_sources_method(self, args, kwargs):
         pure = kwargs.pop('pure', False)
         if not isinstance(pure, bool):
             raise InvalidArguments('"pure" argument must be a boolean.')
@@ -355,11 +369,11 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         else:
             kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
 
-        return interpreter.func_install_data(None, args, kwargs)
+        return self.interpreter.holderify(self.interpreter.func_install_data(None, args, kwargs))
 
     @noPosargs
     @permittedKwargs(['pure', 'subdir'])
-    def get_install_dir(self, node, args, kwargs):
+    def get_install_dir_method(self, args, kwargs):
         pure = kwargs.pop('pure', True)
         if not isinstance(pure, bool):
             raise InvalidArguments('"pure" argument must be a boolean.')
@@ -373,30 +387,25 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
         else:
             res = os.path.join(self.platlib_install_path, subdir)
 
-        return ModuleReturnValue(res, [])
+        return self.interpreter.module_method_callback(ModuleReturnValue(res, []))
 
     @noPosargs
     @noKwargs
-    def language_version(self, node, args, kwargs):
-        return ModuleReturnValue(self.version, [])
-
-    @noPosargs
-    @noKwargs
-    def found(self, node, args, kwargs):
-        return ModuleReturnValue(True, [])
+    def language_version_method(self, args, kwargs):
+        return self.interpreter.module_method_callback(ModuleReturnValue(self.version, []))
 
     @noKwargs
-    def has_path(self, node, args, kwargs):
+    def has_path_method(self, args, kwargs):
         if len(args) != 1:
             raise InvalidArguments('has_path takes exactly one positional argument.')
         path_name = args[0]
         if not isinstance(path_name, str):
             raise InvalidArguments('has_path argument must be a string.')
 
-        return ModuleReturnValue(path_name in self.paths, [])
+        return self.interpreter.module_method_callback(ModuleReturnValue(path_name in self.paths, []))
 
     @noKwargs
-    def get_path(self, node, args, kwargs):
+    def get_path_method(self, args, kwargs):
         if len(args) not in (1, 2):
             raise InvalidArguments('get_path must have one or two arguments.')
         path_name = args[0]
@@ -411,20 +420,20 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
             else:
                 raise InvalidArguments('{} is not a valid path name'.format(path_name))
 
-        return ModuleReturnValue(path, [])
+        return self.interpreter.module_method_callback(ModuleReturnValue(path, []))
 
     @noKwargs
-    def has_variable(self, node, args, kwargs):
+    def has_variable_method(self, args, kwargs):
         if len(args) != 1:
             raise InvalidArguments('has_variable takes exactly one positional argument.')
         var_name = args[0]
         if not isinstance(var_name, str):
             raise InvalidArguments('has_variable argument must be a string.')
 
-        return ModuleReturnValue(var_name in self.variables, [])
+        return self.interpreter.module_method_callback(ModuleReturnValue(var_name in self.variables, []))
 
     @noKwargs
-    def get_variable(self, node, args, kwargs):
+    def get_variable_method(self, args, kwargs):
         if len(args) not in (1, 2):
             raise InvalidArguments('get_variable must have one or two arguments.')
         var_name = args[0]
@@ -439,25 +448,13 @@ class PythonInstallation(ExternalProgramHolder, InterpreterObject):
             else:
                 raise InvalidArguments('{} is not a valid variable name'.format(var_name))
 
-        return ModuleReturnValue(var, [])
+        return self.interpreter.module_method_callback(ModuleReturnValue(var, []))
 
-    def method_call(self, method_name, args, kwargs):
-        try:
-            fn = getattr(self, method_name)
-        except AttributeError:
-            raise InvalidArguments('Python object does not have method %s.' % method_name)
-
-        if not getattr(fn, 'no-args-flattening', False):
-            args = flatten(args)
-
-        if method_name in ['extension_module', 'dependency', 'install_sources']:
-            value = fn(self.interpreter, None, args, kwargs)
-            return self.interpreter.holderify(value)
-        elif method_name in ['has_variable', 'get_variable', 'has_path', 'get_path', 'found', 'language_version', 'get_install_dir']:
-            value = fn(None, args, kwargs)
-            return self.interpreter.module_method_callback(value)
-        else:
-            raise InvalidArguments('Python object does not have method %s.' % method_name)
+    @noPosargs
+    @noKwargs
+    @FeatureNew('Python module path method', '0.50.0')
+    def path_method(self, args, kwargs):
+        return super().path_method(args, kwargs)
 
 
 class PythonModule(ExtensionModule):
