@@ -40,7 +40,7 @@ like `llvm-config`
 c = '/usr/local/bin/clang'
 cpp = '/usr/local/bin/clang++'
 rust = '/usr/local/bin/rust'
-llvm-conifg = '/usr/local/llvm-svn/bin/llvm-config'
+llvm-config = '/usr/local/llvm-svn/bin/llvm-config'
 ```
 
 ## Loading multiple native files
