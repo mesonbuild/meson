@@ -1900,6 +1900,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                    'modules',
                                    'optional_modules',
                                    'native',
+                                   'not_found_message',
                                    'required',
                                    'static',
                                    'version',
@@ -2645,6 +2646,9 @@ external dependencies (including libraries) must go to "dependencies".''')
     @noKwargs
     def func_message(self, node, args, kwargs):
         argstr = self.get_message_string_arg(node)
+        self.message_impl(argstr)
+
+    def message_impl(self, argstr):
         mlog.log(mlog.bold('Message:'), argstr)
 
     @FeatureNew('warning', '0.44.0')
@@ -3013,13 +3017,27 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('dependency', '0.49.0', ['disabler'])
     @FeatureNewKwargs('dependency', '0.40.0', ['method'])
     @FeatureNewKwargs('dependency', '0.38.0', ['default_options'])
+    @FeatureNewKwargs('dependency', '0.50.0', ['not_found_message'])
     @disablerIfNotFound
     @permittedKwargs(permitted_kwargs['dependency'])
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         name = args[0]
         display_name = name if name else '(anonymous)'
+        not_found_message = kwargs.get('not_found_message', '')
+        if not isinstance(not_found_message, str):
+            raise InvalidArguments('The not_found_message must be a string.')
+        try:
+            d = self.dependency_impl(name, display_name, kwargs)
+        except Exception:
+            if not_found_message:
+                self.message_impl(not_found_message)
+            raise
+        if not d.found() and not_found_message:
+            self.message_impl(not_found_message)
+        return d
 
+    def dependency_impl(self, name, display_name, kwargs):
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Dependency', mlog.bold(display_name), 'skipped: feature', mlog.bold(feature), 'disabled')

@@ -395,6 +395,8 @@ are also supported. This function supports the following keyword arguments:
   the build machine system rather than the host system (i.e. where the
   cross compiled binary will run on), usually only needed if you build
   a tool to be used during compilation.
+- `not_found_message` *(added 0.50.0)* is an optional string that will
+  be printed as a `message()` if the dependency was not found.
 - `required`, when set to false, Meson will proceed with the build
   even if the dependency is not found. Since *0.47.0* the value of a
   [`feature`](Build-options.md#features) option can also be passed.
