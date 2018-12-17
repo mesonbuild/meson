@@ -15,6 +15,7 @@
 from . import mlog
 import pickle, os, uuid, shlex
 import sys
+from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict
 from .mesonlib import (
@@ -476,8 +477,14 @@ class CoreData:
             mode = 'custom'
         self.builtins['buildtype'].set_value(mode)
 
+    def _get_all_nonbuiltin_options(self):
+        yield self.backend_options
+        yield self.user_options
+        yield self.compiler_options
+        yield self.base_options
+
     def validate_option_value(self, option_name, override_value):
-        for opts in (self.builtins, self.base_options, self.compiler_options, self.user_options):
+        for opts in chain(iter([self.builtins]), self._get_all_nonbuiltin_options()):
             if option_name in opts:
                 opt = opts[option_name]
                 return opt.validate_value(override_value)
@@ -517,20 +524,14 @@ class CoreData:
                 pass
             elif k in self.builtins:
                 self.set_builtin_option(k, v)
-            elif k in self.backend_options:
-                tgt = self.backend_options[k]
-                tgt.set_value(v)
-            elif k in self.user_options:
-                tgt = self.user_options[k]
-                tgt.set_value(v)
-            elif k in self.compiler_options:
-                tgt = self.compiler_options[k]
-                tgt.set_value(v)
-            elif k in self.base_options:
-                tgt = self.base_options[k]
-                tgt.set_value(v)
             else:
-                unknown_options.append(k)
+                for opts in self._get_all_nonbuiltin_options():
+                    if k in opts:
+                        tgt = opts[k]
+                        tgt.set_value(v)
+                        break
+                else:
+                    unknown_options.append(k)
 
         if unknown_options:
             unknown_options = ', '.join(sorted(unknown_options))
