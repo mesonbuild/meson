@@ -311,3 +311,24 @@ clone-recursive=true
 This allows you to declare an optional subproject. You can now call `found()`
 on the return value of the `subproject()` call to see if the subproject is
 available before calling `get_variable()` to fetch information from it.
+
+## `dependency()` objects now support the `.name()` method
+
+You can now fetch the name of the dependency that was searched like so:
+
+```meson
+glib_dep = dependency('glib-2.0')
+...
+message("dependency name is " + glib_dep.name())
+# This outputs `dependency name is glib-2.0`
+
+qt_dep = dependency('qt5')
+...
+message("dependency name is " + qt_dep.name())
+# This outputs `dependency name is qt5`
+
+decl_dep = declare_dependency()
+...
+message("dependency name is " + decl_dep.name())
+# This outputs `dependency name is internal`
+```

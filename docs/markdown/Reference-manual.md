@@ -2070,6 +2070,10 @@ an external dependency with the following methods:
 
  - `found()` which returns whether the dependency was found
 
+ - `name()` *(Added 0.48.0)* returns the name of the dependency that was
+   searched. Returns `internal` for dependencies created with
+   `declare_dependency()`.
+
  - `get_pkgconfig_variable(varname)` *(Added 0.36.0)* will get the
    pkg-config variable specified, or, if invoked on a non pkg-config
    dependency, error out. *(Added 0.44.0)* You can also redefine a
