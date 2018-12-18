@@ -1957,10 +1957,7 @@ class Interpreter(InterpreterBase):
     def get_non_matching_default_options(self):
         env = self.environment
         for def_opt_name, def_opt_value in self.project_default_options.items():
-            for option_type in [
-                    env.coredata.builtins, env.coredata.compiler_options,
-                    env.coredata.backend_options, env.coredata.base_options,
-                    env.coredata.user_options]:
+            for option_type in env.coredata.get_all_options():
                 for cur_opt_name, cur_opt_value in option_type.items():
                     if (def_opt_name == cur_opt_name and
                             def_opt_value != cur_opt_value.value):
