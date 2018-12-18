@@ -483,8 +483,13 @@ class CoreData:
         yield self.compiler_options
         yield self.base_options
 
+    def get_all_options(self):
+        return chain(
+            iter([self.builtins]),
+            self._get_all_nonbuiltin_options())
+
     def validate_option_value(self, option_name, override_value):
-        for opts in chain(iter([self.builtins]), self._get_all_nonbuiltin_options()):
+        for opts in self.get_all_options():
             if option_name in opts:
                 opt = opts[option_name]
                 return opt.validate_value(override_value)
