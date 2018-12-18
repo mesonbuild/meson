@@ -216,6 +216,14 @@ path = pathsep.join(['/usr/bin', '/bin', '/usr/local/bin'])
 path = join_paths(['/usr', 'local', 'bin'])
 # path now has the value '/usr/local/bin'
 
+# Don't use join_paths for sources files, use files for that:
+my_sources = files('foo.c')
+...
+my_sources += files('bar.c')
+# This has the advantage of always calculating the correct relative path, even
+# if you add files in another directory or use them in a different directory
+# than they're defined in
+
 # Example to set an API version for use in library(), install_header(), etc
 project('project', 'c', version: '0.2.3')
 version_array = meson.project_version().split('.')

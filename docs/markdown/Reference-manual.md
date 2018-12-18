@@ -1022,6 +1022,9 @@ Joins the given strings into a file system path segment. For example
 individual segments is an absolute path, all segments before it are
 dropped. That means that `join_paths('foo', '/bar')` returns `/bar`.
 
+**Warning** Don't use `join_paths()` for sources in [`library`](#library) and
+[`executable`](#executable), you should use [`files`](#files) instead.
+
 *Added 0.36.0*
 
 Since 0.49.0 using the`/` operator on strings is equivalent to calling
