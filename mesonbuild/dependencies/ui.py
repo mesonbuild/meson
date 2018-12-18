@@ -243,7 +243,7 @@ class QtBaseDependency(ExternalDependency):
                 if self.bindir:
                     yield os.path.join(self.bindir, b), b, False
                 yield '{}-{}'.format(b, self.name), b, False
-                yield b, b, self.required
+                yield b, b, self.required if b != 'lrelease' else False
 
         for b, name, required in gen_bins():
             if found[name].found():
