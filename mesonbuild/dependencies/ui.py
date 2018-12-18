@@ -288,7 +288,15 @@ class QtBaseDependency(ExternalDependency):
             self.compile_args += m.get_compile_args()
             if self.private_headers:
                 qt_inc_dir = m.get_pkgconfig_variable('includedir', dict())
-                mod_private_inc = _qt_get_private_includes(os.path.join(qt_inc_dir, 'Qt' + m_name), m_name, m.version)
+                mod_private_dir = os.path.join(qt_inc_dir, 'Qt' + m_name)
+                if not os.path.isdir(mod_private_dir):
+                    # At least some versions of homebrew don't seem to set this
+                    # up correctly. /usr/local/opt/qt/include/Qt + m_name is a
+                    # symlink to /usr/local/opt/qt/include, but the pkg-config
+                    # file points to /usr/local/Cellar/qt/x.y.z/Headers/, and
+                    # the Qt + m_name there is not a symlink, it's a file
+                    mod_private_dir = qt_inc_dir
+                mod_private_inc = _qt_get_private_includes(mod_private_dir, m_name, m.version)
                 for dir in mod_private_inc:
                     self.compile_args.append('-I' + dir)
             self.link_args += m.get_link_args()
