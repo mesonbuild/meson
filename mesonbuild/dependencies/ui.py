@@ -14,7 +14,6 @@
 
 # This file contains the detection logic for external dependencies that
 # are UI-related.
-
 import functools
 import os
 import re
@@ -342,10 +341,9 @@ class QtBaseDependency(ExternalDependency):
                 return ExternalProgram.from_bin_list(self.env.cross_info.config['binaries'], 'qmake')
         elif self.env.config_info:
             # Prefer suffixed to unsuffixed version
-            p = ExternalProgram.from_bin_list(self.env.config_info.binaries, 'qmake-' + self.name)
+            p = ExternalProgram.from_bin_list(self.env.config_info.binaries, 'qmake')
             if p.found():
                 return p
-            return ExternalProgram.from_bin_list(self.env.config_info.binaries, 'qmake')
         return ExternalProgram(qmake, silent=True)
 
     def _qmake_detect(self, mods, kwargs):
