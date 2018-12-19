@@ -73,7 +73,15 @@ class MesonApp:
             coredata.read_cmd_line_file(self.build_dir, options)
 
             try:
-                mesonlib.windows_proof_rmtree(self.build_dir)
+                # Don't delete the whole tree, just all of the files and
+                # folders in the tree. Otherwise calling wipe form the builddir
+                # will cause a crash
+                for l in os.listdir(self.build_dir):
+                    l = os.path.join(self.build_dir, l)
+                    if os.path.isdir(l):
+                        mesonlib.windows_proof_rmtree(l)
+                    else:
+                        mesonlib.windows_proof_rm(l)
             finally:
                 # Restore the file
                 path = os.path.dirname(filename)

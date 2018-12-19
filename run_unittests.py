@@ -2922,11 +2922,7 @@ recommended as it is not supported on some platforms''')
         self.wipe()
         self.init(testdir, extra_args=['-Dstart_native=true'])
 
-    def test_reconfigure(self):
-        testdir = os.path.join(self.unit_test_dir, '46 reconfigure')
-        self.init(testdir, extra_args=['-Dopt1=val1'])
-        self.setconf('-Dopt2=val2')
-
+    def __reconfigure(self):
         # Set an older version to force a reconfigure from scratch
         filename = os.path.join(self.privatedir, 'coredata.dat')
         with open(filename, 'rb') as f:
@@ -2934,6 +2930,13 @@ recommended as it is not supported on some platforms''')
         obj.version = '0.47.0'
         with open(filename, 'wb') as f:
             pickle.dump(obj, f)
+
+    def test_reconfigure(self):
+        testdir = os.path.join(self.unit_test_dir, '46 reconfigure')
+        self.init(testdir, extra_args=['-Dopt1=val1'])
+        self.setconf('-Dopt2=val2')
+
+        self.__reconfigure()
 
         out = self.init(testdir, extra_args=['--reconfigure', '-Dopt3=val3'])
         self.assertRegex(out, 'WARNING:.*Regenerating configuration from scratch')
@@ -2956,6 +2959,14 @@ recommended as it is not supported on some platforms''')
         self.assertRegex(out, 'opt4 val4')
         self.build()
         self.run_tests()
+
+    def test_wipe_from_builddir(self):
+        testdir = os.path.join(self.common_test_dir, '162 custom target subdir depend files')
+        self.init(testdir)
+        self.__reconfigure()
+
+        with Path(self.builddir):
+            self.init(testdir, extra_args=['--wipe'])
 
     def test_target_construct_id_from_path(self):
         # This id is stable but not guessable.
