@@ -2995,6 +2995,23 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(res['subprojects'][0]['version'], 'undefined')
         self.assertEqual(res['subprojects'][0]['descriptive_name'], 'subproject')
 
+    def test_introspect_projectinfo_subprojects(self):
+        testdir = os.path.join(self.common_test_dir, '103 subproject subdir')
+        self.init(testdir)
+        res = self.introspect('--projectinfo')
+        expected = {
+            'descriptive_name': 'proj',
+            'version': 'undefined',
+            'subprojects': [
+                {
+                    'descriptive_name': 'sub',
+                    'name': 'sub',
+                    'version': 'undefined'
+                }
+            ]
+        }
+        self.assertDictEqual(res, expected)
+
 
 class FailureTests(BasePlatformTests):
     '''
