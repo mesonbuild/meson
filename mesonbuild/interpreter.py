@@ -2359,11 +2359,11 @@ external dependencies (including libraries) must go to "dependencies".''')
             if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                 raise InterpreterException('Subproject %s version is %s but %s required.' % (dirname, pv, wanted))
         self.active_projectname = current_active
-        self.build.subprojects[dirname] = subi.project_version
         self.subprojects.update(subi.subprojects)
         self.subprojects[dirname] = SubprojectHolder(subi, self.subproject_dir, dirname)
         self.build_def_files += subi.build_def_files
         self.build.merge(subi.build)
+        self.build.subprojects[dirname] = subi.project_version
         return self.subprojects[dirname]
 
     def get_option_internal(self, optname):
