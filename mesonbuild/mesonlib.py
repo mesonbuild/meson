@@ -1116,6 +1116,22 @@ def windows_proof_rmtree(f):
     shutil.rmtree(f)
 
 
+def windows_proof_rm(fpath):
+    """Like windows_proof_rmtree, but for a single file."""
+    if os.path.isfile(fpath):
+        os.chmod(fpath, os.stat(fpath).st_mode | stat.S_IWRITE | stat.S_IREAD)
+    delays = [0.1, 0.1, 0.2, 0.2, 0.2, 0.5, 0.5, 1, 1, 1, 1, 2]
+    for d in delays:
+        try:
+            os.unlink(fpath)
+            return
+        except FileNotFoundError:
+            return
+        except (OSError, PermissionError):
+            time.sleep(d)
+    os.unlink(fpath)
+
+
 def detect_subprojects(spdir_name, current_dir='', result=None):
     if result is None:
         result = {}
