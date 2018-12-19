@@ -62,8 +62,13 @@ class MesonApp:
             # restore that file if anything bad happens. For example if
             # configuration fails we need to be able to wipe again.
             filename = coredata.get_cmd_line_file(self.build_dir)
-            with open(filename, 'r') as f:
-                content = f.read()
+            try:
+                with open(filename, 'r') as f:
+                    content = f.read()
+            except FileNotFoundError:
+                raise MesonException(
+                    'Cannot find cmd_line.txt. This is probably because this '
+                    'build directory was configured with a meson version < 0.49.0.')
 
             coredata.read_cmd_line_file(self.build_dir, options)
 
