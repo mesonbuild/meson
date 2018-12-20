@@ -1768,6 +1768,7 @@ class MesonMain(InterpreterObject):
                              'add_postconf_script': self.add_postconf_script_method,
                              'add_dist_script': self.add_dist_script_method,
                              'install_dependency_manifest': self.install_dependency_manifest_method,
+                             'override_dependency': self.override_dependency_method,
                              'override_find_program': self.override_find_program_method,
                              'project_version': self.project_version_method,
                              'project_license': self.project_license_method,
@@ -1922,6 +1923,26 @@ class MesonMain(InterpreterObject):
         if not isinstance(exe, (dependencies.ExternalProgram, build.Executable)):
             raise InterpreterException('Second argument must be an external program or executable.')
         self.interpreter.add_find_program_override(name, exe)
+
+    @FeatureNew('meson.override_dependency', '0.53.0')
+    @permittedKwargs({'native'})
+    def override_dependency_method(self, args, kwargs):
+        if len(args) != 2:
+            raise InterpreterException('Override needs two arguments')
+        name = args[0]
+        dep = args[1]
+        if not isinstance(name, str) or not name:
+            raise InterpreterException('First argument must be not empty string')
+        if hasattr(dep, 'held_object'):
+            dep = dep.held_object
+        if not isinstance(dep, dependencies.Dependency):
+            raise InterpreterException('Second argument must be a dependency object')
+        identifier = dependencies.get_dep_identifier(name, kwargs)
+        for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
+        if identifier in self.build.dependency_overrides[for_machine]:
+            raise InterpreterException('Tried to override dependency "%s" which has already been overridden.'
+                                       % name)
+        self.build.dependency_overrides[for_machine][identifier] = dep
 
     @noPosargs
     @permittedKwargs({})
@@ -3010,30 +3031,38 @@ external dependencies (including libraries) must go to "dependencies".''')
         # Check if we want this as a build-time / build machine or runt-time /
         # host machine dep.
         for_machine = self.machine_from_native_kwarg(kwargs)
-
         identifier = dependencies.get_dep_identifier(name, kwargs)
-        cached_dep = self.coredata.deps[for_machine].get(identifier)
-        if cached_dep:
-            if not cached_dep.found():
-                mlog.log('Dependency', mlog.bold(name),
-                         'found:', mlog.red('NO'), mlog.blue('(cached)'))
-                return identifier, cached_dep
+        wanted_vers = mesonlib.stringlistify(kwargs.get('version', []))
 
-            # Verify the cached dep version match
-            wanted_vers = mesonlib.stringlistify(kwargs.get('version', []))
+        cached_dep = self.build.dependency_overrides[for_machine].get(identifier)
+        if cached_dep:
             found_vers = cached_dep.get_version()
-            if not wanted_vers or mesonlib.version_compare_many(found_vers, wanted_vers)[0]:
-                info = [mlog.blue('(cached)')]
-                if found_vers:
-                    info = [mlog.normal_cyan(found_vers), *info]
+            if not self.check_version(wanted_vers, found_vers):
                 mlog.log('Dependency', mlog.bold(name),
-                         'found:', mlog.green('YES'), *info)
-                return identifier, cached_dep
+                         'found:', mlog.red('NO'),
+                         'found', mlog.normal_cyan(found_vers), 'but need:',
+                         mlog.bold(', '.join(["'{}'".format(e) for e in wanted_vers])),
+                         mlog.blue('(cached)'))
+                return identifier, NotFoundDependency(self.environment)
+        else:
+            cached_dep = self.coredata.deps[for_machine].get(identifier)
+            if cached_dep:
+                found_vers = cached_dep.get_version()
+                if not self.check_version(wanted_vers, found_vers):
+                    return identifier, None
+
+        if cached_dep:
+            info = [mlog.blue('(cached)')]
+            if found_vers:
+                info = [mlog.normal_cyan(found_vers), *info]
+            mlog.log('Dependency', mlog.bold(name),
+                     'found:', mlog.green('YES'), *info)
+            return identifier, cached_dep
 
         return identifier, None
 
     @staticmethod
-    def check_subproject_version(wanted, found):
+    def check_version(wanted, found):
         if not wanted:
             return True
         if found == 'undefined' or not mesonlib.version_compare_many(found, wanted)[0]:
@@ -3070,7 +3099,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             return dep
 
         found = dep.held_object.get_version()
-        if not self.check_subproject_version(wanted, found):
+        if not self.check_version(wanted, found):
             if required:
                 raise DependencyException('Version {} of subproject dependency {} already '
                                           'cached, requested incompatible version {} for '
@@ -3122,6 +3151,13 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise
         if not d.found() and not_found_message:
             self.message_impl(not_found_message)
+        # Override this dependency to have consistent results in subsequent
+        # dependency lookups.
+        if name and d.found():
+            for_machine = self.machine_from_native_kwarg(kwargs)
+            identifier = dependencies.get_dep_identifier(name, kwargs)
+            if identifier not in self.build.dependency_overrides[for_machine]:
+                self.build.dependency_overrides[for_machine][identifier] = d.held_object
         return d
 
     def dependency_impl(self, name, display_name, kwargs):
