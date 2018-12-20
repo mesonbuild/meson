@@ -3980,7 +3980,7 @@ recommended as it is not supported on some platforms''')
                 {
                     'descriptive_name': 'sub',
                     'name': 'sub',
-                    'version': 'undefined'
+                    'version': '1.0'
                 }
             ]
         }
@@ -4555,7 +4555,7 @@ class FailureTests(BasePlatformTests):
             raise unittest.SkipTest('zlib not found with pkg-config')
         a = (("dependency('zlib', method : 'fail')", "'fail' is invalid"),
              ("dependency('zlib', static : '1')", "[Ss]tatic.*boolean"),
-             ("dependency('zlib', version : 1)", "[Vv]ersion.*string or list"),
+             ("dependency('zlib', version : 1)", "Item must be a list or one of <class 'str'>"),
              ("dependency('zlib', required : 1)", "[Rr]equired.*boolean"),
              ("dependency('zlib', method : 1)", "[Mm]ethod.*string"),
              ("dependency('zlibfail')", self.dnf),)

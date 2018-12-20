@@ -1825,11 +1825,17 @@ the following methods.
 - `override_find_program(progname, program)` [*(Added
   0.46.0)*](Release-notes-for-0.46.0.md#can-override-find_program)
   specifies that whenever `find_program` is used to find a program
-  named `progname`, Meson should not not look it up on the system but
+  named `progname`, Meson should not look it up on the system but
   instead return `program`, which may either be the result of
   `find_program`, `configure_file` or `executable`.
 
   If `program` is an `executable`, it cannot be used during configure.
+
+- `override_dependency(name, dep_object)` [*(Added
+  0.54.0)*](Release-notes-for-0.54.0.md#override-dependency)
+  specifies that whenever `dependency(name, ...)` is used, Meson should not
+  look it up on the system but instead return `dep_object`, which may either be
+  the result of `dependency()` or `declare_dependency()`.
 
 - `project_version()` returns the version string specified in
   `project` function call.
