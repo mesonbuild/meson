@@ -36,7 +36,11 @@ if cxx.get_argument_syntax() == 'msvc'
   compile_cmd = ['/c', '@INPUT@', '/Fo@OUTPUT@']
   stlib_cmd = [static_linker, '/OUT:@OUTPUT@', '@INPUT@']
 else
-  compile_cmd = ['-c', '-fPIC', '@INPUT@', '-o', '@OUTPUT@']
+ picflag = []
+ if not ['darwin', 'windows'].contains(host_machine.system())
+    picflag = ['-fPIC']
+  endif
+  compile_cmd = ['-c', picflag, '@INPUT@', '-o', '@OUTPUT@']
   stlib_cmd = ['ar', 'csr', '@OUTPUT@', '@INPUT@']
 endif
 

@@ -100,7 +100,7 @@ jobs:
         testResultsFiles: meson-test-run.xml
         testRunTitle: $(System.JobName)
 
-- job: msys2_mingw
+- job: msys2
   pool:
     vmImage: VS2017-Win2016
   strategy:
@@ -108,9 +108,15 @@ jobs:
       gccx86ninja:
         MSYSTEM: MINGW32
         MSYS2_ARCH: i686
+        compiler: gcc
       gccx64ninja:
         MSYSTEM: MINGW64
         MSYS2_ARCH: x86_64
+        compiler: gcc
+      clangx64ninja:
+        MSYSTEM: MINGW64
+        MSYS2_ARCH: x86_64
+        compiler: clang
   variables:
     MSYS2_ROOT: $(System.Workfolder)\msys64
   steps:
@@ -124,20 +130,23 @@ jobs:
       displayName: Update MSYS2
     - script: |
         set PATH=%MSYS2_ROOT%\usr\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
+        if %compiler%==gcc ( set "TOOLCHAIN=mingw-w64-$(MSYS2_ARCH)-toolchain" ) else ( set "TOOLCHAIN=mingw-w64-$(MSYS2_ARCH)-clang" )
         %MSYS2_ROOT%\usr\bin\pacman --noconfirm --needed -S ^
         base-devel ^
         git ^
         mercurial ^
         mingw-w64-$(MSYS2_ARCH)-cmake ^
+        mingw-w64-$(MSYS2_ARCH)-pkg-config ^
         mingw-w64-$(MSYS2_ARCH)-python2 ^
         mingw-w64-$(MSYS2_ARCH)-python3 ^
         mingw-w64-$(MSYS2_ARCH)-python3-setuptools ^
-        mingw-w64-$(MSYS2_ARCH)-toolchain
+        %TOOLCHAIN%
       displayName: Install Dependencies
     - script: |
         set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
         %MSYS2_ROOT%\usr\bin\bash -lc "wget https://github.com/mesonbuild/cidata/raw/master/ninja.exe; mv ninja.exe /$MSYSTEM/bin"
         set PATHEXT=%PATHEXT%;.py
+        if %compiler%==clang ( set CC=clang && set CXX=clang++ )
         %MSYS2_ROOT%\usr\bin\bash -lc "MSYSTEM= python3 run_tests.py --backend=ninja"
       env:
         CHERE_INVOKING: yes

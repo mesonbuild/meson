@@ -1970,6 +1970,11 @@ class AllPlatformTests(BasePlatformTests):
         https://github.com/mesonbuild/meson/issues/1646
         '''
         testdir = os.path.join(self.common_test_dir, '5 linkstatic')
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        if env.detect_c_compiler(False).get_id() == 'clang' and is_windows():
+            raise unittest.SkipTest('LTO not (yet) supported by windows clang')
+
         self.init(testdir, extra_args='-Db_lto=true')
         self.build()
         self.run_tests()
@@ -2188,7 +2193,9 @@ int main(int argc, char **argv) {
                 '/NOLOGO', '/DLL', '/DEBUG', '/IMPLIB:' + impfile,
                 '/OUT:' + outfile, objectfile]
         else:
-            extra_args += ['-fPIC']
+            if not (compiler.compiler_type.is_windows_compiler or
+                    compiler.compiler_type.is_osx_compiler):
+                extra_args += ['-fPIC']
             link_cmd = compiler.get_exelist() + ['-shared', '-o', outfile, objectfile]
             if not mesonbuild.mesonlib.is_osx():
                 link_cmd += ['-Wl,-soname=' + os.path.basename(outfile)]
@@ -3546,7 +3553,7 @@ class LinuxlikeTests(BasePlatformTests):
         is true and not when it is false. This can't be an ordinary test case
         because we need to inspect the compiler database.
         '''
-        if is_cygwin() or is_osx():
+        if is_windows() or is_cygwin() or is_osx():
             raise unittest.SkipTest('PIC not relevant')
 
         testdir = os.path.join(self.common_test_dir, '3 static')
@@ -4757,7 +4764,10 @@ class NativeFileTests(BasePlatformTests):
         # invokes our python wrapper
         batfile = os.path.join(self.builddir, 'binary_wrapper{}.bat'.format(self.current_wrapper))
         with open(batfile, 'wt') as f:
-            f.write('py -3 {} %*'.format(filename))
+            if mesonbuild.environment.detect_msys2_arch():
+                f.write(r'@python3 {} %*'.format(filename))
+            else:
+                f.write('@py -3 {} %*'.format(filename))
         return batfile
 
     def helper_for_compiler(self, lang, cb):
@@ -4802,6 +4812,8 @@ class NativeFileTests(BasePlatformTests):
 
     def test_config_tool_dep(self):
         # Do the skip at this level to avoid screwing up the cache
+        if mesonbuild.environment.detect_msys2_arch():
+            raise unittest.SkipTest('Skipped due to problems with LLVM on MSYS2')
         if not shutil.which('llvm-config'):
             raise unittest.SkipTest('No llvm-installed, cannot test')
         self._simple_test('config_dep', 'llvm-config')
