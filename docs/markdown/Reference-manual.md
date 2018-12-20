@@ -1590,6 +1590,12 @@ the following methods.
 
   If `program` is an `executable`, it cannot be used during configure.
 
+- `override_dependency(name, dep_object)` [*(Added
+  0.50.0)*](Release-notes-for-0.50.0.md#can-override-dependency)
+  specifies that whenever `dependency(name, ...)` is used, Meson should not not
+  look it up on the system but instead return `dep_object`, which may either be
+  the result of `dependency()` or `declare_dependency()`.
+
 - `project_version()` returns the version string specified in
   `project` function call.
 

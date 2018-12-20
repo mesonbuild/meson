@@ -1642,6 +1642,7 @@ class MesonMain(InterpreterObject):
                              'add_postconf_script': self.add_postconf_script_method,
                              'add_dist_script': self.add_dist_script_method,
                              'install_dependency_manifest': self.install_dependency_manifest_method,
+                             'override_dependency': self.override_dependency_method,
                              'override_find_program': self.override_find_program_method,
                              'project_version': self.project_version_method,
                              'project_license': self.project_license_method,
@@ -1807,6 +1808,21 @@ class MesonMain(InterpreterObject):
         if not isinstance(exe, (dependencies.ExternalProgram, build.Executable)):
             raise InterpreterException('Second argument must be an external program or executable.')
         self.interpreter.add_find_program_override(name, exe)
+
+    @FeatureNew('meson.override_dependency', '0.50.0')
+    @permittedKwargs({})
+    def override_dependency_method(self, args, kwargs):
+        if len(args) != 2:
+            raise InterpreterException('Override needs two arguments')
+        name = args[0]
+        dep = args[1]
+        if not isinstance(name, str):
+            raise InterpreterException('First argument must be a string')
+        if hasattr(dep, 'held_object'):
+            dep = dep.held_object
+        if not isinstance(dep, dependencies.Dependency):
+            raise InterpreterException('Second argument must be a dependency object')
+        self.interpreter.add_dependency_override(name, dep)
 
     @noPosargs
     @permittedKwargs({})
@@ -2969,6 +2985,15 @@ external dependencies (including libraries) must go to "dependencies".''')
         elif name == 'openmp':
             FeatureNew('OpenMP Dependency', '0.46.0').use(self.subproject)
 
+    def add_dependency_override(self, name, dep):
+        if name in self.build.searched_dependencies:
+            raise InterpreterException('Tried to override dependency "%s" which has already been looked for.'
+                                       % name)
+        if name in self.build.dependency_overrides:
+            raise InterpreterException('Tried to override dependency "%s" which has already been overridden.'
+                                       % name)
+        self.build.dependency_overrides[name] = dep
+
     @FeatureNewKwargs('dependency', '0.49.0', ['disabler'])
     @FeatureNewKwargs('dependency', '0.40.0', ['method'])
     @FeatureNewKwargs('dependency', '0.38.0', ['default_options'])
@@ -2991,6 +3016,23 @@ external dependencies (including libraries) must go to "dependencies".''')
         if '<' in name or '>' in name or '=' in name:
             raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
                                    'version\n requirements use the \'version\' keyword argument instead.')
+
+        overridden_dep = self.build.dependency_overrides.get(name)
+        if overridden_dep:
+            if required and not overridden_dep.found():
+                m = 'Dependency {!r} was overriden and was not found'
+                raise DependencyException(m.format(display_name))
+            mlog.log('Dependency', mlog.bold(display_name), 'found:',
+                     mlog.green('YES') if overridden_dep.found() else mlog.red('NO'),
+                     '(overridden)')
+            return DependencyHolder(overridden_dep, self.subproject)
+
+        dep = self.dependency_impl(name, display_name, required, kwargs)
+        self.build.searched_dependencies.add(name)
+
+        return dep
+
+    def dependency_impl(self, name, display_name, required, kwargs):
         identifier, cached_dep = self._find_cached_dep(name, kwargs)
 
         if cached_dep:

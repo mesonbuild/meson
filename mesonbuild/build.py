@@ -141,6 +141,8 @@ class Build:
         self.test_setup_default_name = None
         self.find_overrides = {}
         self.searched_programs = set() # The list of all programs that have been searched for.
+        self.dependency_overrides = {}
+        self.searched_dependencies = set()
 
     def copy(self):
         other = Build(self.environment)
