@@ -29,11 +29,11 @@ keyword arguments.
   shared_library) that the user needs to link against. Arbitrary strings can
   also be provided and they will be added into the `Libs` field. Since 0.45.0
   dependencies of built libraries will be automatically added, see the
-  [Implicit dependencies](#Implicit_dependencies) section below for the exact
+  [Implicit dependencies](#implicit-dependencies) section below for the exact
   rules.
 - `libraries_private` list of built libraries or strings to put in the
   `Libs.private` field. Since 0.45.0 dependencies of built libraries will be
-  automatically added, see the [Implicit dependencies](#Implicit_dependencies)
+  automatically added, see the [Implicit dependencies](#implicit-dependencies)
   section below for the exact rules.
 - `name` the name of this library, used to set the `Name:` field
 - `subdirs` which subdirs of `include` should be added to the header
