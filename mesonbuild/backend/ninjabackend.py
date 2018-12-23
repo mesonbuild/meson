@@ -2579,8 +2579,7 @@ rule FORTRAN_DEP_HACK%s
         # Alias that runs the target defined above
         self.create_target_alias('meson-dist', outfile)
 
-    # For things like scan-build and other helper tools we might have.
-    def generate_utils(self, outfile):
+    def generate_scanbuild(self, outfile):
         cmd = self.environment.get_build_command() + \
             ['--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir] + \
             self.environment.get_build_command() + self.get_user_option_args()
@@ -2590,6 +2589,29 @@ rule FORTRAN_DEP_HACK%s
         elem.write(outfile)
         # Alias that runs the target defined above
         self.create_target_alias('meson-scan-build', outfile)
+
+    def generate_clangformat(self, outfile):
+        import shutil
+        target_name = 'clang-format'
+        if shutil.which('clang-format') is None:
+            return
+        if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-format')) and \
+                not os.path.exists(os.path.join(self.environment.source_dir, '_clang-format')):
+            return
+        if 'target_name' in self.all_outputs:
+            return
+        cmd = self.environment.get_build_command() + \
+            ['--internal', 'clangformat', self.environment.source_dir, self.environment.build_dir]
+        elem = NinjaBuildElement(self.all_outputs, 'meson-' + target_name, 'CUSTOM_COMMAND', 'PHONY')
+        elem.add_item('COMMAND', cmd)
+        elem.add_item('pool', 'console')
+        elem.write(outfile)
+        self.create_target_alias('meson-' + target_name, outfile)
+
+    # For things like scan-build and other helper tools we might have.
+    def generate_utils(self, outfile):
+        self.generate_scanbuild(outfile)
+        self.generate_clangformat(outfile)
         cmd = self.environment.get_build_command() + ['--internal', 'uninstall']
         elem = NinjaBuildElement(self.all_outputs, 'meson-uninstall', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
