@@ -102,6 +102,19 @@ def _git_init(project_dir):
     subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir,
                           stdout=subprocess.DEVNULL)
 
+def skipIfNoExecutable(exename):
+    '''
+    Skip this test if the given executable is not found.
+    '''
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped(*args, **kwargs):
+            if shutil.which(exename) is None:
+                raise unittest.SkipTest(exename + ' not found')
+            return func(*args, **kwargs)
+        return wrapped
+    return wrapper
+
 def skipIfNoPkgconfig(f):
     '''
     Skip this test if no pkg-config is found, unless we're on CI.
@@ -3053,6 +3066,28 @@ recommended as it is not supported on some platforms''')
         }
         self.assertDictEqual(res, expected)
 
+    @skipIfNoExecutable('clang-format')
+    def test_clang_format(self):
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Clang-format is for now only supported on Ninja, not {}'.format(self.backend.name))
+        testdir = os.path.join(self.unit_test_dir, '51 clang-format')
+        testfile = os.path.join(testdir, 'prog.c')
+        badfile = os.path.join(testdir, 'prog_orig_c')
+        goodfile = os.path.join(testdir, 'prog_expected_c')
+        try:
+            self.run_clangformat(testdir, testfile, badfile, goodfile)
+        finally:
+            if os.path.exists(testfile):
+                os.unlink(testfile)
+
+    def run_clangformat(self, testdir, testfile, badfile, goodfile):
+        shutil.copyfile(badfile, testfile)
+        self.init(testdir)
+        self.assertNotEqual(Path(testfile).read_text(),
+                            Path(goodfile).read_text())
+        self.run_target('clang-format')
+        self.assertEqual(Path(testfile).read_text(),
+                         Path(goodfile).read_text())
 
 class FailureTests(BasePlatformTests):
     '''
