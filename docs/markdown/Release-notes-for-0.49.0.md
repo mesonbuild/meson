@@ -172,8 +172,9 @@ compression preferences.
 
 ## Native config files
 
-Native files are the counterpart to cross files, and allow specifying
-information about the build machine, both when cross compiling and when not.
+Native files (`--native-file`) are the counterpart to cross files (`--cross-file`),
+and allow specifying information about the build machine, both when cross compiling
+and when not.
 
 Currently the native files only allow specifying the names of binaries, similar
 to the cross file, for example:
