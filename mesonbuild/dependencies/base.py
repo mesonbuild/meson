@@ -1984,17 +1984,14 @@ class ExtraFrameworkDependency(ExternalDependency):
 
 
 def get_dep_identifier(name, kwargs, want_cross):
-    # Need immutable objects since the identifier will be used as a dict key
-    version_reqs = listify(kwargs.get('version', []))
-    if isinstance(version_reqs, list):
-        version_reqs = frozenset(version_reqs)
-    identifier = (name, version_reqs, want_cross)
+    identifier = (name, want_cross)
     for key, value in kwargs.items():
-        # 'version' is embedded above as the second element for easy access
+        # 'version' is irrelevant for caching; the caller must check version matches
         # 'native' is handled above with `want_cross`
         # 'required' is irrelevant for caching; the caller handles it separately
         # 'fallback' subprojects cannot be cached -- they must be initialized
-        if key in ('version', 'native', 'required', 'fallback',):
+        # 'default_options' is only used in fallback case
+        if key in ('version', 'native', 'required', 'fallback', 'default_options'):
             continue
         # All keyword arguments are strings, ints, or lists (or lists of lists)
         if isinstance(value, list):
