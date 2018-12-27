@@ -299,6 +299,7 @@ class CoreData:
         # Only to print a warning if it changes between Meson invocations.
         self.pkgconf_envvar = os.environ.get('PKG_CONFIG_PATH', '')
         self.config_files = self.__load_config_files(options.native_file)
+        self.libdir_cross_fixup()
 
     @staticmethod
     def __load_config_files(filenames):
@@ -347,6 +348,13 @@ class CoreData:
             raise MesonException('Cannot find specified cross file: ' + filename)
 
         raise MesonException('Cannot find specified cross file: ' + filename)
+
+    def libdir_cross_fixup(self):
+        # By default set libdir to "lib" when cross compiling since
+        # getting the "system default" is always wrong on multiarch
+        # platforms as it gets a value like lib/x86_64-linux-gnu.
+        if self.cross_file is not None:
+            self.builtins['libdir'].value = 'lib'
 
     def sanitize_prefix(self, prefix):
         if not os.path.isabs(prefix):
