@@ -2878,8 +2878,11 @@ external dependencies (including libraries) must go to "dependencies".''')
             return False
         return True
 
-    def get_subproject_dep(self, name, dirname, varname, required):
-        dep = DependencyHolder(NotFoundDependency(self.environment), self.subproject)
+    def notfound_dependency(self):
+        return DependencyHolder(NotFoundDependency(self.environment), self.subproject)
+
+    def get_subproject_dep(self, display_name, dirname, varname, kwargs):
+        dep = self.notfound_dependency()
         try:
             subproject = self.subprojects[dirname]
             if subproject.found():
@@ -2891,41 +2894,34 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InvalidCode('Fetched variable {!r} in the subproject {!r} is '
                               'not a dependency object.'.format(varname, dirname))
 
+        required = kwargs.get('required', True)
+        wanted = kwargs.get('version', 'undefined')
+        subproj_path = os.path.join(self.subproject_dir, dirname)
+
         if not dep.found():
             if required:
                 raise DependencyException('Could not find dependency {} in subproject {}'
                                           ''.format(varname, dirname))
             # If the dependency is not required, don't raise an exception
-            subproj_path = os.path.join(self.subproject_dir, dirname)
-            mlog.log('Dependency', mlog.bold(name), 'from subproject',
+            mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
                      mlog.bold(subproj_path), 'found:', mlog.red('NO'))
+            return dep
 
+        found = dep.held_object.get_version()
+        if not self.check_subproject_version(wanted, found):
+            if required:
+                raise DependencyException('Version {} of subproject dependency {} already '
+                                          'cached, requested incompatible version {} for '
+                                          'dep {}'.format(found, dirname, wanted, display_name))
+
+            mlog.log('Subproject', mlog.bold(subproj_path), 'dependency',
+                     mlog.bold(display_name), 'version is', mlog.bold(found),
+                     'but', mlog.bold(wanted), 'is required.')
+            return self.notfound_dependency()
+
+        mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
+                 mlog.bold(subproj_path), 'found:', mlog.green('YES'))
         return dep
-
-    def _find_cached_fallback_dep(self, name, dirname, varname, wanted, required):
-        if dirname not in self.subprojects:
-            return False
-        dep = self.get_subproject_dep(name, dirname, varname, required)
-        if not dep.found():
-            return dep
-
-        found = dep.version_method([], {})
-        # Don't do a version check if the dependency is not found and not required
-        if not dep.found_method([], {}) and not required:
-            subproj_path = os.path.join(self.subproject_dir, dirname)
-            mlog.log('Dependency', mlog.bold(name), 'from subproject',
-                     mlog.bold(subproj_path), 'found:', mlog.red('NO'), '(cached)')
-            return dep
-        if self.check_subproject_version(wanted, found):
-            subproj_path = os.path.join(self.subproject_dir, dirname)
-            mlog.log('Dependency', mlog.bold(name), 'from subproject',
-                     mlog.bold(subproj_path), 'found:', mlog.green('YES'), '(cached)')
-            return dep
-        if required:
-            raise DependencyException('Version {} of subproject dependency {} already '
-                                      'cached, requested incompatible version {} for '
-                                      'dep {}'.format(found, dirname, wanted, name))
-        return None
 
     def _handle_featurenew_dependencies(self, name):
         'Do a feature check on dependencies used by this subproject'
@@ -2967,8 +2963,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Dependency', mlog.bold(display_name), 'skipped: feature', mlog.bold(feature), 'disabled')
-            return DependencyHolder(NotFoundDependency(self.environment), self.subproject)
-        if'default_options' in kwargs and 'fallback' not in kwargs:
+            return self.notfound_dependency()
+
+        if 'default_options' in kwargs and 'fallback' not in kwargs:
             mlog.warning('The "default_options" keyworg argument does nothing without a "fallback" keyword argument.')
 
         # writing just "dependency('')" is an error, because it can only fail
@@ -2990,10 +2987,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             # a higher level project, try to use it first.
             if 'fallback' in kwargs:
                 dirname, varname = self.get_subproject_infos(kwargs)
-                wanted = kwargs.get('version', 'undefined')
-                dep = self._find_cached_fallback_dep(name, dirname, varname, wanted, required)
-                if dep:
-                    return dep
+                if dirname in self.subprojects:
+                    return self.get_subproject_dep(display_name, dirname, varname, kwargs)
 
             # We need to actually search for this dep
             exception = None
@@ -3097,29 +3092,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 msg.append(traceback.format_exc())
             mlog.log(*msg)
             return None
-        required = kwargs.get('required', True)
-        dep = self.get_subproject_dep(name, dirname, varname, required)
-        if not dep.found():
-            return dep
-        subproj_path = os.path.join(self.subproject_dir, dirname)
-        # Check if the version of the declared dependency matches what we want
-        if 'version' in kwargs:
-            wanted = kwargs['version']
-            found = dep.version_method([], {})
-            # Don't do a version check if the dependency is not found and not required
-            if not dep.found_method([], {}) and not required:
-                subproj_path = os.path.join(self.subproject_dir, dirname)
-                mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
-                         mlog.bold(subproj_path), 'found:', mlog.red('NO'))
-                return dep
-            if not self.check_subproject_version(wanted, found):
-                mlog.log('Subproject', mlog.bold(subproj_path), 'dependency',
-                         mlog.bold(display_name), 'version is', mlog.bold(found),
-                         'but', mlog.bold(wanted), 'is required.')
-                return None
-        mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
-                 mlog.bold(subproj_path), 'found:', mlog.green('YES'))
-        return dep
+        return self.get_subproject_dep(display_name, dirname, varname, kwargs)
 
     @FeatureNewKwargs('executable', '0.42.0', ['implib'])
     @permittedKwargs(permitted_kwargs['executable'])
