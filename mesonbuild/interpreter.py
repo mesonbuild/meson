@@ -2851,28 +2851,24 @@ external dependencies (including libraries) must go to "dependencies".''')
             want_cross = not kwargs['native']
         else:
             want_cross = is_cross
+
         identifier = dependencies.get_dep_identifier(name, kwargs, want_cross)
-        cached_dep = None
-        # Check if we've already searched for and found this dep
-        if identifier in self.coredata.deps:
-            cached_dep = self.coredata.deps[identifier]
-            mlog.log('Dependency', mlog.bold(name),
-                     'found:', mlog.green('YES'), '(cached)')
-        else:
-            # Check if exactly the same dep with different version requirements
-            # was found already.
-            wanted = identifier[1]
-            for trial, trial_dep in self.coredata.deps.items():
-                # trial[1], identifier[1] are the version requirements
-                if trial[0] != identifier[0] or trial[2:] != identifier[2:]:
-                    continue
-                found = trial_dep.get_version()
-                if not wanted or mesonlib.version_compare_many(found, wanted)[0]:
-                    # We either don't care about the version, or our
-                    # version requirements matched the trial dep's version.
-                    cached_dep = trial_dep
-                    break
-        return identifier, cached_dep
+        cached_dep = self.coredata.deps.get(identifier)
+        if cached_dep:
+            if not cached_dep.found():
+                mlog.log('Dependency', mlog.bold(name),
+                         'found:', mlog.red('NO'), '(cached)')
+                return identifier, cached_dep
+
+            # Verify the cached dep version match
+            wanted = kwargs.get('version', [])
+            found = cached_dep.get_version()
+            if not wanted or mesonlib.version_compare_many(found, wanted)[0]:
+                mlog.log('Dependency', mlog.bold(name),
+                         'found:', mlog.green('YES'), '(cached)')
+                return identifier, cached_dep
+
+        return identifier, None
 
     @staticmethod
     def check_subproject_version(wanted, found):
