@@ -561,7 +561,7 @@ class Vs2010Backend(backends.Backend):
             # We only need per file precompiled headers if we have more than 1 language.
             return
         lang = Vs2010Backend.lang_from_source_file(source_file)
-        header = os.path.join(proj_to_src_dir, pch_sources[lang][0])
+        header = os.path.basename(pch_sources[lang][0])
         pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
         pch_file.text = header
         pch_include = ET.SubElement(inc_cl, 'ForcedIncludeFiles')
@@ -1011,7 +1011,7 @@ class Vs2010Backend(backends.Backend):
             # If there is only 1 language with precompiled headers, we can use it for the entire project, which
             # is cleaner than specifying it for each source file.
             pch_source = list(pch_sources.values())[0]
-            header = os.path.join(proj_to_src_dir, pch_source[0])
+            header = os.path.basename(pch_source[0])
             pch_file = ET.SubElement(clconf, 'PrecompiledHeaderFile')
             pch_file.text = header
             pch_include = ET.SubElement(clconf, 'ForcedIncludeFiles')
@@ -1180,8 +1180,14 @@ class Vs2010Backend(backends.Backend):
                     pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
                     pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % suffix
                     pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
-                    # MSBuild searches for the header relative from the implementation, so we have to use
-                    # just the file name instead of the relative path to the file.
+                    # When USING PCHs, MSVC will not do the regular include
+                    # directory lookup, but simply use a string match to find the
+                    # PCH to use. That means the #include directive must match the
+                    # pch_file.text used during PCH CREATION verbatim.
+                    # When CREATING a PCH, MSVC will do the include directory
+                    # lookup to find the actual PCH header to use. Thus, the PCH
+                    # header must either be in the include_directories of the target
+                    # or be in the same directory as the PCH implementation.
                     pch_file.text = os.path.basename(header)
                     self.add_additional_options(lang, inc_cl, file_args)
                     self.add_preprocessor_defines(lang, inc_cl, file_defines)
