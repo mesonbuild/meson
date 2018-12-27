@@ -4528,6 +4528,7 @@ endian = 'little'
                 max_count = max(max_count, line.count(search_term))
         self.assertEqual(max_count, 1, 'Export dynamic incorrectly deduplicated.')
 
+
 class LinuxCrossArmTests(BasePlatformTests):
     '''
     Tests that cross-compilation to Linux/ARM works
@@ -4563,6 +4564,18 @@ class LinuxCrossArmTests(BasePlatformTests):
         compdb = self.get_compdb()
         self.assertRegex(compdb[0]['command'], '-D_FILE_OFFSET_BITS=64.*-U_FILE_OFFSET_BITS')
         self.build()
+
+    def test_cross_libdir(self):
+        # When cross compiling "libdir" should default to "lib"
+        # rather than "lib/x86_64-linux-gnu" or something like that.
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        self.init(testdir)
+        for i in self.introspect('--buildoptions'):
+            if i['name'] == 'libdir':
+                self.assertEqual(i['value'], 'lib')
+                return
+        self.assertTrue(False, 'Option libdir not in introspect data.')
+
 
 class LinuxCrossMingwTests(BasePlatformTests):
     '''
