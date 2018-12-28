@@ -59,7 +59,7 @@ The `intro-sources.json` file stores a list of all source objects of the target.
     "compiler": ["The", "compiler", "command"],
     "parameters": ["list", "of", "compiler", "parameters"],
     "sources": ["list", "of", "all", "source", "files", "for", "this", "language"],
-    "generated_sources": ["list", "of", "all", "soruce", "files", "that", "where", "generated", "somewhere", "else"]
+    "generated_sources": ["list", "of", "all", "source", "files", "that", "where", "generated", "somewhere", "else"]
 }
 ```
 
