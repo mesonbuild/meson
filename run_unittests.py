@@ -3257,7 +3257,7 @@ recommended as it is not supported on some platforms''')
                 assertKeyTypes(targets_sources_typelist, j)
         self.assertDictEqual(targets_to_find, {})
 
-    def test_introspect_file_dump_eauals_all(self):
+    def test_introspect_file_dump_equals_all(self):
         testdir = os.path.join(self.unit_test_dir, '49 introspection')
         self.init(testdir)
         res_all = self.introspect('--all')
