@@ -2041,7 +2041,7 @@ int main(int argc, char **argv) {
         self.build()
         for each in ('prog', 'subdir/liblib1.so', ):
             rpath = get_rpath(os.path.join(self.builddir, each))
-            self.assertTrue(rpath)
+            self.assertTrue(rpath, 'Rpath could not be determined for {}.'.format(each))
             if is_dragonflybsd():
                 # DragonflyBSD will prepend /usr/lib/gccVERSION to the rpath,
                 # so ignore that.
