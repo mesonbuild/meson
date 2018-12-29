@@ -137,7 +137,7 @@ def detect_ninja(version='1.5', log=False):
 
 def detect_native_windows_arch():
     """
-    The architecture of Windows itself: x86 or amd64
+    The architecture of Windows itself: x86, amd64 or arm64
     """
     # These env variables are always available. See:
     # https://msdn.microsoft.com/en-us/library/aa384274(VS.85).aspx
@@ -167,45 +167,25 @@ def detect_windows_arch(compilers):
     easily detected.
 
     In the end, the sanest method is as follows:
-    1. Check if we're in an MSVC toolchain environment, and if so, return the
-       MSVC toolchain architecture as our 'native' architecture.
-    2. If not, check environment variables that are set by Windows and WOW64 to
-       find out the architecture that Windows is built for, and use that as our
-       'native' architecture.
+    1. Check environment variables that are set by Windows and WOW64 to find out
+       if this is x86 (possibly in WOW64), if so use that as our 'native'
+       architecture.
+    2. If the compiler toolchain target architecture is x86, use that as our
+      'native' architecture.
+    3. Otherwise, use the actual Windows architecture
+
     """
     os_arch = detect_native_windows_arch()
-    if os_arch != 'amd64':
+    if os_arch == 'x86':
         return os_arch
     # If we're on 64-bit Windows, 32-bit apps can be compiled without
     # cross-compilation. So if we're doing that, just set the native arch as
     # 32-bit and pretend like we're running under WOW64. Else, return the
     # actual Windows architecture that we deduced above.
     for compiler in compilers.values():
-        # Check if we're using and inside an MSVC toolchain environment
-        if compiler.id == 'msvc' and 'VCINSTALLDIR' in os.environ:
-            if float(compiler.get_toolset_version()) < 10.0:
-                # On MSVC 2008 and earlier, check 'BUILD_PLAT', where
-                # 'Win32' means 'x86'
-                platform = os.environ.get('BUILD_PLAT', os_arch)
-                if platform == 'Win32':
-                    return 'x86'
-            elif 'VSCMD_ARG_TGT_ARCH' in os.environ:
-                # On MSVC 2017 'Platform' is not set in VsDevCmd.bat
-                return os.environ['VSCMD_ARG_TGT_ARCH']
-            else:
-                # Starting with VS 2017, `Platform` is not always set (f.ex.,
-                # if you use VsDevCmd.bat directly instead of vcvars*.bat), but
-                # `VSCMD_ARG_HOST_ARCH` is always set, so try that first.
-                if 'VSCMD_ARG_HOST_ARCH' in os.environ:
-                    platform = os.environ['VSCMD_ARG_HOST_ARCH'].lower()
-                # On VS 2010-2015, 'Platform' is only set when the
-                # target arch is not 'x86'.  It's 'x64' when targeting
-                # x86_64 and 'arm' when targeting ARM.
-                else:
-                    platform = os.environ.get('Platform', 'x86').lower()
-            if platform == 'x86':
-                return platform
-        if compiler.id == 'clang-cl' and not compiler.is_64:
+        if compiler.id == 'msvc' and compiler.target == 'x86':
+            return 'x86'
+        if compiler.id == 'clang-cl' and compiler.target == 'x86':
             return 'x86'
         if compiler.id == 'gcc' and compiler.has_builtin_define('__i386__'):
             return 'x86'
@@ -660,9 +640,13 @@ class Environment:
                 except OSError as e:
                     popen_exceptions[' '.join(compiler + [arg])] = e
                 version = search_version(out)
-                is_64 = 'Target: x86_64' in out
+                match = re.search('^Target: (.*?)-', out, re.MULTILINE)
+                if match:
+                    target = match.group(1)
+                else:
+                    target = 'unknown target'
                 cls = ClangClCCompiler if lang == 'c' else ClangClCPPCompiler
-                return cls(compiler, version, is_cross, exe_wrap, is_64)
+                return cls(compiler, version, is_cross, exe_wrap, target)
             if 'clang' in out:
                 if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
                     compiler_type = CompilerType.CLANG_OSX
@@ -677,15 +661,20 @@ class Environment:
                 # number to stderr but earlier ones print version
                 # on stdout.  Why? Lord only knows.
                 # Check both outputs to figure out version.
-                version = search_version(err)
-                if version == 'unknown version':
-                    version = search_version(out)
-                if version == 'unknown version':
-                    m = 'Failed to detect MSVC compiler arch: stderr was\n{!r}'
+                for lookat in [err, out]:
+                    version = search_version(lookat)
+                    if version != 'unknown version':
+                        break
+                else:
+                    m = 'Failed to detect MSVC compiler version: stderr was\n{!r}'
                     raise EnvironmentException(m.format(err))
-                is_64 = err.split('\n')[0].endswith(' x64')
+                match = re.search(' for (.*)$', lookat.split('\n')[0])
+                if match:
+                    target = match.group(1)
+                else:
+                    target = 'x86'
                 cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
-                return cls(compiler, version, is_cross, exe_wrap, is_64)
+                return cls(compiler, version, is_cross, exe_wrap, target)
             if '(ICC)' in out:
                 if mesonlib.for_darwin(want_cross, self):
                     compiler_type = CompilerType.ICC_OSX
