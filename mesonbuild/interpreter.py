@@ -2968,11 +2968,12 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.log('Dependency', mlog.bold(display_name), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_dependency()
 
-        if 'default_options' in kwargs and 'fallback' not in kwargs:
+        has_fallback = 'fallback' in kwargs
+        if 'default_options' in kwargs and not has_fallback:
             mlog.warning('The "default_options" keyworg argument does nothing without a "fallback" keyword argument.')
 
         # writing just "dependency('')" is an error, because it can only fail
-        if name == '' and required and 'fallback' not in kwargs:
+        if name == '' and required and not has_fallback:
             raise InvalidArguments('Dependency is both required and not-found')
 
         if '<' in name or '>' in name or '=' in name:
@@ -2988,7 +2989,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         else:
             # If the dependency has already been configured, possibly by
             # a higher level project, try to use it first.
-            if 'fallback' in kwargs:
+            if has_fallback:
                 dirname, varname = self.get_subproject_infos(kwargs)
                 if dirname in self.subprojects:
                     return self.get_subproject_dep(display_name, dirname, varname, kwargs)
@@ -2997,7 +2998,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             dep = NotFoundDependency(self.environment)
 
             # Unless a fallback exists and is forced ...
-            if self.coredata.get_builtin_option('wrap_mode') == WrapMode.forcefallback and 'fallback' in kwargs:
+            if self.coredata.get_builtin_option('wrap_mode') == WrapMode.forcefallback and has_fallback:
                 pass
             # ... search for it outside the project
             elif name != '':
@@ -3009,7 +3010,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
             # Search inside the projects list
             if not dep.found():
-                if 'fallback' in kwargs:
+                if has_fallback:
                     return self.dependency_fallback(display_name, kwargs)
 
         # Only store found-deps in the cache
