@@ -3070,6 +3070,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         if disabled:
             mlog.log('Dependency', mlog.bold(display_name), 'skipped: feature', mlog.bold(feature), 'disabled')
             return DependencyHolder(NotFoundDependency(self.environment), self.subproject)
+        if'default_options' in kwargs and 'fallback' not in kwargs:
+            mlog.warning('The "default_options" keyworg argument does nothing without a "fallback" keyword argument.')
 
         # writing just "dependency('')" is an error, because it can only fail
         if name == '' and required and 'fallback' not in kwargs:
