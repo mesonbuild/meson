@@ -20,7 +20,7 @@ import argparse
 
 from . import mesonlib
 from . import mlog
-from . import mconf, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects
+from . import mconf, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata
 from .mesonlib import MesonException
 from .environment import detect_msys2_arch
 from .wrap import wraptool
@@ -56,6 +56,8 @@ class CommandLineParser:
         self.add_command('rewrite', rewriter.add_arguments, rewriter.run,
                          help=argparse.SUPPRESS)
         self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,
+                         help=argparse.SUPPRESS)
+        self.add_command('unstable-coredata', munstable_coredata.add_arguments, munstable_coredata.run,
                          help=argparse.SUPPRESS)
 
     def add_command(self, name, add_arguments_func, run_func, help):
