@@ -954,6 +954,57 @@ class Environment:
             return compilers.SwiftCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
+    def detect_compilers(self, lang, need_cross_compiler):
+        comp = None
+        cross_comp = None
+        if lang == 'c':
+            comp = self.detect_c_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_c_compiler(True)
+        elif lang == 'cpp':
+            comp = self.detect_cpp_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_cpp_compiler(True)
+        elif lang == 'objc':
+            comp = self.detect_objc_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_objc_compiler(True)
+        elif lang == 'objcpp':
+            comp = self.detect_objcpp_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_objcpp_compiler(True)
+        elif lang == 'java':
+            comp = self.detect_java_compiler()
+            if need_cross_compiler:
+                cross_comp = comp  # Java is platform independent.
+        elif lang == 'cs':
+            comp = self.detect_cs_compiler()
+            if need_cross_compiler:
+                cross_comp = comp  # C# is platform independent.
+        elif lang == 'vala':
+            comp = self.detect_vala_compiler()
+            if need_cross_compiler:
+                cross_comp = comp  # Vala compiles to platform-independent C
+        elif lang == 'd':
+            comp = self.detect_d_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_d_compiler(True)
+        elif lang == 'rust':
+            comp = self.detect_rust_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_rust_compiler(True)
+        elif lang == 'fortran':
+            comp = self.detect_fortran_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_fortran_compiler(True)
+        elif lang == 'swift':
+            comp = self.detect_swift_compiler()
+            if need_cross_compiler:
+                raise EnvironmentException('Cross compilation with Swift is not working yet.')
+                # cross_comp = self.environment.detect_fortran_compiler(True)
+
+        return comp, cross_comp
+
     def detect_static_linker(self, compiler):
         if compiler.is_cross:
             linker = self.cross_info.config['binaries']['ar']

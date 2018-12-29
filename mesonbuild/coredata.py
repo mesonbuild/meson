@@ -551,6 +551,36 @@ class CoreData:
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
             mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options))
 
+    def set_default_options(self, default_options, subproject, cmd_line_options):
+        # Set default options as if they were passed to the command line.
+        # Subprojects can only define default for user options.
+        from . import optinterpreter
+        for k, v in default_options.items():
+            if subproject:
+                if optinterpreter.is_invalid_name(k):
+                    continue
+                k = subproject + ':' + k
+            cmd_line_options.setdefault(k, v)
+
+        # Create a subset of cmd_line_options, keeping only options for this
+        # subproject. Also take builtin options if it's the main project.
+        # Language and backend specific options will be set later when adding
+        # languages and setting the backend (builtin options must be set first
+        # to know which backend we'll use).
+        options = {}
+        for k, v in cmd_line_options.items():
+            if subproject:
+                if not k.startswith(subproject + ':'):
+                    continue
+            elif k not in get_builtin_options():
+                if ':' in k:
+                    continue
+                if optinterpreter.is_invalid_name(k):
+                    continue
+            options[k] = v
+
+        self.set_options(options, subproject)
+
 class CmdLineFileParser(configparser.ConfigParser):
     def __init__(self):
         # We don't want ':' as key delimiter, otherwise it would break when
