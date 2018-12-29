@@ -21,11 +21,15 @@ project files and don't need this info."""
 
 import json
 from . import build, mtest, coredata as cdata
+from . import environment
 from . import mesonlib
 from . import astinterpreter
 from . import mparser
+from . import mlog
+from . import compilers
+from . import optinterpreter
 from .interpreterbase import InvalidArguments
-from .backend import ninjabackend
+from .backend import ninjabackend, backends
 import sys, os
 import pathlib
 
@@ -48,6 +52,8 @@ def add_arguments(parser):
                         help='List external dependencies.')
     parser.add_argument('--projectinfo', action='store_true', dest='projectinfo', default=False,
                         help='Information about projects.')
+    parser.add_argument('--backend', choices=cdata.backendlist, dest='backend', default='ninja',
+                        help='The backend to use for the --buildoptions introspection.')
     parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
 
 def determine_installed_path(target, installdata):
@@ -129,7 +135,154 @@ def list_target_files(target_name, coredata, builddata):
         out.append(i)
     print(json.dumps(out))
 
-def list_buildoptions(coredata, builddata):
+class BuildoptionsOptionHelper:
+    # mimic an argparse namespace
+    def __init__(self, cross_file):
+        self.cross_file = cross_file
+        self.native_file = None
+        self.cmd_line_options = {}
+
+class BuildoptionsInterperter(astinterpreter.AstInterpreter):
+    # Interpreter to detect the options without a build directory
+    # Most of the code is stolen from interperter.Interpreter
+    def __init__(self, source_root, subdir, backend, cross_file=None, subproject='', subproject_dir='subprojects', env=None):
+        super().__init__(source_root, subdir)
+
+        options = BuildoptionsOptionHelper(cross_file)
+        self.cross_file = cross_file
+        if env is None:
+            self.environment = environment.Environment(source_root, None, options)
+        else:
+            self.environment = env
+        self.subproject = subproject
+        self.subproject_dir = subproject_dir
+        self.coredata = self.environment.get_coredata()
+        self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
+        self.backend = backend
+        self.default_options = {'backend': self.backend}
+
+        self.funcs.update({
+            'project': self.func_project,
+            'add_languages': self.func_add_languages
+        })
+
+    def detect_compilers(self, lang, need_cross_compiler):
+        comp, cross_comp = self.environment.detect_compilers(lang, need_cross_compiler)
+        if comp is None:
+            return None, None
+
+        self.coredata.compilers[lang] = comp
+        # Native compiler always exist so always add its options.
+        new_options = comp.get_options()
+        if cross_comp is not None:
+            self.coredata.cross_compilers[lang] = cross_comp
+            new_options.update(cross_comp.get_options())
+
+        optprefix = lang + '_'
+        for k, o in new_options.items():
+            if not k.startswith(optprefix):
+                raise RuntimeError('Internal error, %s has incorrect prefix.' % k)
+            if k in self.environment.cmd_line_options:
+                o.set_value(self.environment.cmd_line_options[k])
+            self.coredata.compiler_options.setdefault(k, o)
+
+        return comp, cross_comp
+
+    def flatten_args(self, args):
+        # Resolve mparser.ArrayNode if needed
+        flattend_args = []
+        for i in args:
+            if isinstance(i, mparser.ArrayNode):
+                flattend_args += [x.value for x in i.args.arguments]
+            elif isinstance(i, str):
+                flattend_args += [i]
+            else:
+                pass
+        return flattend_args
+
+    def add_languages(self, args):
+        need_cross_compiler = self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler()
+        for lang in sorted(args, key=compilers.sort_clink):
+            lang = lang.lower()
+            if lang not in self.coredata.compilers:
+                (comp, _) = self.detect_compilers(lang, need_cross_compiler)
+                if comp is None:
+                    return
+                for optname in comp.base_options:
+                    if optname in self.coredata.base_options:
+                        continue
+                    oobj = compilers.base_options[optname]
+                    self.coredata.base_options[optname] = oobj
+
+    def func_project(self, node, args, kwargs):
+        if len(args) < 1:
+            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
+
+        proj_langs = self.flatten_args(args[1:])
+
+        if os.path.exists(self.option_file):
+            oi = optinterpreter.OptionInterpreter(self.subproject)
+            oi.process(self.option_file)
+            self.coredata.merge_user_options(oi.options)
+
+        def_opts = kwargs.get('default_options', [])
+        if isinstance(def_opts, mparser.ArrayNode):
+            def_opts = [x.value for x in def_opts.args.arguments]
+
+        self.project_default_options = mesonlib.stringlistify(def_opts)
+        self.project_default_options = cdata.create_options_dict(self.project_default_options)
+        self.default_options.update(self.project_default_options)
+        self.coredata.set_default_options(self.default_options, self.subproject, self.environment.cmd_line_options)
+
+        if not self.is_subproject() and 'subproject_dir' in kwargs:
+            spdirname = kwargs['subproject_dir']
+            if isinstance(spdirname, str):
+                self.subproject_dir = spdirname
+        if not self.is_subproject():
+            subprojects_dir = os.path.join(self.source_root, self.subproject_dir)
+            if os.path.isdir(subprojects_dir):
+                for i in os.listdir(subprojects_dir):
+                    if os.path.isdir(os.path.join(subprojects_dir, i)):
+                        self.do_subproject(i)
+
+        self.coredata.init_backend_options(self.backend)
+        options = {k: v for k, v in self.environment.cmd_line_options.items() if k.startswith('backend_')}
+
+        self.coredata.set_options(options)
+        self.add_languages(proj_langs)
+
+    def do_subproject(self, dirname):
+        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
+        subpr = os.path.join(subproject_dir_abs, dirname)
+        try:
+            subi = BuildoptionsInterperter(subpr, '', self.backend, cross_file=self.cross_file, subproject=dirname, subproject_dir=self.subproject_dir, env=self.environment)
+            subi.analyze()
+        except:
+            return
+
+    def func_add_languages(self, node, args, kwargs):
+        return self.add_languages(self.flatten_args(args))
+
+    def is_subproject(self):
+        return self.subproject != ''
+
+    def analyze(self):
+        self.load_root_meson_file()
+        self.sanity_check_ast()
+        self.parse_project()
+        self.run()
+
+def list_buildoptions_from_source(sourcedir, backend):
+    # Make sure that log entries in other parts of meson don't interfere with the JSON output
+    mlog.disable()
+    backend = backends.get_backend_from_name(backend, None)
+    intr = BuildoptionsInterperter(sourcedir, '', backend.name)
+    intr.analyze()
+    # Reenable logging just in case
+    mlog.enable()
+    list_buildoptions(intr.coredata)
+
+def list_buildoptions(coredata):
     optlist = []
 
     dir_option_names = ['bindir',
@@ -301,9 +454,12 @@ def run(options):
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
     if options.builddir.endswith('/meson.build') or options.builddir.endswith('\\meson.build') or options.builddir == 'meson.build':
+        sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
         if options.projectinfo:
-            sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
             list_projinfo_from_source(sourcedir)
+            return 0
+        if options.buildoptions:
+            list_buildoptions_from_source(sourcedir, options.backend)
             return 0
     if not os.path.isdir(datadir):
         print('Current directory is not a build dir. Please specify it or '
@@ -330,7 +486,7 @@ def run(options):
     elif options.buildsystem_files:
         list_buildsystem_files(builddata)
     elif options.buildoptions:
-        list_buildoptions(coredata, builddata)
+        list_buildoptions(coredata)
     elif options.tests:
         list_tests(testdata)
     elif options.benchmarks:
