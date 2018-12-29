@@ -3013,7 +3013,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 if 'fallback' in kwargs:
                     if not exception:
                         exception = DependencyException("fallback for %s not found" % display_name)
-                    fallback_dep = self.dependency_fallback(name, kwargs)
+                    fallback_dep = self.dependency_fallback(display_name, kwargs)
                     if fallback_dep:
                         # Never add fallback deps to self.coredata.deps since we
                         # cannot cache them. They must always be evaluated else
@@ -3058,8 +3058,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InterpreterException('Fallback info must have exactly two items.')
         return fbinfo
 
-    def dependency_fallback(self, name, kwargs):
-        display_name = name if name else '(anonymous)'
+    def dependency_fallback(self, display_name, kwargs):
         if self.coredata.get_builtin_option('wrap_mode') == WrapMode.nofallback:
             mlog.log('Not looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback'
