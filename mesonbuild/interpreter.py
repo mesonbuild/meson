@@ -3071,11 +3071,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         dirname, varname = self.get_subproject_infos(kwargs)
         # Try to execute the subproject
         try:
-            sp_kwargs = {}
-            try:
-                sp_kwargs['default_options'] = kwargs['default_options']
-            except KeyError:
-                pass
+            sp_kwargs = {'default_options': kwargs.get('default_options', [])}
             self.do_subproject(dirname, sp_kwargs)
         # Invalid code is always an error
         except InvalidCode:
