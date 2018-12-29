@@ -47,6 +47,15 @@ log_fname = 'meson-log.txt'
 log_depth = 0
 log_timestamp_start = None
 log_fatal_warnings = False
+log_disable_stdout = False
+
+def disable():
+    global log_disable_stdout
+    log_disable_stdout = True
+
+def enable():
+    global log_disable_stdout
+    log_disable_stdout = False
 
 def initialize(logdir, fatal_warnings=False):
     global log_dir, log_file, log_fatal_warnings
@@ -118,6 +127,9 @@ def process_markup(args, keep):
     return arr
 
 def force_print(*args, **kwargs):
+    global log_disable_stdout
+    if log_disable_stdout:
+        return
     iostr = io.StringIO()
     kwargs['file'] = iostr
     print(*args, **kwargs)
