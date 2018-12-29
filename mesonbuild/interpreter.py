@@ -2415,6 +2415,9 @@ external dependencies (including libraries) must go to "dependencies".''')
                 current_active = self.active_projectname
                 subi.run()
                 mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
+            # Invalid code is always an error
+            except InvalidCode:
+                raise
             except Exception as e:
                 if not required:
                     mlog.log(e)
@@ -3069,25 +3072,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.log('Looking for a fallback subproject for the dependency',
                      mlog.bold(display_name))
         dirname, varname = self.get_subproject_infos(kwargs)
-        # Try to execute the subproject
-        try:
-            sp_kwargs = {'default_options': kwargs.get('default_options', [])}
-            self.do_subproject(dirname, sp_kwargs)
-        # Invalid code is always an error
-        except InvalidCode:
-            raise
-        # If the subproject execution failed in a non-fatal way, don't raise an
-        # exception; let the caller handle things.
-        except Exception as e:
-            msg = ['Couldn\'t use fallback subproject in',
-                   mlog.bold(os.path.join(self.subproject_dir, dirname)),
-                   'for the dependency', mlog.bold(display_name), '\nReason:']
-            if isinstance(e, mesonlib.MesonException):
-                msg.append(e.get_msg_with_context())
-            else:
-                msg.append(traceback.format_exc())
-            mlog.log(*msg)
-            return None
+        sp_kwargs = {'default_options': kwargs.get('default_options', [])}
+        self.do_subproject(dirname, sp_kwargs)
         return self.get_subproject_dep(display_name, dirname, varname, kwargs)
 
     @FeatureNewKwargs('executable', '0.42.0', ['implib'])
