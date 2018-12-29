@@ -12,7 +12,7 @@ pkgconfig = '/usr/bin/arm-linux-gnueabihf-pkg-config'
 root = '/usr/arm-linux-gnueabihf'
 # Used in unit test '140 get define'
 c_args = ['-DMESON_TEST_ISSUE_1665=1']
-cpp_args = ['-DMESON_TEST_ISSUE_1665=1']
+cpp_args = '-DMESON_TEST_ISSUE_1665=1'
 
 has_function_printf = true
 has_function_hfkerhisadf = false
