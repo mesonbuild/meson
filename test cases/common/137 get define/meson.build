@@ -67,15 +67,9 @@ foreach lang : ['c', 'cpp']
 
   run_1665_test = false
   if meson.is_cross_build()
-    # Can't use an empty array as a fallback here because of
-    # https://github.com/mesonbuild/meson/issues/1481
-    lang_args = meson.get_cross_property(lang + '_args', [])
-    if lang_args.length() != 0
-      foreach lang_arg : lang_args
-        if lang_arg.contains('MESON_TEST_ISSUE_1665')
-          run_1665_test = true
-        endif
-      endforeach
+    lang_arg = meson.get_cross_property(lang + '_args', '')
+    if lang_arg == '-DMESON_TEST_ISSUE_1665=1'
+      run_1665_test = true
     endif
   endif
 
