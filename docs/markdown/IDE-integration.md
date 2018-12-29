@@ -70,6 +70,15 @@ The possible values for `section` are:
 
 To set the options, use the `meson configure` command.
 
+It is also possible to get the default buildoptions without a build directory by providing the root `meson.build` instead of a build directory to `meson introspect --buildoptions`.
+
+Running `--buildoptions` without a build directory produces the same output as running
+it with a freshly configured build directory.
+
+However, this behavior is not guaranteed if subprojects are present. Due to internal
+limitations all subprojects are processed even if they are never used in a real meson run.
+Because of this options for the subprojects can differ.
+
 ## Tests
 
 Compilation and unit tests are done as usual by running the `ninja` and `ninja test` commands. A JSON formatted result log can be found in `workspace/project/builddir/meson-logs/testlog.json`.
