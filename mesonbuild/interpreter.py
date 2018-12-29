@@ -86,8 +86,8 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder):
     def auto_method(self, args, kwargs):
         return self.held_object.is_auto()
 
-def extract_required_kwarg(kwargs, subproject, feature_check=None):
-    val = kwargs.get('required', True)
+def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True):
+    val = kwargs.get('required', default)
     disabled = False
     required = False
     feature = None
@@ -900,6 +900,23 @@ class SubprojectHolder(InterpreterObject, ObjectHolder):
             raise InvalidArguments('Requested variable "{0}" not found.'.format(varname))
         return self.held_object.variables[varname]
 
+header_permitted_kwargs = set([
+    'required',
+    'prefix',
+    'no_builtin_args',
+    'include_directories',
+    'args',
+    'dependencies',
+])
+
+find_library_permitted_kwargs = set([
+    'has_headers',
+    'required',
+    'dirs',
+])
+
+find_library_permitted_kwargs |= set(['header_' + k for k in header_permitted_kwargs])
+
 class CompilerHolder(InterpreterObject):
     def __init__(self, compiler, env, subproject):
         InterpreterObject.__init__(self)
@@ -1344,13 +1361,8 @@ class CompilerHolder(InterpreterObject):
         return result
 
     @FeatureNew('compiler.check_header', '0.47.0')
-    @permittedKwargs({
-        'prefix',
-        'no_builtin_args',
-        'include_directories',
-        'args',
-        'dependencies',
-    })
+    @FeatureNewKwargs('compiler.check_header', '0.50.0', ['required'])
+    @permittedKwargs(header_permitted_kwargs)
     def check_header_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('check_header method takes exactly one argument.')
@@ -1359,25 +1371,26 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header must be a string.')
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Check usable header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         haz = self.compiler.check_header(hname, prefix, self.environment,
                                          extra_args=extra_args,
                                          dependencies=deps)
-        if haz:
+        if required and not haz:
+            raise InterpreterException('{} header {!r} not usable'.format(self.compiler.get_display_language(), hname))
+        elif haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
         mlog.log('Check usable header', mlog.bold(hname, True), msg, h)
         return haz
 
-    @permittedKwargs({
-        'prefix',
-        'no_builtin_args',
-        'include_directories',
-        'args',
-        'dependencies',
-    })
+    @FeatureNewKwargs('compiler.has_header', '0.50.0', ['required'])
+    @permittedKwargs(header_permitted_kwargs)
     def has_header_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('has_header method takes exactly one argument.')
@@ -1386,24 +1399,25 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header must be a string.')
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Has header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         haz = self.compiler.has_header(hname, prefix, self.environment,
                                        extra_args=extra_args, dependencies=deps)
-        if haz:
+        if required and not haz:
+            raise InterpreterException('{} header {!r} not found'.format(self.compiler.get_display_language(), hname))
+        elif haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
         mlog.log('Has header', mlog.bold(hname, True), msg, h)
         return haz
 
-    @permittedKwargs({
-        'prefix',
-        'no_builtin_args',
-        'include_directories',
-        'args',
-        'dependencies',
-    })
+    @FeatureNewKwargs('compiler.has_header_symbol', '0.50.0', ['required'])
+    @permittedKwargs(header_permitted_kwargs)
     def has_header_symbol_method(self, args, kwargs):
         if len(args) != 2:
             raise InterpreterException('has_header_symbol method takes exactly two arguments.')
@@ -1413,24 +1427,35 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header_symbol must be a string.')
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Header <{0}> has symbol'.format(hname), mlog.bold(symbol, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         haz = self.compiler.has_header_symbol(hname, symbol, prefix, self.environment,
                                               extra_args=extra_args,
                                               dependencies=deps)
-        if haz:
+        if required and not haz:
+            raise InterpreterException('{} symbol {} not found in header {}'.format(self.compiler.get_display_language(), symbol, hname))
+        elif haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
         mlog.log('Header <{0}> has symbol'.format(hname), mlog.bold(symbol, True), msg, h)
         return haz
 
+    def notfound_library(self, libname):
+        lib = dependencies.ExternalLibrary(libname, None,
+                                           self.environment,
+                                           self.compiler.language,
+                                           silent=True)
+        return ExternalLibraryHolder(lib, self.subproject)
+
+    @FeatureNewKwargs('compiler.find_library', '0.50.0', ['has_headers'])
     @FeatureNewKwargs('compiler.find_library', '0.49.0', ['disabler'])
     @disablerIfNotFound
-    @permittedKwargs({
-        'required',
-        'dirs',
-    })
+    @permittedKwargs(find_library_permitted_kwargs)
     def find_library_method(self, args, kwargs):
         # TODO add dependencies support?
         if len(args) != 1:
@@ -1442,11 +1467,14 @@ class CompilerHolder(InterpreterObject):
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Library', mlog.bold(libname), 'skipped: feature', mlog.bold(feature), 'disabled')
-            lib = dependencies.ExternalLibrary(libname, None,
-                                               self.environment,
-                                               self.compiler.language,
-                                               silent=True)
-            return ExternalLibraryHolder(lib, self.subproject)
+            return self.notfound_library(libname)
+
+        has_header_kwargs = {k[7:]: v for k, v in kwargs.items() if k.startswith('header_')}
+        has_header_kwargs['required'] = required
+        headers = mesonlib.stringlistify(kwargs.get('has_headers', []))
+        for h in headers:
+            if not self.has_header_method([h], has_header_kwargs):
+                return self.notfound_library(libname)
 
         search_dirs = mesonlib.stringlistify(kwargs.get('dirs', []))
         for i in search_dirs:
