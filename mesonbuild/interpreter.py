@@ -2994,7 +2994,6 @@ external dependencies (including libraries) must go to "dependencies".''')
                     return self.get_subproject_dep(display_name, dirname, varname, kwargs)
 
             # We need to actually search for this dep
-            exception = None
             dep = NotFoundDependency(self.environment)
 
             # Unless a fallback exists and is forced ...
@@ -3005,25 +3004,18 @@ external dependencies (including libraries) must go to "dependencies".''')
                 self._handle_featurenew_dependencies(name)
                 try:
                     dep = dependencies.find_external_dependency(name, self.environment, kwargs)
-                except DependencyException as e:
-                    exception = e
+                except DependencyException:
+                    pass
 
             # Search inside the projects list
             if not dep.found():
                 if 'fallback' in kwargs:
-                    if not exception:
-                        exception = DependencyException("fallback for %s not found" % display_name)
-                    fallback_dep = self.dependency_fallback(display_name, kwargs)
-                    if fallback_dep:
-                        # Never add fallback deps to self.coredata.deps since we
-                        # cannot cache them. They must always be evaluated else
-                        # we won't actually read all the build files.
-                        return fallback_dep
-                if required:
-                    assert(exception is not None)
-                    raise exception
+                    return self.dependency_fallback(display_name, kwargs)
 
         # Only store found-deps in the cache
+        # Never add fallback deps to self.coredata.deps since we
+        # cannot cache them. They must always be evaluated else
+        # we won't actually read all the build files.
         if dep.found():
             self.coredata.deps[identifier] = dep
         return DependencyHolder(dep, self.subproject)
@@ -3063,7 +3055,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.log('Not looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback'
                      'dependencies is disabled.')
-            return None
+            return self.notfound_dependency()
         elif self.coredata.get_builtin_option('wrap_mode') == WrapMode.forcefallback:
             mlog.log('Looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback dependencies is forced.')
@@ -3071,7 +3063,10 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.log('Looking for a fallback subproject for the dependency',
                      mlog.bold(display_name))
         dirname, varname = self.get_subproject_infos(kwargs)
-        sp_kwargs = {'default_options': kwargs.get('default_options', [])}
+        sp_kwargs = {
+            'default_options': kwargs.get('default_options', []),
+            'required': kwargs.get('required', True),
+            }
         self.do_subproject(dirname, sp_kwargs)
         return self.get_subproject_dep(display_name, dirname, varname, kwargs)
 
