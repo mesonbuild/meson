@@ -82,6 +82,12 @@ class JavaCompiler(Compiler):
         return java_buildtype_args[buildtype]
 
     def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        for idx, i in enumerate(parameter_list):
+            if i[:4] == '-cp:' or i[:4] == '-cp;':
+                parameter_list[idx] = i[:4] + os.path.normpath(os.path.join(build_dir, i[4:]))
+            if i[:11] == '-classpath:' or i[:11] == '-classpath;':
+                parameter_list[idx] = i[:11] + os.path.normpath(os.path.join(build_dir, i[11:]))
+
         return parameter_list
 
     def sanity_check(self, work_dir, environment):
