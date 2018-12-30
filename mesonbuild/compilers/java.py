@@ -81,6 +81,9 @@ class JavaCompiler(Compiler):
     def get_buildtype_args(self, buildtype):
         return java_buildtype_args[buildtype]
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        return parameter_list
+
     def sanity_check(self, work_dir, environment):
         src = 'SanityCheck.java'
         obj = 'SanityCheck'

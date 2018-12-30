@@ -66,6 +66,9 @@ class ValaCompiler(Compiler):
             return ['--color=' + colortype]
         return []
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        return parameter_list
+
     def sanity_check(self, work_dir, environment):
         code = 'class MesonSanityCheck : Object { }'
         args = self.get_cross_extra_flags(environment, link=False)

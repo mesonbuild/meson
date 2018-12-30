@@ -884,6 +884,9 @@ class Compiler:
     def compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies):
         raise EnvironmentException('%s does not support compute_int ' % self.get_id())
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        raise EnvironmentException('%s does not support compute_parameters_with_absolute_paths ' % self.get_id())
+
     def has_members(self, typename, membernames, prefix, env, *, extra_args=None, dependencies=None):
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
 
@@ -1547,6 +1550,13 @@ class GnuLikeCompiler(abc.ABC):
             return ['-mwindows']
         return []
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-I' or i[:2] == '-L':
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+
+        return parameter_list
+
 class GnuCompiler(GnuLikeCompiler):
     """
     GnuCompiler represents an actual GCC in its many incarnations.
@@ -1776,6 +1786,13 @@ class ArmclangCompiler:
         """
         return ['--symdefs=' + implibname]
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-I' or i[:2] == '-L':
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+
+        return parameter_list
+
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1, 19.0.0
 class IntelCompiler(GnuLikeCompiler):
@@ -1910,6 +1927,13 @@ class ArmCompiler:
     def get_debug_args(self, is_debug):
         return clike_debug_args[is_debug]
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-I' or i[:2] == '-L':
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+
+        return parameter_list
+
 class CcrxCompiler:
     def __init__(self, compiler_type):
         if not self.is_cross:
@@ -2003,3 +2027,10 @@ class CcrxCompiler:
                 continue
             result.append(i)
         return result
+
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        for idx, i in enumerate(parameter_list):
+            if i[:9] == '-include=':
+                parameter_list[idx] = i[:9] + os.path.normpath(os.path.join(build_dir, i[9:]))
+
+        return parameter_list

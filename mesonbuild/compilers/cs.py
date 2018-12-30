@@ -88,6 +88,9 @@ class CsCompiler(Compiler):
     def get_pic_args(self):
         return []
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        return parameter_list
+
     def name_string(self):
         return ' '.join(self.exelist)
 

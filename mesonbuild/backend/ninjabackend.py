@@ -29,7 +29,7 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..compilers import CompilerArgs, CCompiler, VisualStudioCCompiler
+from ..compilers import CompilerArgs, CCompiler, VisualStudioCCompiler, Compiler
 from ..linkers import ArLinker
 from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_compiler_for_source, has_path_sep
@@ -322,7 +322,7 @@ int dummy;
                 return False
         return True
 
-    def create_target_source_introspection(self, target, comp, parameters, sources, generated_sources):
+    def create_target_source_introspection(self, target: build.Target, comp: compilers.Compiler, parameters, sources, generated_sources):
         '''
         Adds the source file introspection information for a language of a target
 
@@ -349,9 +349,7 @@ int dummy;
             # Convert parameters
             if isinstance(parameters, CompilerArgs):
                 parameters = parameters.to_native(copy=True)
-            for idx, i in enumerate(parameters):
-                if i[:2] == '-I' or i[:2] == '/I' or i[:2] == '-L':
-                    parameters[idx] = i[:2] + os.path.normpath(os.path.join(self.build_dir, i[2:]))
+            parameters = comp.compute_parameters_with_absolute_paths(parameters, self.build_dir)
             if target.is_cross:
                 parameters += comp.get_cross_extra_flags(self.environment, False)
             # The new entry

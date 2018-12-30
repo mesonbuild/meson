@@ -171,6 +171,13 @@ end program prog
     def get_module_outdir_args(self, path):
         return ['-module', path]
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-I':
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+
+        return parameter_list
+
     def module_name_to_filename(self, module_name):
         return module_name.lower() + '.mod'
 

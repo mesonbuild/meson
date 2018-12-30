@@ -91,6 +91,13 @@ class SwiftCompiler(Compiler):
     def get_compile_only_args(self):
         return ['-c']
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-I':
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+
+        return parameter_list
+
     def sanity_check(self, work_dir, environment):
         src = 'swifttest.swift'
         source_name = os.path.join(work_dir, src)
