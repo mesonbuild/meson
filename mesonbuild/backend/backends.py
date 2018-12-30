@@ -1177,9 +1177,15 @@ class Backend:
                     source_list += [os.path.join(self.environment.get_source_dir(), i)]
             source_list = list(map(lambda x: os.path.normpath(x), source_list))
 
+            compiler = []
+            if isinstance(target, build.CustomTarget):
+                compiler = target.command
+                if isinstance(compiler, str):
+                    compiler = [compiler]
+
             return [{
                 'language': 'unknown',
-                'compiler': [],
+                'compiler': compiler,
                 'parameters': [],
                 'sources': source_list,
                 'generated_sources': []
