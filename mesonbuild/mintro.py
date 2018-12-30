@@ -93,13 +93,16 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
         if not isinstance(target, build.Target):
             raise RuntimeError('The target object in `builddata.get_targets()` is not of type `build.Target`. Please file a bug with this error message.')
 
+        # TODO Change this to the full list in a seperate PR
         fname = [os.path.join(target.subdir, x) for x in target.get_outputs()]
+        if len(fname) == 1:
+            fname = fname[0]
 
         t = {
             'name': target.get_basename(),
             'id': idname,
             'type': target.get_typename(),
-            'filename': fname[0], # TODO Change this to the full list in a seperate PR
+            'filename': fname,
             'build_by_default': target.build_by_default,
             'sources': backend.get_introspection_data(idname, target)
         }
@@ -260,7 +263,7 @@ def list_buildoptions_from_source(sourcedir, backend):
     mlog.enable()
     list_buildoptions(intr.coredata)
 
-def list_target_files(target_name, targets):
+def list_target_files(target_name, targets, builddata: build.Build):
     result = []
     tgt = None
 
@@ -270,10 +273,14 @@ def list_target_files(target_name, targets):
             break
 
     if tgt is None:
-        raise RuntimeError('Target with the ID "{}" could not be found'.format(target_name))
+        print('Target with the ID "{}" could not be found'.format(target_name))
+        sys.exit(1)
 
     for i in tgt['sources']:
         result += i['sources'] + i['generated_sources']
+
+    # TODO Remove this line in a future PR with other breaking changes
+    result = list(map(lambda x: os.path.relpath(x, builddata.environment.get_source_dir()), result))
 
     return ('target_files', result)
 
@@ -490,7 +497,8 @@ def run(options):
         targets_file = os.path.join(infodir, 'intro-targets.json')
         with open(targets_file, 'r') as fp:
             targets = json.load(fp)
-        results += [list_target_files(options.target_files, targets)]
+        builddata = build.load(options.builddir) # TODO remove this in a breaking changes PR
+        results += [list_target_files(options.target_files, targets, builddata)]
     if options.all or options.tests:
         toextract += ['tests']
 
