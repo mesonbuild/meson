@@ -128,7 +128,7 @@ Because of this options for the subprojects can differ.
 
 Compilation and unit tests are done as usual by running the `ninja` and `ninja test` commands. A JSON formatted result log can be found in `workspace/project/builddir/meson-logs/testlog.json`.
 
-When these tests fail, the user probably wants to run the failing test in a debugger. To make this as integrated as possible, extract the tests from the `tests` and `benchmarks` entries.
+When these tests fail, the user probably wants to run the failing test in a debugger. To make this as integrated as possible, extract the tests from the `intro-tests.json` and `intro-benchmarks.json` files.
 This provides you with all the information needed to run the test: what command to execute, command line arguments and environment variable settings.
 
 ```json
