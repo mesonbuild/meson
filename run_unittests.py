@@ -3754,7 +3754,7 @@ class DarwinTests(BasePlatformTests):
         self.build()
         targets = {}
         for t in self.introspect('--targets'):
-            targets[t['name']] = t['filename'][0]
+            targets[t['name']] = t['filename'][0] if isinstance(t['filename'], list) else t['filename']
         self.assertEqual(self._get_darwin_versions(targets['some']), ('7.0.0', '7.0.0'))
         self.assertEqual(self._get_darwin_versions(targets['noversion']), ('0.0.0', '0.0.0'))
         self.assertEqual(self._get_darwin_versions(targets['onlyversion']), ('1.0.0', '1.0.0'))
