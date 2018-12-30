@@ -84,14 +84,14 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
     tlist = []
 
     # Fast lookup table for installation files
-    intall_lookuptable = {}
+    install_lookuptable = {}
     for i in installdata.targets:
         outname = os.path.join(installdata.prefix, i.outdir, os.path.basename(i.fname))
-        intall_lookuptable[os.path.basename(i.fname)] = str(pathlib.PurePath(outname))
+        install_lookuptable[os.path.basename(i.fname)] = str(pathlib.PurePath(outname))
 
     for (idname, target) in builddata.get_targets().items():
         if not isinstance(target, build.Target):
-            raise RuntimeError('Something weird happened. File a bug.')
+            raise RuntimeError('The target object in `builddata.get_targets()` is not of type `build.Target`. Please file a bug with this error message.')
 
         fname = [os.path.join(target.subdir, x) for x in target.get_outputs()]
 
@@ -107,7 +107,7 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
         if installdata and target.should_install():
             t['installed'] = True
             # TODO Change this to the full list in a seperate PR
-            t['install_filename'] = [intall_lookuptable.get(x, None) for x in target.get_outputs()][0]
+            t['install_filename'] = [install_lookuptable.get(x, None) for x in target.get_outputs()][0]
         else:
             t['installed'] = False
         tlist.append(t)
