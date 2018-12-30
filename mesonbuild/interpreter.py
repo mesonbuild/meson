@@ -3003,10 +3003,9 @@ external dependencies (including libraries) must go to "dependencies".''')
             # ... search for it outside the project
             elif name != '':
                 self._handle_featurenew_dependencies(name)
-                try:
-                    dep = dependencies.find_external_dependency(name, self.environment, kwargs)
-                except DependencyException:
-                    pass
+                kwargs['required'] = required and not has_fallback
+                dep = dependencies.find_external_dependency(name, self.environment, kwargs)
+                kwargs['required'] = required
 
             # Search inside the projects list
             if not dep.found():
