@@ -101,7 +101,7 @@ def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True)
             disabled = True
         elif option.is_enabled():
             required = True
-    elif isinstance(required, bool):
+    elif isinstance(val, bool):
         required = val
     else:
         raise InterpreterException('required keyword argument must be boolean or a feature option')
