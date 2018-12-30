@@ -12,7 +12,7 @@ The first thing to do when setting up a Meson project in an IDE is to select the
 
     meson builddir
 
-With this command meson will configure the project and also generate introspection information that is stored in `intro-*.json` files in the `meson-info` directory. All files will be automatically updated when meson is (re)configured, or the build options change. Thus, an IDE can watch for changes in this directory to know when something changed.
+With this command meson will configure the project and also generate introspection information that is stored in `intro-*.json` files in the `meson-info` directory. The introspection dump will be automatically updated when meson is (re)configured, or the build options change. Thus, an IDE can watch for changes in this directory to know when something changed.
 
 The `meson-info` directory should contain the following files:
 
