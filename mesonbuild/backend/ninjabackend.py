@@ -343,7 +343,7 @@ int dummy;
         lang = comp.get_language()
         tgt = self.introspection_data[id]
         # Find an existing entry or create a new one
-        id_hash = (lang, parameters)
+        id_hash = (lang, tuple(parameters))
         src_block = tgt.get(id_hash, None)
         if src_block is None:
             # Convert parameters
