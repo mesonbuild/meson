@@ -339,7 +339,6 @@ int dummy;
             }
         }
         '''
-        build_dir = self.environment.get_build_dir()
         id = target.get_id()
         lang = comp.get_language()
         tgt = self.introspection_data[id]
@@ -352,7 +351,7 @@ int dummy;
                 parameters = parameters.to_native(copy=True)
             for idx, i in enumerate(parameters):
                 if i[:2] == '-I' or i[:2] == '/I' or i[:2] == '-L':
-                    parameters[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+                    parameters[idx] = i[:2] + os.path.normpath(os.path.join(self.build_dir, i[2:]))
             if target.is_cross:
                 parameters += comp.get_cross_extra_flags(self.environment, False)
             # The new entry
@@ -366,10 +365,10 @@ int dummy;
             self._intro_last_index = len(tgt)
             tgt[id_hash] = src_block
         # Make source files absolute
-        sources = [x.rel_to_builddir(self.build_to_src) if isinstance(x, File) else x for x in sources]
-        sources = [os.path.normpath(os.path.join(build_dir, x)) for x in sources]
-        generated_sources = [x.rel_to_builddir(self.build_to_src) if isinstance(x, File) else x for x in generated_sources]
-        generated_sources = [os.path.normpath(os.path.join(build_dir, x)) for x in generated_sources]
+        sources = [x.absolute_path(self.source_dir, self.build_dir) if isinstance(x, File) else os.path.normpath(os.path.join(self.build_dir, x))
+                   for x in sources]
+        generated_sources = [x.absolute_path(self.source_dir, self.build_dir) if isinstance(x, File) else os.path.normpath(os.path.join(self.build_dir, x))
+                             for x in generated_sources]
         # Add the source files
         src_block['sources'] += sources
         src_block['generated_sources'] += generated_sources
