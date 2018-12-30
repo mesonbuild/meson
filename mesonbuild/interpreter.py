@@ -2979,46 +2979,40 @@ external dependencies (including libraries) must go to "dependencies".''')
         if '<' in name or '>' in name or '=' in name:
             raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
                                    'version\n requirements use the \'version\' keyword argument instead.')
-        identifier, cached_dep = self._find_cached_dep(name, kwargs)
 
+        identifier, cached_dep = self._find_cached_dep(name, kwargs)
         if cached_dep:
             if required and not cached_dep.found():
                 m = 'Dependency {!r} was already checked and was not found'
                 raise DependencyException(m.format(display_name))
-            dep = cached_dep
-        else:
-            # If the dependency has already been configured, possibly by
-            # a higher level project, try to use it first.
-            if has_fallback:
-                dirname, varname = self.get_subproject_infos(kwargs)
-                if dirname in self.subprojects:
-                    return self.get_subproject_dep(display_name, dirname, varname, kwargs)
+            return DependencyHolder(cached_dep, self.subproject)
 
-            # We need to actually search for this dep
-            dep = NotFoundDependency(self.environment)
+        # If the dependency has already been configured, possibly by
+        # a higher level project, try to use it first.
+        if has_fallback:
+            dirname, varname = self.get_subproject_infos(kwargs)
+            if dirname in self.subprojects:
+                return self.get_subproject_dep(name, dirname, varname, kwargs)
 
-            # Unless a fallback exists and is forced ...
-            if self.coredata.get_builtin_option('wrap_mode') == WrapMode.forcefallback and has_fallback:
-                pass
-            # ... search for it outside the project
-            elif name != '':
-                self._handle_featurenew_dependencies(name)
-                kwargs['required'] = required and not has_fallback
-                dep = dependencies.find_external_dependency(name, self.environment, kwargs)
-                kwargs['required'] = required
+        wrap_mode = self.coredata.get_builtin_option('wrap_mode')
+        forcefallback = wrap_mode == WrapMode.forcefallback and has_fallback
+        if name != '' and not forcefallback:
+            self._handle_featurenew_dependencies(name)
+            kwargs['required'] = required and not has_fallback
+            dep = dependencies.find_external_dependency(name, self.environment, kwargs)
+            kwargs['required'] = required
+            # Only store found-deps in the cache
+            # Never add fallback deps to self.coredata.deps since we
+            # cannot cache them. They must always be evaluated else
+            # we won't actually read all the build files.
+            if dep.found():
+                self.coredata.deps[identifier] = dep
+                return DependencyHolder(dep, self.subproject)
 
-            # Search inside the projects list
-            if not dep.found():
-                if has_fallback:
-                    return self.dependency_fallback(display_name, kwargs)
+        if has_fallback:
+            return self.dependency_fallback(display_name, kwargs)
 
-        # Only store found-deps in the cache
-        # Never add fallback deps to self.coredata.deps since we
-        # cannot cache them. They must always be evaluated else
-        # we won't actually read all the build files.
-        if dep.found():
-            self.coredata.deps[identifier] = dep
-        return DependencyHolder(dep, self.subproject)
+        return self.notfound_dependency()
 
     @FeatureNew('disabler', '0.44.0')
     @noKwargs
