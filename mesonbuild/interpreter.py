@@ -2352,7 +2352,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def do_subproject(self, dirname, kwargs):
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            mlog.log('\nSubproject', mlog.bold(dirname), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
+            mlog.log('Subproject', mlog.bold(dirname), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.disabled_subproject(dirname)
 
         default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
@@ -2373,39 +2373,37 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InvalidCode('Recursive include of subprojects: %s.' % incpath)
         if dirname in self.subprojects:
             subproject = self.subprojects[dirname]
-
             if required and not subproject.found():
                 raise InterpreterException('Subproject "%s/%s" required but not found.' % (
                                            self.subproject_dir, dirname))
-
             return subproject
+
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
         r = wrap.Resolver(subproject_dir_abs, self.coredata.get_builtin_option('wrap_mode'))
         try:
             resolved = r.resolve(dirname)
         except wrap.WrapException as e:
             subprojdir = os.path.join(self.subproject_dir, r.directory)
-            if not required:
-                mlog.log('\nSubproject ', mlog.bold(subprojdir), 'is buildable:', mlog.red('NO'), '(disabling)\n')
-                return self.disabled_subproject(dirname)
-
             if isinstance(e, wrap.WrapNotFoundException):
                 # if the reason subproject execution failed was because
                 # the directory doesn't exist, try to give some helpful
                 # advice if it's a nested subproject that needs
                 # promotion...
                 self.print_nested_info(dirname)
-
-            msg = 'Failed to initialize {!r}:\n{}'
-            raise InterpreterException(msg.format(subprojdir, e))
+            if not required:
+                mlog.log(e)
+                mlog.log('Subproject ', mlog.bold(subprojdir), 'is buildable:', mlog.red('NO'), '(disabling)')
+                return self.disabled_subproject(dirname)
+            raise e
 
         subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
         mlog.log()
         with mlog.nested():
-            try:
-                mlog.log('\nExecuting subproject', mlog.bold(dirname), '\n')
+            mlog.log('Executing subproject', mlog.bold(dirname), '\n')
+        try:
+            with mlog.nested():
                 new_build = self.build.copy()
                 subi = Interpreter(new_build, self.backend, dirname, subdir, self.subproject_dir,
                                    self.modules, default_options)
@@ -2414,17 +2412,21 @@ external dependencies (including libraries) must go to "dependencies".''')
                 subi.subproject_stack = self.subproject_stack + [dirname]
                 current_active = self.active_projectname
                 subi.run()
-                mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
-            # Invalid code is always an error
-            except InvalidCode:
-                raise
-            except Exception as e:
-                if not required:
-                    mlog.log(e)
-                    mlog.log('\nSubproject', mlog.bold(dirname), 'is buildable:', mlog.red('NO'), '(disabling)')
-                    return self.disabled_subproject(dirname)
-                else:
-                    raise e
+                mlog.log('Subproject', mlog.bold(dirname), 'finished.')
+        # Invalid code is always an error
+        except InvalidCode:
+            raise
+        except Exception as e:
+            if not required:
+                with mlog.nested():
+                    # Suppress the 'ERROR:' prefix because this exception is not
+                    # fatal and VS CI treat any logs with "ERROR:" as fatal.
+                    mlog.exception(e, prefix=None)
+                mlog.log('\nSubproject', mlog.bold(dirname), 'is buildable:', mlog.red('NO'), '(disabling)')
+                return self.disabled_subproject(dirname)
+            raise e
+
+        mlog.log()
 
         if 'version' in kwargs:
             pv = subi.project_version
