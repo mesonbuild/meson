@@ -2569,7 +2569,7 @@ int main(int argc, char **argv) {
         for t in t_intro:
             id = t['id']
             tf_intro = self.introspect(['--target-files', id])
-            tf_intro = list(map(lambda x: os.path.relpath(x, testdir), tf_intro))
+            #tf_intro = list(map(lambda x: os.path.relpath(x, testdir), tf_intro)) TODO make paths absolute in future PR
             self.assertEqual(tf_intro, expected[id])
         self.wipe()
 
@@ -2585,7 +2585,7 @@ int main(int argc, char **argv) {
             id = t['id']
             tf_intro = self.introspect(['--target-files', id])
             print(tf_intro)
-            tf_intro = list(map(lambda x: os.path.relpath(x, testdir), tf_intro))
+            #tf_intro = list(map(lambda x: os.path.relpath(x, testdir), tf_intro)) TODO make paths absolute in future PR
             print(tf_intro)
             self.assertEqual(tf_intro, expected[id])
         self.wipe()

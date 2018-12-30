@@ -18,3 +18,4 @@ directory. This dump will be (re)generated each time meson updates the configura
 Additionlly the format of `meson introspect target` was changed:
 
   - New: the `sources` key. It stores the source files of a target and there compiler parameters
+  - Added new target types (`jar`, `shared module`)

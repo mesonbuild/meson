@@ -472,8 +472,10 @@ def run(options):
             list_buildoptions_from_source(sourcedir, options.backend)
             return 0
     if not os.path.isdir(datadir) or not os.path.isdir(infodir):
-        print('Current directory is not a build dir. Please specify it or '
-              'change the working directory to it.')
+        print('Current directory is not a meson build directory.'
+              'Please specify a valid build dir or change the working directory to it.'
+              'It is also possible that the build directory was generated with an old'
+              'meson version. Please regenerate it in this case.')
         return 1
 
     results = []
