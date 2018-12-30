@@ -38,7 +38,7 @@ The most important file for an IDE is probably `intro-targets.json`. Here each t
     "name": "Name of the target",
     "id": "The internal ID meson uses",
     "type": "<TYPE>",
-    "filename": ["list", "of", "generate", "files"],
+    "filename": ["list", "of", "generated", "files"],
     "build_by_default": true / false,
     "sources": [],
     "installed": true / false,
