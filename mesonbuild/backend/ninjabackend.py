@@ -29,7 +29,7 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..compilers import CompilerArgs, CCompiler, VisualStudioCCompiler, Compiler
+from ..compilers import CompilerArgs, CCompiler, VisualStudioCCompiler
 from ..linkers import ArLinker
 from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_compiler_for_source, has_path_sep

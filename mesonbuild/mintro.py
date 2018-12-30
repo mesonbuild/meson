@@ -480,7 +480,7 @@ def run(options):
 
     # Load build data to make sure that the version matches
     # TODO Find a better solution for this
-    _ = cdata.load(options.builddir)
+    cdata.load(options.builddir)
 
     results = []
     toextract = []
