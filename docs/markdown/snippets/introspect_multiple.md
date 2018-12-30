@@ -9,7 +9,7 @@ compatibility.
 
 Furthermore the option `-a,--all`, `-i,--indent` and `-f,--force-dict-output`
 were added to print all introspection information in one go, format the
-JSON output (the default is still compact JSON) and foce use the new
+JSON output (the default is still compact JSON) and force use the new
 output format, even if only one introspection command was given.
 
 A complete introspection dump is also stored in the `meson-info`
