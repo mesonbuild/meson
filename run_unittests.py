@@ -3502,23 +3502,22 @@ class FailureTests(BasePlatformTests):
         Test that:
         1. The correct message is outputted when a not-required dep is not
            found and the fallback subproject is also not found.
-        2. A not-found not-required dep with a fallback subproject outputs the
+        2. A not-required fallback dependency is not found because the
+           subproject failed to parse.
+        3. A not-found not-required dep with a fallback subproject outputs the
            correct message when the fallback subproject is found but the
            variable inside it is not.
-        3. A fallback dependency is found from the subproject parsed in (2)
-        4. A not-required fallback dependency is not found because the
-           subproject failed to parse.
+        4. A fallback dependency is found from the subproject parsed in (3)
+        5. The correct message is outputted when the .wrap file is missing for
+           a sub-subproject.
         '''
         tdir = os.path.join(self.unit_test_dir, '20 subproj dep variables')
         out = self.init(tdir, inprocess=True)
-        self.assertRegex(out, r"Couldn't use fallback subproject "
-                         "in.*subprojects.*nosubproj.*for the dependency.*somedep")
-        self.assertRegex(out, r'Dependency.*somenotfounddep.*from subproject.*'
-                         'subprojects.*somesubproj.*found:.*NO')
-        self.assertRegex(out, r'Dependency.*zlibproxy.*from subproject.*'
-                         'subprojects.*somesubproj.*found:.*YES.*(cached)')
-        self.assertRegex(out, r'Couldn\'t use fallback subproject in '
-                         '.*subprojects.*failingsubproj.*for the dependency.*somedep')
+        self.assertRegex(out, r"Subproject directory not found and .*nosubproj.wrap.* file not found")
+        self.assertRegex(out, r'Function does not take positional arguments.')
+        self.assertRegex(out, r'WARNING:.* Dependency .*subsubproject.* not found but it is available in a sub-subproject.')
+        self.assertRegex(out, r'Subproject directory not found and .*subsubproject.wrap.* file not found')
+        self.assertRegex(out, r'Dependency .*zlibproxy.* from subproject .*subprojects.*somesubproj.* found: .*YES.*')
 
     def test_exception_exit_status(self):
         '''

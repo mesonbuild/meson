@@ -195,12 +195,15 @@ def warning(*args, **kwargs):
 def deprecation(*args, **kwargs):
     return _log_error('deprecation', *args, **kwargs)
 
-def exception(e):
+def exception(e, prefix=red('ERROR:')):
     log()
+    args = []
     if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
-        log('%s:%d:%d:' % (e.file, e.lineno, e.colno), red('ERROR: '), e)
-    else:
-        log(red('ERROR:'), e)
+        args.append('%s:%d:%d:' % (e.file, e.lineno, e.colno))
+    if prefix:
+        args.append(prefix)
+    args.append(e)
+    log(*args)
 
 # Format a list for logging purposes as a string. It separates
 # all but the last item with commas, and the last with 'and'.
