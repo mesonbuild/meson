@@ -14,6 +14,7 @@
 
 import os
 import json
+import shutil
 
 from pathlib import Path
 from .. import mesonlib
@@ -467,6 +468,9 @@ class PythonModule(ExtensionModule):
     # https://www.python.org/dev/peps/pep-0397/
     def _get_win_pythonpath(self, name_or_path):
         if name_or_path not in ['python2', 'python3']:
+            return None
+        if not shutil.which('py'):
+            # program not installed, return without an exception
             return None
         ver = {'python2': '-2', 'python3': '-3'}[name_or_path]
         cmd = ['py', ver, '-c', "import sysconfig; print(sysconfig.get_config_var('BINDIR'))"]
