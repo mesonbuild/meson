@@ -1183,10 +1183,4 @@ class Backend:
                 'generated_sources': []
             }]
 
-        return [{
-            'language': 'unknown',
-            'compiler': [],
-            'parameters': [],
-            'sources': [],
-            'generated_sources': []
-        }]
+        return []

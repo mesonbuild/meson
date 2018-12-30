@@ -74,7 +74,8 @@ The following table shows all valid types for a target.
  `shared library` | Target for a shared library
  `shared module`  | A shared library that is meant to be used with dlopen rather than linking into something else
  `custom`         | A custom target
- `unknown target` | The current target format is unknown. This is probably a bug
+ `run`            | A Meson run target
+ `jar`            | A Java JAR target
 
 ## Build Options
 

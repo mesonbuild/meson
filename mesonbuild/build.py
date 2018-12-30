@@ -345,7 +345,8 @@ a hard error in the future.''' % name)
         self.install = False
         self.build_always_stale = False
         self.option_overrides = {}
-        self.typename = 'unknown target'
+        if not hasattr(self, 'typename'):
+            raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
 
     def get_install_dir(self, environment):
         # Find the installation directory.
@@ -1365,10 +1366,10 @@ class Executable(BuildTarget):
     known_kwargs = known_exe_kwargs
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        self.typename = 'executable'
         if 'pie' not in kwargs and 'b_pie' in environment.coredata.base_options:
             kwargs['pie'] = environment.coredata.base_options['b_pie'].value
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
-        self.typename = 'executable'
         # Unless overridden, executables have no suffix or prefix. Except on
         # Windows and with C#/Mono executables where the suffix is 'exe'
         if not hasattr(self, 'prefix'):
@@ -1455,10 +1456,10 @@ class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        self.typename = 'static library'
         if 'pic' not in kwargs and 'b_staticpic' in environment.coredata.base_options:
             kwargs['pic'] = environment.coredata.base_options['b_staticpic'].value
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
-        self.typename = 'static library'
         if 'cs' in self.compilers:
             raise InvalidArguments('Static libraries not supported for C#.')
         if 'rust' in self.compilers:
@@ -1515,6 +1516,7 @@ class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        self.typename = 'shared library'
         self.soversion = None
         self.ltversion = None
         # Max length 2, first element is compatibility_version, second is current_version
@@ -1527,7 +1529,6 @@ class SharedLibrary(BuildTarget):
         # The import library that GCC would generate (and prefer)
         self.gcc_import_filename = None
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
-        self.typename = 'shared library'
         if 'rust' in self.compilers:
             # If no crate type is specified, or it's the generic lib type, use dylib
             if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'lib':
@@ -1850,8 +1851,8 @@ class CustomTarget(Target):
     ])
 
     def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False):
-        super().__init__(name, subdir, subproject, False)
         self.typename = 'custom'
+        super().__init__(name, subdir, subproject, False)
         self.dependencies = []
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
@@ -2092,8 +2093,8 @@ class CustomTarget(Target):
 
 class RunTarget(Target):
     def __init__(self, name, command, args, dependencies, subdir, subproject):
-        super().__init__(name, subdir, subproject, False)
         self.typename = 'run'
+        super().__init__(name, subdir, subproject, False)
         self.command = command
         self.args = args
         self.dependencies = dependencies
@@ -2130,6 +2131,7 @@ class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        self.typename = 'jar'
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
@@ -2137,7 +2139,6 @@ class Jar(BuildTarget):
         for t in self.link_targets:
             if not isinstance(t, Jar):
                 raise InvalidArguments('Link target %s is not a jar target.' % t)
-        self.typename = 'jar'
         self.filename = self.name + '.jar'
         self.outputs = [self.filename]
         self.java_args = kwargs.get('java_args', [])
