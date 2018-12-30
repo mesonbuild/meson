@@ -40,7 +40,7 @@ The most important file for an IDE is probably `intro-targets.json`. Here each t
     "type": "<TYPE>",
     "filename": ["list", "of", "generated", "files"],
     "build_by_default": true / false,
-    "sources": [],
+    "target_sources": [],
     "installed": true / false,
 }
 ```
@@ -51,7 +51,7 @@ A target usually generates only one file. However, it is possible for custom tar
 
 ### Target sources
 
-The `intro-sources.json` file stores a list of all source objects of the target. With this information, an IDE can provide code completion for all source files.
+The `intro-targets.json` file also stores a list of all source objects of the target in the `target_sources`. With this information, an IDE can provide code completion for all source files.
 
 ```json
 {

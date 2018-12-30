@@ -3182,7 +3182,7 @@ recommended as it is not supported on some platforms''')
             ('type', str),
             ('filename', str),
             ('build_by_default', bool),
-            ('sources', list),
+            ('target_sources', list),
             ('installed', bool),
         ]
 
@@ -3260,7 +3260,7 @@ recommended as it is not supported on some platforms''')
                 self.assertEqual(i['build_by_default'], tgt[1])
                 self.assertEqual(i['installed'], tgt[2])
                 targets_to_find.pop(i['name'], None)
-            for j in i['sources']:
+            for j in i['target_sources']:
                 assertKeyTypes(targets_sources_typelist, j)
         self.assertDictEqual(targets_to_find, {})
 

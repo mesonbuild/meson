@@ -343,7 +343,7 @@ int dummy;
         lang = comp.get_language()
         tgt = self.introspection_data[id]
         # Find an existing entry or create a new one
-        id_hash = (lang, CompilerArgs)
+        id_hash = (lang, parameters)
         src_block = tgt.get(id_hash, None)
         if src_block is None:
             # Convert parameters
@@ -351,7 +351,7 @@ int dummy;
                 parameters = parameters.to_native(copy=True)
             parameters = comp.compute_parameters_with_absolute_paths(parameters, self.build_dir)
             if target.is_cross:
-                parameters += comp.get_cross_extra_flags(self.environment, False)
+                parameters.insert(0, comp.get_cross_extra_flags(self.environment, False))
             # The new entry
             src_block = {
                 'language': lang,
@@ -360,7 +360,6 @@ int dummy;
                 'sources': [],
                 'generated_sources': [],
             }
-            self._intro_last_index = len(tgt)
             tgt[id_hash] = src_block
         # Make source files absolute
         sources = [x.absolute_path(self.source_dir, self.build_dir) if isinstance(x, File) else os.path.normpath(os.path.join(self.build_dir, x))

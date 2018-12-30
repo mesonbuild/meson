@@ -7,7 +7,7 @@ object.
 The format for a single command was not changed to keep backward
 compatibility.
 
-Furthermore the option `-a,--all`, `-i,--indent` and `-f,--force-dict-output`
+Furthermore the option `-a,--all`, `-i,--indent` and `-f,--force-object-output`
 were added to print all introspection information in one go, format the
 JSON output (the default is still compact JSON) and force use the new
 output format, even if only one introspection command was given.

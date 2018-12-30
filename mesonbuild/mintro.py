@@ -35,8 +35,6 @@ from .compilers import compilers
 import sys, os
 import pathlib
 
-INTROSPECTION_OUTPUT_FILE = 'meson-introspection.json'
-
 def add_arguments(parser):
     parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
                         help='List top level targets.')
@@ -62,7 +60,7 @@ def add_arguments(parser):
                         help='Print all available information.')
     parser.add_argument('-i', '--indent', dest='indent', type=int, default=0,
                         help='Number of spaces used for indentation.')
-    parser.add_argument('-f', '--force-dict-output', action='store_true', dest='force_dict', default=False,
+    parser.add_argument('-f', '--force-object-output', action='store_true', dest='force_dict', default=False,
                         help='Always use the new JSON format for multiple entries (even for 0 and 1 introspection commands)')
     parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
 
@@ -104,7 +102,7 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
             'type': target.get_typename(),
             'filename': fname,
             'build_by_default': target.build_by_default,
-            'sources': backend.get_introspection_data(idname, target)
+            'target_sources': backend.get_introspection_data(idname, target)
         }
 
         if installdata and target.should_install():
@@ -276,7 +274,7 @@ def list_target_files(target_name, targets, builddata: build.Build):
         print('Target with the ID "{}" could not be found'.format(target_name))
         sys.exit(1)
 
-    for i in tgt['sources']:
+    for i in tgt['target_sources']:
         result += i['sources'] + i['generated_sources']
 
     # TODO Remove this line in a future PR with other breaking changes
