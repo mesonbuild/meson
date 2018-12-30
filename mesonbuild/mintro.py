@@ -478,6 +478,10 @@ def run(options):
               'meson version. Please regenerate it in this case.')
         return 1
 
+    # Load build data to make sure that the version matches
+    # TODO Find a better solution for this
+    _ = cdata.load(options.builddir)
+
     results = []
     toextract = []
 
