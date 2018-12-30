@@ -99,14 +99,15 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
             'name': target.get_basename(),
             'id': idname,
             'type': target.get_typename(),
-            'filename': fname,
+            'filename': fname[0], # TODO Change this to the full list in a seperate PR
             'build_by_default': target.build_by_default,
             'sources': backend.get_introspection_data(idname, target)
         }
 
         if installdata and target.should_install():
             t['installed'] = True
-            t['install_filename'] = [intall_lookuptable.get(x, None) for x in target.get_outputs()]
+            # TODO Change this to the full list in a seperate PR
+            t['install_filename'] = [intall_lookuptable.get(x, None) for x in target.get_outputs()][0]
         else:
             t['installed'] = False
         tlist.append(t)

@@ -1439,7 +1439,7 @@ class AllPlatformTests(BasePlatformTests):
         # Get name of static library
         targets = self.introspect('--targets')
         self.assertEqual(len(targets), 1)
-        libname = targets[0]['filename'][0]
+        libname = targets[0]['filename'] # TODO Change filename back to a list again
         # Build and get contents of static library
         self.build()
         before = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
@@ -1496,13 +1496,16 @@ class AllPlatformTests(BasePlatformTests):
         intro = self.introspect('--targets')
         if intro[0]['type'] == 'executable':
             intro = intro[::-1]
-        self.assertPathListEqual(intro[0]['install_filename'], ['/usr/lib/libstat.a'])
-        self.assertPathListEqual(intro[1]['install_filename'], ['/usr/bin/prog' + exe_suffix])
+        self.assertPathListEqual([intro[0]['install_filename']], ['/usr/lib/libstat.a'])
+        self.assertPathListEqual([intro[1]['install_filename']], ['/usr/bin/prog' + exe_suffix])
 
     def test_install_introspection_multiple_outputs(self):
         '''
         Tests that the Meson introspection API exposes multiple install filenames correctly without crashing
         https://github.com/mesonbuild/meson/pull/4555
+
+        Reverted to the first file only because of https://github.com/mesonbuild/meson/pull/4547#discussion_r244173438
+        TODO Change the format to a list officialy in a followup PR
         '''
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
@@ -1511,10 +1514,14 @@ class AllPlatformTests(BasePlatformTests):
         intro = self.introspect('--targets')
         if intro[0]['type'] == 'executable':
             intro = intro[::-1]
-        self.assertPathListEqual(intro[0]['install_filename'], ['/usr/include/diff.h', '/usr/bin/diff.sh'])
-        self.assertPathListEqual(intro[1]['install_filename'], ['/opt/same.h', '/opt/same.sh'])
-        self.assertPathListEqual(intro[2]['install_filename'], ['/usr/include/first.h', None])
-        self.assertPathListEqual(intro[3]['install_filename'], [None, '/usr/bin/second.sh'])
+        #self.assertPathListEqual(intro[0]['install_filename'], ['/usr/include/diff.h', '/usr/bin/diff.sh'])
+        #self.assertPathListEqual(intro[1]['install_filename'], ['/opt/same.h', '/opt/same.sh'])
+        #self.assertPathListEqual(intro[2]['install_filename'], ['/usr/include/first.h', None])
+        #self.assertPathListEqual(intro[3]['install_filename'], [None, '/usr/bin/second.sh'])
+        self.assertPathListEqual([intro[0]['install_filename']], ['/usr/include/diff.h'])
+        self.assertPathListEqual([intro[1]['install_filename']], ['/opt/same.h'])
+        self.assertPathListEqual([intro[2]['install_filename']], ['/usr/include/first.h'])
+        self.assertPathListEqual([intro[3]['install_filename']], [None])
 
     def test_uninstall(self):
         exename = os.path.join(self.installdir, 'usr/bin/prog' + exe_suffix)
@@ -3173,7 +3180,7 @@ recommended as it is not supported on some platforms''')
             ('name', str),
             ('id', str),
             ('type', str),
-            ('filename', list),
+            ('filename', str),
             ('build_by_default', bool),
             ('sources', list),
             ('installed', bool),
@@ -4396,7 +4403,7 @@ class LinuxlikeTests(BasePlatformTests):
                 break
         self.assertIsInstance(docbook_target, dict)
         ifile = self.introspect(['--target-files', 'generated-gdbus-docbook@cus'])[0]
-        self.assertListEqual(t['filename'], ['gdbus/generated-gdbus-doc-' + os.path.basename(ifile)])
+        self.assertListEqual([t['filename']], ['gdbus/generated-gdbus-doc-' + os.path.basename(ifile)])
 
     def test_build_rpath(self):
         if is_cygwin():
