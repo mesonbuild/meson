@@ -23,11 +23,10 @@ from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
-    InterpreterObject, InvalidArguments,
+    InvalidArguments,
     FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg
-from ..interpreterbase import flatten
 from ..build import known_shmod_kwargs
 from .. import mlog
 from ..environment import detect_cpu_family

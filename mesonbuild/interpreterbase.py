@@ -749,7 +749,6 @@ The result of this is undefined and will become a hard error in a future Meson r
             except IndexError:
                 raise InterpreterException('Index %d out of bounds of array of size %d.' % (index, len(iobject)))
 
-
     def function_call(self, node):
         func_name = node.func_name
         (posargs, kwargs) = self.reduce_arguments(node.args)

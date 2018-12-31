@@ -15,7 +15,7 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from . import interpreterbase, mlog, mparser, mesonlib
+from . import interpreterbase, mparser, mesonlib
 from . import environment
 
 from .interpreterbase import InterpreterException, InvalidArguments, BreakRequest, ContinueRequest

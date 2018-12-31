@@ -37,7 +37,6 @@ import re, shlex
 import subprocess
 from collections import namedtuple
 from pathlib import PurePath
-import traceback
 import functools
 
 import importlib
@@ -3062,7 +3061,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         sp_kwargs = {
             'default_options': kwargs.get('default_options', []),
             'required': kwargs.get('required', True),
-            }
+        }
         self.do_subproject(dirname, sp_kwargs)
         return self.get_subproject_dep(display_name, dirname, varname, kwargs)
 
