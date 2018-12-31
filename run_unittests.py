@@ -3471,7 +3471,7 @@ class FailureTests(BasePlatformTests):
         code = '''zlib_dep = dependency('zlib', required : false)
         zlib_dep.get_configtool_variable('foo')
         '''
-        self.assertMesonRaises(code, "'zlib' is not a config-tool dependency")
+        self.assertMesonRaises(code, ".* is not a config-tool dependency")
         code = '''zlib_dep = dependency('zlib', required : false)
         dep = declare_dependency(dependencies : zlib_dep)
         dep.get_pkgconfig_variable('foo')
