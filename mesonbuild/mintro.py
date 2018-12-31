@@ -532,8 +532,11 @@ def run(options):
 def write_intro_info(intro_info, info_dir):
     for i in intro_info:
         out_file = os.path.join(info_dir, 'intro-{}.json'.format(i[0]))
-        with open(out_file, 'w') as fp:
+        tmp_file = os.path.join(info_dir, 'tmp_dump.json')
+        with open(tmp_file, 'w') as fp:
             json.dump(i[1], fp)
+            fp.flush() # Not sure if this is needed
+        os.replace(tmp_file, out_file)
 
 def generate_introspection_file(builddata: build.Build, backend: backends.Backend):
     coredata = builddata.environment.get_coredata()
