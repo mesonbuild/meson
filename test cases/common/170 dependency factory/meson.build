@@ -1,4 +1,4 @@
-project('dependency factory', meson_version : '>=0.40')
+project('dependency factory', 'c', meson_version : '>=0.40')
 
 dep = dependency('gl', method: 'pkg-config', required: false)
 if dep.found() and dep.type_name() == 'pkgconfig'
