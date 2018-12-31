@@ -1170,18 +1170,27 @@ class Backend:
         if isinstance(target, (build.CustomTarget, build.BuildTarget)):
             source_list_raw = target.sources + target.extra_files
             source_list = []
-            for i in source_list_raw:
-                if isinstance(i, mesonlib.File):
-                    source_list += [i.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())]
-                elif isinstance(i, str):
-                    source_list += [os.path.join(self.environment.get_source_dir(), i)]
+            for j in source_list_raw:
+                if isinstance(j, mesonlib.File):
+                    source_list += [j.absolute_path(self.source_dir, self.build_dir)]
+                elif isinstance(j, str):
+                    source_list += [os.path.join(self.source_dir, j)]
             source_list = list(map(lambda x: os.path.normpath(x), source_list))
 
             compiler = []
             if isinstance(target, build.CustomTarget):
-                compiler = target.command
-                if isinstance(compiler, str):
-                    compiler = [compiler]
+                tmp_compiler = target.command
+                if not isinstance(compiler, list):
+                    tmp_compiler = [compiler]
+                for j in tmp_compiler:
+                    if isinstance(j, mesonlib.File):
+                        compiler += [j.absolute_path(self.source_dir, self.build_dir)]
+                    elif isinstance(j, str):
+                        compiler += [j]
+                    elif isinstance(j, (build.BuildTarget, build.CustomTarget)):
+                        compiler += j.get_outputs()
+                    else:
+                        raise RuntimeError('Type "{}" is not supported in get_introspection_data. This is a bug'.format(type(j).__name__))
 
             return [{
                 'language': 'unknown',
