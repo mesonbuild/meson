@@ -2100,12 +2100,7 @@ def find_external_dependency(name, env, kwargs):
         raise DependencyException('Dependency "%s" not found' % (name) +
                                   (', tried %s' % (tried) if tried else ''))
 
-    # return the last failed dependency object
-    if pkgdep:
-        return pkgdep[-1]
-
-    # this should never happen
-    raise DependencyException('Dependency "%s" not found, but no dependency object to return' % (name))
+    return NotFoundDependency(env)
 
 
 def _build_external_dependency_list(name, env, kwargs):
