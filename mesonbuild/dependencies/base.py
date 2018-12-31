@@ -437,17 +437,21 @@ class ConfigToolDependency(ExternalDependency):
 
     def report_config(self, version, req_version):
         """Helper method to print messages about the tool."""
+
+        found_msg = [mlog.bold(self.tool_name), 'found:']
+
         if self.config is None:
-            if version is not None:
-                mlog.log('Found', mlog.bold(self.tool_name), repr(version),
-                         mlog.red('NO'), '(needed', req_version, ')')
-            else:
-                mlog.log('Found', mlog.bold(self.tool_name), repr(req_version),
-                         mlog.red('NO'))
-            return False
-        mlog.log('Found {}:'.format(self.tool_name), mlog.bold(shutil.which(self.config[0])),
-                 '({})'.format(version))
-        return True
+            found_msg.append(mlog.red('NO'))
+            if version is not None and req_version is not None:
+                found_msg.append('found {!r} but need {!r}'.format(version, req_version))
+            elif req_version:
+                found_msg.append('need {!r}'.format(req_version))
+        else:
+            found_msg += [mlog.green('YES'), '({})'.format(shutil.which(self.config[0])), version]
+
+        mlog.log(*found_msg)
+
+        return self.config is not None
 
     def get_config_value(self, args, stage):
         p, out, err = Popen_safe(self.config + args)
@@ -825,10 +829,10 @@ class PkgConfigDependency(ExternalDependency):
             pkgbin = False
         if not self.silent:
             if pkgbin:
-                mlog.log('Found pkg-config:', mlog.bold(pkgbin.get_path()),
-                         '(%s)' % out.strip())
+                mlog.log(mlog.bold('pkg-config'), 'found:', mlog.green('YES'), '({})'.format(pkgbin.get_path()),
+                         out.strip())
             else:
-                mlog.log('Found Pkg-config:', mlog.red('NO'))
+                mlog.log(mlog.bold('pkg-config'), 'found:', mlog.red('NO'))
         return pkgbin
 
     def extract_field(self, la_file, fieldname):
