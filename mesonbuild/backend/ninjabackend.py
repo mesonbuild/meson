@@ -351,7 +351,10 @@ int dummy;
                 parameters = parameters.to_native(copy=True)
             parameters = comp.compute_parameters_with_absolute_paths(parameters, self.build_dir)
             if target.is_cross:
-                parameters.insert(0, comp.get_cross_extra_flags(self.environment, False))
+                extra_parameters = comp.get_cross_extra_flags(self.environment, False)
+                if isinstance(parameters, CompilerArgs):
+                    extra_parameters = extra_parameters.to_native(copy=True)
+                parameters = extra_parameters + parameters
             # The new entry
             src_block = {
                 'language': lang,
