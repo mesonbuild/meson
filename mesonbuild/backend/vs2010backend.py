@@ -982,7 +982,6 @@ class Vs2010Backend(backends.Backend):
         target_defines.append('%(PreprocessorDefinitions)')
         ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
-        pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
         # Warning level
         warning_level = self.get_option_for_target('warning_level', target)
         ET.SubElement(clconf, 'WarningLevel').text = 'Level' + str(1 + int(warning_level))
@@ -990,19 +989,21 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
         # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
         pch_sources = {}
-        for lang in ['c', 'cpp']:
-            pch = target.get_pch(lang)
-            if not pch:
-                continue
-            pch_node.text = 'Use'
-            if compiler.id == 'msvc':
-                if len(pch) != 2:
-                    raise MesonException('MSVC requires one header and one source to produce precompiled headers.')
-                pch_sources[lang] = [pch[0], pch[1], lang]
-            else:
-                # I don't know whether its relevant but let's handle other compilers
-                # used with a vs backend
-                pch_sources[lang] = [pch[0], None, lang]
+        if self.environment.coredata.base_options.get('b_pch', False):
+            pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
+            for lang in ['c', 'cpp']:
+                pch = target.get_pch(lang)
+                if not pch:
+                    continue
+                pch_node.text = 'Use'
+                if compiler.id == 'msvc':
+                    if len(pch) != 2:
+                        raise MesonException('MSVC requires one header and one source to produce precompiled headers.')
+                    pch_sources[lang] = [pch[0], pch[1], lang]
+                else:
+                    # I don't know whether its relevant but let's handle other compilers
+                    # used with a vs backend
+                    pch_sources[lang] = [pch[0], None, lang]
         if len(pch_sources) == 1:
             # If there is only 1 language with precompiled headers, we can use it for the entire project, which
             # is cleaner than specifying it for each source file.
