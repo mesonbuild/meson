@@ -2184,6 +2184,10 @@ rule FORTRAN_DEP_HACK%s
 
     def generate_gcc_pch_command(self, target, compiler, pch):
         commands = self._generate_single_compile(target, compiler)
+        if pch.split('.')[-1] == 'h' and compiler.language == 'cpp':
+            # Explicitly compile pch headers as C++. If Clang is invoked in C++ mode, it actually warns if
+            # this option is not set, and for gcc it also makes sense to use it.
+            commands += ['-x', 'c++-header']
         dst = os.path.join(self.get_target_private_dir(target),
                            os.path.basename(pch) + '.' + compiler.get_pch_suffix())
         dep = dst + '.' + compiler.get_depfile_suffix()
