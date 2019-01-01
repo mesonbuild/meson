@@ -2209,7 +2209,7 @@ class Interpreter(InterpreterBase):
         version = kwargs.get('version', self.project_version)
         if not isinstance(version, str):
             raise InterpreterException('Version must be a string.')
-        incs = extract_as_list(kwargs, 'include_directories', unholder=True)
+        incs = self.entries_to_incdirs(extract_as_list(kwargs, 'include_directories', unholder=True))
         libs = extract_as_list(kwargs, 'link_with', unholder=True)
         libs_whole = extract_as_list(kwargs, 'link_whole', unholder=True)
         sources = extract_as_list(kwargs, 'sources')
@@ -3708,6 +3708,19 @@ This will become a hard error in the future.''' % kwargs['input'])
             self.build.data.append(build.Data([cfile], idir, install_mode))
         return mesonlib.File.from_built_file(self.subdir, output)
 
+    def entries_to_incdirs(self, prospectives):
+        if not isinstance(prospectives, list):
+            return self.entries_to_incdirs([prospectives])[0]
+        result = []
+        for p in prospectives:
+            if isinstance(p, (IncludeDirsHolder, build.IncludeDirs)):
+                result.append(p)
+            elif isinstance(p, str):
+                result.append(self.build_incdir_object([p]))
+            else:
+                raise InterpreterException('Include directory objects can only be created from strings or include directories.')
+        return result
+
     @permittedKwargs(permitted_kwargs['include_directories'])
     @stringArgs
     def func_include_directories(self, node, args, kwargs):
@@ -4069,6 +4082,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
         # passed to library() when default_library == 'static'.
         kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
 
+        if 'include_directories' in kwargs:
+            kwargs['include_directories'] = self.entries_to_incdirs(kwargs['include_directories'])
         target = targetclass(name, self.subdir, self.subproject, is_cross, sources, objs, self.environment, kwargs)
 
         if is_cross:
