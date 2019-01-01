@@ -15,6 +15,8 @@ these can be set by passing to `meson` (aka `meson setup`) in any of
 these ways: `--option=value`, `--option value`, `-Doption=value`, or
 by setting them inside `default_options` of `project()` in your `meson.build`.
 
+For legacy reasons `--warnlevel` is the cli argument for the `warning_level` option.
+
 They can also be edited after setup using `meson configure`.
 
 Installation options are all relative to the prefix, except:
