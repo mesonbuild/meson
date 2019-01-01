@@ -116,7 +116,7 @@ class UserUmaskOption(UserIntegerOption):
 
     def validate_value(self, value):
         if value is None or value == 'preserve':
-            return None
+            return 'preserve'
         return super().validate_value(value)
 
     def toint(self, valuestring):
