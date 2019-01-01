@@ -494,7 +494,6 @@ class Vs2010Backend(backends.Backend):
     def gen_run_target_vcxproj(self, target, ofname, guid):
         root = self.create_basic_crap(target, guid)
         action = ET.SubElement(root, 'ItemDefinitionGroup')
-        customstep = ET.SubElement(action, 'PostBuildEvent')
         cmd_raw = [target.command] + target.args
         cmd = python_command + \
             [os.path.join(self.environment.get_script_dir(), 'commandrunner.py'),
@@ -515,8 +514,7 @@ class Vs2010Backend(backends.Backend):
             else:
                 cmd.append(i)
         cmd_templ = '''"%s" ''' * len(cmd)
-        ET.SubElement(customstep, 'Command').text = cmd_templ % tuple(cmd)
-        ET.SubElement(customstep, 'Message').text = 'Running custom command.'
+        self.add_custom_build(root, 'run_target', cmd_templ % tuple(cmd))
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
@@ -1343,26 +1341,14 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
         ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
         ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
-        postbuild = ET.SubElement(action, 'PostBuildEvent')
-        ET.SubElement(postbuild, 'Message')
         # FIXME: No benchmarks?
         test_command = self.environment.get_build_command() + ['test', '--no-rebuild']
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             test_command += ['--no-stdsplit']
         if self.environment.coredata.get_builtin_option('errorlogs'):
             test_command += ['--print-errorlogs']
-        cmd_templ = '''setlocal
-"%s"
-if %%errorlevel%% neq 0 goto :cmEnd
-:cmEnd
-endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
-:cmErrorLevel
-exit /b %%1
-:cmDone
-if %%errorlevel%% neq 0 goto :VCEnd'''
         self.serialize_tests()
-        ET.SubElement(postbuild, 'Command').text =\
-            cmd_templ % ('" "'.join(test_command))
+        self.add_custom_build(root, 'run_tests', '"%s"' % ('" "'.join(test_command)))
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
@@ -1417,12 +1403,21 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
         ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
         ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
-        postbuild = ET.SubElement(action, 'PostBuildEvent')
-        ET.SubElement(postbuild, 'Message')
-        # FIXME: No benchmarks?
-        test_command = self.environment.get_build_command() + ['install', '--no-rebuild']
+        install_command = self.environment.get_build_command() + ['install', '--no-rebuild']
+        self.add_custom_build(root, 'run_install', '"%s"' % ('" "'.join(install_command)))
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
+        self.add_regen_dependency(root)
+        self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
+
+    def add_custom_build(self, node, rulename, command, output_file=None):
+        igroup = ET.SubElement(node, 'ItemGroup')
+        rulefile = os.path.join(self.environment.get_scratch_dir(), rulename + '.rule')
+        if not os.path.exists(rulefile):
+            with open(rulefile, 'w', encoding='utf-8') as f:
+                f.write("# Meson regen file.")
+        custombuild = ET.SubElement(igroup, 'CustomBuild', Include=rulefile)
         cmd_templ = '''setlocal
-"%s"
+%s
 if %%errorlevel%% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
@@ -1430,11 +1425,13 @@ endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
 exit /b %%1
 :cmDone
 if %%errorlevel%% neq 0 goto :VCEnd'''
-        ET.SubElement(postbuild, 'Command').text =\
-            cmd_templ % ('" "'.join(test_command))
-        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
-        self.add_regen_dependency(root)
-        self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
+        ET.SubElement(custombuild, 'Command').text = cmd_templ % command
+        if not output_file:
+            # Use a nonexistent file to always consider the target out-of-date.
+            output_file = os.path.join(self.environment.get_scratch_dir(), 'outofdate.file')
+            while os.path.exists(output_file):
+                output_file += '0'
+        ET.SubElement(custombuild, 'Outputs').text = output_file
 
     def generate_debug_information(self, link):
         # valid values for vs2015 is 'false', 'true', 'DebugFastLink'
