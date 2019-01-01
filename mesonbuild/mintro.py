@@ -29,9 +29,7 @@ from . import mlog
 from . import compilers
 from . import optinterpreter
 from .interpreterbase import InvalidArguments
-from .backend import ninjabackend, backends
-from .dependencies import base
-from .compilers import compilers
+from .backend import backends
 import sys, os
 import pathlib
 
