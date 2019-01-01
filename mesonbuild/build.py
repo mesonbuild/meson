@@ -1082,6 +1082,9 @@ You probably should put it in link_with instead.''')
                 raise InvalidArguments('PCH argument %s is of unknown type.' % pchlist[0])
         elif len(pchlist) > 2:
             raise InvalidArguments('PCH definition may have a maximum of 2 files.')
+        for f in pchlist:
+            if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, f)):
+                raise MesonException('File %s does not exist.' % f)
         self.pch[language] = pchlist
 
     def add_include_dirs(self, args):
