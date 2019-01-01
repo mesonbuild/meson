@@ -310,25 +310,32 @@ class Environment:
     def __init__(self, source_dir, build_dir, options):
         self.source_dir = source_dir
         self.build_dir = build_dir
-        self.scratch_dir = os.path.join(build_dir, Environment.private_dir)
-        self.log_dir = os.path.join(build_dir, Environment.log_dir)
-        os.makedirs(self.scratch_dir, exist_ok=True)
-        os.makedirs(self.log_dir, exist_ok=True)
-        try:
-            self.coredata = coredata.load(self.get_build_dir())
-            self.first_invocation = False
-        except FileNotFoundError:
-            self.create_new_coredata(options)
-        except MesonException as e:
-            # If we stored previous command line options, we can recover from
-            # a broken/outdated coredata.
-            if os.path.isfile(coredata.get_cmd_line_file(self.build_dir)):
-                mlog.warning('Regenerating configuration from scratch.')
-                mlog.log('Reason:', mlog.red(str(e)))
-                coredata.read_cmd_line_file(self.build_dir, options)
+
+        # Do not try to create build directories when build_dir is none.
+        # This reduced mode is used by the --buildoptions introspector
+        if build_dir is not None:
+            self.scratch_dir = os.path.join(build_dir, Environment.private_dir)
+            self.log_dir = os.path.join(build_dir, Environment.log_dir)
+            os.makedirs(self.scratch_dir, exist_ok=True)
+            os.makedirs(self.log_dir, exist_ok=True)
+            try:
+                self.coredata = coredata.load(self.get_build_dir())
+                self.first_invocation = False
+            except FileNotFoundError:
                 self.create_new_coredata(options)
-            else:
-                raise e
+            except MesonException as e:
+                # If we stored previous command line options, we can recover from
+                # a broken/outdated coredata.
+                if os.path.isfile(coredata.get_cmd_line_file(self.build_dir)):
+                    mlog.warning('Regenerating configuration from scratch.')
+                    mlog.log('Reason:', mlog.red(str(e)))
+                    coredata.read_cmd_line_file(self.build_dir, options)
+                    self.create_new_coredata(options)
+                else:
+                    raise e
+        else:
+            # Just create a fresh coredata in this case
+            self.create_new_coredata(options)
         self.exe_wrapper = None
 
         self.machines = MachineInfos()
@@ -953,6 +960,57 @@ class Environment:
         if 'Swift' in err:
             return compilers.SwiftCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+
+    def detect_compilers(self, lang, need_cross_compiler):
+        comp = None
+        cross_comp = None
+        if lang == 'c':
+            comp = self.detect_c_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_c_compiler(True)
+        elif lang == 'cpp':
+            comp = self.detect_cpp_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_cpp_compiler(True)
+        elif lang == 'objc':
+            comp = self.detect_objc_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_objc_compiler(True)
+        elif lang == 'objcpp':
+            comp = self.detect_objcpp_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_objcpp_compiler(True)
+        elif lang == 'java':
+            comp = self.detect_java_compiler()
+            if need_cross_compiler:
+                cross_comp = comp  # Java is platform independent.
+        elif lang == 'cs':
+            comp = self.detect_cs_compiler()
+            if need_cross_compiler:
+                cross_comp = comp  # C# is platform independent.
+        elif lang == 'vala':
+            comp = self.detect_vala_compiler()
+            if need_cross_compiler:
+                cross_comp = comp  # Vala compiles to platform-independent C
+        elif lang == 'd':
+            comp = self.detect_d_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_d_compiler(True)
+        elif lang == 'rust':
+            comp = self.detect_rust_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_rust_compiler(True)
+        elif lang == 'fortran':
+            comp = self.detect_fortran_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.detect_fortran_compiler(True)
+        elif lang == 'swift':
+            comp = self.detect_swift_compiler()
+            if need_cross_compiler:
+                raise EnvironmentException('Cross compilation with Swift is not working yet.')
+                # cross_comp = self.environment.detect_fortran_compiler(True)
+
+        return comp, cross_comp
 
     def detect_static_linker(self, compiler):
         if compiler.is_cross:

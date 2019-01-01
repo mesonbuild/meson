@@ -2504,62 +2504,20 @@ external dependencies (including libraries) must go to "dependencies".''')
             cdata.set_method([k, v], {})
         return cdata
 
-    def set_options(self, default_options):
-        # Set default options as if they were passed to the command line.
-        # Subprojects can only define default for user options.
-        for k, v in default_options.items():
-            if self.subproject:
-                if optinterpreter.is_invalid_name(k):
-                    continue
-                k = self.subproject + ':' + k
-            self.environment.cmd_line_options.setdefault(k, v)
-
-        # Create a subset of cmd_line_options, keeping only options for this
-        # subproject. Also take builtin options if it's the main project.
-        # Language and backend specific options will be set later when adding
-        # languages and setting the backend (builtin options must be set first
-        # to know which backend we'll use).
-        options = {}
-        for k, v in self.environment.cmd_line_options.items():
-            if self.subproject:
-                if not k.startswith(self.subproject + ':'):
-                    continue
-            elif k not in coredata.get_builtin_options():
-                if ':' in k:
-                    continue
-                if optinterpreter.is_invalid_name(k):
-                    continue
-            options[k] = v
-
-        self.coredata.set_options(options, self.subproject)
-
     def set_backend(self):
         # The backend is already set when parsing subprojects
         if self.backend is not None:
             return
         backend = self.coredata.get_builtin_option('backend')
-        if backend == 'ninja':
-            from .backend import ninjabackend
-            self.backend = ninjabackend.NinjaBackend(self.build)
-        elif backend == 'vs':
-            from .backend import vs2010backend
-            self.backend = vs2010backend.autodetect_vs_version(self.build)
-            self.coredata.set_builtin_option('backend', self.backend.name)
-            mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.backend.name))
-        elif backend == 'vs2010':
-            from .backend import vs2010backend
-            self.backend = vs2010backend.Vs2010Backend(self.build)
-        elif backend == 'vs2015':
-            from .backend import vs2015backend
-            self.backend = vs2015backend.Vs2015Backend(self.build)
-        elif backend == 'vs2017':
-            from .backend import vs2017backend
-            self.backend = vs2017backend.Vs2017Backend(self.build)
-        elif backend == 'xcode':
-            from .backend import xcodebackend
-            self.backend = xcodebackend.XCodeBackend(self.build)
-        else:
+        from .backend import backends
+        self.backend = backends.get_backend_from_name(backend, self.build)
+
+        if self.backend is None:
             raise InterpreterException('Unknown backend "%s".' % backend)
+        if backend != self.backend.name:
+            if self.backend.name.startswith('vs'):
+                mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.backend.name))
+            self.coredata.set_builtin_option('backend', self.backend.name)
 
         # Only init backend options on first invocation otherwise it would
         # override values previously set from command line.
@@ -2595,7 +2553,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             default_options.update(self.default_project_options)
         else:
             default_options = {}
-        self.set_options(default_options)
+        self.coredata.set_default_options(default_options, self.subproject, self.environment.cmd_line_options)
         self.set_backend()
 
         if not self.is_subproject():
@@ -2696,54 +2654,10 @@ external dependencies (including libraries) must go to "dependencies".''')
         raise Exception()
 
     def detect_compilers(self, lang, need_cross_compiler):
-        cross_comp = None
-        if lang == 'c':
-            comp = self.environment.detect_c_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.environment.detect_c_compiler(True)
-        elif lang == 'cpp':
-            comp = self.environment.detect_cpp_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.environment.detect_cpp_compiler(True)
-        elif lang == 'objc':
-            comp = self.environment.detect_objc_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.environment.detect_objc_compiler(True)
-        elif lang == 'objcpp':
-            comp = self.environment.detect_objcpp_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.environment.detect_objcpp_compiler(True)
-        elif lang == 'java':
-            comp = self.environment.detect_java_compiler()
-            if need_cross_compiler:
-                cross_comp = comp  # Java is platform independent.
-        elif lang == 'cs':
-            comp = self.environment.detect_cs_compiler()
-            if need_cross_compiler:
-                cross_comp = comp  # C# is platform independent.
-        elif lang == 'vala':
-            comp = self.environment.detect_vala_compiler()
-            if need_cross_compiler:
-                cross_comp = comp  # Vala compiles to platform-independent C
-        elif lang == 'd':
-            comp = self.environment.detect_d_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.environment.detect_d_compiler(True)
-        elif lang == 'rust':
-            comp = self.environment.detect_rust_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.environment.detect_rust_compiler(True)
-        elif lang == 'fortran':
-            comp = self.environment.detect_fortran_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.environment.detect_fortran_compiler(True)
-        elif lang == 'swift':
-            comp = self.environment.detect_swift_compiler()
-            if need_cross_compiler:
-                raise InterpreterException('Cross compilation with Swift is not working yet.')
-                # cross_comp = self.environment.detect_fortran_compiler(True)
-        else:
+        comp, cross_comp = self.environment.detect_compilers(lang, need_cross_compiler)
+        if comp is None:
             raise InvalidCode('Tried to use unknown language "%s".' % lang)
+
         comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
         self.coredata.compilers[lang] = comp
         # Native compiler always exist so always add its options.

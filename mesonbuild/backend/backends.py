@@ -124,10 +124,35 @@ class OptionOverrideProxy:
             return OptionProxy(base_opt.name, base_opt.validate_value(self.overrides[option_name]))
         return base_opt
 
+def get_backend_from_name(backend, build):
+    if backend == 'ninja':
+        from . import ninjabackend
+        return ninjabackend.NinjaBackend(build)
+    elif backend == 'vs':
+        from . import vs2010backend
+        return vs2010backend.autodetect_vs_version(build)
+    elif backend == 'vs2010':
+        from . import vs2010backend
+        return vs2010backend.Vs2010Backend(build)
+    elif backend == 'vs2015':
+        from . import vs2015backend
+        return vs2015backend.Vs2015Backend(build)
+    elif backend == 'vs2017':
+        from . import vs2017backend
+        return vs2017backend.Vs2017Backend(build)
+    elif backend == 'xcode':
+        from . import xcodebackend
+        return xcodebackend.XCodeBackend(build)
+    return None
+
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
 class Backend:
     def __init__(self, build):
+        # Make it possible to construct a dummy backend
+        # This is used for introspection without a build directory
+        if build is None:
+            return
         self.build = build
         self.environment = build.environment
         self.processed_targets = {}

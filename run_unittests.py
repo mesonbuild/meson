@@ -1199,7 +1199,12 @@ class BasePlatformTests(unittest.TestCase):
             args = [args]
         out = subprocess.check_output(self.mintro_command + args + [directory],
                                       universal_newlines=True)
-        return json.loads(out)
+        try:
+            obj = json.loads(out)
+        except Exception as e:
+            print(out)
+            raise e
+        return obj
 
     def assertPathEqual(self, path1, path2):
         '''
@@ -3088,6 +3093,16 @@ recommended as it is not supported on some platforms''')
         self.run_target('clang-format')
         self.assertEqual(Path(testfile).read_text(),
                          Path(goodfile).read_text())
+
+    def test_introspect_buildoptions_without_configured_build(self):
+        testdir = os.path.join(self.unit_test_dir, '51 introspect buildoptions')
+        testfile = os.path.join(testdir, 'meson.build')
+        res_nb = self.introspect_directory(testfile, ['--buildoptions'] + self.meson_args)
+        self.init(testdir, default_args=False)
+        res_wb = self.introspect('--buildoptions')
+        self.maxDiff = None
+        self.assertListEqual(res_nb, res_wb)
+
 
 class FailureTests(BasePlatformTests):
     '''
