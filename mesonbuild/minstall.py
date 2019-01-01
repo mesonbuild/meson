@@ -211,6 +211,7 @@ def check_for_stampfile(fname):
 class Installer:
 
     def __init__(self, options, lf):
+        self.did_install_something = False
         self.options = options
         self.lf = lf
 
@@ -334,6 +335,7 @@ class Installer:
         if d.install_umask is not None:
             os.umask(d.install_umask)
 
+        self.did_install_something = False
         try:
             d.dirmaker = DirMaker(self.lf)
             with d.dirmaker:
@@ -344,6 +346,8 @@ class Installer:
                 self.install_data(d)
                 restore_selinux_contexts()
                 self.run_install_script(d)
+                if not self.did_install_something:
+                    print('Nothing to install.')
         except PermissionError:
             if shutil.which('pkexec') is not None and 'PKEXEC_UID' not in os.environ:
                 print('Installation failed due to insufficient permissions.')
@@ -355,6 +359,7 @@ class Installer:
 
     def install_subdirs(self, d):
         for (src_dir, dst_dir, mode, exclude) in d.install_subdirs:
+            self.did_install_something = True
             full_dst_dir = get_destdir_path(d, dst_dir)
             print('Installing subdir %s to %s' % (src_dir, full_dst_dir))
             d.dirmaker.makedirs(full_dst_dir, exist_ok=True)
@@ -362,6 +367,7 @@ class Installer:
 
     def install_data(self, d):
         for i in d.data:
+            self.did_install_something = True
             fullfilename = i[0]
             outfilename = get_destdir_path(d, i[1])
             mode = i[2]
@@ -372,6 +378,7 @@ class Installer:
 
     def install_man(self, d):
         for m in d.man:
+            self.did_install_something = True
             full_source_filename = m[0]
             outfilename = get_destdir_path(d, m[1])
             outdir = os.path.dirname(outfilename)
@@ -382,6 +389,7 @@ class Installer:
 
     def install_headers(self, d):
         for t in d.headers:
+            self.did_install_something = True
             fullfilename = t[0]
             fname = os.path.basename(fullfilename)
             outdir = get_destdir_path(d, t[1])
@@ -403,6 +411,7 @@ class Installer:
         child_env.update(env)
 
         for i in d.install_scripts:
+            self.did_install_something = True  # Custom script must report itself if it does nothing.
             script = i['exe']
             args = i['args']
             name = ' '.join(script + args)
@@ -417,6 +426,7 @@ class Installer:
 
     def install_targets(self, d):
         for t in d.targets:
+            self.did_install_something = True
             if not os.path.exists(t.fname):
                 # For example, import libraries of shared modules are optional
                 if t.optional:
