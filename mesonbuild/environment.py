@@ -336,16 +336,8 @@ class Environment:
                     mlog.log('Reason:', mlog.red(str(e)))
                     coredata.read_cmd_line_file(self.build_dir, options)
                     self.create_new_coredata(options)
-                except MesonException as e:
-                    # If we stored previous command line options, we can recover from
-                    # a broken/outdated coredata.
-                    if os.path.isfile(coredata.get_cmd_line_file(self.build_dir)):
-                        mlog.warning('Regenerating configuration from scratch.')
-                        mlog.log('Reason:', mlog.red(str(e)))
-                        coredata.read_cmd_line_file(self.build_dir, options)
-                        self.create_new_coredata(options)
-                    else:
-                        raise e
+                else:
+                    raise e
         else:
             # Just create a fresh coredata in this case
             self.create_new_coredata(options)

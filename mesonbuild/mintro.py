@@ -251,7 +251,7 @@ class BuildoptionsInterperter(astinterpreter.AstInterpreter):
         self.parse_project()
         self.run()
 
-def list_buildoptions_from_source(sourcedir, backend):
+def list_buildoptions_from_source(sourcedir, backend, indent):
     # Make sure that log entries in other parts of meson don't interfere with the JSON output
     mlog.disable()
     backend = backends.get_backend_from_name(backend, None)
@@ -259,7 +259,8 @@ def list_buildoptions_from_source(sourcedir, backend):
     intr.analyze()
     # Reenable logging just in case
     mlog.enable()
-    list_buildoptions(intr.coredata)
+    buildoptions = list_buildoptions(intr.coredata)[1]
+    print(json.dumps(buildoptions, indent=indent))
 
 def list_target_files(target_name, targets, builddata: build.Build):
     result = []
@@ -424,7 +425,7 @@ class ProjectInfoInterperter(astinterpreter.AstInterpreter):
         self.parse_project()
         self.run()
 
-def list_projinfo_from_source(sourcedir):
+def list_projinfo_from_source(sourcedir, indent):
     files = find_buildsystem_files_list(sourcedir)
 
     result = {'buildsystem_files': []}
@@ -453,21 +454,22 @@ def list_projinfo_from_source(sourcedir):
 
     subprojects = [obj for name, obj in subprojects.items()]
     result['subprojects'] = subprojects
-    print(json.dumps(result))
+    print(json.dumps(result, indent=indent))
 
 def run(options):
     datadir = 'meson-private'
     infodir = 'meson-info'
+    indent = options.indent if options.indent > 0 else None
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
         infodir = os.path.join(options.builddir, infodir)
     if options.builddir.endswith('/meson.build') or options.builddir.endswith('\\meson.build') or options.builddir == 'meson.build':
         sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
         if options.projectinfo:
-            list_projinfo_from_source(sourcedir)
+            list_projinfo_from_source(sourcedir, indent)
             return 0
         if options.buildoptions:
-            list_buildoptions_from_source(sourcedir, options.backend)
+            list_buildoptions_from_source(sourcedir, options.backend, indent)
             return 0
     if not os.path.isdir(datadir) or not os.path.isdir(infodir):
         print('Current directory is not a meson build directory.'
@@ -513,8 +515,6 @@ def run(options):
             return 1
         with open(curr, 'r') as fp:
             results += [(i, json.load(fp))]
-
-    indent = options.indent if options.indent > 0 else None
 
     if len(results) == 0 and not options.force_dict:
         print('No command specified')
