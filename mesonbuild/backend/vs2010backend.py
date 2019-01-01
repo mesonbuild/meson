@@ -520,6 +520,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(customstep, 'Command').text = cmd_templ % tuple(cmd)
         ET.SubElement(customstep, 'Message').text = 'Running custom command.'
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
+        self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_custom_target_vcxproj(self, target, ofname, guid):
@@ -547,6 +548,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(customstep, 'Inputs').text = ';'.join([exe_data] + srcs + depend_files)
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.generate_custom_generator_commands(target, root)
+        self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     @classmethod
@@ -1213,9 +1215,7 @@ class Vs2010Backend(backends.Backend):
             self.add_generated_objects(inc_objs, gen_objs)
 
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
-        # Reference the regen target.
-        regen_vcxproj = os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj')
-        self.add_project_reference(root, regen_vcxproj, self.environment.coredata.regen_guid)
+        self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_regenproj(self, project_name, ofname):
@@ -1366,6 +1366,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(postbuild, 'Command').text =\
             cmd_templ % ('" "'.join(test_command))
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
+        self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_installproj(self, target_name, ofname):
@@ -1434,8 +1435,13 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(postbuild, 'Command').text =\
             cmd_templ % ('" "'.join(test_command))
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
+        self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def generate_debug_information(self, link):
         # valid values for vs2015 is 'false', 'true', 'DebugFastLink'
         ET.SubElement(link, 'GenerateDebugInformation').text = 'true'
+
+    def add_regen_dependency(self, root):
+        regen_vcxproj = os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj')
+        self.add_project_reference(root, regen_vcxproj, self.environment.coredata.regen_guid)
