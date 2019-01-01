@@ -70,7 +70,9 @@ The possible values for `section` are:
 
 To set the options, use the `meson configure` command.
 
-It is also possible to get the default buildoptions without a build directory by providing the root `meson.build` instead of a build directory to `meson introspect --buildoptions`.
+Since Meson 0.50.0 it is also possible to get the default buildoptions
+without a build directory by providing the root `meson.build` instead of a
+build directory to `meson introspect --buildoptions`.
 
 Running `--buildoptions` without a build directory produces the same output as running
 it with a freshly configured build directory.
