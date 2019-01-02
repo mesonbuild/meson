@@ -33,25 +33,64 @@ from .backend import backends
 import sys, os
 import pathlib
 
+def get_meson_info_file(info_dir: str):
+    return os.path.join(info_dir, 'meson-info.json')
+
+def get_meson_introspection_version():
+    return '1.0.0'
+
+def get_meson_introspection_types(coredata: cdata.CoreData = None, builddata: build.Build = None, backend: backends.Backend = None):
+    if backend and builddata:
+        benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
+        testdata = backend.create_test_serialisation(builddata.get_tests())
+        installdata = backend.create_install_data()
+    else:
+        benchmarkdata = testdata = installdata = None
+
+    return {
+        'benchmarks': {
+            'func': lambda: list_benchmarks(benchmarkdata),
+            'desc': 'List all benchmarks.',
+        },
+        'buildoptions': {
+            'func': lambda: list_buildoptions(coredata),
+            'desc': 'List all build options.',
+        },
+        'buildsystem_files': {
+            'func': lambda: list_buildsystem_files(builddata),
+            'desc': 'List files that make up the build system.',
+            'key': 'buildsystem-files',
+        },
+        'dependencies': {
+            'func': lambda: list_deps(coredata),
+            'desc': 'List external dependencies.',
+        },
+        'installed': {
+            'func': lambda: list_installed(installdata),
+            'desc': 'List all installed files and directories.',
+        },
+        'projectinfo': {
+            'func': lambda: list_projinfo(builddata),
+            'desc': 'Information about projects.',
+        },
+        'targets': {
+            'func': lambda: list_targets(builddata, installdata, backend),
+            'desc': 'List top level targets.',
+        },
+        'tests': {
+            'func': lambda: list_tests(testdata),
+            'desc': 'List all unit tests.',
+        }
+    }
+
 def add_arguments(parser):
-    parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
-                        help='List top level targets.')
-    parser.add_argument('--installed', action='store_true', dest='list_installed', default=False,
-                        help='List all installed files and directories.')
+    intro_types = get_meson_introspection_types()
+    for key, val in intro_types.items():
+        flag = '--' + val.get('key', key)
+        parser.add_argument(flag, action='store_true', dest=key, default=False, help=val['desc'])
+
     parser.add_argument('--target-files', action='store', dest='target_files', default=None,
                         help='List source files for a given target.')
-    parser.add_argument('--buildsystem-files', action='store_true', dest='buildsystem_files', default=False,
-                        help='List files that make up the build system.')
-    parser.add_argument('--buildoptions', action='store_true', dest='buildoptions', default=False,
-                        help='List all build options.')
-    parser.add_argument('--tests', action='store_true', dest='tests', default=False,
-                        help='List all unit tests.')
-    parser.add_argument('--benchmarks', action='store_true', dest='benchmarks', default=False,
-                        help='List all benchmarks.')
-    parser.add_argument('--dependencies', action='store_true', dest='dependencies', default=False,
-                        help='List external dependencies.')
-    parser.add_argument('--projectinfo', action='store_true', dest='projectinfo', default=False,
-                        help='Information about projects.')
     parser.add_argument('--backend', choices=cdata.backendlist, dest='backend', default='ninja',
                         help='The backend to use for the --buildoptions introspection.')
     parser.add_argument('-a', '--all', action='store_true', dest='all', default=False,
@@ -74,7 +113,7 @@ def list_installed(installdata):
             res[path] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
         for path, installpath, unused_custom_install_mode in installdata.man:
             res[path] = os.path.join(installdata.prefix, installpath)
-    return ('installed', res)
+    return res
 
 def list_targets(builddata: build.Build, installdata, backend: backends.Backend):
     tlist = []
@@ -110,7 +149,7 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
         else:
             t['installed'] = False
         tlist.append(t)
-    return ('targets', tlist)
+    return tlist
 
 class BuildoptionsOptionHelper:
     # mimic an argparse namespace
@@ -257,8 +296,7 @@ def list_buildoptions_from_source(sourcedir, backend, indent):
     intr.analyze()
     # Reenable logging just in case
     mlog.enable()
-    buildoptions = list_buildoptions(intr.coredata)[1]
-    print(json.dumps(buildoptions, indent=indent))
+    print(json.dumps(list_buildoptions(intr.coredata), indent=indent))
 
 def list_target_files(target_name, targets, builddata: build.Build):
     result = []
@@ -279,7 +317,7 @@ def list_target_files(target_name, targets, builddata: build.Build):
     # TODO Remove this line in a future PR with other breaking changes
     result = list(map(lambda x: os.path.relpath(x, builddata.environment.get_source_dir()), result))
 
-    return ('target_files', result)
+    return result
 
 def list_buildoptions(coredata: cdata.CoreData):
     optlist = []
@@ -312,7 +350,7 @@ def list_buildoptions(coredata: cdata.CoreData):
     add_keys(optlist, dir_options, 'directory')
     add_keys(optlist, coredata.user_options, 'user')
     add_keys(optlist, test_options, 'test')
-    return ('buildoptions', optlist)
+    return optlist
 
 def add_keys(optlist, options, section):
     keys = list(options.keys())
@@ -349,7 +387,7 @@ def find_buildsystem_files_list(src_dir):
 def list_buildsystem_files(builddata: build.Build):
     src_dir = builddata.environment.get_source_dir()
     filelist = find_buildsystem_files_list(src_dir)
-    return ('buildsystem_files', filelist)
+    return filelist
 
 def list_deps(coredata: cdata.CoreData):
     result = []
@@ -358,7 +396,7 @@ def list_deps(coredata: cdata.CoreData):
             result += [{'name': d.name,
                         'compile_args': d.get_compile_args(),
                         'link_args': d.get_link_args()}]
-    return ('dependencies', result)
+    return result
 
 def get_test_list(testdata):
     result = []
@@ -382,10 +420,10 @@ def get_test_list(testdata):
     return result
 
 def list_tests(testdata):
-    return ('tests', get_test_list(testdata))
+    return get_test_list(testdata)
 
 def list_benchmarks(benchdata):
-    return ('benchmarks', get_test_list(benchdata))
+    return get_test_list(benchdata)
 
 def list_projinfo(builddata: build.Build):
     result = {'version': builddata.project_version,
@@ -397,7 +435,7 @@ def list_projinfo(builddata: build.Build):
              'descriptive_name': builddata.projects.get(k)}
         subprojects.append(c)
     result['subprojects'] = subprojects
-    return ('projectinfo', result)
+    return result
 
 class ProjectInfoInterperter(astinterpreter.AstInterpreter):
     def __init__(self, source_root, subdir):
@@ -482,30 +520,21 @@ def run(options):
 
     results = []
     toextract = []
+    intro_types = get_meson_introspection_types()
 
-    if options.all or options.benchmarks:
-        toextract += ['benchmarks']
-    if options.all or options.buildoptions:
-        toextract += ['buildoptions']
-    if options.all or options.buildsystem_files:
-        toextract += ['buildsystem_files']
-    if options.all or options.dependencies:
-        toextract += ['dependencies']
-    if options.all or options.list_installed:
-        toextract += ['installed']
-    if options.all or options.projectinfo:
-        toextract += ['projectinfo']
-    if options.all or options.list_targets:
-        toextract += ['targets']
+    for i in intro_types.keys():
+        if options.all or getattr(options, i, False):
+            toextract += [i]
+
+    # Handle the one option that does not have its own JSON file (meybe deprecate / remove this?)
     if options.target_files is not None:
         targets_file = os.path.join(infodir, 'intro-targets.json')
         with open(targets_file, 'r') as fp:
             targets = json.load(fp)
         builddata = build.load(options.builddir) # TODO remove this in a breaking changes PR
-        results += [list_target_files(options.target_files, targets, builddata)]
-    if options.all or options.tests:
-        toextract += ['tests']
+        results += [('target_files', list_target_files(options.target_files, targets, builddata))]
 
+    # Extract introspection information from JSON
     for i in toextract:
         curr = os.path.join(infodir, 'intro-{}.json'.format(i))
         if not os.path.isfile(curr):
@@ -538,26 +567,17 @@ def write_intro_info(intro_info, info_dir):
 
 def generate_introspection_file(builddata: build.Build, backend: backends.Backend):
     coredata = builddata.environment.get_coredata()
-    benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
-    testdata = backend.create_test_serialisation(builddata.get_tests())
-    installdata = backend.create_install_data()
+    intro_types = get_meson_introspection_types(coredata=coredata, builddata=builddata, backend=backend)
+    intro_info = []
 
-    intro_info = [
-        list_benchmarks(benchmarkdata),
-        list_buildoptions(coredata),
-        list_buildsystem_files(builddata),
-        list_deps(coredata),
-        list_installed(installdata),
-        list_projinfo(builddata),
-        list_targets(builddata, installdata, backend),
-        list_tests(testdata)
-    ]
+    for key, val in intro_types.items():
+        intro_info += [(key, val['func']())]
 
     write_intro_info(intro_info, builddata.environment.info_dir)
 
 def update_build_options(coredata: cdata.CoreData, info_dir):
     intro_info = [
-        list_buildoptions(coredata)
+        ('buildoptions', list_buildoptions(coredata))
     ]
 
     write_intro_info(intro_info, info_dir)
