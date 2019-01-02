@@ -3657,26 +3657,30 @@ class LinuxlikeTests(BasePlatformTests):
         privatedir2 = self.privatedir
 
         os.environ['PKG_CONFIG_LIBDIR'] = os.pathsep.join([privatedir1, privatedir2])
-        cmd = ['pkg-config', 'dependency-test']
+        self._run(['pkg-config', 'dependency-test', '--validate'])
 
-        out = self._run(cmd + ['--print-requires']).strip().split('\n')
-        self.assertEqual(sorted(out), sorted(['libexposed']))
-
-        out = self._run(cmd + ['--print-requires-private']).strip().split('\n')
-        self.assertEqual(sorted(out), sorted(['libfoo >= 1.0']))
-
-        out = self._run(cmd + ['--cflags-only-other']).strip().split()
-        self.check_pkg_flags_are_same(out, ['-pthread', '-DCUSTOM'])
-
-        out = self._run(cmd + ['--libs-only-l', '--libs-only-other']).strip().split()
-        self.check_pkg_flags_are_same(out, ['-pthread', '-lcustom',
-                                            '-llibmain', '-llibexposed'])
-
-        out = self._run(cmd + ['--libs-only-l', '--libs-only-other', '--static']).strip().split()
-        self.check_pkg_flags_are_same(out, ['-pthread', '-lcustom',
-                                            '-llibmain', '-llibexposed',
-                                            '-llibinternal', '-lcustom2',
-                                            '-lfoo'])
+        # pkg-config strips some duplicated flags so we have to parse the
+        # generated file ourself.
+        expected = {
+            'Requires': 'libexposed',
+            'Requires.private': 'libfoo >= 1.0',
+            'Libs': '-L${libdir} -llibmain -pthread -lcustom',
+            'Libs.private': '-lcustom2 -L${libdir} -llibinternal',
+            'Cflags': '-I${includedir} -pthread -DCUSTOM',
+        }
+        if is_osx() or is_haiku():
+            expected['Cflags'] = expected['Cflags'].replace('-pthread ', '')
+        with open(os.path.join(privatedir2, 'dependency-test.pc')) as f:
+            matched_lines = 0
+            for line in f:
+                parts = line.split(':', 1)
+                if parts[0] in expected:
+                    key = parts[0]
+                    val = parts[1].strip()
+                    expected_val = expected[key]
+                    self.assertEqual(expected_val, val)
+                    matched_lines += 1
+            self.assertEqual(len(expected), matched_lines)
 
         cmd = ['pkg-config', 'requires-test']
         out = self._run(cmd + ['--print-requires']).strip().split('\n')
@@ -3685,11 +3689,6 @@ class LinuxlikeTests(BasePlatformTests):
         cmd = ['pkg-config', 'requires-private-test']
         out = self._run(cmd + ['--print-requires-private']).strip().split('\n')
         self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo >= 1.0', 'libhello']))
-
-    def check_pkg_flags_are_same(self, output, expected):
-        if is_osx() or is_haiku():
-            expected = [x for x in expected if x != '-pthread']
-        self.assertEqual(sorted(output), sorted(expected))
 
     def test_pkg_unfound(self):
         testdir = os.path.join(self.unit_test_dir, '23 unfound pkgconfig')

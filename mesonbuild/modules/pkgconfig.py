@@ -192,7 +192,11 @@ class DependenciesHelper:
             for x in xs:
                 # Don't de-dup unknown strings to avoid messing up arguments like:
                 # ['-framework', 'CoreAudio', '-framework', 'CoreMedia']
-                if x not in result or (libs and (isinstance(x, str) and not x.endswith(('-l', '-L')))):
+                known_flags = ['-pthread']
+                cannot_dedup = libs and isinstance(x, str) and \
+                    not x.startswith(('-l', '-L')) and \
+                    x not in known_flags
+                if x not in result or cannot_dedup:
                     result.append(x)
             return result
         self.pub_libs = _fn(self.pub_libs, True)

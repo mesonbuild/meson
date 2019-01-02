@@ -28,8 +28,8 @@ custom2_dep = declare_dependency(link_args : ['-lcustom2'], compile_args : ['-DC
 # - Having pc_dep in libraries_private should add it in Requires.private
 # - pc_dep_dup is the same library and same version, should be ignored
 # - notfound_dep is not required so it shouldn't appear in the pc file.
-pkgg.generate(libraries : [main_lib, exposed_lib, threads_dep , custom_dep],
-  libraries_private : [custom_dep, custom2_dep, pc_dep, pc_dep_dup, notfound_dep],
+pkgg.generate(libraries : [main_lib, exposed_lib, threads_dep, threads_dep, custom_dep, custom_dep, '-pthread'],
+  libraries_private : [custom_dep, custom2_dep, custom2_dep, pc_dep, pc_dep_dup, notfound_dep],
   version : '1.0',
   name : 'dependency-test',
   filebase : 'dependency-test',
