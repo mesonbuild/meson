@@ -2820,6 +2820,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         identifier = dependencies.get_dep_identifier(name, kwargs, want_cross)
         cached_dep = self.coredata.deps.get(identifier)
+        if not cached_dep:
+            cached_dep = self.build.deps.get(identifier)
         if cached_dep:
             if not cached_dep.found():
                 mlog.log('Dependency', mlog.bold(name),
@@ -2951,6 +2953,12 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise DependencyException(m.format(display_name))
             return DependencyHolder(cached_dep, self.subproject)
 
+        dep = self.dependency_cache_miss(name, display_name, has_fallback, required, identifier, kwargs)
+        if name != '':
+            self.build.deps[identifier] = dep.held_object
+        return dep
+
+    def dependency_cache_miss(self, name, display_name, has_fallback, required, identifier, kwargs):
         # If the dependency has already been configured, possibly by
         # a higher level project, try to use it first.
         if has_fallback:
@@ -2965,10 +2973,9 @@ external dependencies (including libraries) must go to "dependencies".''')
             kwargs['required'] = required and not has_fallback
             dep = dependencies.find_external_dependency(name, self.environment, kwargs)
             kwargs['required'] = required
-            # Only store found-deps in the cache
-            # Never add fallback deps to self.coredata.deps since we
-            # cannot cache them. They must always be evaluated else
-            # we won't actually read all the build files.
+            # Only store found-deps in the persistent cache.
+            # Never add fallback deps because they must always be evaluated
+            # otherwise we won't actually read all the build files.
             if dep.found():
                 self.coredata.deps[identifier] = dep
                 return DependencyHolder(dep, self.subproject)

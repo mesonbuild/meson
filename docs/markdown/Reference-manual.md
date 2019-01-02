@@ -377,7 +377,13 @@ Finds an external dependency (usually a library installed on your
 system) with the given name with `pkg-config` and [with CMake](Dependencies.md#CMake)
 if `pkg-config` fails. Additionally, frameworks (OSX only) and
 [library-specific fallback detection logic](Dependencies.md#dependencies-with-custom-lookup-functionality)
-are also supported. This function supports the following keyword arguments:
+are also supported.
+
+Since *0.50.0* the return value is cached for consistency. See
+[release notes](Release-notes-for-0.50.0.md#Consistent return value of dependency())
+for more details about the implications.
+
+This function supports the following keyword arguments:
 
 - `default_options` *(added 0.37.0)* an array of default option values
   that override those set in the subproject's `meson_options.txt`
