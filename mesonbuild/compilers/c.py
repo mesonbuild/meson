@@ -80,9 +80,10 @@ class CCompiler(Compiler):
         else:
             self.exe_wrapper = exe_wrapper.get_command()
 
-        # Set to None until we actually need to check this
+        # Set to None until we actually need to check these
         self.has_fatal_warnings_link_arg = None
         self.has_wx_link_arg = None
+        self.has_link_compat_implib_arg = None
 
     def needs_static_linker(self):
         return True # When compiling static libraries, so yes.
@@ -294,13 +295,21 @@ class CCompiler(Compiler):
         else:
             return ['-Wl,-export-dynamic']
 
-    def gen_import_library_args(self, implibname):
+    def gen_import_library_args(self, env, implibname):
         """
         The name of the outputted import library
 
         This implementation is used only on Windows by compilers that use GNU ld
         """
-        return ['-Wl,--out-implib=' + implibname]
+        link_compat_implib_arg = ['-Wl,/implib:']
+        if self.has_link_compat_implib_arg is None:
+            self.has_link_compat_implib_arg = False
+            self.has_link_compat_implib_arg = self.has_multi_link_arguments(link_compat_implib_arg, env)
+
+        if self.has_link_compat_implib_arg:
+            return ['-Wl,/implib:' + implibname]
+        else:
+            return ['-Wl,--out-implib=' + implibname]
 
     def sanity_check_impl(self, work_dir, environment, sname, code):
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
@@ -1432,7 +1441,7 @@ class VisualStudioCCompiler(CCompiler):
         objname = os.path.splitext(pchname)[0] + '.obj'
         return objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname]
 
-    def gen_import_library_args(self, implibname):
+    def gen_import_library_args(self, env, implibname):
         "The name of the outputted import library"
         return ['/IMPLIB:' + implibname]
 

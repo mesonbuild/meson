@@ -920,7 +920,7 @@ class Compiler:
     def get_linker_lib_prefix(self):
         return ''
 
-    def gen_import_library_args(self, implibname):
+    def gen_import_library_args(self, env, implibname):
         """
         Used only on Windows for libraries that need an import library.
         This currently means C, C++, Fortran.
@@ -1778,7 +1778,7 @@ class ArmclangCompiler:
         """
         return ['--export_dynamic']
 
-    def gen_import_library_args(self, implibname):
+    def gen_import_library_args(self, env, implibname):
         """
         The args of the outputted import library
 
