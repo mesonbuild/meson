@@ -56,8 +56,8 @@ def add_arguments(parser):
                         help='The backend to use for the --buildoptions introspection.')
     parser.add_argument('-a', '--all', action='store_true', dest='all', default=False,
                         help='Print all available information.')
-    parser.add_argument('-i', '--indent', dest='indent', type=int, default=0,
-                        help='Number of spaces used for indentation.')
+    parser.add_argument('-i', '--indent', action='store_true', dest='indent', default=False,
+                        help='Enable pretty printed JSON.')
     parser.add_argument('-f', '--force-object-output', action='store_true', dest='force_dict', default=False,
                         help='Always use the new JSON format for multiple entries (even for 0 and 1 introspection commands)')
     parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
@@ -457,7 +457,7 @@ def list_projinfo_from_source(sourcedir, indent):
 def run(options):
     datadir = 'meson-private'
     infodir = 'meson-info'
-    indent = options.indent if options.indent > 0 else None
+    indent = 4 if options.indent else None
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
         infodir = os.path.join(options.builddir, infodir)

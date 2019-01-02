@@ -13,7 +13,8 @@ JSON output (the default is still compact JSON) and force use the new
 output format, even if only one introspection command was given.
 
 A complete introspection dump is also stored in the `meson-info`
-directory. This dump will be (re)generated each time meson updates the configuration of the build directory.
+directory. This dump will be (re)generated each time meson updates the
+configuration of the build directory.
 
 Additionlly the format of `meson introspect target` was changed:
 
