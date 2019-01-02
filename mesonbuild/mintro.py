@@ -556,7 +556,10 @@ def run(options):
         print(json.dumps(out, indent=indent))
     return 0
 
+updated_introspection_files = []
+
 def write_intro_info(intro_info, info_dir):
+    global updated_introspection_files
     for i in intro_info:
         out_file = os.path.join(info_dir, 'intro-{}.json'.format(i[0]))
         tmp_file = os.path.join(info_dir, 'tmp_dump.json')
@@ -564,6 +567,7 @@ def write_intro_info(intro_info, info_dir):
             json.dump(i[1], fp)
             fp.flush() # Not sure if this is needed
         os.replace(tmp_file, out_file)
+        updated_introspection_files += [i[0]]
 
 def generate_introspection_file(builddata: build.Build, backend: backends.Backend):
     coredata = builddata.environment.get_coredata()
@@ -581,3 +585,52 @@ def update_build_options(coredata: cdata.CoreData, info_dir):
     ]
 
     write_intro_info(intro_info, info_dir)
+
+def split_version_string(version: str):
+    vers_list = version.split('.')
+    return {
+        'full': version,
+        'major': int(vers_list[0] if len(vers_list) > 0 else 0),
+        'minor': int(vers_list[1] if len(vers_list) > 1 else 0),
+        'patch': int(vers_list[2] if len(vers_list) > 2 else 0)
+    }
+
+def write_meson_info_file(builddata: build.Build, errors: list, build_files_updated: bool = False):
+    global updated_introspection_files
+    info_dir = builddata.environment.info_dir
+    info_file = get_meson_info_file(info_dir)
+    intro_types = get_meson_introspection_types()
+    intro_info = {}
+
+    for i in intro_types.keys():
+        intro_info[i] = {
+            'file': 'intro-{}.json'.format(i),
+            'updated': i in updated_introspection_files
+        }
+
+    info_data = {
+        'meson_version': split_version_string(cdata.version),
+        'directories': {
+            'source': builddata.environment.get_source_dir(),
+            'build': builddata.environment.get_build_dir(),
+            'info': info_dir,
+        },
+        'introspection': {
+            'version': split_version_string(get_meson_introspection_version()),
+            'information': intro_info,
+        },
+        'build_files_updated': build_files_updated,
+    }
+
+    if len(errors) > 0:
+        info_data['error'] = True
+        info_data['error_list'] = [x if isinstance(x, str) else str(x) for x in errors]
+    else:
+        info_data['error'] = False
+
+    # Write the data to disc
+    tmp_file = os.path.join(info_dir, 'tmp_dump.json')
+    with open(tmp_file, 'w') as fp:
+        json.dump(info_data, fp)
+        fp.flush()
+    os.replace(tmp_file, info_file)
