@@ -1984,7 +1984,7 @@ rule FORTRAN_DEP_HACK%s
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
         # Convert from GCC-style link argument naming to the naming used by the
         # current compiler.
-        commands = commands.to_native()
+        commands = commands.to_native(self.environment)
         element.add_item('ARGS', commands)
         element.write(outfile)
         return rel_obj
@@ -2201,7 +2201,7 @@ rule FORTRAN_DEP_HACK%s
         element.add_orderdep(pch_dep)
         # Convert from GCC-style link argument naming to the naming used by the
         # current compiler.
-        commands = commands.to_native()
+        commands = commands.to_native(self.environment)
         for i in self.get_fortran_orderdeps(target, compiler):
             element.add_orderdep(i)
         element.add_item('DEPFILE', dep_file)
@@ -2556,7 +2556,7 @@ rule FORTRAN_DEP_HACK%s
         commands += stdlib_args # Standard library arguments go last, because they never depend on anything.
         # Convert from GCC-style link argument naming to the naming used by the
         # current compiler.
-        commands = commands.to_native()
+        commands = commands.to_native(self.environment)
         dep_targets.extend([self.get_dependency_filename(t) for t in dependencies])
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])

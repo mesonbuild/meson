@@ -704,16 +704,28 @@ class CompilerArgs(list):
             return True
         return False
 
-    def to_native(self, copy=False):
+    def to_native(self, env=None, copy=False):
         # Check if we need to add --start/end-group for circular dependencies
         # between static libraries, and for recursively searching for symbols
         # needed by static libraries that are provided by object files or
         # shared libraries.
+        #
+        # Note: to_native() is used via compile() early on, before we've
+        # initialized an Environment - which is needed for querying supported
+        # linker options via has_multi_link_arguments(). We allow this by
+        # by allowing env == None and assuming group args aren't available
+        # yet.
+
         if copy:
             new = self.copy()
         else:
             new = self
-        if get_compiler_uses_gnuld(self.compiler):
+
+        if env:
+            group_args = self.compiler.get_link_group_args(env)
+        else:
+            group_args = None
+        if group_args and len(group_args) == 2:
             global soregex
             group_start = -1
             group_end = -1
@@ -727,8 +739,8 @@ class CompilerArgs(list):
                     group_start = i
             if group_start >= 0:
                 # Last occurrence of a library
-                new.insert(group_end + 1, '-Wl,--end-group')
-                new.insert(group_start, '-Wl,--start-group')
+                new.insert(group_end + 1, group_args[1])
+                new.insert(group_start, group_args[0])
         return self.compiler.unix_args_to_native(new)
 
     def append_direct(self, arg):
@@ -927,6 +939,14 @@ class Compiler:
         """
         return []
 
+    def get_link_group_args(self, env):
+        """
+        Determines if the linker supports bracketing dependency libraries into
+        groups within which circular dependencies are allowed. If so return
+        an array like [ '--start-group', '--end-group' ]
+        """
+        return None
+
     def get_preproc_flags(self):
         if self.get_language() in ('c', 'cpp', 'objc', 'objcpp'):
             return os.environ.get('CPPFLAGS', '')
@@ -1067,7 +1087,7 @@ class Compiler:
         return os.path.join(dirname, 'output.' + suffix)
 
     @contextlib.contextmanager
-    def compile(self, code, extra_args=None, mode='link', want_output=False):
+    def compile(self, code, env=None, extra_args=None, mode='link', want_output=False):
         if extra_args is None:
             textra_args = None
             extra_args = []
@@ -1111,7 +1131,7 @@ class Compiler:
                 # in the command line after '/link' is given to the linker.
                 commands += extra_args
                 # Generate full command-line with the exelist
-                commands = self.get_exelist() + commands.to_native()
+                commands = self.get_exelist() + commands.to_native(env)
                 mlog.debug('Running compile:')
                 mlog.debug('Working directory: ', tmpdirname)
                 mlog.debug('Command line: ', ' '.join(commands), '\n')
@@ -1350,19 +1370,6 @@ def get_gcc_soname_args(compiler_type, prefix, shlib_name, suffix, soversion, da
 def get_compiler_is_linuxlike(compiler):
     compiler_type = getattr(compiler, 'compiler_type', None)
     return compiler_type and compiler_type.is_standard_compiler
-
-def get_compiler_uses_gnuld(c):
-    # FIXME: Perhaps we should detect the linker in the environment?
-    # FIXME: Assumes that *BSD use GNU ld, but they might start using lld soon
-    compiler_type = getattr(c, 'compiler_type', None)
-    return compiler_type in (
-        CompilerType.GCC_STANDARD,
-        CompilerType.GCC_MINGW,
-        CompilerType.GCC_CYGWIN,
-        CompilerType.CLANG_STANDARD,
-        CompilerType.CLANG_MINGW,
-        CompilerType.ICC_STANDARD,
-        CompilerType.ICC_WIN)
 
 def get_largefile_args(compiler):
     '''

@@ -84,6 +84,7 @@ class CCompiler(Compiler):
         self.has_fatal_warnings_link_arg = None
         self.has_wx_link_arg = None
         self.has_link_compat_implib_arg = None
+        self.has_group_args = None
 
     def needs_static_linker(self):
         return True # When compiling static libraries, so yes.
@@ -311,6 +312,14 @@ class CCompiler(Compiler):
         else:
             return ['-Wl,--out-implib=' + implibname]
 
+    def get_link_group_args(self, env):
+        group_args = ['-Wl,--start-group', '-Wl,--end-group']
+        if self.has_group_args is None:
+            self.has_group_args = False
+            self.has_group_args = self.has_multi_link_arguments(group_args, env)
+
+        return group_args if self.has_group_args else None
+
     def sanity_check_impl(self, work_dir, environment, sname, code):
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
@@ -458,7 +467,7 @@ class CCompiler(Compiler):
 
     def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
-        return self.compile(code, args, mode, want_output=want_output)
+        return self.compile(code, env, args, mode, want_output=want_output)
 
     def links(self, code, env, *, extra_args=None, dependencies=None):
         return self.compiles(code, env, extra_args=extra_args,
@@ -659,8 +668,8 @@ class CCompiler(Compiler):
         #endif
         {delim}\n{define}'''
         args = self._get_compiler_check_args(env, extra_args, dependencies,
-                                             mode='preprocess').to_native()
-        with self.compile(code.format(**fargs), args, 'preprocess') as p:
+                                             mode='preprocess').to_native(env)
+        with self.compile(code.format(**fargs), env, args, 'preprocess') as p:
             if p.returncode != 0:
                 raise EnvironmentException('Could not get define {!r}'.format(dname))
         # Get the preprocessed value after the delimiter,
@@ -879,7 +888,7 @@ class CCompiler(Compiler):
         args = self.get_cross_extra_flags(env, link=False)
         args += self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
-        with self.compile(code, args, 'compile', want_output=True) as p:
+        with self.compile(code, env, args, 'compile', want_output=True) as p:
             if p.returncode != 0:
                 m = 'BUG: Unable to compile {!r} check: {}'
                 raise RuntimeError(m.format(n, p.stdo))
