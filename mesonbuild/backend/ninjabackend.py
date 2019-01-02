@@ -1413,7 +1413,7 @@ int dummy;
                     command_template = ' command = {executable} $ARGS {output_args} $in $LINK_ARGS {cross_args} $aliasing\n'
                 command = command_template.format(
                     executable=' '.join(compiler.get_linker_exelist()),
-                    cross_args=' '.join(cross_args),
+                    cross_args=' '.join([quote_func(i) for i in cross_args]),
                     output_args=' '.join(compiler.get_linker_output_args('$out'))
                 )
                 description = ' description = Linking target $out.\n'
@@ -1541,7 +1541,7 @@ rule FORTRAN_DEP_HACK%s
             command_template = ' command = {executable} $ARGS {cross_args} {output_args} {compile_only_args} $in\n'
         command = command_template.format(
             executable=' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
-            cross_args=' '.join(compiler.get_cross_extra_flags(self.environment, False)) if is_cross else '',
+            cross_args=' '.join([quote_func(i) for i in compiler.get_cross_extra_flags(self.environment, False)]) if is_cross else '',
             output_args=' '.join(compiler.get_output_args('$out')),
             compile_only_args=' '.join(compiler.get_compile_only_args())
         )
@@ -1599,7 +1599,7 @@ rule FORTRAN_DEP_HACK%s
             command_template = ' command = {executable} $ARGS {cross_args} {dep_args} {output_args} {compile_only_args} $in\n'
         command = command_template.format(
             executable=' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
-            cross_args=' '.join(cross_args),
+            cross_args=' '.join([quote_func(i) for i in cross_args]),
             dep_args=' '.join(quoted_depargs),
             output_args=' '.join(compiler.get_output_args('$out')),
             compile_only_args=' '.join(compiler.get_compile_only_args())
@@ -1643,7 +1643,7 @@ rule FORTRAN_DEP_HACK%s
             output = ' '.join(compiler.get_output_args('$out'))
         command = " command = {executable} $ARGS {cross_args} {dep_args} {output_args} {compile_only_args} $in\n".format(
             executable=' '.join(compiler.get_exelist()),
-            cross_args=' '.join(cross_args),
+            cross_args=' '.join([quote_func(i) for i in cross_args]),
             dep_args=' '.join(quoted_depargs),
             output_args=output,
             compile_only_args=' '.join(compiler.get_compile_only_args())
