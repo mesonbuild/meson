@@ -82,6 +82,7 @@ class CCompiler(Compiler):
 
         # Set to None until we actually need to check this
         self.has_fatal_warnings_link_arg = None
+        self.has_wx_link_arg = None
 
     def needs_static_linker(self):
         return True # When compiling static libraries, so yes.
@@ -1086,15 +1087,32 @@ class CCompiler(Compiler):
 
     def has_multi_link_arguments(self, args, env):
         # First time we check for link flags we need to first check if we have
-        # --fatal-warnings, otherwise some linker checks could give some
+        # --fatal-warnings, or /WX otherwise some linker checks could give some
         # false positive.
+        #
+        # Note: since we aren't initially sure whether has_multi_link_arguments
+        # success means the argument is supported or has simply been ignored
+        # we also explicitly check for a failure too.
+        #
         fatal_warnings_args = ['-Wl,--fatal-warnings']
+        wx_args = ['-Wl,/WX']
+
         if self.has_fatal_warnings_link_arg is None:
+            invalid_arg = ['-Wl,--asdfghijkl']
             self.has_fatal_warnings_link_arg = False
-            self.has_fatal_warnings_link_arg = self.has_multi_link_arguments(fatal_warnings_args, env)
+            self.has_wx_link_arg = False
+            self.has_fatal_warnings_link_arg = ((self.has_multi_link_arguments(fatal_warnings_args, env) and not
+                                                 self.has_multi_link_arguments(fatal_warnings_args + invalid_arg, env)))
+            if not self.has_fatal_warnings_link_arg:
+                self.has_wx_link_arg = ((self.has_multi_link_arguments(wx_args, env) and not
+                                         self.has_multi_link_arguments(wx_args + invalid_arg, env)))
+
+            assert(not self.has_multi_link_arguments(invalid_arg, env))
 
         if self.has_fatal_warnings_link_arg:
             args = fatal_warnings_args + args
+        elif self.has_wx_link_arg:
+            args = wx_args + args
 
         args = self.linker_to_compiler_args(args)
         code = 'int main(int argc, char **argv) { return 0; }'
