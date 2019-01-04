@@ -190,7 +190,11 @@ This will become a hard error in a future Meson release.""", self.getline(line_s
                             line_start = mo.end() - len(lines[-1])
                     elif tid == 'number':
                         value = int(match_text, base=0)
-                    elif tid == 'eol' or tid == 'eol_cont':
+                    elif tid == 'eol_cont':
+                        lineno += 1
+                        line_start = loc
+                        break
+                    elif tid == 'eol':
                         lineno += 1
                         line_start = loc
                         if par_count > 0 or bracket_count > 0 or curl_count > 0:
