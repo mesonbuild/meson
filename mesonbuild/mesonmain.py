@@ -17,6 +17,7 @@ import os.path
 import importlib
 import traceback
 import argparse
+import codecs
 
 from . import mesonlib
 from . import mlog
@@ -148,12 +149,28 @@ def run_script_command(script_name, script_args):
         mlog.exception(e)
         return 1
 
+def ensure_stdout_accepts_unicode():
+    if sys.stdout.encoding and not sys.stdout.encoding.upper().startswith('UTF-'):
+        if sys.version_info >= (3, 7):
+            sys.stdout.reconfigure(errors='surrogateescape')
+        else:
+            sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach(),
+                                                   errors='surrogateescape')
+            sys.stdout.encoding = 'UTF-8'
+            if not hasattr(sys.stdout, 'buffer'):
+                sys.stdout.buffer = sys.stdout.raw if hasattr(sys.stdout, 'raw') else sys.stdout
+
 def run(original_args, mainfile):
     if sys.version_info < (3, 5):
         print('Meson works correctly only with python 3.5+.')
         print('You have python %s.' % sys.version)
         print('Please update your environment')
         return 1
+
+    # Meson gets confused if stdout can't output Unicode, if the
+    # locale isn't Unicode, just force stdout to accept it. This tries
+    # to emulate enough of PEP 540 to work elsewhere.
+    ensure_stdout_accepts_unicode()
 
     # https://github.com/mesonbuild/meson/issues/3653
     if sys.platform.lower() == 'msys':
