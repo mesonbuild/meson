@@ -757,7 +757,7 @@ class CCompiler(Compiler):
         varname = 'has function ' + funcname
         varname = varname.replace(' ', '_')
         if self.is_cross:
-            val = env.cross_info.config['properties'].get(varname, None)
+            val = env.properties.host.get(varname, None)
             if val is not None:
                 if isinstance(val, bool):
                     return val

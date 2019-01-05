@@ -231,42 +231,6 @@ def load_configs(filenames):
     return config
 
 
-def _get_section(config, section):
-    if config.has_section(section):
-        final = {}
-        for k, v in config.items(section):
-            # Windows paths...
-            v = v.replace('\\', '\\\\')
-            try:
-                final[k] = ast.literal_eval(v)
-            except SyntaxError:
-                raise MesonException(
-                    'Malformed value in native file variable: {}'.format(v))
-        return final
-    return {}
-
-
-class ConfigData:
-
-    """Contains configuration information provided by the user for the build."""
-
-    def __init__(self, config=None):
-        if config:
-            self.binaries = _get_section(config, 'binaries')
-            # global is a keyword and globals is a builtin, rather than mangle it,
-            # use a similar word
-            self.universal = _get_section(config, 'globals')
-            self.subprojects = {s: _get_section(config, s) for s in config.sections()
-                                if s not in {'binaries', 'globals'}}
-        else:
-            self.binaries = {}
-            self.universal = {}
-            self.subprojects = {}
-
-    def get_binaries(self, name):
-        return self.binaries.get(name, None)
-
-
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
 # cmakecache.

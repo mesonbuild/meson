@@ -532,7 +532,7 @@ class GnomeModule(ExtensionModule):
 
         for lang in langs:
             if state.environment.is_cross_build():
-                link_args = state.environment.cross_info.config["properties"].get(lang + '_link_args', "")
+                link_args = state.environment.properties.host.get_external_link_args(lang)
             else:
                 link_args = state.environment.coredata.get_external_link_args(lang)
 
@@ -715,7 +715,7 @@ class GnomeModule(ExtensionModule):
         ret = []
         for lang in langs:
             if state.environment.is_cross_build():
-                ret += state.environment.cross_info.config["properties"].get(lang + '_args', "")
+                ret += state.environment.properties.host.get_external_args(lang)
             else:
                 ret += state.environment.coredata.get_external_args(lang)
         return ret
@@ -1043,8 +1043,8 @@ This will become a hard error in the future.''')
         ldflags.update(external_ldflags)
 
         if state.environment.is_cross_build():
-            cflags.update(state.environment.cross_info.config["properties"].get('c_args', ""))
-            ldflags.update(state.environment.cross_info.config["properties"].get('c_link_args', ""))
+            cflags.update(state.environment.properties.host.get_external_args('c'))
+            ldflags.update(state.environment.properties.host.get_external_link_args('c'))
             compiler = state.environment.coredata.cross_compilers.get('c')
         else:
             cflags.update(state.environment.coredata.get_external_args('c'))

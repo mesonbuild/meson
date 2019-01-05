@@ -343,8 +343,7 @@ class Backend:
                 exe_is_native = True
             is_cross_built = (not exe_is_native) and \
                 self.environment.is_cross_build() and \
-                self.environment.cross_info.need_cross_compiler() and \
-                self.environment.cross_info.need_exe_wrapper()
+                self.environment.need_exe_wrapper()
             if is_cross_built:
                 exe_wrapper = self.environment.get_exe_wrapper()
                 if not exe_wrapper.found():
@@ -640,11 +639,11 @@ class Backend:
     def get_mingw_extra_paths(self, target):
         paths = OrderedSet()
         # The cross bindir
-        root = self.environment.cross_info.get_root()
+        root = self.environment.properties.host.get_root()
         if root:
             paths.add(os.path.join(root, 'bin'))
         # The toolchain bindir
-        sys_root = self.environment.cross_info.get_sys_root()
+        sys_root = self.environment.properties.host.get_sys_root()
         if sys_root:
             paths.add(os.path.join(sys_root, 'bin'))
         # Get program and library dirs from all target compilers
@@ -693,8 +692,7 @@ class Backend:
             else:
                 cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))]
             is_cross = self.environment.is_cross_build() and \
-                self.environment.cross_info.need_cross_compiler() and \
-                self.environment.cross_info.need_exe_wrapper()
+                self.environment.need_exe_wrapper()
             if isinstance(exe, build.BuildTarget):
                 is_cross = is_cross and exe.is_cross
             if isinstance(exe, dependencies.ExternalProgram):
@@ -765,7 +763,7 @@ class Backend:
     def exe_object_to_cmd_array(self, exe):
         if self.environment.is_cross_build() and \
            isinstance(exe, build.BuildTarget) and exe.is_cross:
-            if self.environment.exe_wrapper is None and self.environment.cross_info.need_exe_wrapper():
+            if self.environment.exe_wrapper is None and self.environment.need_exe_wrapper():
                 s = textwrap.dedent('''
                     Can not use target {} as a generator because it is cross-built
                     and no exe wrapper is defined or needs_exe_wrapper is true.
@@ -979,15 +977,13 @@ class Backend:
     def create_install_data_files(self):
         install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
 
-        if self.environment.is_cross_build():
-            bins = self.environment.cross_info.config['binaries']
-            if 'strip' not in bins:
+        strip_bin = self.environment.binaries.host.lookup_entry('strip')
+        if strip_bin is None:
+            if self.environment.is_cross_build():
                 mlog.warning('Cross file does not specify strip binary, result will not be stripped.')
-                strip_bin = None
             else:
-                strip_bin = mesonlib.stringlistify(bins['strip'])
-        else:
-            strip_bin = self.environment.native_strip_bin
+                # TODO go through all candidates, like others
+                strip_bin = [self.environment.default_strip[0]]
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
                         self.environment.get_prefix(),

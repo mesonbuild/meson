@@ -501,20 +501,17 @@ class PythonModule(ExtensionModule):
         if len(args) > 1:
             raise InvalidArguments('find_installation takes zero or one positional argument.')
 
-        if 'python' in state.environment.config_info.binaries:
-            name_or_path = state.environment.config_info.binaries['python']
-        elif args:
+        name_or_path = state.environment.binaries.host.lookup_entry('python')
+        if name_or_path is None and args:
             name_or_path = args[0]
             if not isinstance(name_or_path, str):
                 raise InvalidArguments('find_installation argument must be a string.')
-        else:
-            name_or_path = None
 
         if not name_or_path:
             mlog.log("Using meson's python {}".format(mesonlib.python_command))
             python = ExternalProgram('python3', mesonlib.python_command, silent=True)
         else:
-            python = ExternalProgram(name_or_path, silent = True)
+            python = ExternalProgram.from_entry('python3', name_or_path)
 
             if not python.found() and mesonlib.is_windows():
                 pythonpath = self._get_win_pythonpath(name_or_path)

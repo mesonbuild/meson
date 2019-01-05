@@ -76,8 +76,10 @@ def get_fake_options(prefix):
     opts.native_file = []
     return opts
 
-def get_fake_env(sdir, bdir, prefix):
-    env = Environment(sdir, bdir, get_fake_options(prefix))
+def get_fake_env(sdir, bdir, prefix, opts = None):
+    if opts is None:
+        opts = get_fake_options(prefix)
+    env = Environment(sdir, bdir, opts)
     env.coredata.compiler_options['c_args'] = FakeCompilerOptions()
     return env
 
