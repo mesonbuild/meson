@@ -2034,7 +2034,7 @@ class Interpreter(InterpreterBase):
                 for cur_opt_name, cur_opt_value in option_type.items():
                     if (def_opt_name == cur_opt_name and
                             def_opt_value != cur_opt_value.value):
-                        yield (def_opt_name, def_opt_value, cur_opt_value.value)
+                        yield (def_opt_name, def_opt_value, cur_opt_value)
 
     def build_func_dict(self):
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,

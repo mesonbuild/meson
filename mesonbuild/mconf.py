@@ -23,6 +23,15 @@ def add_arguments(parser):
                         help='Clear cached state (e.g. found dependencies)')
 
 
+def make_lower_case(val):
+    if isinstance(val, bool):
+        return str(val).lower()
+    elif isinstance(val, list):
+        return [make_lower_case(i) for i in val]
+    else:
+        return str(val)
+
+
 class ConfException(mesonlib.MesonException):
     pass
 
@@ -50,14 +59,6 @@ class Conf:
 
     @staticmethod
     def print_aligned(arr):
-        def make_lower_case(val):
-            if isinstance(val, bool):
-                return str(val).lower()
-            elif isinstance(val, list):
-                return [make_lower_case(i) for i in val]
-            else:
-                return str(val)
-
         if not arr:
             return
 
@@ -104,10 +105,8 @@ class Conf:
         for k in sorted(options):
             o = options[k]
             d = o.description
-            v = o.value
+            v = o.printable_value()
             c = o.choices
-            if isinstance(o, coredata.UserUmaskOption):
-                v = v if isinstance(v, str) else format(v, '04o')
             arr.append({'name': k, 'descr': d, 'value': v, 'choices': c})
         self.print_aligned(arr)
 
