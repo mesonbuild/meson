@@ -43,6 +43,9 @@ class UserOption:
             raise MesonException('Value of "yielding" must be a boolean.')
         self.yielding = yielding
 
+    def printable_value(self):
+        return self.value
+
     # Check that the input is a valid value and return the
     # "cleaned" or "native" version. For example the Boolean
     # option could take the string "true" and return True.
@@ -113,6 +116,11 @@ class UserUmaskOption(UserIntegerOption):
     def __init__(self, name, description, value, yielding=None):
         super().__init__(name, description, 0, 0o777, value, yielding)
         self.choices = ['preserve', '0000-0777']
+
+    def printable_value(self):
+        if self.value == 'preserve':
+            return self.value
+        return format(self.value, '04o')
 
     def validate_value(self, value):
         if value is None or value == 'preserve':
