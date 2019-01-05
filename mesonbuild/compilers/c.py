@@ -1302,6 +1302,13 @@ class VisualStudioCCompiler(CCompiler):
         self.base_options = ['b_pch', 'b_ndebug', 'b_vscrt'] # FIXME add lto, pgo and the like
         self.target = target
         self.is_64 = ('x64' in target) or ('x86_64' in target)
+        # do some canonicalization of target machine
+        if 'x86_64' in target:
+            self.machine = 'x64'
+        elif '86' in target:
+            self.machine = 'x86'
+        else:
+            self.machine = target
 
     # Override CCompiler.get_always_args
     def get_always_args(self):
@@ -1378,7 +1385,7 @@ class VisualStudioCCompiler(CCompiler):
         return ['/nologo']
 
     def get_linker_output_args(self, outputname):
-        return ['/OUT:' + outputname]
+        return ['/MACHINE:' + self.machine, '/OUT:' + outputname]
 
     def get_linker_search_args(self, dirname):
         return ['/LIBPATH:' + dirname]
