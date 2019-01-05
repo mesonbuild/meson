@@ -18,5 +18,5 @@ configuration of the build directory.
 
 Additionlly the format of `meson introspect target` was changed:
 
-  - New: the `sources` key. It stores the source files of a target and there compiler parameters
+  - New: the `sources` key. It stores the source files of a target and their compiler parameters
   - Added new target types (`jar`, `shared module`)
