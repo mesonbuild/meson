@@ -1221,10 +1221,13 @@ class BasePlatformTests(unittest.TestCase):
         self.assertEqual(PurePath(path1), PurePath(path2))
 
     def assertPathListEqual(self, pathlist1, pathlist2):
-        self.assertEquals(len(pathlist1), len(pathlist2))
+        self.assertEqual(len(pathlist1), len(pathlist2))
         worklist = list(zip(pathlist1, pathlist2))
         for i in worklist:
-            self.assertPathEqual(i[0], i[1])
+            if i[0] is None:
+                self.assertEqual(i[0], i[1])
+            else:
+                self.assertPathEqual(i[0], i[1])
 
     def assertPathBasenameEqual(self, path, basename):
         msg = '{!r} does not end with {!r}'.format(path, basename)
@@ -1436,7 +1439,7 @@ class AllPlatformTests(BasePlatformTests):
         # Get name of static library
         targets = self.introspect('--targets')
         self.assertEqual(len(targets), 1)
-        libname = targets[0]['filename']
+        libname = targets[0]['filename'] # TODO Change filename back to a list again
         # Build and get contents of static library
         self.build()
         before = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
@@ -1493,13 +1496,16 @@ class AllPlatformTests(BasePlatformTests):
         intro = self.introspect('--targets')
         if intro[0]['type'] == 'executable':
             intro = intro[::-1]
-        self.assertPathListEqual(intro[0]['install_filename'], ['/usr/lib/libstat.a'])
-        self.assertPathListEqual(intro[1]['install_filename'], ['/usr/bin/prog' + exe_suffix])
+        self.assertPathListEqual([intro[0]['install_filename']], ['/usr/lib/libstat.a'])
+        self.assertPathListEqual([intro[1]['install_filename']], ['/usr/bin/prog' + exe_suffix])
 
     def test_install_introspection_multiple_outputs(self):
         '''
         Tests that the Meson introspection API exposes multiple install filenames correctly without crashing
         https://github.com/mesonbuild/meson/pull/4555
+
+        Reverted to the first file only because of https://github.com/mesonbuild/meson/pull/4547#discussion_r244173438
+        TODO Change the format to a list officialy in a followup PR
         '''
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
@@ -1508,10 +1514,14 @@ class AllPlatformTests(BasePlatformTests):
         intro = self.introspect('--targets')
         if intro[0]['type'] == 'executable':
             intro = intro[::-1]
-        self.assertPathListEqual(intro[0]['install_filename'], ['/usr/include/diff.h', '/usr/bin/diff.sh'])
-        self.assertPathListEqual(intro[1]['install_filename'], ['/opt/same.h', '/opt/same.sh'])
-        self.assertPathListEqual(intro[2]['install_filename'], ['/usr/include/first.h'])
-        self.assertPathListEqual(intro[3]['install_filename'], ['/usr/bin/second.sh'])
+        #self.assertPathListEqual(intro[0]['install_filename'], ['/usr/include/diff.h', '/usr/bin/diff.sh'])
+        #self.assertPathListEqual(intro[1]['install_filename'], ['/opt/same.h', '/opt/same.sh'])
+        #self.assertPathListEqual(intro[2]['install_filename'], ['/usr/include/first.h', None])
+        #self.assertPathListEqual(intro[3]['install_filename'], [None, '/usr/bin/second.sh'])
+        self.assertPathListEqual([intro[0]['install_filename']], ['/usr/include/diff.h'])
+        self.assertPathListEqual([intro[1]['install_filename']], ['/opt/same.h'])
+        self.assertPathListEqual([intro[2]['install_filename']], ['/usr/include/first.h'])
+        self.assertPathListEqual([intro[3]['install_filename']], [None])
 
     def test_uninstall(self):
         exename = os.path.join(self.installdir, 'usr/bin/prog' + exe_suffix)
@@ -2559,6 +2569,7 @@ int main(int argc, char **argv) {
         for t in t_intro:
             id = t['id']
             tf_intro = self.introspect(['--target-files', id])
+            #tf_intro = list(map(lambda x: os.path.relpath(x, testdir), tf_intro)) TODO make paths absolute in future PR
             self.assertEqual(tf_intro, expected[id])
         self.wipe()
 
@@ -2573,6 +2584,9 @@ int main(int argc, char **argv) {
         for t in t_intro:
             id = t['id']
             tf_intro = self.introspect(['--target-files', id])
+            print(tf_intro)
+            #tf_intro = list(map(lambda x: os.path.relpath(x, testdir), tf_intro)) TODO make paths absolute in future PR
+            print(tf_intro)
             self.assertEqual(tf_intro, expected[id])
         self.wipe()
 
@@ -3110,6 +3124,198 @@ recommended as it is not supported on some platforms''')
         self.maxDiff = None
         self.assertListEqual(res_nb, res_wb)
 
+    def test_introspect_json_dump(self):
+        testdir = os.path.join(self.unit_test_dir, '49 introspection')
+        self.init(testdir)
+        infodir = os.path.join(self.builddir, 'meson-info')
+        self.assertPathExists(infodir)
+
+        def assertKeyTypes(key_type_list, obj):
+            for i in key_type_list:
+                self.assertIn(i[0], obj)
+                self.assertIsInstance(obj[i[0]], i[1])
+
+        root_keylist = [
+            ('benchmarks', list),
+            ('buildoptions', list),
+            ('buildsystem_files', list),
+            ('dependencies', list),
+            ('installed', dict),
+            ('projectinfo', dict),
+            ('targets', list),
+            ('tests', list),
+        ]
+
+        test_keylist = [
+            ('cmd', list),
+            ('env', dict),
+            ('name', str),
+            ('timeout', int),
+            ('suite', list),
+            ('is_parallel', bool),
+        ]
+
+        buildoptions_keylist = [
+            ('name', str),
+            ('section', str),
+            ('type', str),
+            ('description', str),
+        ]
+
+        buildoptions_typelist = [
+            ('combo', str, [('choices', list)]),
+            ('string', str, []),
+            ('boolean', bool, []),
+            ('integer', int, []),
+            ('array', list, []),
+        ]
+
+        dependencies_typelist = [
+            ('name', str),
+            ('compile_args', list),
+            ('link_args', list),
+        ]
+
+        targets_typelist = [
+            ('name', str),
+            ('id', str),
+            ('type', str),
+            ('filename', str),
+            ('build_by_default', bool),
+            ('target_sources', list),
+            ('installed', bool),
+        ]
+
+        targets_sources_typelist = [
+            ('language', str),
+            ('compiler', list),
+            ('parameters', list),
+            ('sources', list),
+            ('generated_sources', list),
+        ]
+
+        # First load all files
+        res = {}
+        for i in root_keylist:
+            curr = os.path.join(infodir, 'intro-{}.json'.format(i[0]))
+            self.assertPathExists(curr)
+            with open(curr, 'r') as fp:
+                res[i[0]] = json.load(fp)
+
+        assertKeyTypes(root_keylist, res)
+
+        # Check Tests and benchmarks
+        tests_to_find = ['test case 1', 'test case 2', 'benchmark 1']
+        for i in res['benchmarks'] + res['tests']:
+            assertKeyTypes(test_keylist, i)
+            if i['name'] in tests_to_find:
+                tests_to_find.remove(i['name'])
+        self.assertListEqual(tests_to_find, [])
+
+        # Check buildoptions
+        buildopts_to_find = {'cpp_std': 'c++11'}
+        for i in res['buildoptions']:
+            assertKeyTypes(buildoptions_keylist, i)
+            valid_type = False
+            for j in buildoptions_typelist:
+                if i['type'] == j[0]:
+                    self.assertIsInstance(i['value'], j[1])
+                    assertKeyTypes(j[2], i)
+                    valid_type = True
+                    break
+
+            self.assertTrue(valid_type)
+            if i['name'] in buildopts_to_find:
+                self.assertEqual(i['value'], buildopts_to_find[i['name']])
+                buildopts_to_find.pop(i['name'], None)
+        self.assertDictEqual(buildopts_to_find, {})
+
+        # Check buildsystem_files
+        self.assertPathListEqual(res['buildsystem_files'], ['meson.build', 'sharedlib/meson.build', 'staticlib/meson.build'])
+
+        # Check dependencies
+        dependencies_to_find = ['threads']
+        for i in res['dependencies']:
+            assertKeyTypes(dependencies_typelist, i)
+            if i['name'] in dependencies_to_find:
+                dependencies_to_find.remove(i['name'])
+        self.assertListEqual(dependencies_to_find, [])
+
+        # Check projectinfo
+        self.assertDictEqual(res['projectinfo'], {'version': '1.2.3', 'descriptive_name': 'introspection', 'subprojects': []})
+
+        # Check targets
+        targets_to_find = {
+            'sharedTestLib': ('shared library', True, False),
+            'staticTestLib': ('static library', True, False),
+            'test1': ('executable', True, True),
+            'test2': ('executable', True, False),
+            'test3': ('executable', True, False),
+        }
+        for i in res['targets']:
+            assertKeyTypes(targets_typelist, i)
+            if i['name'] in targets_to_find:
+                tgt = targets_to_find[i['name']]
+                self.assertEqual(i['type'], tgt[0])
+                self.assertEqual(i['build_by_default'], tgt[1])
+                self.assertEqual(i['installed'], tgt[2])
+                targets_to_find.pop(i['name'], None)
+            for j in i['target_sources']:
+                assertKeyTypes(targets_sources_typelist, j)
+        self.assertDictEqual(targets_to_find, {})
+
+    def test_introspect_file_dump_equals_all(self):
+        testdir = os.path.join(self.unit_test_dir, '49 introspection')
+        self.init(testdir)
+        res_all = self.introspect('--all')
+        res_file = {}
+
+        root_keylist = [
+            'benchmarks',
+            'buildoptions',
+            'buildsystem_files',
+            'dependencies',
+            'installed',
+            'projectinfo',
+            'targets',
+            'tests',
+        ]
+
+        infodir = os.path.join(self.builddir, 'meson-info')
+        self.assertPathExists(infodir)
+        for i in root_keylist:
+            curr = os.path.join(infodir, 'intro-{}.json'.format(i))
+            self.assertPathExists(curr)
+            with open(curr, 'r') as fp:
+                res_file[i] = json.load(fp)
+
+        self.assertEqual(res_all, res_file)
+
+    def test_introspect_config_update(self):
+        testdir = os.path.join(self.unit_test_dir, '49 introspection')
+        introfile = os.path.join(self.builddir, 'meson-info', 'intro-buildoptions.json')
+        self.init(testdir)
+        self.assertPathExists(introfile)
+        with open(introfile, 'r') as fp:
+            res1 = json.load(fp)
+
+        self.setconf('-Dcpp_std=c++14')
+        self.setconf('-Dbuildtype=release')
+
+        for idx, i in enumerate(res1):
+            if i['name'] == 'cpp_std':
+                res1[idx]['value'] = 'c++14'
+            if i['name'] == 'buildtype':
+                res1[idx]['value'] = 'release'
+            if i['name'] == 'optimization':
+                res1[idx]['value'] = '3'
+            if i['name'] == 'debug':
+                res1[idx]['value'] = False
+
+        with open(introfile, 'r') as fp:
+            res2 = json.load(fp)
+
+        self.assertListEqual(res1, res2)
 
 class FailureTests(BasePlatformTests):
     '''
@@ -3548,7 +3754,7 @@ class DarwinTests(BasePlatformTests):
         self.build()
         targets = {}
         for t in self.introspect('--targets'):
-            targets[t['name']] = t['filename']
+            targets[t['name']] = t['filename'][0] if isinstance(t['filename'], list) else t['filename']
         self.assertEqual(self._get_darwin_versions(targets['some']), ('7.0.0', '7.0.0'))
         self.assertEqual(self._get_darwin_versions(targets['noversion']), ('0.0.0', '0.0.0'))
         self.assertEqual(self._get_darwin_versions(targets['onlyversion']), ('1.0.0', '1.0.0'))
@@ -4197,7 +4403,7 @@ class LinuxlikeTests(BasePlatformTests):
                 break
         self.assertIsInstance(docbook_target, dict)
         ifile = self.introspect(['--target-files', 'generated-gdbus-docbook@cus'])[0]
-        self.assertEqual(t['filename'], 'gdbus/generated-gdbus-doc-' + os.path.basename(ifile))
+        self.assertListEqual([t['filename']], ['gdbus/generated-gdbus-doc-' + os.path.basename(ifile)])
 
     def test_build_rpath(self):
         if is_cygwin():

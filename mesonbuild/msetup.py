@@ -23,6 +23,7 @@ import argparse
 from . import environment, interpreter, mesonlib
 from . import build
 from . import mlog, coredata
+from . import mintro
 from .mesonlib import MesonException
 
 def add_arguments(parser):
@@ -215,6 +216,13 @@ class MesonApp:
                 coredata.write_cmd_line_file(self.build_dir, self.options)
             else:
                 coredata.update_cmd_line_file(self.build_dir, self.options)
+
+            # Generate an IDE introspection file with the same syntax as the already existing API
+            if self.options.profile:
+                fname = os.path.join(self.build_dir, 'meson-private', 'profile-introspector.log')
+                profile.runctx('mintro.generate_introspection_file(b, intr.backend)', globals(), locals(), filename=fname)
+            else:
+                mintro.generate_introspection_file(b, intr.backend)
         except:
             if 'cdf' in locals():
                 old_cdf = cdf + '.prev'

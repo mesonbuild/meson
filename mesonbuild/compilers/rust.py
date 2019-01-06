@@ -82,3 +82,14 @@ class RustCompiler(Compiler):
 
     def get_optimization_args(self, optimization_level):
         return rust_optimization_args[optimization_level]
+
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-L':
+                for j in ['dependency', 'crate', 'native', 'framework', 'all']:
+                    combined_len = len(j) + 3
+                    if i[:combined_len] == '-L{}='.format(j):
+                        parameter_list[idx] = i[:combined_len] + os.path.normpath(os.path.join(build_dir, i[combined_len:]))
+                        break
+
+        return parameter_list

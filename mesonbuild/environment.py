@@ -308,6 +308,7 @@ def search_version(text):
 class Environment:
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
+    info_dir = 'meson-info'
 
     def __init__(self, source_dir, build_dir, options):
         self.source_dir = source_dir
@@ -318,8 +319,10 @@ class Environment:
         if build_dir is not None:
             self.scratch_dir = os.path.join(build_dir, Environment.private_dir)
             self.log_dir = os.path.join(build_dir, Environment.log_dir)
+            self.info_dir = os.path.join(build_dir, Environment.info_dir)
             os.makedirs(self.scratch_dir, exist_ok=True)
             os.makedirs(self.log_dir, exist_ok=True)
+            os.makedirs(self.info_dir, exist_ok=True)
             try:
                 self.coredata = coredata.load(self.get_build_dir())
                 self.first_invocation = False

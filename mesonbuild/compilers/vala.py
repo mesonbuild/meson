@@ -66,6 +66,19 @@ class ValaCompiler(Compiler):
             return ['--color=' + colortype]
         return []
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        for idx, i in enumerate(parameter_list):
+            if i[:9] == '--girdir=':
+                parameter_list[idx] = i[:9] + os.path.normpath(os.path.join(build_dir, i[9:]))
+            if i[:10] == '--vapidir=':
+                parameter_list[idx] = i[:10] + os.path.normpath(os.path.join(build_dir, i[10:]))
+            if i[:13] == '--includedir=':
+                parameter_list[idx] = i[:13] + os.path.normpath(os.path.join(build_dir, i[13:]))
+            if i[:14] == '--metadatadir=':
+                parameter_list[idx] = i[:14] + os.path.normpath(os.path.join(build_dir, i[14:]))
+
+        return parameter_list
+
     def sanity_check(self, work_dir, environment):
         code = 'class MesonSanityCheck : Object { }'
         args = self.get_cross_extra_flags(environment, link=False)

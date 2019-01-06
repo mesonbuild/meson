@@ -156,6 +156,8 @@ class Backend:
         self.build = build
         self.environment = build.environment
         self.processed_targets = {}
+        self.build_dir = self.environment.get_build_dir()
+        self.source_dir = self.environment.get_source_dir()
         self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
                                              self.environment.get_build_dir())
 
@@ -683,7 +685,7 @@ class Backend:
     def write_test_file(self, datafile):
         self.write_test_serialisation(self.build.get_tests(), datafile)
 
-    def write_test_serialisation(self, tests, datafile):
+    def create_test_serialisation(self, tests):
         arr = []
         for t in tests:
             exe = t.get_exe()
@@ -730,7 +732,10 @@ class Backend:
                                    exe_wrapper, t.is_parallel, cmd_args, t.env,
                                    t.should_fail, t.timeout, t.workdir, extra_paths)
             arr.append(ts)
-        pickle.dump(arr, datafile)
+        return arr
+
+    def write_test_serialisation(self, tests, datafile):
+        pickle.dump(self.create_test_serialisation(tests), datafile)
 
     def generate_depmf_install(self, d):
         if self.build.dep_manifest_name is None:
@@ -974,9 +979,7 @@ class Backend:
             cmd = s['exe'] + s['args']
             subprocess.check_call(cmd, env=child_env)
 
-    def create_install_data_files(self):
-        install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
-
+    def create_install_data(self):
         strip_bin = self.environment.binaries.host.lookup_entry('strip')
         if strip_bin is None:
             if self.environment.is_cross_build():
@@ -997,8 +1000,12 @@ class Backend:
         self.generate_data_install(d)
         self.generate_custom_install_script(d)
         self.generate_subdir_install(d)
+        return d
+
+    def create_install_data_files(self):
+        install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
         with open(install_data_file, 'wb') as ofile:
-            pickle.dump(d, ofile)
+            pickle.dump(self.create_install_data(), ofile)
 
     def generate_target_install(self, d):
         for t in self.build.get_targets().values():
@@ -1144,3 +1151,53 @@ class Backend:
                 dst_dir = os.path.join(dst_dir, os.path.basename(src_dir))
             d.install_subdirs.append([src_dir, dst_dir, sd.install_mode,
                                       sd.exclude])
+
+    def get_introspection_data(self, target_id, target):
+        '''
+        Returns a list of source dicts with the following format for a given target:
+        [
+            {
+                "language": "<LANG>",
+                "compiler": ["result", "of", "comp.get_exelist()"],
+                "parameters": ["list", "of", "compiler", "parameters],
+                "sources": ["list", "of", "all", "<LANG>", "source", "files"],
+                "generated_sources": ["list", "of", "generated", "source", "files"]
+            }
+        ]
+
+        This is a limited fallback / reference implementation. The backend should override this method.
+        '''
+        if isinstance(target, (build.CustomTarget, build.BuildTarget)):
+            source_list_raw = target.sources + target.extra_files
+            source_list = []
+            for j in source_list_raw:
+                if isinstance(j, mesonlib.File):
+                    source_list += [j.absolute_path(self.source_dir, self.build_dir)]
+                elif isinstance(j, str):
+                    source_list += [os.path.join(self.source_dir, j)]
+            source_list = list(map(lambda x: os.path.normpath(x), source_list))
+
+            compiler = []
+            if isinstance(target, build.CustomTarget):
+                tmp_compiler = target.command
+                if not isinstance(compiler, list):
+                    tmp_compiler = [compiler]
+                for j in tmp_compiler:
+                    if isinstance(j, mesonlib.File):
+                        compiler += [j.absolute_path(self.source_dir, self.build_dir)]
+                    elif isinstance(j, str):
+                        compiler += [j]
+                    elif isinstance(j, (build.BuildTarget, build.CustomTarget)):
+                        compiler += j.get_outputs()
+                    else:
+                        raise RuntimeError('Type "{}" is not supported in get_introspection_data. This is a bug'.format(type(j).__name__))
+
+            return [{
+                'language': 'unknown',
+                'compiler': compiler,
+                'parameters': [],
+                'sources': source_list,
+                'generated_sources': []
+            }]
+
+        return []

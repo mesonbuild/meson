@@ -345,6 +345,8 @@ a hard error in the future.''' % name)
         self.install = False
         self.build_always_stale = False
         self.option_overrides = {}
+        if not hasattr(self, 'typename'):
+            raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
 
     def get_install_dir(self, environment):
         # Find the installation directory.
@@ -365,6 +367,9 @@ a hard error in the future.''' % name)
 
     def get_subdir(self):
         return self.subdir
+
+    def get_typename(self):
+        return self.typename
 
     @staticmethod
     def _get_id_hash(target_id):
@@ -1361,6 +1366,7 @@ class Executable(BuildTarget):
     known_kwargs = known_exe_kwargs
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        self.typename = 'executable'
         if 'pie' not in kwargs and 'b_pie' in environment.coredata.base_options:
             kwargs['pie'] = environment.coredata.base_options['b_pie'].value
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
@@ -1450,6 +1456,7 @@ class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        self.typename = 'static library'
         if 'pic' not in kwargs and 'b_staticpic' in environment.coredata.base_options:
             kwargs['pic'] = environment.coredata.base_options['b_staticpic'].value
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
@@ -1509,6 +1516,7 @@ class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        self.typename = 'shared library'
         self.soversion = None
         self.ltversion = None
         # Max length 2, first element is compatibility_version, second is current_version
@@ -1817,6 +1825,7 @@ class SharedModule(SharedLibrary):
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
+        self.typename = 'shared module'
 
     def get_default_install_dir(self, environment):
         return environment.get_shared_module_dir()
@@ -1842,6 +1851,7 @@ class CustomTarget(Target):
     ])
 
     def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False):
+        self.typename = 'custom'
         super().__init__(name, subdir, subproject, False)
         self.dependencies = []
         self.extra_depends = []
@@ -2083,6 +2093,7 @@ class CustomTarget(Target):
 
 class RunTarget(Target):
     def __init__(self, name, command, args, dependencies, subdir, subproject):
+        self.typename = 'run'
         super().__init__(name, subdir, subproject, False)
         self.command = command
         self.args = args
@@ -2110,6 +2121,14 @@ class RunTarget(Target):
     def get_filename(self):
         return self.name
 
+    def get_outputs(self):
+        if isinstance(self.name, str):
+            return [self.name]
+        elif isinstance(self.name, list):
+            return self.name
+        else:
+            raise RuntimeError('RunTarget: self.name is neither a list nor a string. This is a bug')
+
     def type_suffix(self):
         return "@run"
 
@@ -2117,6 +2136,7 @@ class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
 
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        self.typename = 'jar'
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
@@ -2160,6 +2180,7 @@ class CustomTargetIndex:
     """
 
     def __init__(self, target, output):
+        self.typename = 'custom'
         self.target = target
         self.output = output
 

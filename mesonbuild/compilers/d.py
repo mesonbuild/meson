@@ -111,6 +111,19 @@ class DCompiler(Compiler):
     def get_include_args(self, path, is_system):
         return ['-I=' + path]
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        for idx, i in enumerate(parameter_list):
+            if i[:3] == '-I=':
+                parameter_list[idx] = i[:3] + os.path.normpath(os.path.join(build_dir, i[3:]))
+            if i[:4] == '-L-L':
+                parameter_list[idx] = i[:4] + os.path.normpath(os.path.join(build_dir, i[4:]))
+            if i[:5] == '-L=-L':
+                parameter_list[idx] = i[:5] + os.path.normpath(os.path.join(build_dir, i[5:]))
+            if i[:6] == '-Wl,-L':
+                parameter_list[idx] = i[:6] + os.path.normpath(os.path.join(build_dir, i[6:]))
+
+        return parameter_list
+
     def get_warn_args(self, level):
         return ['-wi']
 
@@ -510,6 +523,13 @@ class GnuDCompiler(DCompiler):
 
     def get_buildtype_args(self, buildtype):
         return d_gdc_buildtype_args[buildtype]
+
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-I' or i[:2] == '-L':
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+
+        return parameter_list
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)

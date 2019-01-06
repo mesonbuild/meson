@@ -88,6 +88,15 @@ class CsCompiler(Compiler):
     def get_pic_args(self):
         return []
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-L':
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+            if i[:5] == '-lib:':
+                parameter_list[idx] = i[:5] + os.path.normpath(os.path.join(build_dir, i[5:]))
+
+        return parameter_list
+
     def name_string(self):
         return ' '.join(self.exelist)
 

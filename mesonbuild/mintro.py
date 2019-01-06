@@ -20,7 +20,7 @@ Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
 import json
-from . import build, mtest, coredata as cdata
+from . import build, coredata as cdata
 from . import environment
 from . import mesonlib
 from . import astinterpreter
@@ -29,7 +29,7 @@ from . import mlog
 from . import compilers
 from . import optinterpreter
 from .interpreterbase import InvalidArguments
-from .backend import ninjabackend, backends
+from .backend import backends
 import sys, os
 import pathlib
 
@@ -54,25 +54,13 @@ def add_arguments(parser):
                         help='Information about projects.')
     parser.add_argument('--backend', choices=cdata.backendlist, dest='backend', default='ninja',
                         help='The backend to use for the --buildoptions introspection.')
+    parser.add_argument('-a', '--all', action='store_true', dest='all', default=False,
+                        help='Print all available information.')
+    parser.add_argument('-i', '--indent', action='store_true', dest='indent', default=False,
+                        help='Enable pretty printed JSON.')
+    parser.add_argument('-f', '--force-object-output', action='store_true', dest='force_dict', default=False,
+                        help='Always use the new JSON format for multiple entries (even for 0 and 1 introspection commands)')
     parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
-
-def determine_installed_path(target, installdata):
-    install_targets = []
-    for i in target.outputs:
-        for j in installdata.targets:
-            if os.path.basename(j.fname) == i: # FIXME, might clash due to subprojects.
-                install_targets += [j]
-                break
-    if len(install_targets) == 0:
-        raise RuntimeError('Something weird happened. File a bug.')
-
-    # Normalize the path by using os.path.sep consistently, etc.
-    # Does not change the effective path.
-    install_targets = list(map(lambda x: os.path.join(installdata.prefix, x.outdir, os.path.basename(x.fname)), install_targets))
-    install_targets = list(map(lambda x: str(pathlib.PurePath(x)), install_targets))
-
-    return install_targets
-
 
 def list_installed(installdata):
     res = {}
@@ -86,54 +74,43 @@ def list_installed(installdata):
             res[path] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
         for path, installpath, unused_custom_install_mode in installdata.man:
             res[path] = os.path.join(installdata.prefix, installpath)
-    print(json.dumps(res))
+    return ('installed', res)
 
-
-def list_targets(coredata, builddata, installdata):
+def list_targets(builddata: build.Build, installdata, backend: backends.Backend):
     tlist = []
+
+    # Fast lookup table for installation files
+    install_lookuptable = {}
+    for i in installdata.targets:
+        outname = os.path.join(installdata.prefix, i.outdir, os.path.basename(i.fname))
+        install_lookuptable[os.path.basename(i.fname)] = str(pathlib.PurePath(outname))
+
     for (idname, target) in builddata.get_targets().items():
-        t = {'name': target.get_basename(), 'id': idname}
-        fname = target.get_filename()
-        if isinstance(fname, list):
-            fname = [os.path.join(target.subdir, x) for x in fname]
-        else:
-            fname = os.path.join(target.subdir, fname)
-        t['filename'] = fname
-        if isinstance(target, build.Executable):
-            typename = 'executable'
-        elif isinstance(target, build.SharedLibrary):
-            typename = 'shared library'
-        elif isinstance(target, build.StaticLibrary):
-            typename = 'static library'
-        elif isinstance(target, build.CustomTarget):
-            typename = 'custom'
-        elif isinstance(target, build.RunTarget):
-            typename = 'run'
-        else:
-            typename = 'unknown'
-        t['type'] = typename
+        if not isinstance(target, build.Target):
+            raise RuntimeError('The target object in `builddata.get_targets()` is not of type `build.Target`. Please file a bug with this error message.')
+
+        # TODO Change this to the full list in a seperate PR
+        fname = [os.path.join(target.subdir, x) for x in target.get_outputs()]
+        if len(fname) == 1:
+            fname = fname[0]
+
+        t = {
+            'name': target.get_basename(),
+            'id': idname,
+            'type': target.get_typename(),
+            'filename': fname,
+            'build_by_default': target.build_by_default,
+            'target_sources': backend.get_introspection_data(idname, target)
+        }
+
         if installdata and target.should_install():
             t['installed'] = True
-            t['install_filename'] = determine_installed_path(target, installdata)
+            # TODO Change this to the full list in a seperate PR
+            t['install_filename'] = [install_lookuptable.get(x, None) for x in target.get_outputs()][0]
         else:
             t['installed'] = False
-        t['build_by_default'] = target.build_by_default
         tlist.append(t)
-    print(json.dumps(tlist))
-
-def list_target_files(target_name, coredata, builddata):
-    try:
-        t = builddata.targets[target_name]
-        sources = t.sources + t.extra_files
-    except KeyError:
-        print("Unknown target %s." % target_name)
-        sys.exit(1)
-    out = []
-    for i in sources:
-        if isinstance(i, mesonlib.File):
-            i = os.path.join(i.subdir, i.fname)
-        out.append(i)
-    print(json.dumps(out))
+    return ('targets', tlist)
 
 class BuildoptionsOptionHelper:
     # mimic an argparse namespace
@@ -272,7 +249,7 @@ class BuildoptionsInterperter(astinterpreter.AstInterpreter):
         self.parse_project()
         self.run()
 
-def list_buildoptions_from_source(sourcedir, backend):
+def list_buildoptions_from_source(sourcedir, backend, indent):
     # Make sure that log entries in other parts of meson don't interfere with the JSON output
     mlog.disable()
     backend = backends.get_backend_from_name(backend, None)
@@ -280,9 +257,31 @@ def list_buildoptions_from_source(sourcedir, backend):
     intr.analyze()
     # Reenable logging just in case
     mlog.enable()
-    list_buildoptions(intr.coredata)
+    buildoptions = list_buildoptions(intr.coredata)[1]
+    print(json.dumps(buildoptions, indent=indent))
 
-def list_buildoptions(coredata):
+def list_target_files(target_name, targets, builddata: build.Build):
+    result = []
+    tgt = None
+
+    for i in targets:
+        if i['id'] == target_name:
+            tgt = i
+            break
+
+    if tgt is None:
+        print('Target with the ID "{}" could not be found'.format(target_name))
+        sys.exit(1)
+
+    for i in tgt['target_sources']:
+        result += i['sources'] + i['generated_sources']
+
+    # TODO Remove this line in a future PR with other breaking changes
+    result = list(map(lambda x: os.path.relpath(x, builddata.environment.get_source_dir()), result))
+
+    return ('target_files', result)
+
+def list_buildoptions(coredata: cdata.CoreData):
     optlist = []
 
     dir_option_names = ['bindir',
@@ -313,7 +312,7 @@ def list_buildoptions(coredata):
     add_keys(optlist, dir_options, 'directory')
     add_keys(optlist, coredata.user_options, 'user')
     add_keys(optlist, test_options, 'test')
-    print(json.dumps(optlist))
+    return ('buildoptions', optlist)
 
 def add_keys(optlist, options, section):
     keys = list(options.keys())
@@ -347,21 +346,21 @@ def find_buildsystem_files_list(src_dir):
                 filelist.append(os.path.relpath(os.path.join(root, f), src_dir))
     return filelist
 
-def list_buildsystem_files(builddata):
+def list_buildsystem_files(builddata: build.Build):
     src_dir = builddata.environment.get_source_dir()
     filelist = find_buildsystem_files_list(src_dir)
-    print(json.dumps(filelist))
+    return ('buildsystem_files', filelist)
 
-def list_deps(coredata):
+def list_deps(coredata: cdata.CoreData):
     result = []
     for d in coredata.deps.values():
         if d.found():
             result += [{'name': d.name,
                         'compile_args': d.get_compile_args(),
                         'link_args': d.get_link_args()}]
-    print(json.dumps(result))
+    return ('dependencies', result)
 
-def list_tests(testdata):
+def get_test_list(testdata):
     result = []
     for t in testdata:
         to = {}
@@ -380,9 +379,15 @@ def list_tests(testdata):
         to['suite'] = t.suite
         to['is_parallel'] = t.is_parallel
         result.append(to)
-    print(json.dumps(result))
+    return result
 
-def list_projinfo(builddata):
+def list_tests(testdata):
+    return ('tests', get_test_list(testdata))
+
+def list_benchmarks(benchdata):
+    return ('benchmarks', get_test_list(benchdata))
+
+def list_projinfo(builddata: build.Build):
     result = {'version': builddata.project_version,
               'descriptive_name': builddata.project_name}
     subprojects = []
@@ -392,7 +397,7 @@ def list_projinfo(builddata):
              'descriptive_name': builddata.projects.get(k)}
         subprojects.append(c)
     result['subprojects'] = subprojects
-    print(json.dumps(result))
+    return ('projectinfo', result)
 
 class ProjectInfoInterperter(astinterpreter.AstInterpreter):
     def __init__(self, source_root, subdir):
@@ -418,7 +423,7 @@ class ProjectInfoInterperter(astinterpreter.AstInterpreter):
         self.parse_project()
         self.run()
 
-def list_projinfo_from_source(sourcedir):
+def list_projinfo_from_source(sourcedir, indent):
     files = find_buildsystem_files_list(sourcedir)
 
     result = {'buildsystem_files': []}
@@ -447,55 +452,112 @@ def list_projinfo_from_source(sourcedir):
 
     subprojects = [obj for name, obj in subprojects.items()]
     result['subprojects'] = subprojects
-    print(json.dumps(result))
+    print(json.dumps(result, indent=indent))
 
 def run(options):
     datadir = 'meson-private'
+    infodir = 'meson-info'
+    indent = 4 if options.indent else None
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
+        infodir = os.path.join(options.builddir, infodir)
     if options.builddir.endswith('/meson.build') or options.builddir.endswith('\\meson.build') or options.builddir == 'meson.build':
         sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
         if options.projectinfo:
-            list_projinfo_from_source(sourcedir)
+            list_projinfo_from_source(sourcedir, indent)
             return 0
         if options.buildoptions:
-            list_buildoptions_from_source(sourcedir, options.backend)
+            list_buildoptions_from_source(sourcedir, options.backend, indent)
             return 0
-    if not os.path.isdir(datadir):
-        print('Current directory is not a build dir. Please specify it or '
-              'change the working directory to it.')
+    if not os.path.isdir(datadir) or not os.path.isdir(infodir):
+        print('Current directory is not a meson build directory.'
+              'Please specify a valid build dir or change the working directory to it.'
+              'It is also possible that the build directory was generated with an old'
+              'meson version. Please regenerate it in this case.')
         return 1
 
-    coredata = cdata.load(options.builddir)
-    builddata = build.load(options.builddir)
-    testdata = mtest.load_tests(options.builddir)
-    benchmarkdata = mtest.load_benchmarks(options.builddir)
+    # Load build data to make sure that the version matches
+    # TODO Find a better solution for this
+    cdata.load(options.builddir)
 
-    # Install data is only available with the Ninja backend
-    try:
-        installdata = ninjabackend.load(options.builddir)
-    except FileNotFoundError:
-        installdata = None
+    results = []
+    toextract = []
 
-    if options.list_targets:
-        list_targets(coredata, builddata, installdata)
-    elif options.list_installed:
-        list_installed(installdata)
-    elif options.target_files is not None:
-        list_target_files(options.target_files, coredata, builddata)
-    elif options.buildsystem_files:
-        list_buildsystem_files(builddata)
-    elif options.buildoptions:
-        list_buildoptions(coredata)
-    elif options.tests:
-        list_tests(testdata)
-    elif options.benchmarks:
-        list_tests(benchmarkdata)
-    elif options.dependencies:
-        list_deps(coredata)
-    elif options.projectinfo:
-        list_projinfo(builddata)
-    else:
+    if options.all or options.benchmarks:
+        toextract += ['benchmarks']
+    if options.all or options.buildoptions:
+        toextract += ['buildoptions']
+    if options.all or options.buildsystem_files:
+        toextract += ['buildsystem_files']
+    if options.all or options.dependencies:
+        toextract += ['dependencies']
+    if options.all or options.list_installed:
+        toextract += ['installed']
+    if options.all or options.projectinfo:
+        toextract += ['projectinfo']
+    if options.all or options.list_targets:
+        toextract += ['targets']
+    if options.target_files is not None:
+        targets_file = os.path.join(infodir, 'intro-targets.json')
+        with open(targets_file, 'r') as fp:
+            targets = json.load(fp)
+        builddata = build.load(options.builddir) # TODO remove this in a breaking changes PR
+        results += [list_target_files(options.target_files, targets, builddata)]
+    if options.all or options.tests:
+        toextract += ['tests']
+
+    for i in toextract:
+        curr = os.path.join(infodir, 'intro-{}.json'.format(i))
+        if not os.path.isfile(curr):
+            print('Introspection file {} does not exist.'.format(curr))
+            return 1
+        with open(curr, 'r') as fp:
+            results += [(i, json.load(fp))]
+
+    if len(results) == 0 and not options.force_dict:
         print('No command specified')
         return 1
+    elif len(results) == 1 and not options.force_dict:
+        # Make to keep the existing output format for a single option
+        print(json.dumps(results[0][1], indent=indent))
+    else:
+        out = {}
+        for i in results:
+            out[i[0]] = i[1]
+        print(json.dumps(out, indent=indent))
     return 0
+
+def write_intro_info(intro_info, info_dir):
+    for i in intro_info:
+        out_file = os.path.join(info_dir, 'intro-{}.json'.format(i[0]))
+        tmp_file = os.path.join(info_dir, 'tmp_dump.json')
+        with open(tmp_file, 'w') as fp:
+            json.dump(i[1], fp)
+            fp.flush() # Not sure if this is needed
+        os.replace(tmp_file, out_file)
+
+def generate_introspection_file(builddata: build.Build, backend: backends.Backend):
+    coredata = builddata.environment.get_coredata()
+    benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
+    testdata = backend.create_test_serialisation(builddata.get_tests())
+    installdata = backend.create_install_data()
+
+    intro_info = [
+        list_benchmarks(benchmarkdata),
+        list_buildoptions(coredata),
+        list_buildsystem_files(builddata),
+        list_deps(coredata),
+        list_installed(installdata),
+        list_projinfo(builddata),
+        list_targets(builddata, installdata, backend),
+        list_tests(testdata)
+    ]
+
+    write_intro_info(intro_info, builddata.environment.info_dir)
+
+def update_build_options(coredata: cdata.CoreData, info_dir):
+    intro_info = [
+        list_buildoptions(coredata)
+    ]
+
+    write_intro_info(intro_info, info_dir)

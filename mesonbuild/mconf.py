@@ -14,6 +14,7 @@
 
 import os
 from . import (coredata, mesonlib, build)
+from . import mintro
 
 def add_arguments(parser):
     coredata.register_builtin_arguments(parser)
@@ -162,6 +163,7 @@ def run(options):
             c.print_conf()
         if save:
             c.save()
+            mintro.update_build_options(c.coredata, c.build.environment.info_dir)
     except ConfException as e:
         print('Meson configurator encountered an error:')
         raise e
