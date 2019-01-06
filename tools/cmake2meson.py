@@ -200,7 +200,7 @@ class Converter:
                 libcmd = 'static_library'
                 args = [t.args[0]] + t.args[2:]
             else:
-                libcmd = 'static_library'
+                libcmd = 'library'
                 args = t.args
             line = '%s_lib = %s(%s)' % (t.args[0].value, libcmd, self.convert_args(args, False))
         elif t.name == 'add_test':
@@ -223,7 +223,7 @@ class Converter:
                     l = 'cpp'
                 args.append(l)
             args = ["'%s'" % i for i in args]
-            line = 'project(' + ', '.join(args) + ')'
+            line = 'project(' + ', '.join(args) + ", default_options : ['default_library=static'])"
         elif t.name == 'set':
             varname = t.args[0].value.lower()
             line = '%s = %s\n' % (varname, self.convert_args(t.args[1:]))
