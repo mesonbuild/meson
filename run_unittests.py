@@ -4413,7 +4413,7 @@ class LinuxlikeTests(BasePlatformTests):
                 break
         self.assertIsInstance(docbook_target, dict)
         ifile = self.introspect(['--target-files', 'generated-gdbus-docbook@cus'])[0]
-        self.assertListEqual(t['filename'], [os.path.join(self.builddir ,'gdbus/generated-gdbus-doc-' + os.path.basename(ifile))])
+        self.assertListEqual(t['filename'], [os.path.join(self.builddir, 'gdbus/generated-gdbus-doc-' + os.path.basename(ifile))])
 
     def test_build_rpath(self):
         if is_cygwin():
