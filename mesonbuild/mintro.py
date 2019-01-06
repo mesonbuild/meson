@@ -183,28 +183,6 @@ class IntrospectionInterpreter(astinterpreter.AstInterpreter):
             'add_languages': self.func_add_languages
         })
 
-    def detect_compilers(self, lang, need_cross_compiler):
-        comp, cross_comp = self.environment.detect_compilers(lang, need_cross_compiler)
-        if comp is None:
-            return None, None
-
-        self.coredata.compilers[lang] = comp
-        # Native compiler always exist so always add its options.
-        new_options = comp.get_options()
-        if cross_comp is not None:
-            self.coredata.cross_compilers[lang] = cross_comp
-            new_options.update(cross_comp.get_options())
-
-        optprefix = lang + '_'
-        for k, o in new_options.items():
-            if not k.startswith(optprefix):
-                raise RuntimeError('Internal error, %s has incorrect prefix.' % k)
-            if k in self.environment.cmd_line_options:
-                o.set_value(self.environment.cmd_line_options[k])
-            self.coredata.compiler_options.setdefault(k, o)
-
-        return comp, cross_comp
-
     def flatten_args(self, args):
         # Resolve mparser.ArrayNode if needed
         flattend_args = []
@@ -224,7 +202,7 @@ class IntrospectionInterpreter(astinterpreter.AstInterpreter):
         for lang in sorted(args, key=compilers.sort_clink):
             lang = lang.lower()
             if lang not in self.coredata.compilers:
-                (comp, _) = self.detect_compilers(lang, need_cross_compiler)
+                (comp, _) = self.environment.detect_compilers(lang, need_cross_compiler, introspection_mode=True)
                 if comp is None:
                     return
                 for optname in comp.base_options:

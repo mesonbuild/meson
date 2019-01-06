@@ -2657,36 +2657,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.validate_arguments(args, 0, [])
         raise Exception()
 
-    def detect_compilers(self, lang, need_cross_compiler):
-        comp, cross_comp = self.environment.detect_compilers(lang, need_cross_compiler)
-        if comp is None:
-            raise InvalidCode('Tried to use unknown language "%s".' % lang)
-
-        comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
-        self.coredata.compilers[lang] = comp
-        # Native compiler always exist so always add its options.
-        new_options = comp.get_options()
-        if cross_comp is not None:
-            cross_comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
-            self.coredata.cross_compilers[lang] = cross_comp
-            new_options.update(cross_comp.get_options())
-
-        optprefix = lang + '_'
-        for k, o in new_options.items():
-            if not k.startswith(optprefix):
-                raise InterpreterException('Internal error, %s has incorrect prefix.' % k)
-            if k in self.environment.cmd_line_options:
-                o.set_value(self.environment.cmd_line_options[k])
-            self.coredata.compiler_options.setdefault(k, o)
-
-        # Unlike compiler and linker flags, preprocessor flags are not in
-        # compiler_options because they are not visible to user.
-        preproc_flags = comp.get_preproc_flags()
-        preproc_flags = shlex.split(preproc_flags)
-        self.coredata.external_preprocess_args.setdefault(lang, preproc_flags)
-
-        return comp, cross_comp
-
     def add_languages(self, args, required):
         success = True
         need_cross_compiler = self.environment.is_cross_build()
@@ -2697,7 +2667,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 cross_comp = self.coredata.cross_compilers.get(lang, None)
             else:
                 try:
-                    (comp, cross_comp) = self.detect_compilers(lang, need_cross_compiler)
+                    (comp, cross_comp) = self.environment.detect_compilers(lang, need_cross_compiler)
                 except Exception:
                     if not required:
                         mlog.log('Compiler for language', mlog.bold(lang), 'not found.')

@@ -973,7 +973,7 @@ class Environment:
             return compilers.SwiftCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_compilers(self, lang, need_cross_compiler):
+    def detect_compilers(self, lang: str, need_cross_compiler: bool, introspection_mode: bool = False):
         comp = None
         cross_comp = None
         if lang == 'c':
@@ -1021,6 +1021,37 @@ class Environment:
             if need_cross_compiler:
                 raise EnvironmentException('Cross compilation with Swift is not working yet.')
                 # cross_comp = self.environment.detect_fortran_compiler(True)
+
+        if comp is None:
+            if not introspection_mode:
+                raise EnvironmentException('Tried to use unknown language "%s".' % lang)
+            else:
+                return None, None
+
+        if not introspection_mode:
+            comp.sanity_check(self.get_scratch_dir(), self)
+        self.coredata.compilers[lang] = comp
+        # Native compiler always exist so always add its options.
+        new_options = comp.get_options()
+        if cross_comp is not None:
+            if not introspection_mode:
+                cross_comp.sanity_check(self.get_scratch_dir(), self)
+            self.coredata.cross_compilers[lang] = cross_comp
+            new_options.update(cross_comp.get_options())
+
+        optprefix = lang + '_'
+        for k, o in new_options.items():
+            if not k.startswith(optprefix):
+                raise EnvironmentException('Internal error, %s has incorrect prefix.' % k)
+            if k in self.cmd_line_options:
+                o.set_value(self.cmd_line_options[k])
+            self.coredata.compiler_options.setdefault(k, o)
+
+        # Unlike compiler and linker flags, preprocessor flags are not in
+        # compiler_options because they are not visible to user.
+        preproc_flags = comp.get_preproc_flags()
+        preproc_flags = shlex.split(preproc_flags)
+        self.coredata.external_preprocess_args.setdefault(lang, preproc_flags)
 
         return comp, cross_comp
 
