@@ -151,20 +151,20 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
         tlist.append(t)
     return tlist
 
-class BuildoptionsOptionHelper:
+class IntrospectionHelper:
     # mimic an argparse namespace
     def __init__(self, cross_file):
         self.cross_file = cross_file
         self.native_file = None
         self.cmd_line_options = {}
 
-class BuildoptionsInterpreter(astinterpreter.AstInterpreter):
+class IntrospectionInterpreter(astinterpreter.AstInterpreter):
     # Interpreter to detect the options without a build directory
     # Most of the code is stolen from interperter.Interpreter
     def __init__(self, source_root, subdir, backend, cross_file=None, subproject='', subproject_dir='subprojects', env=None):
         super().__init__(source_root, subdir)
 
-        options = BuildoptionsOptionHelper(cross_file)
+        options = IntrospectionHelper(cross_file)
         self.cross_file = cross_file
         if env is None:
             self.environment = environment.Environment(source_root, None, options)
@@ -176,6 +176,7 @@ class BuildoptionsInterpreter(astinterpreter.AstInterpreter):
         self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         self.backend = backend
         self.default_options = {'backend': self.backend}
+        self.project_data = {}
 
         self.funcs.update({
             'project': self.func_project,
@@ -207,6 +208,8 @@ class BuildoptionsInterpreter(astinterpreter.AstInterpreter):
     def flatten_args(self, args):
         # Resolve mparser.ArrayNode if needed
         flattend_args = []
+        if isinstance(args, mparser.ArrayNode):
+            args = [x.value for x in args.args.arguments]
         for i in args:
             if isinstance(i, mparser.ArrayNode):
                 flattend_args += [x.value for x in i.args.arguments]
@@ -234,17 +237,21 @@ class BuildoptionsInterpreter(astinterpreter.AstInterpreter):
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
 
+        proj_name = args[0]
+        proj_vers = kwargs.get('version', 'undefined')
         proj_langs = self.flatten_args(args[1:])
+        if isinstance(proj_vers, mparser.ElementaryNode):
+            proj_vers = proj_vers.value
+        if not isinstance(proj_vers, str):
+            proj_vers = 'undefined'
+        self.project_data = {'descriptive_name': proj_name, 'version': proj_vers}
 
         if os.path.exists(self.option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(self.option_file)
             self.coredata.merge_user_options(oi.options)
 
-        def_opts = kwargs.get('default_options', [])
-        if isinstance(def_opts, mparser.ArrayNode):
-            def_opts = [x.value for x in def_opts.args.arguments]
-
+        def_opts = self.flatten_args(kwargs.get('default_options', []))
         self.project_default_options = mesonlib.stringlistify(def_opts)
         self.project_default_options = cdata.create_options_dict(self.project_default_options)
         self.default_options.update(self.project_default_options)
@@ -255,6 +262,7 @@ class BuildoptionsInterpreter(astinterpreter.AstInterpreter):
             if isinstance(spdirname, str):
                 self.subproject_dir = spdirname
         if not self.is_subproject():
+            self.project_data['subprojects'] = []
             subprojects_dir = os.path.join(self.source_root, self.subproject_dir)
             if os.path.isdir(subprojects_dir):
                 for i in os.listdir(subprojects_dir):
@@ -271,8 +279,10 @@ class BuildoptionsInterpreter(astinterpreter.AstInterpreter):
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
         subpr = os.path.join(subproject_dir_abs, dirname)
         try:
-            subi = BuildoptionsInterpreter(subpr, '', self.backend, cross_file=self.cross_file, subproject=dirname, subproject_dir=self.subproject_dir, env=self.environment)
+            subi = IntrospectionInterpreter(subpr, '', self.backend, cross_file=self.cross_file, subproject=dirname, subproject_dir=self.subproject_dir, env=self.environment)
             subi.analyze()
+            subi.project_data['name'] = dirname
+            self.project_data['subprojects'] += [subi.project_data]
         except:
             return
 
@@ -292,7 +302,7 @@ def list_buildoptions_from_source(sourcedir, backend, indent):
     # Make sure that log entries in other parts of meson don't interfere with the JSON output
     mlog.disable()
     backend = backends.get_backend_from_name(backend, None)
-    intr = BuildoptionsInterpreter(sourcedir, '', backend.name)
+    intr = IntrospectionInterpreter(sourcedir, '', backend.name)
     intr.analyze()
     # Reenable logging just in case
     mlog.enable()
@@ -438,60 +448,22 @@ def list_projinfo(builddata: build.Build):
     result['subprojects'] = subprojects
     return result
 
-class ProjectInfoInterperter(astinterpreter.AstInterpreter):
-    def __init__(self, source_root, subdir):
-        super().__init__(source_root, subdir)
-        self.funcs.update({'project': self.func_project})
-        self.project_name = None
-        self.project_version = None
-
-    def func_project(self, node, args, kwargs):
-        if len(args) < 1:
-            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
-        self.project_name = args[0]
-        self.project_version = kwargs.get('version', 'undefined')
-        if isinstance(self.project_version, mparser.ElementaryNode):
-            self.project_version = self.project_version.value
-
-    def set_variable(self, varname, variable):
-        pass
-
-    def analyze(self):
-        self.load_root_meson_file()
-        self.sanity_check_ast()
-        self.parse_project()
-        self.run()
-
 def list_projinfo_from_source(sourcedir, indent):
     files = find_buildsystem_files_list(sourcedir)
+    files = [os.path.normpath(x) for x in files]
 
-    result = {'buildsystem_files': []}
-    subprojects = {}
+    mlog.disable()
+    intr = IntrospectionInterpreter(sourcedir, '', 'ninja')
+    intr.analyze()
+    mlog.enable()
 
-    for f in files:
-        f = f.replace('\\', '/')
-        if f == 'meson.build':
-            interpreter = ProjectInfoInterperter(sourcedir, '')
-            interpreter.analyze()
-            version = None
-            if interpreter.project_version is str:
-                version = interpreter.project_version
-            result.update({'version': version, 'descriptive_name': interpreter.project_name})
-            result['buildsystem_files'].append(f)
-        elif f.startswith('subprojects/'):
-            subproject_id = f.split('/')[1]
-            subproject = subprojects.setdefault(subproject_id, {'buildsystem_files': []})
-            subproject['buildsystem_files'].append(f)
-            if f.count('/') == 2 and f.endswith('meson.build'):
-                interpreter = ProjectInfoInterperter(os.path.join(sourcedir, 'subprojects', subproject_id), '')
-                interpreter.analyze()
-                subproject.update({'name': subproject_id, 'version': interpreter.project_version, 'descriptive_name': interpreter.project_name})
-        else:
-            result['buildsystem_files'].append(f)
+    for i in intr.project_data['subprojects']:
+        basedir = os.path.join(intr.subproject_dir, i['name'])
+        i['buildsystem_files'] = [x for x in files if x.startswith(basedir)]
+        files = [x for x in files if not x.startswith(basedir)]
 
-    subprojects = [obj for name, obj in subprojects.items()]
-    result['subprojects'] = subprojects
-    print(json.dumps(result, indent=indent))
+    intr.project_data['buildsystem_files'] = files
+    print(json.dumps(intr.project_data, indent=indent))
 
 def run(options):
     datadir = 'meson-private'
