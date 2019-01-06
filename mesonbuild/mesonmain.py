@@ -165,6 +165,12 @@ def run(original_args, mainfile):
             mlog.error('Please download and use Python as detailed at: https://mesonbuild.com/Getting-meson.html')
         return 2
 
+    if os.name != 'nt' and sys.getfilesystemencoding() == 'ascii':
+        mlog.warning(
+            'Python is configured to use an ASCII encoding, which is not '
+            'supported. Try setting LANG to C.UTF-8 in your environment or '
+            'any other utf-8 locale listed by \'locale -a\'')
+
     # Set the meson command that will be used to run scripts and so on
     mesonlib.set_meson_command(mainfile)
 
