@@ -725,7 +725,7 @@ class Backend:
                 elif isinstance(a, str):
                     cmd_args.append(a)
                 elif isinstance(a, build.Target):
-                    cmd_args.append(self.get_target_filename(a))
+                    cmd_args.append(self.construct_target_rel_path(a, t.workdir))
                 else:
                     raise MesonException('Bad object in test command.')
             ts = TestSerialisation(t.get_name(), t.project_name, t.suite, cmd, is_cross,
@@ -736,6 +736,13 @@ class Backend:
 
     def write_test_serialisation(self, tests, datafile):
         pickle.dump(self.create_test_serialisation(tests), datafile)
+
+    def construct_target_rel_path(self, a, workdir):
+        if workdir is None:
+            return self.get_target_filename(a)
+        assert(os.path.isabs(workdir))
+        abs_path = self.get_target_filename_abs(a)
+        return os.path.relpath(abs_path, workdir)
 
     def generate_depmf_install(self, d):
         if self.build.dep_manifest_name is None:
