@@ -53,10 +53,8 @@ install_data('Info.plist', install_dir : 'Contents')
 ```
 
 The format of `Info.plist` can be found in the link or the sample
-project linked above. Be careful, the sample code on the linked page
-is malformed, it is missing a less than character (<) before
-`!DOCTYPE`. The simplest way to get an icon in the `icns` format is to
-save your image as a tiff an then use the `tiff2icns` helper
+project linked above. The simplest way to get an icon in the `icns`
+format is to save your image as a tiff an then use the `tiff2icns` helper
 application that comes with XCode.
 
 Some applications assume that the working directory of the app process
