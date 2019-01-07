@@ -293,7 +293,8 @@ def list_buildoptions_from_source(sourcedir, backend, indent):
     mlog.enable()
     print(json.dumps(list_buildoptions(intr.coredata), indent=indent))
 
-def list_target_files(target_name, targets):
+def list_target_files(target_name, targets, builddata: build.Build):
+    sys.stderr.write("WARNING: The --target-files introspection API is deprecated. Use --targets instead.\n")
     result = []
     tgt = None
 
@@ -308,6 +309,8 @@ def list_target_files(target_name, targets):
 
     for i in tgt['target_sources']:
         result += i['sources'] + i['generated_sources']
+
+    result = list(map(lambda x: os.path.relpath(x, builddata.environment.get_source_dir()), result))
 
     return result
 
@@ -379,6 +382,7 @@ def find_buildsystem_files_list(src_dir):
 def list_buildsystem_files(builddata: build.Build):
     src_dir = builddata.environment.get_source_dir()
     filelist = find_buildsystem_files_list(src_dir)
+    filelist = [os.path.join(src_dir, x) for x in filelist]
     return filelist
 
 def list_deps(coredata: cdata.CoreData):
@@ -523,7 +527,8 @@ def run(options):
         targets_file = os.path.join(infodir, 'intro-targets.json')
         with open(targets_file, 'r') as fp:
             targets = json.load(fp)
-        results += [('target_files', list_target_files(options.target_files, targets))]
+        builddata = build.load(options.builddir)
+        results += [('target_files', list_target_files(options.target_files, targets, builddata))]
 
     # Extract introspection information from JSON
     for i in toextract:
