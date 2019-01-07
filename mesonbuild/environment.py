@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import configparser, os, platform, re, sys, shlex, shutil, subprocess, typing
+import configparser, os, platform, re, sys, shlex, shutil, subprocess
+import typing
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker
@@ -1581,3 +1582,42 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             if command is not None:
                 command = shlex.split(command)
         return command
+
+class Directories:
+
+    """Data class that holds information about directories for native and cross
+    builds.
+    """
+
+    def __init__(self, bindir: typing.Optional[str] = None, datadir: typing.Optional[str] = None,
+                 includedir: typing.Optional[str] = None, infodir: typing.Optional[str] = None,
+                 libdir: typing.Optional[str] = None, libexecdir: typing.Optional[str] = None,
+                 localedir: typing.Optional[str] = None, localstatedir: typing.Optional[str] = None,
+                 mandir: typing.Optional[str] = None, prefix: typing.Optional[str] = None,
+                 sbindir: typing.Optional[str] = None, sharedstatedir: typing.Optional[str] = None,
+                 sysconfdir: typing.Optional[str] = None):
+        self.bindir = bindir
+        self.datadir = datadir
+        self.includedir = includedir
+        self.infodir = infodir
+        self.libdir = libdir
+        self.libexecdir = libexecdir
+        self.localedir = localedir
+        self.localstatedir = localstatedir
+        self.mandir = mandir
+        self.prefix = prefix
+        self.sbindir = sbindir
+        self.sharedstatedir = sharedstatedir
+        self.sysconfdir = sysconfdir
+
+    def __contains__(self, key: str) -> str:
+        return hasattr(self, key)
+
+    def __getitem__(self, key: str) -> str:
+        return getattr(self, key)
+
+    def __setitem__(self, key: str, value: typing.Optional[str]) -> None:
+        setattr(self, key, value)
+
+    def __iter__(self) -> typing.Iterator[typing.Tuple[str, str]]:
+        return iter(self.__dict__.items())
