@@ -158,7 +158,7 @@ class BuildoptionsOptionHelper:
         self.native_file = None
         self.cmd_line_options = {}
 
-class BuildoptionsInterperter(astinterpreter.AstInterpreter):
+class BuildoptionsInterpreter(astinterpreter.AstInterpreter):
     # Interpreter to detect the options without a build directory
     # Most of the code is stolen from interperter.Interpreter
     def __init__(self, source_root, subdir, backend, cross_file=None, subproject='', subproject_dir='subprojects', env=None):
@@ -271,7 +271,7 @@ class BuildoptionsInterperter(astinterpreter.AstInterpreter):
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
         subpr = os.path.join(subproject_dir_abs, dirname)
         try:
-            subi = BuildoptionsInterperter(subpr, '', self.backend, cross_file=self.cross_file, subproject=dirname, subproject_dir=self.subproject_dir, env=self.environment)
+            subi = BuildoptionsInterpreter(subpr, '', self.backend, cross_file=self.cross_file, subproject=dirname, subproject_dir=self.subproject_dir, env=self.environment)
             subi.analyze()
         except:
             return
@@ -292,7 +292,7 @@ def list_buildoptions_from_source(sourcedir, backend, indent):
     # Make sure that log entries in other parts of meson don't interfere with the JSON output
     mlog.disable()
     backend = backends.get_backend_from_name(backend, None)
-    intr = BuildoptionsInterperter(sourcedir, '', backend.name)
+    intr = BuildoptionsInterpreter(sourcedir, '', backend.name)
     intr.analyze()
     # Reenable logging just in case
     mlog.enable()
