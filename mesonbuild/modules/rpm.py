@@ -29,39 +29,16 @@ import os
 class RPMModule(ExtensionModule):
 
     @noKwargs
-    def generate_spec_template(self, state, args, kwargs):
-        compiler_deps = set()
-        for compiler in state.compilers.values():
-            # Elbrus has one 'lcc' package for every compiler
-            if isinstance(compiler, compilers.GnuCCompiler):
-                compiler_deps.add('gcc')
-            elif isinstance(compiler, compilers.GnuCPPCompiler):
-                compiler_deps.add('gcc-c++')
-            elif isinstance(compiler, compilers.ElbrusCCompiler):
-                compiler_deps.add('lcc')
-            elif isinstance(compiler, compilers.ElbrusCPPCompiler):
-                compiler_deps.add('lcc')
-            elif isinstance(compiler, compilers.ElbrusFortranCompiler):
-                compiler_deps.add('lcc')
-            elif isinstance(compiler, compilers.ValaCompiler):
-                compiler_deps.add('vala')
-            elif isinstance(compiler, compilers.GnuFortranCompiler):
-                compiler_deps.add('gcc-gfortran')
-            elif isinstance(compiler, compilers.GnuObjCCompiler):
-                compiler_deps.add('gcc-objc')
-            elif compiler == compilers.GnuObjCPPCompiler:
-                compiler_deps.add('gcc-objc++')
-            else:
-                mlog.log('RPM spec file will not created, generating not allowed for:',
-                         mlog.bold(compiler.get_id()))
-                return
-        proj = state.project_name.replace(' ', '_').replace('\t', '_')
+    def generate_spec_template(self, coredata, args, kwargs):
+        self.coredata = coredata
+        required_compilers = self.__get_required_compilers()
+        proj = coredata.project_name.replace(' ', '_').replace('\t', '_')
         so_installed = False
         devel_subpkg = False
         files = set()
         files_devel = set()
         to_delete = set()
-        for target in state.targets.values():
+        for target in coredata.targets.values():
             if isinstance(target, build.Executable) and target.need_install:
                 files.add('%%{_bindir}/%s' % target.get_filename())
             elif isinstance(target, build.SharedLibrary) and target.need_install:
@@ -80,18 +57,19 @@ class RPMModule(ExtensionModule):
                 files_devel.add('%%{_datadir}/gir-1.0/%s' % target.get_filename()[0])
             elif isinstance(target, TypelibTarget) and target.should_install():
                 files.add('%%{_libdir}/girepository-1.0/%s' % target.get_filename()[0])
-        for header in state.headers:
+        for header in coredata.headers:
             if len(header.get_install_subdir()) > 0:
                 files_devel.add('%%{_includedir}/%s/' % header.get_install_subdir())
             else:
                 for hdr_src in header.get_sources():
                     files_devel.add('%%{_includedir}/%s' % hdr_src)
-        for man in state.man:
+        for man in coredata.man:
             for man_file in man.get_sources():
                 files.add('%%{_mandir}/man%u/%s.*' % (int(man_file.split('.')[-1]), man_file))
         if len(files_devel) > 0:
             devel_subpkg = True
-        filename = os.path.join(state.environment.get_build_dir(),
+
+        filename = os.path.join(coredata.environment.get_build_dir(),
                                 '%s.spec' % proj)
         with open(filename, 'w+') as fn:
             fn.write('Name: %s\n' % proj)
@@ -102,24 +80,28 @@ class RPMModule(ExtensionModule):
             fn.write('\n')
             fn.write('Source0: %{name}-%{version}.tar.xz # FIXME\n')
             fn.write('\n')
-            for compiler in compiler_deps:
-                fn.write('BuildRequires: %s\n' % compiler)
-            for dep in state.environment.coredata.deps:
-                fn.write('BuildRequires: pkgconfig(%s)\n' % dep[0])
-            for lib in state.environment.coredata.ext_libs.values():
-                name = lib.get_name()
-                fn.write('BuildRequires: {} # FIXME\n'.format(name))
-                mlog.warning('replace', mlog.bold(name), 'with the real package.',
-                             'You can use following command to find package which '
-                             'contains this lib:',
-                             mlog.bold("dnf provides '*/lib{}.so'".format(name)))
-            for prog in state.environment.coredata.ext_progs.values():
-                if not prog.found():
-                    fn.write('BuildRequires: %%{_bindir}/%s # FIXME\n' %
-                             prog.get_name())
-                else:
-                    fn.write('BuildRequires: {}\n'.format(prog.get_path()))
             fn.write('BuildRequires: meson\n')
+            for compiler in required_compilers:
+                fn.write('BuildRequires: %s\n' % compiler)
+            for dep in coredata.environment.coredata.deps:
+                fn.write('BuildRequires: pkgconfig(%s)\n' % dep[0])
+#   ext_libs and ext_progs have been removed from coredata so the following code
+#   no longer works. It is kept as a reminder of the idea should anyone wish
+#   to re-implement it.
+#
+#            for lib in state.environment.coredata.ext_libs.values():
+#                name = lib.get_name()
+#                fn.write('BuildRequires: {} # FIXME\n'.format(name))
+#                mlog.warning('replace', mlog.bold(name), 'with the real package.',
+#                             'You can use following command to find package which '
+#                             'contains this lib:',
+#                             mlog.bold("dnf provides '*/lib{}.so'".format(name)))
+#            for prog in state.environment.coredata.ext_progs.values():
+#                if not prog.found():
+#                    fn.write('BuildRequires: %%{_bindir}/%s # FIXME\n' %
+#                             prog.get_name())
+#                else:
+#                    fn.write('BuildRequires: {}\n'.format(prog.get_path()))
             fn.write('\n')
             fn.write('%description\n')
             fn.write('\n')
@@ -166,6 +148,34 @@ class RPMModule(ExtensionModule):
             fn.write('\n')
         mlog.log('RPM spec template written to %s.spec.\n' % proj)
         return ModuleReturnValue(None, [])
+
+    def __get_required_compilers(self):
+        required_compilers = set()
+        for compiler in self.coredata.compilers.values():
+            # Elbrus has one 'lcc' package for every compiler
+            if isinstance(compiler, compilers.GnuCCompiler):
+                required_compilers.add('gcc')
+            elif isinstance(compiler, compilers.GnuCPPCompiler):
+                required_compilers.add('gcc-c++')
+            elif isinstance(compiler, compilers.ElbrusCCompiler):
+                required_compilers.add('lcc')
+            elif isinstance(compiler, compilers.ElbrusCPPCompiler):
+                required_compilers.add('lcc')
+            elif isinstance(compiler, compilers.ElbrusFortranCompiler):
+                required_compilers.add('lcc')
+            elif isinstance(compiler, compilers.ValaCompiler):
+                required_compilers.add('vala')
+            elif isinstance(compiler, compilers.GnuFortranCompiler):
+                required_compilers.add('gcc-gfortran')
+            elif isinstance(compiler, compilers.GnuObjCCompiler):
+                required_compilers.add('gcc-objc')
+            elif compiler == compilers.GnuObjCPPCompiler:
+                required_compilers.add('gcc-objc++')
+            else:
+                mlog.log('RPM spec file not created, generation not allowed for:',
+                         mlog.bold(compiler.get_id()))
+        return required_compilers
+
 
 def initialize(*args, **kwargs):
     return RPMModule(*args, **kwargs)
