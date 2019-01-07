@@ -33,6 +33,7 @@ from .compilers import (
     is_source,
 )
 from .compilers import (
+    Compiler,
     ArmCCompiler,
     ArmCPPCompiler,
     ArmclangCCompiler,
@@ -973,7 +974,7 @@ class Environment:
             return compilers.SwiftCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_compilers(self, lang: str, need_cross_compiler: bool, introspection_mode: bool = False):
+    def compilers_from_language(self, lang: str, need_cross_compiler: bool):
         comp = None
         cross_comp = None
         if lang == 'c':
@@ -1021,21 +1022,16 @@ class Environment:
             if need_cross_compiler:
                 raise EnvironmentException('Cross compilation with Swift is not working yet.')
                 # cross_comp = self.environment.detect_fortran_compiler(True)
+        else:
+            return None, None
 
-        if comp is None:
-            if not introspection_mode:
-                raise EnvironmentException('Tried to use unknown language "%s".' % lang)
-            else:
-                return None, None
+        return comp, cross_comp
 
-        if not introspection_mode:
-            comp.sanity_check(self.get_scratch_dir(), self)
+    def process_new_compilers(self, lang: str, comp: Compiler, cross_comp: Compiler):
         self.coredata.compilers[lang] = comp
         # Native compiler always exist so always add its options.
         new_options = comp.get_options()
         if cross_comp is not None:
-            if not introspection_mode:
-                cross_comp.sanity_check(self.get_scratch_dir(), self)
             self.coredata.cross_compilers[lang] = cross_comp
             new_options.update(cross_comp.get_options())
 
@@ -1053,6 +1049,34 @@ class Environment:
         preproc_flags = shlex.split(preproc_flags)
         self.coredata.external_preprocess_args.setdefault(lang, preproc_flags)
 
+        enabled_opts = []
+        for optname in comp.base_options:
+            if optname in self.coredata.base_options:
+                continue
+            oobj = compilers.base_options[optname]
+            if optname in self.cmd_line_options:
+                oobj.set_value(self.cmd_line_options[optname])
+                enabled_opts.append(optname)
+            self.coredata.base_options[optname] = oobj
+        self.emit_base_options_warnings(enabled_opts)
+
+    def emit_base_options_warnings(self, enabled_opts: list):
+        if 'b_bitcode' in enabled_opts:
+            mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as such as \'b_asneeded\' have been disabled.')
+            mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.')
+
+    def check_compilers(self, lang: str, comp: Compiler, cross_comp: Compiler):
+        if comp is None:
+            raise EnvironmentException('Tried to use unknown language "%s".' % lang)
+
+        comp.sanity_check(self.get_scratch_dir(), self)
+        if cross_comp:
+            cross_comp.sanity_check(self.get_scratch_dir(), self)
+
+    def detect_compilers(self, lang: str, need_cross_compiler: bool):
+        (comp, cross_comp) = self.compilers_from_language(lang, need_cross_compiler)
+        if comp is not None:
+            self.process_new_compilers(lang, comp, cross_comp)
         return comp, cross_comp
 
     def detect_static_linker(self, compiler):

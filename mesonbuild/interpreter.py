@@ -2668,6 +2668,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             else:
                 try:
                     (comp, cross_comp) = self.environment.detect_compilers(lang, need_cross_compiler)
+                    self.environment.check_compilers(lang, comp, cross_comp)
                 except Exception:
                     if not required:
                         mlog.log('Compiler for language', mlog.bold(lang), 'not found.')
@@ -2687,25 +2688,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.log('Cross', cross_comp.get_display_language(), 'compiler:',
                          mlog.bold(' '.join(cross_comp.get_exelist())), version_string)
                 self.build.ensure_static_cross_linker(comp)
-            self.add_base_options(comp)
         return success
-
-    def emit_base_options_warnings(self, enabled_opts):
-        if 'b_bitcode' in enabled_opts:
-            mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as such as \'b_asneeded\' have been disabled.')
-            mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.')
-
-    def add_base_options(self, compiler):
-        enabled_opts = []
-        for optname in compiler.base_options:
-            if optname in self.coredata.base_options:
-                continue
-            oobj = compilers.base_options[optname]
-            if optname in self.environment.cmd_line_options:
-                oobj.set_value(self.environment.cmd_line_options[optname])
-                enabled_opts.append(optname)
-            self.coredata. base_options[optname] = oobj
-        self.emit_base_options_warnings(enabled_opts)
 
     def program_from_file_for(self, for_machine, prognames, silent):
         bins = self.environment.binaries[for_machine]

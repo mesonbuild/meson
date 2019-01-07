@@ -197,20 +197,6 @@ class IntrospectionInterpreter(astinterpreter.AstInterpreter):
                 pass
         return flattend_args
 
-    def add_languages(self, args):
-        need_cross_compiler = self.environment.is_cross_build()
-        for lang in sorted(args, key=compilers.sort_clink):
-            lang = lang.lower()
-            if lang not in self.coredata.compilers:
-                (comp, _) = self.environment.detect_compilers(lang, need_cross_compiler, introspection_mode=True)
-                if comp is None:
-                    return
-                for optname in comp.base_options:
-                    if optname in self.coredata.base_options:
-                        continue
-                    oobj = compilers.base_options[optname]
-                    self.coredata.base_options[optname] = oobj
-
     def func_project(self, node, args, kwargs):
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
@@ -251,7 +237,7 @@ class IntrospectionInterpreter(astinterpreter.AstInterpreter):
         options = {k: v for k, v in self.environment.cmd_line_options.items() if k.startswith('backend_')}
 
         self.coredata.set_options(options)
-        self.add_languages(proj_langs)
+        self.func_add_languages(None, proj_langs, None)
 
     def do_subproject(self, dirname):
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
@@ -265,7 +251,12 @@ class IntrospectionInterpreter(astinterpreter.AstInterpreter):
             return
 
     def func_add_languages(self, node, args, kwargs):
-        return self.add_languages(self.flatten_args(args))
+        args = self.flatten_args(args)
+        need_cross_compiler = self.environment.is_cross_build()
+        for lang in sorted(args, key=compilers.sort_clink):
+            lang = lang.lower()
+            if lang not in self.coredata.compilers:
+                self.environment.detect_compilers(lang, need_cross_compiler)
 
     def is_subproject(self):
         return self.subproject != ''
