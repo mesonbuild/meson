@@ -345,6 +345,9 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     if pass_libdir_to_test(testdir):
         gen_args += ['--libdir', 'lib']
     gen_args += [testdir, test_build_dir] + flags + test_args + extra_args
+    nativefile = os.path.join(testdir, 'nativefile.ini')
+    if os.path.exists(nativefile):
+        gen_args.extend(['--native-file', nativefile])
     (returncode, stdo, stde) = run_configure(gen_args)
     try:
         logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
