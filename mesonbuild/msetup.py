@@ -185,11 +185,15 @@ class MesonApp:
             mlog.log('Target machine cpu:', mlog.bold(intr.builtin['target_machine'].cpu_method([], {})))
         mlog.log('Build machine cpu family:', mlog.bold(intr.builtin['build_machine'].cpu_family_method([], {})))
         mlog.log('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
-        if self.options.profile:
-            fname = os.path.join(self.build_dir, 'meson-private', 'profile-interpreter.log')
-            profile.runctx('intr.run()', globals(), locals(), filename=fname)
-        else:
-            intr.run()
+        try:
+            if self.options.profile:
+                fname = os.path.join(self.build_dir, 'meson-private', 'profile-interpreter.log')
+                profile.runctx('intr.run()', globals(), locals(), filename=fname)
+            else:
+                intr.run()
+        except Exception as e:
+            mintro.write_meson_info_file(b, [e])
+            raise
         # Print all default option values that don't match the current value
         for def_opt_name, def_opt_value, cur_opt_value in intr.get_non_matching_default_options():
             mlog.log('Option', mlog.bold(def_opt_name), 'is:',
@@ -224,7 +228,9 @@ class MesonApp:
                 profile.runctx('mintro.generate_introspection_file(b, intr.backend)', globals(), locals(), filename=fname)
             else:
                 mintro.generate_introspection_file(b, intr.backend)
-        except:
+            mintro.write_meson_info_file(b, [], True)
+        except Exception as e:
+            mintro.write_meson_info_file(b, [e])
             if 'cdf' in locals():
                 old_cdf = cdf + '.prev'
                 if os.path.exists(old_cdf):

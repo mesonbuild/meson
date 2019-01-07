@@ -3291,6 +3291,20 @@ recommended as it is not supported on some platforms''')
 
         self.assertEqual(res_all, res_file)
 
+    def test_introspect_meson_info(self):
+        testdir = os.path.join(self.unit_test_dir, '49 introspection')
+        introfile = os.path.join(self.builddir, 'meson-info', 'meson-info.json')
+        self.init(testdir)
+        self.assertPathExists(introfile)
+        with open(introfile, 'r') as fp:
+            res1 = json.load(fp)
+
+        for i in ['meson_version', 'directories', 'introspection', 'build_files_updated', 'error']:
+            self.assertIn(i, res1)
+
+        self.assertEqual(res1['error'], False)
+        self.assertEqual(res1['build_files_updated'], True)
+
     def test_introspect_config_update(self):
         testdir = os.path.join(self.unit_test_dir, '49 introspection')
         introfile = os.path.join(self.builddir, 'meson-info', 'intro-buildoptions.json')

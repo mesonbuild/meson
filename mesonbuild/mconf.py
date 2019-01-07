@@ -148,6 +148,7 @@ class Conf:
 def run(options):
     coredata.parse_cmd_line_options(options)
     builddir = os.path.abspath(os.path.realpath(options.builddir))
+    c = None
     try:
         c = Conf(builddir)
         save = False
@@ -163,7 +164,10 @@ def run(options):
         if save:
             c.save()
             mintro.update_build_options(c.coredata, c.build.environment.info_dir)
+            mintro.write_meson_info_file(c.build, [])
     except ConfException as e:
         print('Meson configurator encountered an error:')
+        if c is not None and c.build is not None:
+            mintro.write_meson_info_file(c.build, [e])
         raise e
     return 0
