@@ -565,6 +565,8 @@ be passed to [shared and static libraries](#library).
 - `d_module_versions` list of module version identifiers set when compiling D sources
 - `d_debug` list of module debug identifiers set when compiling D sources
 - `pie` *(added 0.49.0)* build a position-independent executable
+- `native`, is a boolean controlling whether the target is compiled for the
+  build or host machines. Defaults to false, building for the host machine.
 
 The list of `sources`, `objects`, and `dependencies` is always
 flattened, which means you can freely nest and add lists while
