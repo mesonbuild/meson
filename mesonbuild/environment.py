@@ -372,6 +372,7 @@ class Environment:
         # Similar to coredata.compilers and build.compilers, but lower level in
         # that there is no meta data, only names/paths.
         self.binaries = PerMachineDefaultable()
+
         # Just uses hard-coded defaults and environment variables. Might be
         # overwritten by a native file.
         self.binaries.build = BinaryTable({})
@@ -379,10 +380,16 @@ class Environment:
         # Misc other properties about each machine.
         self.properties = PerMachine(Properties(), Properties(), Properties())
 
+        # Store paths for native and cross build files. There is no target
+        # machine information here because nothing is installed for the target
+        # architecture, just the build and host architectures
+        self.paths = PerMachineDefaultable()
+
         if self.coredata.config_files is not None:
             config = MesonConfigFile.from_config_parser(
                 coredata.load_configs(self.coredata.config_files))
             self.binaries.build = BinaryTable(config.get('binaries', {}))
+            self.paths.build = Directories(**config.get('paths', {}))
 
         if self.coredata.cross_file is not None:
             config = MesonConfigFile.parse_datafile(self.coredata.cross_file)
@@ -395,6 +402,7 @@ class Environment:
 
         self.machines.default_missing()
         self.binaries.default_missing()
+        self.paths.default_missing()
 
         exe_wrapper = self.binaries.host.lookup_entry('exe_wrapper')
         if exe_wrapper is not None:
@@ -1173,46 +1181,46 @@ class Environment:
     def get_exe_suffix(self):
         return self.exe_suffix
 
-    def get_import_lib_dir(self):
+    def get_import_lib_dir(self) -> str:
         "Install dir for the import library (library used for linking)"
         return self.get_libdir()
 
-    def get_shared_module_dir(self):
+    def get_shared_module_dir(self) -> str:
         "Install dir for shared modules that are loaded at runtime"
         return self.get_libdir()
 
-    def get_shared_lib_dir(self):
+    def get_shared_lib_dir(self) -> str:
         "Install dir for the shared library"
         if self.win_libdir_layout:
             return self.get_bindir()
         return self.get_libdir()
 
-    def get_static_lib_dir(self):
+    def get_static_lib_dir(self) -> str:
         "Install dir for the static library"
         return self.get_libdir()
 
     def get_object_suffix(self):
         return self.object_suffix
 
-    def get_prefix(self):
+    def get_prefix(self) -> str:
         return self.coredata.get_builtin_option('prefix')
 
-    def get_libdir(self):
+    def get_libdir(self) -> str:
         return self.coredata.get_builtin_option('libdir')
 
-    def get_libexecdir(self):
+    def get_libexecdir(self) -> str:
         return self.coredata.get_builtin_option('libexecdir')
 
-    def get_bindir(self):
+    def get_bindir(self) -> str:
         return self.coredata.get_builtin_option('bindir')
 
-    def get_includedir(self):
+    def get_includedir(self) -> str:
         return self.coredata.get_builtin_option('includedir')
 
-    def get_mandir(self):
+    def get_mandir(self) -> str:
         return self.coredata.get_builtin_option('mandir')
 
-    def get_datadir(self):
+    def get_datadir(self) -> str:
         return self.coredata.get_builtin_option('datadir')
 
     def get_compiler_system_dirs(self):

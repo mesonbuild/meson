@@ -5438,6 +5438,17 @@ class NativeFileTests(BasePlatformTests):
         compiler = env.detect_swift_compiler()
         self.assertEqual(compiler.version, '1.2345')
 
+    def test_native_file_dirs(self):
+        testcase = os.path.join(self.unit_test_dir, '54 native file override')
+        self.init(testcase, default_args=False,
+                  extra_args=['--native-file', os.path.join(testcase, 'nativefile')])
+
+    def test_native_file_dirs_overriden(self):
+        testcase = os.path.join(self.unit_test_dir, '54 native file override')
+        self.init(testcase, default_args=False,
+                  extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
+                              '-Ddef_libdir=liblib', '-Dlibdir=liblib'])
+
 
 def unset_envs():
     # For unit tests we must fully control all command lines

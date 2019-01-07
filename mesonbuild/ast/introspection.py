@@ -86,7 +86,7 @@ class IntrospectionInterpreter(AstInterpreter):
         self.project_default_options = mesonlib.stringlistify(def_opts)
         self.project_default_options = cdata.create_options_dict(self.project_default_options)
         self.default_options.update(self.project_default_options)
-        self.coredata.set_default_options(self.default_options, self.subproject, self.environment.cmd_line_options)
+        self.coredata.set_default_options(self.default_options, self.subproject, self.environment)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']

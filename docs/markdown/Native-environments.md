@@ -43,6 +43,23 @@ rust = '/usr/local/bin/rust'
 llvm-config = '/usr/local/llvm-svn/bin/llvm-config'
 ```
 
+### Paths and Directories
+
+As of 0.50.0 paths and directories such as libdir can be defined in the native
+file in a paths section
+
+```ini
+[paths]
+libdir = 'mylibdir'
+prefix = '/my prefix'
+```
+
+These values will only be loaded when not cross compiling. Any arguments on the
+command line will override any options in the native file. For example, passing
+`--libdir=otherlibdir` would result in a prefix of `/my prefix` and a libdir of
+`otherlibdir`.
+
+
 ## Loading multiple native files
 
 Unlike cross file, native files allow layering. More than one native file can be
