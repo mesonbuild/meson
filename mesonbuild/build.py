@@ -77,6 +77,7 @@ buildtarget_kwargs = set([
     'objects',
     'override_options',
     'sources',
+    'symbol_export_file',
     'gnu_symbol_visibility',
 ])
 
@@ -448,6 +449,7 @@ class BuildTarget(Target):
         self.link_targets = []
         self.link_whole_targets = []
         self.link_depends = []
+        self.symbol_export_files = []
         self.name_prefix_set = False
         self.name_suffix_set = False
         self.filename = 'no_name'
@@ -936,6 +938,16 @@ This will become a hard error in a future Meson release.''')
             if self.gnu_symbol_visibility not in permitted:
                 raise InvalidArguments('GNU symbol visibility arg %s not one of: %s',
                                        self.symbol_visibility, ', '.join(permitted))
+        for i in listify(kwargs.get('symbol_export_file', []), unholder=True):
+            if isinstance(i, str):
+                f = File(False, self.subdir, i)
+                if not os.path.exists(f.absolute_path(self.environment.source_dir,
+                                                      self.environment.build_dir)):
+                    raise InvalidArguments('Nonexisting file {}.'.format(i))
+                i = f
+            if not isinstance(i, (File, CustomTarget)):
+                raise InvalidArguments('Symbol_export_file must be a string, file or a custom target.')
+            self.symbol_export_files.append(i)
 
     def _extract_pic_pie(self, kwargs, arg):
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags

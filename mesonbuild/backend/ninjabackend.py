@@ -2448,6 +2448,20 @@ rule FORTRAN_DEP_HACK%s
 
         return guessed_dependencies + absolute_libs
 
+    def get_export_symbol_file_args(self, linker, target):
+        args = []
+        dep_files = []
+        for f in target.symbol_export_files:
+            if isinstance(f, File):
+                relpath = f.rel_to_builddir(self.build_to_src)
+            elif isinstance(f, build.CustomTarget):
+                relpath = self.get_target_filename(f)
+            else:
+                raise RuntimeError('Broken, please file a bug.')
+            args += linker.get_symbol_export_file_args(relpath)
+            dep_files.append(relpath)
+        return (args, dep_files)
+
     def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[], stdlib_args=[]):
         if isinstance(target, build.StaticLibrary):
             linker_base = 'STATIC'
@@ -2481,6 +2495,8 @@ rule FORTRAN_DEP_HACK%s
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
         commands += linker.get_buildtype_linker_args(self.get_option_for_target('buildtype', target))
+        export_file_commands, export_file_deps = self.get_export_symbol_file_args(linker, target)
+        commands += export_file_commands
         # Add /DEBUG and the pdb filename when using MSVC
         if self.get_option_for_target('debug', target):
             commands += self.get_link_debugfile_args(linker, target, outname)
@@ -2586,6 +2602,7 @@ rule FORTRAN_DEP_HACK%s
         dep_targets.extend([self.get_dependency_filename(t) for t in dependencies])
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])
+        dep_targets += export_file_deps
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)

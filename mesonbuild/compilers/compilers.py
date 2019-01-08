@@ -1271,6 +1271,9 @@ class Compiler:
     def gnu_symbol_visibility_args(self, vistype):
         return []
 
+    def get_symbol_export_file_args(self, path):
+        raise EnvironmentException('Compiler {} does not support symbol exports.'.format(self.get_id()))
+
     def get_gui_app_args(self, value):
         return []
 
@@ -1546,6 +1549,9 @@ class GnuLikeCompiler(abc.ABC):
 
     def gnu_symbol_visibility_args(self, vistype):
         return gnu_symbol_visibility_args[vistype]
+
+    def get_symbol_export_file_args(self, path):
+        return ['-Wl,--version-script=' + path]
 
     def gen_vs_module_defs_args(self, defsfile):
         if not isinstance(defsfile, str):
