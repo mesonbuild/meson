@@ -18,7 +18,7 @@ dependencies = [
 
 sources = files('app.vala')
 
-executable('app_name', sources, dependencies : dependencies)
+executable('app_name', sources, dependencies: dependencies)
 ```
 
 You must always specify the `glib-2.0` and `gobject-2.0` libraries as
@@ -53,7 +53,7 @@ This first example is a simple addition to the `meson.build` file because:
  * the library has a `pkg-config` file, `gtk+-3.0.pc`
  * the VAPI is distributed with Vala and so installed with the Vala compiler
  * the VAPI is installed in Vala's standard search path
- * the VAPI has the same name as the `pkg-config` file, `gtk+-3.0.vapi`
+ * the VAPI, `gtk+-3.0.vapi`, has the same name as the `pkg-config` file
 
 Everything works seamlessly in the background and only a single extra line is
 needed:
@@ -69,7 +69,7 @@ dependencies = [
 
 sources = files('app.vala')
 
-executable('app_name', sources, dependencies : dependencies)
+executable('app_name', sources, dependencies: dependencies)
 ```
 
 GTK+ is the graphical toolkit used by GNOME, elementary OS and other desktop
@@ -104,7 +104,7 @@ dependencies = [
 
 sources = files('app.vala')
 
-executable('app_name', sources, dependencies : dependencies)
+executable('app_name', sources, dependencies: dependencies)
 ```
 
 Using `[GtkTemplate]` also requires the GTK+ user interface definition files to
@@ -128,7 +128,7 @@ sources += import( 'gnome' ).compile_resources(
     source_dir: 'src/resources',
 )
 
-executable('app_name', sources, dependencies : dependencies)
+executable('app_name', sources, dependencies: dependencies)
 ```
 
 
@@ -146,10 +146,11 @@ the VAPI search path. In Meson this is done with the `add_project_arguments()`
 function:
 
 ```meson
-project('vala app', 'c', 'vala')
+project('vala app', 'vala', 'c')
 
-add_project_arguments(['--vapidir', join_paths(meson.current_source_dir(), 'vapi')],
-                      language: 'vala')
+vapi_dir = join_paths(meson.current_source_dir(), 'vapi')
+
+add_project_arguments(['--vapidir', vapi_dir], language: 'vala')
 
 dependencies = [
     dependency('glib-2.0'),
@@ -159,7 +160,7 @@ dependencies = [
 
 sources = files('app.vala')
 
-executable('app_name', sources, dependencies : dependencies)
+executable('app_name', sources, dependencies: dependencies)
 ```
 
 If the VAPI is for an external library then make sure that the VAPI name
@@ -179,7 +180,7 @@ with the `vala-extra-vapis` repository.
 ### Libraries without pkg-config files
 A library that does not have a corresponding pkg-config file may mean
 `dependency()` is unsuitable for finding the C and Vala interface files. In this
-case it is necessary to use `find_library()`.
+case it is necessary to use the `find_library()` method of the compiler object.
 
 The first example uses Vala's POSIX binding. There is no pkg-config file because
 POSIX includes the standard C library on Unix systems. All that is needed is the
@@ -198,7 +199,7 @@ dependencies = [
 
 sources = files('app.vala')
 
-executable('app_name', sources, dependencies : dependencies)
+executable('app_name', sources, dependencies: dependencies)
 ```
 
 The next example shows how to link with a C library where no additional VAPI is
@@ -217,8 +218,39 @@ dependencies = [
 
 sources = files('app.vala')
 
-executable('app_name', sources, dependencies : dependencies)
+executable('app_name', sources, dependencies: dependencies)
 ```
+The `required: false` means the build will continue when using another C library
+that does not separate the maths library. See [Add math library (-lm)
+portably](howtox.md#add-math-library-lm-portably).
+
+The final example shows how to use a library that does not have a pkg-config
+file and the VAPI is in the `vapi` directory of your project source files:
+```meson
+project('vala app', 'vala', 'c')
+
+vapi_dir = join_paths(meson.current_source_dir(), 'vapi')
+
+add_project_arguments(['--vapidir', vapi_dir], language: 'vala')
+
+dependencies = [
+    dependency('glib-2.0'),
+    dependency('gobject-2.0'),
+    meson.get_compiler('c').find_library('foo'),
+    meson.get_compiler('vala').find_library('foo', dir: vapi_dir),
+]
+
+sources = files('app.vala')
+
+executable('app_name', sources, dependencies: dependencies)
+```
+The `find_library()` method of the C compiler object will try to find the C
+header files and the library to link with.
+
+The `find_library()` method of the Vala compiler object needs to have the `dir`
+keyword added to include the project VAPI directory. This is not added
+automatically by `add_project_arguments()`.
+
 
 
 ## Building libraries
@@ -260,7 +292,7 @@ Meson can generate a GIR as part of the build.  For a Vala library the
 `vala_gir` option has to be set for the `library`:
 
 ```meson
-foo_lib = library('foo', 'foo.vala',
+foo_lib = shared_library('foo', 'foo.vala',
                   vala_gir: 'Foo-1.0.gir',
                   dependencies: [glib_dep, gobject_dep],
                   install: true,
