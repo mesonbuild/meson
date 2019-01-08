@@ -348,6 +348,9 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     nativefile = os.path.join(testdir, 'nativefile.ini')
     if os.path.exists(nativefile):
         gen_args.extend(['--native-file', nativefile])
+    crossfile = os.path.join(testdir, 'crossfile.ini')
+    if os.path.exists(crossfile):
+        gen_args.extend(['--cross-file', crossfile])
     (returncode, stdo, stde) = run_configure(gen_args)
     try:
         logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
