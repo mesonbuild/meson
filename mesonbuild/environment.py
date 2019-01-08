@@ -246,6 +246,10 @@ def detect_cpu_family(compilers):
             trial = 'arm'
     # Add more quirks here as bugs are reported. Keep in sync with detect_cpu()
     # below.
+    elif trial == 'parisc64':
+        # ATM there is no 64 bit userland for PA-RISC. Thus always
+        # report it as 32 bit for simplicity.
+        trial = 'parisc'
 
     if trial not in known_cpu_families:
         mlog.warning('Unknown CPU family {!r}, please report this at '
