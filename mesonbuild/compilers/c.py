@@ -1497,6 +1497,9 @@ class VisualStudioCCompiler(CCompiler):
         # so if a module defs file is specified, we use that to export symbols
         return ['/DEF:' + defsfile]
 
+    def get_symbol_export_file_args(self, path):
+        return ['/DEF:' + path]
+
     def gen_pch_args(self, header, source, pchname):
         objname = os.path.splitext(pchname)[0] + '.obj'
         return objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname]
