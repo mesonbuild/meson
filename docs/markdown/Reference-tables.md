@@ -117,6 +117,12 @@ These are the parameter names for passing language specific arguments to your bu
 These environment variables will be used to modify the compiler and
 linker flags.
 
+It is recommended that you **do not use these**. They are provided purely to
+for backwards compatibility with other build systems. There are many caveats to
+their use, especially when rebuilding the project. It is **highly** recommended
+that you use [the command line arguments](#language-arguments-parameters-names)
+instead.
+
 | Name      | Comment                                  |
 | -----     | -------                                  |
 | CFLAGS    | Flags for the C compiler                 |
