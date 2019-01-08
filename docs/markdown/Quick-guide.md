@@ -82,7 +82,7 @@ build and install Meson projects are the following.
 
 ```console
 $ cd /path/to/source/root
-$ CFLAGS=... CXXFLAGS=... LDFLAGS=.. meson --prefix /usr --buildtype=plain builddir
+$ meson --prefix /usr --buildtype=plain builddir -Dc_args=... -Dcpp_args=... -Dc_link_args=... -Dcpp_link_args=...
 $ ninja -v -C builddir
 $ ninja -C builddir test
 $ DESTDIR=/path/to/staging/root ninja -C builddir install
