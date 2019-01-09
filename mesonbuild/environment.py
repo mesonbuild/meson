@@ -1023,7 +1023,8 @@ class Environment:
         return comp, cross_comp
 
     def detect_static_linker(self, compiler):
-        linker = self.binaries.host.lookup_entry('ar')
+        for_machine = MachineChoice.HOST if compiler.is_cross else MachineChoice.BUILD
+        linker = self.binaries[for_machine].lookup_entry('ar')
         if linker is not None:
             linkers = [linker]
         else:
