@@ -16,24 +16,25 @@ At the time of writing only a command line version of Meson is available. This
 means that Meson must be invoked using the terminal. If you wish to use the
 MSVC compiler, you need to run Meson under "Visual Studio command prompt".
 
-## Configuring the source
+## Configuring the build directory
 
 Let us assume that we have a source tree that has a Meson build system. This
 means that at the topmost directory has a file called `meson.build`. We run the
 following commands to get the build started.
 
+```sh
+cd /path/to/source/root
+meson setup builddir
+```
 
-    cd /path/to/source/root
-    mkdir builddir
-    cd builddir
-    meson ..
+We invoke Meson with the `setup` command, giving it the location of the build
+directory. Meson uses [out of source
+builds](http://voices.canonical.com/jussi.pakkanen/2013/04/16/why-you-should-consider-using-separate-build-directories/).
 
-First we create a directory to hold all files generated during the build. Then
-we go into it and invoke Meson, giving it the location of the source root.
-
-Hint: The syntax of meson is `meson [options] [srcdir] [builddir]`, but you may
-omit either `srcdir` or `builddir`. Meson will deduce the `srcdir` by the
-location of `meson.build`. The other one will be your `pwd`.
+Hint: The syntax of meson is `meson [command] [arguments] [options]`. The
+`setup` command takes a `builddir` and a `srcdir` argument. If no `srcdir` is
+given Meson will deduce the `srcdir` based on `pwd` and the location of
+`meson.build`.
 
 Meson then loads the build configuration file and writes the corresponding
 build backend in the build directory. By default Meson generates a *debug
@@ -55,14 +56,16 @@ build process immensely. Meson will not under any circumstances write files
 inside the source directory (if it does, it is a bug and should be fixed). This
 means that the user does not need to add a bunch of files to their revision
 control's ignore list. It also means that you can create arbitrarily many build
-directories for any given source tree. If we wanted to test building the source
-code with the Clang compiler instead of the system default, we could just type
-the following commands.
+directories for any given source tree.
 
-    cd /path/to/source/root
-    mkdir buildclang
-    cd buildclang
-    CC=clang CXX=clang++ meson ..
+For example, if we wanted to test building the source code with the Clang
+compiler instead of the system default, we could just type the following
+commands:
+
+```sh
+cd /path/to/source/root
+CC=clang CXX=clang++ meson setup buildclang
+```
 
 This separation is even more powerful if your code has multiple configuration
 options (such as multiple data backends). You can create a separate
@@ -72,19 +75,21 @@ separated and use the same source tree. Changing between different
 configurations is just a question of changing to the corresponding directory.
 
 Unless otherwise mentioned, all following command line invocations are meant to
-be run in the build directory.
+be run in the source directory.
 
 By default Meson will use the Ninja backend to build your project. If you wish
 to use any of the other backends, you need to pass the corresponding argument
 during configuration time. As an example, here is how you would use Meson to
 generate a Visual studio solution.
 
-    meson <source dir> <build dir> --backend=vs2010
+```sh
+meson setup <build dir> --backend=vs2010
+```
 
 You can then open the generated solution with Visual Studio and compile it in
-the usual way. A list of backends can be obtained with `meson --help`.
+the usual way. A list of backends can be obtained with `meson setup --help`.
 
-## Environment Variables
+## Environment variables
 
 Sometimes you want to add extra compiler flags, this can be done by passing
 them in environment variables when calling meson. See [the reference
@@ -98,13 +103,15 @@ Furthermore it is possible to stop meson from adding flags itself by using the
 `--buildtype=plain` option, in this case you must provide the full compiler and
 linker arguments needed.
 
-## Building the source
+## Building from the source
 
 If you are not using an IDE, Meson uses the [Ninja build
 system](https://ninja-build.org/) to actually build the code. To start the
 build, simply type the following command.
 
-    ninja
+```sh
+ninja -C builddir
+```
 
 The main usability difference between Ninja and Make is that Ninja will
 automatically detect the number of CPUs in your computer and parallelize itself
@@ -125,7 +132,9 @@ directory and running Ninja.
 Meson provides native support for running tests. The command to do that is
 simple.
 
-    ninja test
+```sh
+ninja -C builddir test
+```
 
 Meson does not force the use of any particular testing framework. You are free
 to use GTest, Boost Test, Check or even custom executables.
@@ -134,7 +143,9 @@ to use GTest, Boost Test, Check or even custom executables.
 
 Installing the built software is just as simple.
 
-    ninja install
+```sh
+ninja -C builddir install
+```
 
 Note that Meson will only install build targets explicitly tagged as
 installable, as detailed in the [installing targets
@@ -145,7 +156,9 @@ command line argument `--prefix /your/prefix` to Meson during configure time.
 Meson also supports the `DESTDIR` variable used in e.g. building packages. It
 is used like this:
 
-    DESTDIR=/path/to/staging ninja install
+```sh
+DESTDIR=/path/to/staging ninja -C builddir install
+```
 
 ## Command line help
 
