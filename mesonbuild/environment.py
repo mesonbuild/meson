@@ -331,7 +331,7 @@ class Environment:
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
             try:
-                self.coredata = coredata.load(self.get_build_dir())
+                self.coredata = coredata.load(self.get_build_dir(), options)
                 self.first_invocation = False
             except FileNotFoundError:
                 self.create_new_coredata(options)
@@ -388,8 +388,6 @@ class Environment:
                 'exe_wrapper')
         else:
             self.exe_wrapper = None
-
-        self.cmd_line_options = options.cmd_line_options.copy()
 
         # List of potential compilers.
         if mesonlib.is_windows():
@@ -1027,44 +1025,6 @@ class Environment:
 
         return comp, cross_comp
 
-    def process_new_compilers(self, lang: str, comp: Compiler, cross_comp: Compiler):
-        self.coredata.compilers[lang] = comp
-        # Native compiler always exist so always add its options.
-        new_options = comp.get_options()
-        if cross_comp is not None:
-            self.coredata.cross_compilers[lang] = cross_comp
-            new_options.update(cross_comp.get_options())
-
-        optprefix = lang + '_'
-        for k, o in new_options.items():
-            if not k.startswith(optprefix):
-                raise EnvironmentException('Internal error, %s has incorrect prefix.' % k)
-            if k in self.cmd_line_options:
-                o.set_value(self.cmd_line_options[k])
-            self.coredata.compiler_options.setdefault(k, o)
-
-        # Unlike compiler and linker flags, preprocessor flags are not in
-        # compiler_options because they are not visible to user.
-        preproc_flags = comp.get_preproc_flags()
-        preproc_flags = shlex.split(preproc_flags)
-        self.coredata.external_preprocess_args.setdefault(lang, preproc_flags)
-
-        enabled_opts = []
-        for optname in comp.base_options:
-            if optname in self.coredata.base_options:
-                continue
-            oobj = compilers.base_options[optname]
-            if optname in self.cmd_line_options:
-                oobj.set_value(self.cmd_line_options[optname])
-                enabled_opts.append(optname)
-            self.coredata.base_options[optname] = oobj
-        self.emit_base_options_warnings(enabled_opts)
-
-    def emit_base_options_warnings(self, enabled_opts: list):
-        if 'b_bitcode' in enabled_opts:
-            mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as such as \'b_asneeded\' have been disabled.')
-            mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.')
-
     def check_compilers(self, lang: str, comp: Compiler, cross_comp: Compiler):
         if comp is None:
             raise EnvironmentException('Tried to use unknown language "%s".' % lang)
@@ -1076,7 +1036,7 @@ class Environment:
     def detect_compilers(self, lang: str, need_cross_compiler: bool):
         (comp, cross_comp) = self.compilers_from_language(lang, need_cross_compiler)
         if comp is not None:
-            self.process_new_compilers(lang, comp, cross_comp)
+            self.coredata.process_new_compilers(lang, comp, cross_comp)
         return comp, cross_comp
 
     def detect_static_linker(self, compiler):

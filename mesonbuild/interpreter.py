@@ -2528,7 +2528,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if self.environment.first_invocation:
             self.coredata.init_backend_options(backend)
 
-        options = {k: v for k, v in self.environment.cmd_line_options.items() if k.startswith('backend_')}
+        options = {k: v for k, v in self.environment.coredata.cmd_line_options.items() if k.startswith('backend_')}
         self.coredata.set_options(options)
 
     @stringArgs
@@ -2557,7 +2557,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             default_options.update(self.default_project_options)
         else:
             default_options = {}
-        self.coredata.set_default_options(default_options, self.subproject, self.environment.cmd_line_options)
+        self.coredata.set_default_options(default_options, self.subproject)
         self.set_backend()
 
         if not self.is_subproject():

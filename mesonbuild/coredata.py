@@ -272,6 +272,7 @@ class CoreData:
         self.pkgconf_envvar = os.environ.get('PKG_CONFIG_PATH', '')
         self.config_files = self.__load_config_files(options.native_file)
         self.libdir_cross_fixup()
+        self.cmd_line_options = options.cmd_line_options.copy()
 
     @staticmethod
     def __load_config_files(filenames):
@@ -523,7 +524,7 @@ class CoreData:
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
             mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options))
 
-    def set_default_options(self, default_options, subproject, cmd_line_options):
+    def set_default_options(self, default_options, subproject):
         # Set default options as if they were passed to the command line.
         # Subprojects can only define default for user options.
         from . import optinterpreter
@@ -532,7 +533,7 @@ class CoreData:
                 if optinterpreter.is_invalid_name(k):
                     continue
                 k = subproject + ':' + k
-            cmd_line_options.setdefault(k, v)
+            self.cmd_line_options.setdefault(k, v)
 
         # Create a subset of cmd_line_options, keeping only options for this
         # subproject. Also take builtin options if it's the main project.
@@ -540,7 +541,7 @@ class CoreData:
         # languages and setting the backend (builtin options must be set first
         # to know which backend we'll use).
         options = {}
-        for k, v in cmd_line_options.items():
+        for k, v in self.cmd_line_options.items():
             if subproject:
                 if not k.startswith(subproject + ':'):
                     continue
@@ -552,6 +553,45 @@ class CoreData:
             options[k] = v
 
         self.set_options(options, subproject)
+
+    def process_new_compilers(self, lang: str, comp, cross_comp):
+        from . import compilers
+        self.compilers[lang] = comp
+        # Native compiler always exist so always add its options.
+        new_options = comp.get_options()
+        if cross_comp is not None:
+            self.cross_compilers[lang] = cross_comp
+            new_options.update(cross_comp.get_options())
+
+        optprefix = lang + '_'
+        for k, o in new_options.items():
+            if not k.startswith(optprefix):
+                raise MesonException('Internal error, %s has incorrect prefix.' % k)
+            if k in self.cmd_line_options:
+                o.set_value(self.cmd_line_options[k])
+            self.compiler_options.setdefault(k, o)
+
+        # Unlike compiler and linker flags, preprocessor flags are not in
+        # compiler_options because they are not visible to user.
+        preproc_flags = comp.get_preproc_flags()
+        preproc_flags = shlex.split(preproc_flags)
+        self.external_preprocess_args.setdefault(lang, preproc_flags)
+
+        enabled_opts = []
+        for optname in comp.base_options:
+            if optname in self.base_options:
+                continue
+            oobj = compilers.base_options[optname]
+            if optname in self.cmd_line_options:
+                oobj.set_value(self.cmd_line_options[optname])
+                enabled_opts.append(optname)
+            self.base_options[optname] = oobj
+        self.emit_base_options_warnings(enabled_opts)
+
+    def emit_base_options_warnings(self, enabled_opts: list):
+        if 'b_bitcode' in enabled_opts:
+            mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as such as \'b_asneeded\' have been disabled.')
+            mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.')
 
 class CmdLineFileParser(configparser.ConfigParser):
     def __init__(self):
@@ -598,7 +638,7 @@ def update_cmd_line_file(build_dir, options):
     with open(filename, 'w') as f:
         config.write(f)
 
-def load(build_dir):
+def load(build_dir, options = None):
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
     load_fail_msg = 'Coredata file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
     try:
@@ -612,6 +652,8 @@ def load(build_dir):
         raise MesonException('Build directory has been generated with Meson version %s, '
                              'which is incompatible with current version %s.\n' %
                              (obj.version, version))
+    if options is not None:
+        obj.cmd_line_options = options.cmd_line_options.copy()
     return obj
 
 def save(obj, build_dir):
