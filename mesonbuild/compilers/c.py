@@ -1659,6 +1659,9 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
     def get_linker_output_args(self, outputname):
         return ['-output=%s' % outputname]
 
+    def get_werror_args(self):
+        return ['-change_message=error']
+
     def get_include_args(self, path, is_system):
         if path == '':
             path = '.'
