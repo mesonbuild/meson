@@ -1456,20 +1456,18 @@ int dummy;
                         or langname == 'cs':
                     continue
                 crstr = ''
-                cross_args = self.environment.coredata.get_external_link_args(MachineChoice.HOST, langname)
                 if is_cross:
                     crstr = '_CROSS'
                 rule = 'rule %s%s_LINKER\n' % (langname, crstr)
                 if compiler.can_linker_accept_rsp():
                     command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
- rspfile_content = $ARGS  {output_args} $in $LINK_ARGS {cross_args} $aliasing
+ rspfile_content = $ARGS  {output_args} $in $LINK_ARGS $aliasing
 '''
                 else:
-                    command_template = ' command = {executable} $ARGS {output_args} $in $LINK_ARGS {cross_args} $aliasing\n'
+                    command_template = ' command = {executable} $ARGS {output_args} $in $LINK_ARGS $aliasing\n'
                 command = command_template.format(
                     executable=' '.join(compiler.get_linker_exelist()),
-                    cross_args=' '.join([quote_func(i) for i in cross_args]),
                     output_args=' '.join(compiler.get_linker_output_args('$out'))
                 )
                 description = ' description = Linking target $out.\n'
@@ -2494,10 +2492,9 @@ rule FORTRAN_DEP_HACK%s
             # Add link args added using add_global_link_arguments()
             # These override per-project link arguments
             commands += self.build.get_global_link_args(linker, target.is_cross)
-            if not target.is_cross:
-                # Link args added from the env: LDFLAGS. We want these to
-                # override all the defaults but not the per-target link args.
-                commands += self.environment.coredata.get_external_link_args(for_machine, linker.get_language())
+            # Link args added from the env: LDFLAGS. We want these to override
+            # all the defaults but not the per-target link args.
+            commands += self.environment.coredata.get_external_link_args(for_machine, linker.get_language())
 
         # Now we will add libraries and library paths from various sources
 

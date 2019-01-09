@@ -896,14 +896,12 @@ class Vs2010Backend(backends.Backend):
         for l, args in self.build.global_args.items():
             if l in file_args:
                 file_args[l] += args
-        if not target.is_cross:
-            # Compile args added from the env or cross file: CFLAGS/CXXFLAGS,
-            # etc. We want these to override all the defaults, but not the
-            # per-target compile args.
-            for key, opt in self.environment.coredata.compiler_options[for_machine].items():
-                l, suffix = key.split('_', 1)
-                if suffix == 'args' and l in file_args:
-                    file_args[l] += opt.value
+        # Compile args added from the env or cross file: CFLAGS/CXXFLAGS, etc. We want these
+        # to override all the defaults, but not the per-target compile args.
+        for key, opt in self.environment.coredata.compiler_options[for_machine].items():
+            l, suffix = key.split('_', 1)
+            if suffix == 'args' and l in file_args:
+                file_args[l] += opt.value
         for args in file_args.values():
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
@@ -1058,11 +1056,10 @@ class Vs2010Backend(backends.Backend):
             # Add link args added using add_global_link_arguments()
             # These override per-project link arguments
             extra_link_args += self.build.get_global_link_args(compiler, target.is_cross)
-            if not target.is_cross:
-                # Link args added from the env: LDFLAGS, or the cross file. We
-                # want these to override all the defaults but not the
-                # per-target link args.
-                extra_link_args += self.environment.coredata.get_external_link_args(for_machine, compiler.get_language())
+            # Link args added from the env: LDFLAGS, or the cross file. We want
+            # these to override all the defaults but not the per-target link
+            # args.
+            extra_link_args += self.environment.coredata.get_external_link_args(for_machine, compiler.get_language())
             # Only non-static built targets need link args and link dependencies
             extra_link_args += target.link_args
             # External deps must be last because target link libraries may depend on them.

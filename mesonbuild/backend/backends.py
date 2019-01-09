@@ -583,10 +583,10 @@ class Backend:
             for_machine = MachineChoice.BUILD
         else:
             for_machine = MachineChoice.HOST
-        if not target.is_cross:
-            # Compile args added from the env: CFLAGS/CXXFLAGS, etc. We want these
-            # to override all the defaults, but not the per-target compile args.
-            commands += self.environment.coredata.get_external_args(for_machine, compiler.get_language())
+        # Compile args added from the env: CFLAGS/CXXFLAGS, etc, or the cross
+        # file. We want these to override all the defaults, but not the
+        # per-target compile args.
+        commands += self.environment.coredata.get_external_args(for_machine, compiler.get_language())
         # Always set -fPIC for shared libraries
         if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_args()
