@@ -2707,12 +2707,12 @@ external dependencies (including libraries) must go to "dependencies".''')
                 version_string = '(%s %s)' % (comp.id, comp.version)
             mlog.log('Native', comp.get_display_language(), 'compiler:',
                      mlog.bold(' '.join(comp.get_exelist())), version_string)
-            self.build.add_compiler(comp)
+            self.build.ensure_static_linker(comp)
             if need_cross_compiler:
                 version_string = '(%s %s)' % (cross_comp.id, cross_comp.version)
                 mlog.log('Cross', cross_comp.get_display_language(), 'compiler:',
                          mlog.bold(' '.join(cross_comp.get_exelist())), version_string)
-                self.build.add_cross_compiler(cross_comp)
+                self.build.ensure_static_cross_linker(comp)
             self.add_base_options(comp)
         return success
 

@@ -111,8 +111,9 @@ class Build:
         self.environment = environment
         self.projects = {}
         self.targets = OrderedDict()
-        self.compilers = OrderedDict()
-        self.cross_compilers = OrderedDict()
+        # Coredata holds the state. This is just here for convenience.
+        self.compilers = environment.coredata.compilers
+        self.cross_compilers = environment.coredata.cross_compilers
         self.global_args = {}
         self.projects_args = {}
         self.global_link_args = {}
@@ -145,6 +146,10 @@ class Build:
     def copy(self):
         other = Build(self.environment)
         for k, v in self.__dict__.items():
+            if k in ['compilers', 'cross_compilers']:
+                # These alias coredata's fields of the same name, and must not
+                # become copies.
+                continue
             if isinstance(v, (list, dict, set, OrderedDict)):
                 other.__dict__[k] = v.copy()
             else:
@@ -155,19 +160,13 @@ class Build:
         for k, v in other.__dict__.items():
             self.__dict__[k] = v
 
-    def add_compiler(self, compiler):
+    def ensure_static_linker(self, compiler):
         if self.static_linker is None and compiler.needs_static_linker():
             self.static_linker = self.environment.detect_static_linker(compiler)
-        lang = compiler.get_language()
-        if lang not in self.compilers:
-            self.compilers[lang] = compiler
 
-    def add_cross_compiler(self, compiler):
-        if not self.cross_compilers:
+    def ensure_static_cross_linker(self, compiler):
+        if self.static_cross_linker is None and compiler.needs_static_linker():
             self.static_cross_linker = self.environment.detect_static_linker(compiler)
-        lang = compiler.get_language()
-        if lang not in self.cross_compilers:
-            self.cross_compilers[lang] = compiler
 
     def get_project(self):
         return self.projects['']
