@@ -87,8 +87,7 @@ class ValaCompiler(Compiler):
 
     def sanity_check(self, work_dir, environment):
         code = 'class MesonSanityCheck : Object { }'
-        args = self.get_cross_extra_flags(environment, link=False)
-        with self.compile(code, args, 'compile') as p:
+        with self.compile(code, [], 'compile') as p:
             if p.returncode != 0:
                 msg = 'Vala compiler {!r} can not compile programs' \
                       ''.format(self.name_string())
@@ -107,9 +106,7 @@ class ValaCompiler(Compiler):
         if not extra_dirs:
             code = 'class MesonFindLibrary : Object { }'
             vapi_args = ['--pkg', libname]
-            args = self.get_cross_extra_flags(env, link=False)
-            args += vapi_args
-            with self.compile(code, args, 'compile') as p:
+            with self.compile(code, vapi_args, 'compile') as p:
                 if p.returncode == 0:
                     return vapi_args
         # Not found? Try to find the vapi file itself.

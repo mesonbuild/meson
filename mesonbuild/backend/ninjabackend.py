@@ -350,11 +350,6 @@ int dummy;
             if isinstance(parameters, CompilerArgs):
                 parameters = parameters.to_native(copy=True)
             parameters = comp.compute_parameters_with_absolute_paths(parameters, self.build_dir)
-            if target.is_cross:
-                extra_parameters = comp.get_cross_extra_flags(self.environment, False)
-                if isinstance(parameters, CompilerArgs):
-                    extra_parameters = extra_parameters.to_native(copy=True)
-                parameters = extra_parameters + parameters
             # The new entry
             src_block = {
                 'language': lang,
@@ -1597,12 +1592,11 @@ rule FORTRAN_DEP_HACK%s
         if compiler.can_linker_accept_rsp():
             command_template = ' command = {executable} @$out.rsp\n' \
                                ' rspfile = $out.rsp\n' \
-                               ' rspfile_content =  $ARGS {cross_args} {output_args} {compile_only_args} $in\n'
+                               ' rspfile_content =  $ARGS {output_args} {compile_only_args} $in\n'
         else:
-            command_template = ' command = {executable} $ARGS {cross_args} {output_args} {compile_only_args} $in\n'
+            command_template = ' command = {executable} $ARGS {output_args} {compile_only_args} $in\n'
         command = command_template.format(
             executable=' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
-            cross_args=' '.join([quote_func(i) for i in compiler.get_cross_extra_flags(self.environment, False)]) if is_cross else '',
             output_args=' '.join(compiler.get_output_args('$out')),
             compile_only_args=' '.join(compiler.get_compile_only_args())
         )
@@ -1647,20 +1641,15 @@ rule FORTRAN_DEP_HACK%s
                 d = quote_func(d)
             quoted_depargs.append(d)
 
-        if is_cross:
-            cross_args = compiler.get_cross_extra_flags(self.environment, False)
-        else:
-            cross_args = ''
         if compiler.can_linker_accept_rsp():
             command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
- rspfile_content = $ARGS {cross_args} {dep_args} {output_args} {compile_only_args} $in
+ rspfile_content = $ARGS {dep_args} {output_args} {compile_only_args} $in
 '''
         else:
-            command_template = ' command = {executable} $ARGS {cross_args} {dep_args} {output_args} {compile_only_args} $in\n'
+            command_template = ' command = {executable} $ARGS {dep_args} {output_args} {compile_only_args} $in\n'
         command = command_template.format(
             executable=' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
-            cross_args=' '.join([quote_func(i) for i in cross_args]),
             dep_args=' '.join(quoted_depargs),
             output_args=' '.join(compiler.get_output_args('$out')),
             compile_only_args=' '.join(compiler.get_compile_only_args())
@@ -1687,11 +1676,6 @@ rule FORTRAN_DEP_HACK%s
         rule = 'rule %s%s_PCH\n' % (langname, crstr)
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
         cross_args = []
-        if is_cross:
-            try:
-                cross_args = compiler.get_cross_extra_flags(self.environment, False)
-            except KeyError:
-                pass
 
         quoted_depargs = []
         for d in depargs:

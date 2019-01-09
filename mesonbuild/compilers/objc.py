@@ -31,7 +31,7 @@ class ObjCCompiler(CCompiler):
         # TODO try to use sanity_check_impl instead of duplicated code
         source_name = os.path.join(work_dir, 'sanitycheckobjc.m')
         binary_name = os.path.join(work_dir, 'sanitycheckobjc')
-        extra_flags = self.get_cross_extra_flags(environment, link=False)
+        extra_flags = []
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
         with open(source_name, 'w') as ofile:

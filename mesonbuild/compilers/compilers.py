@@ -1084,14 +1084,6 @@ class Compiler:
             'Language {} does not support has_multi_link_arguments.'.format(
                 self.get_display_language()))
 
-    def get_cross_extra_flags(self, environment, link):
-        extra_flags = []
-        if self.is_cross and environment:
-            extra_flags += environment.coredata.get_external_args(MachineChoice.HOST, self.language)
-            if link:
-                extra_flags += environment.coredata.get_external_link_args(MachineChoice.HOST, self.language)
-        return extra_flags
-
     def _get_compile_output(self, dirname, mode):
         # In pre-processor mode, the output is sent to stdout and discarded
         if mode == 'preprocess':
