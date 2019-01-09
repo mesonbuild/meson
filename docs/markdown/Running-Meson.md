@@ -16,8 +16,7 @@ At the time of writing only a command line version of Meson is available. This
 means that Meson must be invoked using the terminal. If you wish to use the
 MSVC compiler, you need to run Meson under "Visual Studio command prompt".
 
-Configuring the source
-==
+## Configuring the source
 
 Let us assume that we have a source tree that has a Meson build system. This
 means that at the topmost directory has a file called `meson.build`. We run the
@@ -85,8 +84,7 @@ generate a Visual studio solution.
 You can then open the generated solution with Visual Studio and compile it in
 the usual way. A list of backends can be obtained with `meson --help`.
 
-Environment Variables
---
+## Environment Variables
 
 Sometimes you want to add extra compiler flags, this can be done by passing
 them in environment variables when calling meson. See [the reference
@@ -100,8 +98,7 @@ Furthermore it is possible to stop meson from adding flags itself by using the
 `--buildtype=plain` option, in this case you must provide the full compiler and
 linker arguments needed.
 
-Building the source
-==
+## Building the source
 
 If you are not using an IDE, Meson uses the [Ninja build
 system](https://ninja-build.org/) to actually build the code. To start the
@@ -123,8 +120,7 @@ multiple build directories. Often one of them is used for development (the
 build). Any configuration can be built just by `cd`'ing to the corresponding
 directory and running Ninja.
 
-Running tests
-==
+## Running tests
 
 Meson provides native support for running tests. The command to do that is
 simple.
@@ -134,8 +130,7 @@ simple.
 Meson does not force the use of any particular testing framework. You are free
 to use GTest, Boost Test, Check or even custom executables.
 
-Installing
-==
+## Installing
 
 Installing the built software is just as simple.
 
@@ -152,16 +147,14 @@ is used like this:
 
     DESTDIR=/path/to/staging ninja install
 
-Command line help
-==
+## Command line help
 
 Meson has a standard command line help feature. It can be accessed with the
 following command.
 
     meson --help
 
-Exit status
-==
+## Exit status
 
 Meson exits with status 0 if successful, 1 for problems with the command line
 or meson.build file, and 2 for internal errors.
