@@ -2713,8 +2713,6 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.log('Cross', cross_comp.get_display_language(), 'compiler:',
                          mlog.bold(' '.join(cross_comp.get_exelist())), version_string)
                 self.build.add_cross_compiler(cross_comp)
-            if self.environment.is_cross_build() and not need_cross_compiler:
-                self.build.add_cross_compiler(comp)
             self.add_base_options(comp)
         return success
 
