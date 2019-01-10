@@ -509,51 +509,60 @@ class PkgConfigDependency(ExternalDependency):
         else:
             for_machine = MachineChoice.HOST
 
-        # Create a nested function for sake of early return
+        # Create an iterator of options
         def search():
-            # Only search for the pkg-config for each machine the first time and
-            # store the result in the class definition
-            if PkgConfigDependency.class_pkgbin[for_machine] is None:
-                mlog.debug('Pkg-config binary for %s is not cached.' % for_machine)
-            else:
-                mlog.debug('Pkg-config binary for %s is cached.' % for_machine)
-                choice = PkgConfigDependency.class_pkgbin[for_machine]
-                assert choice is not None
-                return choice
             # Lookup in cross or machine file.
-            bt = environment.binaries[for_machine]
-            potential_pkgpath = bt.lookup_entry('pkgconfig')
-            if potential_pkgpath is None:
-                mlog.debug('Pkg-config binary missing from cross or native file, or PKG_CONFIG undefined.')
-            else:
-                mlog.debug('Pkg-config binary for %s specified from config file as %s.', for_machine, potential_pkgpath)
-                potential_pkgbin = ExternalProgram.from_entry('pkgconfig', potential_pkgpath)
-                if not potential_pkgbin.found():
-                    mlog.debug(
-                        'Pkg-config %s for machine %s specified at %s but not found.',
-                        potential_pkgbin.name, for_machine, potential_pkgbin.command)
-                else:
-                    return potential_pkgbin
+            potential_pkgpath = environment.binaries[for_machine].lookup_entry('pkgconfig')
+            if potential_pkgpath is not None:
+                mlog.debug('Pkg-config binary for %s specified from cross file, native file, or env var as %s.', for_machine, potential_pkgpath)
+                yield ExternalProgram.from_entry('pkgconfig', potential_pkgpath)
+                # We never fallback if the user-specified option is no good, so
+                # stop returning options.
+                return
+            mlog.debug('Pkg-config binary missing from cross or native file, or env var undefined.')
             # Fallback on hard-coded defaults.
+            # TODO prefix this for the cross case instead of ignoring thing.
             if environment.machines.matches_build_machine(for_machine):
                 for potential_pkgpath in environment.default_pkgconfig:
-                    potential_pkgbin = self.check_pkgconfig(potential_pkgpath)
-                    if potential_pkgbin is None:
-                        mlog.debug(
-                            'default Pkg-config fallback %s for machine %s specified at %s but not found.',
-                            potential_pkgbin.name, for_machine, potential_pkgbin.command)
-                    else:
-                        return potential_pkgbin
+                    mlog.debug('Trying a default pkg-config fallback at', potential_pkgpath)
+                    yield ExternalProgram(potential_pkgpath, silent=True)
 
-        self.pkgbin = search()
-        if self.pkgbin is None:
-            msg = 'Pkg-config binary for machine %s not found.' % for_machine
+        # Only search for pkg-config for each machine the first time and store
+        # the result in the class definition
+        if PkgConfigDependency.class_pkgbin[for_machine] is False:
+            mlog.debug('Pkg-config binary for %s is cached missing.' % for_machine)
+        elif PkgConfigDependency.class_pkgbin[for_machine] is not None:
+            mlog.debug('Pkg-config binary for %s is cached.' % for_machine)
+        else:
+            assert PkgConfigDependency.class_pkgbin[for_machine] is None
+            mlog.debug('Pkg-config binary for %s is not cached.' % for_machine)
+            for potential_pkgbin in search():
+                mlog.debug(
+                    'Trying pkg-config binary %s for machine %s at %s.',
+                    potential_pkgbin.name, for_machine, potential_pkgbin.command)
+                version_if_ok = self.check_pkgconfig(potential_pkgbin)
+                if not version_if_ok:
+                    continue
+                if not self.silent:
+                    mlog.log('Found pkg-config:', mlog.bold(potential_pkgbin.get_path()),
+                             '(%s)' % version_if_ok)
+                PkgConfigDependency.class_pkgbin[for_machine] = potential_pkgbin
+                break
+            else:
+                if not self.silent:
+                    mlog.log('Found Pkg-config:', mlog.red('NO'))
+                # Set to False instead of None to signify that we've already
+                # searched for it and not found it
+                PkgConfigDependency.class_pkgbin[for_machine] = False
+
+        self.pkgbin = PkgConfigDependency.class_pkgbin[for_machine]
+        if self.pkgbin is False:
+            self.pkgbin = None
+            msg = 'No pkg-config binary for machine %s not found. Giving up.' % for_machine
             if self.required:
                 raise DependencyException(msg)
             else:
                 mlog.debug(msg)
-        else:
-            PkgConfigDependency.class_pkgbin[for_machine] = self.pkgbin
 
         mlog.debug('Determining dependency {!r} with pkg-config executable '
                    '{!r}'.format(name, self.pkgbin.get_path()))
@@ -817,27 +826,27 @@ class PkgConfigDependency(ExternalDependency):
         return [DependencyMethods.PKGCONFIG]
 
     def check_pkgconfig(self, pkgbin):
-        pkgbin = ExternalProgram(pkgbin, silent=True)
-        if pkgbin.found():
-            try:
-                p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
-                if p.returncode != 0:
-                    mlog.warning('Found pkg-config {!r} but couldn\'t run it'
-                                 ''.format(' '.join(pkgbin.get_command())))
-                    # Set to False instead of None to signify that we've already
-                    # searched for it and not found it
-                    pkgbin = False
-            except (FileNotFoundError, PermissionError):
-                pkgbin = False
-        else:
-            pkgbin = False
-        if not self.silent:
-            if pkgbin:
-                mlog.log(mlog.bold('pkg-config'), 'found:', mlog.green('YES'), '({})'.format(pkgbin.get_path()),
-                         out.strip())
-            else:
-                mlog.log(mlog.bold('pkg-config'), 'found:', mlog.red('NO'))
-        return pkgbin
+        if not pkgbin.found():
+            mlog.log('Did not find anything at {!r}'
+                     ''.format(' '.join(pkgbin.get_command())))
+            return None
+        try:
+            p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
+            if p.returncode != 0:
+                mlog.warning('Found pkg-config {!r} but it failed when run'
+                             ''.format(' '.join(pkgbin.get_command())))
+                return None
+        except FileNotFoundError:
+            mlog.warning('We thought we found pkg-config {!r} but now it\'s not there. How odd!'
+                         ''.format(' '.join(pkgbin.get_command())))
+            return None
+        except PermissionError:
+            msg = 'Found pkg-config {!r} but didn\'t have permissions to run it.'.format(' '.join(pkgbin.get_command()))
+            if not mesonlib.is_windows():
+                msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
+            mlog.warning(msg)
+            return None
+        return out.strip()
 
     def extract_field(self, la_file, fieldname):
         with open(la_file) as f:
@@ -904,8 +913,8 @@ class CMakeTarget:
 class CMakeDependency(ExternalDependency):
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_cmakebin = None
-    class_cmakevers = None
+    class_cmakebin = PerMachine(None, None, None)
+    class_cmakevers = PerMachine(None, None, None)
     # We cache all pkg-config subprocess invocations to avoid redundant calls
     cmake_cache = {}
     # Version string for the minimum CMake version
@@ -937,31 +946,67 @@ class CMakeDependency(ExternalDependency):
         # When finding dependencies for cross-compiling, we don't care about
         # the 'native' CMake binary
         # TODO: Test if this works as expected
-        if self.want_cross:
-            if 'cmake' not in environment.cross_info.config['binaries']:
-                if self.required:
-                    raise self._gen_exception('CMake binary missing from cross file')
-            else:
-                potential_cmake = ExternalProgram.from_cross_info(environment.cross_info, 'cmake')
-                if potential_cmake.found():
-                    self.cmakebin = potential_cmake
-                    CMakeDependency.class_cmakebin = self.cmakebin
-                else:
-                    mlog.debug('Cross CMake %s not found.' % potential_cmake.name)
-        # Only search for the native CMake the first time and
-        # store the result in the class definition
-        elif CMakeDependency.class_cmakebin is None:
-            self.cmakebin, self.cmakevers = self.check_cmake()
-            CMakeDependency.class_cmakebin = self.cmakebin
-            CMakeDependency.class_cmakevers = self.cmakevers
+        if environment.is_cross_build() and not self.want_cross:
+            for_machine = MachineChoice.BUILD
         else:
-            self.cmakebin = CMakeDependency.class_cmakebin
-            self.cmakevers = CMakeDependency.class_cmakevers
+            for_machine = MachineChoice.HOST
 
-        if not self.cmakebin:
+        # Create an iterator of options
+        def search():
+            # Lookup in cross or machine file.
+            potential_cmakepath = environment.binaries[for_machine].lookup_entry('cmake')
+            if potential_cmakepath is not None:
+                mlog.debug('CMake binary for %s specified from cross file, native file, or env var as %s.', for_machine, potential_cmakepath)
+                yield ExternalProgram.from_entry('cmake', potential_cmakepath)
+                # We never fallback if the user-specified option is no good, so
+                # stop returning options.
+                return
+            mlog.debug('CMake binary missing from cross or native file, or env var undefined.')
+            # Fallback on hard-coded defaults.
+            # TODO prefix this for the cross case instead of ignoring thing.
+            if environment.machines.matches_build_machine(for_machine):
+                for potential_cmakepath in environment.default_cmake:
+                    mlog.debug('Trying a default CMake fallback at', potential_cmakepath)
+                    yield ExternalProgram(potential_cmakepath, silent=True)
+
+        # Only search for CMake the first time and store the result in the class
+        # definition
+        if CMakeDependency.class_cmakebin[for_machine] is False:
+            mlog.debug('CMake binary for %s is cached missing.' % for_machine)
+        elif CMakeDependency.class_cmakebin[for_machine] is not None:
+            mlog.debug('CMake binary for %s is cached.' % for_machine)
+        else:
+            assert CMakeDependency.class_cmakebin[for_machine] is None
+            mlog.debug('CMake binary for %s is not cached.', for_machine)
+            for potential_cmakebin in search():
+                mlog.debug(
+                    'Trying CMake binary %s for machine %s at %s.',
+                    potential_cmakebin.name, for_machine, potential_cmakebin.command)
+                version_if_ok = self.check_cmake(potential_cmakebin)
+                if not version_if_ok:
+                    continue
+                if not self.silent:
+                    mlog.log('Found CMake:', mlog.bold(potential_cmakebin.get_path()),
+                             '(%s)' % version_if_ok)
+                CMakeDependency.class_cmakebin[for_machine] = potential_cmakebin
+                CMakeDependency.class_cmakevers[for_machine] = version_if_ok
+                break
+            else:
+                if not self.silent:
+                    mlog.log('Found CMake:', mlog.red('NO'))
+                # Set to False instead of None to signify that we've already
+                # searched for it and not found it
+                CMakeDependency.class_cmakebin[for_machine] = False
+                CMakeDependency.class_cmakevers[for_machine] = None
+
+        self.cmakebin = CMakeDependency.class_cmakebin[for_machine]
+        self.cmakevers = CMakeDependency.class_cmakevers[for_machine]
+        if self.cmakebin is False:
+            self.cmakebin = None
+            msg = 'No CMake binary for machine %s not found. Giving up.' % for_machine
             if self.required:
-                raise self._gen_exception('CMake not found.')
-            return
+                raise DependencyException(msg)
+            mlog.debug(msg)
 
         modules = kwargs.get('modules', [])
         if not isinstance(modules, list):
@@ -1438,48 +1483,35 @@ set(CMAKE_SIZEOF_VOID_P "{}")
     def get_methods():
         return [DependencyMethods.CMAKE]
 
-    def check_cmake(self):
-        evar = 'CMAKE'
-        if evar in os.environ:
-            cmakebin = os.environ[evar].strip()
-        else:
-            cmakebin = 'cmake'
-        cmakebin = ExternalProgram(cmakebin, silent=True)
-        cmvers = None
-        invalid_version = False
-        if cmakebin.found():
-            try:
-                p, out = Popen_safe(cmakebin.get_command() + ['--version'])[0:2]
-                if p.returncode != 0:
-                    mlog.warning('Found CMake {!r} but couldn\'t run it'
-                                 ''.format(' '.join(cmakebin.get_command())))
-                    # Set to False instead of None to signify that we've already
-                    # searched for it and not found it
-                    cmakebin = False
-            except (FileNotFoundError, PermissionError):
-                cmakebin = False
-
-            cmvers = re.sub(r'\s*cmake version\s*', '', out.split('\n')[0]).strip()
-            if not version_compare(cmvers, CMakeDependency.class_cmake_version):
-                invalid_version = True
-        else:
-            cmakebin = False
-        if not self.silent:
-            if cmakebin and invalid_version:
-                mlog.log('Found CMake:', mlog.red('NO'), '(version of', mlog.bold(cmakebin.get_path()),
-                         'is', mlog.bold(cmvers), 'but version', mlog.bold(CMakeDependency.class_cmake_version),
-                         'is required)')
-            elif cmakebin:
-                mlog.log('Found CMake:', mlog.bold(cmakebin.get_path()),
-                         '(%s)' % cmvers)
-            else:
-                mlog.log('Found CMake:', mlog.red('NO'))
-
-        if invalid_version:
-            cmakebin = False
-            cmvers = None
-
-        return cmakebin, cmvers
+    def check_cmake(self, cmakebin):
+        if not cmakebin.found():
+            mlog.log('Did not find CMake {!r}'
+                     ''.format(' '.join(cmakebin.get_command())))
+            return None
+        try:
+            p, out = Popen_safe(cmakebin.get_command() + ['--version'])[0:2]
+            if p.returncode != 0:
+                mlog.warning('Found CMake {!r} but couldn\'t run it'
+                             ''.format(' '.join(cmakebin.get_command())))
+                return None
+        except FileNotFoundError:
+            mlog.warning('We thought we found CMake {!r} but now it\'s not there. How odd!'
+                         ''.format(' '.join(cmakebin.get_command())))
+            return None
+        except PermissionError:
+            msg = 'Found CMake {!r} but didn\'t have permissions to run it.'.format(' '.join(cmakebin.get_command()))
+            if not mesonlib.is_windows():
+                msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
+            mlog.warning(msg)
+            return None
+        cmvers = re.sub(r'\s*cmake version\s*', '', out.split('\n')[0]).strip()
+        if not version_compare(cmvers, CMakeDependency.class_cmake_version):
+            mlog.warning(
+                'The version of CMake', mlog.bold(cmakebin.get_path()),
+                'is', mlog.bold(cmvers), 'but version', mlog.bold(CMakeDependency.class_cmake_version),
+                'is required')
+            return None
+        return cmvers
 
     def log_tried(self):
         return self.type_name
