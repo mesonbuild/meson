@@ -433,6 +433,7 @@ class Environment:
         self.cuda_static_linker = ['nvlink']
         self.gcc_static_linker = ['gcc-ar']
         self.clang_static_linker = ['llvm-ar']
+        self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
 
         # Various prefixes and suffixes for import libraries, shared libraries,
@@ -1503,6 +1504,7 @@ class BinaryTable:
         'ar': 'AR',
         'windres': 'WINDRES',
 
+        'cmake': 'CMAKE',
         'pkgconfig': 'PKG_CONFIG',
     }
 
