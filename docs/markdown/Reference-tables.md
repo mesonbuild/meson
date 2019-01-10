@@ -99,23 +99,29 @@ future releases.
 
 These are the parameter names for passing language specific arguments to your build target.
 
-| Language      | Parameter name |
-| -----         | ----- |
-| C             | c_args |
-| C++           | cpp_args |
-| C#            | cs_args |
-| D             | d_args |
-| Fortran       | fortran_args |
-| Java          | java_args |
-| Objective C   | objc_args |
-| Objective C++ | objcpp_args |
-| Rust          | rust_args |
-| Vala          | vala_args |
+| Language      | compiler name | linker name       |
+| ------------- | ------------- | ----------------- |
+| C             | c_args        | c_link_args       |
+| C++           | cpp_args      | cpp_link_args     |
+| C#            | cs_args       | cs_link_args      |
+| D             | d_args        | d_link_args       |
+| Fortran       | fortran_args  | fortran_link_args |
+| Java          | java_args     | java_link_args    |
+| Objective C   | objc_args     | objc_link_args    |
+| Objective C++ | objcpp_args   | objcpp_link_args  |
+| Rust          | rust_args     | rust_link_args    |
+| Vala          | vala_args     | vala_link_args    |
 
 ## Compiler and linker flag environment variables
 
 These environment variables will be used to modify the compiler and
 linker flags.
+
+It is recommended that you **do not use these**. They are provided purely to
+for backwards compatibility with other build systems. There are many caveats to
+their use, especially when rebuilding the project. It is **highly** recommended
+that you use [the command line arguments](#language-arguments-parameters-names)
+instead.
 
 | Name      | Comment                                  |
 | -----     | -------                                  |

@@ -450,9 +450,9 @@ AM_CPPFLAGS =                                                   \
 `meson.build`:
 
 ```meson
-add_global_arguments('-DG_LOG_DOMAIN="As"', language : 'c')
-add_global_arguments('-DAS_COMPILATION', language : 'c')
-add_global_arguments('-DLOCALSTATEDIR="/var"', language : 'c')
+add_project_arguments('-DG_LOG_DOMAIN="As"', language : 'c')
+add_project_arguments('-DAS_COMPILATION', language : 'c')
+add_project_arguments('-DLOCALSTATEDIR="/var"', language : 'c')
 ```
 
 ### Tests
