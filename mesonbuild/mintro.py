@@ -217,7 +217,7 @@ class BuildoptionsInterperter(astinterpreter.AstInterpreter):
         return flattend_args
 
     def add_languages(self, args):
-        need_cross_compiler = self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler()
+        need_cross_compiler = self.environment.is_cross_build()
         for lang in sorted(args, key=compilers.sort_clink):
             lang = lang.lower()
             if lang not in self.coredata.compilers:
