@@ -5029,10 +5029,9 @@ class NativeFileTests(BasePlatformTests):
                     ret = subprocess.run(
                         ["{}"] + extra_args,
                         stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        encoding='utf-8')
-                    print(ret.stdout)
-                    print(ret.stderr, file=sys.stderr)
+                        stderr=subprocess.PIPE)
+                    print(ret.stdout.decode('utf-8'))
+                    print(ret.stderr.decode('utf-8'), file=sys.stderr)
                     sys.exit(ret.returncode)
 
                 if __name__ == '__main__':
