@@ -473,12 +473,7 @@ def run(options):
             return 1
 
     results = []
-    toextract = []
     intro_types = get_meson_introspection_types()
-
-    for i in intro_types.keys():
-        if options.all or getattr(options, i, False):
-            toextract += [i]
 
     # Handle the one option that does not have its own JSON file (meybe deprecate / remove this?)
     if options.target_files is not None:
@@ -488,7 +483,9 @@ def run(options):
         results += [('target_files', list_target_files(options.target_files, targets, source_dir))]
 
     # Extract introspection information from JSON
-    for i in toextract:
+    for i in intro_types.keys():
+        if not options.all and not getattr(options, i, False):
+            continue
         curr = os.path.join(infodir, 'intro-{}.json'.format(i))
         if not os.path.isfile(curr):
             print('Introspection file {} does not exist.'.format(curr))
