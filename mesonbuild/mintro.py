@@ -296,7 +296,7 @@ def list_buildoptions_from_source(sourcedir, backend, indent):
     mlog.enable()
     print(json.dumps(list_buildoptions(intr.coredata), indent=indent))
 
-def list_target_files(target_name, targets, builddata: build.Build):
+def list_target_files(target_name: str, targets: list, source_dir: str):
     sys.stderr.write("WARNING: The --target-files introspection API is deprecated. Use --targets instead.\n")
     result = []
     tgt = None
@@ -313,7 +313,7 @@ def list_target_files(target_name, targets, builddata: build.Build):
     for i in tgt['target_sources']:
         result += i['sources'] + i['generated_sources']
 
-    result = list(map(lambda x: os.path.relpath(x, builddata.environment.get_source_dir()), result))
+    result = list(map(lambda x: os.path.relpath(x, source_dir), result))
 
     return result
 
@@ -515,9 +515,11 @@ def run(options):
         return 1
 
     intro_vers = '0.0.0'
+    source_dir = None
     with open(infofile, 'r') as fp:
         raw = json.load(fp)
         intro_vers = raw.get('introspection', {}).get('version', {}).get('full', '0.0.0')
+        source_dir = raw.get('directories', {}).get('source', None)
 
     vers_to_check = get_meson_introspection_required_version()
     for i in vers_to_check:
@@ -540,8 +542,7 @@ def run(options):
         targets_file = os.path.join(infodir, 'intro-targets.json')
         with open(targets_file, 'r') as fp:
             targets = json.load(fp)
-        builddata = build.load(options.builddir)
-        results += [('target_files', list_target_files(options.target_files, targets, builddata))]
+        results += [('target_files', list_target_files(options.target_files, targets, source_dir))]
 
     # Extract introspection information from JSON
     for i in toextract:
