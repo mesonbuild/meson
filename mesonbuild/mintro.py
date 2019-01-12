@@ -39,6 +39,9 @@ def get_meson_info_file(info_dir: str):
 def get_meson_introspection_version():
     return '1.0.0'
 
+def get_meson_introspection_required_version():
+    return ['>=1.0', '<2.0']
+
 def get_meson_introspection_types(coredata: cdata.CoreData = None, builddata: build.Build = None, backend: backends.Backend = None):
     if backend and builddata:
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
@@ -503,16 +506,26 @@ def run(options):
         if options.buildoptions:
             list_buildoptions_from_source(sourcedir, options.backend, indent)
             return 0
-    if not os.path.isdir(datadir) or not os.path.isdir(infodir):
+    infofile = get_meson_info_file(infodir)
+    if not os.path.isdir(datadir) or not os.path.isdir(infodir) or not os.path.isfile(infofile):
         print('Current directory is not a meson build directory.'
               'Please specify a valid build dir or change the working directory to it.'
               'It is also possible that the build directory was generated with an old'
               'meson version. Please regenerate it in this case.')
         return 1
 
-    # Load build data to make sure that the version matches
-    # TODO Find a better solution for this
-    cdata.load(options.builddir)
+    intro_vers = '0.0.0'
+    with open(infofile, 'r') as fp:
+        raw = json.load(fp)
+        intro_vers = raw.get('introspection', {}).get('version', {}).get('full', '0.0.0')
+
+    vers_to_check = get_meson_introspection_required_version()
+    for i in vers_to_check:
+        if not mesonlib.version_compare(intro_vers, i):
+            print('Introspection version {} is not supported. '
+                  'The required version is: {}'
+                  .format(intro_vers, ' and '.join(vers_to_check)))
+            return 1
 
     results = []
     toextract = []
