@@ -1625,9 +1625,9 @@ class DubDependency(ExternalDependency):
             return ''
 
         # Ex.: library-debug-linux.posix-x86_64-ldc_2081-EF934983A3319F8F8FF2F0E107A363BA
-        build_name = 'library-{}-{}-{}-{}_{}'.format(description['buildType'], '.'.join(description['platform']), '.'.join(description['architecture']), comp, d_ver)
+        build_name = '-{}-{}-{}-{}_{}-'.format(description['buildType'], '.'.join(description['platform']), '.'.join(description['architecture']), comp, d_ver)
         for entry in os.listdir(module_build_path):
-            if entry.startswith(build_name):
+            if build_name in entry:
                 for file in os.listdir(os.path.join(module_build_path, entry)):
                     if file == lib_file_name:
                         if folder_only:
