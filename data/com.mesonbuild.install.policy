@@ -17,7 +17,6 @@
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/python3</annotate>
     <annotate key="org.freedesktop.policykit.exec.argv1">/usr/bin/meson</annotate>
-    <annotate key="org.freedesktop.policykit.exec.argv2">install</annotate>
   </action>
 
 </policyconfig>
