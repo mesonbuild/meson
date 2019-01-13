@@ -39,6 +39,9 @@ def get_meson_info_file(info_dir: str):
 def get_meson_introspection_version():
     return '1.0.0'
 
+def get_meson_introspection_required_version():
+    return ['>=1.0', '<2.0']
+
 def get_meson_introspection_types(coredata: cdata.CoreData = None, builddata: build.Build = None, backend: backends.Backend = None):
     if backend and builddata:
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
@@ -293,7 +296,7 @@ def list_buildoptions_from_source(sourcedir, backend, indent):
     mlog.enable()
     print(json.dumps(list_buildoptions(intr.coredata), indent=indent))
 
-def list_target_files(target_name, targets, builddata: build.Build):
+def list_target_files(target_name: str, targets: list, source_dir: str):
     sys.stderr.write("WARNING: The --target-files introspection API is deprecated. Use --targets instead.\n")
     result = []
     tgt = None
@@ -310,7 +313,7 @@ def list_target_files(target_name, targets, builddata: build.Build):
     for i in tgt['target_sources']:
         result += i['sources'] + i['generated_sources']
 
-    result = list(map(lambda x: os.path.relpath(x, builddata.environment.get_source_dir()), result))
+    result = list(map(lambda x: os.path.relpath(x, source_dir), result))
 
     return result
 
@@ -503,16 +506,28 @@ def run(options):
         if options.buildoptions:
             list_buildoptions_from_source(sourcedir, options.backend, indent)
             return 0
-    if not os.path.isdir(datadir) or not os.path.isdir(infodir):
+    infofile = get_meson_info_file(infodir)
+    if not os.path.isdir(datadir) or not os.path.isdir(infodir) or not os.path.isfile(infofile):
         print('Current directory is not a meson build directory.'
               'Please specify a valid build dir or change the working directory to it.'
               'It is also possible that the build directory was generated with an old'
               'meson version. Please regenerate it in this case.')
         return 1
 
-    # Load build data to make sure that the version matches
-    # TODO Find a better solution for this
-    cdata.load(options.builddir)
+    intro_vers = '0.0.0'
+    source_dir = None
+    with open(infofile, 'r') as fp:
+        raw = json.load(fp)
+        intro_vers = raw.get('introspection', {}).get('version', {}).get('full', '0.0.0')
+        source_dir = raw.get('directories', {}).get('source', None)
+
+    vers_to_check = get_meson_introspection_required_version()
+    for i in vers_to_check:
+        if not mesonlib.version_compare(intro_vers, i):
+            print('Introspection version {} is not supported. '
+                  'The required version is: {}'
+                  .format(intro_vers, ' and '.join(vers_to_check)))
+            return 1
 
     results = []
     toextract = []
@@ -527,8 +542,7 @@ def run(options):
         targets_file = os.path.join(infodir, 'intro-targets.json')
         with open(targets_file, 'r') as fp:
             targets = json.load(fp)
-        builddata = build.load(options.builddir)
-        results += [('target_files', list_target_files(options.target_files, targets, builddata))]
+        results += [('target_files', list_target_files(options.target_files, targets, source_dir))]
 
     # Extract introspection information from JSON
     for i in toextract:
