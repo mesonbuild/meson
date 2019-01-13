@@ -220,6 +220,8 @@ def detect_cpu_family(compilers):
         trial = 'arm'
     elif trial.startswith('ppc64'):
         trial = 'ppc64'
+    elif trial == 'macppc':
+        trial = 'ppc'
     elif trial == 'powerpc':
         trial = 'ppc'
         # FreeBSD calls both ppc and ppc64 "powerpc".
