@@ -53,6 +53,7 @@ for one target is defined as follows:
     "name": "Name of the target",
     "id": "The internal ID meson uses",
     "type": "<TYPE>",
+    "defined_in": "/Path/to/the/targets/meson.build",
     "filename": ["list", "of", "generated", "files"],
     "build_by_default": true / false,
     "target_sources": [],
