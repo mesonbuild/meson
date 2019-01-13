@@ -117,6 +117,7 @@ def list_installed(installdata):
 
 def list_targets(builddata: build.Build, installdata, backend: backends.Backend):
     tlist = []
+    build_dir = builddata.environment.get_build_dir()
 
     # Fast lookup table for installation files
     install_lookuptable = {}
@@ -128,24 +129,18 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
         if not isinstance(target, build.Target):
             raise RuntimeError('The target object in `builddata.get_targets()` is not of type `build.Target`. Please file a bug with this error message.')
 
-        # TODO Change this to the full list in a seperate PR
-        fname = [os.path.join(target.subdir, x) for x in target.get_outputs()]
-        if len(fname) == 1:
-            fname = fname[0]
-
         t = {
             'name': target.get_basename(),
             'id': idname,
             'type': target.get_typename(),
-            'filename': fname,
+            'filename': [os.path.join(build_dir, target.subdir, x) for x in target.get_outputs()],
             'build_by_default': target.build_by_default,
             'target_sources': backend.get_introspection_data(idname, target)
         }
 
         if installdata and target.should_install():
             t['installed'] = True
-            # TODO Change this to the full list in a seperate PR
-            t['install_filename'] = [install_lookuptable.get(x, None) for x in target.get_outputs()][0]
+            t['install_filename'] = [install_lookuptable.get(x, None) for x in target.get_outputs()]
         else:
             t['installed'] = False
         tlist.append(t)
@@ -299,6 +294,7 @@ def list_buildoptions_from_source(sourcedir, backend, indent):
     print(json.dumps(list_buildoptions(intr.coredata), indent=indent))
 
 def list_target_files(target_name, targets, builddata: build.Build):
+    sys.stderr.write("WARNING: The --target-files introspection API is deprecated. Use --targets instead.\n")
     result = []
     tgt = None
 
@@ -314,7 +310,6 @@ def list_target_files(target_name, targets, builddata: build.Build):
     for i in tgt['target_sources']:
         result += i['sources'] + i['generated_sources']
 
-    # TODO Remove this line in a future PR with other breaking changes
     result = list(map(lambda x: os.path.relpath(x, builddata.environment.get_source_dir()), result))
 
     return result
@@ -387,6 +382,7 @@ def find_buildsystem_files_list(src_dir):
 def list_buildsystem_files(builddata: build.Build):
     src_dir = builddata.environment.get_source_dir()
     filelist = find_buildsystem_files_list(src_dir)
+    filelist = [os.path.join(src_dir, x) for x in filelist]
     return filelist
 
 def list_deps(coredata: cdata.CoreData):
@@ -531,7 +527,7 @@ def run(options):
         targets_file = os.path.join(infodir, 'intro-targets.json')
         with open(targets_file, 'r') as fp:
             targets = json.load(fp)
-        builddata = build.load(options.builddir) # TODO remove this in a breaking changes PR
+        builddata = build.load(options.builddir)
         results += [('target_files', list_target_files(options.target_files, targets, builddata))]
 
     # Extract introspection information from JSON
