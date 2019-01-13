@@ -3172,6 +3172,7 @@ recommended as it is not supported on some platforms''')
             ('name', str),
             ('id', str),
             ('type', str),
+            ('defined_in', str),
             ('filename', list),
             ('build_by_default', bool),
             ('target_sources', list),
@@ -3240,11 +3241,11 @@ recommended as it is not supported on some platforms''')
 
         # Check targets
         targets_to_find = {
-            'sharedTestLib': ('shared library', True, False),
-            'staticTestLib': ('static library', True, False),
-            'test1': ('executable', True, True),
-            'test2': ('executable', True, False),
-            'test3': ('executable', True, False),
+            'sharedTestLib': ('shared library', True, False, 'sharedlib/meson.build'),
+            'staticTestLib': ('static library', True, False, 'staticlib/meson.build'),
+            'test1': ('executable', True, True, 'meson.build'),
+            'test2': ('executable', True, False, 'meson.build'),
+            'test3': ('executable', True, False, 'meson.build'),
         }
         for i in res['targets']:
             assertKeyTypes(targets_typelist, i)
@@ -3253,6 +3254,7 @@ recommended as it is not supported on some platforms''')
                 self.assertEqual(i['type'], tgt[0])
                 self.assertEqual(i['build_by_default'], tgt[1])
                 self.assertEqual(i['installed'], tgt[2])
+                self.assertPathEqual(i['defined_in'], os.path.join(testdir, tgt[3]))
                 targets_to_find.pop(i['name'], None)
             for j in i['target_sources']:
                 assertKeyTypes(targets_sources_typelist, j)

@@ -121,6 +121,7 @@ def list_installed(installdata):
 def list_targets(builddata: build.Build, installdata, backend: backends.Backend):
     tlist = []
     build_dir = builddata.environment.get_build_dir()
+    src_dir = builddata.environment.get_source_dir()
 
     # Fast lookup table for installation files
     install_lookuptable = {}
@@ -136,6 +137,7 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
             'name': target.get_basename(),
             'id': idname,
             'type': target.get_typename(),
+            'defined_in': os.path.normpath(os.path.join(src_dir, target.subdir, 'meson.build')),
             'filename': [os.path.join(build_dir, target.subdir, x) for x in target.get_outputs()],
             'build_by_default': target.build_by_default,
             'target_sources': backend.get_introspection_data(idname, target)
