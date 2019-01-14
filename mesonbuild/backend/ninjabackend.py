@@ -1674,7 +1674,6 @@ rule FORTRAN_DEP_HACK%s
             crstr = ''
         rule = 'rule %s%s_PCH\n' % (langname, crstr)
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
-        cross_args = []
 
         quoted_depargs = []
         for d in depargs:
@@ -1685,9 +1684,8 @@ rule FORTRAN_DEP_HACK%s
             output = ''
         else:
             output = ' '.join(compiler.get_output_args('$out'))
-        command = " command = {executable} $ARGS {cross_args} {dep_args} {output_args} {compile_only_args} $in\n".format(
+        command = " command = {executable} $ARGS {dep_args} {output_args} {compile_only_args} $in\n".format(
             executable=' '.join(compiler.get_exelist()),
-            cross_args=' '.join([quote_func(i) for i in cross_args]),
             dep_args=' '.join(quoted_depargs),
             output_args=output,
             compile_only_args=' '.join(compiler.get_compile_only_args())
