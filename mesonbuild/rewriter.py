@@ -23,7 +23,7 @@
 # - move targets
 # - reindent?
 
-from .ast import (AstInterpreter, AstVisitor)
+from .ast import (AstInterpreter, AstVisitor, AstPrinter)
 from mesonbuild.mesonlib import MesonException
 from mesonbuild import mlog
 import sys, traceback
@@ -35,7 +35,6 @@ def add_arguments(parser):
                         help='Print the parsed AST.')
 
 def run(options):
-    print('This tool is highly experimental, use with care.')
     rewriter = AstInterpreter(options.sourcedir, '')
     try:
         rewriter.load_root_meson_file()
@@ -43,8 +42,9 @@ def run(options):
         rewriter.parse_project()
         rewriter.run()
 
-        visitor = AstVisitor()
+        visitor = AstPrinter()
         rewriter.ast.accept(visitor)
+        print(visitor.result)
     except Exception as e:
         if isinstance(e, MesonException):
             mlog.exception(e)
