@@ -16,7 +16,7 @@ from mesonbuild import environment
 
 import argparse, sys, os, subprocess, pathlib
 
-def coverage(outputs, source_root, subproject_root, build_root, log_dir):
+def coverage(outputs, source_root, excludes, build_root, log_dir):
     outfiles = []
     exitcode = 0
 
@@ -28,14 +28,20 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
     else:
         gcovr_rootdir = source_root
 
+    gcovr_base_cmd = [gcovr_exe, '-r', gcovr_rootdir]
+    lcov_excludes = []
+    for exclude in excludes:
+        gcovr_base_cmd.extend(('-e', exclude))
+        if os.path.isfile(exclude):
+            lcov_excludes.append(exclude)
+        else:
+            lcov_excludes.append(os.path.join(exclude, '*'))
+
     if not outputs or 'xml' in outputs:
         if gcovr_exe:
-            subprocess.check_call([gcovr_exe,
-                                   '-x',
-                                   '-r', gcovr_rootdir,
-                                   '-e', subproject_root,
-                                   '-o', os.path.join(log_dir, 'coverage.xml'),
-                                   ])
+            subprocess.check_call(gcovr_base_cmd +
+                                  ['-x',
+                                   '-o', os.path.join(log_dir, 'coverage.xml')])
             outfiles.append(('Xml', pathlib.Path(log_dir, 'coverage.xml')))
         elif outputs:
             print('gcovr needed to generate Xml coverage report')
@@ -43,11 +49,8 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
 
     if not outputs or 'text' in outputs:
         if gcovr_exe:
-            subprocess.check_call([gcovr_exe,
-                                   '-r', gcovr_rootdir,
-                                   '-e', subproject_root,
-                                   '-o', os.path.join(log_dir, 'coverage.txt'),
-                                   ])
+            subprocess.check_call(gcovr_base_cmd +
+                                  ['-o', os.path.join(log_dir, 'coverage.txt')])
             outfiles.append(('Text', pathlib.Path(log_dir, 'coverage.txt')))
         elif outputs:
             print('gcovr needed to generate text coverage report')
@@ -85,11 +88,11 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
                                    os.path.join(source_root, '*'),
                                    '--rc', 'lcov_branch_coverage=1',
                                    '--output-file', covinfo])
-            # Remove all directories inside subproject dir
+            # Remove all files/directories defined as excludes
             subprocess.check_call([lcov_exe,
-                                   '--remove', covinfo,
-                                   os.path.join(subproject_root, '*'),
-                                   '--rc', 'lcov_branch_coverage=1',
+                                   '--remove', covinfo] +
+                                  lcov_excludes +
+                                  ['--rc', 'lcov_branch_coverage=1',
                                    '--output-file', covinfo])
             subprocess.check_call([genhtml_exe,
                                    '--prefix', build_root,
@@ -105,14 +108,12 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
             htmloutdir = os.path.join(log_dir, 'coveragereport')
             if not os.path.isdir(htmloutdir):
                 os.mkdir(htmloutdir)
-            subprocess.check_call([gcovr_exe,
-                                   '--html',
+            subprocess.check_call(gcovr_base_cmd +
+                                  ['--html',
                                    '--html-details',
                                    '--print-summary',
                                    '-r', build_root,
-                                   '-e', subproject_root,
-                                   '-o', os.path.join(htmloutdir, 'index.html'),
-                                   ])
+                                   '-o', os.path.join(htmloutdir, 'index.html')])
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
         elif outputs:
             print('lcov/genhtml or gcovr >= 3.2 needed to generate Html coverage report')
@@ -141,12 +142,12 @@ def run(args):
     parser.add_argument('--html', dest='outputs', action='append_const',
                         const='html', help='generate Html report')
     parser.add_argument('source_root')
-    parser.add_argument('subproject_root')
     parser.add_argument('build_root')
     parser.add_argument('log_dir')
+    parser.add_argument('excludes', nargs='*')
     options = parser.parse_args(args)
     return coverage(options.outputs, options.source_root,
-                    options.subproject_root, options.build_root,
+                    options.excludes, options.build_root,
                     options.log_dir)
 
 if __name__ == '__main__':
