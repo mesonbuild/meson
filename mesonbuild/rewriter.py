@@ -23,7 +23,7 @@
 # - move targets
 # - reindent?
 
-import mesonbuild.astinterpreter
+from .ast import (AstInterpreter, AstVisitor)
 from mesonbuild.mesonlib import MesonException
 from mesonbuild import mlog
 import sys, traceback
@@ -31,24 +31,20 @@ import sys, traceback
 def add_arguments(parser):
     parser.add_argument('--sourcedir', default='.',
                         help='Path to source directory.')
-    parser.add_argument('--target', default=None,
-                        help='Name of target to edit.')
-    parser.add_argument('--filename', default=None,
-                        help='Name of source file to add or remove to target.')
-    parser.add_argument('commands', nargs='+')
+    parser.add_argument('-p', '--print', action='store_true', default=False, dest='print',
+                        help='Print the parsed AST.')
 
 def run(options):
-    if options.target is None or options.filename is None:
-        sys.exit("Must specify both target and filename.")
     print('This tool is highly experimental, use with care.')
-    rewriter = mesonbuild.astinterpreter.RewriterInterpreter(options.sourcedir, '')
+    rewriter = AstInterpreter(options.sourcedir, '')
     try:
-        if options.commands[0] == 'add':
-            rewriter.add_source(options.target, options.filename)
-        elif options.commands[0] == 'remove':
-            rewriter.remove_source(options.target, options.filename)
-        else:
-            sys.exit('Unknown command: ' + options.commands[0])
+        rewriter.load_root_meson_file()
+        rewriter.sanity_check_ast()
+        rewriter.parse_project()
+        rewriter.run()
+
+        visitor = AstVisitor()
+        rewriter.ast.accept(visitor)
     except Exception as e:
         if isinstance(e, MesonException):
             mlog.exception(e)

@@ -23,7 +23,7 @@ import json
 from . import build, coredata as cdata
 from . import environment
 from . import mesonlib
-from . import astinterpreter
+from .ast import AstInterpreter
 from . import mparser
 from . import mlog
 from . import compilers
@@ -158,7 +158,7 @@ class IntrospectionHelper:
         self.native_file = None
         self.cmd_line_options = {}
 
-class IntrospectionInterpreter(astinterpreter.AstInterpreter):
+class IntrospectionInterpreter(AstInterpreter):
     # Interpreter to detect the options without a build directory
     # Most of the code is stolen from interperter.Interpreter
     def __init__(self, source_root, subdir, backend, cross_file=None, subproject='', subproject_dir='subprojects', env=None):
@@ -182,20 +182,6 @@ class IntrospectionInterpreter(astinterpreter.AstInterpreter):
             'project': self.func_project,
             'add_languages': self.func_add_languages
         })
-
-    def flatten_args(self, args):
-        # Resolve mparser.ArrayNode if needed
-        flattend_args = []
-        if isinstance(args, mparser.ArrayNode):
-            args = [x.value for x in args.args.arguments]
-        for i in args:
-            if isinstance(i, mparser.ArrayNode):
-                flattend_args += [x.value for x in i.args.arguments]
-            elif isinstance(i, str):
-                flattend_args += [i]
-            else:
-                pass
-        return flattend_args
 
     def func_project(self, node, args, kwargs):
         if len(args) < 1:

@@ -212,7 +212,15 @@ This will become a hard error in a future Meson release.""", self.getline(line_s
             if not matched:
                 raise ParseException('lexer', self.getline(line_start), lineno, col)
 
-class ElementaryNode:
+class BaseNode:
+    def accept(self, visitor):
+        fname = 'visit_{}'.format(type(self).__name__)
+        if hasattr(visitor, fname):
+            func = getattr(visitor, fname)
+            if hasattr(func, '__call__'):
+                func(self)
+
+class ElementaryNode(BaseNode):
     def __init__(self, token):
         self.lineno = token.lineno
         self.subdir = token.subdir
@@ -253,28 +261,28 @@ class ContinueNode(ElementaryNode):
 class BreakNode(ElementaryNode):
     pass
 
-class ArrayNode:
+class ArrayNode(BaseNode):
     def __init__(self, args):
         self.subdir = args.subdir
         self.lineno = args.lineno
         self.colno = args.colno
         self.args = args
 
-class DictNode:
+class DictNode(BaseNode):
     def __init__(self, args):
         self.subdir = args.subdir
         self.lineno = args.lineno
         self.colno = args.colno
         self.args = args
 
-class EmptyNode:
+class EmptyNode(BaseNode):
     def __init__(self, lineno, colno):
         self.subdir = ''
         self.lineno = lineno
         self.colno = colno
         self.value = None
 
-class OrNode:
+class OrNode(BaseNode):
     def __init__(self, left, right):
         self.subdir = left.subdir
         self.lineno = left.lineno
@@ -282,7 +290,7 @@ class OrNode:
         self.left = left
         self.right = right
 
-class AndNode:
+class AndNode(BaseNode):
     def __init__(self, left, right):
         self.subdir = left.subdir
         self.lineno = left.lineno
@@ -290,7 +298,7 @@ class AndNode:
         self.left = left
         self.right = right
 
-class ComparisonNode:
+class ComparisonNode(BaseNode):
     def __init__(self, ctype, left, right):
         self.lineno = left.lineno
         self.colno = left.colno
@@ -299,7 +307,7 @@ class ComparisonNode:
         self.right = right
         self.ctype = ctype
 
-class ArithmeticNode:
+class ArithmeticNode(BaseNode):
     def __init__(self, operation, left, right):
         self.subdir = left.subdir
         self.lineno = left.lineno
@@ -308,21 +316,21 @@ class ArithmeticNode:
         self.right = right
         self.operation = operation
 
-class NotNode:
+class NotNode(BaseNode):
     def __init__(self, location_node, value):
         self.subdir = location_node.subdir
         self.lineno = location_node.lineno
         self.colno = location_node.colno
         self.value = value
 
-class CodeBlockNode:
+class CodeBlockNode(BaseNode):
     def __init__(self, location_node):
         self.subdir = location_node.subdir
         self.lineno = location_node.lineno
         self.colno = location_node.colno
         self.lines = []
 
-class IndexNode:
+class IndexNode(BaseNode):
     def __init__(self, iobject, index):
         self.iobject = iobject
         self.index = index
@@ -330,7 +338,7 @@ class IndexNode:
         self.lineno = iobject.lineno
         self.colno = iobject.colno
 
-class MethodNode:
+class MethodNode(BaseNode):
     def __init__(self, subdir, lineno, colno, source_object, name, args):
         self.subdir = subdir
         self.lineno = lineno
@@ -340,7 +348,7 @@ class MethodNode:
         assert(isinstance(self.name, str))
         self.args = args
 
-class FunctionNode:
+class FunctionNode(BaseNode):
     def __init__(self, subdir, lineno, colno, func_name, args):
         self.subdir = subdir
         self.lineno = lineno
@@ -349,7 +357,7 @@ class FunctionNode:
         assert(isinstance(func_name, str))
         self.args = args
 
-class AssignmentNode:
+class AssignmentNode(BaseNode):
     def __init__(self, lineno, colno, var_name, value):
         self.lineno = lineno
         self.colno = colno
@@ -357,7 +365,7 @@ class AssignmentNode:
         assert(isinstance(var_name, str))
         self.value = value
 
-class PlusAssignmentNode:
+class PlusAssignmentNode(BaseNode):
     def __init__(self, lineno, colno, var_name, value):
         self.lineno = lineno
         self.colno = colno
@@ -365,7 +373,7 @@ class PlusAssignmentNode:
         assert(isinstance(var_name, str))
         self.value = value
 
-class ForeachClauseNode:
+class ForeachClauseNode(BaseNode):
     def __init__(self, lineno, colno, varnames, items, block):
         self.lineno = lineno
         self.colno = colno
@@ -373,28 +381,28 @@ class ForeachClauseNode:
         self.items = items
         self.block = block
 
-class IfClauseNode:
+class IfClauseNode(BaseNode):
     def __init__(self, lineno, colno):
         self.lineno = lineno
         self.colno = colno
         self.ifs = []
         self.elseblock = EmptyNode(lineno, colno)
 
-class UMinusNode:
+class UMinusNode(BaseNode):
     def __init__(self, current_location, value):
         self.subdir = current_location.subdir
         self.lineno = current_location.lineno
         self.colno = current_location.colno
         self.value = value
 
-class IfNode:
+class IfNode(BaseNode):
     def __init__(self, lineno, colno, condition, block):
         self.lineno = lineno
         self.colno = colno
         self.condition = condition
         self.block = block
 
-class TernaryNode:
+class TernaryNode(BaseNode):
     def __init__(self, lineno, colno, condition, trueblock, falseblock):
         self.lineno = lineno
         self.colno = colno
@@ -402,7 +410,7 @@ class TernaryNode:
         self.trueblock = trueblock
         self.falseblock = falseblock
 
-class ArgumentNode:
+class ArgumentNode(BaseNode):
     def __init__(self, token):
         self.lineno = token.lineno
         self.colno = token.colno

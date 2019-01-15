@@ -15,10 +15,10 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from . import interpreterbase, mparser, mesonlib
-from . import environment
+from .. import interpreterbase, mparser, mesonlib
+from .. import environment
 
-from .interpreterbase import InterpreterException, InvalidArguments, BreakRequest, ContinueRequest
+from ..interpreterbase import InterpreterException, InvalidArguments, BreakRequest, ContinueRequest
 
 import os, sys
 
@@ -46,6 +46,7 @@ REMOVE_SOURCE = 1
 class AstInterpreter(interpreterbase.InterpreterBase):
     def __init__(self, source_root, subdir):
         super().__init__(source_root, subdir)
+        self.visited_subdirs = {}
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
                            'benchmark': self.func_do_nothing,
@@ -83,7 +84,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'build_target': self.func_do_nothing,
                            'custom_target': self.func_do_nothing,
                            'run_target': self.func_do_nothing,
-                           'subdir': self.func_do_nothing,
+                           'subdir': self.func_subdir,
                            'set_variable': self.func_do_nothing,
                            'get_variable': self.func_do_nothing,
                            'is_variable': self.func_do_nothing,
@@ -91,6 +92,39 @@ class AstInterpreter(interpreterbase.InterpreterBase):
 
     def func_do_nothing(self, node, args, kwargs):
         return True
+
+    def func_subdir(self, node, args, kwargs):
+        args = self.flatten_args(args)
+        if len(args) != 1 or not isinstance(args[0], str):
+            sys.stderr.write('Unable to evaluate subdir({}) in AstInterpreter --> Skipping\n'.format(args))
+            return
+
+        prev_subdir = self.subdir
+        subdir = os.path.join(prev_subdir, args[0])
+        absdir = os.path.join(self.source_root, subdir)
+        buildfilename = os.path.join(self.subdir, environment.build_filename)
+        absname = os.path.join(self.source_root, buildfilename)
+        symlinkless_dir = os.path.realpath(absdir)
+        if symlinkless_dir in self.visited_subdirs:
+            sys.stderr.write('Trying to enter {} which has already been visited --> Skipping\n'.format(args[0]))
+            return
+        self.visited_subdirs[symlinkless_dir] = True
+
+        if not os.path.isfile(absname):
+            sys.stderr.write('Unable to find build file {} --> Skipping\n'.format(buildfilename))
+            return
+        with open(absname, encoding='utf8') as f:
+            code = f.read()
+        assert(isinstance(code, str))
+        try:
+            codeblock = mparser.Parser(code, self.subdir).parse()
+        except mesonlib.MesonException as me:
+            me.file = buildfilename
+            raise me
+
+        self.subdir = subdir
+        self.evaluate_codeblock(codeblock)
+        self.subdir = prev_subdir
 
     def method_call(self, node):
         return True
@@ -135,6 +169,20 @@ class AstInterpreter(interpreterbase.InterpreterBase):
 
     def assignment(self, node):
         pass
+
+    def flatten_args(self, args):
+        # Resolve mparser.ArrayNode if needed
+        flattend_args = []
+        if isinstance(args, mparser.ArrayNode):
+            args = [x.value for x in args.args.arguments]
+        for i in args:
+            if isinstance(i, mparser.ArrayNode):
+                flattend_args += [x.value for x in i.args.arguments]
+            elif isinstance(i, str):
+                flattend_args += [i]
+            else:
+                pass
+        return flattend_args
 
 class RewriterInterpreter(AstInterpreter):
     def __init__(self, source_root, subdir):
@@ -197,7 +245,10 @@ class RewriterInterpreter(AstInterpreter):
         except mesonlib.MesonException as me:
             me.file = buildfilename
             raise me
-        self.evaluate_codeblock(codeblock)
+        try:
+            self.evaluate_codeblock(codeblock)
+        except SubdirDoneRequest:
+            pass
         self.subdir = prev_subdir
 
     def func_files(self, node, args, kwargs):
