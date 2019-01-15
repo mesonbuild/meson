@@ -404,7 +404,7 @@ class Environment:
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
         self.default_d = ['ldc2', 'ldc', 'gdc', 'dmd']
-        self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77', 'ifort']
+        self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77', 'ifort', 'pgfortran']
         self.default_java = ['javac']
         self.default_rust = ['rustc']
         self.default_swift = ['swiftc']

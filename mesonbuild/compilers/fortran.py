@@ -24,6 +24,7 @@ from .compilers import (
     GnuCompiler,
     ElbrusCompiler,
     IntelCompiler,
+    PGICompiler
 )
 
 from mesonbuild.mesonlib import EnvironmentException, is_osx
@@ -372,20 +373,13 @@ class PathScaleFortranCompiler(FortranCompiler):
 class PGIFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
-        self.id = 'pgi'
-        default_warn_args = ['-Minform=inform']
-        self.warn_args = {'1': default_warn_args,
-                          '2': default_warn_args,
-                          '3': default_warn_args}
+        PGICompiler.__init__(self, CompilerType.PGI_STANDARD)
 
-    def get_module_incdir_args(self):
-        return ('-module', )
-
-    def get_no_warn_args(self):
-        return ['-silent']
-
-    def openmp_flags(self):
-        return ['-fopenmp']
+    def get_always_args(self):
+        """PGI doesn't have -pipe."""
+        val = super().get_always_args()
+        val.remove('-pipe')
+        return val
 
 
 class Open64FortranCompiler(FortranCompiler):

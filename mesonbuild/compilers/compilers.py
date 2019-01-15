@@ -1309,6 +1309,8 @@ class CompilerType(enum.Enum):
 
     CCRX_WIN = 40
 
+    PGI_STANDARD = 50
+
     @property
     def is_standard_compiler(self):
         return self.name in ('GCC_STANDARD', 'CLANG_STANDARD', 'ICC_STANDARD')
@@ -1597,6 +1599,25 @@ class GnuCompiler(GnuLikeCompiler):
     def openmp_flags(self):
         return ['-fopenmp']
 
+
+class PGICompiler:
+    def __init__(self, compiler_type):
+        self.id = 'pgi'
+        self.compiler_type = compiler_type
+
+        default_warn_args = ['-Minform=inform']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args,
+                          '3': default_warn_args}
+
+        def get_module_incdir_args(self):
+            return ('-module', )
+
+        def get_no_warn_args(self):
+            return ['-silent']
+
+        def openmp_flags(self):
+            return ['-fopenmp']
 
 class ElbrusCompiler(GnuCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
