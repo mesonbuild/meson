@@ -833,6 +833,11 @@ class Backend:
             for dep in t.depends:
                 assert isinstance(dep, (build.CustomTarget, build.BuildTarget))
                 result[dep.get_id()] = dep
+        # Get all targets used by install_man
+        for t in self.build.get_man():
+            for dep in t.depends:
+                assert isinstance(dep, (build.CustomTarget, build.BuildTarget))
+                result[dep.get_id()] = dep
         return result
 
     def get_custom_target_provided_libraries(self, target):

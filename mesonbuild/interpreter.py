@@ -658,7 +658,16 @@ class Man(InterpreterObject):
 
     def __init__(self, sources, kwargs):
         InterpreterObject.__init__(self)
-        self.sources = sources
+        self.sources = []
+        self.depends = []
+        for s in sources:
+            if hasattr(s, 'held_object'):
+                self.sources.extend(
+                    [mesonlib.File.from_built_file(s.held_object.subdir, n)
+                     for n in s.held_object.get_outputs()])
+                self.depends.append(s.held_object)
+            else:
+                self.sources.append(s)
         self.validate_sources()
         self.custom_install_dir = kwargs.get('install_dir', None)
         self.custom_install_mode = kwargs.get('install_mode', None)

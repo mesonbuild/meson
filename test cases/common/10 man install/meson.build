@@ -11,3 +11,21 @@ b1 = configure_file(input : 'baz.1.in',
   configuration : cdata)
 
 install_man(b1)
+
+cp = files('copy.py')
+py3 = import('python').find_installation()
+copy = custom_target(
+  'copy',
+  input : 'foo.1',
+  output : 'foo_copy.1',
+  command : [py3, cp, '@INPUT@', '@OUTPUT@'],
+)
+install_man(copy)
+
+copy2 = custom_target(
+  'copy2',
+  input : 'bar.2',
+  output : ['bar_copy.2', 'bar_copy.3'],
+  command : [py3, cp, '@INPUT@', '@OUTPUT@'],
+)
+install_man(copy2)
