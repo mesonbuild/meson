@@ -219,7 +219,7 @@ class IntrospectionInterpreter(astinterpreter.AstInterpreter):
         self.project_default_options = mesonlib.stringlistify(def_opts)
         self.project_default_options = cdata.create_options_dict(self.project_default_options)
         self.default_options.update(self.project_default_options)
-        self.coredata.set_default_options(self.default_options, self.subproject)
+        self.coredata.set_default_options(self.default_options, self.subproject, self.environment.cmd_line_options)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
@@ -234,7 +234,7 @@ class IntrospectionInterpreter(astinterpreter.AstInterpreter):
                         self.do_subproject(i)
 
         self.coredata.init_backend_options(self.backend)
-        options = {k: v for k, v in self.environment.coredata.cmd_line_options.items() if k.startswith('backend_')}
+        options = {k: v for k, v in self.environment.cmd_line_options.items() if k.startswith('backend_')}
 
         self.coredata.set_options(options)
         self.func_add_languages(None, proj_langs, None)
