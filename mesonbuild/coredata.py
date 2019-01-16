@@ -560,6 +560,10 @@ def read_cmd_line_file(build_dir, options):
     properties = config['properties']
     if options.cross_file is None:
         options.cross_file = properties.get('cross_file', None)
+    if not options.native_file:
+        # This will be a string in the form: "['first', 'second', ...]", use
+        # literal_eval to get it into the list of strings.
+        options.native_file = ast.literal_eval(properties.get('native_file', '[]'))
 
 def write_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
@@ -568,6 +572,8 @@ def write_cmd_line_file(build_dir, options):
     properties = {}
     if options.cross_file is not None:
         properties['cross_file'] = options.cross_file
+    if options.native_file:
+        properties['native_file'] = options.native_file
 
     config['options'] = options.cmd_line_options
     config['properties'] = properties
