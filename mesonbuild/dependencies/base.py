@@ -33,7 +33,7 @@ from pathlib import PurePath
 from .. import mlog
 from .. import mesonlib
 from ..compilers import clib_langs
-from ..environment import BinaryTable
+from ..environment import BinaryTable, Environment
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
 
@@ -908,7 +908,7 @@ class CMakeDependency(ExternalDependency):
     def _gen_exception(self, msg):
         return DependencyException('Dependency {} not found: {}'.format(self.name, msg))
 
-    def __init__(self, name, environment, kwargs, language=None):
+    def __init__(self, name: str, environment: Environment, kwargs, language=None):
         super().__init__('cmake', environment, language, kwargs)
         self.name = name
         self.is_libtool = False
@@ -956,16 +956,25 @@ class CMakeDependency(ExternalDependency):
             return
 
         modules = kwargs.get('modules', [])
+        cm_path = kwargs.get('module_path', [])
+        cm_args = kwargs.get('cmake_args', [])
         if not isinstance(modules, list):
             modules = [modules]
-        self._detect_dep(name, modules)
+        if not isinstance(cm_path, list):
+            cm_path = [cm_path]
+        if not isinstance(cm_args, list):
+            cm_args = [cm_args]
+        cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
+        if len(cm_path) > 0:
+            cm_args += ['-DCMAKE_MODULE_PATH={}'.format(';'.join(cm_path))]
+        self._detect_dep(name, modules, cm_args)
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
-    def _detect_dep(self, name, modules):
+    def _detect_dep(self, name: str, modules: list, args: list):
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
@@ -981,7 +990,7 @@ class CMakeDependency(ExternalDependency):
             mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
 
             # Prepare options
-            cmake_opts = ['--trace-expand', '-DNAME={}'.format(name), '.']
+            cmake_opts = ['--trace-expand', '-DNAME={}'.format(name)] + args + ['.']
             if len(i) > 0:
                 cmake_opts = ['-G', i] + cmake_opts
 
