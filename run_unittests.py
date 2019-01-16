@@ -3108,7 +3108,7 @@ recommended as it is not supported on some platforms''')
                          Path(goodfile).read_text())
 
     def test_introspect_buildoptions_without_configured_build(self):
-        testdir = os.path.join(self.unit_test_dir, '51 introspect buildoptions')
+        testdir = os.path.join(self.unit_test_dir, '53 introspect buildoptions')
         testfile = os.path.join(testdir, 'meson.build')
         res_nb = self.introspect_directory(testfile, ['--buildoptions'] + self.meson_args)
         self.init(testdir, default_args=False)
@@ -3117,7 +3117,7 @@ recommended as it is not supported on some platforms''')
         self.assertListEqual(res_nb, res_wb)
 
     def test_introspect_json_dump(self):
-        testdir = os.path.join(self.unit_test_dir, '49 introspection')
+        testdir = os.path.join(self.unit_test_dir, '52 introspection')
         self.init(testdir)
         infodir = os.path.join(self.builddir, 'meson-info')
         self.assertPathExists(infodir)
@@ -3261,7 +3261,7 @@ recommended as it is not supported on some platforms''')
         self.assertDictEqual(targets_to_find, {})
 
     def test_introspect_file_dump_equals_all(self):
-        testdir = os.path.join(self.unit_test_dir, '49 introspection')
+        testdir = os.path.join(self.unit_test_dir, '52 introspection')
         self.init(testdir)
         res_all = self.introspect('--all')
         res_file = {}
@@ -3288,7 +3288,7 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(res_all, res_file)
 
     def test_introspect_meson_info(self):
-        testdir = os.path.join(self.unit_test_dir, '49 introspection')
+        testdir = os.path.join(self.unit_test_dir, '52 introspection')
         introfile = os.path.join(self.builddir, 'meson-info', 'meson-info.json')
         self.init(testdir)
         self.assertPathExists(introfile)
@@ -3302,7 +3302,7 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(res1['build_files_updated'], True)
 
     def test_introspect_config_update(self):
-        testdir = os.path.join(self.unit_test_dir, '49 introspection')
+        testdir = os.path.join(self.unit_test_dir, '52 introspection')
         introfile = os.path.join(self.builddir, 'meson-info', 'intro-buildoptions.json')
         self.init(testdir)
         self.assertPathExists(introfile)
