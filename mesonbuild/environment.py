@@ -63,6 +63,8 @@ from .compilers import (
     NAGFortranCompiler,
     Open64FortranCompiler,
     PathScaleFortranCompiler,
+    PGICCompiler,
+    PGICPPCompiler,
     PGIFortranCompiler,
     RustCompiler,
     CcrxCCompiler,
@@ -394,11 +396,11 @@ class Environment:
 
         # List of potential compilers.
         if mesonlib.is_windows():
-            self.default_c = ['cl', 'cc', 'gcc', 'clang', 'clang-cl']
-            self.default_cpp = ['cl', 'c++', 'g++', 'clang++', 'clang-cl']
+            self.default_c = ['cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc']
+            self.default_cpp = ['cl', 'c++', 'g++', 'clang++', 'clang-cl', 'pgc++']
         else:
-            self.default_c = ['cc', 'gcc', 'clang']
-            self.default_cpp = ['c++', 'g++', 'clang++']
+            self.default_c = ['cc', 'gcc', 'clang', 'pgcc']
+            self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++']
         if mesonlib.is_windows():
             self.default_cs = ['csc', 'mcs']
         else:
@@ -582,6 +584,7 @@ class Environment:
     def _detect_c_or_cpp_compiler(self, lang, want_cross):
         popen_exceptions = {}
         compilers, ccache, is_cross, exe_wrap = self._get_compilers(lang, want_cross)
+
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -704,6 +707,9 @@ class Environment:
                     target = 'x86'
                 cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
                 return cls(compiler, version, is_cross, exe_wrap, target)
+            if 'PGI Compilers' in out:
+                cls = PGICCompiler if lang == 'c' else PGICPPCompiler
+                return cls(ccache + compiler, version, is_cross, exe_wrap)
             if '(ICC)' in out:
                 if mesonlib.for_darwin(want_cross, self):
                     compiler_type = CompilerType.ICC_OSX

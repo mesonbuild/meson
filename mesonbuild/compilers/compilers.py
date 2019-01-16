@@ -14,6 +14,7 @@
 
 import abc, contextlib, enum, os.path, re, tempfile, shlex
 import subprocess
+from typing import List
 
 from ..linkers import StaticLinker
 from .. import coredata
@@ -166,6 +167,13 @@ msvc_buildtype_args = {'plain': [],
                        'custom': [],
                        }
 
+pgi_buildtype_args = {'plain': [],
+                      'debug': [],
+                      'debugoptimized': [],
+                      'release': [],
+                      'minsize': [],
+                      'custom': [],
+                      }
 apple_buildtype_linker_args = {'plain': [],
                                'debug': [],
                                'debugoptimized': [],
@@ -197,6 +205,13 @@ ccrx_buildtype_linker_args = {'plain': [],
                               'minsize': [],
                               'custom': [],
                               }
+pgi_buildtype_linker_args = {'plain': [],
+                             'debug': [],
+                             'debugoptimized': [],
+                             'release': [],
+                             'minsize': [],
+                             'custom': [],
+                             }
 
 msvc_buildtype_linker_args = {'plain': [],
                               'debug': [],
@@ -1601,7 +1616,7 @@ class GnuCompiler(GnuLikeCompiler):
 
 
 class PGICompiler:
-    def __init__(self, compiler_type):
+    def __init__(self, compiler_type=None):
         self.id = 'pgi'
         self.compiler_type = compiler_type
 
@@ -1610,17 +1625,43 @@ class PGICompiler:
                           '2': default_warn_args,
                           '3': default_warn_args}
 
-        def get_module_incdir_args(self):
-            return ('-module', )
+    def get_module_incdir_args(self):
+        return ('-module', )
 
-        def get_no_warn_args(self):
-            return ['-silent']
+    def get_no_warn_args(self):
+        return ['-silent']
 
-        def openmp_flags(self):
-            return ['-mp']
+    def openmp_flags(self):
+        return ['-mp']
+
+    def get_buildtype_args(self, buildtype: str) -> List[str]:
+        return pgi_buildtype_args[buildtype]
+
+    def get_buildtype_linker_args(self, buildtype: str) -> List[str]:
+        return pgi_buildtype_linker_args[buildtype]
+
+    def get_optimization_args(self, optimization_level: str) -> List[str]:
+        return clike_optimization_args[optimization_level]
+
+    def get_debug_args(self, is_debug: bool) -> List[str]:
+        return clike_debug_args[is_debug]
+
+    def compute_parameters_with_absolute_paths(self, parameter_list: List[str], build_dir: str):
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-I' or i[:2] == '-L':
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
 
     def get_allow_undefined_link_args(self):
         return []
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return []
+
+    def get_always_args(self):
+        """PGI doesn't have -pipe."""
+        val = super().get_always_args()
+        val.remove('-pipe')
+        return val
 
 
 class ElbrusCompiler(GnuCompiler):

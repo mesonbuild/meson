@@ -78,6 +78,8 @@ __all__ = [
     'ObjCPPCompiler',
     'Open64FortranCompiler',
     'PathScaleFortranCompiler',
+    'PGICCompiler',
+    'PGICPPCompiler',
     'PGIFortranCompiler',
     'RustCompiler',
     'CcrxCCompiler',
@@ -127,6 +129,7 @@ from .c import (
     GnuCCompiler,
     ElbrusCCompiler,
     IntelCCompiler,
+    PGICCompiler,
     CcrxCCompiler,
     VisualStudioCCompiler,
 )
@@ -139,6 +142,7 @@ from .cpp import (
     GnuCPPCompiler,
     ElbrusCPPCompiler,
     IntelCPPCompiler,
+    PGICPPCompiler,
     CcrxCPPCompiler,
     VisualStudioCPPCompiler,
 )
