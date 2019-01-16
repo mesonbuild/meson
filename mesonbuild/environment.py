@@ -331,7 +331,7 @@ class Environment:
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
             try:
-                self.coredata = coredata.load(self.get_build_dir(), options)
+                self.coredata = coredata.load(self.get_build_dir())
                 self.first_invocation = False
             except FileNotFoundError:
                 self.create_new_coredata(options)
@@ -388,6 +388,8 @@ class Environment:
                 'exe_wrapper')
         else:
             self.exe_wrapper = None
+
+        self.cmd_line_options = options.cmd_line_options.copy()
 
         # List of potential compilers.
         if mesonlib.is_windows():
@@ -1036,7 +1038,7 @@ class Environment:
     def detect_compilers(self, lang: str, need_cross_compiler: bool):
         (comp, cross_comp) = self.compilers_from_language(lang, need_cross_compiler)
         if comp is not None:
-            self.coredata.process_new_compilers(lang, comp, cross_comp)
+            self.coredata.process_new_compilers(lang, comp, cross_comp, self.cmd_line_options)
         return comp, cross_comp
 
     def detect_static_linker(self, compiler):
