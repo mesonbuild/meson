@@ -22,6 +22,7 @@ from .compilers import (
     clike_debug_args,
     Compiler,
     GnuCompiler,
+    FlangCompiler,
     ElbrusCompiler,
     IntelCompiler,
     PGICompiler
@@ -380,6 +381,12 @@ class PGIFortranCompiler(FortranCompiler):
         val = super().get_always_args()
         val.remove('-pipe')
         return val
+
+
+class FlangFortranCompiler(FortranCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
+        FlangCompiler.__init__(self, CompilerType.FLANG_STANDARD)
 
 
 class Open64FortranCompiler(FortranCompiler):

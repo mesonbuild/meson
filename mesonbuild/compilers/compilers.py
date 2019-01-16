@@ -1311,6 +1311,8 @@ class CompilerType(enum.Enum):
 
     PGI_STANDARD = 50
 
+    FLANG_STANDARD = 60
+
     @property
     def is_standard_compiler(self):
         return self.name in ('GCC_STANDARD', 'CLANG_STANDARD', 'ICC_STANDARD')
@@ -1618,6 +1620,27 @@ class PGICompiler:
 
         def openmp_flags(self):
             return ['-fopenmp']
+
+
+class FlangCompiler:
+    def __init__(self, compiler_type):
+        self.id = 'flang'
+        self.compiler_type = compiler_type
+
+        default_warn_args = ['-Minform=inform']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args,
+                          '3': default_warn_args}
+
+        def get_module_incdir_args(self):
+            return ('-module', )
+
+        def get_no_warn_args(self):
+            return ['-silent']
+
+        def openmp_flags(self):
+            return ['-fopenmp']
+
 
 class ElbrusCompiler(GnuCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
