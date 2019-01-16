@@ -22,7 +22,7 @@ from .compilers import (
     clike_debug_args,
     Compiler,
     GnuCompiler,
-    FlangCompiler,
+    ClangCompiler,
     ElbrusCompiler,
     IntelCompiler,
     PGICompiler
@@ -383,10 +383,15 @@ class PGIFortranCompiler(PGICompiler, FortranCompiler):
         return val
 
 
-class FlangFortranCompiler(FlangCompiler, FortranCompiler):
+class FlangFortranCompiler(ClangCompiler, FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
-        FlangCompiler.__init__(self, CompilerType.FLANG_STANDARD)
+        ClangCompiler.__init__(self, CompilerType.CLANG_STANDARD)
+        self.id = 'flang'
+        default_warn_args = ['-Minform=inform']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args,
+                          '3': default_warn_args}
 
 
 class Open64FortranCompiler(FortranCompiler):
