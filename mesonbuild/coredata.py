@@ -604,7 +604,7 @@ def load(build_dir):
     try:
         with open(filename, 'rb') as f:
             obj = pickle.load(f)
-    except pickle.UnpicklingError:
+    except (pickle.UnpicklingError, EOFError):
         raise MesonException(load_fail_msg)
     except AttributeError:
         raise MesonException(
