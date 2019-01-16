@@ -371,7 +371,7 @@ class PathScaleFortranCompiler(FortranCompiler):
         return ['-mp']
 
 
-class PGIFortranCompiler(FortranCompiler):
+class PGIFortranCompiler(PGICompiler, FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         PGICompiler.__init__(self, CompilerType.PGI_STANDARD)
@@ -383,7 +383,7 @@ class PGIFortranCompiler(FortranCompiler):
         return val
 
 
-class FlangFortranCompiler(FortranCompiler):
+class FlangFortranCompiler(FlangCompiler, FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         FlangCompiler.__init__(self, CompilerType.FLANG_STANDARD)
