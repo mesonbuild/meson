@@ -27,6 +27,7 @@ import textwrap
 import platform
 import itertools
 import ctypes
+import typing
 from enum import Enum
 from pathlib import PurePath
 
@@ -965,7 +966,7 @@ class CMakeDependency(ExternalDependency):
         if not isinstance(cm_args, list):
             cm_args = [cm_args]
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
-        if len(cm_path) > 0:
+        if cm_path:
             cm_args += ['-DCMAKE_MODULE_PATH={}'.format(';'.join(cm_path))]
         self._detect_dep(name, modules, cm_args)
 
@@ -974,7 +975,7 @@ class CMakeDependency(ExternalDependency):
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
-    def _detect_dep(self, name: str, modules: list, args: list):
+    def _detect_dep(self, name: str, modules: typing.List[str], args: typing.List[str]):
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
