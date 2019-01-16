@@ -33,6 +33,7 @@ from .compilers import (
     is_source,
 )
 from .compilers import (
+    Compiler,
     ArmCCompiler,
     ArmCPPCompiler,
     ArmclangCCompiler,
@@ -973,7 +974,7 @@ class Environment:
             return compilers.SwiftCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_compilers(self, lang, need_cross_compiler):
+    def compilers_from_language(self, lang: str, need_cross_compiler: bool):
         comp = None
         cross_comp = None
         if lang == 'c':
@@ -1021,7 +1022,23 @@ class Environment:
             if need_cross_compiler:
                 raise EnvironmentException('Cross compilation with Swift is not working yet.')
                 # cross_comp = self.environment.detect_fortran_compiler(True)
+        else:
+            return None, None
 
+        return comp, cross_comp
+
+    def check_compilers(self, lang: str, comp: Compiler, cross_comp: Compiler):
+        if comp is None:
+            raise EnvironmentException('Tried to use unknown language "%s".' % lang)
+
+        comp.sanity_check(self.get_scratch_dir(), self)
+        if cross_comp:
+            cross_comp.sanity_check(self.get_scratch_dir(), self)
+
+    def detect_compilers(self, lang: str, need_cross_compiler: bool):
+        (comp, cross_comp) = self.compilers_from_language(lang, need_cross_compiler)
+        if comp is not None:
+            self.coredata.process_new_compilers(lang, comp, cross_comp, self.cmd_line_options)
         return comp, cross_comp
 
     def detect_static_linker(self, compiler):
