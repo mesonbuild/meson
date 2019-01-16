@@ -1,4 +1,4 @@
-# Copyright 2012-2018 The Meson development team
+# Copyright 2012-2019 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -606,6 +606,11 @@ def load(build_dir):
             obj = pickle.load(f)
     except pickle.UnpicklingError:
         raise MesonException(load_fail_msg)
+    except AttributeError:
+        raise MesonException(
+            "Coredata file {!r} references functions or classes that don't "
+            "exist. This probably means that it was generated with an old "
+            "version of meson.".format(filename))
     if not isinstance(obj, CoreData):
         raise MesonException(load_fail_msg)
     if obj.version != version:
