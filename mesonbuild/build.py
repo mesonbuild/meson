@@ -52,7 +52,7 @@ lang_arg_kwargs = set([
 
 vala_kwargs = set(['vala_header', 'vala_gir', 'vala_vapi'])
 rust_kwargs = set(['rust_crate_type'])
-cs_kwargs = set(['resources', 'cs_args'])
+cs_kwargs = set(['resources', 'cs_args', 'runtime_assemblies'])
 
 buildtarget_kwargs = set([
     'build_by_default',
@@ -883,6 +883,11 @@ This will become a hard error in a future Meson release.''')
             if not os.path.isfile(trial):
                 raise InvalidArguments('Tried to add non-existing resource %s.' % r)
         self.resources = resources
+        runtime_assemblies = extract_as_list(kwargs, 'runtime_assemblies')
+        for r in runtime_assemblies:
+            if not isinstance(r, str):
+                raise InvalidArguments('Resource argument is not a string.')
+        self.runtime_assemblies = runtime_assemblies
         if 'name_prefix' in kwargs:
             name_prefix = kwargs['name_prefix']
             if isinstance(name_prefix, list):
