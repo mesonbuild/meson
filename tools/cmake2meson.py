@@ -14,8 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os
+from typing import List
+from pathlib import Path
+import sys
 import re
+
 
 class Token:
     def __init__(self, tid, value):
@@ -83,7 +86,7 @@ class Lexer:
                 raise RuntimeError('Lexer got confused line %d column %d' % (lineno, col))
 
 class Parser:
-    def __init__(self, code):
+    def __init__(self, code: str):
         self.stream = Lexer().lex(code)
         self.getsym()
 
@@ -140,13 +143,13 @@ class Converter:
                      'enable_testing': True,
                      'include': True}
 
-    def __init__(self, cmake_root):
-        self.cmake_root = cmake_root
+    def __init__(self, cmake_root: str):
+        self.cmake_root = Path(cmake_root).expanduser()
         self.indent_unit = '  '
         self.indent_level = 0
-        self.options = []
+        self.options = []  # type: List[tuple]
 
-    def convert_args(self, args, as_array=True):
+    def convert_args(self, args: List[Token], as_array: bool = True):
         res = []
         if as_array:
             start = '['
@@ -229,7 +232,18 @@ class Converter:
             line = '%s = %s\n' % (varname, self.convert_args(t.args[1:]))
         elif t.name == 'if':
             postincrement = 1
-            line = 'if %s' % self.convert_args(t.args, False)
+            try:
+                line = 'if %s' % self.convert_args(t.args, False)
+            except AttributeError:  # complex if statements
+                line = t.name
+                for arg in t.args:
+                    if isinstance(arg, Token):
+                        line += ' ' + arg.value
+                    elif isinstance(arg, list):
+                        line += ' ('
+                        for a in arg:
+                            line += ' ' + a.value
+                        line += ' )'
         elif t.name == 'elseif':
             preincrement = -1
             postincrement = 1
@@ -251,32 +265,32 @@ class Converter:
             outfile.write('\n')
         self.indent_level += postincrement
 
-    def convert(self, subdir=''):
-        if subdir == '':
+    def convert(self, subdir: Path = None):
+        if not subdir:
             subdir = self.cmake_root
-        cfile = os.path.join(subdir, 'CMakeLists.txt')
+        cfile = Path(subdir).expanduser() / 'CMakeLists.txt'
         try:
-            with open(cfile) as f:
+            with cfile.open() as f:
                 cmakecode = f.read()
         except FileNotFoundError:
-            print('\nWarning: No CMakeLists.txt in', subdir, '\n')
+            print('\nWarning: No CMakeLists.txt in', subdir, '\n', file=sys.stderr)
             return
         p = Parser(cmakecode)
-        with open(os.path.join(subdir, 'meson.build'), 'w') as outfile:
+        with (subdir / 'meson.build').open('w') as outfile:
             for t in p.parse():
                 if t.name == 'add_subdirectory':
                     # print('\nRecursing to subdir',
-                    #       os.path.join(self.cmake_root, t.args[0].value),
+                    #       self.cmake_root / t.args[0].value,
                     #       '\n')
-                    self.convert(os.path.join(subdir, t.args[0].value))
+                    self.convert(subdir / t.args[0].value)
                     # print('\nReturning to', self.cmake_root, '\n')
                 self.write_entry(outfile, t)
         if subdir == self.cmake_root and len(self.options) > 0:
             self.write_options()
 
     def write_options(self):
-        filename = os.path.join(self.cmake_root, 'meson_options.txt')
-        with open(filename, 'w') as optfile:
+        filename = self.cmake_root / 'meson_options.txt'
+        with filename.open('w') as optfile:
             for o in self.options:
                 (optname, description, default) = o
                 if default is None:
