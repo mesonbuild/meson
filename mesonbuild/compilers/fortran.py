@@ -22,6 +22,7 @@ from .compilers import (
     clike_debug_args,
     Compiler,
     GnuCompiler,
+    ClangCompiler,
     ElbrusCompiler,
     IntelCompiler,
     PGICompiler
@@ -370,7 +371,7 @@ class PathScaleFortranCompiler(FortranCompiler):
         return ['-mp']
 
 
-class PGIFortranCompiler(FortranCompiler):
+class PGIFortranCompiler(PGICompiler, FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         PGICompiler.__init__(self, CompilerType.PGI_STANDARD)
@@ -380,6 +381,17 @@ class PGIFortranCompiler(FortranCompiler):
         val = super().get_always_args()
         val.remove('-pipe')
         return val
+
+
+class FlangFortranCompiler(ClangCompiler, FortranCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
+        ClangCompiler.__init__(self, CompilerType.CLANG_STANDARD)
+        self.id = 'flang'
+        default_warn_args = ['-Minform=inform']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args,
+                          '3': default_warn_args}
 
 
 class Open64FortranCompiler(FortranCompiler):

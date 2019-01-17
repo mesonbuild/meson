@@ -13,6 +13,7 @@ These are return values of the `get_id` (Compiler family) and
 | clang     | The Clang compiler               | gcc                            |
 | clang-cl  | The Clang compiler (MSVC compatible driver) | msvc                |
 | dmd       | D lang reference compiler        |                                |
+| flang     | Flang Fortran compiler           |                                |
 | g95       | The G95 Fortran compiler         |                                |
 | gcc       | The GNU Compiler Collection      | gcc                            |
 | intel     | Intel compiler                   | msvc on windows, otherwise gcc |

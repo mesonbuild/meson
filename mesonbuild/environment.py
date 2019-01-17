@@ -44,6 +44,7 @@ from .compilers import (
     ClangObjCPPCompiler,
     ClangClCCompiler,
     ClangClCPPCompiler,
+    FlangFortranCompiler,
     G95FortranCompiler,
     GnuCCompiler,
     GnuCPPCompiler,
@@ -781,6 +782,9 @@ class Environment:
 
                 if 'PGI Compilers' in out:
                     return PGIFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
+
+                if 'flang' in out or 'clang' in out:
+                    return FlangFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'Open64 Compiler Suite' in err:
                     return Open64FortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
