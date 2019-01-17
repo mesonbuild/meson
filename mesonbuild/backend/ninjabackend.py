@@ -687,14 +687,20 @@ int dummy;
         self.processed_targets[target.get_id()] = True
 
     def generate_coverage_command(self, elem, outputs):
+        coverage_excludes = [os.path.join(self.environment.get_source_dir(),
+                                          self.build.get_subproject_dir())]
+        user_excludes = self.environment.get_coverage_excludes()
+        if user_excludes != '':
+            for exclude in user_excludes.split(','):
+                coverage_excludes.append(os.path.join(self.environment.get_source_dir(),
+                                                      exclude))
         elem.add_item('COMMAND', self.environment.get_build_command() +
                       ['--internal', 'coverage'] +
                       outputs +
                       [self.environment.get_source_dir(),
                        self.environment.get_build_dir(),
-                       self.environment.get_log_dir(),
-                       os.path.join(self.environment.get_source_dir(),
-                                    self.build.get_subproject_dir())])
+                       self.environment.get_log_dir()] +
+                      coverage_excludes)
 
     def generate_coverage_rules(self, outfile):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage', 'CUSTOM_COMMAND', 'PHONY')

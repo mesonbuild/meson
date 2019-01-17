@@ -130,11 +130,13 @@ class Conf:
                             'sysconfdir']
         test_option_names = ['errorlogs',
                              'stdsplit']
+        coverage_option_names = ['excludes']
         core_option_names = [k for k in self.coredata.builtins if k not in dir_option_names + test_option_names]
 
         dir_options = {k: o for k, o in self.coredata.builtins.items() if k in dir_option_names}
         test_options = {k: o for k, o in self.coredata.builtins.items() if k in test_option_names}
         core_options = {k: o for k, o in self.coredata.builtins.items() if k in core_option_names}
+        coverage_options = {k: o for k, o in self.coredata.builtins.items() if k in coverage_option_names}
 
         self.print_options('Core options', core_options)
         self.print_options('Backend options', self.coredata.backend_options)
@@ -143,6 +145,7 @@ class Conf:
         self.print_options('Directories', dir_options)
         self.print_options('Project options', self.coredata.user_options)
         self.print_options('Testing options', test_options)
+        self.print_options('Coverage options', coverage_options)
 
 
 def run(options):

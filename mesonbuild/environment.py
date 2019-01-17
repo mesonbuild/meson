@@ -1150,6 +1150,9 @@ class Environment:
     def get_datadir(self):
         return self.coredata.get_builtin_option('datadir')
 
+    def get_coverage_excludes(self):
+        return self.coredata.get_builtin_option('excludes')
+
     def get_compiler_system_dirs(self):
         for comp in self.coredata.compilers.values():
             if isinstance(comp, compilers.ClangCompiler):

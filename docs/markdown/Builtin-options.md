@@ -44,8 +44,9 @@ Installation options are all relative to the prefix, except:
 | layout {mirror,flat}                 | mirror        | Build directory layout. |
 | default-library {shared, static, both} | shared       | Default library type. |
 | backend {ninja, vs,<br>vs2010, vs2015, vs2017, xcode} |               | Backend to use (default: ninja). |
-| stdsplit                             |               | Split stdout and stderr in test logs. |
-| errorlogs                            |               | Whether to print the logs from failing tests. |
+| stdsplit                             | true          | Split stdout and stderr in test logs. |
+| errorlogs                            | true          | Whether to print the logs from failing tests. |
+| excludes                             |               | Comma separated list of coverage excludes. Subproject root is excluded automatically. |
 | cross-file CROSS_FILE                |               | File describing cross compilation environment. |
 | wrap-mode {default, nofallback, nodownload, forcefallback} | | Special wrap mode to use |
 
