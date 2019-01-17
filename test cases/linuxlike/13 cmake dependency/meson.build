@@ -36,7 +36,7 @@ depf2 = dependency('ZLIB', required : false, method : 'cmake', modules : 'dfggh:
 
 assert(depf2.found() == false, 'Invalid CMake targets should fail')
 
-# Try to find a depndency with a custom CMake ndoule
+# Try to find a dependency with a custom CMake module
 
 depm1 = dependency('SomethingLikeZLIB', required : true, method : 'cmake', module_path : 'cmake')
 depm2 = dependency('SomethingLikeZLIB', required : true, method : 'cmake', module_path : ['cmake'])

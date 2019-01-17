@@ -27,7 +27,7 @@ import textwrap
 import platform
 import itertools
 import ctypes
-import typing
+from typing import List
 from enum import Enum
 from pathlib import PurePath
 
@@ -975,7 +975,7 @@ class CMakeDependency(ExternalDependency):
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
-    def _detect_dep(self, name: str, modules: typing.List[str], args: typing.List[str]):
+    def _detect_dep(self, name: str, modules: List[str], args: List[str]):
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
