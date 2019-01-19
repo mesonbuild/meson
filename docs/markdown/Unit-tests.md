@@ -30,9 +30,15 @@ Note how you need to specify multiple values as an array.
 Coverage
 --
 
-If you enable coverage measurements by giving Meson the command line flag `-Db_coverage=true`, you can generate coverage reports. Meson will autodetect what coverage generator tools you have installed and will generate the corresponding targets. These targets are `coverage-xml` and `coverage-text` which are both provided by [Gcovr](http://gcovr.com) and `coverage-html`, which requires [Lcov](https://ltp.sourceforge.io/coverage/lcov.php) and [GenHTML](https://linux.die.net/man/1/genhtml) or [Gcovr](http://gcovr.com) with html support.
+If you enable coverage measurements by giving Meson the command line flag `-Db_coverage=true`, you can generate coverage reports. Meson will autodetect what coverage generator tools you have installed and will generate the corresponding targets. These targets are `coverage-xml` and `coverage-text` which are both provided by [Gcovr](http://gcovr.com) and `coverage-html`, which requires [Lcov](https://ltp.sourceforge.io/coverage/lcov.php) and [GenHTML](https://linux.die.net/man/1/genhtml) or [Gcovr](http://gcovr.com) with html support. As a convenience a `coverage` target is also provided. It will attempt to generate all three coverage reports and will succeed as long as at least one report is created.
 
 The output of these commands is written to the log directory `meson-logs` in your build directory.
+
+Sometimes it's useful to be able to exclude certain folders or files from the coverage report. A common example is subproject code, which Meson excludes from code coverage by default. Should you want to exclude additional files or folders Meson provides the ability to do so through the `excludes` built-in option. It takes a comma separated list of files and folders that should be excluded from all coverage report types (i.e. text, html and xml). For example, to exclude the folder `some_folder` and the file `src/some_file.c`, configure the `excludes` option accordingly:
+
+```console
+$ meson configure -Dexcludes=some_folder,src/some_file.c
+```
 
 Parallelism
 --

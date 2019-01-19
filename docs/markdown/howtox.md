@@ -113,7 +113,7 @@ Then issue the following commands.
 ```console
 $ ninja
 $ ninja test
-$ ninja coverage-html (or coverage-xml)
+$ ninja coverage
 ```
 
 The coverage report can be found in the meson-logs subdirectory.
