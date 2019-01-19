@@ -23,10 +23,10 @@
 # - move targets
 # - reindent?
 
-from .ast import (AstInterpreter, AstVisitor, AstPrinter)
+from .ast import (AstInterpreter, AstPrinter)
 from mesonbuild.mesonlib import MesonException
 from mesonbuild import mlog
-import sys, traceback
+import traceback
 
 def add_arguments(parser):
     parser.add_argument('--sourcedir', default='.',

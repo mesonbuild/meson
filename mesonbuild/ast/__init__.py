@@ -19,9 +19,11 @@ __all__ = [
     'AstInterpreter',
     'RewriterInterpreter',
     'AstVisitor',
-    'AstPrinter'
+    'AstPrinter',
+    'IntrospectionInterpreter',
 ]
 
 from .interpreter import (AstInterpreter, RewriterInterpreter)
+from .introspection import IntrospectionInterpreter
 from .visitor import AstVisitor
 from .printer import AstPrinter

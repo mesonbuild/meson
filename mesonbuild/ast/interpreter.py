@@ -245,10 +245,7 @@ class RewriterInterpreter(AstInterpreter):
         except mesonlib.MesonException as me:
             me.file = buildfilename
             raise me
-        try:
-            self.evaluate_codeblock(codeblock)
-        except SubdirDoneRequest:
-            pass
+        self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
 
     def func_files(self, node, args, kwargs):
