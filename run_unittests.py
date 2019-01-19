@@ -1180,6 +1180,12 @@ class BasePlatformTests(unittest.TestCase):
                     each['command'] = compiler + ' ' + f.read()
         return contents
 
+    def get_coverage_html(self):
+        coverage_index = os.path.join(self.builddir, 'meson-logs',
+                                      'coveragereport', 'index.html')
+        with open(coverage_index) as f:
+            return f.readlines()
+
     def get_meson_log(self):
         with open(os.path.join(self.builddir, 'meson-logs', 'meson-log.txt')) as f:
             return f.readlines()
@@ -4459,6 +4465,9 @@ class LinuxlikeTests(BasePlatformTests):
         self.build()
         self.run_tests()
         self.run_target('coverage-html')
+        self.setconf('-Dexcludes=trivial.c')
+        self.run_target('coverage-html')
+        self.assertNotIn('trivial.c', self.get_coverage_html)
 
     def test_cross_find_program(self):
         testdir = os.path.join(self.unit_test_dir, '11 cross prog')
