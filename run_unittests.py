@@ -4913,7 +4913,7 @@ class PythonTests(BasePlatformTests):
         self.wipe()
 
 
-class RewriterTests(unittest.TestCase):
+class RewriterTests(BasePlatformTests):
 
     def setUp(self):
         super().setUp()

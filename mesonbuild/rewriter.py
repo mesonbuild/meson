@@ -23,7 +23,7 @@
 # - move targets
 # - reindent?
 
-from .ast import (AstInterpreter, AstPrinter)
+from .ast import AstInterpreter, AstVisitor, AstIDGenerator, AstIndentationGenerator, AstPrinter
 from mesonbuild.mesonlib import MesonException
 from mesonbuild import mlog
 import traceback
@@ -42,9 +42,13 @@ def run(options):
         rewriter.parse_project()
         rewriter.run()
 
-        visitor = AstPrinter()
-        rewriter.ast.accept(visitor)
-        print(visitor.result)
+        indentor = AstIndentationGenerator()
+        idgen = AstIDGenerator()
+        printer = AstPrinter()
+        rewriter.ast.accept(indentor)
+        rewriter.ast.accept(idgen)
+        rewriter.ast.accept(printer)
+        print(printer.result)
     except Exception as e:
         if isinstance(e, MesonException):
             mlog.exception(e)

@@ -18,6 +18,8 @@
 __all__ = [
     'AstInterpreter',
     'RewriterInterpreter',
+    'AstIDGenerator',
+    'AstIndentationGenerator',
     'AstVisitor',
     'AstPrinter',
     'IntrospectionInterpreter',
@@ -26,4 +28,5 @@ __all__ = [
 from .interpreter import (AstInterpreter, RewriterInterpreter)
 from .introspection import IntrospectionInterpreter
 from .visitor import AstVisitor
+from .postprocess import AstIDGenerator, AstIndentationGenerator
 from .printer import AstPrinter
