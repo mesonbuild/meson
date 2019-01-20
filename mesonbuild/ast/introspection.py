@@ -19,8 +19,9 @@ from . import AstInterpreter
 from .. import compilers, environment, mesonlib, mparser, optinterpreter
 from .. import coredata as cdata
 from ..interpreterbase import InvalidArguments
+from ..build import Executable, CustomTarget, Jar, RunTarget, SharedLibrary, SharedModule, StaticLibrary
 
-import os
+import sys, os
 
 class IntrospectionHelper:
     # mimic an argparse namespace
@@ -48,10 +49,18 @@ class IntrospectionInterpreter(AstInterpreter):
         self.backend = backend
         self.default_options = {'backend': self.backend}
         self.project_data = {}
+        self.targets = []
 
         self.funcs.update({
+            'add_languages': self.func_add_languages,
+            'executable': self.func_executable,
+            'jar': self.func_jar,
+            'library': self.func_library,
             'project': self.func_project,
-            'add_languages': self.func_add_languages
+            'shared_library': self.func_shared_lib,
+            'shared_module': self.func_shared_module,
+            'static_library': self.func_static_lib,
+            'both_libraries': self.func_both_lib,
         })
 
     def func_project(self, node, args, kwargs):
@@ -114,6 +123,87 @@ class IntrospectionInterpreter(AstInterpreter):
             lang = lang.lower()
             if lang not in self.coredata.compilers:
                 self.environment.detect_compilers(lang, need_cross_compiler)
+
+    def build_target(self, node, args, kwargs, targetclass):
+        if not args:
+            return
+        args = self.flatten_args(args, True)
+        kwargs = self.flatten_kwargs(kwargs, True)
+        name = args[0]
+        sources = args[1:]
+        if 'sources' in kwargs:
+            sources += self.flatten_args(kwargs['sources'])
+
+        # Filter out kwargs from other target types. For example 'soversion'
+        # passed to library() when default_library == 'static'.
+        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
+
+        is_cross = False
+        objects = []
+        target = targetclass(name, self.subdir, self.subproject, is_cross, sources, objects, self.environment, kwargs)
+
+        self.targets += [{
+            'name': target.get_basename(),
+            'id': target.get_id(),
+            'type': target.get_typename(),
+            'defined_in': os.path.normpath(os.path.join(self.source_root, self.subdir, environment.build_filename)),
+            'subdir': self.subdir,
+            'build_by_default': target.build_by_default,
+            'sources': sources,
+            'kwargs': kwargs,
+            'node': node,
+        }]
+
+        return
+
+    def build_library(self, node, args, kwargs):
+        default_library = self.coredata.get_builtin_option('default_library')
+        if default_library == 'shared':
+            return self.build_target(node, args, kwargs, SharedLibrary)
+        elif default_library == 'static':
+            return self.build_target(node, args, kwargs, StaticLibrary)
+        elif default_library == 'both':
+            return self.build_target(node, args, kwargs, SharedLibrary)
+
+    def func_executable(self, node, args, kwargs):
+        return self.build_target(node, args, kwargs, Executable)
+
+    def func_static_lib(self, node, args, kwargs):
+        return self.build_target(node, args, kwargs, StaticLibrary)
+
+    def func_shared_lib(self, node, args, kwargs):
+        return self.build_target(node, args, kwargs, SharedLibrary)
+
+    def func_both_lib(self, node, args, kwargs):
+        return self.build_target(node, args, kwargs, SharedLibrary)
+
+    def func_shared_module(self, node, args, kwargs):
+        return self.build_target(node, args, kwargs, SharedModule)
+
+    def func_library(self, node, args, kwargs):
+        return self.build_library(node, args, kwargs)
+
+    def func_jar(self, node, args, kwargs):
+        return self.build_target(node, args, kwargs, Jar)
+
+    def func_build_target(self, node, args, kwargs):
+        if 'target_type' not in kwargs:
+            return
+        target_type = kwargs.pop('target_type')
+        if isinstance(target_type, mparser.ElementaryNode):
+            target_type = target_type.value
+        if target_type == 'executable':
+            return self.build_target(node, args, kwargs, Executable)
+        elif target_type == 'shared_library':
+            return self.build_target(node, args, kwargs, SharedLibrary)
+        elif target_type == 'static_library':
+            return self.build_target(node, args, kwargs, StaticLibrary)
+        elif target_type == 'both_libraries':
+            return self.build_target(node, args, kwargs, SharedLibrary)
+        elif target_type == 'library':
+            return self.build_library(node, args, kwargs)
+        elif target_type == 'jar':
+            return self.build_target(node, args, kwargs, Jar)
 
     def is_subproject(self):
         return self.subproject != ''

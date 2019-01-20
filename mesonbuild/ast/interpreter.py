@@ -170,16 +170,33 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def assignment(self, node):
         pass
 
-    def flatten_args(self, args):
+    def flatten_args(self, args, include_unknown_args: bool = False):
         # Resolve mparser.ArrayNode if needed
         flattend_args = []
+        temp_args = []
         if isinstance(args, mparser.ArrayNode):
-            args = [x.value for x in args.args.arguments]
+            args = [x for x in args.args.arguments]
+        elif isinstance(args, mparser.ArgumentNode):
+            args = [x for x in args.arguments]
         for i in args:
             if isinstance(i, mparser.ArrayNode):
-                flattend_args += [x.value for x in i.args.arguments]
-            elif isinstance(i, str):
-                flattend_args += [i]
+                temp_args += [x for x in i.args.arguments]
             else:
-                pass
+                temp_args += [i]
+        for i in temp_args:
+            if isinstance(i, mparser.ElementaryNode):
+                flattend_args += [i.value]
+            elif isinstance(i, (str, bool, int, float)) or include_unknown_args:
+                flattend_args += [i]
         return flattend_args
+
+    def flatten_kwargs(self, kwargs: object, include_unknown_args: bool = False):
+        flattend_kwargs = {}
+        for key, val in kwargs.items():
+            if isinstance(val, mparser.ElementaryNode):
+                flattend_kwargs[key] = val.value
+            elif isinstance(val, (mparser.ArrayNode, mparser.ArgumentNode)):
+                flattend_kwargs[key] = self.flatten_args(val, include_unknown_args)
+            elif isinstance(val, (str, bool, int, float)) or  include_unknown_args:
+                flattend_kwargs[key] = val
+        return flattend_kwargs
