@@ -17,7 +17,6 @@
 
 __all__ = [
     'AstInterpreter',
-    'RewriterInterpreter',
     'AstIDGenerator',
     'AstIndentationGenerator',
     'AstVisitor',
@@ -25,7 +24,7 @@ __all__ = [
     'IntrospectionInterpreter',
 ]
 
-from .interpreter import (AstInterpreter, RewriterInterpreter)
+from .interpreter import AstInterpreter
 from .introspection import IntrospectionInterpreter
 from .visitor import AstVisitor
 from .postprocess import AstIDGenerator, AstIndentationGenerator
