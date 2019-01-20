@@ -65,6 +65,12 @@ ret = run_command(py3, '-c', 'print("some output")', capture : false)
 assert(ret.returncode() == 0, 'failed to run python3: ' + ret.stderr())
 assert(ret.stdout() == '', 'stdout is "@0@" instead of empty'.format(ret.stdout()))
 
+c_env = environment()
+c_env.append('CUSTOM_ENV_VAR', 'FOOBAR')
+ret = run_command(py3, '-c', 'import os; print(os.environ.get("CUSTOM_ENV_VAR"))', env : c_env)
+assert(ret.returncode() == 0, 'failed to run python3: ' + ret.stderr())
+assert(ret.stdout() == 'FOOBAR\n', 'stdout is "@0@" instead of FOOBAR'.format(ret.stdout()))
+
 dd = find_program('dd', required : false)
 if dd.found()
   ret = run_command(dd, 'if=/dev/urandom', 'bs=10', 'count=1', capture: false)
