@@ -1183,12 +1183,14 @@ and Meson will set three environment variables `MESON_SOURCE_ROOT`,
 directory, build directory and subdirectory the target was defined in,
 respectively.
 
-This function has one keyword argument.
+This function supports the following keyword arguments:
 
  - `check` takes a boolean. If `true`, the exit status code of the command will
    be checked, and the configuration will fail if it is non-zero. The default is
    `false`.
    Since 0.47.0
+ - `env` an [environment object](#environment-object) to use a custom environment
+   Since 0.50.0
 
 See also [External commands](External-commands.md).
 
@@ -2175,7 +2177,7 @@ and has the following methods:
 This object is returned by [`environment()`](#environment) and stores
 detailed information about how environment variables should be set
 during tests. It should be passed as the `env` keyword argument to
-tests. It has the following methods.
+tests and other functions. It has the following methods.
 
 - `append(varname, value1, value2, ...)` appends the given values to
   the old value of the environment variable, e.g.  `env.append('FOO',
