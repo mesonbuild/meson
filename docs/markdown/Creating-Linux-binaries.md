@@ -119,7 +119,7 @@ with the following content:
 #!/bin/bash
 
 cd "${0%/*}"
-export LD_LIBRARY_PATH="`pwd`/lib"
+export LD_LIBRARY_PATH="$(pwd)/lib"
 bin/myapp
 ```
 
