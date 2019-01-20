@@ -89,7 +89,7 @@ installed. When setting a minimum version of GLib, Meson will also pass this to
 the Vala compiler using the `--target-glib` option.
 
 This is needed when using GTK+'s user interface definition files with Vala's
-`[GtkTemplate]`, `[GtkChild]` and `[GtkCallback]` annotations. This requires
+`[GtkTemplate]`, `[GtkChild]` and `[GtkCallback]` attributes. This requires
 `--target-glib 2.38`, or a newer version, to be passed to Vala. With Meson this
 is simply done with:
 
@@ -166,7 +166,7 @@ executable('app_name', sources, dependencies: dependencies)
 If the VAPI is for an external library then make sure that the VAPI name
 corresponds to the pkg-config file name.
 
-The [`vala-extra-vapis` repository](https://github.com/nemequ/vala-extra-vapis)
+The [`vala-extra-vapis` repository](https://gitlab.gnome.org/GNOME/vala-extra-vapis)
 is a community maintained repository of VAPIs that are not distributed.
 Developers use the repository to share early work on new bindings and
 improvements to existing bindings. So the VAPIs can frequently change. It is
