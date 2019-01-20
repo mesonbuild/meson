@@ -21,7 +21,7 @@ import codecs
 
 from . import mesonlib
 from . import mlog
-from . import mconf, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata
+from . import mcompile, mconf, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata
 from .mesonlib import MesonException
 from .environment import detect_msys2_arch
 from .wrap import wraptool
@@ -36,6 +36,8 @@ class CommandLineParser:
                                                      description='If no command is specified it defaults to setup command.')
         self.add_command('setup', msetup.add_arguments, msetup.run,
                          help='Configure the project')
+        self.add_command('compile', mcompile.add_arguments, mcompile.run,
+                         help='Build targets')
         self.add_command('configure', mconf.add_arguments, mconf.run,
                          help='Change project options',)
         self.add_command('install', minstall.add_arguments, minstall.run,

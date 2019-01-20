@@ -27,34 +27,23 @@ from enum import Enum
 from glob import glob
 from pathlib import Path
 import mesonbuild
+from mesonbuild import mcompile
+from mesonbuild.mcompile import Backend
 from mesonbuild import mesonlib
 from mesonbuild import mesonmain
 from mesonbuild import mtest
 from mesonbuild import mlog
-from mesonbuild.environment import Environment, detect_ninja
+from mesonbuild.environment import Environment
 from mesonbuild.coredata import backendlist
 
 def guess_backend(backend, msbuild_exe):
     # Auto-detect backend if unspecified
-    backend_flags = []
     if backend is None:
         if msbuild_exe is not None and mesonlib.is_windows():
             backend = 'vs' # Meson will auto-detect VS version to use
         else:
             backend = 'ninja'
-    # Set backend arguments for Meson
-    if backend.startswith('vs'):
-        backend_flags = ['--backend=' + backend]
-        backend = Backend.vs
-    elif backend == 'xcode':
-        backend_flags = ['--backend=xcode']
-        backend = Backend.xcode
-    elif backend == 'ninja':
-        backend_flags = ['--backend=ninja']
-        backend = Backend.ninja
-    else:
-        raise RuntimeError('Unknown backend: {!r}'.format(backend))
-    return (backend, backend_flags)
+    return mcompile.guess_backend(backend)
 
 
 # Fake classes and objects for mocking
@@ -84,8 +73,6 @@ def get_fake_env(sdir='', bdir=None, prefix='', opts=None):
     env.machines.host.cpu_family = 'x86_64' # Used on macOS inside find_library
     return env
 
-
-Backend = Enum('Backend', 'ninja vs xcode')
 
 if 'MESON_EXE' in os.environ:
     import shlex
@@ -119,75 +106,6 @@ def get_meson_script():
     if meson_cmd:
         return meson_cmd
     raise RuntimeError('Could not find {!r} or a meson in PATH'.format(meson_script))
-
-def get_backend_args_for_dir(backend, builddir):
-    '''
-    Visual Studio backend needs to be given the solution to build
-    '''
-    if backend is Backend.vs:
-        sln_name = glob(os.path.join(builddir, '*.sln'))[0]
-        return [os.path.split(sln_name)[-1]]
-    return []
-
-def find_vcxproj_with_target(builddir, target):
-    import re, fnmatch
-    t, ext = os.path.splitext(target)
-    if ext:
-        p = r'<TargetName>{}</TargetName>\s*<TargetExt>\{}</TargetExt>'.format(t, ext)
-    else:
-        p = r'<TargetName>{}</TargetName>'.format(t)
-    for root, dirs, files in os.walk(builddir):
-        for f in fnmatch.filter(files, '*.vcxproj'):
-            f = os.path.join(builddir, f)
-            with open(f, 'r', encoding='utf-8') as o:
-                if re.search(p, o.read(), flags=re.MULTILINE):
-                    return f
-    raise RuntimeError('No vcxproj matching {!r} in {!r}'.format(p, builddir))
-
-def get_builddir_target_args(backend, builddir, target):
-    dir_args = []
-    if not target:
-        dir_args = get_backend_args_for_dir(backend, builddir)
-    if target is None:
-        return dir_args
-    if backend is Backend.vs:
-        vcxproj = find_vcxproj_with_target(builddir, target)
-        target_args = [vcxproj]
-    elif backend is Backend.xcode:
-        target_args = ['-target', target]
-    elif backend is Backend.ninja:
-        target_args = [target]
-    else:
-        raise AssertionError('Unknown backend: {!r}'.format(backend))
-    return target_args + dir_args
-
-def get_backend_commands(backend, debug=False):
-    install_cmd = []
-    uninstall_cmd = []
-    if backend is Backend.vs:
-        cmd = ['msbuild']
-        clean_cmd = cmd + ['/target:Clean']
-        test_cmd = cmd + ['RUN_TESTS.vcxproj']
-    elif backend is Backend.xcode:
-        cmd = ['xcodebuild']
-        # In Xcode9 new build system's clean command fails when using a custom build directory.
-        # Maybe use it when CI uses Xcode10 we can remove '-UseNewBuildSystem=FALSE'
-        clean_cmd = cmd + ['-alltargets', 'clean', '-UseNewBuildSystem=FALSE']
-        test_cmd = cmd + ['-target', 'RUN_TESTS']
-    elif backend is Backend.ninja:
-        # We need at least 1.6 because of -w dupbuild=err
-        cmd = [detect_ninja('1.6'), '-w', 'dupbuild=err', '-d', 'explain']
-        if cmd[0] is None:
-            raise RuntimeError('Could not find Ninja v1.6 or newer')
-        if debug:
-            cmd += ['-v']
-        clean_cmd = cmd + ['clean']
-        test_cmd = cmd + ['test', 'benchmark']
-        install_cmd = cmd + ['install']
-        uninstall_cmd = cmd + ['uninstall']
-    else:
-        raise AssertionError('Unknown backend: {!r}'.format(backend))
-    return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
 
 def ensure_backend_detects_changes(backend):
     # We're using a ninja with QuLogic's patch for sub-1s resolution timestamps

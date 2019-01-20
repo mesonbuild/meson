@@ -35,6 +35,9 @@ from glob import glob
 from pathlib import (PurePath, Path)
 from distutils.dir_util import copy_tree
 
+from mesonbuild.mcompile import (
+    Backend, get_backend_commands, get_builddir_target_args
+)
 import mesonbuild.mlog
 import mesonbuild.compilers
 import mesonbuild.environment
@@ -55,9 +58,9 @@ from mesonbuild.build import Target
 import mesonbuild.modules.pkgconfig
 
 from run_tests import (
-    Backend, FakeBuild, FakeCompilerOptions,
-    ensure_backend_detects_changes, exe_suffix, get_backend_commands,
-    get_builddir_target_args, get_fake_env, get_fake_options, get_meson_script,
+    FakeBuild, FakeCompilerOptions,
+    ensure_backend_detects_changes, exe_suffix,
+    get_fake_env, get_fake_options, get_meson_script,
     run_configure_inprocess, run_mtest_inprocess
 )
 

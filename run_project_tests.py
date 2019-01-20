@@ -39,7 +39,7 @@ import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, CancelledError
 import re
 from run_tests import get_fake_options, run_configure, get_meson_script
-from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
+from mesonbuild.mcompile import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
 from run_tests import guess_backend
 
