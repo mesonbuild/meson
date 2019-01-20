@@ -154,7 +154,7 @@ matrix:
     - os: osx
 
 install:
-  - export PATH="`pwd`/build:${PATH}"
+  - export PATH="$(pwd)/build:${PATH}"
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew install python3 ninja; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget https://github.com/ninja-build/ninja/releases/download/v1.7.2/ninja-linux.zip && unzip -q ninja-linux.zip -d build; fi
   - pip3 install meson
