@@ -70,7 +70,7 @@ has multiple languages, you can specify multiple pch files like this.
 
 ```meson
 executable('multilang', sources : srclist,
-           c_pch : 'pch/c_pch.h', cpp_pch : 'pch/cpp_pch.h'])
+           c_pch : 'pch/c_pch.h', cpp_pch : 'pch/cpp_pch.h')
 ```
 
 Using precompiled headers with MSVC
