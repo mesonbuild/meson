@@ -263,6 +263,10 @@ end program prog
     def has_multi_arguments(self, args, env):
         return CCompiler.has_multi_arguments(self, args, env)
 
+    @classmethod
+    def _get_trials_from_pattern(cls, pattern, directory, libname):
+        return CCompiler._get_trials_from_pattern(pattern, directory, libname)
+
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
