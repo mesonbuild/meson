@@ -321,7 +321,7 @@ def search_version(text):
     # This regex is reaching magic levels. If it ever needs
     # to be updated, do not complexify but convert to something
     # saner instead.
-    version_regex = '(?<!(\d|\.))(\d{1,2}(\.\d+)+(-[a-zA-Z0-9]+)?)'
+    version_regex = r'(?<!(\d|\.))(\d{1,2}(\.\d+)+(-[a-zA-Z0-9]+)?)'
     match = re.search(version_regex, text)
     if match:
         return match.group(0)
