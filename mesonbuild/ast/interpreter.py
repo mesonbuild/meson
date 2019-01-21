@@ -191,7 +191,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             else:
                 temp_args += [i]
         for i in temp_args:
-            if isinstance(i, mparser.ElementaryNode):
+            if isinstance(i, mparser.ElementaryNode) and not isinstance(i, mparser.IdNode):
                 flattend_args += [i.value]
             elif isinstance(i, (str, bool, int, float)) or include_unknown_args:
                 flattend_args += [i]

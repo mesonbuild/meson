@@ -23,36 +23,146 @@
 # - move targets
 # - reindent?
 
-from .ast import AstInterpreter, AstVisitor, AstIDGenerator, AstIndentationGenerator, AstPrinter
+from .ast import IntrospectionInterpreter, build_target_functions, AstVisitor, AstIDGenerator, AstIndentationGenerator, AstPrinter
 from mesonbuild.mesonlib import MesonException
-from mesonbuild import mlog
+from . import mlog, mparser, environment
 import traceback
+from functools import wraps
+from pprint import pprint
+import json, os
+
+class RewriterException(MesonException):
+    pass
 
 def add_arguments(parser):
     parser.add_argument('--sourcedir', default='.',
                         help='Path to source directory.')
     parser.add_argument('-p', '--print', action='store_true', default=False, dest='print',
                         help='Print the parsed AST.')
+    parser.add_argument('command', type=str)
+
+class RequiredKeys:
+    def __init__(self, keys):
+        self.keys = keys
+
+    def __call__(self, f):
+        @wraps(f)
+        def wrapped(*wrapped_args, **wrapped_kwargs):
+            assert(len(wrapped_args) >= 2)
+            cmd = wrapped_args[1]
+            for key, val in self.keys.items():
+                typ = val[0] # The type of the value
+                default = val[1] # The default value -- None is required
+                choices = val[2] # Valid choices -- None is for everything
+                if key not in cmd:
+                    if default is not None:
+                        cmd[key] = default
+                    else:
+                        raise RewriterException('Key "{}" is missing in object for {}'
+                                                .format(key, f.__name__))
+                if not isinstance(cmd[key], typ):
+                    raise RewriterException('Invalid type of "{}". Required is {} but provided was {}'
+                                            .format(key, typ.__name__, type(cmd[key]).__name__))
+                if choices is not None:
+                    assert(isinstance(choices, list))
+                    if cmd[key] not in choices:
+                        raise RewriterException('Invalid value of "{}": Possible values are {} but provided was "{}"'
+                                                .format(key, choices, cmd[key]))
+            return f(*wrapped_args, **wrapped_kwargs)
+
+        return wrapped
+
+rewriter_keys = {
+    'target': {
+        'target': (str, None, None),
+        'operation': (str, None, ['src_add', 'src_rm', 'test']),
+        'sources': (list, [], None),
+        'debug': (bool, False, None)
+    }
+}
+
+class Rewriter:
+    def __init__(self, sourcedir: str, generator: str = 'ninja'):
+        self.sourcedir = sourcedir
+        self.interpreter = IntrospectionInterpreter(sourcedir, '', generator)
+        self.id_generator = AstIDGenerator()
+        self.functions = {
+            'target': self.process_target,
+        }
+
+    def analyze_meson(self):
+        mlog.log('Analyzing meson file:', mlog.bold(os.path.join(self.sourcedir, environment.build_filename)))
+        self.interpreter.analyze()
+        mlog.log('  -- Project:', mlog.bold(self.interpreter.project_data['descriptive_name']))
+        mlog.log('  -- Version:', mlog.cyan(self.interpreter.project_data['version']))
+        self.interpreter.ast.accept(AstIndentationGenerator())
+        self.interpreter.ast.accept(self.id_generator)
+
+    def find_target(self, target: str):
+        for i in self.interpreter.targets:
+            if target == i['name'] or target == i['id']:
+                return i
+        return None
+
+    @RequiredKeys(rewriter_keys['target'])
+    def process_target(self, cmd):
+        mlog.log('Processing target', mlog.bold(cmd['target']), 'operation', mlog.cyan(cmd['operation']))
+        target = self.find_target(cmd['target'])
+        if target is None:
+            mlog.error('Unknown target "{}" --> skipping'.format(cmd['target']))
+            if cmd['debug']:
+                pprint(self.interpreter.targets)
+            return
+        if cmd['debug']:
+            pprint(target)
+
+        if cmd['operation'] == 'src_add':
+            mlog.warning('TODO')
+        elif cmd['operation'] == 'src_rm':
+            mlog.warning('TODO')
+        elif cmd['operation'] == 'test':
+            src_list = []
+            for i in target['sources']:
+                args = []
+                if isinstance(i, mparser.FunctionNode):
+                    args = list(i.args.arguments)
+                    if i.func_name in build_target_functions:
+                        args.pop(0)
+                elif isinstance(i, mparser.ArrayNode):
+                    args = i.args.arguments
+                elif isinstance(i, mparser.ArgumentNode):
+                    args = i.arguments
+                for j in args:
+                    if isinstance(j, mparser.StringNode):
+                        src_list += [j.value]
+            test_data = {
+                'name': target['name'],
+                'sources': src_list
+            }
+            mlog.log('  !! target {}={}'.format(target['id'], json.dumps(test_data)))
+
+    def process(self, cmd):
+        if 'type' not in cmd:
+            raise RewriterException('Command has no key "type"')
+        if cmd['type'] not in self.functions:
+            raise RewriterException('Unknown command "{}". Supported commands are: {}'
+                                    .format(cmd['type'], list(self.functions.keys())))
+        self.functions[cmd['type']](cmd)
 
 def run(options):
-    rewriter = AstInterpreter(options.sourcedir, '')
-    try:
-        rewriter.load_root_meson_file()
-        rewriter.sanity_check_ast()
-        rewriter.parse_project()
-        rewriter.run()
+    rewriter = Rewriter(options.sourcedir)
+    rewriter.analyze_meson()
+    if os.path.exists(options.command):
+        with open(options.command, 'r') as fp:
+            commands = json.load(fp)
+    else:
+        commands = json.loads(options.command)
 
-        indentor = AstIndentationGenerator()
-        idgen = AstIDGenerator()
-        printer = AstPrinter()
-        rewriter.ast.accept(indentor)
-        rewriter.ast.accept(idgen)
-        rewriter.ast.accept(printer)
-        print(printer.result)
-    except Exception as e:
-        if isinstance(e, MesonException):
-            mlog.exception(e)
-        else:
-            traceback.print_exc()
-        return 1
+    if not isinstance(commands, list):
+        raise TypeError('Command is not a list')
+
+    for i in commands:
+        if not isinstance(i, object):
+            raise TypeError('Command is not an object')
+        rewriter.process(i)
     return 0

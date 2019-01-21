@@ -20,8 +20,10 @@ from .. import compilers, environment, mesonlib, mparser, optinterpreter
 from .. import coredata as cdata
 from ..interpreterbase import InvalidArguments
 from ..build import Executable, CustomTarget, Jar, RunTarget, SharedLibrary, SharedModule, StaticLibrary
-
+from pprint import pprint
 import sys, os
+
+build_target_functions = ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']
 
 class IntrospectionHelper:
     # mimic an argparse namespace
@@ -127,12 +129,36 @@ class IntrospectionInterpreter(AstInterpreter):
     def build_target(self, node, args, kwargs, targetclass):
         if not args:
             return
-        args = self.flatten_args(args, True)
         kwargs = self.flatten_kwargs(kwargs, True)
-        name = args[0]
-        sources = args[1:]
+        name = self.flatten_args(args)[0]
+        srcqueue = [node]
         if 'sources' in kwargs:
-            sources += self.flatten_args(kwargs['sources'])
+            srcqueue += kwargs['sources']
+
+        source_nodes = []
+        while srcqueue:
+            curr = srcqueue.pop(0)
+            arg_node = None
+            if isinstance(curr, mparser.FunctionNode):
+                arg_node = curr.args
+            elif isinstance(curr, mparser.ArrayNode):
+                arg_node = curr.args
+            elif isinstance(curr, mparser.IdNode):
+                # Try to resolve the ID and append the node to the queue
+                id = curr.value
+                if id in self.assignments and self.assignments[id]:
+                    node = self.assignments[id][0]
+                    if isinstance(node, (mparser.ArrayNode, mparser.IdNode, mparser.FunctionNode)):
+                        srcqueue += [node]
+            if arg_node is None:
+                continue
+            elemetary_nodes = list(filter(lambda x: isinstance(x, (str, mparser.StringNode)), arg_node.arguments))
+            srcqueue += list(filter(lambda x: isinstance(x, (mparser.FunctionNode, mparser.ArrayNode, mparser.IdNode)), arg_node.arguments))
+            # Pop the first element if the function is a build target function
+            if isinstance(curr, mparser.FunctionNode) and curr.func_name in build_target_functions:
+                elemetary_nodes.pop(0)
+            if elemetary_nodes:
+                source_nodes += [curr]
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.
@@ -140,7 +166,8 @@ class IntrospectionInterpreter(AstInterpreter):
 
         is_cross = False
         objects = []
-        target = targetclass(name, self.subdir, self.subproject, is_cross, sources, objects, self.environment, kwargs)
+        empty_sources = [] # Passing the unresolved sources list causes errors
+        target = targetclass(name, self.subdir, self.subproject, is_cross, empty_sources, objects, self.environment, kwargs)
 
         self.targets += [{
             'name': target.get_basename(),
@@ -149,7 +176,7 @@ class IntrospectionInterpreter(AstInterpreter):
             'defined_in': os.path.normpath(os.path.join(self.source_root, self.subdir, environment.build_filename)),
             'subdir': self.subdir,
             'build_by_default': target.build_by_default,
-            'sources': sources,
+            'sources': source_nodes,
             'kwargs': kwargs,
             'node': node,
         }]

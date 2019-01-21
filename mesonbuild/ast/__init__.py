@@ -22,10 +22,11 @@ __all__ = [
     'AstVisitor',
     'AstPrinter',
     'IntrospectionInterpreter',
+    'build_target_functions',
 ]
 
 from .interpreter import AstInterpreter
-from .introspection import IntrospectionInterpreter
+from .introspection import IntrospectionInterpreter, build_target_functions
 from .visitor import AstVisitor
 from .postprocess import AstIDGenerator, AstIndentationGenerator
 from .printer import AstPrinter
