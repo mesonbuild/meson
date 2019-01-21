@@ -457,7 +457,7 @@ class CCompiler(Compiler):
         return self.compiles(code, env, extra_args=extra_args,
                              dependencies=dependencies, mode='link')
 
-    def run(self, code, env, *, extra_args=None, dependencies=None):
+    def run(self, code: str, env, *, extra_args=None, dependencies=None):
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
         with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:

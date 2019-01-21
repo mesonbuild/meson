@@ -230,7 +230,7 @@ end program prog
                                dependencies=dependencies)
 
     def run(self, code, env, *, extra_args=None, dependencies=None):
-        return CCompiler.run(self, code, env, extra_args, dependencies)
+        return CCompiler.run(self, code, env, extra_args=extra_args, dependencies=dependencies)
 
     def _get_patterns(self, *args, **kwargs):
         return CCompiler._get_patterns(self, *args, **kwargs)
