@@ -2,7 +2,7 @@
 
 extern "C" double fortran();
 
-int main(int, char**) {
-    std::cout << "FORTRAN gave us this number: " << fortran() << '\n';
-    return 0;
+int main(void) {
+    std::cout << "FORTRAN gave us this number: " << fortran() << std::endl;
+    return EXIT_SUCCESS;
 }
