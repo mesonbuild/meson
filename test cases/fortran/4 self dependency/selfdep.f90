@@ -1,11 +1,18 @@
-MODULE Circle
-   REAL, PARAMETER :: Pi = 3.1415927
+MODULE geom
+
+type :: circle
+   REAL :: Pi = 4.*atan(1.)
    REAL :: radius
-END MODULE Circle
+end type circle
+END MODULE geom
 
 PROGRAM prog
 
-use Circle
+use geom, only : circle
 IMPLICIT NONE
+
+type(circle) :: ell
+
+ell%radius = 3.
 
 END PROGRAM prog
