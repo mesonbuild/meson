@@ -1625,13 +1625,13 @@ class PGICompiler:
                           '2': default_warn_args,
                           '3': default_warn_args}
 
-    def get_module_incdir_args(self):
+    def get_module_incdir_args(self) -> List[str]:
         return ('-module', )
 
-    def get_no_warn_args(self):
+    def get_no_warn_args(self) -> List[str]:
         return ['-silent']
 
-    def openmp_flags(self):
+    def openmp_flags(self) -> List[str]:
         return ['-mp']
 
     def get_buildtype_args(self, buildtype: str) -> List[str]:
@@ -1658,10 +1658,7 @@ class PGICompiler:
         return []
 
     def get_always_args(self):
-        """PGI doesn't have -pipe."""
-        val = super().get_always_args()
-        val.remove('-pipe')
-        return val
+        return []
 
 
 class ElbrusCompiler(GnuCompiler):
