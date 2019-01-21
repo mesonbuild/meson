@@ -1,6 +1,9 @@
 project('simple fortran', 'fortran')
 
-add_global_arguments('-fbounds-check', language : 'fortran')
+fc = meson.get_compiler('fortran')
+if fc == 'gcc'
+  add_global_arguments('-fbounds-check', language : 'fortran')
+endif
 
 e = executable('simple', 'simple.f90',
   fortran_args : '-ffree-form')
