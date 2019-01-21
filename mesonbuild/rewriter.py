@@ -86,6 +86,7 @@ class Rewriter:
         self.sourcedir = sourcedir
         self.interpreter = IntrospectionInterpreter(sourcedir, '', generator)
         self.id_generator = AstIDGenerator()
+        self.modefied_nodes = []
         self.functions = {
             'target': self.process_target,
         }
@@ -117,7 +118,31 @@ class Rewriter:
             pprint(target)
 
         if cmd['operation'] == 'src_add':
-            mlog.warning('TODO')
+            node = None
+            if target['sources']:
+                node = target['sources'][0]
+            else:
+                node = target['node']
+            assert(node is not None)
+
+            # Generate the new String nodes
+            to_append = []
+            for i in cmd['sources']:
+                mlog.log('  -- Adding source', mlog.green(i), 'at',
+                         mlog.yellow('{}:{}'.format(os.path.join(node.subdir, environment.build_filename), node.lineno)))
+                token = mparser.Token('string', node.subdir, 0, 0, 0, None, i)
+                to_append += [mparser.StringNode(token)]
+
+            # Append to the AST at the right place
+            if isinstance(node, mparser.FunctionNode):
+                node.args.arguments += to_append
+            elif isinstance(node, mparser.ArrayNode):
+                node.args.arguments += to_append
+            elif isinstance(node, mparser.ArgumentNode):
+                node.arguments += to_append
+
+            # Mark the node as modified
+            self.modefied_nodes += [node]
         elif cmd['operation'] == 'src_rm':
             mlog.warning('TODO')
         elif cmd['operation'] == 'test':

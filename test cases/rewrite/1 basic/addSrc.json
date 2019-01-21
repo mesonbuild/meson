@@ -3,63 +3,81 @@
     "type": "target",
     "target": "trivialprog1",
     "operation": "src_add",
-    "sources": ["added1.cpp", "added2.cpp"],
-    "debug": true
-  },
-  {
-    "type": "target",
-    "target": "trivialprog2",
-    "operation": "src_add",
-    "sources": ["added1.cpp"],
-    "debug": true
+    "sources": ["a1.cpp", "a2.cpp"]
   },
   {
     "type": "target",
     "target": "trivialprog3",
     "operation": "src_add",
-    "sources": ["added1.cpp", "added2.cpp", "added3.cpp"],
-    "debug": true
+    "sources": ["a5.cpp"]
   },
   {
     "type": "target",
     "target": "trivialprog4",
     "operation": "src_add",
-    "sources": ["added1.cpp"],
-    "debug": true
+    "sources": ["a5.cpp"]
   },
   {
     "type": "target",
     "target": "trivialprog5",
     "operation": "src_add",
-    "sources": ["added1.cpp"],
-    "debug": true
+    "sources": ["a3.cpp"]
   },
   {
     "type": "target",
     "target": "trivialprog6",
     "operation": "src_add",
-    "sources": ["added1.cpp"],
-    "debug": true
-  },
-  {
-    "type": "target",
-    "target": "trivialprog7",
-    "operation": "src_add",
-    "sources": ["added1.cpp"],
-    "debug": true
-  },
-  {
-    "type": "target",
-    "target": "trivialprog8",
-    "operation": "src_add",
-    "sources": ["added1.cpp"],
-    "debug": true
+    "sources": ["a4.cpp"]
   },
   {
     "type": "target",
     "target": "trivialprog9",
     "operation": "src_add",
-    "sources": ["added1.cpp"],
-    "debug": true
+    "sources": ["a6.cpp"]
+  },
+  {
+    "type": "target",
+    "target": "trivialprog1",
+    "operation": "test"
+  },
+  {
+    "type": "target",
+    "target": "trivialprog2",
+    "operation": "test"
+  },
+  {
+    "type": "target",
+    "target": "trivialprog3",
+    "operation": "test"
+  },
+  {
+    "type": "target",
+    "target": "trivialprog4",
+    "operation": "test"
+  },
+  {
+    "type": "target",
+    "target": "trivialprog5",
+    "operation": "test"
+  },
+  {
+    "type": "target",
+    "target": "trivialprog6",
+    "operation": "test"
+  },
+  {
+    "type": "target",
+    "target": "trivialprog7",
+    "operation": "test"
+  },
+  {
+    "type": "target",
+    "target": "trivialprog8",
+    "operation": "test"
+  },
+  {
+    "type": "target",
+    "target": "trivialprog9",
+    "operation": "test"
   }
 ]
