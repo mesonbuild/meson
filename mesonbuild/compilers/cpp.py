@@ -23,10 +23,12 @@ from .c import CCompiler, VisualStudioCCompiler, ClangClCCompiler
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
+    CompilerType,
     ClangCompiler,
     GnuCompiler,
     ElbrusCompiler,
     IntelCompiler,
+    PGICompiler,
     ArmCompiler,
     ArmclangCompiler,
     CcrxCompiler,
@@ -230,6 +232,12 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
     def language_stdlib_only_link_flags(self):
         return ['-lstdc++']
+
+
+class PGICPPCompiler(PGICompiler, CPPCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+        PGICompiler.__init__(self, CompilerType.PGI_STANDARD)
 
 
 class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):

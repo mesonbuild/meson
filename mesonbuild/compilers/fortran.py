@@ -376,12 +376,6 @@ class PGIFortranCompiler(PGICompiler, FortranCompiler):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         PGICompiler.__init__(self, CompilerType.PGI_STANDARD)
 
-    def get_always_args(self):
-        """PGI doesn't have -pipe."""
-        val = super().get_always_args()
-        val.remove('-pipe')
-        return val
-
 
 class FlangFortranCompiler(ClangCompiler, FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
@@ -392,7 +386,6 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args,
                           '3': default_warn_args}
-
 
 class Open64FortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):

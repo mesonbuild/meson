@@ -40,10 +40,12 @@ from .compilers import (
     ClangCompiler,
     Compiler,
     CompilerArgs,
+    CompilerType,
     CrossNoRunException,
     GnuCompiler,
     ElbrusCompiler,
     IntelCompiler,
+    PGICompiler,
     RunResult,
     CcrxCompiler,
 )
@@ -1220,6 +1222,12 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
     def get_pch_use_args(self, pch_dir, header):
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
+
+
+class PGICCompiler(PGICompiler, CCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+        PGICompiler.__init__(self, CompilerType.PGI_STANDARD)
 
 
 class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):

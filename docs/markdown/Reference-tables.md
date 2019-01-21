@@ -24,7 +24,7 @@ These are return values of the `get_id` (Compiler family) and
 | nagfor    | The NAG Fortran compiler         |                                |
 | open64    | The Open64 Fortran Compiler      |                                |
 | pathscale | The Pathscale Fortran compiler   |                                |
-| pgi       | The Portland Fortran compiler    |                                |
+| pgi       |  Portland PGI C/C++/Fortran compilers |                                |
 | rustc     | Rust compiler                    |                                |
 | sun       | Sun Fortran compiler             |                                |
 | valac     | Vala compiler                    |                                |
