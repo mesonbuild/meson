@@ -16,7 +16,7 @@ import subprocess, os.path
 
 from .. import mlog
 from ..mesonlib import EnvironmentException, Popen_safe
-from .compilers import Compiler, cuda_buildtype_args
+from .compilers import Compiler, cuda_buildtype_args, cuda_optimization_args, cuda_debug_args
 
 class CudaCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -151,6 +151,12 @@ __global__ void kernel (void) {
     def get_no_optimization_args(self):
         return ['-O0']
 
+    def get_optimization_args(self, optimization_level):
+        return cuda_optimization_args[optimization_level]
+
+    def get_debug_args(self, is_debug):
+        return cuda_debug_args[is_debug]
+
     def get_linker_exelist(self):
         return self.exelist[:]
 
@@ -190,4 +196,7 @@ __global__ void kernel (void) {
         return ['/link'] + args
 
     def get_pic_args(self):
+        return []
+
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
         return []

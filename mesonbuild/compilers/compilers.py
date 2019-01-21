@@ -146,10 +146,10 @@ armclang_buildtype_args = {'plain': [],
                            }
 
 cuda_buildtype_args = {'plain': [],
-                       'debug': ['-O0', '-g'],
-                       'debugoptimized': ['-O1', '--debug'],
-                       'release': ['-O3', '-Otime'],
-                       'minsize': ['-O3', '-Ospace'],
+                       'debug': [],
+                       'debugoptimized': [],
+                       'release': [],
+                       'minsize': [],
                       }
 
 arm_buildtype_args = {'plain': [],
@@ -353,6 +353,17 @@ msvc_optimization_args = {'0': [],
                           '3': ['/O2'],
                           's': ['/O1'], # Implies /Os.
                           }
+
+cuda_optimization_args = {'0': [],
+                          'g': ['-O0'],
+                          '1': ['-O1'],
+                          '2': ['-O2'],
+                          '3': ['-O3', '-Otime'],
+                          's': ['-O3', '-Ospace']
+                          }
+
+cuda_debug_args = {False: [],
+                   True: ['-g']}
 
 clike_debug_args = {False: [],
                     True: ['-g']}

@@ -1,8 +1,5 @@
 #include <iostream>
 
-__global__ void kernel (void){
-}
-
 int main(int argc, char **argv) {
     int cuda_devices = 0;
     std::cout << "CUDA version: " << CUDART_VERSION << "\n";

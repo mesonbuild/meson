@@ -753,7 +753,7 @@ class Environment:
 
     def detect_cuda_compiler(self, want_cross):
         popen_exceptions = {}
-        compilers, ccache, is_cross, exe_wrap = self._get_compilers('cuda', 'Cuda', want_cross)
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('cuda', want_cross)
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -1033,9 +1033,9 @@ class Environment:
             if need_cross_compiler:
                 cross_comp = self.detect_objc_compiler(True)
         elif lang == 'cuda':
-            comp = self.environment.detect_cuda_compiler(False)
+            comp = self.detect_cuda_compiler(False)
             if need_cross_compiler:
-                cross_comp = self.environment.detect_cuda_compiler(True)
+                cross_comp = self.detect_cuda_compiler(True)
         elif lang == 'objcpp':
             comp = self.detect_objcpp_compiler(False)
             if need_cross_compiler:
