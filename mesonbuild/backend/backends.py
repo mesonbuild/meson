@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os, pickle, re
+from typing import List
 import textwrap
 from .. import build
 from .. import dependencies
@@ -258,7 +259,7 @@ class Backend:
         osrc = target.name + '-unity.' + suffix
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
-    def generate_unity_files(self, target, unity_src):
+    def generate_unity_files(self, target, unity_src: List[str]):
         abs_files = []
         result = []
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
@@ -277,7 +278,12 @@ class Backend:
 
         # For each language, generate a unity source file and return the list
         for comp, srcs in compsrcs.items():
-            with init_language_file(comp.get_default_suffix()) as ofile:
+            if comp.language == 'fortran':
+                suffix = 'F90'  # This is a workaround to allow Fortran submodule to work.
+            else:
+                suffix = comp.get_default_suffix()
+
+            with init_language_file(suffix) as ofile:
                 for src in srcs:
                     ofile.write('#include<%s>\n' % src)
         [mesonlib.replace_if_different(x, x + '.tmp') for x in abs_files]
