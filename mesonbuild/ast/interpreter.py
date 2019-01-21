@@ -47,6 +47,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def __init__(self, source_root, subdir):
         super().__init__(source_root, subdir)
         self.visited_subdirs = {}
+        self.assignments = {}
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
                            'benchmark': self.func_do_nothing,
@@ -133,7 +134,11 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         return 0
 
     def evaluate_plusassign(self, node):
-        return 0
+        assert(isinstance(node, mparser.PlusAssignmentNode))
+        if node.var_name not in self.assignments:
+            self.assignments[node.var_name] = []
+        self.assignments[node.var_name] += [node.value] # Save a reference to the value node
+        self.evaluate_statement(node.value) # Evaluate the value just in case
 
     def evaluate_indexing(self, node):
         return 0
@@ -168,7 +173,9 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         return 0
 
     def assignment(self, node):
-        pass
+        assert(isinstance(node, mparser.AssignmentNode))
+        self.assignments[node.var_name] = [node.value] # Save a reference to the value node
+        self.evaluate_statement(node.value) # Evaluate the value just in case
 
     def flatten_args(self, args, include_unknown_args: bool = False):
         # Resolve mparser.ArrayNode if needed
