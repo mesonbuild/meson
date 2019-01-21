@@ -19,6 +19,7 @@ import subprocess
 import functools
 import itertools
 from pathlib import Path
+from typing import List
 
 from .. import mlog
 from .. import coredata
@@ -978,7 +979,7 @@ class CCompiler(Compiler):
         return [f.as_posix()]
 
     @staticmethod
-    def _get_file_from_list(files):
+    def _get_file_from_list(files: List[str]) -> str:
         for f in files:
             if os.path.isfile(f):
                 return f

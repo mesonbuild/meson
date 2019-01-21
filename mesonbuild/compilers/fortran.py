@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List
+import subprocess, os
 
 from .c import CCompiler
 from .compilers import (
@@ -29,7 +31,7 @@ from .compilers import (
 )
 
 from mesonbuild.mesonlib import EnvironmentException, is_osx
-import subprocess, os
+
 
 class FortranCompiler(Compiler):
     library_dirs_cache = CCompiler.library_dirs_cache
@@ -267,6 +269,9 @@ end program prog
     def _get_trials_from_pattern(cls, pattern, directory, libname):
         return CCompiler._get_trials_from_pattern(pattern, directory, libname)
 
+    @staticmethod
+    def _get_file_from_list(files) -> List[str]:
+        return CCompiler._get_file_from_list(files)
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
