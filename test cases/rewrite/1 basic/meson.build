@@ -5,6 +5,8 @@ src2 = files(['fileB.cpp', 'fileC.cpp'])
 src3 = src1
 src4 = [src3]
 
+# Magic comment
+
 exe1 = executable('trivialprog1', src1)
 exe2 = executable('trivialprog2', [src2])
 exe3 = executable('trivialprog3', ['main.cpp', 'fileA.cpp'])

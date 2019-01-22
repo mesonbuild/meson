@@ -7,6 +7,12 @@
   },
   {
     "type": "target",
+    "target": "trivialprog2",
+    "operation": "src_add",
+    "sources": ["a7.cpp"]
+  },
+  {
+    "type": "target",
     "target": "trivialprog3",
     "operation": "src_add",
     "sources": ["a5.cpp"]

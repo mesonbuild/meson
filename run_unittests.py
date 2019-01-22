@@ -4972,16 +4972,21 @@ class RewriterTests(BasePlatformTests):
         expected = {
             'target': {
                 'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
-                'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileB.cpp', 'fileC.cpp']},
+                'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileB.cpp', 'fileC.cpp', 'a7.cpp']},
                 'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp', 'fileA.cpp', 'a5.cpp']},
                 'trivialprog4@exe': {'name': 'trivialprog4', 'sources': ['main.cpp', 'a5.cpp', 'fileA.cpp']},
-                'trivialprog5@exe': {'name': 'trivialprog5', 'sources': ['main.cpp', 'a3.cpp', 'fileB.cpp', 'fileC.cpp']},
+                'trivialprog5@exe': {'name': 'trivialprog5', 'sources': ['main.cpp', 'a3.cpp', 'fileB.cpp', 'fileC.cpp', 'a7.cpp']},
                 'trivialprog6@exe': {'name': 'trivialprog6', 'sources': ['main.cpp', 'fileA.cpp', 'a4.cpp']},
                 'trivialprog7@exe': {'name': 'trivialprog7', 'sources': ['fileB.cpp', 'fileC.cpp', 'main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
                 'trivialprog8@exe': {'name': 'trivialprog8', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
                 'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
             }
         }
+        self.assertDictEqual(out, expected)
+
+        # Check the written file
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
         self.assertDictEqual(out, expected)
 
     def test_target_remove_sources(self):
@@ -5001,6 +5006,11 @@ class RewriterTests(BasePlatformTests):
                 'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['main.cpp']},
             }
         }
+        self.assertDictEqual(out, expected)
+
+        # Check the written file
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
         self.assertDictEqual(out, expected)
 
 class NativeFileTests(BasePlatformTests):

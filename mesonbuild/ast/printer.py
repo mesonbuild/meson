@@ -17,6 +17,7 @@
 
 from .. import mparser
 from . import AstVisitor
+import re
 
 arithmic_map = {
     'add': '+',
@@ -33,11 +34,18 @@ class AstPrinter(AstVisitor):
         self.arg_newline_cutoff = arg_newline_cutoff
         self.ci = ''
         self.is_newline = True
+        self.last_level = 0
+
+    def post_process(self):
+        self.result = re.sub(r'\s+\n', '\n', self.result)
 
     def append(self, data: str, node: mparser.BaseNode):
         level = 0
         if node and hasattr(node, 'level'):
             level = node.level
+        else:
+            level = self.last_level
+        self.last_level = level
         if self.is_newline:
             self.result += ' ' * (level * self.indent)
         self.result += data
@@ -179,13 +187,17 @@ class AstPrinter(AstVisitor):
             self.newline()
         for i in node.arguments:
             i.accept(self)
-            self.append(',', node)
+            self.append(', ', node)
             if break_args:
                 self.newline()
         for key, val in node.kwargs.items():
             self.append(key, node)
             self.appendS(':', node)
             val.accept(self)
-            self.append(',', node)
+            self.append(', ', node)
             if break_args:
                 self.newline()
+        if break_args:
+            self.result = re.sub(r', \n$', '\n', self.result)
+        else:
+            self.result = re.sub(r', $', '', self.result)

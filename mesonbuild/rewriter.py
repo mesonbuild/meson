@@ -219,6 +219,90 @@ class Rewriter:
                                     .format(cmd['type'], list(self.functions.keys())))
         self.functions[cmd['type']](cmd)
 
+    def apply_changes(self):
+        assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'subdir') for x in self.modefied_nodes))
+        assert(all(isinstance(x, (mparser.ArrayNode, mparser.FunctionNode)) for x in self.modefied_nodes))
+        # Sort based on line and column in reversed order
+        work_nodes = list(sorted(self.modefied_nodes, key=lambda x: x.lineno * 1000 + x.colno, reverse=True))
+
+        # Generating the new replacement string
+        str_list = []
+        for i in work_nodes:
+            printer = AstPrinter()
+            i.accept(printer)
+            printer.post_process()
+            data = {
+                'file': os.path.join(i.subdir, environment.build_filename),
+                'str': printer.result.strip(),
+                'node': i
+            }
+            str_list += [data]
+
+        # Load build files
+        files = {}
+        for i in str_list:
+            if i['file'] in files:
+                continue
+            fpath = os.path.realpath(os.path.join(self.sourcedir, i['file']))
+            fdata = ''
+            with open(fpath, 'r') as fp:
+                fdata = fp.read()
+
+            # Generate line offsets numbers
+            m_lines = fdata.splitlines(True)
+            offset = 0
+            line_offsets = []
+            for j in m_lines:
+                line_offsets += [offset]
+                offset += len(j)
+
+            files[i['file']] = {
+                'path': fpath,
+                'raw': fdata,
+                'offsets': line_offsets
+            }
+
+        # Replace in source code
+        for i in str_list:
+            offsets = files[i['file']]['offsets']
+            raw = files[i['file']]['raw']
+            node = i['node']
+            line = node.lineno - 1
+            col = node.colno
+            start = offsets[line]+col
+            end = start
+            if isinstance(node, mparser.ArrayNode):
+                if raw[end] != '[':
+                    mlog.warning('Internal error: expected "[" at {}:{} but got "{}"'.format(line, col, raw[end]))
+                    continue
+                counter = 1
+                while counter > 0:
+                    end += 1
+                    if raw[end] == '[':
+                        counter += 1
+                    elif raw[end] == ']':
+                        counter -= 1
+                end += 1
+            elif isinstance(node, mparser.FunctionNode):
+                while raw[end] != '(':
+                    end += 1
+                end += 1
+                counter = 1
+                while counter > 0:
+                    end += 1
+                    if raw[end] == '(':
+                        counter += 1
+                    elif raw[end] == ')':
+                        counter -= 1
+                end += 1
+            raw = files[i['file']]['raw'] = raw[:start] + i['str'] + raw[end:]
+
+        # Write the files back
+        for key, val in files.items():
+            mlog.log('Rewriting', mlog.yellow(key))
+            with open(val['path'], 'w') as fp:
+                fp.write(val['raw'])
+
 def run(options):
     rewriter = Rewriter(options.sourcedir)
     rewriter.analyze_meson()
@@ -235,4 +319,6 @@ def run(options):
         if not isinstance(i, object):
             raise TypeError('Command is not an object')
         rewriter.process(i)
+
+    rewriter.apply_changes()
     return 0
