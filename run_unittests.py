@@ -4984,6 +4984,25 @@ class RewriterTests(BasePlatformTests):
         }
         self.assertDictEqual(out, expected)
 
+    def test_target_remove_sources(self):
+        self.prime('1 basic')
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'rmSrc.json'))
+        out = self.extract_test_data(out)
+        expected = {
+            'target': {
+                'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp']},
+                'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileC.cpp']},
+                'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp']},
+                'trivialprog4@exe': {'name': 'trivialprog4', 'sources': ['main.cpp']},
+                'trivialprog5@exe': {'name': 'trivialprog5', 'sources': ['main.cpp', 'fileC.cpp']},
+                'trivialprog6@exe': {'name': 'trivialprog6', 'sources': ['main.cpp']},
+                'trivialprog7@exe': {'name': 'trivialprog7', 'sources': ['fileC.cpp', 'main.cpp']},
+                'trivialprog8@exe': {'name': 'trivialprog8', 'sources': ['main.cpp']},
+                'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['main.cpp']},
+            }
+        }
+        self.assertDictEqual(out, expected)
+
 class NativeFileTests(BasePlatformTests):
 
     def setUp(self):

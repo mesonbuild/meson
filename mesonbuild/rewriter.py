@@ -117,7 +117,23 @@ class Rewriter:
         if cmd['debug']:
             pprint(target)
 
+        # Utility function to get a list of the sources from a node
+        def arg_list_from_node(n):
+            args = []
+            if isinstance(n, mparser.FunctionNode):
+                args = list(n.args.arguments)
+                if n.func_name in build_target_functions:
+                    args.pop(0)
+            elif isinstance(n, mparser.ArrayNode):
+                args = n.args.arguments
+            elif isinstance(n, mparser.ArgumentNode):
+                args = n.arguments
+            return args
+
         if cmd['operation'] == 'src_add':
+            #################################
+            ### Add sources to the target ###
+            #################################
             node = None
             if target['sources']:
                 node = target['sources'][0]
@@ -142,22 +158,51 @@ class Rewriter:
                 node.arguments += to_append
 
             # Mark the node as modified
-            self.modefied_nodes += [node]
+            if node not in self.modefied_nodes:
+                self.modefied_nodes += [node]
         elif cmd['operation'] == 'src_rm':
-            mlog.warning('TODO')
+            ######################################
+            ### Remove sources from the target ###
+            ######################################
+            # Helper to find the exact string node and its parent
+            def find_node(src):
+                for i in target['sources']:
+                    for j in arg_list_from_node(i):
+                        if isinstance(j, mparser.StringNode):
+                            if j.value == src:
+                                return i, j
+                return None, None
+
+            for i in cmd['sources']:
+                # Try to find the node with the source string
+                root, string_node = find_node(i)
+                if root is None:
+                    mlog.warning('  -- Unable to find source', mlog.green(i), 'in the target')
+                    continue
+
+                # Remove the found string node from the argument list
+                arg_node = None
+                if isinstance(root, mparser.FunctionNode):
+                    arg_node = root.args
+                if isinstance(root, mparser.ArrayNode):
+                    arg_node = root.args
+                if isinstance(root, mparser.ArgumentNode):
+                    arg_node = root
+                assert(arg_node is not None)
+                mlog.log('  -- Removing source', mlog.green(i), 'from',
+                         mlog.yellow('{}:{}'.format(os.path.join(string_node.subdir, environment.build_filename), string_node.lineno)))
+                arg_node.arguments.remove(string_node)
+
+                # Mark the node as modified
+                if root not in self.modefied_nodes:
+                    self.modefied_nodes += [root]
         elif cmd['operation'] == 'test':
+            ######################################
+            ### List all sources in the target ###
+            ######################################
             src_list = []
             for i in target['sources']:
-                args = []
-                if isinstance(i, mparser.FunctionNode):
-                    args = list(i.args.arguments)
-                    if i.func_name in build_target_functions:
-                        args.pop(0)
-                elif isinstance(i, mparser.ArrayNode):
-                    args = i.args.arguments
-                elif isinstance(i, mparser.ArgumentNode):
-                    args = i.arguments
-                for j in args:
+                for j in arg_list_from_node(i):
                     if isinstance(j, mparser.StringNode):
                         src_list += [j.value]
             test_data = {
