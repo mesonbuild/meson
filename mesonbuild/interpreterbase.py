@@ -320,6 +320,9 @@ class BreakRequest(BaseException):
 class InterpreterObject:
     def __init__(self):
         self.methods = {}
+        # Current node set during a method call. This can be used as location
+        # when printing a warning message during a method call.
+        self.current_node = None
 
     def method_call(self, method_name, args, kwargs):
         if method_name in self.methods:
@@ -366,6 +369,9 @@ class InterpreterBase:
         self.variables = {}
         self.argument_depth = 0
         self.current_lineno = -1
+        # Current node set during a function call. This can be used as location
+        # when printing a warning message during a method call.
+        self.current_node = None
 
     def load_root_meson_file(self):
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
@@ -759,6 +765,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             if not getattr(func, 'no-args-flattening', False):
                 posargs = flatten(posargs)
 
+            self.current_node = node
             return func(node, posargs, kwargs)
         else:
             self.unknown_function_called(func_name)
@@ -795,6 +802,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             return Disabler()
         if method_name == 'extract_objects':
             self.validate_extraction(obj.held_object)
+        obj.current_node = node
         return obj.method_call(method_name, args, kwargs)
 
     def bool_method_call(self, obj, method_name, args):
