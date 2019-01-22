@@ -212,6 +212,7 @@ class LLVMDependency(ConfigToolDependency):
     # Debian and the latter is used by FreeBSD.
     tools = [
         'llvm-config', # base
+        'llvm-config-8',   # No FreeBSD release for 8 yet
         'llvm-config-7',   'llvm-config70',
         'llvm-config-6.0', 'llvm-config60',
         'llvm-config-5.0', 'llvm-config50',
@@ -221,7 +222,7 @@ class LLVMDependency(ConfigToolDependency):
         'llvm-config-3.7', 'llvm-config37',
         'llvm-config-3.6', 'llvm-config36',
         'llvm-config-3.5', 'llvm-config35',
-        'llvm-config-8',   'llvm-config-devel', # development snapshot
+        'llvm-config-9',   'llvm-config-devel', # development snapshot
     ]
     tool_name = 'llvm-config'
     __cpp_blacklist = {'-DNDEBUG'}
