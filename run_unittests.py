@@ -5013,6 +5013,22 @@ class RewriterTests(BasePlatformTests):
         out = self.extract_test_data(out)
         self.assertDictEqual(out, expected)
 
+    def test_target_subdir(self):
+        self.prime('2 subdirs')
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
+        out = self.extract_test_data(out)
+        expected = {
+            'target': {
+                'd3a7449@@something@exe': {'name': 'something', 'sources': ['first.c', 'second.c', 'third.c']}
+            }
+        }
+        self.assertDictEqual(out, expected)
+
+        # Check the written file
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+        self.assertDictEqual(out, expected)
+
 class NativeFileTests(BasePlatformTests):
 
     def setUp(self):
