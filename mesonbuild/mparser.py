@@ -262,17 +262,17 @@ class BreakNode(ElementaryNode):
     pass
 
 class ArrayNode(BaseNode):
-    def __init__(self, args):
+    def __init__(self, args, lineno, colno):
         self.subdir = args.subdir
-        self.lineno = args.lineno
-        self.colno = args.colno
+        self.lineno = lineno
+        self.colno = colno
         self.args = args
 
 class DictNode(BaseNode):
-    def __init__(self, args):
+    def __init__(self, args, lineno, colno):
         self.subdir = args.subdir
-        self.lineno = args.lineno
-        self.colno = args.colno
+        self.lineno = lineno
+        self.colno = colno
         self.args = args
 
 class EmptyNode(BaseNode):
@@ -638,11 +638,11 @@ class Parser:
         elif self.accept('lbracket'):
             args = self.args()
             self.block_expect('rbracket', block_start)
-            return ArrayNode(args)
+            return ArrayNode(args, block_start.lineno, block_start.colno)
         elif self.accept('lcurl'):
             key_values = self.key_values()
             self.block_expect('rcurl', block_start)
-            return DictNode(key_values)
+            return DictNode(key_values, block_start.lineno, block_start.colno)
         else:
             return self.e9()
 
