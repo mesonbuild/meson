@@ -598,6 +598,9 @@ def update_cmd_line_file(build_dir, options):
     with open(filename, 'w') as f:
         config.write(f)
 
+def major_versions_differ(v1, v2):
+    return v1.split('.')[0:2] != v2.split('.')[0:2]
+
 def load(build_dir):
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
     load_fail_msg = 'Coredata file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
@@ -608,7 +611,7 @@ def load(build_dir):
         raise MesonException(load_fail_msg)
     if not isinstance(obj, CoreData):
         raise MesonException(load_fail_msg)
-    if obj.version != version:
+    if major_versions_differ(obj.version, version):
         raise MesonException('Build directory has been generated with Meson version %s, '
                              'which is incompatible with current version %s.\n' %
                              (obj.version, version))
@@ -618,7 +621,7 @@ def save(obj, build_dir):
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
     prev_filename = filename + '.prev'
     tempfilename = filename + '~'
-    if obj.version != version:
+    if major_versions_differ(obj.version, version):
         raise MesonException('Fatal version mismatch corruption.')
     if os.path.exists(filename):
         import shutil
