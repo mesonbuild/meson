@@ -2083,7 +2083,6 @@ def find_external_dependency(name, env, kwargs):
         # try this dependency method
         try:
             d = c()
-            d._check_version()
             pkgdep.append(d)
         except DependencyException as e:
             pkg_exc.append(e)

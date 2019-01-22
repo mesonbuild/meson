@@ -29,35 +29,39 @@ assert(zlibopt.found() == true, 'zlib not found')
 dependency('somebrokenlib', version : '>=2.0', required : false)
 dependency('somebrokenlib', version : '>=1.0', required : false)
 
-# Search for an external dependency that won't be found, but must later be
-# found via fallbacks
+# Search for an external dependency that won't be found, should stay not-found
+# later even when a fallback is then provided
 somelibnotfound = dependency('somelib', required : false)
 assert(somelibnotfound.found() == false, 'somelibnotfound was found?')
-# Find internal dependency without version
-somelibver = dependency('somelib',
+somelibnotfound = dependency('somelib',
+  fallback : ['somelibnover', 'some_dep'],
+  required : false)
+assert(somelibnotfound.found() == false, 'somelibnotfound was found?')
+# With another name it should configure the subproject
+somelib2 = dependency('somelib2',
   fallback : ['somelibnover', 'some_dep'])
-assert(somelibver.type_name() == 'internal', 'somelibver should be of type "internal", not ' + somelibver.type_name())
-# Find an internal dependency again with the same name and a specific version
-somelib = dependency('somelib',
+assert(somelib2.type_name() == 'internal', 'somelibver should be of type "internal", not ' + somelib2.type_name())
+# Find an internal dependency again with another name and a specific version
+somelib = dependency('somelib3',
   version : '== 0.1',
   fallback : ['somelib', 'some_dep'])
 # Find an internal dependency again even if required = false
-somelib_reqfalse = dependency('somelib',
+somelib_reqfalse = dependency('somelib4',
   required: false,
   fallback : ['somelib', 'some_dep'])
 assert(somelib_reqfalse.found(), 'somelib should have been found')
-# Find an internal dependency again with the same name and incompatible version
-somelibver = dependency('somelib',
+# Find an internal dependency again with an incompatible version
+somelibver = dependency('somelib5',
   version : '>= 0.3',
   fallback : ['somelibver', 'some_dep'])
 # Find somelib again, but with a fallback that will fail because subproject does not exist
-somelibfail = dependency('somelib',
+somelibfail = dependency('somelib6',
   version : '>= 0.2',
   required : false,
   fallback : ['somelibfail', 'some_dep'])
 assert(somelibfail.found() == false, 'somelibfail found via wrong fallback')
 # Find somelib again, but with a fallback that will fail because dependency does not exist
-somefail_dep = dependency('somelib',
+somefail_dep = dependency('somelib7',
   version : '>= 0.2',
   required : false,
   fallback : ['somelib', 'somefail_dep'])

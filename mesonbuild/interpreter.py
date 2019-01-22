@@ -2822,21 +2822,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         cached_dep = self.coredata.deps.get(identifier)
         if not cached_dep:
             cached_dep = self.build.deps.get(identifier)
-        if cached_dep:
-            if not cached_dep.found():
-                mlog.log('Dependency', mlog.bold(name),
-                         'found:', mlog.red('NO'), '(cached)')
-                return identifier, cached_dep
-
-            # Verify the cached dep version match
-            wanted = kwargs.get('version', [])
-            found = cached_dep.get_version()
-            if not wanted or mesonlib.version_compare_many(found, wanted)[0]:
-                mlog.log('Dependency', mlog.bold(name),
-                         'found:', mlog.green('YES'), '(cached)')
-                return identifier, cached_dep
-
-        return identifier, None
+        return identifier, cached_dep
 
     @staticmethod
     def check_subproject_version(wanted, found):
@@ -2946,7 +2932,83 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
                                    'version\n requirements use the \'version\' keyword argument instead.')
 
+        version_reqs = kwargs.get('version', '')
+        if not isinstance(version_reqs, (str, list)):
+            raise InterpreterException('Keyword "Version" must be string or list.')
+
+        # Search and cache the dependency, regardless of the version
         identifier, cached_dep = self._find_cached_dep(name, kwargs)
+        if not cached_dep:
+            dep = self.dependency_cache_miss(name, display_name, has_fallback, required, identifier, kwargs)
+            if name != '':
+                self.build.deps[identifier] = dep.held_object
+        else:
+            dep = cached_dep
+
+        if dep.found() and version_reqs:
+            is_found, not_found, found = mesonlib.version_compare_many(dep.get_version(), version_reqs)
+            if not is_found:
+                log_info = ['found {!r} but need:'.format(dep.get_version()),
+                            ', '.join(["'{}'".format(e) for e in not_found])]
+                if found:
+                    log_info += ['; matched:',
+                                ', '.join(["'{}'".format(e) for e in found])]
+                dep = self.notfound_dependency()
+        else:
+            info = []
+            if d.version:
+                info.append(d.version)
+
+            log_info = d.log_info()
+            if log_info:
+                info.append('(' + log_info + ')')
+
+            info = ' '.join(info)
+
+            mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.green('YES'), info)
+
+
+        log_msg = []
+
+        # if this isn't a cross-build, it's uninteresting if native: is used or not
+        if not env.is_cross_build():
+            type_text = 'Dependency'
+        else:
+            type_text = 'Native' if kwargs.get('native', False) else 'Cross'
+            type_text += ' dependency'
+        log_msg.append(type_text)
+
+        log_msg.append(mlog.bold(display_name))
+
+        details = dep.log_details()
+        if details:
+            log_msg.append('(' + details + ')')
+
+        if 'language' in kwargs:
+            log_msg.append('for ' + dep.language)
+
+        log_msg.append('found:')
+
+
+        if not dep.found():
+            log_msg.append(mlog.red('NO'))
+        elif version_reqs:
+
+        if dep.found():
+            
+        else:
+            is_found = False
+
+
+        if not dep.found():
+            mlog.log()
+
+        dep._check_version()
+
+        if cached_dep:
+            log_msg.append('(cached)')
+
+
         if cached_dep:
             if required and not cached_dep.found():
                 m = 'Dependency {!r} was already checked and was not found'
@@ -2954,8 +3016,9 @@ external dependencies (including libraries) must go to "dependencies".''')
             return DependencyHolder(cached_dep, self.subproject)
 
         dep = self.dependency_cache_miss(name, display_name, has_fallback, required, identifier, kwargs)
-        if name != '':
-            self.build.deps[identifier] = dep.held_object
+
+
+
         return dep
 
     def dependency_cache_miss(self, name, display_name, has_fallback, required, identifier, kwargs):
