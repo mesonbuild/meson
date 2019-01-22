@@ -18,7 +18,7 @@
 from .. import interpreterbase, mparser, mesonlib
 from .. import environment
 
-from ..interpreterbase import InterpreterException, InvalidArguments, BreakRequest, ContinueRequest
+from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest
 
 import os, sys
 
@@ -204,6 +204,6 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                 flattend_kwargs[key] = val.value
             elif isinstance(val, (mparser.ArrayNode, mparser.ArgumentNode)):
                 flattend_kwargs[key] = self.flatten_args(val, include_unknown_args)
-            elif isinstance(val, (str, bool, int, float)) or  include_unknown_args:
+            elif isinstance(val, (str, bool, int, float)) or include_unknown_args:
                 flattend_kwargs[key] = val
         return flattend_kwargs

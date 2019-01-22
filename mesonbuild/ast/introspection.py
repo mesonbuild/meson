@@ -19,9 +19,8 @@ from . import AstInterpreter
 from .. import compilers, environment, mesonlib, mparser, optinterpreter
 from .. import coredata as cdata
 from ..interpreterbase import InvalidArguments
-from ..build import Executable, CustomTarget, Jar, RunTarget, SharedLibrary, SharedModule, StaticLibrary
-from pprint import pprint
-import sys, os
+from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
+import os
 
 build_target_functions = ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']
 

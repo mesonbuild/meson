@@ -4917,6 +4917,8 @@ class PythonTests(BasePlatformTests):
 
 
 class RewriterTests(BasePlatformTests):
+    data_regex = re.compile(r'^\s*!!\s*(\w+)\s+([^=]+)=(.*)$')
+
     def setUp(self):
         super().setUp()
         self.maxDiff = None
@@ -4931,7 +4933,6 @@ class RewriterTests(BasePlatformTests):
                                       universal_newlines=True)
         return out
 
-    data_regex = re.compile(r'^\s*!!\s*(\w+)\s+([^=]+)=(.*)$')
     def extract_test_data(self, out):
         lines = out.split('\n')
         result = {}

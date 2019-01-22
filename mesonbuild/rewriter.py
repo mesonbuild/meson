@@ -23,10 +23,9 @@
 # - move targets
 # - reindent?
 
-from .ast import IntrospectionInterpreter, build_target_functions, AstVisitor, AstIDGenerator, AstIndentationGenerator, AstPrinter
+from .ast import IntrospectionInterpreter, build_target_functions, AstIDGenerator, AstIndentationGenerator, AstPrinter
 from mesonbuild.mesonlib import MesonException
 from . import mlog, mparser, environment
-import traceback
 from functools import wraps
 from pprint import pprint
 import json, os
@@ -269,7 +268,7 @@ class Rewriter:
             node = i['node']
             line = node.lineno - 1
             col = node.colno
-            start = offsets[line]+col
+            start = offsets[line] + col
             end = start
             if isinstance(node, mparser.ArrayNode):
                 if raw[end] != '[':
