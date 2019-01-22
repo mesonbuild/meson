@@ -1597,7 +1597,7 @@ ModuleState = namedtuple('ModuleState', [
     'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
     'project_name', 'project_version', 'backend', 'compilers', 'targets',
     'data', 'headers', 'man', 'global_args', 'project_args', 'build_machine',
-    'host_machine', 'target_machine'])
+    'host_machine', 'target_machine', 'current_node'])
 
 class ModuleHolder(InterpreterObject, ObjectHolder):
     def __init__(self, modname, module, interpreter):
@@ -1640,6 +1640,7 @@ class ModuleHolder(InterpreterObject, ObjectHolder):
             build_machine=self.interpreter.builtin['build_machine'].held_object,
             host_machine=self.interpreter.builtin['host_machine'].held_object,
             target_machine=self.interpreter.builtin['target_machine'].held_object,
+            current_node=self.current_node
         )
         if self.held_object.is_snippet(method_name):
             value = fn(self.interpreter, state, args, kwargs)
