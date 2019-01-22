@@ -28,6 +28,7 @@ from setuptools import setup
 # Other platforms will create bin/meson
 entries = {'console_scripts': ['meson=mesonbuild.mesonmain:main']}
 packages = ['mesonbuild',
+            'mesonbuild.ast',
             'mesonbuild.backend',
             'mesonbuild.compilers',
             'mesonbuild.dependencies',
