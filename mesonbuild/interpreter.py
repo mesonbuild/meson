@@ -743,7 +743,8 @@ class BuildTargetHolder(TargetHolder):
             mlog.warning('extract_all_objects called without setting recursive '
                          'keyword argument. Meson currently defaults to '
                          'non-recursive to maintain backward compatibility but '
-                         'the default will be changed in the future.')
+                         'the default will be changed in the future.',
+                         location=self.current_node)
         return GeneratedObjectsHolder(gobjs)
 
     @noPosargs
@@ -2366,7 +2367,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         if os.path.isabs(dirname):
             raise InterpreterException('Subproject name must not be an absolute path.')
         if has_path_sep(dirname):
-            mlog.warning('Subproject name has a path separator. This may cause unexpected behaviour.')
+            mlog.warning('Subproject name has a path separator. This may cause unexpected behaviour.',
+                         location=self.current_node)
         if dirname in self.subproject_stack:
             fullstack = self.subproject_stack + [dirname]
             incpath = ' => '.join(fullstack)
@@ -2470,7 +2472,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                     mlog.warning('Option {0!r} of type {1!r} in subproject {2!r} cannot yield '
                                  'to parent option of type {3!r}, ignoring parent value. '
                                  'Use -D{2}:{0}=value to set the value for this option manually'
-                                 '.'.format(raw_optname, opt_type, self.subproject, popt_type))
+                                 '.'.format(raw_optname, opt_type, self.subproject, popt_type),
+                                 location=self.current_node)
             return opt
         except KeyError:
             pass
@@ -2925,7 +2928,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         has_fallback = 'fallback' in kwargs
         if 'default_options' in kwargs and not has_fallback:
-            mlog.warning('The "default_options" keyworg argument does nothing without a "fallback" keyword argument.')
+            mlog.warning('The "default_options" keyworg argument does nothing without a "fallback" keyword argument.',
+                         location=self.current_node)
 
         # writing just "dependency('')" is an error, because it can only fail
         if name == '' and required and not has_fallback:
@@ -2990,7 +2994,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         command_templ = '\nmeson wrap promote {}'
         for l in found:
             message.append(mlog.bold(command_templ.format(l[len(self.source_root) + 1:])))
-        mlog.warning(*message)
+        mlog.warning(*message, location=self.current_node)
 
     def get_subproject_infos(self, kwargs):
         fbinfo = kwargs['fallback']
@@ -3142,7 +3146,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 kwargs['input'] = self.source_strings_to_files(extract_as_list(kwargs, 'input'))
             except mesonlib.MesonException:
                 mlog.warning('''Custom target input \'%s\' can\'t be converted to File object(s).
-This will become a hard error in the future.''' % kwargs['input'])
+This will become a hard error in the future.''' % kwargs['input'], location=self.current_node)
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs), self)
         self.add_target(name, tg.held_object)
         return tg
@@ -3800,7 +3804,8 @@ different subdirectory.
                 self.coredata.base_options['b_sanitize'].value != 'none'):
             mlog.warning('''Trying to use {} sanitizer on Clang with b_lundef.
 This will probably not work.
-Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_sanitize'].value))
+Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_sanitize'].value),
+                         location=self.current_node)
 
     def evaluate_subproject_info(self, path_from_source_root, subproject_dirname):
         depth = 0
@@ -3994,7 +3999,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
                     # path declarations.
                     if os.path.normpath(i).startswith(self.environment.get_source_dir()):
                         mlog.warning('''Building a path to the source dir is not supported. Use a relative path instead.
-This will become a hard error in the future.''')
+This will become a hard error in the future.''', location=self.current_node)
                         i = os.path.relpath(i, os.path.join(self.environment.get_source_dir(), self.subdir))
                         i = self.build_incdir_object([i])
                 cleaned_items.append(i)
