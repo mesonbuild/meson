@@ -30,6 +30,7 @@ import functools
 from itertools import chain
 from unittest import mock
 from configparser import ConfigParser
+from contextlib import contextmanager
 from glob import glob
 from pathlib import (PurePath, Path)
 
@@ -190,6 +191,24 @@ def skip_if_not_base_option(feature):
             return f(*args, **kwargs)
         return wrapped
     return actual
+
+
+@contextmanager
+def temp_filename():
+    '''A context manager which provides a filename to an empty temporary file.
+
+    On exit the file will be deleted.
+    '''
+
+    fd, filename = tempfile.mkstemp()
+    os.close(fd)
+    try:
+        yield filename
+    finally:
+        try:
+            os.remove(filename)
+        except OSError:
+            pass
 
 
 class PatchModule:
@@ -1295,6 +1314,21 @@ class AllPlatformTests(BasePlatformTests):
             if opt['name'] == 'prefix':
                 prefix = opt['value']
         self.assertEqual(prefix, '/absoluteprefix')
+
+    def test_do_conf_file_preserve_newlines(self):
+
+        def conf_file(in_data, confdata):
+            with temp_filename() as fin:
+                with open(fin, 'wb') as fobj:
+                    fobj.write(in_data.encode('utf-8'))
+                with temp_filename() as fout:
+                    mesonbuild.mesonlib.do_conf_file(fin, fout, confdata, 'meson')
+                    with open(fout, 'rb') as fobj:
+                        return fobj.read().decode('utf-8')
+
+        confdata = {'VAR': ('foo', 'bar')}
+        self.assertEqual(conf_file('@VAR@\n@VAR@\n', confdata), 'foo\nfoo\n')
+        self.assertEqual(conf_file('@VAR@\r\n@VAR@\r\n', confdata), 'foo\r\nfoo\r\n')
 
     def test_absolute_prefix_libdir(self):
         '''
