@@ -18,8 +18,7 @@ string(TOUPPER "${_packageName}" PACKAGE_NAME)
 while(TRUE)
   find_package("${NAME}" QUIET)
 
-  list(LENGTH LIB_ARCH_LIST LIST_LEN)
-  if(${_packageName}_FOUND OR ${PACKAGE_NAME}_FOUND OR LIST_LEN LESS_EQUAL 0)
+  if(${_packageName}_FOUND OR ${PACKAGE_NAME}_FOUND OR "${LIB_ARCH_LIST}" STREQUAL "")
     break()
   endif()
 
