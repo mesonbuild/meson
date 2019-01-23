@@ -729,7 +729,7 @@ def do_mesondefine(line, confdata):
 
 def do_conf_file(src, dst, confdata, format, encoding='utf-8'):
     try:
-        with open(src, encoding=encoding) as f:
+        with open(src, encoding=encoding, newline='') as f:
             data = f.readlines()
     except Exception as e:
         raise MesonException('Could not read input file %s: %s' % (src, str(e)))
@@ -763,7 +763,7 @@ def do_conf_file(src, dst, confdata, format, encoding='utf-8'):
         result.append(line)
     dst_tmp = dst + '~'
     try:
-        with open(dst_tmp, 'w', encoding=encoding) as f:
+        with open(dst_tmp, 'w', encoding=encoding, newline='') as f:
             f.writelines(result)
     except Exception as e:
         raise MesonException('Could not write output file %s: %s' % (dst, str(e)))
