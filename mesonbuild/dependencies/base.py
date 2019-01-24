@@ -328,6 +328,10 @@ class NotFoundDependency(Dependency):
         self.name = 'not-found'
         self.is_found = False
 
+    def get_partial_dependency(self, *, compile_args=False, link_args=False,
+                               links=False, includes=False, sources=False):
+        return copy.copy(self)
+
 
 class ConfigToolDependency(ExternalDependency):
 
