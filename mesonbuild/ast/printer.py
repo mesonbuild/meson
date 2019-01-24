@@ -51,7 +51,7 @@ class AstPrinter(AstVisitor):
         self.result += data
         self.is_newline = False
 
-    def appendS(self, data: str, node: mparser.BaseNode):
+    def append_padded(self, data: str, node: mparser.BaseNode):
         if self.result[-1] not in [' ', '\n']:
             data = ' ' + data
         self.append(data + ' ', node)
@@ -90,26 +90,26 @@ class AstPrinter(AstVisitor):
 
     def visit_OrNode(self, node: mparser.OrNode):
         node.left.accept(self)
-        self.appendS('or', node)
+        self.append_padded('or', node)
         node.right.accept(self)
 
     def visit_AndNode(self, node: mparser.AndNode):
         node.left.accept(self)
-        self.appendS('and', node)
+        self.append_padded('and', node)
         node.right.accept(self)
 
     def visit_ComparisonNode(self, node: mparser.ComparisonNode):
         node.left.accept(self)
-        self.appendS(mparser.comparison_map[node.ctype], node)
+        self.append_padded(mparser.comparison_map[node.ctype], node)
         node.right.accept(self)
 
     def visit_ArithmeticNode(self, node: mparser.ArithmeticNode):
         node.left.accept(self)
-        self.appendS(arithmic_map[node.operation], node)
+        self.append_padded(arithmic_map[node.operation], node)
         node.right.accept(self)
 
     def visit_NotNode(self, node: mparser.NotNode):
-        self.appendS('not', node)
+        self.append_padded('not', node)
         node.value.accept(self)
 
     def visit_CodeBlockNode(self, node: mparser.CodeBlockNode):
@@ -143,9 +143,9 @@ class AstPrinter(AstVisitor):
 
     def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode):
         varnames = [x.value for x in node.varnames]
-        self.appendS('foreach', node)
-        self.appendS(', '.join(varnames), node)
-        self.appendS(':', node)
+        self.append_padded('foreach', node)
+        self.append_padded(', '.join(varnames), node)
+        self.append_padded(':', node)
         node.items.accept(self)
         self.newline()
         node.block.accept(self)
@@ -154,7 +154,7 @@ class AstPrinter(AstVisitor):
     def visit_IfClauseNode(self, node: mparser.IfClauseNode):
         prefix = ''
         for i in node.ifs:
-            self.appendS(prefix + 'if', node)
+            self.append_padded(prefix + 'if', node)
             prefix = 'el'
             i.accept(self)
         if node.elseblock:
@@ -163,7 +163,7 @@ class AstPrinter(AstVisitor):
         self.append('endif', node)
 
     def visit_UMinusNode(self, node: mparser.UMinusNode):
-        self.appendS('-', node)
+        self.append_padded('-', node)
         node.value.accept(self)
 
     def visit_IfNode(self, node: mparser.IfNode):
@@ -173,9 +173,9 @@ class AstPrinter(AstVisitor):
 
     def visit_TernaryNode(self, node: mparser.TernaryNode):
         node.condition.accept(self)
-        self.appendS('?', node)
+        self.append_padded('?', node)
         node.trueblock.accept(self)
-        self.appendS(':', node)
+        self.append_padded(':', node)
         node.falseblock.accept(self)
 
     def visit_ArgumentNode(self, node: mparser.ArgumentNode):
@@ -192,7 +192,7 @@ class AstPrinter(AstVisitor):
                 self.newline()
         for key, val in node.kwargs.items():
             self.append(key, node)
-            self.appendS(':', node)
+            self.append_padded(':', node)
             val.accept(self)
             self.append(', ', node)
             if break_args:

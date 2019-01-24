@@ -130,9 +130,6 @@ class Rewriter:
             return args
 
         if cmd['operation'] == 'src_add':
-            #################################
-            ### Add sources to the target ###
-            #################################
             node = None
             if target['sources']:
                 node = target['sources'][0]
@@ -159,10 +156,8 @@ class Rewriter:
             # Mark the node as modified
             if node not in self.modefied_nodes:
                 self.modefied_nodes += [node]
+
         elif cmd['operation'] == 'src_rm':
-            ######################################
-            ### Remove sources from the target ###
-            ######################################
             # Helper to find the exact string node and its parent
             def find_node(src):
                 for i in target['sources']:
@@ -195,10 +190,9 @@ class Rewriter:
                 # Mark the node as modified
                 if root not in self.modefied_nodes:
                     self.modefied_nodes += [root]
+
         elif cmd['operation'] == 'test':
-            ######################################
-            ### List all sources in the target ###
-            ######################################
+            # List all sources in the target
             src_list = []
             for i in target['sources']:
                 for j in arg_list_from_node(i):
