@@ -2033,9 +2033,10 @@ class Interpreter(InterpreterBase):
         for def_opt_name, def_opt_value in self.project_default_options.items():
             for option_type in env.coredata.get_all_options():
                 for cur_opt_name, cur_opt_value in option_type.items():
-                    if (def_opt_name == cur_opt_name and
-                            def_opt_value != cur_opt_value.value):
-                        yield (def_opt_name, def_opt_value, cur_opt_value)
+                    if def_opt_name == cur_opt_name:
+                        def_opt_value = env.coredata.validate_option_value(def_opt_name, def_opt_value)
+                        if def_opt_value != cur_opt_value.value:
+                            yield (def_opt_name, def_opt_value, cur_opt_value)
 
     def build_func_dict(self):
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
