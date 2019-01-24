@@ -7,5 +7,5 @@ affects the `filename` key in the targets introspection and the output of
 Furthermore, the `filename` and `install_filename` keys in the targets
 introspection are now lists of strings with identical length.
 
-The `--traget-files` option is now deprecated, since the same information
+The `--target-files` option is now deprecated, since the same information
 can be acquired from the `--tragets` introspection API.
