@@ -1,23 +1,30 @@
 cmake_minimum_required(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION} )
 
 # Inspired by CMakeDetermineCompilerABI.cmake to set CMAKE_LIBRARY_ARCHITECTURE
+set(LIB_ARCH_LIST)
 if(CMAKE_LIBRARY_ARCHITECTURE_REGEX)
-  if(NOT DEFINED CMAKE_LIBRARY_ARCHITECTURE)
-    file(GLOB implicit_dirs RELATIVE /lib /lib/*-linux-gnu* )
-    foreach(dir ${implicit_dirs})
-      if("${dir}" MATCHES "${CMAKE_LIBRARY_ARCHITECTURE_REGEX}")
-        set(CMAKE_LIBRARY_ARCHITECTURE "${dir}")
-        break()
-      endif()
-    endforeach()
-  endif()
+  file(GLOB implicit_dirs RELATIVE /lib /lib/*-linux-gnu* )
+  foreach(dir ${implicit_dirs})
+    if("${dir}" MATCHES "${CMAKE_LIBRARY_ARCHITECTURE_REGEX}")
+      list(APPEND LIB_ARCH_LIST "${dir}")
+    endif()
+  endforeach()
 endif()
-
-find_package("${NAME}" QUIET)
 
 set(PACKAGE_FOUND FALSE)
 set(_packageName "${NAME}")
 string(TOUPPER "${_packageName}" PACKAGE_NAME)
+
+while(TRUE)
+  find_package("${NAME}" QUIET)
+
+  if(${_packageName}_FOUND OR ${PACKAGE_NAME}_FOUND OR "${LIB_ARCH_LIST}" STREQUAL "")
+    break()
+  endif()
+
+  list(GET       LIB_ARCH_LIST 0 CMAKE_LIBRARY_ARCHITECTURE)
+  list(REMOVE_AT LIB_ARCH_LIST 0)
+endwhile()
 
 if(${_packageName}_FOUND  OR  ${PACKAGE_NAME}_FOUND)
   set(PACKAGE_FOUND TRUE)
