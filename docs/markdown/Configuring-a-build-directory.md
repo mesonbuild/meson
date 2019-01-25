@@ -111,3 +111,8 @@ you would issue the following command.
 Then you would run your build command (usually `ninja`), which would
 cause Meson to detect that the build setup has changed and do all the
 work required to bring your build tree up to date.
+
+Since 0.50.0, it is also possible to get a list of all build options
+by invoking `meson configure` with the project source directory or
+the path to the root `meson.build`. In this case, meson will print the
+default values of all options similar to the example output from above.
