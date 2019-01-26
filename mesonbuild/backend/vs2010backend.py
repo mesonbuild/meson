@@ -1263,31 +1263,13 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
         ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
         regen_command = self.environment.get_build_command() + ['--internal', 'regencheck']
-        private_dir = self.environment.get_scratch_dir()
-        vcvars_command = self.get_vcvars_command()
-        cmd_templ = '''setlocal
-call %s > NUL
-"%s" "%s"
-if %%errorlevel%% neq 0 goto :cmEnd
-:cmEnd
-endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
-:cmErrorLevel
-exit /b %%1
-:cmDone
-if %%errorlevel%% neq 0 goto :VCEnd'''
-        igroup = ET.SubElement(root, 'ItemGroup')
-        rulefile = os.path.join(self.environment.get_scratch_dir(), 'regen.rule')
-        if not os.path.exists(rulefile):
-            with open(rulefile, 'w', encoding='utf-8') as f:
-                f.write("# Meson regen file.")
-        custombuild = ET.SubElement(igroup, 'CustomBuild', Include=rulefile)
-        message = ET.SubElement(custombuild, 'Message')
-        message.text = 'Checking whether solution needs to be regenerated.'
-        ET.SubElement(custombuild, 'Command').text = cmd_templ % \
-            (vcvars_command, '" "'.join(regen_command), private_dir)
-        ET.SubElement(custombuild, 'Outputs').text = Vs2010Backend.get_regen_stampfile(self.environment.get_build_dir())
-        deps = self.get_regen_filelist()
-        ET.SubElement(custombuild, 'AdditionalInputs').text = ';'.join(deps)
+        cmd_templ = '''call %s > NUL
+"%s" "%s"'''
+        regen_command = cmd_templ % \
+            (self.get_vcvars_command(), '" "'.join(regen_command), self.environment.get_scratch_dir())
+        self.add_custom_build(root, 'regen', regen_command, deps=self.get_regen_filelist(),
+                              outputs=[Vs2010Backend.get_regen_stampfile(self.environment.get_build_dir())],
+                              msg='Checking whether solution needs to be regenerated.')
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         ET.SubElement(root, 'ImportGroup', Label='ExtensionTargets')
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
@@ -1409,13 +1391,16 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
-    def add_custom_build(self, node, rulename, command, output_file=None):
+    def add_custom_build(self, node, rulename, command, deps=None, outputs=None, msg=None):
         igroup = ET.SubElement(node, 'ItemGroup')
         rulefile = os.path.join(self.environment.get_scratch_dir(), rulename + '.rule')
         if not os.path.exists(rulefile):
             with open(rulefile, 'w', encoding='utf-8') as f:
                 f.write("# Meson regen file.")
         custombuild = ET.SubElement(igroup, 'CustomBuild', Include=rulefile)
+        if msg:
+            message = ET.SubElement(custombuild, 'Message')
+            message.text = msg
         cmd_templ = '''setlocal
 %s
 if %%errorlevel%% neq 0 goto :cmEnd
@@ -1426,12 +1411,15 @@ exit /b %%1
 :cmDone
 if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(custombuild, 'Command').text = cmd_templ % command
-        if not output_file:
+        if not outputs:
             # Use a nonexistent file to always consider the target out-of-date.
             output_file = os.path.join(self.environment.get_scratch_dir(), 'outofdate.file')
             while os.path.exists(output_file):
                 output_file += '0'
-        ET.SubElement(custombuild, 'Outputs').text = output_file
+            outputs = [output_file]
+        ET.SubElement(custombuild, 'Outputs').text = ';'.join(outputs)
+        if deps:
+            ET.SubElement(custombuild, 'AdditionalInputs').text = ';'.join(deps)
 
     def generate_debug_information(self, link):
         # valid values for vs2015 is 'false', 'true', 'DebugFastLink'
