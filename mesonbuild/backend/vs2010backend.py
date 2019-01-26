@@ -531,8 +531,6 @@ class Vs2010Backend(backends.Backend):
 
     def gen_custom_target_vcxproj(self, target, ofname, guid):
         root = self.create_basic_crap(target, guid)
-        action = ET.SubElement(root, 'ItemDefinitionGroup')
-        customstep = ET.SubElement(action, 'CustomBuildStep')
         # We need to always use absolute paths because our invocation is always
         # from the target dir, not the build root.
         target.absolute_paths = True
@@ -549,9 +547,8 @@ class Vs2010Backend(backends.Backend):
                                              extra_paths=extra_paths,
                                              capture=ofilenames[0] if target.capture else None)
         wrapper_cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
-        ET.SubElement(customstep, 'Command').text = ' '.join(self.quote_arguments(wrapper_cmd))
-        ET.SubElement(customstep, 'Outputs').text = ';'.join(ofilenames)
-        ET.SubElement(customstep, 'Inputs').text = ';'.join([exe_data] + srcs + depend_files)
+        self.add_custom_build(root, 'custom_target', ' '.join(self.quote_arguments(wrapper_cmd)),
+                              deps=[exe_data] + srcs + depend_files, outputs=ofilenames)
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.generate_custom_generator_commands(target, root)
         self.add_regen_dependency(root)
