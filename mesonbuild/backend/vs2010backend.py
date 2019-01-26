@@ -305,17 +305,9 @@ class Vs2010Backend(backends.Backend):
                     prj[0], prj[1], prj[2])
                 ofile.write(prj_line)
                 target_dict = {target.get_id(): target}
-                # Get direct deps
-                all_deps = self.get_target_deps(target_dict)
                 # Get recursive deps
                 recursive_deps = self.get_target_deps(
                     target_dict, recursive=True)
-                ofile.write('\tProjectSection(ProjectDependencies) = '
-                            'postProject\n')
-                for dep in all_deps.keys():
-                    guid = self.environment.coredata.target_guids[dep]
-                    ofile.write('\t\t{%s} = {%s}\n' % (guid, guid))
-                ofile.write('\tEndProjectSection\n')
                 ofile.write('EndProject\n')
                 for dep, target in recursive_deps.items():
                     if prj[0] in default_projlist:
@@ -449,6 +441,14 @@ class Vs2010Backend(backends.Backend):
         pref = ET.SubElement(ig, 'ProjectReference', Include=include)
         ET.SubElement(pref, 'Project').text = '{%s}' % projid
 
+    def add_target_deps(self, root, target):
+        target_dict = {target.get_id(): target}
+        for name, dep in self.get_target_deps(target_dict).items():
+            relpath = self.get_target_dir_relative_to(dep, target)
+            vcxproj = os.path.join(relpath, dep.get_id() + '.vcxproj')
+            tid = self.environment.coredata.target_guids[dep.get_id()]
+            self.add_project_reference(root, vcxproj, tid)
+
     def create_basic_crap(self, target, guid):
         project_name = target.name
         root = ET.Element('Project', {'DefaultTargets': "Build",
@@ -519,6 +519,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(customstep, 'Message').text = 'Running custom command.'
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)
+        self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_custom_target_vcxproj(self, target, ofname, guid):
@@ -547,6 +548,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.generate_custom_generator_commands(target, root)
         self.add_regen_dependency(root)
+        self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     @classmethod
@@ -1214,6 +1216,7 @@ class Vs2010Backend(backends.Backend):
 
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)
+        self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_regenproj(self, project_name, ofname):
