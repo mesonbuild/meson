@@ -547,6 +547,10 @@ class Vs2010Backend(backends.Backend):
                                              extra_paths=extra_paths,
                                              capture=ofilenames[0] if target.capture else None)
         wrapper_cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
+        if target.build_always_stale:
+            # Use a nonexistent file to always consider the target out-of-date.
+            ofilenames += [self.nonexistent_file(os.path.join(self.environment.get_scratch_dir(),
+                                                 'outofdate.file'))]
         self.add_custom_build(root, 'custom_target', ' '.join(self.quote_arguments(wrapper_cmd)),
                               deps=[exe_data] + srcs + depend_files, outputs=ofilenames)
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
@@ -1423,13 +1427,19 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(custombuild, 'Command').text = cmd_templ % command
         if not outputs:
             # Use a nonexistent file to always consider the target out-of-date.
-            output_file = os.path.join(self.environment.get_scratch_dir(), 'outofdate.file')
-            while os.path.exists(output_file):
-                output_file += '0'
-            outputs = [output_file]
+            outputs = [self.nonexistent_file(os.path.join(self.environment.get_scratch_dir(),
+                                                          'outofdate.file'))]
         ET.SubElement(custombuild, 'Outputs').text = ';'.join(outputs)
         if deps:
             ET.SubElement(custombuild, 'AdditionalInputs').text = ';'.join(deps)
+
+    @staticmethod
+    def nonexistent_file(prefix):
+        i = 0
+        file = prefix
+        while os.path.exists(file):
+            file = '%s%d' % (prefix, i)
+        return file
 
     def generate_debug_information(self, link):
         # valid values for vs2015 is 'false', 'true', 'DebugFastLink'
