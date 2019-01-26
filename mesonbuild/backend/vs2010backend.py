@@ -509,6 +509,9 @@ class Vs2010Backend(backends.Backend):
             elif isinstance(i, File):
                 relfname = i.rel_to_builddir(self.build_to_src)
                 cmd.append(os.path.join(self.environment.get_build_dir(), relfname))
+            elif isinstance(i, str):
+                # Escape embedded quotes, because we quote the entire argument below.
+                cmd.append(i.replace('"', '\\"'))
             else:
                 cmd.append(i)
         cmd_templ = '''"%s" ''' * len(cmd)
