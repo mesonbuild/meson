@@ -312,8 +312,6 @@ class Vs2010Backend(backends.Backend):
                     target_dict, recursive=True)
                 ofile.write('\tProjectSection(ProjectDependencies) = '
                             'postProject\n')
-                regen_guid = self.environment.coredata.regen_guid
-                ofile.write('\t\t{%s} = {%s}\n' % (regen_guid, regen_guid))
                 for dep in all_deps.keys():
                     guid = self.environment.coredata.target_guids[dep]
                     ofile.write('\t\t{%s} = {%s}\n' % (guid, guid))
