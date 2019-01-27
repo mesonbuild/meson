@@ -515,6 +515,23 @@ class Backend:
             args += compiler.get_pch_use_args(pchpath, p[0])
         return includeargs + args
 
+    def create_msvc_pch_implementation(self, target, lang, pch_header):
+        # We have to include the language in the file name, otherwise
+        # pch.c and pch.cpp will both end up as pch.obj in VS backends.
+        impl_name = 'meson_pch-%s.%s' % (lang, lang)
+        pch_rel_to_build = os.path.join(self.get_target_private_dir(target), impl_name)
+        # Make sure to prepend the build dir, since the working directory is
+        # not defined. Otherwise, we might create the file in the wrong path.
+        pch_file = os.path.join(self.build_dir, pch_rel_to_build)
+        os.makedirs(os.path.dirname(pch_file), exist_ok=True)
+
+        content = '#include "%s"' % os.path.basename(pch_header)
+        pch_file_tmp = pch_file + '.tmp'
+        with open(pch_file_tmp, 'w') as f:
+            f.write(content)
+        mesonlib.replace_if_different(pch_file, pch_file_tmp)
+        return pch_rel_to_build
+
     @staticmethod
     def escape_extra_args(compiler, args):
         # No extra escaping/quoting needed when not running on Windows

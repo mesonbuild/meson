@@ -75,8 +75,11 @@ executable('multilang', sources : srclist,
 
 Using precompiled headers with MSVC
 --
+Since Meson version 0.50.0, precompiled headers with MSVC work just like
+with GCC. Meson will automatically create the matching pch implementation
+file for you.
 
-MSVC is a bit trickier, because in addition to the header file, it
+Before version 0.50.0, in addition to the header file, Meson
 also requires a corresponding source file. If your header is called
 `foo_pch.h`, the corresponding source file is usually called
 `foo_pch.cpp` and it resides in the same `pch` subdirectory as the

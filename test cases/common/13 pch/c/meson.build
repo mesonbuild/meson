@@ -5,4 +5,4 @@ if cc_id == 'lcc'
 endif
 
 exe = executable('prog', 'prog.c',
-c_pch : ['pch/prog_pch.c', 'pch/prog.h'])
+c_pch : 'pch/prog.h')

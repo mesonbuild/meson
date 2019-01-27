@@ -6,4 +6,4 @@ endif
 
 exe = executable('prog', 'prog.c',
   include_directories: 'include',
-  c_pch : ['pch/prog_pch.c', 'pch/prog.h'])
+  c_pch : 'pch/prog.h')
