@@ -8,7 +8,7 @@ endif
 
 e = executable(
   'cppfort',
-  ['main.cpp', 'fortran.f90'],
+  ['main.cpp', 'fortran.f'],
   dependencies : link_with,
 )
 
