@@ -556,18 +556,37 @@ class Vs2010Backend(backends.Backend):
             return 'cpp'
         raise MesonException('Could not guess language from source file %s.' % src)
 
-    def add_pch(self, inc_cl, proj_to_src_dir, pch_sources, source_file):
+    def add_pch(self, pch_sources, lang, inc_cl):
         if len(pch_sources) <= 1:
             # We only need per file precompiled headers if we have more than 1 language.
             return
-        lang = Vs2010Backend.lang_from_source_file(source_file)
-        header = os.path.basename(pch_sources[lang][0])
-        pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
-        pch_file.text = header
+        self.use_pch(pch_sources, lang, inc_cl)
+
+    def create_pch(self, pch_sources, lang, inc_cl):
+        pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
+        pch.text = 'Create'
+        self.add_pch_files(pch_sources, lang, inc_cl)
+
+    def use_pch(self, pch_sources, lang, inc_cl):
+        header = self.add_pch_files(pch_sources, lang, inc_cl)
         pch_include = ET.SubElement(inc_cl, 'ForcedIncludeFiles')
         pch_include.text = header + ';%(ForcedIncludeFiles)'
+
+    def add_pch_files(self, pch_sources, lang, inc_cl):
+        header = os.path.basename(pch_sources[lang][0])
+        pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
+        # When USING PCHs, MSVC will not do the regular include
+        # directory lookup, but simply use a string match to find the
+        # PCH to use. That means the #include directive must match the
+        # pch_file.text used during PCH CREATION verbatim.
+        # When CREATING a PCH, MSVC will do the include directory
+        # lookup to find the actual PCH header to use. Thus, the PCH
+        # header must either be in the include_directories of the target
+        # or be in the same directory as the PCH implementation.
+        pch_file.text = header
         pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
         pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % lang
+        return header
 
     def is_argument_with_msbuild_xml_entry(self, entry):
         # Remove arguments that have a top level XML entry so
@@ -1010,14 +1029,7 @@ class Vs2010Backend(backends.Backend):
         if len(pch_sources) == 1:
             # If there is only 1 language with precompiled headers, we can use it for the entire project, which
             # is cleaner than specifying it for each source file.
-            pch_source = list(pch_sources.values())[0]
-            header = os.path.basename(pch_source[0])
-            pch_file = ET.SubElement(clconf, 'PrecompiledHeaderFile')
-            pch_file.text = header
-            pch_include = ET.SubElement(clconf, 'ForcedIncludeFiles')
-            pch_include.text = header + ';%(ForcedIncludeFiles)'
-            pch_out = ET.SubElement(clconf, 'PrecompiledHeaderOutputFile')
-            pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % pch_source[2]
+            self.use_pch(pch_sources, list(pch_sources)[0], clconf)
 
         resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
         ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
@@ -1158,7 +1170,7 @@ class Vs2010Backend(backends.Backend):
                 relpath = os.path.join(down, s.rel_to_builddir(self.build_to_src))
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
                 lang = Vs2010Backend.lang_from_source_file(s)
-                self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
+                self.add_pch(pch_sources, lang, inc_cl)
                 self.add_additional_options(lang, inc_cl, file_args)
                 self.add_preprocessor_defines(lang, inc_cl, file_defines)
                 self.add_include_dirs(lang, inc_cl, file_inc_dirs)
@@ -1166,7 +1178,7 @@ class Vs2010Backend(backends.Backend):
             for s in gen_src:
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
                 lang = Vs2010Backend.lang_from_source_file(s)
-                self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
+                self.add_pch(pch_sources, lang, inc_cl)
                 self.add_additional_options(lang, inc_cl, file_args)
                 self.add_preprocessor_defines(lang, inc_cl, file_defines)
                 self.add_include_dirs(lang, inc_cl, file_inc_dirs)
@@ -1175,20 +1187,7 @@ class Vs2010Backend(backends.Backend):
                 if impl:
                     relpath = os.path.join(proj_to_src_dir, impl)
                     inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
-                    pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
-                    pch.text = 'Create'
-                    pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
-                    pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % suffix
-                    pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
-                    # When USING PCHs, MSVC will not do the regular include
-                    # directory lookup, but simply use a string match to find the
-                    # PCH to use. That means the #include directive must match the
-                    # pch_file.text used during PCH CREATION verbatim.
-                    # When CREATING a PCH, MSVC will do the include directory
-                    # lookup to find the actual PCH header to use. Thus, the PCH
-                    # header must either be in the include_directories of the target
-                    # or be in the same directory as the PCH implementation.
-                    pch_file.text = os.path.basename(header)
+                    self.create_pch(pch_sources, lang, inc_cl)
                     self.add_additional_options(lang, inc_cl, file_args)
                     self.add_preprocessor_defines(lang, inc_cl, file_defines)
                     self.add_include_dirs(lang, inc_cl, file_inc_dirs)
