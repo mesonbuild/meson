@@ -1,2 +1,1 @@
 executable('something', srcs)
-

@@ -33,6 +33,7 @@ from configparser import ConfigParser
 from contextlib import contextmanager
 from glob import glob
 from pathlib import (PurePath, Path)
+from distutils.dir_util import copy_tree
 
 import mesonbuild.mlog
 import mesonbuild.compilers
@@ -1014,6 +1015,7 @@ class BasePlatformTests(unittest.TestCase):
         self.mconf_command = self.meson_command + ['configure']
         self.mintro_command = self.meson_command + ['introspect']
         self.wrap_command = self.meson_command + ['wrap']
+        self.rewrite_command = self.meson_command + ['rewrite']
         # Backend-specific build commands
         self.build_command, self.clean_command, self.test_command, self.install_command, \
             self.uninstall_command = get_backend_commands(self.backend)
@@ -1022,6 +1024,7 @@ class BasePlatformTests(unittest.TestCase):
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
         self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
         self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
+        self.rewrite_test_dir = os.path.join(src_root, 'test cases/rewrite')
         # Misc stuff
         self.orig_env = os.environ.copy()
         if self.backend is Backend.ninja:
@@ -4967,68 +4970,115 @@ class PythonTests(BasePlatformTests):
         self.wipe()
 
 
-class RewriterTests(unittest.TestCase):
+class RewriterTests(BasePlatformTests):
+    data_regex = re.compile(r'^\s*!!\s*(\w+)\s+([^=]+)=(.*)$')
 
     def setUp(self):
         super().setUp()
-        src_root = os.path.dirname(__file__)
-        self.testroot = os.path.realpath(tempfile.mkdtemp())
-        self.rewrite_command = python_command + [os.path.join(src_root, 'mesonrewriter.py')]
-        self.tmpdir = os.path.realpath(tempfile.mkdtemp())
-        self.workdir = os.path.join(self.tmpdir, 'foo')
-        self.test_dir = os.path.join(src_root, 'test cases/rewrite')
-
-    def tearDown(self):
-        windows_proof_rmtree(self.tmpdir)
-
-    def read_contents(self, fname):
-        with open(os.path.join(self.workdir, fname)) as f:
-            return f.read()
-
-    def check_effectively_same(self, mainfile, truth):
-        mf = self.read_contents(mainfile)
-        t = self.read_contents(truth)
-        # Rewriting is not guaranteed to do a perfect job of
-        # maintaining whitespace.
-        self.assertEqual(mf.replace(' ', ''), t.replace(' ', ''))
+        self.maxDiff = None
 
     def prime(self, dirname):
-        shutil.copytree(os.path.join(self.test_dir, dirname), self.workdir)
+        copy_tree(os.path.join(self.rewrite_test_dir, dirname), self.builddir)
 
-    def test_basic(self):
+    def rewrite(self, directory, args):
+        if isinstance(args, str):
+            args = [args]
+        out = subprocess.check_output(self.rewrite_command + ['--sourcedir', directory] + args,
+                                      universal_newlines=True)
+        return out
+
+    def extract_test_data(self, out):
+        lines = out.split('\n')
+        result = {}
+        for i in lines:
+            match = RewriterTests.data_regex.match(i)
+            if match:
+                typ = match.group(1)
+                id = match.group(2)
+                data = json.loads(match.group(3))
+                if typ not in result:
+                    result[typ] = {}
+                result[typ][id] = data
+        return result
+
+    def test_target_source_list(self):
         self.prime('1 basic')
-        subprocess.check_call(self.rewrite_command + ['remove',
-                                                      '--target=trivialprog',
-                                                      '--filename=notthere.c',
-                                                      '--sourcedir', self.workdir],
-                              universal_newlines=True)
-        self.check_effectively_same('meson.build', 'removed.txt')
-        subprocess.check_call(self.rewrite_command + ['add',
-                                                      '--target=trivialprog',
-                                                      '--filename=notthere.c',
-                                                      '--sourcedir', self.workdir],
-                              universal_newlines=True)
-        self.check_effectively_same('meson.build', 'added.txt')
-        subprocess.check_call(self.rewrite_command + ['remove',
-                                                      '--target=trivialprog',
-                                                      '--filename=notthere.c',
-                                                      '--sourcedir', self.workdir],
-                              universal_newlines=True)
-        self.check_effectively_same('meson.build', 'removed.txt')
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+        expected = {
+            'target': {
+                'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp']},
+                'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileB.cpp', 'fileC.cpp']},
+                'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp', 'fileA.cpp']},
+                'trivialprog4@exe': {'name': 'trivialprog4', 'sources': ['main.cpp', 'fileA.cpp']},
+                'trivialprog5@exe': {'name': 'trivialprog5', 'sources': ['main.cpp', 'fileB.cpp', 'fileC.cpp']},
+                'trivialprog6@exe': {'name': 'trivialprog6', 'sources': ['main.cpp', 'fileA.cpp']},
+                'trivialprog7@exe': {'name': 'trivialprog7', 'sources': ['fileB.cpp', 'fileC.cpp', 'main.cpp', 'fileA.cpp']},
+                'trivialprog8@exe': {'name': 'trivialprog8', 'sources': ['main.cpp', 'fileA.cpp']},
+                'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['main.cpp', 'fileA.cpp']},
+            }
+        }
+        self.assertDictEqual(out, expected)
 
-    def test_subdir(self):
+    def test_target_add_sources(self):
+        self.prime('1 basic')
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
+        out = self.extract_test_data(out)
+        expected = {
+            'target': {
+                'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
+                'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileB.cpp', 'fileC.cpp', 'a7.cpp']},
+                'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp', 'fileA.cpp', 'a5.cpp']},
+                'trivialprog4@exe': {'name': 'trivialprog4', 'sources': ['main.cpp', 'a5.cpp', 'fileA.cpp']},
+                'trivialprog5@exe': {'name': 'trivialprog5', 'sources': ['main.cpp', 'a3.cpp', 'fileB.cpp', 'fileC.cpp', 'a7.cpp']},
+                'trivialprog6@exe': {'name': 'trivialprog6', 'sources': ['main.cpp', 'fileA.cpp', 'a4.cpp']},
+                'trivialprog7@exe': {'name': 'trivialprog7', 'sources': ['fileB.cpp', 'fileC.cpp', 'main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
+                'trivialprog8@exe': {'name': 'trivialprog8', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
+                'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
+            }
+        }
+        self.assertDictEqual(out, expected)
+
+        # Check the written file
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+        self.assertDictEqual(out, expected)
+
+    def test_target_remove_sources(self):
+        self.prime('1 basic')
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'rmSrc.json'))
+        out = self.extract_test_data(out)
+        expected = {
+            'target': {
+                'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp']},
+                'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileC.cpp']},
+                'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp']},
+                'trivialprog4@exe': {'name': 'trivialprog4', 'sources': ['main.cpp']},
+                'trivialprog5@exe': {'name': 'trivialprog5', 'sources': ['main.cpp', 'fileC.cpp']},
+                'trivialprog6@exe': {'name': 'trivialprog6', 'sources': ['main.cpp']},
+                'trivialprog7@exe': {'name': 'trivialprog7', 'sources': ['fileC.cpp', 'main.cpp']},
+                'trivialprog8@exe': {'name': 'trivialprog8', 'sources': ['main.cpp']},
+                'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['main.cpp']},
+            }
+        }
+        self.assertDictEqual(out, expected)
+
+        # Check the written file
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+        self.assertDictEqual(out, expected)
+
+    def test_target_subdir(self):
         self.prime('2 subdirs')
-        top = self.read_contents('meson.build')
-        s2 = self.read_contents('sub2/meson.build')
-        subprocess.check_call(self.rewrite_command + ['remove',
-                                                      '--target=something',
-                                                      '--filename=second.c',
-                                                      '--sourcedir', self.workdir],
-                              universal_newlines=True)
-        self.check_effectively_same('sub1/meson.build', 'sub1/after.txt')
-        self.assertEqual(top, self.read_contents('meson.build'))
-        self.assertEqual(s2, self.read_contents('sub2/meson.build'))
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
+        out = self.extract_test_data(out)
+        expected = {'name': 'something', 'sources': ['first.c', 'second.c', 'third.c']}
+        self.assertDictEqual(list(out['target'].values())[0], expected)
 
+        # Check the written file
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+        self.assertDictEqual(list(out['target'].values())[0], expected)
 
 class NativeFileTests(BasePlatformTests):
 
@@ -5321,7 +5371,7 @@ def should_run_cross_mingw_tests():
 def main():
     unset_envs()
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
-             'PythonTests', 'NativeFileTests']
+             'PythonTests', 'NativeFileTests', 'RewriterTests']
     if not is_windows():
         cases += ['LinuxlikeTests']
         if should_run_cross_arm_tests():
