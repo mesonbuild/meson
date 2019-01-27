@@ -1,5 +1,5 @@
-project('dynamic_fortran', 'fortran', default_options : ['default_library=shared'])
+project('dynamic_fortran', 'fortran')
 
-dynamic = library('dynamic', 'dynamic.f90')
+dynamic = shared_library('dynamic', 'dynamic.f90')
 exe = executable('test_exe', 'main.f90', link_with : dynamic)
 test('dynamic-fortran', exe)
