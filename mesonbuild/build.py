@@ -1089,6 +1089,9 @@ You probably should put it in link_with instead.''')
                 pchlist = [pchlist[1], pchlist[0]]
             else:
                 raise InvalidArguments('PCH argument %s is of unknown type.' % pchlist[0])
+
+            if (os.path.dirname(pchlist[0]) != os.path.dirname(pchlist[1])):
+                raise InvalidArguments('PCH files must be stored in the same folder.')
         elif len(pchlist) > 2:
             raise InvalidArguments('PCH definition may have a maximum of 2 files.')
         for f in pchlist:
