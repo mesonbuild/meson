@@ -1795,7 +1795,7 @@ class ArmclangCompiler:
             EnvironmentException('armlink version string not found')
         # Using the regular expression from environment.search_version,
         # which is used for searching compiler version
-        version_regex = '(?<!(\d|\.))(\d{1,2}(\.\d+)+(-[a-zA-Z0-9]+)?)'
+        version_regex = r'(?<!(\d|\.))(\d{1,2}(\.\d+)+(-[a-zA-Z0-9]+)?)'
         linker_ver = re.search(version_regex, ver_str)
         if linker_ver:
             linker_ver = linker_ver.group(0)

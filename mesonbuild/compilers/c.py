@@ -19,6 +19,7 @@ import subprocess
 import functools
 import itertools
 from pathlib import Path
+from typing import List
 
 from .. import mlog
 from .. import coredata
@@ -456,7 +457,7 @@ class CCompiler(Compiler):
         return self.compiles(code, env, extra_args=extra_args,
                              dependencies=dependencies, mode='link')
 
-    def run(self, code, env, *, extra_args=None, dependencies=None):
+    def run(self, code: str, env, *, extra_args=None, dependencies=None):
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
         with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
@@ -978,7 +979,7 @@ class CCompiler(Compiler):
         return [f.as_posix()]
 
     @staticmethod
-    def _get_file_from_list(files):
+    def _get_file_from_list(files: List[str]) -> str:
         for f in files:
             if os.path.isfile(f):
                 return f

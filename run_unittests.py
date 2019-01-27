@@ -5304,11 +5304,15 @@ class NativeFileTests(BasePlatformTests):
             if comp.id == 'gcc':
                 if shutil.which('ifort'):
                     return 'ifort', 'intel'
+                elif shutil.which('flang'):
+                    return 'flang', 'flang'
+                elif shutil.which('pgfortran'):
+                    return 'pgfortran', 'pgi'
                 # XXX: there are several other fortran compilers meson
                 # supports, but I don't have any of them to test with
                 raise unittest.SkipTest('No alternate Fortran implementation.')
             if not shutil.which('gfortran'):
-                raise unittest.SkipTest('No alternate C# implementation.')
+                raise unittest.SkipTest('No alternate Fortran implementation.')
             return 'gfortran', 'gcc'
         self.helper_for_compiler('fortran', cb)
 

@@ -15,7 +15,7 @@ endif
 e = executable(
   'cppfort',
   ['main.cpp', 'fortran.f'],
-  dependencies : [link_with],
+  dependencies : link_with,
 )
 
 test('C++ FORTRAN', e)
