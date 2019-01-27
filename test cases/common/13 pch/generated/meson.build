@@ -13,4 +13,4 @@ generated_generator = generator(find_program('gen_generator.py'),
   arguments: ['@INPUT@', '@OUTPUT@'])
 
 exe = executable('prog', 'prog.c', generated_customTarget, generated_generator.process('generated_generator.in'),
-  c_pch: ['pch/prog_pch.c', 'pch/prog.h'])
+  c_pch: 'pch/prog.h')

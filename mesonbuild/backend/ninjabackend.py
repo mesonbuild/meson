@@ -2252,22 +2252,28 @@ rule FORTRAN_DEP_HACK%s
         return [os.path.join(self.get_target_dir(lt), lt.get_filename()) for lt in target.link_targets]
 
     def generate_msvc_pch_command(self, target, compiler, pch):
-        if len(pch) != 2:
-            raise MesonException('MSVC requires one header and one source to produce precompiled headers.')
         header = pch[0]
-        source = pch[1]
         pchname = compiler.get_pch_name(header)
         dst = os.path.join(self.get_target_private_dir(target), pchname)
 
         commands = []
         commands += self.generate_basic_compiler_args(target, compiler)
+
+        if len(pch) == 1:
+            # Auto generate PCH.
+            source = self.create_msvc_pch_implementation(target, compiler.get_language(), pch[0])
+            pch_header_dir = os.path.dirname(os.path.join(self.build_to_src, target.get_source_subdir(), header))
+            commands += compiler.get_include_args(pch_header_dir, False)
+        else:
+            source = os.path.join(self.build_to_src, target.get_source_subdir(), pch[1])
+
         just_name = os.path.basename(header)
         (objname, pch_args) = compiler.gen_pch_args(just_name, source, dst)
         commands += pch_args
         commands += self._generate_single_compile(target, compiler)
         commands += self.get_compile_debugfile_args(compiler, target, objname)
         dep = dst + '.' + compiler.get_depfile_suffix()
-        return commands, dep, dst, [objname]
+        return commands, dep, dst, [objname], source
 
     def generate_gcc_pch_command(self, target, compiler, pch):
         commands = self._generate_single_compile(target, compiler)
@@ -2296,8 +2302,7 @@ rule FORTRAN_DEP_HACK%s
                 raise InvalidArguments(msg)
             compiler = target.compilers[lang]
             if isinstance(compiler, VisualStudioCCompiler):
-                src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[-1])
-                (commands, dep, dst, objs) = self.generate_msvc_pch_command(target, compiler, pch)
+                (commands, dep, dst, objs, src) = self.generate_msvc_pch_command(target, compiler, pch)
                 extradep = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
             elif compiler.id == 'intel':
                 # Intel generates on target generation

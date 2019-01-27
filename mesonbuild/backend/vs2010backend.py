@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import os
 import pickle
 import xml.dom.minidom
@@ -1035,13 +1036,18 @@ class Vs2010Backend(backends.Backend):
                     continue
                 pch_node.text = 'Use'
                 if compiler.id == 'msvc':
-                    if len(pch) != 2:
-                        raise MesonException('MSVC requires one header and one source to produce precompiled headers.')
-                    pch_sources[lang] = [pch[0], pch[1], lang]
+                    if len(pch) == 1:
+                        # Auto generate PCH.
+                        src = os.path.join(down, self.create_msvc_pch_implementation(target, lang, pch[0]))
+                        pch_header_dir = os.path.dirname(os.path.join(proj_to_src_dir, pch[0]))
+                    else:
+                        src = os.path.join(proj_to_src_dir, pch[1])
+                        pch_header_dir = None
+                    pch_sources[lang] = [pch[0], src, lang, pch_header_dir]
                 else:
                     # I don't know whether its relevant but let's handle other compilers
                     # used with a vs backend
-                    pch_sources[lang] = [pch[0], None, lang]
+                    pch_sources[lang] = [pch[0], None, lang, None]
         if len(pch_sources) == 1:
             # If there is only 1 language with precompiled headers, we can use it for the entire project, which
             # is cleaner than specifying it for each source file.
@@ -1205,14 +1211,19 @@ class Vs2010Backend(backends.Backend):
                 self.add_preprocessor_defines(lang, inc_cl, file_defines)
                 self.add_include_dirs(lang, inc_cl, file_inc_dirs)
             for lang in pch_sources:
-                header, impl, suffix = pch_sources[lang]
+                impl = pch_sources[lang][1]
                 if impl:
-                    relpath = os.path.join(proj_to_src_dir, impl)
-                    inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                    inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=impl)
                     self.create_pch(pch_sources, lang, inc_cl)
                     self.add_additional_options(lang, inc_cl, file_args)
                     self.add_preprocessor_defines(lang, inc_cl, file_defines)
-                    self.add_include_dirs(lang, inc_cl, file_inc_dirs)
+                    pch_header_dir = pch_sources[lang][3]
+                    if pch_header_dir:
+                        inc_dirs = copy.deepcopy(file_inc_dirs)
+                        inc_dirs[lang] = [pch_header_dir] + inc_dirs[lang]
+                    else:
+                        inc_dirs = file_inc_dirs
+                    self.add_include_dirs(lang, inc_cl, inc_dirs)
 
         if self.has_objects(objects, additional_objects, gen_objs):
             inc_objs = ET.SubElement(root, 'ItemGroup')

@@ -1096,6 +1096,8 @@ You probably should put it in link_with instead.''')
 
             if (os.path.dirname(pchlist[0]) != os.path.dirname(pchlist[1])):
                 raise InvalidArguments('PCH files must be stored in the same folder.')
+
+            mlog.warning('PCH source files are deprecated, only a single header file should be used.')
         elif len(pchlist) > 2:
             raise InvalidArguments('PCH definition may have a maximum of 2 files.')
         for f in pchlist:
