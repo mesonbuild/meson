@@ -2044,6 +2044,7 @@ display_name_map = {
     'dub': 'DUB',
     'gmock': 'GMock',
     'gtest': 'GTest',
+    'hdf5': 'HDF5',
     'llvm': 'LLVM',
     'mpi': 'MPI',
     'openmp': 'OpenMP',

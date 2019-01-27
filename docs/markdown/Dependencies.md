@@ -269,6 +269,17 @@ e = executable('testprog', 'test.cc', dependencies : gtest_dep)
 test('gtest test', e)
 ```
 
+## HDF5
+HDF5 is supported for C, C++ and Fortran. Because dependencies are
+language-specific, you must specify the requested language using the
+`language` keyword argument, i.e.,
+ * `dependency('hdf5', language: 'c')` for the C HDF5 headers and libraries
+ * `dependency('hdf5', language: 'cpp')` for the C++ HDF5 headers and libraries
+ * `dependency('hdf5', language: 'fortran')` for the Fortran HDF5 headers and libraries
+
+Meson uses pkg-config to find HDF5. The standard low-level HDF5 function and the `HL` high-level HDF5 functions are linked for each language.
+
+
 ## libwmf
 
 *(added 0.44.0)*
