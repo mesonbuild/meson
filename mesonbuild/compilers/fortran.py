@@ -14,7 +14,6 @@
 from typing import List
 import subprocess, os
 
-from typing import List
 from .c import CCompiler
 from .compilers import (
     CompilerType,
@@ -262,14 +261,6 @@ class FortranCompiler(Compiler):
 
     def has_multi_arguments(self, args, env):
         return CCompiler.has_multi_arguments(self, args, env)
-
-    @classmethod
-    def _get_trials_from_pattern(cls, pattern, directory, libname):
-        return CCompiler._get_trials_from_pattern(pattern, directory, libname)
-
-    @staticmethod
-    def _get_file_from_list(files) -> List[str]:
-        return CCompiler._get_file_from_list(files)
 
     @classmethod
     def _get_trials_from_pattern(cls, pattern, directory, libname):
