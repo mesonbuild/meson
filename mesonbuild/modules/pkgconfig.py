@@ -239,7 +239,7 @@ class PkgConfigModule(ExtensionModule):
         # https://bugs.freedesktop.org/show_bug.cgi?id=103203
         if isinstance(value, PurePath):
             value = value.as_posix()
-        return value.replace(' ', '\ ')
+        return value.replace(' ', r'\ ')
 
     def _make_relative(self, prefix, subdir):
         if isinstance(prefix, PurePath):

@@ -798,7 +798,7 @@ class Backend:
 
     def replace_outputs(self, args, private_dir, output_list):
         newargs = []
-        regex = re.compile('@OUTPUT(\d+)@')
+        regex = re.compile(r'@OUTPUT(\d+)@')
         for arg in args:
             m = regex.search(arg)
             while m is not None:
@@ -938,7 +938,7 @@ class Backend:
                 dfilename = os.path.join(outdir, target.depfile)
                 i = i.replace('@DEPFILE@', dfilename)
             elif '@PRIVATE_OUTDIR_' in i:
-                match = re.search('@PRIVATE_OUTDIR_(ABS_)?([^/\s*]*)@', i)
+                match = re.search(r'@PRIVATE_OUTDIR_(ABS_)?([^/\s*]*)@', i)
                 if not match:
                     msg = 'Custom target {!r} has an invalid argument {!r}' \
                           ''.format(target.name, i)

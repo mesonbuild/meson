@@ -101,7 +101,7 @@ def set_chown(path, user=None, group=None, dir_fd=None, follow_symlinks=True):
 def set_chmod(path, mode, dir_fd=None, follow_symlinks=True):
     try:
         os.chmod(path, mode, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
-    except (NotImplementedError, OSError, SystemError) as e:
+    except (NotImplementedError, OSError, SystemError):
         if not os.path.islink(path):
             os.chmod(path, mode, dir_fd=dir_fd)
 
@@ -157,7 +157,7 @@ def restore_selinux_contexts():
     '''
     try:
         subprocess.check_call(['selinuxenabled'])
-    except (FileNotFoundError, PermissionError, subprocess.CalledProcessError) as e:
+    except (FileNotFoundError, PermissionError, subprocess.CalledProcessError):
         # If we don't have selinux or selinuxenabled returned 1, failure
         # is ignored quietly.
         return

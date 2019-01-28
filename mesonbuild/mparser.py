@@ -37,7 +37,7 @@ class MesonUnicodeDecodeError(MesonException):
 def decode_match(match):
     try:
         return codecs.decode(match.group(0), 'unicode_escape')
-    except UnicodeDecodeError as err:
+    except UnicodeDecodeError:
         raise MesonUnicodeDecodeError(match.group(0))
 
 class ParseException(MesonException):

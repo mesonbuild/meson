@@ -472,14 +472,14 @@ class Vs2010Backend(backends.Backend):
         pname.text = project_name
         if self.windows_target_platform_version:
             ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType')
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
         ET.SubElement(type_config, 'UseOfMfc').text = 'false'
         if self.platform_toolset:
             ET.SubElement(type_config, 'PlatformToolset').text = self.platform_toolset
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
         fver.text = self.project_file_version
@@ -517,7 +517,7 @@ class Vs2010Backend(backends.Backend):
         cmd_templ = '''"%s" ''' * len(cmd)
         ET.SubElement(customstep, 'Command').text = cmd_templ % tuple(cmd)
         ET.SubElement(customstep, 'Message').text = 'Running custom command.'
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_custom_target_vcxproj(self, target, ofname, guid):
@@ -543,7 +543,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(customstep, 'Command').text = ' '.join(self.quote_arguments(wrapper_cmd))
         ET.SubElement(customstep, 'Outputs').text = ';'.join(ofilenames)
         ET.SubElement(customstep, 'Inputs').text = ';'.join([exe_data] + srcs + depend_files)
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.generate_custom_generator_commands(target, root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
@@ -750,7 +750,7 @@ class Vs2010Backend(backends.Backend):
         pname.text = project_name
         if self.windows_target_platform_version:
             ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         # Start configuration
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType').text = conftype
@@ -823,7 +823,7 @@ class Vs2010Backend(backends.Backend):
         elif '/Od' in o_flags:
             ET.SubElement(type_config, 'Optimization').text = 'Disabled'
         # End configuration
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(target, root)
         (gen_src, gen_hdrs, gen_objs, gen_langs) = self.split_sources(generated_files)
         (custom_src, custom_hdrs, custom_objs, custom_langs) = self.split_sources(custom_target_output_files)
@@ -1196,7 +1196,7 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(inc_objs, 'Object', Include=s)
             self.add_generated_objects(inc_objs, gen_objs)
 
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         # Reference the regen target.
         regen_vcxproj = os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj')
         self.add_project_reference(root, regen_vcxproj, self.environment.coredata.regen_guid)
@@ -1224,14 +1224,14 @@ class Vs2010Backend(backends.Backend):
         pname.text = project_name
         if self.windows_target_platform_version:
             ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType').text = "Utility"
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
         ET.SubElement(type_config, 'UseOfMfc').text = 'false'
         if self.platform_toolset:
             ET.SubElement(type_config, 'PlatformToolset').text = self.platform_toolset
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
         fver.text = self.project_file_version
@@ -1276,7 +1276,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(custombuild, 'Outputs').text = Vs2010Backend.get_regen_stampfile(self.environment.get_build_dir())
         deps = self.get_regen_filelist()
         ET.SubElement(custombuild, 'AdditionalInputs').text = ';'.join(deps)
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         ET.SubElement(root, 'ImportGroup', Label='ExtensionTargets')
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
@@ -1303,14 +1303,14 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         pname.text = project_name
         if self.windows_target_platform_version:
             ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType')
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
         ET.SubElement(type_config, 'UseOfMfc').text = 'false'
         if self.platform_toolset:
             ET.SubElement(type_config, 'PlatformToolset').text = self.platform_toolset
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
         fver.text = self.project_file_version
@@ -1349,7 +1349,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         self.serialize_tests()
         ET.SubElement(postbuild, 'Command').text =\
             cmd_templ % ('" "'.join(test_command))
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_installproj(self, target_name, ofname):
@@ -1376,14 +1376,14 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         pname.text = project_name
         if self.windows_target_platform_version:
             ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType')
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
         ET.SubElement(type_config, 'UseOfMfc').text = 'false'
         if self.platform_toolset:
             ET.SubElement(type_config, 'PlatformToolset').text = self.platform_toolset
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
         fver.text = self.project_file_version
@@ -1417,7 +1417,7 @@ exit /b %%1
 if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(postbuild, 'Command').text =\
             cmd_templ % ('" "'.join(test_command))
-        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def generate_debug_information(self, link):

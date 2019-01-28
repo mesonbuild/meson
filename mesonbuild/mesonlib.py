@@ -608,7 +608,7 @@ def version_compare_condition_with_min(condition, minimum):
     # Map versions in the constraint of the form '0.46' to '0.46.0', to embed
     # this knowledge of the meson versioning scheme.
     condition = condition.strip()
-    if re.match('^\d+.\d+$', condition):
+    if re.match(r'^\d+.\d+$', condition):
         condition += '.0'
 
     return cmpop(Version(minimum), Version(condition))
