@@ -72,7 +72,7 @@ __all__ = [
     'JavaCompiler',
     'LLVMDCompiler',
     'MonoCompiler',
-    'NvidiaCudaCompiler',
+    'CudaCompiler',
     'VisualStudioCsCompiler',
     'NAGFortranCompiler',
     'ObjCCompiler',
