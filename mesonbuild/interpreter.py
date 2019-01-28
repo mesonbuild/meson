@@ -2853,7 +2853,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             subproject = self.subprojects[dirname]
             if subproject.found():
                 dep = self.subprojects[dirname].get_variable_method([varname], {})
-        except InvalidArguments as e:
+        except InvalidArguments:
             pass
 
         if not isinstance(dep, DependencyHolder):

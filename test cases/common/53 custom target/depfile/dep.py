@@ -7,7 +7,7 @@ _, srcdir, depfile, output = sys.argv
 
 depfiles = glob(os.path.join(srcdir, '*'))
 
-quoted_depfiles = [x.replace(' ', '\ ') for x in depfiles]
+quoted_depfiles = [x.replace(' ', r'\ ') for x in depfiles]
 
 with open(output, 'w') as f:
     f.write('I am the result of globbing.')

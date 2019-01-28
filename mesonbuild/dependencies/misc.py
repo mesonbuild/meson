@@ -176,7 +176,7 @@ class MPIDependency(ExternalDependency):
                 mlog.debug(mlog.bold('Standard output\n'), o)
                 mlog.debug(mlog.bold('Standard error\n'), e)
                 return
-            version = re.search('\d+.\d+.\d+', o)
+            version = re.search(r'\d+.\d+.\d+', o)
             if version:
                 version = version.group(0)
             else:

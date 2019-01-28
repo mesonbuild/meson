@@ -4695,9 +4695,9 @@ endian = 'little'
         testdir = os.path.join(self.unit_test_dir, '42 rpath order')
         self.init(testdir)
         if is_osx():
-            rpathre = re.compile('-rpath,.*/subprojects/sub1.*-rpath,.*/subprojects/sub2')
+            rpathre = re.compile(r'-rpath,.*/subprojects/sub1.*-rpath,.*/subprojects/sub2')
         else:
-            rpathre = re.compile('-rpath,\$\$ORIGIN/subprojects/sub1:\$\$ORIGIN/subprojects/sub2')
+            rpathre = re.compile(r'-rpath,\$\$ORIGIN/subprojects/sub1:\$\$ORIGIN/subprojects/sub2')
         with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
             for line in bfile:
                 if '-rpath' in line:
