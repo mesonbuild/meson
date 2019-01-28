@@ -18,7 +18,7 @@
 from . import mparser, mesonlib, mlog
 from . import environment, dependencies
 
-import os, copy, re, types
+import os, copy, re
 from functools import wraps
 
 class ObjectHolder:
