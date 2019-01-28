@@ -1,12 +1,16 @@
 project('C++ and FORTRAN', 'cpp', 'fortran')
 
 cpp = meson.get_compiler('cpp')
+fc = meson.get_compiler('fortran')
 
 if cpp.get_id() == 'clang'
   error('MESON_SKIP_TEST Clang C++ does not find -lgfortran for some reason.')
 endif
 
-fc = meson.get_compiler('fortran')
+if build_machine.system() == 'windows' and cpp.get_id() != 'gnu'
+  error('MESON_SKIP_TEST mixing gfortran with non-GNU C++ does not work.')
+endif
+
 link_with = []
 if fc.get_id() == 'intel'
   link_with += fc.find_library('ifport')

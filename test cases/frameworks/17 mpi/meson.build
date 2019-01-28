@@ -36,11 +36,13 @@ uburesult = run_command(ubudetector)
 
 if uburesult.returncode() != 0 and add_languages('fortran', required : false)
   mpifort = dependency('mpi', language : 'fortran')
-  exef = executable('exef',
-    'main.f90',
-    dependencies : [mpifort])
-
-  test('MPI Fortran', exef)
+  # Mixing compilers (msvc/clang with gfortran) does not seem to work on Windows.
+  if build_machine.system() != 'windows' or cc.get_id() == 'gnu'
+    exef = executable('exef',
+      'main.f90',
+      dependencies : [mpifort])
+    test('MPI Fortran', exef)
+  endif
 endif
 
 # Check we can apply a version constraint
