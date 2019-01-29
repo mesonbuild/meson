@@ -2347,15 +2347,14 @@ rule FORTRAN_DEP_HACK%s
         target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
         return linker.get_link_whole_for(target_args) if len(target_args) else []
 
-    @staticmethod
     @lru_cache(maxsize=None)
-    def guess_library_absolute_path(linker, libname, search_dirs, patterns):
+    def guess_library_absolute_path(self, linker, libname, search_dirs, patterns):
         for d in search_dirs:
             for p in patterns:
                 trial = CCompiler._get_trials_from_pattern(p, d, libname)
                 if not trial:
                     continue
-                trial = CCompiler._get_file_from_list(trial)
+                trial = CCompiler._get_file_from_list(self.environment, trial)
                 if not trial:
                     continue
                 # Return the first result
