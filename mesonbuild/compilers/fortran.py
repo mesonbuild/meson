@@ -77,10 +77,7 @@ class FortranCompiler(Compiler):
         source_name = os.path.join(work_dir, 'sanitycheckf.f90')
         binary_name = os.path.join(work_dir, 'sanitycheckf')
         with open(source_name, 'w') as ofile:
-            ofile.write('''program prog
-     print *, "Fortran compilation is working."
-end program prog
-''')
+            ofile.write('print *, "Fortran compilation is working."; end')
         extra_flags = self.get_cross_extra_flags(environment, link=True)
         pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()
