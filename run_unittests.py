@@ -230,6 +230,32 @@ def temp_filename():
         except OSError:
             pass
 
+@contextmanager
+def no_pkgconfig():
+    '''
+    A context manager that overrides shutil.which and ExternalProgram to force
+    them to return None for pkg-config to simulate it not existing.
+    '''
+    old_which = shutil.which
+    old_search = ExternalProgram._search
+
+    def new_search(self, name, search_dir):
+        if name == 'pkg-config':
+            return [None]
+        return old_search(self, name, search_dir)
+
+    def new_which(cmd, *kwargs):
+        if cmd == 'pkg-config':
+            return None
+        return old_which(cmd, *kwargs)
+
+    shutil.which = new_which
+    ExternalProgram._search = new_search
+    try:
+        yield
+    finally:
+        shutil.which = old_which
+        ExternalProgram._search = old_search
 
 class PatchModule:
     '''
@@ -3412,7 +3438,7 @@ class FailureTests(BasePlatformTests):
     and slows down testing.
     '''
     dnf = "[Dd]ependency.*not found(:.*)?"
-    nopkg = '[Pp]kg-config not found'
+    nopkg = '[Pp]kg-config.*not found'
 
     def setUp(self):
         super().setUp()
@@ -3499,10 +3525,9 @@ class FailureTests(BasePlatformTests):
             raise unittest.SkipTest('sdl2-config found')
         self.assertMesonRaises("dependency('sdl2', method : 'sdlconfig')", self.dnf)
         if shutil.which('pkg-config'):
-            errmsg = self.dnf
-        else:
-            errmsg = self.nopkg
-        self.assertMesonRaises("dependency('sdl2', method : 'pkg-config')", errmsg)
+            self.assertMesonRaises("dependency('sdl2', method : 'pkg-config')", self.dnf)
+        with no_pkgconfig():
+            self.assertMesonRaises("dependency('sdl2', method : 'pkg-config')", self.nopkg)
 
     def test_gnustep_notfound_dependency(self):
         # Want to test failure, so skip if available

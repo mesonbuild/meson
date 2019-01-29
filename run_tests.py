@@ -213,6 +213,13 @@ def run_mtest_inprocess(commandlist):
         sys.stderr = old_stderr
     return returncode, mystdout.getvalue(), mystderr.getvalue()
 
+def clear_meson_configure_class_caches():
+    mesonbuild.compilers.CCompiler.library_dirs_cache = {}
+    mesonbuild.compilers.CCompiler.program_dirs_cache = {}
+    mesonbuild.compilers.CCompiler.find_library_cache = {}
+    mesonbuild.dependencies.PkgConfigDependency.pkgbin_cache = {}
+    mesonbuild.dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None, None)
+
 def run_configure_inprocess(commandlist):
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
@@ -223,6 +230,7 @@ def run_configure_inprocess(commandlist):
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr
+        clear_meson_configure_class_caches()
     return returncode, mystdout.getvalue(), mystderr.getvalue()
 
 def run_configure_external(full_command):
