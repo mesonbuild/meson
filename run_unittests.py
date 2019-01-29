@@ -163,7 +163,7 @@ def skip_if_not_language(lang):
         @functools.wraps(func)
         def wrapped(*args, **kwargs):
             try:
-                env = get_fake_env('', '', '')
+                env = get_fake_env()
                 f = getattr(env, 'detect_{}_compiler'.format(lang))
                 if lang in ['cs', 'vala', 'java', 'swift']:
                     f()
@@ -203,7 +203,7 @@ def skip_if_not_base_option(feature):
     def actual(f):
         @functools.wraps(f)
         def wrapped(*args, **kwargs):
-            env = get_fake_env('', '', '')
+            env = get_fake_env()
             cc = env.detect_c_compiler(False)
             if feature not in cc.base_options:
                 raise unittest.SkipTest(
@@ -581,9 +581,9 @@ class InternalTests(unittest.TestCase):
         config.write(configfile)
         configfile.flush()
         configfile.close()
-        opts = get_fake_options('')
+        opts = get_fake_options()
         opts.cross_file = configfilename
-        env = get_fake_env('', '', '', opts)
+        env = get_fake_env(opts=opts)
         detected_value = env.need_exe_wrapper()
         os.unlink(configfilename)
 
@@ -596,9 +596,9 @@ class InternalTests(unittest.TestCase):
         configfilename = configfile.name
         config.write(configfile)
         configfile.close()
-        opts = get_fake_options('')
+        opts = get_fake_options()
         opts.cross_file = configfilename
-        env = get_fake_env('', '', '', opts)
+        env = get_fake_env(opts=opts)
         forced_value = env.need_exe_wrapper()
         os.unlink(configfilename)
 
@@ -718,7 +718,7 @@ class InternalTests(unittest.TestCase):
                     'windows-mingw': {'shared': ('lib{}.dll.a', 'lib{}.lib', 'lib{}.dll',
                                                  '{}.dll.a', '{}.lib', '{}.dll'),
                                       'static': msvc_static}}
-        env = get_fake_env('', '', '')
+        env = get_fake_env()
         cc = env.detect_c_compiler(False)
         if is_osx():
             self._test_all_naming(cc, env, patterns, 'darwin')
@@ -757,7 +757,7 @@ class InternalTests(unittest.TestCase):
         '''
         with tempfile.TemporaryDirectory() as tmpdir:
             pkgbin = ExternalProgram('pkg-config', command=['pkg-config'], silent=True)
-            env = get_fake_env('', '', '')
+            env = get_fake_env()
             compiler = env.detect_c_compiler(False)
             env.coredata.compilers = {'c': compiler}
             env.coredata.compiler_options['c_link_args'] = FakeCompilerOptions()
@@ -962,7 +962,7 @@ class DataTests(unittest.TestCase):
         with open('docs/markdown/Builtin-options.md') as f:
             md = f.read()
         self.assertIsNotNone(md)
-        env = get_fake_env('', '', '')
+        env = get_fake_env()
         # FIXME: Support other compilers
         cc = env.detect_c_compiler(False)
         cpp = env.detect_cpp_compiler(False)
@@ -1008,7 +1008,7 @@ class DataTests(unittest.TestCase):
         Ensure that syntax highlighting files were updated for new functions in
         the global namespace in build files.
         '''
-        env = get_fake_env('', '', '')
+        env = get_fake_env()
         interp = Interpreter(FakeBuild(env), mock=True)
         with open('data/syntax-highlighting/vim/syntax/meson.vim') as f:
             res = re.search(r'syn keyword mesonBuiltin(\s+\\\s\w+)+', f.read(), re.MULTILINE)
@@ -2201,7 +2201,7 @@ int main(int argc, char **argv) {
             self.assertPathExists(os.path.join(testdir, i))
 
     def detect_prebuild_env(self):
-        env = get_fake_env('', self.builddir, self.prefix)
+        env = get_fake_env()
         cc = env.detect_c_compiler(False)
         stlinker = env.detect_static_linker(cc)
         if mesonbuild.mesonlib.is_windows():
@@ -3563,7 +3563,7 @@ class FailureTests(BasePlatformTests):
         '''
         Test that when we can't detect objc or objcpp, we fail gracefully.
         '''
-        env = get_fake_env('', self.builddir, self.prefix)
+        env = get_fake_env()
         try:
             env.detect_objc_compiler(False)
             env.detect_objcpp_compiler(False)
@@ -5180,7 +5180,7 @@ class NativeFileTests(BasePlatformTests):
         """Helper for generating tests for overriding compilers for langaugages
         with more than one implementation, such as C, C++, ObjC, ObjC++, and D.
         """
-        env = get_fake_env('', '', '')
+        env = get_fake_env()
         getter = getattr(env, 'detect_{}_compiler'.format(lang))
         if lang not in ['cs']:
             getter = functools.partial(getter, False)
@@ -5341,7 +5341,7 @@ class NativeFileTests(BasePlatformTests):
         Builds a wrapper around the compiler to override the version.
         """
         wrapper = self.helper_create_binary_wrapper(binary, version=version_str)
-        env = get_fake_env('', '', '')
+        env = get_fake_env()
         getter = getattr(env, 'detect_{}_compiler'.format(lang))
         if lang in ['rust']:
             getter = functools.partial(getter, False)
@@ -5370,7 +5370,7 @@ class NativeFileTests(BasePlatformTests):
     def test_swift_compiler(self):
         wrapper = self.helper_create_binary_wrapper(
             'swiftc', version='Swift 1.2345', outfile='stderr')
-        env = get_fake_env('', '', '')
+        env = get_fake_env()
         env.binaries.host.binaries['swift'] = wrapper
         compiler = env.detect_swift_compiler()
         self.assertEqual(compiler.version, '1.2345')
