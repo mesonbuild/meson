@@ -36,6 +36,7 @@ pch_kwargs = set(['c_pch', 'cpp_pch'])
 lang_arg_kwargs = set([
     'c_args',
     'cpp_args',
+    'cuda_args',
     'd_args',
     'd_import_dirs',
     'd_unittest',
@@ -797,13 +798,13 @@ just like those detected with the dependency() function.''')
         for linktarget in lwhole:
             self.link_whole(linktarget)
 
-        c_pchlist, cpp_pchlist, clist, cpplist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist \
-            = extract_as_list(kwargs, 'c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cs_args', 'vala_args', 'objc_args',
+        c_pchlist, cpp_pchlist, clist, cpplist, cudalist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist \
+            = extract_as_list(kwargs, 'c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cuda_args', 'cs_args', 'vala_args', 'objc_args',
                               'objcpp_args', 'fortran_args', 'rust_args')
 
         self.add_pch('c', c_pchlist)
         self.add_pch('cpp', cpp_pchlist)
-        compiler_args = {'c': clist, 'cpp': cpplist, 'cs': cslist, 'vala': valalist, 'objc': objclist, 'objcpp': objcpplist,
+        compiler_args = {'c': clist, 'cpp': cpplist, 'cuda': cudalist, 'cs': cslist, 'vala': valalist, 'objc': objclist, 'objcpp': objcpplist,
                          'fortran': fortranlist, 'rust': rustlist
                          }
         for key, value in compiler_args.items():
