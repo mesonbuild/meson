@@ -1322,6 +1322,9 @@ class MachineInfo:
             return NotImplemented
         return not self.__eq__(other)
 
+    def __repr__(self):
+        return '<MachineInfo: {} {} ({})>'.format(self.system, self.cpu_family, self.cpu)
+
     @staticmethod
     def detect(compilers = None):
         """Detect the machine we're running on
