@@ -2696,7 +2696,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 version_string = '(%s %s)' % (cross_comp.id, cross_comp.version)
                 mlog.log('Cross', cross_comp.get_display_language(), 'compiler:',
                          mlog.bold(' '.join(cross_comp.get_exelist())), version_string)
-                self.build.ensure_static_cross_linker(comp)
+                self.build.ensure_static_cross_linker(cross_comp)
         return success
 
     def program_from_file_for(self, for_machine, prognames, silent):
