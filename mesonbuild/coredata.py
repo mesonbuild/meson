@@ -234,7 +234,7 @@ def load_configs(filenames):
 
             raise MesonException('Cannot find specified native file: ' + f)
 
-    config = configparser.SafeConfigParser()
+    config = configparser.ConfigParser()
     config.read(gen())
     return config
 
