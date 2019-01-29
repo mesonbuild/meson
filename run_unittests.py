@@ -45,7 +45,7 @@ from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.mesonlib import (
     is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku,
     windows_proof_rmtree, python_command, version_compare,
-    BuildDirLock, Version
+    BuildDirLock, Version, PerMachine
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -781,6 +781,17 @@ class InternalTests(unittest.TestCase):
 
         https://github.com/mesonbuild/meson/issues/3951
         '''
+        def create_static_lib(name):
+            if not is_osx():
+                name.open('w').close()
+                return
+            src = name.with_suffix('.c')
+            out = name.with_suffix('.o')
+            with src.open('w') as f:
+                f.write('int meson_foobar (void) { return 0; }')
+            subprocess.check_call(['clang', '-c', str(src), '-o', str(out)])
+            subprocess.check_call(['ar', 'csr', str(name), str(out)])
+
         with tempfile.TemporaryDirectory() as tmpdir:
             pkgbin = ExternalProgram('pkg-config', command=['pkg-config'], silent=True)
             env = get_fake_env()
@@ -792,16 +803,16 @@ class InternalTests(unittest.TestCase):
             p1.mkdir()
             p2.mkdir()
             # libfoo.a is in one prefix
-            (p1 / 'libfoo.a').open('w').close()
+            create_static_lib(p1 / 'libfoo.a')
             # libbar.a is in both prefixes
-            (p1 / 'libbar.a').open('w').close()
-            (p2 / 'libbar.a').open('w').close()
+            create_static_lib(p1 / 'libbar.a')
+            create_static_lib(p2 / 'libbar.a')
             # Ensure that we never statically link to these
-            (p1 / 'libpthread.a').open('w').close()
-            (p1 / 'libm.a').open('w').close()
-            (p1 / 'libc.a').open('w').close()
-            (p1 / 'libdl.a').open('w').close()
-            (p1 / 'librt.a').open('w').close()
+            create_static_lib(p1 / 'libpthread.a')
+            create_static_lib(p1 / 'libm.a')
+            create_static_lib(p1 / 'libc.a')
+            create_static_lib(p1 / 'libdl.a')
+            create_static_lib(p1 / 'librt.a')
 
             def fake_call_pkgbin(self, args, env=None):
                 if '--libs' not in args:
@@ -815,30 +826,31 @@ class InternalTests(unittest.TestCase):
 
             old_call = PkgConfigDependency._call_pkgbin
             old_check = PkgConfigDependency.check_pkgconfig
-            old_pkgbin = PkgConfigDependency.class_pkgbin
             PkgConfigDependency._call_pkgbin = fake_call_pkgbin
             PkgConfigDependency.check_pkgconfig = lambda x, _: pkgbin
             # Test begins
-            kwargs = {'required': True, 'silent': True}
-            foo_dep = PkgConfigDependency('foo', env, kwargs)
-            self.assertEqual(foo_dep.get_link_args(),
-                             [(p1 / 'libfoo.a').as_posix(), (p2 / 'libbar.a').as_posix()])
-            bar_dep = PkgConfigDependency('bar', env, kwargs)
-            self.assertEqual(bar_dep.get_link_args(), [(p2 / 'libbar.a').as_posix()])
-            internal_dep = PkgConfigDependency('internal', env, kwargs)
-            if compiler.get_argument_syntax() == 'msvc':
-                self.assertEqual(internal_dep.get_link_args(), [])
-            else:
-                link_args = internal_dep.get_link_args()
-                for link_arg in link_args:
-                    for lib in ('pthread', 'm', 'c', 'dl', 'rt'):
-                        self.assertNotIn('lib{}.a'.format(lib), link_arg, msg=link_args)
-            # Test ends
-            PkgConfigDependency._call_pkgbin = old_call
-            PkgConfigDependency.check_pkgconfig = old_check
-            # Reset dependency class to ensure that in-process configure doesn't mess up
-            PkgConfigDependency.pkgbin_cache = {}
-            PkgConfigDependency.class_pkgbin = old_pkgbin
+            try:
+                kwargs = {'required': True, 'silent': True}
+                foo_dep = PkgConfigDependency('foo', env, kwargs)
+                self.assertEqual(foo_dep.get_link_args(),
+                                 [(p1 / 'libfoo.a').as_posix(), (p2 / 'libbar.a').as_posix()])
+                bar_dep = PkgConfigDependency('bar', env, kwargs)
+                self.assertEqual(bar_dep.get_link_args(), [(p2 / 'libbar.a').as_posix()])
+                internal_dep = PkgConfigDependency('internal', env, kwargs)
+                if compiler.get_argument_syntax() == 'msvc':
+                    self.assertEqual(internal_dep.get_link_args(), [])
+                else:
+                    link_args = internal_dep.get_link_args()
+                    for link_arg in link_args:
+                        for lib in ('pthread', 'm', 'c', 'dl', 'rt'):
+                            self.assertNotIn('lib{}.a'.format(lib), link_arg, msg=link_args)
+            finally:
+                # Test ends
+                PkgConfigDependency._call_pkgbin = old_call
+                PkgConfigDependency.check_pkgconfig = old_check
+                # Reset dependency class to ensure that in-process configure doesn't mess up
+                PkgConfigDependency.pkgbin_cache = {}
+                PkgConfigDependency.class_pkgbin = PerMachine(None, None, None)
 
     def test_version_compare(self):
         comparefunc = mesonbuild.mesonlib.version_compare_many

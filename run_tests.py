@@ -81,6 +81,7 @@ def get_fake_env(sdir='', bdir=None, prefix='', opts=None):
         opts = get_fake_options(prefix)
     env = Environment(sdir, bdir, opts)
     env.coredata.compiler_options['c_args'] = FakeCompilerOptions()
+    env.machines.host.cpu_family = 'x86_64' # Used on macOS inside find_library
     return env
 
 

@@ -461,6 +461,24 @@ def exe_exists(arglist):
         pass
     return False
 
+lru_cache(maxsize=None)
+def darwin_get_object_archs(objpath):
+    '''
+    For a specific object (executable, static library, dylib, etc), run `lipo`
+    to fetch the list of archs supported by it. Supports both thin objects and
+    'fat' objects.
+    '''
+    _, stdo, stderr = Popen_safe(['lipo', '-archs', objpath])
+    if not stdo:
+        mlog.debug('lipo {}: {}'.format(objpath, stderr))
+        return None
+    # Convert from lipo-style archs to meson-style CPUs
+    stdo = stdo.replace('i386', 'x86')
+    # Add generic name for armv7 and armv7s
+    if 'armv7' in stdo:
+        stdo += ' arm'
+    return stdo.split()
+
 def detect_vcs(source_dir):
     vcs_systems = [
         dict(name = 'git',        cmd = 'git', repo_dir = '.git', get_rev = 'git describe --dirty=+', rev_regex = '(.*)', dep = '.git/logs/HEAD'),
