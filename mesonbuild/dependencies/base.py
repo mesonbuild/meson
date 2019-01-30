@@ -28,7 +28,7 @@ import platform
 import itertools
 import ctypes
 from enum import Enum
-from pathlib import PurePath
+from pathlib import Path, PurePath
 
 from .. import mlog
 from .. import mesonlib
@@ -36,6 +36,7 @@ from ..compilers import clib_langs
 from ..environment import BinaryTable
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
+from ..mesonlib import Version
 
 # These must be defined in this file to avoid cyclical references.
 packages = {}
@@ -1983,40 +1984,91 @@ class ExternalLibrary(ExternalDependency):
 
 
 class ExtraFrameworkDependency(ExternalDependency):
-    def __init__(self, name, required, path, env, lang, kwargs):
+    system_framework_paths = None
+
+    def __init__(self, name, required, paths, env, lang, kwargs):
         super().__init__('extraframeworks', env, lang, kwargs)
         self.name = name
         self.required = required
-        self.detect(name, path)
-        if self.found():
-            self.compile_args = ['-I' + os.path.join(self.path, self.name, 'Headers')]
-            self.link_args = ['-F' + self.path, '-framework', self.name.split('.')[0]]
+        # Full path to framework directory
+        self.framework_path = None
+        if not self.clib_compiler:
+            raise DependencyException('No C-like compilers are available')
+        if self.system_framework_paths is None:
+            self.system_framework_paths = self.clib_compiler.find_framework_paths(self.env)
+        self.detect(name, paths)
 
-    def detect(self, name, path):
-        # should use the compiler to look for frameworks, rather than peering at
-        # the filesystem, so we can also find them when cross-compiling
-        if self.want_cross:
+    def detect(self, name, paths):
+        if not paths:
+            paths = self.system_framework_paths
+        for p in paths:
+            mlog.debug('Looking for framework {} in {}'.format(name, p))
+            # We need to know the exact framework path because it's used by the
+            # Qt5 dependency class, and for setting the include path. We also
+            # want to avoid searching in an invalid framework path which wastes
+            # time and can cause a false positive.
+            framework_path = self._get_framework_path(p, name)
+            if framework_path is None:
+                continue
+            # We want to prefer the specified paths (in order) over the system
+            # paths since these are "extra" frameworks.
+            # For example, Python2's framework is in /System/Library/Frameworks and
+            # Python3's framework is in /Library/Frameworks, but both are called
+            # Python.framework. We need to know for sure that the framework was
+            # found in the path we expect.
+            allow_system = p in self.system_framework_paths
+            args = self.clib_compiler.find_framework(name, self.env, [p], allow_system)
+            if args is None:
+                continue
+            self.link_args = args
+            self.framework_path = framework_path.as_posix()
+            self.compile_args = ['-F' + self.framework_path]
+            # We need to also add -I includes to the framework because all
+            # cross-platform projects such as OpenGL, Python, Qt, GStreamer,
+            # etc do not use "framework includes":
+            # https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPFrameworks/Tasks/IncludingFrameworks.html
+            incdir = self._get_framework_include_path(framework_path)
+            if incdir:
+                self.compile_args += ['-I' + incdir]
+            self.is_found = True
             return
 
+    def _get_framework_path(self, path, name):
+        p = Path(path)
         lname = name.lower()
-        if path is None:
-            paths = ['/System/Library/Frameworks', '/Library/Frameworks']
-        else:
-            paths = [path]
-        for p in paths:
-            for d in os.listdir(p):
-                fullpath = os.path.join(p, d)
-                if lname != d.rsplit('.', 1)[0].lower():
-                    continue
-                if not stat.S_ISDIR(os.stat(fullpath).st_mode):
-                    continue
-                self.path = p
-                self.name = d
-                self.is_found = True
-                return
+        for d in p.glob('*.framework/'):
+            if lname == d.name.rsplit('.', 1)[0].lower():
+                return d
+        return None
+
+    def _get_framework_latest_version(self, path):
+        versions = []
+        for each in path.glob('Versions/*'):
+            # macOS filesystems are usually case-insensitive
+            if each.name.lower() == 'current':
+                continue
+            versions.append(Version(each.name))
+        return 'Versions/{}/Headers'.format(sorted(versions)[-1]._s)
+
+    def _get_framework_include_path(self, path):
+        # According to the spec, 'Headers' must always be a symlink to the
+        # Headers directory inside the currently-selected version of the
+        # framework, but sometimes frameworks are broken. Look in 'Versions'
+        # for the currently-selected version or pick the latest one.
+        trials = ('Headers', 'Versions/Current/Headers',
+                  self._get_framework_latest_version(path))
+        for each in trials:
+            trial = path / each
+            if trial.is_dir():
+                return trial.as_posix()
+        return None
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.EXTRAFRAMEWORK]
 
     def log_info(self):
-        return os.path.join(self.path, self.name)
+        return self.framework_path
 
     def log_tried(self):
         return 'framework'
@@ -2127,7 +2179,7 @@ def find_external_dependency(name, env, kwargs):
         # if an exception occurred with the first detection method, re-raise it
         # (on the grounds that it came from the preferred dependency detection
         # method)
-        if pkg_exc[0]:
+        if pkg_exc and pkg_exc[0]:
             raise pkg_exc[0]
 
         # we have a list of failed ExternalDependency objects, so we can report
@@ -2170,6 +2222,14 @@ def _build_external_dependency_list(name, env, kwargs):
     # If it's explicitly requested, use the CMake detection method (only)
     if 'cmake' == kwargs.get('method', ''):
         candidates.append(functools.partial(CMakeDependency, name, env, kwargs))
+        return candidates
+
+    # If it's explicitly requested, use the Extraframework detection method (only)
+    if 'extraframework' == kwargs.get('method', ''):
+        # On OSX, also try framework dependency detector
+        if mesonlib.is_osx():
+            candidates.append(functools.partial(ExtraFrameworkDependency, name,
+                                                False, None, env, None, kwargs))
         return candidates
 
     # Otherwise, just use the pkgconfig and cmake dependency detector
