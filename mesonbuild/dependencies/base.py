@@ -957,7 +957,7 @@ class CMakeDependency(ExternalDependency):
             return
 
         modules = kwargs.get('modules', [])
-        cm_path = kwargs.get('module_path', [])
+        cm_path = kwargs.get('cmake_module_path', [])
         cm_args = kwargs.get('cmake_args', [])
         if not isinstance(modules, list):
             modules = [modules]

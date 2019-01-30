@@ -149,8 +149,8 @@ it automatically.
 ```
 
 It is also possible to reuse existing `Find<name>.cmake` files with the
-`module_path` property. Using this property is equivalent to setting the
-`CMAKE_MODULE_PATH` variable in CMake. The path(s) given to `module_path`
+`cmake_module_path` property. Using this property is equivalent to setting the
+`CMAKE_MODULE_PATH` variable in CMake. The path(s) given to `cmake_module_path`
 should all be relative to the project source directory. Absolute paths
 should only be used if the CMake files are not stored in the project itself.
 
