@@ -362,7 +362,7 @@ class QtBaseDependency(ExternalDependency):
             return
         self.version = re.search(self.qtver + r'(\.\d+)+', stdo).group(0)
         # Query library path, header path, and binary path
-        mlog.log("Found qmake:", mlog.bold(self.qmake.get_name()), '(%s)' % self.version)
+        mlog.log("Found qmake:", mlog.bold(self.qmake.get_path()), '(%s)' % self.version)
         stdo = Popen_safe(self.qmake.get_command() + ['-query'])[1]
         qvars = {}
         for line in stdo.split('\n'):
