@@ -496,6 +496,9 @@ class Version:
     def __str__(self):
         return '%s (V=%s)' % (self._s, str(self._v))
 
+    def __repr__(self):
+        return '<Version: {}>'.format(self._s)
+
     def __lt__(self, other):
         return self.__cmp__(other) == -1
 

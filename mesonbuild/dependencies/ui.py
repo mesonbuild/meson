@@ -177,13 +177,13 @@ def _qt_get_private_includes(mod_inc_dir, module, mod_version):
             os.path.join(private_dir, 'Qt' + module))
 
 class QtExtraFrameworkDependency(ExtraFrameworkDependency):
-    def __init__(self, name, required, path, env, lang, kwargs):
-        super().__init__(name, required, path, env, lang, kwargs)
+    def __init__(self, name, required, paths, env, lang, kwargs):
+        super().__init__(name, required, paths, env, lang, kwargs)
         self.mod_name = name[2:]
 
     def get_compile_args(self, with_private_headers=False, qt_version="0"):
         if self.found():
-            mod_inc_dir = os.path.join(self.path, self.name, 'Headers')
+            mod_inc_dir = os.path.join(self.framework_path, 'Headers')
             args = ['-I' + mod_inc_dir]
             if with_private_headers:
                 args += ['-I' + dirname for dirname in _qt_get_private_includes(mod_inc_dir, self.mod_name, qt_version)]
@@ -442,7 +442,7 @@ class QtBaseDependency(ExternalDependency):
 
         for m in modules:
             fname = 'Qt' + m
-            fwdep = QtExtraFrameworkDependency(fname, False, libdir, self.env,
+            fwdep = QtExtraFrameworkDependency(fname, False, [libdir], self.env,
                                                self.language, fw_kwargs)
             self.compile_args.append('-F' + libdir)
             if fwdep.found():

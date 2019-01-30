@@ -217,6 +217,7 @@ def clear_meson_configure_class_caches():
     mesonbuild.compilers.CCompiler.library_dirs_cache = {}
     mesonbuild.compilers.CCompiler.program_dirs_cache = {}
     mesonbuild.compilers.CCompiler.find_library_cache = {}
+    mesonbuild.compilers.CCompiler.find_framework_cache = {}
     mesonbuild.dependencies.PkgConfigDependency.pkgbin_cache = {}
     mesonbuild.dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None, None)
 

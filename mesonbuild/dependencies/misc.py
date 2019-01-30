@@ -307,7 +307,7 @@ class Python3Dependency(ExternalDependency):
             # There is a python in /System/Library/Frameworks, but that's
             # python 2, Python 3 will always be in /Library
             candidates.append(functools.partial(
-                ExtraFrameworkDependency, 'python', False, '/Library/Frameworks',
+                ExtraFrameworkDependency, 'Python', False, ['/Library/Frameworks'],
                 environment, kwargs.get('language', None), kwargs))
 
         return candidates
