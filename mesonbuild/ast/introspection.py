@@ -96,8 +96,8 @@ class IntrospectionInterpreter(AstInterpreter):
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
-            if isinstance(spdirname, str):
-                self.subproject_dir = spdirname
+            if isinstance(spdirname, mparser.ElementaryNode):
+                self.subproject_dir = spdirname.value
         if not self.is_subproject():
             self.project_data['subprojects'] = []
             subprojects_dir = os.path.join(self.source_root, self.subproject_dir)

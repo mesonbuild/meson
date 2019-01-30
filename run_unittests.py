@@ -3226,6 +3226,7 @@ recommended as it is not supported on some platforms''')
         expected = {
             'descriptive_name': 'proj',
             'version': 'undefined',
+            'subproject_dir': 'subprojects',
             'subprojects': [
                 {
                     'descriptive_name': 'sub',
@@ -3250,6 +3251,19 @@ recommended as it is not supported on some platforms''')
         for entry in res:
             name = entry['name']
             self.assertEquals(entry['subproject'], expected[name])
+
+    def test_introspect_projectinfo_subproject_dir(self):
+        testdir = os.path.join(self.common_test_dir, '79 custom subproject dir')
+        self.init(testdir)
+        res = self.introspect('--projectinfo')
+
+        self.assertEqual(res['subproject_dir'], 'custom_subproject_dir')
+
+    def test_introspect_projectinfo_subproject_dir_from_source(self):
+        testfile = os.path.join(self.common_test_dir, '79 custom subproject dir', 'meson.build')
+        res = self.introspect_directory(testfile, '--projectinfo')
+
+        self.assertEqual(res['subproject_dir'], 'custom_subproject_dir')
 
     @skipIfNoExecutable('clang-format')
     def test_clang_format(self):
@@ -3404,7 +3418,7 @@ recommended as it is not supported on some platforms''')
         self.assertListEqual(dependencies_to_find, [])
 
         # Check projectinfo
-        self.assertDictEqual(res['projectinfo'], {'version': '1.2.3', 'descriptive_name': 'introspection', 'subprojects': []})
+        self.assertDictEqual(res['projectinfo'], {'version': '1.2.3', 'descriptive_name': 'introspection', 'subproject_dir': 'subprojects', 'subprojects': []})
 
         # Check targets
         targets_to_find = {

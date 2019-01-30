@@ -288,7 +288,8 @@ def list_benchmarks(benchdata):
 
 def list_projinfo(builddata: build.Build):
     result = {'version': builddata.project_version,
-              'descriptive_name': builddata.project_name}
+              'descriptive_name': builddata.project_name,
+              'subproject_dir': builddata.subproject_dir}
     subprojects = []
     for k, v in builddata.subprojects.items():
         c = {'name': k,
@@ -313,6 +314,7 @@ def list_projinfo_from_source(sourcedir, indent):
         files = [x for x in files if not x.startswith(basedir)]
 
     intr.project_data['buildsystem_files'] = files
+    intr.project_data['subproject_dir'] = intr.subproject_dir
     print(json.dumps(intr.project_data, indent=indent))
 
 def run(options):
