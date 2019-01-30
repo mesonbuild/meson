@@ -514,7 +514,8 @@ class PkgConfigDependency(ExternalDependency):
             # Lookup in cross or machine file.
             potential_pkgpath = environment.binaries[for_machine].lookup_entry('pkgconfig')
             if potential_pkgpath is not None:
-                mlog.debug('Pkg-config binary for %s specified from cross file, native file, or env var as %s.', for_machine, potential_pkgpath)
+                mlog.debug('Pkg-config binary for {} specified from cross file, native file, '
+                           'or env var as {}'.format(for_machine, potential_pkgpath))
                 yield ExternalProgram.from_entry('pkgconfig', potential_pkgpath)
                 # We never fallback if the user-specified option is no good, so
                 # stop returning options.
@@ -537,9 +538,8 @@ class PkgConfigDependency(ExternalDependency):
             assert PkgConfigDependency.class_pkgbin[for_machine] is None
             mlog.debug('Pkg-config binary for %s is not cached.' % for_machine)
             for potential_pkgbin in search():
-                mlog.debug(
-                    'Trying pkg-config binary %s for machine %s at %s.',
-                    potential_pkgbin.name, for_machine, potential_pkgbin.command)
+                mlog.debug('Trying pkg-config binary {} for machine {} at {}'
+                           .format(potential_pkgbin.name, for_machine, potential_pkgbin.command))
                 version_if_ok = self.check_pkgconfig(potential_pkgbin)
                 if not version_if_ok:
                     continue
@@ -827,8 +827,7 @@ class PkgConfigDependency(ExternalDependency):
 
     def check_pkgconfig(self, pkgbin):
         if not pkgbin.found():
-            mlog.log('Did not find anything at {!r}'
-                     ''.format(' '.join(pkgbin.get_command())))
+            mlog.log('Did not find pkg-config by name {!r}'.format(pkgbin.name))
             return None
         try:
             p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
