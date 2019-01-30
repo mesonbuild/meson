@@ -468,10 +468,11 @@ def darwin_get_object_archs(objpath):
     to fetch the list of archs supported by it. Supports both thin objects and
     'fat' objects.
     '''
-    _, stdo, stderr = Popen_safe(['lipo', '-archs', objpath])
+    _, stdo, stderr = Popen_safe(['lipo', '-info', objpath])
     if not stdo:
         mlog.debug('lipo {}: {}'.format(objpath, stderr))
         return None
+    stdo = stdo.rsplit(': ', 1)[1]
     # Convert from lipo-style archs to meson-style CPUs
     stdo = stdo.replace('i386', 'x86')
     # Add generic name for armv7 and armv7s
