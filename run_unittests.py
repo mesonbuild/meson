@@ -3527,7 +3527,13 @@ class FailureTests(BasePlatformTests):
         if shutil.which('pkg-config'):
             self.assertMesonRaises("dependency('sdl2', method : 'pkg-config')", self.dnf)
         with no_pkgconfig():
-            self.assertMesonRaises("dependency('sdl2', method : 'pkg-config')", self.nopkg)
+            # Look for pkg-config, cache it, then
+            # Use cached pkg-config without erroring out, then
+            # Use cached pkg-config to error out
+            code = "dependency('foobarrr', method : 'pkg-config', required : false)\n" \
+                "dependency('foobarrr2', method : 'pkg-config', required : false)\n" \
+                "dependency('sdl2', method : 'pkg-config')"
+            self.assertMesonRaises(code, self.nopkg)
 
     def test_gnustep_notfound_dependency(self):
         # Want to test failure, so skip if available

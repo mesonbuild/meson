@@ -531,7 +531,7 @@ class PkgConfigDependency(ExternalDependency):
         # Only search for pkg-config for each machine the first time and store
         # the result in the class definition
         if PkgConfigDependency.class_pkgbin[for_machine] is False:
-            mlog.debug('Pkg-config binary for %s is cached missing.' % for_machine)
+            mlog.debug('Pkg-config binary for %s is cached as not found.' % for_machine)
         elif PkgConfigDependency.class_pkgbin[for_machine] is not None:
             mlog.debug('Pkg-config binary for %s is cached.' % for_machine)
         else:
@@ -558,11 +558,12 @@ class PkgConfigDependency(ExternalDependency):
         self.pkgbin = PkgConfigDependency.class_pkgbin[for_machine]
         if self.pkgbin is False:
             self.pkgbin = None
-            msg = 'No pkg-config binary for machine %s not found. Giving up.' % for_machine
+            msg = 'Pkg-config binary for machine %s not found. Giving up.' % for_machine
             if self.required:
                 raise DependencyException(msg)
             else:
                 mlog.debug(msg)
+                return
 
         mlog.debug('Determining dependency {!r} with pkg-config executable '
                    '{!r}'.format(name, self.pkgbin.get_path()))
@@ -792,10 +793,10 @@ class PkgConfigDependency(ExternalDependency):
         if 'define_variable' in kwargs:
             definition = kwargs.get('define_variable', [])
             if not isinstance(definition, list):
-                raise MesonException('define_variable takes a list')
+                raise DependencyException('define_variable takes a list')
 
             if len(definition) != 2 or not all(isinstance(i, str) for i in definition):
-                raise MesonException('define_variable must be made up of 2 strings for VARIABLENAME and VARIABLEVALUE')
+                raise DependencyException('define_variable must be made up of 2 strings for VARIABLENAME and VARIABLEVALUE')
 
             options = ['--define-variable=' + '='.join(definition)] + options
 
@@ -2085,7 +2086,7 @@ def find_external_dependency(name, env, kwargs):
             d = c()
             d._check_version()
             pkgdep.append(d)
-        except Exception as e:
+        except DependencyException as e:
             pkg_exc.append(e)
             mlog.debug(str(e))
         else:
