@@ -972,16 +972,15 @@ class CMakeDependency(ExternalDependency):
         # Only search for CMake the first time and store the result in the class
         # definition
         if CMakeDependency.class_cmakebin[for_machine] is False:
-            mlog.debug('CMake binary for %s is cached missing.' % for_machine)
+            mlog.debug('CMake binary for %s is cached as not found' % for_machine)
         elif CMakeDependency.class_cmakebin[for_machine] is not None:
             mlog.debug('CMake binary for %s is cached.' % for_machine)
         else:
             assert CMakeDependency.class_cmakebin[for_machine] is None
-            mlog.debug('CMake binary for %s is not cached.', for_machine)
+            mlog.debug('CMake binary for %s is not cached' % for_machine)
             for potential_cmakebin in search():
-                mlog.debug(
-                    'Trying CMake binary %s for machine %s at %s.',
-                    potential_cmakebin.name, for_machine, potential_cmakebin.command)
+                mlog.debug('Trying CMake binary {} for machine {} at {}'
+                           .format(potential_cmakebin.name, for_machine, potential_cmakebin.command))
                 version_if_ok = self.check_cmake(potential_cmakebin)
                 if not version_if_ok:
                     continue
@@ -1007,6 +1006,7 @@ class CMakeDependency(ExternalDependency):
             if self.required:
                 raise DependencyException(msg)
             mlog.debug(msg)
+            return
 
         modules = kwargs.get('modules', [])
         if not isinstance(modules, list):
@@ -1485,8 +1485,7 @@ set(CMAKE_SIZEOF_VOID_P "{}")
 
     def check_cmake(self, cmakebin):
         if not cmakebin.found():
-            mlog.log('Did not find CMake {!r}'
-                     ''.format(' '.join(cmakebin.get_command())))
+            mlog.log('Did not find CMake {!r}'.format(cmakebin.name))
             return None
         try:
             p, out = Popen_safe(cmakebin.get_command() + ['--version'])[0:2]
