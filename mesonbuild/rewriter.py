@@ -99,10 +99,26 @@ class Rewriter:
         self.interpreter.ast.accept(self.id_generator)
 
     def find_target(self, target: str):
-        for i in self.interpreter.targets:
-            if target == i['name'] or target == i['id']:
-                return i
-        return None
+        def check_list(name: str):
+            for i in self.interpreter.targets:
+                if name == i['name'] or name == i['id']:
+                    return i
+            return None
+
+        tgt = check_list(target)
+        if tgt is not None:
+            return tgt
+
+        # Check the assignments
+        if target in self.interpreter.assignments:
+            node = self.interpreter.assignments[target][0]
+            print(node)
+            if isinstance(node, mparser.FunctionNode):
+                if node.func_name in ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']:
+                    name = self.interpreter.flatten_args(node.args)[0]
+                    tgt = check_list(name)
+
+        return tgt
 
     @RequiredKeys(rewriter_keys['target'])
     def process_target(self, cmd):

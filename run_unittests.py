@@ -5034,9 +5034,15 @@ class RewriterTests(BasePlatformTests):
     def rewrite(self, directory, args):
         if isinstance(args, str):
             args = [args]
-        out = subprocess.check_output(self.rewrite_command + ['--sourcedir', directory] + args,
-                                      universal_newlines=True)
-        return out
+        command = self.rewrite_command + ['--sourcedir', directory] + args
+        p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           universal_newlines=True, timeout=60)
+        print(p.stdout)
+        if p.returncode != 0:
+            if 'MESON_SKIP_TEST' in p.stdout:
+                raise unittest.SkipTest('Project requested skipping.')
+            raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
+        return p.stdout
 
     def extract_test_data(self, out):
         lines = out.split('\n')

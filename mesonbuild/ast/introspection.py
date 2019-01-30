@@ -51,6 +51,7 @@ class IntrospectionInterpreter(AstInterpreter):
         self.default_options = {'backend': self.backend}
         self.project_data = {}
         self.targets = []
+        self.project_node = None
 
         self.funcs.update({
             'add_languages': self.func_add_languages,
@@ -65,6 +66,9 @@ class IntrospectionInterpreter(AstInterpreter):
         })
 
     def func_project(self, node, args, kwargs):
+        if self.project_node:
+            raise InvalidArguments('Second call to project()')
+        self.project_node = node
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
 
