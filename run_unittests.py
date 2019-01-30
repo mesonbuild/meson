@@ -104,6 +104,16 @@ def _git_init(project_dir):
     subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir,
                           stdout=subprocess.DEVNULL)
 
+@functools.lru_cache()
+def is_real_gnu_compiler(path):
+    '''
+    Check if the gcc we have is a real gcc and not a macOS wrapper around clang
+    '''
+    if not path:
+        return False
+    out = subprocess.check_output([path, '--version'], universal_newlines=True, stderr=subprocess.STDOUT)
+    return 'Free Software Foundation' in out
+
 def skipIfNoExecutable(exename):
     '''
     Skip this test if the given executable is not found.
@@ -165,14 +175,23 @@ def skip_if_not_language(lang):
         return wrapped
     return wrapper
 
-def skip_if_env_value(value):
+def skip_if_env_set(key):
+    '''
+    Skip a test if a particular env is set, except when running under CI
+    '''
     def wrapper(func):
         @functools.wraps(func)
         def wrapped(*args, **kwargs):
-            if value in os.environ:
-                raise unittest.SkipTest(
-                    'Environment variable "{}" set, skipping.'.format(value))
-            return func(*args, **kwargs)
+            old = None
+            if key in os.environ:
+                if not is_ci():
+                    raise unittest.SkipTest('Env var {!r} set, skipping'.format(key))
+                old = os.environ.pop(key)
+            try:
+                return func(*args, **kwargs)
+            finally:
+                if old is not None:
+                    os.environ[key] = old
         return wrapped
     return wrapper
 
@@ -5217,59 +5236,59 @@ class NativeFileTests(BasePlatformTests):
         self._simple_test('python', 'python')
 
     @unittest.skipIf(is_windows(), 'Setting up multiple compilers on windows is hard')
-    @skip_if_env_value('CC')
+    @skip_if_env_set('CC')
     def test_c_compiler(self):
         def cb(comp):
             if comp.id == 'gcc':
                 if not shutil.which('clang'):
                     raise unittest.SkipTest('Only one compiler found, cannot test.')
                 return 'clang', 'clang'
-            if not shutil.which('gcc'):
+            if not is_real_gnu_compiler(shutil.which('gcc')):
                 raise unittest.SkipTest('Only one compiler found, cannot test.')
             return 'gcc', 'gcc'
         self.helper_for_compiler('c', cb)
 
     @unittest.skipIf(is_windows(), 'Setting up multiple compilers on windows is hard')
-    @skip_if_env_value('CXX')
+    @skip_if_env_set('CXX')
     def test_cpp_compiler(self):
         def cb(comp):
             if comp.id == 'gcc':
                 if not shutil.which('clang++'):
                     raise unittest.SkipTest('Only one compiler found, cannot test.')
                 return 'clang++', 'clang'
-            if not shutil.which('g++'):
+            if not is_real_gnu_compiler(shutil.which('g++')):
                 raise unittest.SkipTest('Only one compiler found, cannot test.')
             return 'g++', 'gcc'
         self.helper_for_compiler('cpp', cb)
 
     @skip_if_not_language('objc')
-    @skip_if_env_value('OBJC')
+    @skip_if_env_set('OBJC')
     def test_objc_compiler(self):
         def cb(comp):
             if comp.id == 'gcc':
                 if not shutil.which('clang'):
                     raise unittest.SkipTest('Only one compiler found, cannot test.')
                 return 'clang', 'clang'
-            if not shutil.which('gcc'):
+            if not is_real_gnu_compiler(shutil.which('gcc')):
                 raise unittest.SkipTest('Only one compiler found, cannot test.')
             return 'gcc', 'gcc'
         self.helper_for_compiler('objc', cb)
 
     @skip_if_not_language('objcpp')
-    @skip_if_env_value('OBJCXX')
+    @skip_if_env_set('OBJCXX')
     def test_objcpp_compiler(self):
         def cb(comp):
             if comp.id == 'gcc':
                 if not shutil.which('clang++'):
                     raise unittest.SkipTest('Only one compiler found, cannot test.')
                 return 'clang++', 'clang'
-            if not shutil.which('g++'):
+            if not is_real_gnu_compiler(shutil.which('g++')):
                 raise unittest.SkipTest('Only one compiler found, cannot test.')
             return 'g++', 'gcc'
         self.helper_for_compiler('objcpp', cb)
 
     @skip_if_not_language('d')
-    @skip_if_env_value('DC')
+    @skip_if_env_set('DC')
     def test_d_compiler(self):
         def cb(comp):
             if comp.id == 'dmd':
@@ -5285,7 +5304,7 @@ class NativeFileTests(BasePlatformTests):
         self.helper_for_compiler('d', cb)
 
     @skip_if_not_language('cs')
-    @skip_if_env_value('CSC')
+    @skip_if_env_set('CSC')
     def test_cs_compiler(self):
         def cb(comp):
             if comp.id == 'csc':
@@ -5298,7 +5317,7 @@ class NativeFileTests(BasePlatformTests):
         self.helper_for_compiler('cs', cb)
 
     @skip_if_not_language('fortran')
-    @skip_if_env_value('FC')
+    @skip_if_env_set('FC')
     def test_fortran_compiler(self):
         def cb(comp):
             if comp.id == 'gcc':
@@ -5331,13 +5350,13 @@ class NativeFileTests(BasePlatformTests):
         self.assertEqual(compiler.version, version)
 
     @skip_if_not_language('vala')
-    @skip_if_env_value('VALAC')
+    @skip_if_env_set('VALAC')
     def test_vala_compiler(self):
         self._single_implementation_compiler(
             'vala', 'valac', 'Vala 1.2345', '1.2345')
 
     @skip_if_not_language('rust')
-    @skip_if_env_value('RUSTC')
+    @skip_if_env_set('RUSTC')
     def test_rust_compiler(self):
         self._single_implementation_compiler(
             'rust', 'rustc', 'rustc 1.2345', '1.2345')
