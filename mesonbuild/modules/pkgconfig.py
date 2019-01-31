@@ -23,6 +23,8 @@ from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
 
+already_warned_objs = set()
+
 class DependenciesHelper:
     def __init__(self, name):
         self.name = name
@@ -51,16 +53,21 @@ class DependenciesHelper:
         self.priv_reqs += self._process_reqs(reqs)
 
     def _check_generated_pc_deprecation(self, obj):
-        if hasattr(obj, 'generated_pc_warn'):
-            mlog.deprecation('Library', mlog.bold(obj.name), 'was passed to the '
-                             '"libraries" keyword argument of a previous call '
-                             'to generate() method instead of first positional '
-                             'argument.', 'Adding', mlog.bold(obj.generated_pc),
-                             'to "Requires" field, but this is a deprecated '
-                             'behaviour that will change in a future version '
-                             'of Meson. Please report the issue if this '
-                             'warning cannot be avoided in your case.',
-                             location=obj.generated_pc_warn)
+        if not hasattr(obj, 'generated_pc_warn'):
+            return
+        name = obj.generated_pc_warn[0]
+        if (name, obj.name) in already_warned_objs:
+            return
+        mlog.deprecation('Library', mlog.bold(obj.name), 'was passed to the '
+                         '"libraries" keyword argument of a previous call '
+                         'to generate() method instead of first positional '
+                         'argument.', 'Adding', mlog.bold(obj.generated_pc),
+                         'to "Requires" field, but this is a deprecated '
+                         'behaviour that will change in a future version '
+                         'of Meson. Please report the issue if this '
+                         'warning cannot be avoided in your case.',
+                         location=obj.generated_pc_warn[1])
+        already_warned_objs.add((name, obj.name))
 
     def _process_reqs(self, reqs):
         '''Returns string names of requirements'''
@@ -442,8 +449,9 @@ class PkgConfigModule(ExtensionModule):
             for lib in deps.pub_libs:
                 if not isinstance(lib, str) and not hasattr(lib, 'generated_pc'):
                     lib.generated_pc = filebase
-                    lib.generated_pc_warn = types.SimpleNamespace(subdir=state.subdir,
-                                                                  lineno=state.current_lineno)
+                    location = types.SimpleNamespace(subdir=state.subdir,
+                                                     lineno=state.current_lineno)
+                    lib.generated_pc_warn = [name, location]
         return ModuleReturnValue(res, [res])
 
 def initialize(*args, **kwargs):
