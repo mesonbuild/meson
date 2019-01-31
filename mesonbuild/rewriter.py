@@ -299,6 +299,7 @@ class Rewriter:
             'kwargs': self.process_kwargs,
             'target': self.process_target,
         }
+        self.info_dump = None
 
     def analyze_meson(self):
         mlog.log('Analyzing meson file:', mlog.bold(os.path.join(self.sourcedir, environment.build_filename)))
@@ -307,6 +308,21 @@ class Rewriter:
         mlog.log('  -- Version:', mlog.cyan(self.interpreter.project_data['version']))
         self.interpreter.ast.accept(AstIndentationGenerator())
         self.interpreter.ast.accept(self.id_generator)
+
+    def add_info(self, cmd_type: str, cmd_id: str, data: dict):
+        if self.info_dump is None:
+            self.info_dump = {}
+        if cmd_type not in self.info_dump:
+            self.info_dump[cmd_type] = {}
+        self.info_dump[cmd_type][cmd_id] = data
+
+    def print_info(self):
+        if self.info_dump is None:
+            return
+        # Wrap the dump in magic strings
+        print('!!==JSON DUMP: BEGIN==!!')
+        print(json.dumps(self.info_dump, indent=2))
+        print('!!==JSON DUMP: END==!!')
 
     def find_target(self, target: str):
         def check_list(name: str):
@@ -322,7 +338,6 @@ class Rewriter:
         # Check the assignments
         if target in self.interpreter.assignments:
             node = self.interpreter.assignments[target][0]
-            print(node)
             if isinstance(node, mparser.FunctionNode):
                 if node.func_name in ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']:
                     name = self.interpreter.flatten_args(node.args)[0]
@@ -489,7 +504,7 @@ class Rewriter:
                 'name': target['name'],
                 'sources': src_list
             }
-            mlog.log('  !! target {}={}'.format(target['id'], json.dumps(test_data)))
+            self.add_info('target', target['id'], test_data)
 
     def process(self, cmd):
         if 'type' not in cmd:
@@ -601,4 +616,5 @@ def run(options):
         rewriter.process(i)
 
     rewriter.apply_changes()
+    rewriter.print_info()
     return 0

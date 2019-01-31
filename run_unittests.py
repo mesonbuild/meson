@@ -5022,7 +5022,7 @@ class PythonTests(BasePlatformTests):
 
 
 class RewriterTests(BasePlatformTests):
-    data_regex = re.compile(r'^\s*!!\s*(\w+)\s+([^=]+)=(.*)$')
+    data_regex = re.compile(r'.*\n!!==JSON DUMP: BEGIN==!!\n(.*)\n!!==JSON DUMP: END==!!\n', re.MULTILINE | re.DOTALL)
 
     def setUp(self):
         super().setUp()
@@ -5045,17 +5045,10 @@ class RewriterTests(BasePlatformTests):
         return p.stdout
 
     def extract_test_data(self, out):
-        lines = out.split('\n')
+        match = RewriterTests.data_regex.match(out)
         result = {}
-        for i in lines:
-            match = RewriterTests.data_regex.match(i)
-            if match:
-                typ = match.group(1)
-                id = match.group(2)
-                data = json.loads(match.group(3))
-                if typ not in result:
-                    result[typ] = {}
-                result[typ][id] = data
+        if match:
+            result = json.loads(match.group(1))
         return result
 
     def test_target_source_list(self):
