@@ -91,9 +91,9 @@ class GnuStepDependency(ConfigToolDependency):
             'link_args'))
 
     def find_config(self, versions=None):
-        tool = self.tools[0]
+        tool = [self.tools[0]]
         try:
-            p, out = Popen_safe([tool, '--help'])[:2]
+            p, out = Popen_safe(tool + ['--help'])[:2]
         except (FileNotFoundError, PermissionError):
             return (None, None)
         if p.returncode != 0:
