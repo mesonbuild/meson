@@ -57,15 +57,16 @@ class HDF5Dependency(ExternalDependency):
                     for larg in link_args:
                         lpath = Path(larg)
                         if lpath.is_file():
-                            if language == 'c':
-                                lang_link_args.append(str(lpath.parent / (lpath.stem + '_hl' + lpath.suffix)))
-                                lang_link_args.append(larg)
-                            elif language == 'cpp':
+                            if language == 'cpp':
                                 lang_link_args.append(str(lpath.parent / (lpath.stem + '_hl_cpp' + lpath.suffix)))
                                 lang_link_args.append(str(lpath.parent / (lpath.stem + '_cpp' + lpath.suffix)))
                             elif language == 'fortran':
                                 lang_link_args.append(str(lpath.parent / (lpath.stem + 'hl_fortran' + lpath.suffix)))
                                 lang_link_args.append(str(lpath.parent / (lpath.stem + '_fortran' + lpath.suffix)))
+
+                            # C is used by other languages
+                            lang_link_args.append(str(lpath.parent / (lpath.stem + '_hl' + lpath.suffix)))
+                            lang_link_args.append(larg)
 
                     self.link_args = lang_link_args
                     self.version = pkgdep.get_version()
