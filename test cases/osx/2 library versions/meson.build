@@ -1,15 +1,27 @@
 project('library versions', 'c')
 
-zlib_dep = dependency('zlib')
+if run_command(find_program('require_pkgconfig.py'), check: true).stdout().strip() == 'yes'
+  required = true
+else
+  required = false
+endif
 
-some = shared_library('some', 'lib.c',
-  # duplicate the rpath again, in order
-  # to test Meson's RPATH deduplication
-  build_rpath : zlib_dep.get_pkgconfig_variable('libdir'),
-  dependencies : zlib_dep,
-  version : '1.2.3',
-  soversion : '7',
-  install : true)
+zlib_dep = dependency('zlib', required: required)
+if zlib_dep.found()
+  some = shared_library('some', 'lib.c',
+    # duplicate the rpath again, in order
+    # to test Meson's RPATH deduplication
+    build_rpath : zlib_dep.get_pkgconfig_variable('libdir'),
+    dependencies : zlib_dep,
+    version : '1.2.3',
+    soversion : '7',
+    install : true)
+else
+  some = shared_library('some', 'lib.c',
+    version : '1.2.3',
+    soversion : '7',
+    install : true)
+endif
 
 noversion = shared_library('noversion', 'lib.c',
   install : true)
