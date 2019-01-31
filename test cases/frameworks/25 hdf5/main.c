@@ -6,9 +6,7 @@
 int main(void)
 {
 herr_t ier;
-unsigned maj;
-unsigned min;
-unsigned rel;
+unsigned maj, min, rel;
 
 ier = H5open();
 if (ier) {

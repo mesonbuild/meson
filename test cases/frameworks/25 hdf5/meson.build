@@ -1,4 +1,12 @@
-project('hdf5_test', 'c', 'cpp', 'fortran')
+project('hdf5_test', 'c', 'cpp')
+
+if build_machine.system() == 'darwin'
+  error('MESON_SKIP_TEST: HDF5 CI image not setup for OSX.')
+endif
+
+if build_machine.system() == 'cygwin'
+  error('MESON_SKIP_TEST: HDF5 CI image not setup for Cygwin.')
+endif
 
 
 # --- C tests
@@ -20,12 +28,15 @@ test('HDF5 C++', execpp)
 
 
 # --- Fortran tests
-h5f = dependency('hdf5', language : 'fortran')
-exef = executable('exef', 'main.f90',
-  dependencies : h5f)
-  
-test('HDF5 Fortran', exef)
+if build_machine.system() != 'windows'
+  add_languages('fortran')
 
+  h5f = dependency('hdf5', language : 'fortran')
+  exef = executable('exef', 'main.f90',
+    dependencies : h5f)
+
+  test('HDF5 Fortran', exef)
+endif
 
 # Check we can apply a version constraint
 if h5c.version() != 'unknown'
