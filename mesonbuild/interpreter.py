@@ -276,7 +276,8 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
         if len(args) == 1 and isinstance(args[0], list) and len(args[0]) == 2:
             mlog.deprecation('Passing a list as the single argument to '
                              'configuration_data.set is deprecated. This will '
-                             'become a hard error in the future.')
+                             'become a hard error in the future.',
+                             location=self.current_node)
             args = args[0]
 
         if len(args) != 2:
@@ -289,7 +290,7 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
             msg = 'Setting a configuration data value to {!r} is invalid, ' \
                   'and will fail at configure_file(). If you are using it ' \
                   'just to store some values, please use a dict instead.'
-            mlog.deprecation(msg.format(val))
+            mlog.deprecation(msg.format(val), location=self.current_node)
         desc = kwargs.get('description', None)
         if not isinstance(name, str):
             raise InterpreterException("First argument to set must be a string.")
@@ -3594,6 +3595,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         # for backwards compatibility. That was the behaviour before
         # 0.45.0 so preserve it.
         idir = kwargs.get('install_dir', '')
+        if idir is False:
+            idir = ''
+            mlog.deprecation('Please use the new `install:` kwarg instead of passing '
+                             '`false` to `install_dir:`', location=node)
         if not isinstance(idir, str):
             raise InterpreterException('"install_dir" must be a string')
         install = kwargs.get('install', idir != '')
