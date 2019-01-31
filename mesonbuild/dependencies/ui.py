@@ -216,9 +216,11 @@ class QtBaseDependency(ExternalDependency):
         methods = []
         # Prefer pkg-config, then fallback to `qmake -query`
         if DependencyMethods.PKGCONFIG in self.methods:
+            mlog.debug('Trying to find qt with pkg-config')
             self._pkgconfig_detect(mods, kwargs)
             methods.append('pkgconfig')
         if not self.is_found and DependencyMethods.QMAKE in self.methods:
+            mlog.debug('Trying to find qt with qmake')
             self.from_text = self._qmake_detect(mods, kwargs)
             methods.append('qmake-' + self.name)
             methods.append('qmake')
@@ -442,6 +444,7 @@ class QtBaseDependency(ExternalDependency):
 
         for m in modules:
             fname = 'Qt' + m
+            mlog.debug('Looking for qt framework ' + fname)
             fwdep = QtExtraFrameworkDependency(fname, False, [libdir], self.env,
                                                self.language, fw_kwargs)
             self.compile_args.append('-F' + libdir)
