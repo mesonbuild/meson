@@ -251,7 +251,7 @@ rewriter_keys = {
     },
     'target': {
         'target': (str, None, None),
-        'operation': (str, None, ['src_add', 'src_rm', 'test']),
+        'operation': (str, None, ['src_add', 'src_rm', 'info']),
         'sources': (list, [], None),
         'debug': (bool, False, None)
     }
@@ -493,7 +493,7 @@ class Rewriter:
                 if root not in self.modefied_nodes:
                     self.modefied_nodes += [root]
 
-        elif cmd['operation'] == 'test':
+        elif cmd['operation'] == 'info':
             # List all sources in the target
             src_list = []
             for i in target['sources']:

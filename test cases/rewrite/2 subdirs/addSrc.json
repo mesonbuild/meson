@@ -8,6 +8,6 @@
   {
     "type": "target",
     "target": "something",
-    "operation": "test"
+    "operation": "info"
   }
 ]

@@ -2,46 +2,46 @@
   {
     "type": "target",
     "target": "trivialprog1",
-    "operation": "test"
+    "operation": "info"
   },
   {
     "type": "target",
     "target": "exe2",
-    "operation": "test"
+    "operation": "info"
   },
   {
     "type": "target",
     "target": "trivialprog3",
-    "operation": "test"
+    "operation": "info"
   },
   {
     "type": "target",
     "target": "exe4",
-    "operation": "test"
+    "operation": "info"
   },
   {
     "type": "target",
     "target": "trivialprog5",
-    "operation": "test"
+    "operation": "info"
   },
   {
     "type": "target",
     "target": "exe6",
-    "operation": "test"
+    "operation": "info"
   },
   {
     "type": "target",
     "target": "trivialprog7",
-    "operation": "test"
+    "operation": "info"
   },
   {
     "type": "target",
     "target": "exe8",
-    "operation": "test"
+    "operation": "info"
   },
   {
     "type": "target",
     "target": "trivialprog9",
-    "operation": "test"
+    "operation": "info"
   }
 ]
