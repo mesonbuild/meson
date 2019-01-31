@@ -20,5 +20,15 @@
       "build_rpath": "/usr/local",
       "dependencies": "dep1"
     }
+  },
+  {
+    "type": "kwargs",
+    "function": "dependency",
+    "id": "zlib",
+    "operation": "set",
+    "kwargs": {
+      "required": true,
+      "method": "cmake"
+    }
   }
 ]

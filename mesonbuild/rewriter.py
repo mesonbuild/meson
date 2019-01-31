@@ -345,6 +345,27 @@ class Rewriter:
 
         return tgt
 
+    def find_dependency(self, dependency: str):
+        def check_list(name: str):
+            for i in self.interpreter.dependencies:
+                if name == i['name']:
+                    return i
+            return None
+
+        dep = check_list(dependency)
+        if dep is not None:
+            return dep
+
+        # Check the assignments
+        if dependency in self.interpreter.assignments:
+            node = self.interpreter.assignments[dependency][0]
+            if isinstance(node, mparser.FunctionNode):
+                if node.func_name in ['dependency']:
+                    name = self.interpreter.flatten_args(node.args)[0]
+                    dep = check_list(name)
+
+        return dep
+
     @RequiredKeys(rewriter_keys['kwargs'])
     def process_kwargs(self, cmd):
         mlog.log('Processing function type', mlog.bold(cmd['function']), 'with id', mlog.cyan("'" + cmd['id'] + "'"))
@@ -361,6 +382,11 @@ class Rewriter:
             arg_node = node.args
         elif cmd['function'] == 'target':
             tmp = self.find_target(cmd['id'])
+            if tmp:
+                node = tmp['node']
+                arg_node = node.args
+        elif cmd['function'] == 'dependency':
+            tmp = self.find_dependency(cmd['id'])
             if tmp:
                 node = tmp['node']
                 arg_node = node.args

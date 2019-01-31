@@ -5137,7 +5137,8 @@ class RewriterTests(BasePlatformTests):
         expected = {
             'kwargs': {
                 'project#': {'version': '0.0.1'},
-                'target#tgt1': {'build_by_default': True}
+                'target#tgt1': {'build_by_default': True},
+                'dependency#dep1': {'required': False}
             }
         }
         self.assertDictEqual(out, expected)
@@ -5150,7 +5151,8 @@ class RewriterTests(BasePlatformTests):
         expected = {
             'kwargs': {
                 'project#': {'version': '0.0.2', 'meson_version': '0.50.0', 'license': ['GPL', 'MIT']},
-                'target#tgt1': {'build_by_default': False, 'build_rpath': '/usr/local', 'dependencies': 'dep1'}
+                'target#tgt1': {'build_by_default': False, 'build_rpath': '/usr/local', 'dependencies': 'dep1'},
+                'dependency#dep1': {'required': True, 'method': 'cmake'}
             }
         }
         self.assertDictEqual(out, expected)
@@ -5163,7 +5165,8 @@ class RewriterTests(BasePlatformTests):
         expected = {
             'kwargs': {
                 'project#': {'version': '0.0.1', 'license': ['GPL', 'MIT', 'BSD']},
-                'target#tgt1': {'build_by_default': True}
+                'target#tgt1': {'build_by_default': True},
+                'dependency#dep1': {'required': False}
             }
         }
         self.assertDictEqual(out, expected)
@@ -5176,7 +5179,8 @@ class RewriterTests(BasePlatformTests):
         expected = {
             'kwargs': {
                 'project#': {'version': '0.0.1', 'license': 'GPL'},
-                'target#tgt1': {'build_by_default': True}
+                'target#tgt1': {'build_by_default': True},
+                'dependency#dep1': {'required': False}
             }
         }
         self.assertDictEqual(out, expected)
@@ -5189,7 +5193,8 @@ class RewriterTests(BasePlatformTests):
         expected = {
             'kwargs': {
                 'project#': {},
-                'target#tgt1': {}
+                'target#tgt1': {},
+                'dependency#dep1': {'required': False}
             }
         }
         self.assertDictEqual(out, expected)
