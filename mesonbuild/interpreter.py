@@ -1929,6 +1929,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                    'main',
                                    'method',
                                    'modules',
+                                   'cmake_module_path',
                                    'optional_modules',
                                    'native',
                                    'not_found_message',
@@ -1936,6 +1937,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                    'static',
                                    'version',
                                    'private_headers',
+                                   'cmake_args',
                                    },
                     'declare_dependency': {'include_directories',
                                            'link_with',
@@ -2903,10 +2905,10 @@ external dependencies (including libraries) must go to "dependencies".''')
         elif name == 'openmp':
             FeatureNew('OpenMP Dependency', '0.46.0').use(self.subproject)
 
+    @FeatureNewKwargs('dependency', '0.50.0', ['not_found_message', 'cmake_module_path', 'cmake_args'])
     @FeatureNewKwargs('dependency', '0.49.0', ['disabler'])
     @FeatureNewKwargs('dependency', '0.40.0', ['method'])
     @FeatureNewKwargs('dependency', '0.38.0', ['default_options'])
-    @FeatureNewKwargs('dependency', '0.50.0', ['not_found_message'])
     @disablerIfNotFound
     @permittedKwargs(permitted_kwargs['dependency'])
     def func_dependency(self, node, args, kwargs):

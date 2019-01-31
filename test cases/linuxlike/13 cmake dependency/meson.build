@@ -36,6 +36,12 @@ depf2 = dependency('ZLIB', required : false, method : 'cmake', modules : 'dfggh:
 
 assert(depf2.found() == false, 'Invalid CMake targets should fail')
 
+# Try to find a dependency with a custom CMake module
+
+depm1 = dependency('SomethingLikeZLIB', required : true, method : 'cmake', cmake_module_path : 'cmake')
+depm2 = dependency('SomethingLikeZLIB', required : true, method : 'cmake', cmake_module_path : ['cmake'])
+depm3 = dependency('SomethingLikeZLIB', required : true, cmake_module_path : 'cmake')
+
 # Try to compile a test that takes a dep and an include_directories
 
 cc = meson.get_compiler('c')

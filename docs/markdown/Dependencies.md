@@ -148,6 +148,14 @@ it automatically.
     cmake_dep = dependency('ZLIB', method : 'cmake', modules : ['ZLIB::ZLIB'])
 ```
 
+It is also possible to reuse existing `Find<name>.cmake` files with the
+`cmake_module_path` property. Using this property is equivalent to setting the
+`CMAKE_MODULE_PATH` variable in CMake. The path(s) given to `cmake_module_path`
+should all be relative to the project source directory. Absolute paths
+should only be used if the CMake files are not stored in the project itself.
+
+Additional CMake parameters can be specified with the `cmake_args` property.
+
 ### Some notes on Dub
 
 Please understand that meson is only able to find dependencies that

@@ -203,3 +203,20 @@ executable(..., dependencies : m_dep)
 ```meson
 executable(..., install : true, install_dir : get_option('libexecdir'))
 ```
+
+## Use existing `Find<name>.cmake` files
+
+Meson can use the CMake `find_package()` ecosystem if CMake is installed.
+To find a dependency with custom `Find<name>.cmake`, set the `cmake_module_path`
+property to the path in your project where the CMake scripts are stored.
+
+Example for a `FindCmakeOnlyDep.cmake` in a `cmake` subdirectory:
+
+```meson
+cm_dep = dependency('CmakeOnlyDep', cmake_module_path : 'cmake')
+```
+
+The `cmake_module_path` property is only needed for custom CMake scripts. System
+wide CMake scripts are found automatically.
+
+More information can be found [here](Dependencies.md#cmake)
