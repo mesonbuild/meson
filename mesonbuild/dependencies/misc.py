@@ -14,13 +14,12 @@
 
 # This file contains the detection logic for miscellaneous external dependencies.
 
+from pathlib import Path
 import functools
 import os
 import re
 import shlex
 import sysconfig
-
-from pathlib import Path
 
 from .. import mlog
 from .. import mesonlib
@@ -32,6 +31,50 @@ from .base import (
     CMakeDependency, ConfigToolDependency,
 )
 
+
+class HDF5Dependency(ExternalDependency):
+
+    def __init__(self, environment, kwargs):
+        language = kwargs.get('language', 'c')
+        super().__init__('hdf5', environment, language, kwargs)
+        kwargs['required'] = False
+        kwargs['silent'] = True
+        self.is_found = False
+
+        pkgconfig_files = ['hdf5']
+
+        if language not in ('c', 'cpp', 'fortran'):
+            raise DependencyException('Language {} is not supported with HDF5.'.format(language))
+
+        for pkg in pkgconfig_files:
+            try:
+                pkgdep = PkgConfigDependency(pkg, environment, kwargs, language=self.language)
+                if pkgdep.found():
+                    self.compile_args = pkgdep.get_compile_args()
+                    # derive needed libraries by language
+                    link_args = pkgdep.get_link_args()
+                    lang_link_args = []
+                    for larg in link_args:
+                        lpath = Path(larg)
+                        if lpath.is_file():
+                            if language == 'cpp':
+                                lang_link_args.append(str(lpath.parent / (lpath.stem + '_hl_cpp' + lpath.suffix)))
+                                lang_link_args.append(str(lpath.parent / (lpath.stem + '_cpp' + lpath.suffix)))
+                            elif language == 'fortran':
+                                lang_link_args.append(str(lpath.parent / (lpath.stem + 'hl_fortran' + lpath.suffix)))
+                                lang_link_args.append(str(lpath.parent / (lpath.stem + '_fortran' + lpath.suffix)))
+
+                            # C is used by other languages
+                            lang_link_args.append(str(lpath.parent / (lpath.stem + '_hl' + lpath.suffix)))
+                            lang_link_args.append(larg)
+
+                    self.link_args = lang_link_args
+                    self.version = pkgdep.get_version()
+                    self.is_found = True
+                    self.pcdep = pkgdep
+                    break
+            except Exception:
+                pass
 
 class MPIDependency(ExternalDependency):
 

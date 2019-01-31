@@ -20,6 +20,7 @@ RUN sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list" \
 && apt-get -y install --no-install-recommends wine-stable \
 && apt-get -y install llvm-dev libclang-dev \
 && apt-get -y install libgcrypt11-dev \
+&& apt-get -y install libhdf5-dev \
 && dub fetch urld && dub build urld --compiler=gdc \
 && dub fetch dubtestproject \
 && dub build dubtestproject:test1 --compiler=ldc2 \
