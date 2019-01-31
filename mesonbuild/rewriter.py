@@ -71,12 +71,221 @@ class RequiredKeys:
 
         return wrapped
 
+class MesonBaseType:
+    def __init__(self, node: mparser.BaseNode):
+        if node is None:
+            self.node = self._new_node()
+        else:
+            self.node = node
+        self.node_type = None
+        for i in self.supported_nodes():
+            if isinstance(self.node, i):
+                self.node_type = i
+
+    def _new_node(self):
+        # Overwrite in derived class
+        return mparser.BaseNode()
+
+    def can_modify(self):
+        return self.node_type is not None
+
+    def get_node(self):
+        return self.node
+
+    def supported_nodes(self):
+        # Overwrite in derived class
+        return []
+
+    def set_value(self, value):
+        # Overwrite in derived class
+        mlog.warning('Cannot set the value of type', mlog.bold(type(self).__name__), '--> skipping')
+
+    def add_value(self, value):
+        # Overwrite in derived class
+        mlog.warning('Cannot add a value of type', mlog.bold(type(self).__name__), '--> skipping')
+
+    def remove_value(self, value):
+        # Overwrite in derived class
+        mlog.warning('Cannot remove a value of type', mlog.bold(type(self).__name__), '--> skipping')
+
+class MesonStr(MesonBaseType):
+    def __init__(self, node: mparser.BaseNode):
+        super().__init__(node)
+
+    def _new_node(self):
+        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, ''))
+
+    def supported_nodes(self):
+        return [mparser.StringNode]
+
+    def set_value(self, value):
+        self.node.value = str(value)
+
+class MesonBool(MesonBaseType):
+    def __init__(self, node: mparser.BaseNode):
+        super().__init__(node)
+
+    def _new_node(self):
+        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, False))
+
+    def supported_nodes(self):
+        return [mparser.BooleanNode]
+
+    def set_value(self, value):
+        self.node.value = bool(value)
+
+class MesonID(MesonBaseType):
+    def __init__(self, node: mparser.BaseNode):
+        super().__init__(node)
+
+    def _new_node(self):
+        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, ''))
+
+    def supported_nodes(self):
+        return [mparser.IdNode]
+
+    def set_value(self, value):
+        self.node.value = str(value)
+
+class MesonList(MesonBaseType):
+    def __init__(self, node: mparser.BaseNode):
+        super().__init__(node)
+
+    def _new_node(self):
+        return mparser.ArrayNode(mparser.ArgumentNode(mparser.Token('', '', 0, 0, 0, None, '')), 0, 0)
+
+    def _new_element_node(self, value):
+        # Overwrite in derived class
+        return mparser.BaseNode()
+
+    def _ensure_array_node(self):
+        if not isinstance(self.node, mparser.ArrayNode):
+            tmp = self.node
+            self.node = self._new_node()
+            self.node.args.arguments += [tmp]
+
+    def _check_is_equal(self, node, value):
+        # Overwrite in derived class
+        return False
+
+    def get_node(self):
+        if isinstance(self.node, mparser.ArrayNode):
+            if len(self.node.args.arguments) == 1:
+                return self.node.args.arguments[0]
+        return self.node
+
+    def supported_element_nodes(self):
+        # Overwrite in derived class
+        return []
+
+    def supported_nodes(self):
+        return [mparser.ArrayNode] + self.supported_element_nodes()
+
+    def set_value(self, value):
+        if not isinstance(value, list):
+            value = [value]
+        self._ensure_array_node()
+        self.node.args.arguments = [] # Remove all current nodes
+        for i in value:
+            self.node.args.arguments += [self._new_element_node(i)]
+
+    def add_value(self, value):
+        if not isinstance(value, list):
+            value = [value]
+        self._ensure_array_node()
+        for i in value:
+            self.node.args.arguments += [self._new_element_node(i)]
+
+    def remove_value(self, value):
+        def check_remove_node(node):
+            for j in value:
+                if self._check_is_equal(i, j):
+                    return True
+            return False
+
+        if not isinstance(value, list):
+            value = [value]
+        self._ensure_array_node()
+        removed_list = []
+        for i in self.node.args.arguments:
+            if not check_remove_node(i):
+                removed_list += [i]
+        self.node.args.arguments = removed_list
+
+class MesonStrList(MesonList):
+    def __init__(self, node: mparser.BaseNode):
+        super().__init__(node)
+
+    def _new_element_node(self, value):
+        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, str(value)))
+
+    def _check_is_equal(self, node, value):
+        if isinstance(node, mparser.StringNode):
+            return node.value == value
+        return False
+
+    def supported_element_nodes(self):
+        return [mparser.StringNode]
+
+class MesonIDList(MesonList):
+    def __init__(self, node: mparser.BaseNode):
+        super().__init__(node)
+
+    def _new_element_node(self, value):
+        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, str(value)))
+
+    def _check_is_equal(self, node, value):
+        if isinstance(node, mparser.IdNode):
+            return node.value == value
+        return False
+
+    def supported_element_nodes(self):
+        return [mparser.IdNode]
+
 rewriter_keys = {
+    'kwargs': {
+        'function': (str, None, None),
+        'id': (str, None, None),
+        'operation': (str, None, ['set', 'delete', 'add', 'remove']),
+        'kwargs': (dict, {}, None)
+    },
     'target': {
         'target': (str, None, None),
         'operation': (str, None, ['src_add', 'src_rm', 'test']),
         'sources': (list, [], None),
         'debug': (bool, False, None)
+    }
+}
+
+rewriter_func_kwargs = {
+    'dependency': {
+        'language': MesonStr,
+        'method': MesonStr,
+        'native': MesonBool,
+        'not_found_message': MesonStr,
+        'required': MesonBool,
+        'static': MesonBool,
+        'version': MesonStrList,
+        'modules': MesonStrList
+    },
+    'target': {
+        'build_by_default': MesonBool,
+        'build_rpath': MesonStr,
+        'dependencies': MesonIDList,
+        'gui_app': MesonBool,
+        'link_with': MesonIDList,
+        'export_dynamic': MesonBool,
+        'implib': MesonBool,
+        'install': MesonBool,
+        'install_dir': MesonStr,
+        'install_rpath': MesonStr,
+        'pie': MesonBool
+    },
+    'project': {
+        'meson_version': MesonStr,
+        'license': MesonStrList,
+        'subproject_dir': MesonStr,
+        'version': MesonStr
     }
 }
 
@@ -87,6 +296,7 @@ class Rewriter:
         self.id_generator = AstIDGenerator()
         self.modefied_nodes = []
         self.functions = {
+            'kwargs': self.process_kwargs,
             'target': self.process_target,
         }
 
@@ -119,6 +329,67 @@ class Rewriter:
                     tgt = check_list(name)
 
         return tgt
+
+    @RequiredKeys(rewriter_keys['kwargs'])
+    def process_kwargs(self, cmd):
+        mlog.log('Processing function type', mlog.bold(cmd['function']), 'with id', mlog.cyan("'" + cmd['id'] + "'"))
+        if cmd['function'] not in rewriter_func_kwargs:
+            mlog.error('Unknown function type {} --> skipping'.format(cmd['function']))
+            return
+        kwargs_def = rewriter_func_kwargs[cmd['function']]
+
+        # Find the function node to modify
+        node = None
+        if cmd['function'] == 'project':
+            node = self.interpreter.project_node
+        elif cmd['function'] == 'target':
+            tmp = self.find_target(cmd['id'])
+            if tmp:
+                node = tmp['node']
+        if not node:
+            mlog.error('Unable to find the function node')
+        assert(isinstance(node, mparser.FunctionNode))
+
+        num_changed = 0
+        for key, val in cmd['kwargs'].items():
+            if key not in kwargs_def:
+                mlog.error('Cannot modify unknown kwarg --> skipping', mlog.bold(key))
+                continue
+
+            # Remove the key from the kwargs
+            if cmd['operation'] == 'delete':
+                if key in node.args.kwargs:
+                    mlog.log('  -- Deleting', mlog.bold(key), 'from the kwargs')
+                    del node.args.kwargs[key]
+                    num_changed += 1
+                else:
+                    mlog.log('  -- Key', mlog.bold(key), 'is already deleted')
+                continue
+
+            if key not in node.args.kwargs:
+                node.args.kwargs[key] = None
+            modifyer = kwargs_def[key](node.args.kwargs[key])
+            if not modifyer.can_modify():
+                mlog.log('  -- Skipping', mlog.bold(key), 'because it is to complex to modify')
+
+            # Apply the operation
+            val_str = str(val)
+            if cmd['operation'] == 'set':
+                mlog.log('  -- Setting', mlog.bold(key), 'to', mlog.yellow(val_str))
+                modifyer.set_value(val)
+            elif cmd['operation'] == 'add':
+                mlog.log('  -- Adding', mlog.yellow(val_str), 'to', mlog.bold(key))
+                modifyer.add_value(val)
+            elif cmd['operation'] == 'remove':
+                mlog.log('  -- Removing', mlog.yellow(val_str), 'from', mlog.bold(key))
+                modifyer.remove_value(val)
+
+            # Write back the result
+            node.args.kwargs[key] = modifyer.get_node()
+            num_changed += 1
+
+        if num_changed > 0 and node not in self.modefied_nodes:
+            self.modefied_nodes += [node]
 
     @RequiredKeys(rewriter_keys['target'])
     def process_target(self, cmd):
