@@ -5130,6 +5130,70 @@ class RewriterTests(BasePlatformTests):
         out = self.extract_test_data(out)
         self.assertDictEqual(list(out['target'].values())[0], expected)
 
+    def test_kwargs_info(self):
+        self.prime('3 kwargs')
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+        expected = {
+            'kwargs': {
+                'project#': {'version': '0.0.1'},
+                'target#tgt1': {'build_by_default': True}
+            }
+        }
+        self.assertDictEqual(out, expected)
+
+    def test_kwargs_set(self):
+        self.prime('3 kwargs')
+        self.rewrite(self.builddir, os.path.join(self.builddir, 'set.json'))
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+        expected = {
+            'kwargs': {
+                'project#': {'version': '0.0.2', 'meson_version': '0.50.0', 'license': ['GPL', 'MIT']},
+                'target#tgt1': {'build_by_default': False, 'build_rpath': '/usr/local', 'dependencies': 'dep1'}
+            }
+        }
+        self.assertDictEqual(out, expected)
+
+    def test_kwargs_add(self):
+        self.prime('3 kwargs')
+        self.rewrite(self.builddir, os.path.join(self.builddir, 'add.json'))
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+        expected = {
+            'kwargs': {
+                'project#': {'version': '0.0.1', 'license': ['GPL', 'MIT', 'BSD']},
+                'target#tgt1': {'build_by_default': True}
+            }
+        }
+        self.assertDictEqual(out, expected)
+
+    def test_kwargs_remove(self):
+        self.prime('3 kwargs')
+        self.rewrite(self.builddir, os.path.join(self.builddir, 'remove.json'))
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+        expected = {
+            'kwargs': {
+                'project#': {'version': '0.0.1', 'license': 'GPL'},
+                'target#tgt1': {'build_by_default': True}
+            }
+        }
+        self.assertDictEqual(out, expected)
+
+    def test_kwargs_delete(self):
+        self.prime('3 kwargs')
+        self.rewrite(self.builddir, os.path.join(self.builddir, 'delete.json'))
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+        expected = {
+            'kwargs': {
+                'project#': {},
+                'target#tgt1': {}
+            }
+        }
+        self.assertDictEqual(out, expected)
+
 class NativeFileTests(BasePlatformTests):
 
     def setUp(self):

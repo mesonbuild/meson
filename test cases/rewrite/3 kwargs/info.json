@@ -1,0 +1,14 @@
+[
+  {
+    "type": "kwargs",
+    "function": "project",
+    "id": "",
+    "operation": "info"
+  },
+  {
+    "type": "kwargs",
+    "function": "target",
+    "id": "tgt1",
+    "operation": "info"
+  }
+]

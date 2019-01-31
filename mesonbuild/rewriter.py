@@ -232,7 +232,7 @@ class MesonIDList(MesonList):
         super().__init__(node)
 
     def _new_element_node(self, value):
-        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, str(value)))
+        return mparser.IdNode(mparser.Token('', '', 0, 0, 0, None, str(value)))
 
     def _check_is_equal(self, node, value):
         if isinstance(node, mparser.IdNode):
@@ -246,7 +246,7 @@ rewriter_keys = {
     'kwargs': {
         'function': (str, None, None),
         'id': (str, None, None),
-        'operation': (str, None, ['set', 'delete', 'add', 'remove']),
+        'operation': (str, None, ['set', 'delete', 'add', 'remove', 'info']),
         'kwargs': (dict, {}, None)
     },
     'target': {
@@ -355,16 +355,40 @@ class Rewriter:
 
         # Find the function node to modify
         node = None
+        arg_node = None
         if cmd['function'] == 'project':
             node = self.interpreter.project_node
+            arg_node = node.args
         elif cmd['function'] == 'target':
             tmp = self.find_target(cmd['id'])
             if tmp:
                 node = tmp['node']
+                arg_node = node.args
         if not node:
             mlog.error('Unable to find the function node')
         assert(isinstance(node, mparser.FunctionNode))
+        assert(isinstance(arg_node, mparser.ArgumentNode))
 
+        # Print kwargs info
+        if cmd['operation'] == 'info':
+            info_data = {}
+            for key, val in arg_node.kwargs.items():
+                info_data[key] = None
+                if isinstance(val, mparser.ElementaryNode):
+                    info_data[key] = val.value
+                elif isinstance(val, mparser.ArrayNode):
+                    data_list = []
+                    for i in val.args.arguments:
+                        element = None
+                        if isinstance(i, mparser.ElementaryNode):
+                            element = i.value
+                        data_list += [element]
+                    info_data[key] = data_list
+
+            self.add_info('kwargs', '{}#{}'.format(cmd['function'], cmd['id']), info_data)
+            return # Nothing else to do
+
+        # Modify the kwargs
         num_changed = 0
         for key, val in cmd['kwargs'].items():
             if key not in kwargs_def:
@@ -373,17 +397,17 @@ class Rewriter:
 
             # Remove the key from the kwargs
             if cmd['operation'] == 'delete':
-                if key in node.args.kwargs:
+                if key in arg_node.kwargs:
                     mlog.log('  -- Deleting', mlog.bold(key), 'from the kwargs')
-                    del node.args.kwargs[key]
+                    del arg_node.kwargs[key]
                     num_changed += 1
                 else:
                     mlog.log('  -- Key', mlog.bold(key), 'is already deleted')
                 continue
 
-            if key not in node.args.kwargs:
-                node.args.kwargs[key] = None
-            modifyer = kwargs_def[key](node.args.kwargs[key])
+            if key not in arg_node.kwargs:
+                arg_node.kwargs[key] = None
+            modifyer = kwargs_def[key](arg_node.kwargs[key])
             if not modifyer.can_modify():
                 mlog.log('  -- Skipping', mlog.bold(key), 'because it is to complex to modify')
 
@@ -400,7 +424,7 @@ class Rewriter:
                 modifyer.remove_value(val)
 
             # Write back the result
-            node.args.kwargs[key] = modifyer.get_node()
+            arg_node.kwargs[key] = modifyer.get_node()
             num_changed += 1
 
         if num_changed > 0 and node not in self.modefied_nodes:

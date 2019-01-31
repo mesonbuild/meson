@@ -163,10 +163,8 @@ class IntrospectionInterpreter(AstInterpreter):
             if elemetary_nodes:
                 source_nodes += [curr]
 
-        # Filter out kwargs from other target types. For example 'soversion'
-        # passed to library() when default_library == 'static'.
-        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
-
+        # Make sure nothing can crash when creating the build class
+        kwargs = {}
         is_cross = False
         objects = []
         empty_sources = [] # Passing the unresolved sources list causes errors
