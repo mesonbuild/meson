@@ -496,6 +496,10 @@ def skippable(suite, test):
             return 'BOOST_ROOT' not in os.environ
         return False
 
+    # Qt is provided on macOS by Homebrew
+    if test.endswith('4 qt') and mesonlib.is_osx():
+        return False
+
     # Other framework tests are allowed to be skipped on other platforms
     return True
 
