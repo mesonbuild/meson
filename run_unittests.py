@@ -42,6 +42,7 @@ import mesonbuild.mesonlib
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter, ObjectHolder
+from mesonbuild.ast import AstInterpreter
 from mesonbuild.mesonlib import (
     is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku,
     windows_proof_rmtree, python_command, version_compare,
@@ -1052,6 +1053,16 @@ class DataTests(unittest.TestCase):
             res = re.search(r'syn keyword mesonBuiltin(\s+\\\s\w+)+', f.read(), re.MULTILINE)
             defined = set([a.strip() for a in res.group().split('\\')][1:])
             self.assertEqual(defined, set(chain(interp.funcs.keys(), interp.builtin.keys())))
+
+    def test_all_functions_defined_in_ast_interpreter(self):
+        '''
+        Ensure that the all functions defined in the Interpreter are also defined
+        in the AstInterpreter (and vice versa).
+        '''
+        env = get_fake_env()
+        interp = Interpreter(FakeBuild(env), mock=True)
+        astint = AstInterpreter('.', '')
+        self.assertEqual(set(interp.funcs.keys()), set(astint.funcs.keys()))
 
 
 class BasePlatformTests(unittest.TestCase):

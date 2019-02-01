@@ -89,6 +89,16 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'set_variable': self.func_do_nothing,
                            'get_variable': self.func_do_nothing,
                            'is_variable': self.func_do_nothing,
+                           'disabler': self.func_do_nothing,
+                           'gettext': self.func_do_nothing,
+                           'jar': self.func_do_nothing,
+                           'warning': self.func_do_nothing,
+                           'shared_module': self.func_do_nothing,
+                           'option': self.func_do_nothing,
+                           'both_libraries': self.func_do_nothing,
+                           'add_test_setup': self.func_do_nothing,
+                           'find_library': self.func_do_nothing,
+                           'subdir_done': self.func_do_nothing,
                            })
 
     def func_do_nothing(self, node, args, kwargs):
