@@ -3351,7 +3351,7 @@ recommended as it is not supported on some platforms''')
         # Check buildsystem_files
         bs_files = ['meson.build', 'sharedlib/meson.build', 'staticlib/meson.build']
         bs_files = [os.path.join(testdir, x) for x in bs_files]
-        self.assertPathListEqual(res['buildsystem_files'], bs_files)
+        self.assertPathListEqual(list(sorted(res['buildsystem_files'])), list(sorted(bs_files)))
 
         # Check dependencies
         dependencies_to_find = ['threads']
