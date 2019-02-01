@@ -1934,11 +1934,6 @@ class ExtraFrameworkDependency(ExternalDependency):
             self.link_args = ['-F' + self.path, '-framework', self.name.split('.')[0]]
 
     def detect(self, name, path):
-        # should use the compiler to look for frameworks, rather than peering at
-        # the filesystem, so we can also find them when cross-compiling
-        if self.want_cross:
-            return
-
         lname = name.lower()
         if path is None:
             paths = ['/System/Library/Frameworks', '/Library/Frameworks']
