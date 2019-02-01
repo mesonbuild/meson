@@ -9,7 +9,7 @@ unsigned maj, min, rel;
 
 ier = H5open();
 if (ier) {
-    std::cerr << "Unable to initialize HDF5: %d" << ier << std::endl;
+    std::cerr << "Unable to initialize HDF5: " << ier << std::endl;
     return EXIT_FAILURE;
 }
 
@@ -18,11 +18,11 @@ if (ier) {
     std::cerr << "HDF5 did not initialize!" << std::endl;
     return EXIT_FAILURE;
 }
-printf("C++ HDF5 version %d.%d.%d\n", maj, min, rel);
+std::cout << "C++ HDF5 version " << maj << "." << min << "." << rel << std::endl;
 
 ier = H5close();
 if (ier) {
-    std::cerr << "Unable to close HDF5: %d"  << ier << std::endl;
+    std::cerr << "Unable to close HDF5: " << ier << std::endl;
     return EXIT_FAILURE;
 }
 return EXIT_SUCCESS;

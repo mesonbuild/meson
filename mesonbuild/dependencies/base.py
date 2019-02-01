@@ -19,7 +19,6 @@ import copy
 import functools
 import os
 import re
-import stat
 import json
 import shlex
 import shutil
