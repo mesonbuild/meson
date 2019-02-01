@@ -596,7 +596,7 @@ class Vs2010Backend(backends.Backend):
 
     def add_additional_options(self, lang, parent_node, file_args):
         args = []
-        for arg in file_args[lang].to_native():
+        for arg in file_args[lang].to_native(self.environment):
             if self.is_argument_with_msbuild_xml_entry(arg):
                 continue
             if arg == '%(AdditionalOptions)':
@@ -1080,7 +1080,7 @@ class Vs2010Backend(backends.Backend):
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
         extra_link_args += compiler.get_option_link_args(self.environment.coredata.compiler_options)
-        (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args.to_native())
+        (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args.to_native(self.environment))
 
         # Add more libraries to be linked if needed
         for t in target.get_dependencies():

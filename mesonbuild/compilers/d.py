@@ -264,7 +264,7 @@ class DCompiler(Compiler):
     def get_std_exe_link_args(self):
         return []
 
-    def gen_import_library_args(self, implibname):
+    def gen_import_library_args(self, env, implibname):
         return ['-Wl,--out-implib=' + implibname]
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
@@ -319,7 +319,7 @@ class DCompiler(Compiler):
     def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile'):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
 
-        with self.compile(code, args, mode) as p:
+        with self.compile(code, env, args, mode) as p:
             return p.returncode == 0
 
     def has_multi_arguments(self, args, env):

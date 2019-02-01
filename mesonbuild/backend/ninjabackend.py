@@ -1981,7 +1981,7 @@ rule FORTRAN_DEP_HACK%s
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
         # Convert from GCC-style link argument naming to the naming used by the
         # current compiler.
-        commands = commands.to_native()
+        commands = commands.to_native(self.environment)
         element.add_item('ARGS', commands)
         element.write(outfile)
         return rel_obj
@@ -2198,7 +2198,7 @@ rule FORTRAN_DEP_HACK%s
         element.add_orderdep(pch_dep)
         # Convert from GCC-style link argument naming to the naming used by the
         # current compiler.
-        commands = commands.to_native()
+        commands = commands.to_native(self.environment)
         for i in self.get_fortran_orderdeps(target, compiler):
             element.add_orderdep(i)
         element.add_item('DEPFILE', dep_file)
@@ -2316,7 +2316,8 @@ rule FORTRAN_DEP_HACK%s
                 commands += linker.gen_export_dynamic_link_args(self.environment)
             # If implib, and that's significant on this platform (i.e. Windows using either GCC or Visual Studio)
             if target.import_filename:
-                commands += linker.gen_import_library_args(os.path.join(self.get_target_dir(target), target.import_filename))
+                commands += linker.gen_import_library_args(self.environment,
+                                                           os.path.join(self.get_target_dir(target), target.import_filename))
             if target.pie:
                 commands += linker.get_pie_link_args()
         elif isinstance(target, build.SharedLibrary):
@@ -2336,7 +2337,8 @@ rule FORTRAN_DEP_HACK%s
                 commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
             # This is only visited when building for Windows using either GCC or Visual Studio
             if target.import_filename:
-                commands += linker.gen_import_library_args(os.path.join(self.get_target_dir(target), target.import_filename))
+                commands += linker.gen_import_library_args(self.environment,
+                                                           os.path.join(self.get_target_dir(target), target.import_filename))
         elif isinstance(target, build.StaticLibrary):
             commands += linker.get_std_link_args()
         else:
@@ -2550,7 +2552,7 @@ rule FORTRAN_DEP_HACK%s
         commands += stdlib_args # Standard library arguments go last, because they never depend on anything.
         # Convert from GCC-style link argument naming to the naming used by the
         # current compiler.
-        commands = commands.to_native()
+        commands = commands.to_native(self.environment)
         dep_targets.extend([self.get_dependency_filename(t) for t in dependencies])
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])

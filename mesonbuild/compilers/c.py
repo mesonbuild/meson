@@ -85,8 +85,11 @@ class CCompiler(Compiler):
         else:
             self.exe_wrapper = exe_wrapper.get_command()
 
-        # Set to None until we actually need to check this
+        # Set to None until we actually need to check these
         self.has_fatal_warnings_link_arg = None
+        self.has_wx_link_arg = None
+        self.has_link_compat_implib_arg = None
+        self.has_group_args = None
 
     def needs_static_linker(self):
         return True # When compiling static libraries, so yes.
@@ -298,13 +301,29 @@ class CCompiler(Compiler):
         else:
             return ['-Wl,-export-dynamic']
 
-    def gen_import_library_args(self, implibname):
+    def gen_import_library_args(self, env, implibname):
         """
         The name of the outputted import library
 
         This implementation is used only on Windows by compilers that use GNU ld
         """
-        return ['-Wl,--out-implib=' + implibname]
+        link_compat_implib_arg = ['-Wl,/implib:']
+        if self.has_link_compat_implib_arg is None:
+            self.has_link_compat_implib_arg = False
+            self.has_link_compat_implib_arg = self.has_multi_link_arguments(link_compat_implib_arg, env)
+
+        if self.has_link_compat_implib_arg:
+            return ['-Wl,/implib:' + implibname]
+        else:
+            return ['-Wl,--out-implib=' + implibname]
+
+    def get_link_group_args(self, env):
+        group_args = ['-Wl,--start-group', '-Wl,--end-group']
+        if self.has_group_args is None:
+            self.has_group_args = False
+            self.has_group_args = self.has_multi_link_arguments(group_args, env)
+
+        return group_args if self.has_group_args else None
 
     def sanity_check_impl(self, work_dir, environment, sname, code):
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
@@ -453,7 +472,7 @@ class CCompiler(Compiler):
 
     def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
-        return self.compile(code, args, mode, want_output=want_output)
+        return self.compile(code, env, args, mode, want_output=want_output)
 
     def links(self, code, env, *, extra_args=None, dependencies=None):
         return self.compiles(code, env, extra_args=extra_args,
@@ -654,8 +673,8 @@ class CCompiler(Compiler):
         #endif
         {delim}\n{define}'''
         args = self._get_compiler_check_args(env, extra_args, dependencies,
-                                             mode='preprocess').to_native()
-        with self.compile(code.format(**fargs), args, 'preprocess') as p:
+                                             mode='preprocess').to_native(env)
+        with self.compile(code.format(**fargs), env, args, 'preprocess') as p:
             if p.returncode != 0:
                 raise EnvironmentException('Could not get define {!r}'.format(dname))
         # Get the preprocessed value after the delimiter,
@@ -874,7 +893,7 @@ class CCompiler(Compiler):
         args = self.get_cross_extra_flags(env, link=False)
         args += self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
-        with self.compile(code, args, 'compile', want_output=True) as p:
+        with self.compile(code, env, args, 'compile', want_output=True) as p:
             if p.returncode != 0:
                 m = 'BUG: Unable to compile {!r} check: {}'
                 raise RuntimeError(m.format(n, p.stdo))
@@ -1166,15 +1185,32 @@ class CCompiler(Compiler):
 
     def has_multi_link_arguments(self, args, env):
         # First time we check for link flags we need to first check if we have
-        # --fatal-warnings, otherwise some linker checks could give some
+        # --fatal-warnings, or /WX otherwise some linker checks could give some
         # false positive.
+        #
+        # Note: since we aren't initially sure whether has_multi_link_arguments
+        # success means the argument is supported or has simply been ignored
+        # we also explicitly check for a failure too.
+        #
         fatal_warnings_args = ['-Wl,--fatal-warnings']
+        wx_args = ['-Wl,/WX']
+
         if self.has_fatal_warnings_link_arg is None:
+            invalid_arg = ['-Wl,--asdfghijkl']
             self.has_fatal_warnings_link_arg = False
-            self.has_fatal_warnings_link_arg = self.has_multi_link_arguments(fatal_warnings_args, env)
+            self.has_wx_link_arg = False
+            self.has_fatal_warnings_link_arg = ((self.has_multi_link_arguments(fatal_warnings_args, env) and not
+                                                 self.has_multi_link_arguments(fatal_warnings_args + invalid_arg, env)))
+            if not self.has_fatal_warnings_link_arg:
+                self.has_wx_link_arg = ((self.has_multi_link_arguments(wx_args, env) and not
+                                         self.has_multi_link_arguments(wx_args + invalid_arg, env)))
+
+            assert(not self.has_multi_link_arguments(invalid_arg, env))
 
         if self.has_fatal_warnings_link_arg:
             args = fatal_warnings_args + args
+        elif self.has_wx_link_arg:
+            args = wx_args + args
 
         args = self.linker_to_compiler_args(args)
         code = 'int main(int argc, char **argv) { return 0; }'
@@ -1500,7 +1536,7 @@ class VisualStudioCCompiler(CCompiler):
         objname = os.path.splitext(pchname)[0] + '.obj'
         return objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname]
 
-    def gen_import_library_args(self, implibname):
+    def gen_import_library_args(self, env, implibname):
         "The name of the outputted import library"
         return ['/IMPLIB:' + implibname]
 

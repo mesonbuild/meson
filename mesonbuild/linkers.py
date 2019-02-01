@@ -22,6 +22,14 @@ class StaticLinker:
         """
         return mesonlib.is_windows()
 
+    def get_link_group_args(self, env):
+        """
+        Determines if the linker supports bracketing dependency libraries into
+        groups within which circular dependencies are allowed. If so return
+        an array like [ '--start-group', '--end-group' ]
+        """
+        return None
+
 
 class VisualStudioLinker(StaticLinker):
     always_args = ['/NOLOGO']

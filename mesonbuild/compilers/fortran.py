@@ -209,8 +209,8 @@ class FortranCompiler(Compiler):
     def gen_export_dynamic_link_args(self, env):
         return CCompiler.gen_export_dynamic_link_args(self, env)
 
-    def gen_import_library_args(self, implibname):
-        return CCompiler.gen_import_library_args(self, implibname)
+    def gen_import_library_args(self, env, implibname):
+        return CCompiler.gen_import_library_args(self, env, implibname)
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         return CCompiler._get_compiler_check_args(self, env, extra_args, dependencies, mode='compile')
