@@ -267,8 +267,8 @@ class FortranCompiler(Compiler):
         return CCompiler._get_trials_from_pattern(pattern, directory, libname)
 
     @staticmethod
-    def _get_file_from_list(files) -> List[str]:
-        return CCompiler._get_file_from_list(files)
+    def _get_file_from_list(env, files: List[str]) -> str:
+        return CCompiler._get_file_from_list(env, files)
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):

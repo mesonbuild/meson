@@ -52,23 +52,25 @@ class HDF5Dependency(ExternalDependency):
                 if pkgdep.found():
                     self.compile_args = pkgdep.get_compile_args()
                     # derive needed libraries by language
-                    link_args = pkgdep.get_link_args()
-                    lang_link_args = []
-                    for larg in link_args:
+                    pd_link_args = pkgdep.get_link_args()
+                    link_args = []
+                    for larg in pd_link_args:
                         lpath = Path(larg)
                         if lpath.is_file():
                             if language == 'cpp':
-                                lang_link_args.append(str(lpath.parent / (lpath.stem + '_hl_cpp' + lpath.suffix)))
-                                lang_link_args.append(str(lpath.parent / (lpath.stem + '_cpp' + lpath.suffix)))
+                                link_args.append(str(lpath.parent / (lpath.stem + '_hl_cpp' + lpath.suffix)))
+                                link_args.append(str(lpath.parent / (lpath.stem + '_cpp' + lpath.suffix)))
                             elif language == 'fortran':
-                                lang_link_args.append(str(lpath.parent / (lpath.stem + 'hl_fortran' + lpath.suffix)))
-                                lang_link_args.append(str(lpath.parent / (lpath.stem + '_fortran' + lpath.suffix)))
+                                link_args.append(str(lpath.parent / (lpath.stem + 'hl_fortran' + lpath.suffix)))
+                                link_args.append(str(lpath.parent / (lpath.stem + '_fortran' + lpath.suffix)))
 
-                            # C is used by other languages
-                            lang_link_args.append(str(lpath.parent / (lpath.stem + '_hl' + lpath.suffix)))
-                            lang_link_args.append(larg)
+                            # HDF5 C libs are required by other HDF5 languages
+                            link_args.append(str(lpath.parent / (lpath.stem + '_hl' + lpath.suffix)))
+                            link_args.append(larg)
+                        else:
+                            link_args.append(larg)
 
-                    self.link_args = lang_link_args
+                    self.link_args = link_args
                     self.version = pkgdep.get_version()
                     self.is_found = True
                     self.pcdep = pkgdep

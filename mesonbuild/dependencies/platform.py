@@ -15,8 +15,6 @@
 # This file contains the detection logic for external dependencies that are
 # platform-specific (generally speaking).
 
-from .. import mesonlib
-
 from .base import ExternalDependency, DependencyException
 
 
