@@ -655,6 +655,8 @@ def default_libdir():
                 return 'lib/' + archpath
         except Exception:
             pass
+    if is_freebsd():
+        return 'lib'
     if os.path.isdir('/usr/lib64') and not os.path.islink('/usr/lib64'):
         return 'lib64'
     return 'lib'
