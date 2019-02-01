@@ -680,6 +680,8 @@ def get_library_dirs() -> List[str]:
     # problematic, please raise the issue on the mailing list.
     unixdirs = ['/usr/local/lib', '/usr/lib', '/lib']
 
+    if is_freebsd():
+        return unixdirs
     # FIXME: this needs to be further genericized for aarch64 etc.
     machine = platform.machine()
     if machine in ('i386', 'i486', 'i586', 'i686'):
