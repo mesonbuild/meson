@@ -475,6 +475,7 @@ def darwin_get_object_archs(objpath):
     stdo = stdo.rsplit(': ', 1)[1]
     # Convert from lipo-style archs to meson-style CPUs
     stdo = stdo.replace('i386', 'x86')
+    stdo = stdo.replace('arm64', 'aarch64')
     # Add generic name for armv7 and armv7s
     if 'armv7' in stdo:
         stdo += ' arm'
