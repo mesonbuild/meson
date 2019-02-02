@@ -60,6 +60,7 @@ class PythonDependency(ExternalDependency):
         self.pkgdep = None
         self.variables = python_holder.variables
         self.paths = python_holder.paths
+        self.link_libpython = python_holder.link_libpython
         if mesonlib.version_compare(self.version, '>= 3.0'):
             self.major_version = 3
         else:
@@ -149,10 +150,10 @@ class PythonDependency(ExternalDependency):
             libdirs = []
 
         largs = self.clib_compiler.find_library(libname, environment, libdirs)
-
-        self.is_found = largs is not None
-        if self.is_found:
+        if largs is not None:
             self.link_args = largs
+
+        self.is_found = largs is not None or not self.link_libpython
 
         inc_paths = mesonlib.OrderedSet([
             self.variables.get('INCLUDEPY'),
