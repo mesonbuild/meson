@@ -291,17 +291,17 @@ class GnomeModule(ExtensionModule):
         binary_name = os.path.join(state.subdir, g_output)
         symbol_name = ''.join([c if c.isalnum() else '_' for c in binary_name])
 
-        linkerscript_string = 'SECTIONS\n'
-        linkerscript_string += '{\n'
-        linkerscript_string += '  .gresource.' + c_name_no_underscores + ' : ALIGN(8)\n'
-        linkerscript_string += '  {\n'
-        linkerscript_string += '    ' + c_name + '_resource_data = _binary_' + symbol_name + '_start;\n'
-        linkerscript_string += '  }\n'
-        linkerscript_string += '  .data :\n'
-        linkerscript_string += '  {\n'
-        linkerscript_string += '    *(.data)\n'
-        linkerscript_string += '  }\n'
-        linkerscript_string += '}'
+        linkerscript_string = '''SECTIONS
+{{
+  .gresource.{} : ALIGN(8)
+  {{
+    {}_resource_data = _binary_{}_start;
+  }}
+  .data :
+  {{
+    *(.data)
+  }}
+}}'''.format(c_name_no_underscores, c_name, symbol_name)
 
         linkerscript_file.write(linkerscript_string)
 
