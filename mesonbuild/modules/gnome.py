@@ -181,7 +181,7 @@ class GnomeModule(ExtensionModule):
         cmd += mesonlib.stringlistify(kwargs.pop('extra_args', []))
 
         gresource_ld_binary = False
-        if mesonlib.is_linux() and mesonlib.version_compare(glib_version, gresource_ld_binary_needed_version):
+        if mesonlib.is_linux() and mesonlib.version_compare(glib_version, gresource_ld_binary_needed_version) and not state.environment.is_cross_build():
             ld_obj = self.interpreter.find_program_impl('ld', required=False)
             if ld_obj.found():
                 gresource_ld_binary = True
