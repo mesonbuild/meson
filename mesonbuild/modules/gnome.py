@@ -170,8 +170,6 @@ class GnomeModule(ExtensionModule):
             cmd += ['--c-name', c_name]
         else:
             c_name = os.path.basename(ifile).partition('.')[0]
-        c_name = c_name.replace('-', '_')
-        c_name_no_underscores = c_name.replace('_', '')
         export = kwargs.pop('export', False)
         if not export:
             cmd += ['--internal']
@@ -185,12 +183,6 @@ class GnomeModule(ExtensionModule):
             ld_obj = self.interpreter.find_program_impl('ld', required=False)
             if ld_obj.found():
                 gresource_ld_binary = True
-                ld = ld_obj.get_command()
-                objcopy_object = self.interpreter.find_program_impl('objcopy', required=False)
-                if objcopy_object.found():
-                    objcopy = objcopy_object.get_command()
-                else:
-                    objcopy = None
 
         gresource = kwargs.pop('gresource_bundle', False)
         if gresource or gresource_ld_binary:
@@ -267,13 +259,22 @@ class GnomeModule(ExtensionModule):
         target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, state.subproject, h_kwargs)
 
         if gresource_ld_binary:
-            return self._create_gresource_ld_binary_targets(ld, target_g, args, state, g_output, c_name_no_underscores, c_name, objcopy, target_c, target_h)
+            return self._create_gresource_ld_binary_targets(args, state, ld_obj, c_name, target_g, g_output, target_c, target_h)
         else:
             rv = [target_c, target_h]
 
         return ModuleReturnValue(rv, rv)
 
-    def _create_gresource_ld_binary_targets(self, ld, target_g, args, state, g_output, c_name_no_underscores, c_name, objcopy, target_c, target_h):
+    def _create_gresource_ld_binary_targets(self, args, state, ld_obj, c_name, target_g, g_output, target_c, target_h):
+        c_name = c_name.replace('-', '_')
+        c_name_no_underscores = c_name.replace('_', '')
+
+        ld = ld_obj.get_command()
+        objcopy_object = self.interpreter.find_program_impl('objcopy', required=False)
+        if objcopy_object.found():
+            objcopy = objcopy_object.get_command()
+        else:
+            objcopy = None
 
         o_kwargs = {
             'command': [ld, '-r', '-b', 'binary', '@INPUT@', '-o', '@OUTPUT@'],
