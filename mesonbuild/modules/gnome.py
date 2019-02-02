@@ -267,76 +267,79 @@ class GnomeModule(ExtensionModule):
         target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, state.subproject, h_kwargs)
 
         if gresource_ld_binary:
-            o_kwargs = {
-                'command': [ld, '-r', '-b', 'binary', '@INPUT@', '-o', '@OUTPUT@'],
-                'input': target_g,
-                'output': args[0] + '.o'
-            }
-
-            target_o = GResourceObjectTarget(args[0] + '_o', state.subdir, state.subproject, o_kwargs)
-
-            builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
-            linkerscript_name = args[0] + '_map.ld'
-            linkerscript_path = os.path.join(builddir, linkerscript_name)
-            linkerscript_file = open(linkerscript_path, 'w')
-
-            binary_name = os.path.join(state.subdir, g_output)
-            symbol_name = ''.join([c if c.isalnum() else '_' for c in binary_name])
-
-            linkerscript_string = 'SECTIONS\n'
-            linkerscript_string += '{\n'
-            linkerscript_string += '  .gresource.' + c_name_no_underscores + ' : ALIGN(8)\n'
-            linkerscript_string += '  {\n'
-            linkerscript_string += '    ' + c_name + '_resource_data = _binary_' + symbol_name + '_start;\n'
-            linkerscript_string += '  }\n'
-            linkerscript_string += '  .data :\n'
-            linkerscript_string += '  {\n'
-            linkerscript_string += '    *(.data)\n'
-            linkerscript_string += '  }\n'
-            linkerscript_string += '}'
-
-            linkerscript_file.write(linkerscript_string)
-
-            o2_kwargs = {
-                'command': [ld, '-r', '-T', os.path.join(state.subdir, linkerscript_name), '@INPUT@', '-o', '@OUTPUT@'],
-                'input': target_o,
-                'output': args[0] + '2.o',
-            }
-            target_o2 = GResourceObjectTarget(args[0] + '2_o', state.subdir, state.subproject, o2_kwargs)
-
-            if objcopy is not None:
-                objcopy_cmd = [objcopy, '--set-section-flags', '.gresource.' + c_name + '=readonly,alloc,load,data']
-                objcopy_cmd += ['-N', '_binary_' + symbol_name + '_start']
-                objcopy_cmd += ['-N', '_binary_' + symbol_name + '_end']
-                objcopy_cmd += ['-N', '_binary_' + symbol_name + '_size']
-                objcopy_cmd += ['@INPUT@', '@OUTPUT@']
-
-                o3_kwargs = {
-                    'command': objcopy_cmd,
-                    'input': target_o2,
-                    'output': args[0] + '3.o'
-                }
-
-                target_o3 = GResourceObjectTarget(args[0] + '3_o', state.subdir, state.subproject, o3_kwargs)
-
-                rv1 = [target_c, target_h, target_o3]
-                if target_g.get_id() not in self.interpreter.build.targets:
-                    rv2 = rv1 + [target_g, target_o, target_o2]
-                else:
-                    rv2 = rv1 + [target_o, target_o2]
-            else:
-                rv1 = [target_c, target_h, target_o2]
-                if target_g.get_id() not in self.interpreter.build.targets:
-                    rv2 = rv1 + [target_g, target_o]
-                else:
-                    rv2 = rv1 + [target_o]
-
-            return ModuleReturnValue(rv1, rv2)
-
+            return self._create_gresource_ld_binary_targets(ld, target_g, args, state, g_output, c_name_no_underscores, c_name, objcopy, target_c, target_h)
         else:
             rv = [target_c, target_h]
 
         return ModuleReturnValue(rv, rv)
+
+    def _create_gresource_ld_binary_targets(self, ld, target_g, args, state, g_output, c_name_no_underscores, c_name, objcopy, target_c, target_h):
+
+        o_kwargs = {
+            'command': [ld, '-r', '-b', 'binary', '@INPUT@', '-o', '@OUTPUT@'],
+            'input': target_g,
+            'output': args[0] + '.o'
+        }
+
+        target_o = GResourceObjectTarget(args[0] + '_o', state.subdir, state.subproject, o_kwargs)
+
+        builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
+        linkerscript_name = args[0] + '_map.ld'
+        linkerscript_path = os.path.join(builddir, linkerscript_name)
+        linkerscript_file = open(linkerscript_path, 'w')
+
+        binary_name = os.path.join(state.subdir, g_output)
+        symbol_name = ''.join([c if c.isalnum() else '_' for c in binary_name])
+
+        linkerscript_string = 'SECTIONS\n'
+        linkerscript_string += '{\n'
+        linkerscript_string += '  .gresource.' + c_name_no_underscores + ' : ALIGN(8)\n'
+        linkerscript_string += '  {\n'
+        linkerscript_string += '    ' + c_name + '_resource_data = _binary_' + symbol_name + '_start;\n'
+        linkerscript_string += '  }\n'
+        linkerscript_string += '  .data :\n'
+        linkerscript_string += '  {\n'
+        linkerscript_string += '    *(.data)\n'
+        linkerscript_string += '  }\n'
+        linkerscript_string += '}'
+
+        linkerscript_file.write(linkerscript_string)
+
+        o2_kwargs = {
+            'command': [ld, '-r', '-T', os.path.join(state.subdir, linkerscript_name), '@INPUT@', '-o', '@OUTPUT@'],
+            'input': target_o,
+            'output': args[0] + '2.o',
+        }
+        target_o2 = GResourceObjectTarget(args[0] + '2_o', state.subdir, state.subproject, o2_kwargs)
+
+        if objcopy is not None:
+            objcopy_cmd = [objcopy, '--set-section-flags', '.gresource.' + c_name + '=readonly,alloc,load,data']
+            objcopy_cmd += ['-N', '_binary_' + symbol_name + '_start']
+            objcopy_cmd += ['-N', '_binary_' + symbol_name + '_end']
+            objcopy_cmd += ['-N', '_binary_' + symbol_name + '_size']
+            objcopy_cmd += ['@INPUT@', '@OUTPUT@']
+
+            o3_kwargs = {
+                'command': objcopy_cmd,
+                'input': target_o2,
+                'output': args[0] + '3.o'
+            }
+
+            target_o3 = GResourceObjectTarget(args[0] + '3_o', state.subdir, state.subproject, o3_kwargs)
+
+            rv1 = [target_c, target_h, target_o3]
+            if target_g.get_id() not in self.interpreter.build.targets:
+                rv2 = rv1 + [target_g, target_o, target_o2]
+            else:
+                rv2 = rv1 + [target_o, target_o2]
+        else:
+            rv1 = [target_c, target_h, target_o2]
+            if target_g.get_id() not in self.interpreter.build.targets:
+                rv2 = rv1 + [target_g, target_o]
+            else:
+                rv2 = rv1 + [target_o]
+
+        return ModuleReturnValue(rv1, rv2)
 
     def _get_gresource_dependencies(self, state, input_file, source_dirs, dependencies):
 
