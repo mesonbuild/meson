@@ -42,7 +42,7 @@ from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewK
 # https://bugzilla.gnome.org/show_bug.cgi?id=774368
 gresource_dep_needed_version = '>= 2.51.1'
 
-gresource_ld_binary_needed_version = '>= 2.59'
+gresource_ld_binary_needed_version = '>= 2.60'
 
 native_glib_version = None
 girwarning_printed = False
