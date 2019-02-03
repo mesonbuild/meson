@@ -16,6 +16,8 @@
 functionality such as gobject-introspection, gresources and gtk-doc'''
 
 import os
+import re
+import sys
 import copy
 import shlex
 import subprocess
@@ -169,7 +171,7 @@ class GnomeModule(ExtensionModule):
             c_name = kwargs.pop('c_name')
             cmd += ['--c-name', c_name]
         else:
-            c_name = os.path.basename(ifile).partition('.')[0]
+            c_name = None
         export = kwargs.pop('export', False)
         if not export:
             cmd += ['--internal']
@@ -259,15 +261,21 @@ class GnomeModule(ExtensionModule):
         target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, state.subproject, h_kwargs)
 
         if gresource_ld_binary:
-            return self._create_gresource_ld_binary_targets(args, state, ld_obj, c_name, target_g, g_output, target_c, target_h)
+            return self._create_gresource_ld_binary_targets(args, state, ifile, ld_obj, c_name, target_g, g_output, target_c, target_h)
         else:
             rv = [target_c, target_h]
 
         return ModuleReturnValue(rv, rv)
 
-    def _create_gresource_ld_binary_targets(self, args, state, ld_obj, c_name, target_g, g_output, target_c, target_h):
-        c_name = c_name.replace('-', '_')
-        c_name_no_underscores = c_name.replace('_', '')
+    def _create_gresource_ld_binary_targets(self, args, state, ifile, ld_obj, c_name, target_g, g_output, target_c, target_h):
+        if c_name is None:
+            # Create proper c identifier from filename in the way glib-compile-resources does
+            c_name = os.path.basename(ifile).partition('.')[0]
+            c_name = c_name.replace('-', '_')
+            c_name = re.sub(r'^([^(_a-zA-Z)])+', '', c_name)
+            c_name = re.sub(r'([^(_a-zA-Z0-9)])', '', c_name)
+
+        c_name_no_underscores = re.sub(r'^_+', '', c_name)
 
         ld = ld_obj.get_command()
         objcopy_object = self.interpreter.find_program_impl('objcopy', required=False)
@@ -279,18 +287,20 @@ class GnomeModule(ExtensionModule):
         o_kwargs = {
             'command': [ld, '-r', '-b', 'binary', '@INPUT@', '-o', '@OUTPUT@'],
             'input': target_g,
-            'output': args[0] + '.o'
+            'output': args[0] + '1.o'
         }
 
-        target_o = GResourceObjectTarget(args[0] + '_o', state.subdir, state.subproject, o_kwargs)
+        target_o = GResourceObjectTarget(args[0] + '1_o', state.subdir, state.subproject, o_kwargs)
 
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
         linkerscript_name = args[0] + '_map.ld'
         linkerscript_path = os.path.join(builddir, linkerscript_name)
         linkerscript_file = open(linkerscript_path, 'w')
 
+        # Create symbol name the way bfd does
         binary_name = os.path.join(state.subdir, g_output)
-        symbol_name = ''.join([c if c.isalnum() else '_' for c in binary_name])
+        encoding = sys.getfilesystemencoding()
+        symbol_name = re.sub(rb'([^(_a-zA-Z0-9)])', b'_', binary_name.encode(encoding)).decode(encoding)
 
         linkerscript_string = '''SECTIONS
 {{
