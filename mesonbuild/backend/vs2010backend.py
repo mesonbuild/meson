@@ -1153,7 +1153,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(meson_file_group, 'None', Include=os.path.join(proj_to_src_dir, build_filename))
 
         extra_files = target.extra_files
-        if len(headers) + len(gen_hdrs) + len(extra_files) > 0:
+        if len(headers) + len(gen_hdrs) + len(extra_files) + len(pch_sources) > 0:
             inc_hdrs = ET.SubElement(root, 'ItemGroup')
             for h in headers:
                 relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
@@ -1163,6 +1163,9 @@ class Vs2010Backend(backends.Backend):
             for h in target.extra_files:
                 relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
+            for lang in pch_sources:
+                h = pch_sources[lang][0]
+                ET.SubElement(inc_hdrs, 'CLInclude', Include=os.path.join(proj_to_src_dir, h))
 
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
