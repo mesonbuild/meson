@@ -179,7 +179,7 @@ class FortranCompiler(Compiler):
 
         return parameter_list
 
-    def module_name_to_filename(self, module_name):
+    def module_name_to_filename(self, module_name: str) -> str:
         return module_name.lower() + '.mod'
 
     def get_std_shared_lib_link_args(self):
