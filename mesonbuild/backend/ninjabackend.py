@@ -1865,7 +1865,7 @@ rule FORTRAN_DEP_HACK%s
 
     def get_fortran_deps(self, compiler: FortranCompiler, src: str, target) -> List[str]:
         mod_files = []
-        usere = re.compile(r'\buse\b\s+(\w+)', re.IGNORECASE)
+        usere = re.compile(r"\s*use\s+(\w+)", re.IGNORECASE)
         submodre = re.compile(r"\bsubmodule\b\s+\((\w+:?\w+)\)\s+(\w+)\s*$", re.IGNORECASE)
         dirname = self.get_target_private_dir(target)
         tdeps = self.fortran_deps[target.get_basename()]
@@ -1898,7 +1898,7 @@ rule FORTRAN_DEP_HACK%s
                     submodmatch = submodre.match(line)
                     if submodmatch is not None:
                         parents = submodmatch.group(1).lower().split(':')
-                        if len(parents) not in (1,2):
+                        if len(parents) not in (1, 2):
                             raise InvalidArguments('submodule ancestry must be specified as ancestor:parent  but Meson found {}'.parents)
                         for parent in parents:
                             if parent not in tdeps:
