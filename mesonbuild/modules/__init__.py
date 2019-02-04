@@ -58,6 +58,10 @@ class GResourceHeaderTarget(build.CustomTarget):
     def __init__(self, name, subdir, subproject, kwargs):
         super().__init__(name, subdir, subproject, kwargs)
 
+class GResourceObjectTarget(build.CustomTarget):
+    def __init__(self, name, subdir, subproject, kwargs):
+        super().__init__(name, subdir, subproject, kwargs)
+
 class GirTarget(build.CustomTarget):
     def __init__(self, name, subdir, subproject, kwargs):
         super().__init__(name, subdir, subproject, kwargs)
