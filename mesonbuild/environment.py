@@ -766,7 +766,22 @@ class Environment:
             except OSError as e:
                 popen_exceptions[' '.join(compiler + [arg])] = e
                 continue
-            version = search_version(out)
+            # Example nvcc printout:
+            #
+            #     nvcc: NVIDIA (R) Cuda compiler driver
+            #     Copyright (c) 2005-2018 NVIDIA Corporation
+            #     Built on Sat_Aug_25_21:08:01_CDT_2018
+            #     Cuda compilation tools, release 10.0, V10.0.130
+            #
+            # search_version() first finds the "10.0" after "release",
+            # rather than the more precise "10.0.130" after "V".
+            # The patch version number is occasionally important; For
+            # instance, on Linux,
+            #    - CUDA Toolkit 8.0.44 requires NVIDIA Driver 367.48
+            #    - CUDA Toolkit 8.0.61 requires NVIDIA Driver 375.26
+            # Luckily, the "V" also makes it very simple to extract
+            # the full version:
+            version = out.strip().split('V')[-1]
             cls = CudaCompiler
             return cls(ccache + compiler, version, is_cross, exe_wrap)
         raise EnvironmentException('Could not find suitable CUDA compiler: "' + ' '.join(compilers) + '"')
