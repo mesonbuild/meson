@@ -21,8 +21,8 @@ from .. import coredata
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
-    EnvironmentException, MesonException, OrderedSet, version_compare,
-    Popen_safe
+    EnvironmentException, MachineChoice, MesonException, OrderedSet,
+    version_compare, Popen_safe
 )
 
 """This file contains the data files of all compilers Meson knows
@@ -1011,7 +1011,11 @@ class Compiler:
         opts = {} # build afresh every time
 
         # Take default values from env variables.
-        compile_args, link_args = self.get_args_from_envvars()
+        if not self.is_cross:
+            compile_args, link_args = self.get_args_from_envvars()
+        else:
+            compile_args = []
+            link_args = []
         description = 'Extra arguments passed to the {}'.format(self.get_display_language())
         opts.update({
             self.language + '_args': coredata.UserArrayOption(
@@ -1083,10 +1087,9 @@ class Compiler:
     def get_cross_extra_flags(self, environment, link):
         extra_flags = []
         if self.is_cross and environment:
-            props = environment.properties.host
-            extra_flags += props.get_external_args(self.language)
+            extra_flags += environment.coredata.get_external_args(MachineChoice.HOST, self.language)
             if link:
-                extra_flags += props.get_external_link_args(self.language)
+                extra_flags += environment.coredata.get_external_link_args(MachineChoice.HOST, self.language)
         return extra_flags
 
     def _get_compile_output(self, dirname, mode):

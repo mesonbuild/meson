@@ -25,9 +25,9 @@ from .. import mlog
 from .. import coredata
 from . import compilers
 from ..mesonlib import (
-    EnvironmentException, MesonException, version_compare, Popen_safe, listify,
-    for_windows, for_darwin, for_cygwin, for_haiku, for_openbsd,
-    darwin_get_object_archs
+    EnvironmentException, MachineChoice, MesonException, Popen_safe, listify,
+    version_compare, for_windows, for_darwin, for_cygwin, for_haiku,
+    for_openbsd, darwin_get_object_archs
 )
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 
@@ -427,12 +427,16 @@ class CCompiler(Compiler):
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
         args += self.get_cross_extra_flags(env, link=(mode == 'link'))
         if not self.is_cross:
+            if env.is_cross_build() and not self.is_cross:
+                for_machine = MachineChoice.BUILD
+            else:
+                for_machine = MachineChoice.HOST
             if mode == 'preprocess':
                 # Add CPPFLAGS from the env.
-                args += env.coredata.get_external_preprocess_args(self.language)
+                args += env.coredata.get_external_preprocess_args(for_machine, self.language)
             elif mode == 'compile':
                 # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
-                sys_args = env.coredata.get_external_args(self.language)
+                sys_args = env.coredata.get_external_args(for_machine, self.language)
                 # Apparently it is a thing to inject linker flags both
                 # via CFLAGS _and_ LDFLAGS, even though the former are
                 # also used during linking. These flags can break
@@ -441,7 +445,7 @@ class CCompiler(Compiler):
                 args += cleaned_sys_args
             elif mode == 'link':
                 # Add LDFLAGS from the env
-                args += env.coredata.get_external_link_args(self.language)
+                args += env.coredata.get_external_link_args(for_machine, self.language)
         args += self.get_compiler_check_args()
         # extra_args must override all other arguments, so we add them last
         args += extra_args
@@ -1081,7 +1085,11 @@ class CCompiler(Compiler):
         commands = self.get_exelist() + ['-v', '-E', '-']
         commands += self.get_always_args()
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
-        commands += env.coredata.get_external_args(self.language)
+        if env.is_cross_build() and not self.is_cross:
+            for_machine = MachineChoice.BUILD
+        else:
+            for_machine = MachineChoice.HOST
+        commands += env.coredata.get_external_args(for_machine, self.language)
         mlog.debug('Finding framework path by running: ', ' '.join(commands), '\n')
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'

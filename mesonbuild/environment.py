@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import configparser, os, platform, re, sys, shlex, shutil, subprocess
+import configparser, os, platform, re, sys, shlex, shutil, subprocess, typing
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker
@@ -1101,7 +1101,7 @@ class Environment:
     def detect_compilers(self, lang: str, need_cross_compiler: bool):
         (comp, cross_comp) = self.compilers_from_language(lang, need_cross_compiler)
         if comp is not None:
-            self.coredata.process_new_compilers(lang, comp, cross_comp, self.cmd_line_options)
+            self.coredata.process_new_compilers(lang, comp, cross_comp, self)
         return comp, cross_comp
 
     def detect_static_linker(self, compiler):
@@ -1283,14 +1283,10 @@ class MesonConfigFile:
         return out
 
 class Properties:
-    def __init__(self):
-        self.properties = {}
-
-    def get_external_args(self, language):
-        return mesonlib.stringlistify(self.properties.get(language + '_args', []))
-
-    def get_external_link_args(self, language):
-        return mesonlib.stringlistify(self.properties.get(language + '_link_args', []))
+    def __init__(
+            self,
+            properties: typing.Optional[typing.Dict[str, typing.Union[str, typing.List[str]]]] = None):
+        self.properties = properties or {}
 
     def has_stdlib(self, language):
         return language + '_stdlib' in self.properties
@@ -1303,6 +1299,11 @@ class Properties:
 
     def get_sys_root(self):
         return self.properties.get('sys_root', None)
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.properties == other.properties
+        return NotImplemented
 
     # TODO consider removing so Properties is less freeform
     def __getitem__(self, key):
