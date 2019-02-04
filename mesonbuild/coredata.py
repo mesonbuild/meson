@@ -20,7 +20,7 @@ from pathlib import PurePath
 from collections import OrderedDict
 from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
-    default_libdir, default_libexecdir, default_prefix
+    default_libdir, default_libexecdir, default_prefix, stringlistify
 )
 from .wrap import WrapMode
 import ast
@@ -600,6 +600,12 @@ class CoreData:
             # Unlike compiler and linker flags, preprocessor flags are not in
             # compiler_options because they are not visible to user.
             preproc_flags = shlex.split(preproc_flags)
+            k = lang + '_args'
+            if lang in ('c', 'cpp', 'objc', 'objcpp') and k in env.properties[for_machine]:
+                # `c_args` in the cross file are used, like CPPFLAGS but *not*
+                # CFLAGS, for tests. this is weird, but how it was already
+                # implemented. Hopefully a new version of #3916 fixes it.
+                preproc_flags = stringlistify(env.properties[for_machine][k])
             self.external_preprocess_args[for_machine].setdefault(lang, preproc_flags)
 
         enabled_opts = []
