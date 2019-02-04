@@ -49,6 +49,12 @@ class ValaCompiler(Compiler):
     def get_pic_args(self):
         return []
 
+    def get_pie_args(self):
+        return []
+
+    def get_pie_link_args(self):
+        return []
+
     def get_always_args(self):
         return ['-C']
 
