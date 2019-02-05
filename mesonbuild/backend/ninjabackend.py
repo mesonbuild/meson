@@ -1898,8 +1898,9 @@ rule FORTRAN_DEP_HACK%s
                     submodmatch = submodre.match(line)
                     if submodmatch is not None:
                         parents = submodmatch.group(1).lower().split(':')
-                        if len(parents) not in (1, 2):
-                            raise InvalidArguments('submodule ancestry must be specified as ancestor:parent  but Meson found {}'.parents)
+                        assert len(parents) in (1, 2), (
+                            'submodule ancestry must be specified as'
+                            ' ancestor:parent but Meson found {}'.parents)
                         for parent in parents:
                             if parent not in tdeps:
                                 raise MesonException("submodule {} relies on parent module {} that was not found.".format(submodmatch.group(2).lower(), parent))
