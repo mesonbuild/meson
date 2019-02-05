@@ -38,9 +38,9 @@ class ConfException(mesonlib.MesonException):
 class Conf:
     def __init__(self, build_dir):
         self.build_dir = os.path.abspath(os.path.realpath(build_dir))
-        if self.build_dir.endswith('/meson.build') or self.build_dir.endswith('\\meson.build') or self.build_dir == 'meson.build':
+        if 'meson.build' in [os.path.basename(self.build_dir), self.build_dir]:
             self.build_dir = os.path.dirname(self.build_dir)
-        self.build: build.Build = None
+        self.build = None
 
         if os.path.isdir(os.path.join(self.build_dir, 'meson-private')):
             self.build = build.load(self.build_dir)
@@ -184,17 +184,21 @@ def run(options):
     c = None
     try:
         c = Conf(builddir)
+        if c.default_values_only:
+            c.print_conf()
+            return 0
+
         save = False
-        if len(options.cmd_line_options) > 0 and not c.default_values_only:
+        if len(options.cmd_line_options) > 0:
             c.set_options(options.cmd_line_options)
             coredata.update_cmd_line_file(builddir, options)
             save = True
-        elif options.clearcache and not c.default_values_only:
+        elif options.clearcache:
             c.clear_cache()
             save = True
         else:
             c.print_conf()
-        if save and not c.default_values_only:
+        if save:
             c.save()
             mintro.update_build_options(c.coredata, c.build.environment.info_dir)
             mintro.write_meson_info_file(c.build, [])
