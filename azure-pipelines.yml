@@ -136,6 +136,7 @@ jobs:
         git ^
         mercurial ^
         mingw-w64-$(MSYS2_ARCH)-cmake ^
+        mingw-w64-$(MSYS2_ARCH)-ninja ^
         mingw-w64-$(MSYS2_ARCH)-pkg-config ^
         mingw-w64-$(MSYS2_ARCH)-python2 ^
         mingw-w64-$(MSYS2_ARCH)-python3 ^
@@ -144,7 +145,6 @@ jobs:
       displayName: Install Dependencies
     - script: |
         set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
-        %MSYS2_ROOT%\usr\bin\bash -lc "wget https://github.com/mesonbuild/cidata/raw/master/ninja.exe; mv ninja.exe /$MSYSTEM/bin"
         set PATHEXT=%PATHEXT%;.py
         if %compiler%==clang ( set CC=clang && set CXX=clang++ )
         %MSYS2_ROOT%\usr\bin\bash -lc "MSYSTEM= python3 run_tests.py --backend=ninja"
