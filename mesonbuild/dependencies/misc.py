@@ -49,20 +49,22 @@ class CoarrayDependency(ExternalDependency):
         cid = self.get_compiler().get_id()
         if cid == 'gcc':
             """ OpenCoarrays is the most commonly used method for Fortran Coarray with GCC """
+            self.is_found = True
             kwargs['modules'] = 'OpenCoarrays::caf_mpi'
             cmakedep = CMakeDependency('OpenCoarrays', environment, kwargs)
             if not cmakedep.found():
+                self.compile_args = ['-fcoarray=single']
+                self.version = 'single image'
                 return
 
             self.compile_args = cmakedep.get_compile_args()
             self.link_args = cmakedep.get_link_args()
             self.version = cmakedep.get_version()
-            self.is_found = True
         elif cid == 'intel':
             """ Coarrays are built into Intel compilers, no external library needed """
+            self.is_found = True
             self.link_args = ['-coarray=shared']
             self.compile_args = self.link_args
-            self.is_found = True
         elif cid == 'nagfor':
             """ NAG doesn't require any special arguments for Coarray """
             self.is_found = True

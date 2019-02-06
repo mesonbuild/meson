@@ -1,6 +1,7 @@
 project('Fortran coarray', 'fortran')
 
-coarray = dependency('Coarray', required : false)
+# coarray is required because single-image fallback is an intrinsic feature
+coarray = dependency('Coarray', required : true)
 
 exe = executable('hello', 'main.f90',
   dependencies : coarray)
