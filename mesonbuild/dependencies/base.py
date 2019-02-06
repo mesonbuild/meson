@@ -2200,7 +2200,7 @@ def find_external_dependency(name, env, kwargs):
     return NotFoundDependency(env)
 
 
-def _build_external_dependency_list(name, env, kwargs):
+def _build_external_dependency_list(name: str, env: Environment, kwargs: dict) -> list:
     # First check if the method is valid
     if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:
         raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
