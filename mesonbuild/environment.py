@@ -399,6 +399,7 @@ class Environment:
                 self.machines.host = MachineInfo.from_literal(config['host_machine'])
             if 'target_machine' in config:
                 self.machines.target = MachineInfo.from_literal(config['target_machine'])
+            self.paths.host = Directories(**config.get('paths', {}))
 
         self.machines.default_missing()
         self.binaries.default_missing()

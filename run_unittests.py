@@ -5450,6 +5450,51 @@ class NativeFileTests(BasePlatformTests):
                               '-Ddef_libdir=liblib', '-Dlibdir=liblib'])
 
 
+class CrossFileTests(BasePlatformTests):
+
+    """Tests for cross file functioality not directly related to
+    cross compiling.
+
+    This is mainly aimed to testing overrides from cross files.
+    """
+
+    def test_cross_file_dirs(self):
+        testcase = os.path.join(self.unit_test_dir, '54 native file override')
+        self.init(testcase, default_args=False,
+                  extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
+                              '--cross-file', os.path.join(testcase, 'crossfile'),
+                              '-Ddef_bindir=binbar',
+                              '-Ddef_datadir=databar',
+                              '-Ddef_includedir=includebar',
+                              '-Ddef_infodir=infobar',
+                              '-Ddef_libdir=libbar',
+                              '-Ddef_libexecdir=libexecbar',
+                              '-Ddef_localedir=localebar',
+                              '-Ddef_localstatedir=localstatebar',
+                              '-Ddef_mandir=manbar',
+                              '-Ddef_sbindir=sbinbar',
+                              '-Ddef_sharedstatedir=sharedstatebar',
+                              '-Ddef_sysconfdir=sysconfbar'])
+
+    def test_cross_file_dirs_overriden(self):
+        testcase = os.path.join(self.unit_test_dir, '54 native file override')
+        self.init(testcase, default_args=False,
+                  extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
+                              '--cross-file', os.path.join(testcase, 'crossfile'),
+                              '-Ddef_libdir=liblib', '-Dlibdir=liblib',
+                              '-Ddef_bindir=binbar',
+                              '-Ddef_datadir=databar',
+                              '-Ddef_includedir=includebar',
+                              '-Ddef_infodir=infobar',
+                              '-Ddef_libexecdir=libexecbar',
+                              '-Ddef_localedir=localebar',
+                              '-Ddef_localstatedir=localstatebar',
+                              '-Ddef_mandir=manbar',
+                              '-Ddef_sbindir=sbinbar',
+                              '-Ddef_sharedstatedir=sharedstatebar',
+                              '-Ddef_sysconfdir=sysconfbar'])
+
+
 def unset_envs():
     # For unit tests we must fully control all command lines
     # so that there are no unexpected changes coming from the
@@ -5468,7 +5513,7 @@ def should_run_cross_mingw_tests():
 def main():
     unset_envs()
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
-             'PythonTests', 'NativeFileTests', 'RewriterTests']
+             'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests']
     if not is_windows():
         cases += ['LinuxlikeTests']
         if should_run_cross_arm_tests():
