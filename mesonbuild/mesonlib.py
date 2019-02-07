@@ -13,7 +13,8 @@
 # limitations under the License.
 
 """A library of random helper functionality."""
-
+from pathlib import Path
+from typing import List
 import functools
 import sys
 import stat
@@ -68,11 +69,11 @@ def set_meson_command(mainfile):
     if 'MESON_COMMAND_TESTS' in os.environ:
         mlog.log('meson_command is {!r}'.format(meson_command))
 
-def is_ascii_string(astring):
+def is_ascii_string(astring) -> bool:
     try:
         if isinstance(astring, str):
             astring.encode('ascii')
-        if isinstance(astring, bytes):
+        elif isinstance(astring, bytes):
             astring.decode('ascii')
     except UnicodeDecodeError:
         return False
@@ -206,17 +207,17 @@ class FileMode:
         return perms
 
 class File:
-    def __init__(self, is_built, subdir, fname):
+    def __init__(self, is_built: bool, subdir: str, fname: str):
         self.is_built = is_built
         self.subdir = subdir
         self.fname = fname
         assert(isinstance(self.subdir, str))
         assert(isinstance(self.fname, str))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.relative_name()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         ret = '<File: {0}'
         if not self.is_built:
             ret += ' (not built)'
@@ -225,48 +226,49 @@ class File:
 
     @staticmethod
     @lru_cache(maxsize=None)
-    def from_source_file(source_root, subdir, fname):
+    def from_source_file(source_root: str, subdir: str, fname: str):
         if not os.path.isfile(os.path.join(source_root, subdir, fname)):
             raise MesonException('File %s does not exist.' % fname)
         return File(False, subdir, fname)
 
     @staticmethod
-    def from_built_file(subdir, fname):
+    def from_built_file(subdir: str, fname: str):
         return File(True, subdir, fname)
 
     @staticmethod
-    def from_absolute_file(fname):
+    def from_absolute_file(fname: str):
         return File(False, '', fname)
 
     @lru_cache(maxsize=None)
-    def rel_to_builddir(self, build_to_src):
+    def rel_to_builddir(self, build_to_src: str) -> str:
         if self.is_built:
             return self.relative_name()
         else:
             return os.path.join(build_to_src, self.subdir, self.fname)
 
     @lru_cache(maxsize=None)
-    def absolute_path(self, srcdir, builddir):
+    def absolute_path(self, srcdir: str, builddir: str) -> str:
         absdir = srcdir
         if self.is_built:
             absdir = builddir
         return os.path.join(absdir, self.relative_name())
 
-    def endswith(self, ending):
+    def endswith(self, ending: str) -> bool:
         return self.fname.endswith(ending)
 
-    def split(self, s):
+    def split(self, s: str) -> List[str]:
         return self.fname.split(s)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (self.fname, self.subdir, self.is_built) == (other.fname, other.subdir, other.is_built)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.fname, self.subdir, self.is_built))
 
     @lru_cache(maxsize=None)
-    def relative_name(self):
+    def relative_name(self) -> str:
         return os.path.join(self.subdir, self.fname)
+
 
 def get_compiler_for_source(compilers, src):
     for comp in compilers:
@@ -339,36 +341,35 @@ class PerMachine:
         }[machine]
         setattr(self, key, val)
 
-def is_osx():
+def is_osx() -> bool:
     return platform.system().lower() == 'darwin'
 
-def is_linux():
+def is_linux() -> bool:
     return platform.system().lower() == 'linux'
 
-def is_android():
+def is_android() -> bool:
     return platform.system().lower() == 'android'
 
-def is_haiku():
+def is_haiku() -> bool:
     return platform.system().lower() == 'haiku'
 
-def is_openbsd():
+def is_openbsd() -> bool:
     return platform.system().lower() == 'openbsd'
 
-def is_windows():
+def is_windows() -> bool:
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
 
-def is_cygwin():
-    platname = platform.system().lower()
-    return platname.startswith('cygwin')
+def is_cygwin() -> bool:
+    return platform.system().lower().startswith('cygwin')
 
-def is_debianlike():
+def is_debianlike() -> bool:
     return os.path.isfile('/etc/debian_version')
 
-def is_dragonflybsd():
+def is_dragonflybsd() -> bool:
     return platform.system().lower() == 'dragonfly'
 
-def is_freebsd():
+def is_freebsd() -> bool:
     return platform.system().lower() == 'freebsd'
 
 def _get_machine_is_cross(env, is_cross):
@@ -459,17 +460,15 @@ def for_openbsd(is_cross, env):
     """
     return _get_machine_is_cross(env, is_cross).is_openbsd()
 
-def exe_exists(arglist):
+def exe_exists(arglist: List[str]) -> bool:
     try:
-        p = subprocess.Popen(arglist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        p.communicate()
-        if p.returncode == 0:
+        if subprocess.run(arglist, timeout=10).returncode == 0:
             return True
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
     return False
 
-lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def darwin_get_object_archs(objpath):
     '''
     For a specific object (executable, static library, dylib, etc), run `lipo`
@@ -496,7 +495,7 @@ def detect_vcs(source_dir):
         dict(name = 'subversion', cmd = 'svn', repo_dir = '.svn', get_rev = 'svn info',               rev_regex = 'Revision: (.*)', dep = '.svn/wc.db'),
         dict(name = 'bazaar',     cmd = 'bzr', repo_dir = '.bzr', get_rev = 'bzr revno',              rev_regex = '(.*)', dep = '.bzr'),
     ]
-
+    # FIXME: this is much cleaner with pathlib.Path
     segs = source_dir.replace('\\', '/').split('/')
     for i in range(len(segs), -1, -1):
         curdir = '/'.join(segs[:i])
@@ -667,7 +666,7 @@ def default_libexecdir():
 def default_prefix():
     return 'c:/' if is_windows() else '/usr/local'
 
-def get_library_dirs():
+def get_library_dirs() -> List[str]:
     if is_windows():
         return ['C:/mingw/lib'] # Fixme
     if is_osx():
@@ -678,20 +677,22 @@ def get_library_dirs():
     # than /usr/lib. If you feel that this search order is
     # problematic, please raise the issue on the mailing list.
     unixdirs = ['/usr/local/lib', '/usr/lib', '/lib']
-    plat = subprocess.check_output(['uname', '-m']).decode().strip()
-    # This is a terrible hack. I admit it and I'm really sorry.
-    # I just don't know what the correct solution is.
-    if plat == 'i686':
+
+    # FIXME: this needs to be further genericized for aarch64 etc.
+    machine = platform.machine()
+    if machine in ('i386', 'i486', 'i586', 'i686'):
         plat = 'i386'
-    if plat.startswith('arm'):
+    elif machine.startswith('arm'):
         plat = 'arm'
-    unixdirs += glob('/usr/lib/' + plat + '*')
+
+    unixdirs += [str(x) for x in (Path('/usr/lib/') / plat).iterdir() if x.is_dir()]
     if os.path.exists('/usr/lib64'):
         unixdirs.append('/usr/lib64')
-    unixdirs += glob('/lib/' + plat + '*')
+
+    unixdirs += [str(x) for x in (Path('/lib/') / plat).iterdir() if x.is_dir()]
     if os.path.exists('/lib64'):
         unixdirs.append('/lib64')
-    unixdirs += glob('/lib/' + plat + '*')
+
     return unixdirs
 
 def has_path_sep(name, sep='/\\'):
