@@ -2342,9 +2342,10 @@ rule FORTRAN_DEP_HACK%s
             return []
         return linker.get_no_stdlib_link_args()
 
-    def get_undefsym_response_file_args(self, target):
+    def get_undefsym_response_file_args(self, target, linker):
         response_files = []
-        if isinstance(target, build.Executable):
+        if isinstance(target, build.Executable) and \
+                linker.options_support_undefsymbols_args(self.get_base_options_for_target(target)):
             for t in target.modules:
                 undefsym_filename = self.get_undefsym_filename(t)
                 response_files += ['@' + undefsym_filename]
@@ -2602,7 +2603,7 @@ rule FORTRAN_DEP_HACK%s
         dep_targets.extend([self.get_dependency_filename(t) for t in dependencies])
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])
-        undefsym_response_file_args = self.get_undefsym_response_file_args(target)
+        undefsym_response_file_args = self.get_undefsym_response_file_args(target, linker)
         dep_targets.extend([item[1:] for item in undefsym_response_file_args])
 
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)

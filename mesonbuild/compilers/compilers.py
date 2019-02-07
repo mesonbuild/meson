@@ -955,6 +955,9 @@ class Compiler:
     def get_linker_lib_prefix(self):
         return ''
 
+    def options_support_undefsymbols_args(self, options):
+        return not option_enabled(self.base_options, options, 'b_bitcode')
+
     def get_undefsymbols_args(self, env):
         return []
 
