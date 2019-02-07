@@ -6,7 +6,7 @@ authors:
       has-copyright: false
 ...
 
-# Unstable CUDA Module (`unstable-cuda`)
+# Unstable CUDA Module
 _Since: 0.50.0_
 
 This module provides helper functionality related to the CUDA Toolkit and
