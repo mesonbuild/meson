@@ -42,7 +42,7 @@ Installation options are all relative to the prefix, except:
 | werror                               | false         | Treat warnings as errors |
 | warning_level {1, 2, 3}              | 1             | Set the warning level. From 1 = lowest to 3 = highest |
 | layout {mirror,flat}                 | mirror        | Build directory layout. |
-| default-library {shared, static, both} | shared       | Default library type. |
+| default_library {shared, static, both} | shared       | Default library type. |
 | backend {ninja, vs,<br>vs2010, vs2015, vs2017, xcode} |               | Backend to use (default: ninja). |
 | stdsplit                             |               | Split stdout and stderr in test logs. |
 | errorlogs                            |               | Whether to print the logs from failing tests. |
