@@ -23,6 +23,10 @@ import concurrent.futures as conc
 import queue
 import threading
 import weakref
+import errno
+import os
+from mesonbuild.mesonlib import is_windows
+import re
 
 # Workers are created as daemon threads. This is done to allow the interpreter
 # to exit when there are still idle threads in a ThreadPoolExecutor's thread
@@ -47,6 +51,70 @@ def _python_exit():
 
 atexit.register(_python_exit)
 
+# For now only POSIX is supported.  On Windows, you would need to use the
+# Win32 API modules from PyPI, but Meson is not supposed to use anything
+# but the Python standard library.
+class _POSIXJobserver(object):
+    def __init__(self, rfd, wfd):
+        super().__init__()
+        self._rfd = rfd
+        self._wfd = wfd
+
+    def deposit_token(self):
+        os.write(self._wfd, b'+')
+
+    def wait_for_token(self):
+        while True:
+            try:
+                os.read(self._rfd, 1)
+                break
+            except IOError as e:
+                if e.errno != errno.EINTR:
+                    raise
+                # another iteration
+
+
+# When Make starts us, one token is already given to this process.
+# We wrap _POSIXJobserver with this class to track it.
+class _Jobserver(object):
+    def __init__(self, inner):
+        self._inner = inner
+        self._lock = threading.Lock()
+        # The number of tokens taken from the pipe, or -1 if we are not
+        # even using the token that Make assigns to the process.
+        self._taken = -1
+
+    def deposit_token(self):
+        with self._lock:
+            self._taken -= 1
+            if self._taken == -1:
+                return
+        self._inner.deposit_token()
+
+    def wait_for_token(self):
+        with self._lock:
+            self._taken += 1
+            if self._taken == 0:
+                return
+        self._inner.wait_for_token()
+
+
+def _get_jobserver():
+    if is_windows():
+        return None
+    else:
+        makeflags = os.environ.get('MAKEFLAGS', '')
+        match = re.search(r'(?:^|\s)--jobserver-(?:fds|auth)=([0-9]+),([0-9]+)', makeflags)
+        if not match:
+            return None
+        rfd = int(match.group(1))
+        wfd = int(match.group(2))
+        jobserver = _POSIXJobserver(rfd, wfd)
+    return _Jobserver(jobserver)
+
+_jobserver = _get_jobserver()
+
+
 # The actual workhorse for ThreadPoolExecutor is this class.  The executor
 # is just a facade for TokenPool.  This simplifies finalization of
 # ThreadPoolExecutors.
@@ -66,7 +134,9 @@ class _TokenPool(object):
         self._idle_threads = 0
         self._shutdown = False
         self._queue = queue.Queue()
-        self._tokens_available = max_workers
+
+        global _jobserver
+        self._tokens_available = 0 if _jobserver else max_workers
 
         global _pools
         _pools.add(self)
@@ -87,18 +157,36 @@ class _TokenPool(object):
                 self._shutdown = True
                 self._queue.put(None)
 
-    # Tokens are the mechanism to limit the number of workers.
+    # Tokens are the mechanism to limit the number of workers.  When
+    # the jobserver is not in use, we use a simple counting semaphore
+    # based on condition variables.  This avoids problems such as
+    # filling the pipe's buffer when a high max_workers is requested,
+    # and is more portable too.
 
-    def deposit_token(self):
+    def deposit_local_token(self):
         with self._lock:
             self._tokens_available += 1
             self._ready_cv.notify()
 
-    def wait_for_token(self):
+    def deposit_token(self):
+        global _jobserver
+        if _jobserver:
+            _jobserver.deposit_token()
+        else:
+            self.deposit_local_token()
+
+    def wait_for_local_token(self):
         with self._lock:
             while not self._tokens_available:
                 self._ready_cv.wait()
             self._tokens_available -= 1
+
+    def wait_for_token(self):
+        global _jobserver
+        if _jobserver:
+            _jobserver.wait_for_token()
+        else:
+            self.wait_for_local_token()
 
     # Wrappers around queue.Queue that handle shutdown
 
@@ -137,7 +225,14 @@ class _TokenPool(object):
                         self._idle_threads -= 1
                         # If all threads are busy, create another worker thread.  However,
                         # only do so once to avoid an explosion in the number of threads.
-                        if self._idle_threads == 0 and self._tokens_available and not spawned_worker:
+                        # Note that we cannot know in advance the maximum number of threads
+                        # if running under a jobserver, so if running under a jobserver we
+                        # spawn a new thread if there is some work to do.  As a result, for
+                        # "make -jN" there will be up to N+1 worker threads (of which one will
+                        # always be idle).
+                        global _jobserver
+                        if self._idle_threads == 0 and not spawned_worker and \
+                                (not self._queue.empty() if _jobserver else self._tokens_available):
                             self._create_worker_thread()
                             spawned_worker = True
                     work_fn()
