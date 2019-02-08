@@ -19,6 +19,7 @@ import subprocess, sys, os, argparse
 import pickle
 from mesonbuild import build
 from mesonbuild import environment
+from mesonbuild import jobserver
 from mesonbuild.dependencies import ExternalProgram
 from mesonbuild.mesonlib import substring_is_in_list, MesonException
 from mesonbuild import mlog
@@ -28,7 +29,6 @@ import io
 import re
 import tempfile
 import time, datetime, multiprocessing, json
-import concurrent.futures as conc
 import platform
 import signal
 import random
@@ -901,7 +901,7 @@ Timeout:            %4d
                         self.print_stats(numlen, tests, visible_name, res, i)
                     else:
                         if not executor:
-                            executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
+                            executor = jobserver.ThreadPoolExecutor(max_workers=self.options.num_processes)
                         f = executor.submit(single_test.run)
                         futures.append((f, numlen, tests, visible_name, i))
                     if self.options.repeat > 1 and self.fail_count:
