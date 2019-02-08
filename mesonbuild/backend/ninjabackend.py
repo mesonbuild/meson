@@ -1870,7 +1870,7 @@ rule FORTRAN_DEP_HACK%s
         submodre = re.compile(r"\s*\bsubmodule\b\s+\((\w+:?\w+)\)\s+(\w+)\s*$", re.IGNORECASE)
         dirname = self.get_target_private_dir(target)
         tdeps = self.fortran_deps[target.get_basename()]
-        with open(src) as f:
+        with open(src, errors='ignore') as f:
             for line in f:
                 usematch = usere.match(line)
                 if usematch is not None:
