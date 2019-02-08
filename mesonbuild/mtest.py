@@ -438,6 +438,8 @@ class TestHarness:
             current = self.build_data.test_setups[full_name]
         if not options.gdb:
             options.gdb = current.gdb
+        if options.gdb:
+            options.verbose = True
         if options.timeout_multiplier is None:
             options.timeout_multiplier = current.timeout_multiplier
     #    if options.env is None:
@@ -693,18 +695,17 @@ Timeout:            %4d
             for _ in range(self.options.repeat):
                 for i, test in enumerate(tests):
                     visible_name = self.get_pretty_suite(test)
+                    single_test = self.get_test_runner(test)
 
-                    if not test.is_parallel or self.options.gdb:
+                    if not test.is_parallel or single_test.options.gdb:
                         self.drain_futures(futures)
                         futures = []
-                        single_test = self.get_test_runner(test)
                         res = single_test.run()
                         self.process_test_result(res)
                         self.print_stats(numlen, tests, visible_name, res, i)
                     else:
                         if not executor:
                             executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
-                        single_test = self.get_test_runner(test)
                         f = executor.submit(single_test.run)
                         futures.append((f, numlen, tests, visible_name, i))
                     if self.options.repeat > 1 and self.fail_count:
