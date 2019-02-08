@@ -428,12 +428,7 @@ int dummy;
         # Generate rules for building the remaining source files in this target
         outname = self.get_target_filename(target)
         obj_list = []
-        use_pch = self.environment.coredata.base_options.get('b_pch', False)
         is_unity = self.is_unity(target)
-        if use_pch and target.has_pch():
-            pch_objects = self.generate_pch(target, outfile)
-        else:
-            pch_objects = []
         header_deps = []
         unity_src = []
         unity_deps = [] # Generated sources that must be built before compiling a Unity target.
@@ -485,6 +480,12 @@ int dummy;
                 o = self.generate_single_compile(target, outfile, src, True,
                                                  header_deps=header_deps)
             obj_list.append(o)
+
+        use_pch = self.environment.coredata.base_options.get('b_pch', False)
+        if use_pch and target.has_pch():
+            pch_objects = self.generate_pch(target, outfile, header_deps=header_deps)
+        else:
+            pch_objects = []
 
         # Generate compilation targets for C sources generated from Vala
         # sources. This can be extended to other $LANG->C compilers later if
@@ -2208,12 +2209,7 @@ rule FORTRAN_DEP_HACK%s
             commands += compiler.get_module_outdir_args(self.get_target_private_dir(target))
 
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
-        for d in header_deps:
-            if isinstance(d, File):
-                d = d.rel_to_builddir(self.build_to_src)
-            elif not self.has_dir_part(d):
-                d = os.path.join(self.get_target_private_dir(target), d)
-            element.add_dep(d)
+        self.add_header_deps(target, element, header_deps)
         for d in extra_deps:
             element.add_dep(d)
         for d in order_deps:
@@ -2222,7 +2218,14 @@ rule FORTRAN_DEP_HACK%s
             elif not self.has_dir_part(d):
                 d = os.path.join(self.get_target_private_dir(target), d)
             element.add_orderdep(d)
-        element.add_orderdep(pch_dep)
+        if compiler.id == 'msvc':
+            # MSVC does not show includes coming from the PCH with '/showIncludes',
+            # thus we must add an implicit dependency to the generated PCH.
+            element.add_dep(pch_dep)
+        else:
+            # All other compilers properly handle includes through the PCH, so only an
+            # orderdep is needed to make the initial build without depfile work.
+            element.add_orderdep(pch_dep)
         # Convert from GCC-style link argument naming to the naming used by the
         # current compiler.
         commands = commands.to_native()
@@ -2232,6 +2235,14 @@ rule FORTRAN_DEP_HACK%s
         element.add_item('ARGS', commands)
         element.write(outfile)
         return rel_obj
+
+    def add_header_deps(self, target, ninja_element, header_deps):
+        for d in header_deps:
+            if isinstance(d, File):
+                d = d.rel_to_builddir(self.build_to_src)
+            elif not self.has_dir_part(d):
+                d = os.path.join(self.get_target_private_dir(target), d)
+            ninja_element.add_dep(d)
 
     def has_dir_part(self, fname):
         # FIXME FIXME: The usage of this is a terrible and unreliable hack
@@ -2263,6 +2274,7 @@ rule FORTRAN_DEP_HACK%s
         just_name = os.path.basename(header)
         (objname, pch_args) = compiler.gen_pch_args(just_name, source, dst)
         commands += pch_args
+        commands += self._generate_single_compile(target, compiler)
         commands += self.get_compile_debugfile_args(compiler, target, objname)
         dep = dst + '.' + compiler.get_depfile_suffix()
         return commands, dep, dst, [objname]
@@ -2278,7 +2290,7 @@ rule FORTRAN_DEP_HACK%s
         dep = dst + '.' + compiler.get_depfile_suffix()
         return commands, dep, dst, []  # Gcc does not create an object file during pch generation.
 
-    def generate_pch(self, target, outfile):
+    def generate_pch(self, target, outfile, header_deps=[]):
         cstr = ''
         pch_objects = []
         if target.is_cross:
@@ -2309,6 +2321,7 @@ rule FORTRAN_DEP_HACK%s
             elem = NinjaBuildElement(self.all_outputs, dst, rulename, src)
             if extradep is not None:
                 elem.add_dep(extradep)
+            self.add_header_deps(target, elem, header_deps)
             elem.add_item('ARGS', commands)
             elem.add_item('DEPFILE', dep)
             elem.write(outfile)
