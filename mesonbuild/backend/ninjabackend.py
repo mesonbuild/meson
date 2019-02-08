@@ -1866,7 +1866,7 @@ rule FORTRAN_DEP_HACK%s
 
     def get_fortran_deps(self, compiler: FortranCompiler, src: str, target) -> List[str]:
         mod_files = []
-        usere = re.compile(r"\s*use\s+(\w+)", re.IGNORECASE)
+        usere = re.compile(r"\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)", re.IGNORECASE)
         submodre = re.compile(r"\s*\bsubmodule\b\s+\((\w+:?\w+)\)\s+(\w+)\s*$", re.IGNORECASE)
         dirname = self.get_target_private_dir(target)
         tdeps = self.fortran_deps[target.get_basename()]
@@ -1875,6 +1875,8 @@ rule FORTRAN_DEP_HACK%s
                 usematch = usere.match(line)
                 if usematch is not None:
                     usename = usematch.group(1).lower()
+                    if usename == 'intrinsic':  # this keeps the regex simpler
+                        continue
                     if usename not in tdeps:
                         # The module is not provided by any source file. This
                         # is due to:
