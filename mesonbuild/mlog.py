@@ -17,6 +17,7 @@ import io
 import sys
 import time
 import platform
+import threading
 from contextlib import contextmanager
 
 """This is (mostly) a standalone module used to write logging
@@ -48,6 +49,8 @@ log_depth = 0
 log_timestamp_start = None
 log_fatal_warnings = False
 log_disable_stdout = False
+
+lock = threading.Lock()
 
 def disable():
     global log_disable_stdout

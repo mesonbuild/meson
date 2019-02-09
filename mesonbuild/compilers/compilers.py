@@ -1142,15 +1142,24 @@ class Compiler:
                 commands += extra_args
                 # Generate full command-line with the exelist
                 commands = self.get_exelist() + commands.to_native()
-                mlog.debug('Running compile:')
-                mlog.debug('Working directory: ', tmpdirname)
-                mlog.debug('Command line: ', ' '.join(commands), '\n')
-                mlog.debug('Code:\n', code)
+
+                log_messages = [
+                    ['Running compile:'],
+                    ['Working directory: ', tmpdirname],
+                    ['Command line: ', ' '.join(commands), '\n'],
+                    ['Code:\n', code],
+                ]
+
                 os_env = os.environ.copy()
                 os_env['LC_ALL'] = 'C'
                 p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname, env=os_env)
-                mlog.debug('Compiler stdout:\n', p.stdo)
-                mlog.debug('Compiler stderr:\n', p.stde)
+
+                with mlog.lock:
+                    for msg in log_messages:
+                        mlog.debug(*msg)
+                    mlog.debug('Compiler stdout:\n', p.stdo)
+                    mlog.debug('Compiler stderr:\n', p.stde)
+
                 p.commands = commands
                 p.input_name = srcname
                 if want_output:

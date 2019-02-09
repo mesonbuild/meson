@@ -36,6 +36,7 @@ import os, shutil, uuid
 import re, shlex
 import subprocess
 from collections import namedtuple
+from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
 from pathlib import PurePath
 import functools
@@ -1516,15 +1517,24 @@ class CompilerHolder(InterpreterObject):
             h)
         return result
 
+    def _get_supported_args(self, predicate, args, kwargs):
+        supported_args = set()
+
+        with ThreadPoolExecutor() as ex:
+            def check_arg(arg):
+                if predicate(arg, kwargs):
+                    return arg
+
+            supported_args = set(ex.map(check_arg, set(args)))
+
+        # Preserve order and duplicates
+        return [arg for arg in args if arg in supported_args]
+
     @FeatureNew('compiler.get_supported_arguments', '0.43.0')
     @permittedKwargs({})
     def get_supported_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
-        supported_args = []
-        for arg in args:
-            if self.has_argument_method(arg, kwargs):
-                supported_args.append(arg)
-        return supported_args
+        return self._get_supported_args(self.has_argument_method, args, kwargs)
 
     @permittedKwargs({})
     def first_supported_argument_method(self, args, kwargs):
@@ -1562,11 +1572,7 @@ class CompilerHolder(InterpreterObject):
     @permittedKwargs({})
     def get_supported_link_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
-        supported_args = []
-        for arg in args:
-            if self.has_link_argument_method(arg, kwargs):
-                supported_args.append(arg)
-        return supported_args
+        return self._get_supported_args(self.has_link_argument_method, args, kwargs)
 
     @FeatureNew('compiler.first_supported_link_argument_method', '0.46.0')
     @permittedKwargs({})
@@ -1593,7 +1599,7 @@ class CompilerHolder(InterpreterObject):
     @permittedKwargs({})
     def get_supported_function_attributes_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
-        return [a for a in args if self.has_func_attribute_method(a, kwargs)]
+        return self._get_supported_args(self.has_func_attribute_method, args, kwargs)
 
     @FeatureNew('compiler.get_argument_syntax_method', '0.49.0')
     @noPosargs
