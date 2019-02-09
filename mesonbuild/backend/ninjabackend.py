@@ -2220,14 +2220,7 @@ rule FORTRAN_DEP_HACK%s
             elif not self.has_dir_part(d):
                 d = os.path.join(self.get_target_private_dir(target), d)
             element.add_orderdep(d)
-        if compiler.id == 'msvc':
-            # MSVC does not show includes coming from the PCH with '/showIncludes',
-            # thus we must add an implicit dependency to the generated PCH.
-            element.add_dep(pch_dep)
-        else:
-            # All other compilers properly handle includes through the PCH, so only an
-            # orderdep is needed to make the initial build without depfile work.
-            element.add_orderdep(pch_dep)
+        element.add_dep(pch_dep)
         # Convert from GCC-style link argument naming to the naming used by the
         # current compiler.
         commands = commands.to_native()
