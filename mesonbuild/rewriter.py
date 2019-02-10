@@ -71,7 +71,7 @@ class RequiredKeys:
 
         return wrapped
 
-class MesonBaseType:
+class MTypeBase:
     def __init__(self, node: mparser.BaseNode):
         if node is None:
             self.node = self._new_node()
@@ -108,7 +108,7 @@ class MesonBaseType:
         # Overwrite in derived class
         mlog.warning('Cannot remove a value of type', mlog.bold(type(self).__name__), '--> skipping')
 
-class MesonStr(MesonBaseType):
+class MTypeStr(MTypeBase):
     def __init__(self, node: mparser.BaseNode):
         super().__init__(node)
 
@@ -121,7 +121,7 @@ class MesonStr(MesonBaseType):
     def set_value(self, value):
         self.node.value = str(value)
 
-class MesonBool(MesonBaseType):
+class MTypeBool(MTypeBase):
     def __init__(self, node: mparser.BaseNode):
         super().__init__(node)
 
@@ -134,7 +134,7 @@ class MesonBool(MesonBaseType):
     def set_value(self, value):
         self.node.value = bool(value)
 
-class MesonID(MesonBaseType):
+class MTypeID(MTypeBase):
     def __init__(self, node: mparser.BaseNode):
         super().__init__(node)
 
@@ -147,7 +147,7 @@ class MesonID(MesonBaseType):
     def set_value(self, value):
         self.node.value = str(value)
 
-class MesonList(MesonBaseType):
+class MTypeList(MTypeBase):
     def __init__(self, node: mparser.BaseNode):
         super().__init__(node)
 
@@ -212,7 +212,7 @@ class MesonList(MesonBaseType):
                 removed_list += [i]
         self.node.args.arguments = removed_list
 
-class MesonStrList(MesonList):
+class MtypeStrList(MTypeList):
     def __init__(self, node: mparser.BaseNode):
         super().__init__(node)
 
@@ -227,7 +227,7 @@ class MesonStrList(MesonList):
     def supported_element_nodes(self):
         return [mparser.StringNode]
 
-class MesonIDList(MesonList):
+class MTypeIDList(MTypeList):
     def __init__(self, node: mparser.BaseNode):
         super().__init__(node)
 
@@ -259,33 +259,33 @@ rewriter_keys = {
 
 rewriter_func_kwargs = {
     'dependency': {
-        'language': MesonStr,
-        'method': MesonStr,
-        'native': MesonBool,
-        'not_found_message': MesonStr,
-        'required': MesonBool,
-        'static': MesonBool,
-        'version': MesonStrList,
-        'modules': MesonStrList
+        'language': MTypeStr,
+        'method': MTypeStr,
+        'native': MTypeBool,
+        'not_found_message': MTypeStr,
+        'required': MTypeBool,
+        'static': MTypeBool,
+        'version': MtypeStrList,
+        'modules': MtypeStrList
     },
     'target': {
-        'build_by_default': MesonBool,
-        'build_rpath': MesonStr,
-        'dependencies': MesonIDList,
-        'gui_app': MesonBool,
-        'link_with': MesonIDList,
-        'export_dynamic': MesonBool,
-        'implib': MesonBool,
-        'install': MesonBool,
-        'install_dir': MesonStr,
-        'install_rpath': MesonStr,
-        'pie': MesonBool
+        'build_by_default': MTypeBool,
+        'build_rpath': MTypeStr,
+        'dependencies': MTypeIDList,
+        'gui_app': MTypeBool,
+        'link_with': MTypeIDList,
+        'export_dynamic': MTypeBool,
+        'implib': MTypeBool,
+        'install': MTypeBool,
+        'install_dir': MTypeStr,
+        'install_rpath': MTypeStr,
+        'pie': MTypeBool
     },
     'project': {
-        'meson_version': MesonStr,
-        'license': MesonStrList,
-        'subproject_dir': MesonStr,
-        'version': MesonStr
+        'meson_version': MTypeStr,
+        'license': MtypeStrList,
+        'subproject_dir': MTypeStr,
+        'version': MTypeStr
     }
 }
 
