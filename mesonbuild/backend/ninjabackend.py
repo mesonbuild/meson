@@ -1838,9 +1838,8 @@ rule FORTRAN_DEP_HACK%s
                 continue
             filename = s.absolute_path(self.environment.get_source_dir(),
                                        self.environment.get_build_dir())
-            # Some Fortran editors save in weird encodings,
-            # but all the parts we care about are in ASCII.
-            with open(filename, errors='ignore') as f:
+            # Fortran keywords must be ASCII.
+            with open(filename, encoding='ascii', errors='ignore') as f:
                 for line in f:
                     modmatch = modre.match(line)
                     if modmatch is not None:
@@ -1870,7 +1869,7 @@ rule FORTRAN_DEP_HACK%s
         submodre = re.compile(r"\s*\bsubmodule\b\s+\((\w+:?\w+)\)\s+(\w+)\s*$", re.IGNORECASE)
         dirname = self.get_target_private_dir(target)
         tdeps = self.fortran_deps[target.get_basename()]
-        with open(src) as f:
+        with open(src, encoding='ascii', errors='ignore') as f:
             for line in f:
                 usematch = usere.match(line)
                 if usematch is not None:
