@@ -26,7 +26,7 @@ import textwrap
 import platform
 import itertools
 import ctypes
-from typing import List
+from typing import List, Tuple
 from enum import Enum
 from pathlib import Path, PurePath
 
@@ -37,7 +37,6 @@ from ..environment import BinaryTable, Environment
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
 from ..mesonlib import Version
-from typing import List, Tuple
 
 # These must be defined in this file to avoid cyclical references.
 packages = {}
@@ -1116,7 +1115,7 @@ class CMakeDependency(ExternalDependency):
     def _cached_listdir(self, path: str) -> List[Tuple[str, str]]:
         if path not in CMakeDependency.class_listdir_cache:
             try:
-                CMakeDependency.class_listdir_cache[path] = [(x, str(x).lower()) for x in  os.listdir(path)]
+                CMakeDependency.class_listdir_cache[path] = [(x, str(x).lower()) for x in os.listdir(path)]
             except:
                 CMakeDependency.class_listdir_cache[path] = []
         return CMakeDependency.class_listdir_cache[path]
@@ -1131,6 +1130,7 @@ class CMakeDependency(ExternalDependency):
 
     def _preliminary_find_check(self, name: str, module_path: List[str]) -> bool:
         lname = str(name).lower()
+
         # Checks <path>, <path>/cmake, <path>/CMake
         def find_module(path: str) -> bool:
             for i in [path, os.path.join(path, 'cmake'), os.path.join(path, 'CMake')]:
