@@ -270,7 +270,6 @@ class CoreData:
         self.cross_compilers = OrderedDict()
         self.deps = OrderedDict()
         # Only to print a warning if it changes between Meson invocations.
-        self.pkgconf_envvar = os.environ.get('PKG_CONFIG_PATH', '')
         self.config_files = self.__load_config_files(options.native_file)
         self.libdir_cross_fixup()
 
@@ -504,6 +503,12 @@ class CoreData:
         # languages and setting the backend (builtin options must be set first
         # to know which backend we'll use).
         options = {}
+
+        # Some options default to environment variables if they are
+        # unset, set those now. These will either be overwritten
+        # below, or they won't.
+        options['pkg_config_path'] = os.environ.get('PKG_CONFIG_PATH', '').split(':')
+
         for k, v in env.cmd_line_options.items():
             if subproject:
                 if not k.startswith(subproject + ':'):
@@ -789,6 +794,7 @@ builtin_options = {
     'optimization':    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['0', 'g', '1', '2', '3', 's']),
     'debug':           BuiltinOption(UserBooleanOption, 'Debug', True),
     'wrap_mode':       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback']),
+    'pkg_config_path': BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', []),
 }
 
 # Special prefix-dependent defaults for installation directories that reside in
