@@ -157,6 +157,9 @@ __global__ void kernel (void) {
     def get_debug_args(self, is_debug):
         return cuda_debug_args[is_debug]
 
+    def get_werror_args(self):
+        return ['-Werror']
+
     def get_linker_exelist(self):
         return self.exelist[:]
 
