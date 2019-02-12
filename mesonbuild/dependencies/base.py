@@ -1115,12 +1115,18 @@ class CMakeDependency(ExternalDependency):
 
     def _cached_listdir(self, path: str) -> List[str]:
         if path not in CMakeDependency.class_listdir_cache:
-            CMakeDependency.class_listdir_cache[path] = list(map(lambda x: x.lower(), os.listdir(path)))
+            try:
+                CMakeDependency.class_listdir_cache[path] = list(map(lambda x: x.lower(), os.listdir(path)))
+            except:
+                CMakeDependency.class_listdir_cache[path] = []
         return CMakeDependency.class_listdir_cache[path]
 
     def _cached_isdir(self, path: str) -> bool:
         if path not in CMakeDependency.class_isdir_cache:
-            CMakeDependency.class_isdir_cache[path] = os.path.isdir(path)
+            try:
+                CMakeDependency.class_isdir_cache[path] = os.path.isdir(path)
+            except:
+                CMakeDependency.class_isdir_cache[path] = False
         return CMakeDependency.class_isdir_cache[path]
 
     def _preliminary_find_check(self, name: str, module_path: List[str]) -> bool:
