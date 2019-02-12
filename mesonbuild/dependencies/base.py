@@ -1049,7 +1049,7 @@ class CMakeDependency(ExternalDependency):
                 cmake_opts = ['-G', i] + cmake_opts
 
             # Run CMake
-            ret1, out1, err1 = self._call_cmake(cmake_opts)
+            ret1, out1, err1 = self._call_cmake(cmake_opts, 'CMakeLists.txt')
 
             # Current generator was successful
             if ret1 == 0:
@@ -1449,7 +1449,7 @@ set(CMAKE_CXX_ABI_COMPILED TRUE)
 set(CMAKE_SIZEOF_VOID_P "{}")
 '''.format(os.path.realpath(__file__), ctypes.sizeof(ctypes.c_voidp)))
 
-    def _setup_cmake_dir(self):
+    def _setup_cmake_dir(self, cmake_file: str):
         # Setup the CMake build environment and return the "build" directory
         build_dir = '{}/cmake_{}'.format(self.cmake_root_dir, self.name)
         os.makedirs(build_dir, exist_ok=True)
@@ -1458,15 +1458,15 @@ set(CMAKE_SIZEOF_VOID_P "{}")
         cmake_lists = '{}/CMakeLists.txt'.format(build_dir)
         if not os.path.exists(cmake_lists):
             dir_path = os.path.dirname(os.path.realpath(__file__))
-            src_cmake = '{}/data/CMakeLists.txt'.format(dir_path)
+            src_cmake = '{}/data/{}'.format(dir_path, cmake_file)
             shutil.copyfile(src_cmake, cmake_lists)
 
         self._setup_compiler(build_dir)
         self._reset_cmake_cache(build_dir)
         return build_dir
 
-    def _call_cmake_real(self, args, env):
-        build_dir = self._setup_cmake_dir()
+    def _call_cmake_real(self, args, cmake_file: str, env):
+        build_dir = self._setup_cmake_dir(cmake_file)
         cmd = self.cmakebin.get_command() + args
         p, out, err = Popen_safe(cmd, env=env, cwd=build_dir)
         rc = p.returncode
@@ -1475,7 +1475,7 @@ set(CMAKE_SIZEOF_VOID_P "{}")
 
         return rc, out, err
 
-    def _call_cmake(self, args, env=None):
+    def _call_cmake(self, args, cmake_file: str, env=None):
         if env is None:
             fenv = env
             env = os.environ
@@ -1486,7 +1486,7 @@ set(CMAKE_SIZEOF_VOID_P "{}")
         # First check if cached, if not call the real cmake function
         cache = CMakeDependency.cmake_cache
         if (self.cmakebin, targs, fenv) not in cache:
-            cache[(self.cmakebin, targs, fenv)] = self._call_cmake_real(args, env)
+            cache[(self.cmakebin, targs, fenv)] = self._call_cmake_real(args, cmake_file, env)
         return cache[(self.cmakebin, targs, fenv)]
 
     @staticmethod
