@@ -924,9 +924,6 @@ class CMakeDependency(ExternalDependency):
     # CMake generators to try (empty for no generator)
     class_cmake_generators = ['', 'Ninja', 'Unix Makefiles', 'Visual Studio 10 2010']
     class_working_generator = None
-    # Cache for os.listdir and os.path.exists
-    class_listdir_cache = {}
-    class_isdir_cache = {}
 
     def _gen_exception(self, msg):
         return DependencyException('Dependency {} not found: {}'.format(self.name, msg))
@@ -1112,21 +1109,21 @@ class CMakeDependency(ExternalDependency):
         self.vars = {}
         return res
 
-    def _cached_listdir(self, path: str) -> List[Tuple[str, str]]:
-        if path not in CMakeDependency.class_listdir_cache:
-            try:
-                CMakeDependency.class_listdir_cache[path] = [(x, str(x).lower()) for x in os.listdir(path)]
-            except:
-                CMakeDependency.class_listdir_cache[path] = []
-        return CMakeDependency.class_listdir_cache[path]
+    @staticmethod
+    @functools.lru_cache(maxsize=None)
+    def _cached_listdir(path: str) -> List[Tuple[str, str]]:
+        try:
+            return [(x, str(x).lower()) for x in os.listdir(path)]
+        except:
+            return []
 
-    def _cached_isdir(self, path: str) -> bool:
-        if path not in CMakeDependency.class_isdir_cache:
-            try:
-                CMakeDependency.class_isdir_cache[path] = os.path.isdir(path)
-            except:
-                CMakeDependency.class_isdir_cache[path] = False
-        return CMakeDependency.class_isdir_cache[path]
+    @staticmethod
+    @functools.lru_cache(maxsize=None)
+    def _cached_isdir(path: str) -> bool:
+        try:
+            return os.path.isdir(path)
+        except:
+            return False
 
     def _preliminary_find_check(self, name: str, module_path: List[str]) -> bool:
         lname = str(name).lower()
@@ -1628,7 +1625,7 @@ set(CMAKE_CXX_ABI_COMPILED TRUE)
 set(CMAKE_SIZEOF_VOID_P "{}")
 '''.format(os.path.realpath(__file__), ctypes.sizeof(ctypes.c_voidp)))
 
-    def _setup_cmake_dir(self, cmake_file: str):
+    def _setup_cmake_dir(self, cmake_file: str) -> str:
         # Setup the CMake build environment and return the "build" directory
         build_dir = '{}/cmake_{}'.format(self.cmake_root_dir, self.name)
         os.makedirs(build_dir, exist_ok=True)
