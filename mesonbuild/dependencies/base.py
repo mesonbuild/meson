@@ -37,7 +37,7 @@ from ..environment import BinaryTable, Environment
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
 from ..mesonlib import Version
-from typing import List
+from typing import List, Tuple
 
 # These must be defined in this file to avoid cyclical references.
 packages = {}
@@ -1113,10 +1113,10 @@ class CMakeDependency(ExternalDependency):
         self.vars = {}
         return res
 
-    def _cached_listdir(self, path: str) -> List[str]:
+    def _cached_listdir(self, path: str) -> List[Tuple[str, str]]:
         if path not in CMakeDependency.class_listdir_cache:
             try:
-                CMakeDependency.class_listdir_cache[path] = list(map(lambda x: x.lower(), os.listdir(path)))
+                CMakeDependency.class_listdir_cache[path] = [(x, str(x).lower()) for x in  os.listdir(path)]
             except:
                 CMakeDependency.class_listdir_cache[path] = []
         return CMakeDependency.class_listdir_cache[path]
@@ -1152,17 +1152,17 @@ class CMakeDependency(ExternalDependency):
                 cm_dir = os.path.join(i, 'cmake')
                 if self._cached_isdir(cm_dir):
                     content = self._cached_listdir(cm_dir)
-                    content = list(filter(lambda x: x.startswith(lname), content))
+                    content = list(filter(lambda x: x[1].startswith(lname), content))
                     for k in content:
-                        if find_module(os.path.join(cm_dir, k)):
+                        if find_module(os.path.join(cm_dir, k[0])):
                             return True
 
                 # <path>/(lib/<arch>|lib*|share)/<name>*/
                 # <path>/(lib/<arch>|lib*|share)/<name>*/(cmake|CMake)/
                 content = self._cached_listdir(i)
-                content = list(filter(lambda x: x.startswith(lname), content))
+                content = list(filter(lambda x: x[1].startswith(lname), content))
                 for k in content:
-                    if find_module(os.path.join(i, k)):
+                    if find_module(os.path.join(i, k[0])):
                         return True
 
             return False
@@ -1181,16 +1181,16 @@ class CMakeDependency(ExternalDependency):
                 return True
 
             content = self._cached_listdir(i)
-            content = list(filter(lambda x: x.startswith(lname), content))
+            content = list(filter(lambda x: x[1].startswith(lname), content))
             for k in content:
-                if search_lib_dirs(os.path.join(i, k)):
+                if search_lib_dirs(os.path.join(i, k[0])):
                     return True
 
             # Mac framework support
             for j in ['{}.framework', '{}.app']:
                 j = j.format(lname)
                 if j in content:
-                    if find_module(os.path.join(i, j, 'Resources')):
+                    if find_module(os.path.join(i, j[0], 'Resources')):
                         return True
 
         # Check the environment path
