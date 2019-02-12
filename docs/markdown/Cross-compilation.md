@@ -150,7 +150,7 @@ binaries are not actually compatible. In such cases you may use the
 needs_exe_wrapper = true
 ```
 
-The last bit is the definition of host and target machines. Every
+The next bit is the definition of host and target machines. Every
 cross build definition must have one or both of them. If it had
 neither, the build would not be a cross build but a native build. You
 do not need to define the build machine, as all necessary information
@@ -185,6 +185,20 @@ but with different operating systems.
 If you do not define your host machine, it is assumed to be the build
 machine. Similarly if you do not specify target machine, it is assumed
 to be the host machine.
+
+Additionally, you can define the paths that you want to install to in your
+cross file. This may be especially useful when cross compiling an entire
+operating system, or for operating systems to use internally for consistency.
+
+```ini
+[paths]
+prefix = '/my/prefix'
+libdir = 'lib/i386-linux-gnu'
+bindir = 'bin'
+```
+
+This will be overwritten by any options passed on the command line.
+
 
 ## Starting a cross build
 

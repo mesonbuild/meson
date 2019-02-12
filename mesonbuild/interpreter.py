@@ -2458,8 +2458,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self.subprojects[dirname]
 
     def get_option_internal(self, optname):
-        # Some base options are not defined in some environments, return the
-        # default value from compilers.base_options in that case.
         for d in chain(
                 [self.coredata.base_options, compilers.base_options, self.coredata.builtins],
                 self.coredata.get_all_compiler_options()):
@@ -2576,7 +2574,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             default_options.update(self.default_project_options)
         else:
             default_options = {}
-        self.coredata.set_default_options(default_options, self.subproject, self.environment.cmd_line_options)
+        self.coredata.set_default_options(default_options, self.subproject, self.environment)
         self.set_backend()
 
         if not self.is_subproject():

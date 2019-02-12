@@ -122,8 +122,7 @@ class Conf:
         if not options:
             print('  No {}\n'.format(title.lower()))
         arr = []
-        for k in sorted(options):
-            o = options[k]
+        for k, o in sorted(options.items()):
             d = o.description
             v = o.printable_value()
             c = o.choices

@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import configparser, os, platform, re, sys, shlex, shutil, subprocess, typing
+import configparser, os, platform, re, sys, shlex, shutil, subprocess
+import typing
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker
@@ -371,6 +372,7 @@ class Environment:
         # Similar to coredata.compilers and build.compilers, but lower level in
         # that there is no meta data, only names/paths.
         self.binaries = PerMachineDefaultable()
+
         # Just uses hard-coded defaults and environment variables. Might be
         # overwritten by a native file.
         self.binaries.build = BinaryTable({})
@@ -378,10 +380,16 @@ class Environment:
         # Misc other properties about each machine.
         self.properties = PerMachine(Properties(), Properties(), Properties())
 
+        # Store paths for native and cross build files. There is no target
+        # machine information here because nothing is installed for the target
+        # architecture, just the build and host architectures
+        self.paths = PerMachineDefaultable()
+
         if self.coredata.config_files is not None:
             config = MesonConfigFile.from_config_parser(
                 coredata.load_configs(self.coredata.config_files))
             self.binaries.build = BinaryTable(config.get('binaries', {}))
+            self.paths.build = Directories(**config.get('paths', {}))
 
         if self.coredata.cross_file is not None:
             config = MesonConfigFile.parse_datafile(self.coredata.cross_file)
@@ -391,9 +399,11 @@ class Environment:
                 self.machines.host = MachineInfo.from_literal(config['host_machine'])
             if 'target_machine' in config:
                 self.machines.target = MachineInfo.from_literal(config['target_machine'])
+            self.paths.host = Directories(**config.get('paths', {}))
 
         self.machines.default_missing()
         self.binaries.default_missing()
+        self.paths.default_missing()
 
         exe_wrapper = self.binaries.host.lookup_entry('exe_wrapper')
         if exe_wrapper is not None:
@@ -1172,46 +1182,46 @@ class Environment:
     def get_exe_suffix(self):
         return self.exe_suffix
 
-    def get_import_lib_dir(self):
+    def get_import_lib_dir(self) -> str:
         "Install dir for the import library (library used for linking)"
         return self.get_libdir()
 
-    def get_shared_module_dir(self):
+    def get_shared_module_dir(self) -> str:
         "Install dir for shared modules that are loaded at runtime"
         return self.get_libdir()
 
-    def get_shared_lib_dir(self):
+    def get_shared_lib_dir(self) -> str:
         "Install dir for the shared library"
         if self.win_libdir_layout:
             return self.get_bindir()
         return self.get_libdir()
 
-    def get_static_lib_dir(self):
+    def get_static_lib_dir(self) -> str:
         "Install dir for the static library"
         return self.get_libdir()
 
     def get_object_suffix(self):
         return self.object_suffix
 
-    def get_prefix(self):
+    def get_prefix(self) -> str:
         return self.coredata.get_builtin_option('prefix')
 
-    def get_libdir(self):
+    def get_libdir(self) -> str:
         return self.coredata.get_builtin_option('libdir')
 
-    def get_libexecdir(self):
+    def get_libexecdir(self) -> str:
         return self.coredata.get_builtin_option('libexecdir')
 
-    def get_bindir(self):
+    def get_bindir(self) -> str:
         return self.coredata.get_builtin_option('bindir')
 
-    def get_includedir(self):
+    def get_includedir(self) -> str:
         return self.coredata.get_builtin_option('includedir')
 
-    def get_mandir(self):
+    def get_mandir(self) -> str:
         return self.coredata.get_builtin_option('mandir')
 
-    def get_datadir(self):
+    def get_datadir(self) -> str:
         return self.coredata.get_builtin_option('datadir')
 
     def get_compiler_system_dirs(self):
@@ -1581,3 +1591,42 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             if command is not None:
                 command = shlex.split(command)
         return command
+
+class Directories:
+
+    """Data class that holds information about directories for native and cross
+    builds.
+    """
+
+    def __init__(self, bindir: typing.Optional[str] = None, datadir: typing.Optional[str] = None,
+                 includedir: typing.Optional[str] = None, infodir: typing.Optional[str] = None,
+                 libdir: typing.Optional[str] = None, libexecdir: typing.Optional[str] = None,
+                 localedir: typing.Optional[str] = None, localstatedir: typing.Optional[str] = None,
+                 mandir: typing.Optional[str] = None, prefix: typing.Optional[str] = None,
+                 sbindir: typing.Optional[str] = None, sharedstatedir: typing.Optional[str] = None,
+                 sysconfdir: typing.Optional[str] = None):
+        self.bindir = bindir
+        self.datadir = datadir
+        self.includedir = includedir
+        self.infodir = infodir
+        self.libdir = libdir
+        self.libexecdir = libexecdir
+        self.localedir = localedir
+        self.localstatedir = localstatedir
+        self.mandir = mandir
+        self.prefix = prefix
+        self.sbindir = sbindir
+        self.sharedstatedir = sharedstatedir
+        self.sysconfdir = sysconfdir
+
+    def __contains__(self, key: str) -> str:
+        return hasattr(self, key)
+
+    def __getitem__(self, key: str) -> str:
+        return getattr(self, key)
+
+    def __setitem__(self, key: str, value: typing.Optional[str]) -> None:
+        setattr(self, key, value)
+
+    def __iter__(self) -> typing.Iterator[typing.Tuple[str, str]]:
+        return iter(self.__dict__.items())

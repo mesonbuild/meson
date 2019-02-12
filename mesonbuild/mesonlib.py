@@ -308,7 +308,15 @@ class OrderedEnum(Enum):
             return self.value < other.value
         return NotImplemented
 
-MachineChoice = OrderedEnum('MachineChoice', ['BUILD', 'HOST', 'TARGET'])
+class MachineChoice(OrderedEnum):
+
+    """Enum class representing one of the three possible values for binaries,
+    the build, host, and target machines.
+    """
+
+    BUILD = 0
+    HOST = 1
+    TARGET = 2
 
 class PerMachine:
     def __init__(self, build, host, target):

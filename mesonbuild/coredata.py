@@ -525,7 +525,13 @@ class CoreData:
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
             mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options))
 
-    def set_default_options(self, default_options, subproject, cmd_line_options):
+    def set_default_options(self, default_options, subproject, env):
+        # Set defaults first from conf files (cross or native), then
+        # override them as nec as necessary.
+        for k, v in env.paths.host:
+            if v is not None:
+                env.cmd_line_options.setdefault(k, v)
+
         # Set default options as if they were passed to the command line.
         # Subprojects can only define default for user options.
         from . import optinterpreter
@@ -534,7 +540,7 @@ class CoreData:
                 if optinterpreter.is_invalid_name(k):
                     continue
                 k = subproject + ':' + k
-            cmd_line_options.setdefault(k, v)
+            env.cmd_line_options.setdefault(k, v)
 
         # Create a subset of cmd_line_options, keeping only options for this
         # subproject. Also take builtin options if it's the main project.
@@ -542,7 +548,7 @@ class CoreData:
         # languages and setting the backend (builtin options must be set first
         # to know which backend we'll use).
         options = {}
-        for k, v in cmd_line_options.items():
+        for k, v in env.cmd_line_options.items():
             if subproject:
                 if not k.startswith(subproject + ':'):
                     continue
