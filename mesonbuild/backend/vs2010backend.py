@@ -440,6 +440,10 @@ class Vs2010Backend(backends.Backend):
         ig = ET.SubElement(root, 'ItemGroup')
         pref = ET.SubElement(ig, 'ProjectReference', Include=include)
         ET.SubElement(pref, 'Project').text = '{%s}' % projid
+        # Do not link in generated .lib files from dependencies automatically.
+        # We only use the dependencies for ordering and link in the generated
+        # objects and .lib files manually.
+        ET.SubElement(pref, 'LinkLibraryDependencies').text = 'false'
 
     def add_target_deps(self, root, target):
         target_dict = {target.get_id(): target}
