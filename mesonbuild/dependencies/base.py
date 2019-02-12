@@ -1186,6 +1186,13 @@ class CMakeDependency(ExternalDependency):
                 if search_lib_dirs(os.path.join(i, k)):
                     return True
 
+            # Mac framework support
+            for j in ['{}.framework', '{}.app']:
+                j = j.format(lname)
+                if j in content:
+                    if find_module(os.path.join(i, j, 'Resources')):
+                        return True
+
         # Check the environment path
         env_path = os.environ.get('{}_DIR'.format(name))
         if env_path and find_module(env_path):
