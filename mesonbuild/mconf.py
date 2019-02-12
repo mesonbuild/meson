@@ -13,8 +13,7 @@
 # limitations under the License.
 
 import os
-from . import (coredata, mesonlib, build)
-from . import mintro
+from . import coredata, environment, mesonlib, build, mintro, mlog
 
 def add_arguments(parser):
     coredata.register_builtin_arguments(parser)
@@ -38,11 +37,28 @@ class ConfException(mesonlib.MesonException):
 
 class Conf:
     def __init__(self, build_dir):
-        self.build_dir = build_dir
-        if not os.path.isdir(os.path.join(build_dir, 'meson-private')):
-            raise ConfException('Directory %s does not seem to be a Meson build directory.' % build_dir)
-        self.build = build.load(self.build_dir)
-        self.coredata = coredata.load(self.build_dir)
+        self.build_dir = os.path.abspath(os.path.realpath(build_dir))
+        if 'meson.build' in [os.path.basename(self.build_dir), self.build_dir]:
+            self.build_dir = os.path.dirname(self.build_dir)
+        self.build = None
+
+        if os.path.isdir(os.path.join(self.build_dir, 'meson-private')):
+            self.build = build.load(self.build_dir)
+            self.source_dir = self.build.environment.get_source_dir()
+            self.coredata = coredata.load(self.build_dir)
+            self.default_values_only = False
+        elif os.path.isfile(os.path.join(self.build_dir, environment.build_filename)):
+            # Make sure that log entries in other parts of meson don't interfere with the JSON output
+            mlog.disable()
+            self.source_dir = os.path.abspath(os.path.realpath(self.build_dir))
+            intr = mintro.IntrospectionInterpreter(self.source_dir, '', 'ninja')
+            intr.analyze()
+            # Reenable logging just in case
+            mlog.enable()
+            self.coredata = intr.coredata
+            self.default_values_only = True
+        else:
+            raise ConfException('Directory {} is neither a Meson build directory nor a project source directory.'.format(build_dir))
 
     def clear_cache(self):
         self.coredata.deps = {}
@@ -51,18 +67,22 @@ class Conf:
         self.coredata.set_options(options)
 
     def save(self):
+        # Do nothing when using introspection
+        if self.default_values_only:
+            return
         # Only called if something has changed so overwrite unconditionally.
         coredata.save(self.coredata, self.build_dir)
         # We don't write the build file because any changes to it
         # are erased when Meson is executed the next time, i.e. when
         # Ninja is run.
 
-    @staticmethod
-    def print_aligned(arr):
+    def print_aligned(self, arr):
         if not arr:
             return
 
         titles = {'name': 'Option', 'descr': 'Description', 'value': 'Current Value', 'choices': 'Possible Values'}
+        if self.default_values_only:
+            titles['value'] = 'Default Value'
 
         name_col = [titles['name'], '-' * len(titles['name'])]
         value_col = [titles['value'], '-' * len(titles['value'])]
@@ -111,9 +131,18 @@ class Conf:
         self.print_aligned(arr)
 
     def print_conf(self):
+        def print_default_values_warning():
+            mlog.warning('The source directory instead of the build directory was specified.')
+            mlog.warning('Only the default values for the project are printed, and all command line parameters are ignored.')
+
+        if self.default_values_only:
+            print_default_values_warning()
+            print('')
+
         print('Core properties:')
-        print('  Source dir', self.build.environment.source_dir)
-        print('  Build dir ', self.build.environment.build_dir)
+        print('  Source dir', self.source_dir)
+        if not self.default_values_only:
+            print('  Build dir ', self.build_dir)
 
         dir_option_names = ['bindir',
                             'datadir',
@@ -145,6 +174,10 @@ class Conf:
         self.print_options('Project options', self.coredata.user_options)
         self.print_options('Testing options', test_options)
 
+        # Print the warning twice so that the user shouldn't be able to miss it
+        if self.default_values_only:
+            print('')
+            print_default_values_warning()
 
 def run(options):
     coredata.parse_cmd_line_options(options)
@@ -152,6 +185,10 @@ def run(options):
     c = None
     try:
         c = Conf(builddir)
+        if c.default_values_only:
+            c.print_conf()
+            return 0
+
         save = False
         if len(options.cmd_line_options) > 0:
             c.set_options(options.cmd_line_options)

@@ -321,7 +321,7 @@ def run(options):
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
         infodir = os.path.join(options.builddir, infodir)
-    if options.builddir.endswith('/meson.build') or options.builddir.endswith('\\meson.build') or options.builddir == 'meson.build':
+    if 'meson.build' in [os.path.basename(options.builddir), options.builddir]:
         sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
         if options.projectinfo:
             list_projinfo_from_source(sourcedir, indent)
