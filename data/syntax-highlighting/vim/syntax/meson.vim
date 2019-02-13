@@ -104,6 +104,7 @@ syn keyword mesonBuiltin
   \ meson
   \ message
   \ option
+  \ path
   \ project
   \ run_command
   \ run_target

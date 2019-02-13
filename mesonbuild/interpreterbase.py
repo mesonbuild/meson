@@ -632,6 +632,8 @@ The result of this is undefined and will become a hard error in a future Meson r
         elif cur.operation == 'div':
             if isinstance(l, str) and isinstance(r, str):
                 return self.join_path_strings((l, r))
+            if isinstance(l, mesonlib.File) and isinstance(r, str):
+                return l.join(self.environment.source_dir, r)
             if isinstance(l, int) and isinstance(r, int):
                 if r == 0:
                     raise InvalidCode('Division by zero.')

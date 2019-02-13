@@ -2087,6 +2087,7 @@ class Interpreter(InterpreterBase):
                            'message': self.func_message,
                            'warning': self.func_warning,
                            'option': self.func_option,
+                           'path': self.func_path,
                            'project': self.func_project,
                            'run_target': self.func_run_target,
                            'run_command': self.func_run_command,
@@ -2213,6 +2214,14 @@ class Interpreter(InterpreterBase):
     @noKwargs
     def func_files(self, node, args, kwargs):
         return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
+
+    @FeatureNew('path', '0.50.0')
+    @stringArgs
+    def func_path(self, node, args, kwargs):
+        if len(args) > 1:
+            raise InvalidCode('Path takes at most one argument.')
+        arg = args[0] if args else '.'
+        return mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, arg, check=os.path.isdir)
 
     @FeatureNewKwargs('declare_dependency', '0.46.0', ['link_whole'])
     @permittedKwargs(permitted_kwargs['declare_dependency'])
@@ -3796,10 +3805,29 @@ different subdirectory.
     def func_environment(self, node, args, kwargs):
         return EnvironmentVariablesHolder()
 
-    @stringArgs
     @noKwargs
     def func_join_paths(self, node, args, kwargs):
-        return self.join_path_strings(args)
+        def check_file_or_str(index, arg):
+            if isinstance(arg, str):
+                return
+            if isinstance(arg, mesonlib.File):
+                if index != 0:
+                    raise InvalidArguments('File object only allowed as first argument to join_paths')
+                return
+            mlog.debug('Element not a string or file:', str(arg))
+            raise InvalidArguments('Arguments must be strings or files')
+
+        if len(args) == 0:
+            raise InvalidArguments('join_paths requires at least one argument')
+        for i, a in enumerate(args):
+            check_file_or_str(i, a)
+
+        if isinstance(args[0], mesonlib.File):
+            if len(args) == 1:
+                return args[0]
+            return args[0].join(self.environment.source_dir, self.join_path_strings(args[1:]))
+        else:
+            return self.join_path_strings(args)
 
     def run(self):
         super().run()

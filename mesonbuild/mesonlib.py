@@ -226,8 +226,8 @@ class File:
 
     @staticmethod
     @lru_cache(maxsize=None)
-    def from_source_file(source_root: str, subdir: str, fname: str):
-        if not os.path.isfile(os.path.join(source_root, subdir, fname)):
+    def from_source_file(source_root: str, subdir: str, fname: str, check=os.path.isfile):
+        if not check(os.path.join(source_root, subdir, fname)):
             raise MesonException('File %s does not exist.' % fname)
         return File(False, subdir, fname)
 
@@ -258,6 +258,13 @@ class File:
 
     def split(self, s: str) -> List[str]:
         return self.fname.split(s)
+
+    def join(self, source_root: str, s: str):
+        s = os.path.join(self.fname, s)
+        if self.is_built:
+            return File.from_built_file(self.subdir, s)
+        else:
+            return File.from_source_file(source_root, self.subdir, s, check=os.path.exists)
 
     def __eq__(self, other) -> bool:
         return (self.fname, self.subdir, self.is_built) == (other.fname, other.subdir, other.is_built)

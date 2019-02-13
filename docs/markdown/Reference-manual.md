@@ -1029,12 +1029,16 @@ the jar with `java -jar file.jar`.
 
 ``` meson
 string join_paths(string1, string2, ...)
+file join_paths(file, string1, ...)
 ```
 
 Joins the given strings into a file system path segment. For example
 `join_paths('foo', 'bar')` results in `foo/bar`. If any one of the
 individual segments is an absolute path, all segments before it are
 dropped. That means that `join_paths('foo', '/bar')` returns `/bar`.
+
+The first argument to join_paths can be a file object, returned by
+[`path`](#path).  `join_paths()` then returns another file object.
 
 **Warning** Don't use `join_paths()` for sources in [`library`](#library) and
 [`executable`](#executable), you should use [`files`](#files) instead.
@@ -1107,6 +1111,21 @@ This function prints its argument to stdout.
 This function prints its argument to stdout prefixed with WARNING:.
 
 *Added 0.44.0*
+
+### path()
+
+``` meson
+    file path([directory_name])
+```
+This command takes the string given to it in the argument, or the
+current directory if no argument is provided, and returns
+a file object.
+
+The argument must point to an existing directory; the returned object
+remembers the subdirectory it was defined in and can be used anywhere
+in the source tree.
+
+*Added 0.50.0*
 
 ### project()
 
