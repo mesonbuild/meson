@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess, os.path
+import re, subprocess, os.path
 
 from .. import mlog
 from ..mesonlib import EnvironmentException, Popen_safe
-from .compilers import Compiler, cuda_buildtype_args, cuda_optimization_args, cuda_debug_args
+from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
+                        cuda_debug_args, CompilerType, get_gcc_soname_args)
 
 class CudaCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -28,11 +29,15 @@ class CudaCompiler(Compiler):
         self.id = 'nvcc'
         default_warn_args = []
         self.warn_args = {'1': default_warn_args,
-                          '2': default_warn_args + ['-Wextra'],
-                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+                          '2': default_warn_args + ['-Xcompiler=-Wextra'],
+                          '3': default_warn_args + ['-Xcompiler=-Wextra',
+                                                    '-Xcompiler=-Wpedantic']}
 
     def needs_static_linker(self):
         return False
+
+    def get_always_args(self):
+        return []
 
     def get_display_language(self):
         return 'Cuda'
@@ -136,11 +141,23 @@ __global__ void kernel (void) {
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by {0} compiler {1} are not runnable.'.format(self.language, self.name_string()))
 
+    @staticmethod
+    def _cook_link_args(args):
+        """
+        Converts GNU-style arguments -Wl,-arg,-arg
+        to NVCC-style arguments -Xlinker=-arg,-arg
+        """
+        return [re.sub('^-Wl,', '-Xlinker=', arg) for arg in args]
+
     def get_output_args(self, target):
         return ['-o', target]
 
     def name_string(self):
         return ' '.join(self.exelist)
+
+    def get_soname_args(self, *args):
+        rawargs = get_gcc_soname_args(CompilerType.GCC_STANDARD, *args)
+        return self._cook_link_args(rawargs)
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
@@ -177,6 +194,9 @@ __global__ void kernel (void) {
             path = '.'
         return ['-I' + path]
 
+    def get_std_shared_lib_link_args(self):
+        return ['-shared']
+
     def depfile_for_object(self, objfile):
         return objfile + '.' + self.get_depfile_suffix()
 
@@ -190,16 +210,17 @@ __global__ void kernel (void) {
         return []
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        return []
+        rawargs = self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
+        return self._cook_link_args(rawargs)
 
     def get_linker_search_args(self, dirname):
-        return ['/LIBPATH:' + dirname]
+        return ['-L' + dirname]
 
     def linker_to_compiler_args(self, args):
-        return ['/link'] + args
+        return args
 
     def get_pic_args(self):
-        return []
+        return ['-Xcompiler=-fPIC']
 
     def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
         return []
