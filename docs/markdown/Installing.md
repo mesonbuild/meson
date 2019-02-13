@@ -27,7 +27,8 @@ Other install commands are the following.
 ```meson
 install_headers('header.h', subdir : 'projname') # -> include/projname/header.h
 install_man('foo.1') # -> share/man/man1/foo.1
-install_data('datafile.dat', install_dir : join_paths(get_option('datadir'), 'progname')) # -> share/progname/datafile.dat
+install_data('datafile.dat', install_dir : get_option('datadir') / 'progname')
+# -> share/progname/datafile.dat
 ```
 
 `install_data()` supports rename of the file *since 0.46.0*.

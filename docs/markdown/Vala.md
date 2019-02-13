@@ -148,7 +148,7 @@ function:
 ```meson
 project('vala app', 'vala', 'c')
 
-vapi_dir = join_paths(meson.current_source_dir(), 'vapi')
+vapi_dir = meson.current_source_dir() / 'vapi'
 
 add_project_arguments(['--vapidir', vapi_dir], language: 'vala')
 
@@ -229,7 +229,7 @@ file and the VAPI is in the `vapi` directory of your project source files:
 ```meson
 project('vala app', 'vala', 'c')
 
-vapi_dir = join_paths(meson.current_source_dir(), 'vapi')
+vapi_dir = meson.current_source_dir() / 'vapi'
 
 add_project_arguments(['--vapidir', vapi_dir], language: 'vala')
 
@@ -309,9 +309,9 @@ program and a dependency on the library:
 ```meson
 g_ir_compiler = find_program('g-ir-compiler')
 custom_target('foo typelib', command: [g_ir_compiler, '--output', '@OUTPUT@', '@INPUT@'],
-              input: join_paths(meson.current_build_dir(), 'Foo-1.0.gir'),
+              input: meson.current_build_dir() / 'Foo-1.0.gir',
               output: 'Foo-1.0.typelib',
               depends: foo_lib,
               install: true,
-              install_dir: join_paths(get_option('libdir'), 'girepository-1.0'))
+              install_dir: get_option('libdir') / 'girepository-1.0')
 ```

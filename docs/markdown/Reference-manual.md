@@ -568,7 +568,7 @@ be passed to [shared and static libraries](#library).
 - `install_dir` override install directory for this file. The value is
   relative to the `prefix` specified. F.ex, if you want to install
   plugins into a subdir, you'd use something like this: `install_dir :
-  join_paths(get_option('libdir'), 'projectname-1.0'`).
+  get_option('libdir') / 'projectname-1.0'`.
 - `install_mode` *(added 0.47.0)* specify the file mode in symbolic format
   and optionally the owner/uid and group/gid for the installed files.
 - `install_rpath` a string to set the target's rpath to after install
@@ -780,8 +780,7 @@ The only exceptions are: `sysconfdir`, `localstatedir`, and
 configuration as-is, which may be absolute, or relative to `prefix`.
 [`install_dir` arguments](Installing.md) handles that as expected, but
 if you need the absolute path to one of these e.g. to use in a define
-etc., you should use `join_paths(get_option('prefix'),
-get_option('localstatedir'))`
+etc., you should use `get_option('prefix') / get_option('localstatedir')`
 
 For options of type `feature` a special object is returned instead of
 a string.  See [`feature` options](Build-options.md#features)

@@ -214,12 +214,12 @@ pathsep = ':'
 path = pathsep.join(['/usr/bin', '/bin', '/usr/local/bin'])
 # path now has the value '/usr/bin:/bin:/usr/local/bin'
 
-# For joining paths, you should use join_paths()
+# For joining path elements, you should use path1 / path2
 # This has the advantage of being cross-platform
-path = join_paths(['/usr', 'local', 'bin'])
+path = '/usr' / 'local' / 'bin'
 # path now has the value '/usr/local/bin'
 
-# Don't use join_paths for sources files, use files for that:
+# For sources files, use files():
 my_sources = files('foo.c')
 ...
 my_sources += files('bar.c')
