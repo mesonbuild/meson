@@ -257,7 +257,7 @@ libraries that have been compiled for single-threaded use instead.
 
 ## Fortran Coarrays
 
-Coarrays are a Fortran language intrinsic feature, enabled by
+As of 0.50.0 Coarrays are a Fortran language intrinsic feature, enabled by
 `dependency('coarray')`.
 
 GCC will use OpenCoarrays if present to implement coarrays, while Intel and NAG
