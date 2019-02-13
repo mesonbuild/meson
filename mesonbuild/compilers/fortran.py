@@ -262,6 +262,12 @@ class FortranCompiler(Compiler):
     def has_multi_arguments(self, args, env):
         return CCompiler.has_multi_arguments(self, args, env)
 
+    def has_header(self, hname, prefix, env, *, extra_args=None, dependencies=None):
+        return CCompiler.has_header(self, hname, prefix, env, extra_args=extra_args, dependencies=dependencies)
+
+    def get_define(self, dname, prefix, env, extra_args, dependencies):
+        return CCompiler.get_define(self, dname, prefix, env, extra_args, dependencies)
+
     @classmethod
     def _get_trials_from_pattern(cls, pattern, directory, libname):
         return CCompiler._get_trials_from_pattern(pattern, directory, libname)

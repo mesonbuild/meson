@@ -43,7 +43,13 @@ if add_languages('fortran', required : false)
     exef = executable('exef',
       'main.f90',
       dependencies : [openmp])
-    test('OpenMP Fortran', execpp, env : env)
+    test('OpenMP Fortran', exef, env : env)
+
+    openmp_f = dependency('openmp', language : 'fortran')
+    exe_f = executable('exe_f',
+      'main.f90',
+      dependencies : [openmp_f])
+    test('OpenMP Fortran-specific', exe_f, env : env)
   endif
 endif
 

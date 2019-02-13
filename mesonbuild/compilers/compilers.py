@@ -14,7 +14,7 @@
 
 import abc, contextlib, enum, os.path, re, tempfile, shlex
 import subprocess
-from typing import List
+from typing import List, Tuple
 
 from ..linkers import StaticLinker
 from .. import coredata
@@ -1602,18 +1602,18 @@ class GnuCompiler(GnuLikeCompiler):
     GnuCompiler represents an actual GCC in its many incarnations.
     Compilers imitating GCC (Clang/Intel) should use the GnuLikeCompiler ABC.
     """
-    def __init__(self, compiler_type, defines):
+    def __init__(self, compiler_type, defines: dict):
         super().__init__(compiler_type)
         self.id = 'gcc'
         self.defines = defines or {}
         self.base_options.append('b_colorout')
 
-    def get_colorout_args(self, colortype):
+    def get_colorout_args(self, colortype: str) -> List[str]:
         if mesonlib.version_compare(self.version, '>=4.9.0'):
             return gnu_color_args[colortype][:]
         return []
 
-    def get_warn_args(self, level):
+    def get_warn_args(self, level: str) -> list:
         args = super().get_warn_args(level)
         if mesonlib.version_compare(self.version, '<4.8.0') and '-Wpedantic' in args:
             # -Wpedantic was added in 4.8.0
@@ -1621,20 +1621,20 @@ class GnuCompiler(GnuLikeCompiler):
             args[args.index('-Wpedantic')] = '-pedantic'
         return args
 
-    def has_builtin_define(self, define):
+    def has_builtin_define(self, define: str) -> bool:
         return define in self.defines
 
     def get_builtin_define(self, define):
         if define in self.defines:
             return self.defines[define]
 
-    def get_optimization_args(self, optimization_level):
+    def get_optimization_args(self, optimization_level: str):
         return gnu_optimization_args[optimization_level]
 
-    def get_pch_suffix(self):
+    def get_pch_suffix(self) -> str:
         return 'gch'
 
-    def openmp_flags(self):
+    def openmp_flags(self) -> List[str]:
         return ['-fopenmp']
 
 
@@ -1648,7 +1648,7 @@ class PGICompiler:
                           '2': default_warn_args,
                           '3': default_warn_args}
 
-    def get_module_incdir_args(self) -> List[str]:
+    def get_module_incdir_args(self) -> Tuple[str]:
         return ('-module', )
 
     def get_no_warn_args(self) -> List[str]:
@@ -1663,10 +1663,10 @@ class PGICompiler:
     def get_buildtype_linker_args(self, buildtype: str) -> List[str]:
         return pgi_buildtype_linker_args[buildtype]
 
-    def get_optimization_args(self, optimization_level: str) -> List[str]:
+    def get_optimization_args(self, optimization_level: str):
         return clike_optimization_args[optimization_level]
 
-    def get_debug_args(self, is_debug: bool) -> List[str]:
+    def get_debug_args(self, is_debug: bool):
         return clike_debug_args[is_debug]
 
     def compute_parameters_with_absolute_paths(self, parameter_list: List[str], build_dir: str):
@@ -1898,7 +1898,7 @@ class IntelCompiler(GnuLikeCompiler):
     def get_optimization_args(self, optimization_level):
         return clike_optimization_args[optimization_level]
 
-    def get_pch_suffix(self):
+    def get_pch_suffix(self) -> str:
         return 'pchi'
 
     def get_pch_use_args(self, pch_dir, header):
@@ -1908,7 +1908,7 @@ class IntelCompiler(GnuLikeCompiler):
     def get_pch_name(self, header_name):
         return os.path.basename(header_name) + '.' + self.get_pch_suffix()
 
-    def openmp_flags(self):
+    def openmp_flags(self) -> List[str]:
         if version_compare(self.version, '>=15.0.0'):
             return ['-qopenmp']
         else:
