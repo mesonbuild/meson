@@ -308,7 +308,7 @@ class OpenMPDependency(ExternalDependency):
             else:
                 mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
 
-    def need_openmp(self):
+    def need_openmp(self) -> bool:
         return True
 
 
