@@ -3,7 +3,7 @@ use omp_lib
 
 if (omp_get_max_threads() /= 2) then
   write(stderr, *) 'Max Fortran threads is', omp_get_max_threads(), 'not 2.'
-  error stop
+  stop 1
 endif
 
 end program
