@@ -234,16 +234,18 @@ endif
 
 ## Joining paths with /
 
-Joining two paths has traditionally been done with the `join_paths` function.
-
-```meson
-joined = join_paths('foo', 'bar')
-```
-
-Now you can use the simpler notation using the `/` operator.
+For clarity and conciseness, we recommend using the `/` operator to separate
+path elements:
 
 ```meson
 joined = 'foo' / 'bar'
+```
+
+Before Meson 0.49, joining path elements was done with the legacy `join_paths`
+function, but the `/` syntax above is now recommended.
+
+```meson
+joined = join_paths('foo', 'bar')
 ```
 
 This only works for strings.
