@@ -1890,9 +1890,6 @@ class CustomTarget(Target):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
 
-    def get_id(self):
-        return self.name + self.type_suffix()
-
     def get_target_dependencies(self):
         deps = self.dependencies[:]
         deps += self.extra_depends

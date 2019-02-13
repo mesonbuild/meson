@@ -2677,7 +2677,7 @@ int main(int argc, char **argv) {
         self.init(testdir)
         expected = {
             'bindat@cus': ['data_source.txt'],
-            'depfile@cus': [],
+            'a685fbc@@depfile@cus': [],
         }
         t_intro = self.introspect('--targets')
         self.assertCountEqual([t['id'] for t in t_intro], expected)
@@ -4577,7 +4577,7 @@ class LinuxlikeTests(BasePlatformTests):
                 docbook_target = t
                 break
         self.assertIsInstance(docbook_target, dict)
-        ifile = self.introspect(['--target-files', 'generated-gdbus-docbook@cus'])[0]
+        ifile = self.introspect(['--target-files', '8d60afc@@generated-gdbus-docbook@cus'])[0]
         self.assertListEqual(t['filename'], [os.path.join(self.builddir, 'gdbus/generated-gdbus-doc-' + os.path.basename(ifile))])
 
     def test_build_rpath(self):
