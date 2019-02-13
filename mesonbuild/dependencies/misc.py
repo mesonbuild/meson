@@ -35,6 +35,7 @@ from .base import (
 class CoarrayDependency(ExternalDependency):
     """
     Coarrays are a Fortran 2008 feature.
+
     Coarrays are sometimes implemented via external library (GCC+OpenCoarrays),
     while other compilers just build in support (Cray, IBM, Intel, NAG).
     Coarrays may be thought of as a high-level language abstraction of
