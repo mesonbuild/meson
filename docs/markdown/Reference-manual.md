@@ -359,6 +359,7 @@ keyword arguments.
   - `dependencies`, other dependencies needed to use this dependency
   - `include_directories`, the directories to add to header search path,
     must be include_directories objects or, since 0.50.0, plain strings
+    and file objects
   - `link_args`, link arguments to use
   - `link_with`, libraries to link against
   - `link_whole`, libraries to link fully, same as [`executable`](#executable)
@@ -539,8 +540,8 @@ be passed to [shared and static libraries](#library).
   adds the current source and build directories to the include path,
   defaults to `true`, since 0.42.0
 - `include_directories` one or more objects created with the
-  `include_directories` function, or, since 0.50.0, strings, which
-  will be transparently expanded to include directory objects
+  `include_directories` function, or, since 0.50.0, strings and file
+   objects, which will be transparently expanded to include directory objects
 - `install`, when set to true, this executable should be installed
 - `install_dir` override install directory for this file. The value is
   relative to the `prefix` specified. F.ex, if you want to install
@@ -1123,7 +1124,23 @@ a file object.
 
 The argument must point to an existing directory; the returned object
 remembers the subdirectory it was defined in and can be used anywhere
-in the source tree.
+in the source tree.  As an example suppose you have a directory `include`
+in the toplevel directory and you would like to use `include/bar2` in
+`include_directories` from subdirectory `bar2`.  You can add the
+following to `meson.build`:
+
+```meson
+    incdir = path('include')
+```
+
+and use it in `bar2` like this:
+
+```meson
+    bar2_incdir = join_paths(incdir, 'bar2')
+    executable('myprog', 'myprog.cpp', include_directories: bar2_incdir, ...)
+```
+
+Meson will then do the right thing.
 
 *Added 0.50.0*
 

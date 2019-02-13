@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include "foo.h"
 
 int func();
 

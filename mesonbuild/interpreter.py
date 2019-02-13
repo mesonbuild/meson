@@ -3639,10 +3639,15 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         for p in prospectives:
             if isinstance(p, build.IncludeDirs):
                 result.append(p)
+            elif isinstance(p, mesonlib.File):
+                if not os.path.isdir(p.absolute_path(self.environment.get_source_dir(),
+                                                     self.environment.get_build_dir())):
+                    raise InvalidArguments('Include dir %s does not exist.' % p)
+                result.append(build.IncludeDirs(p.subdir, [p.fname], False))
             elif isinstance(p, str):
                 result.append(self.build_incdir_object([p]).held_object)
             else:
-                raise InterpreterException('Include directory objects can only be created from strings or include directories.')
+                raise InterpreterException('Include directory objects can only be created from strings, files or include directories.')
         return result
 
     @permittedKwargs(permitted_kwargs['include_directories'])
