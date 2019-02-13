@@ -14,7 +14,7 @@
 
 # This file contains the detection logic for external dependencies.
 # Custom logic for several other packages are in separate files.
-
+from typing import Dict, Any
 import copy
 import functools
 import os
@@ -2200,7 +2200,7 @@ def find_external_dependency(name, env, kwargs):
     return NotFoundDependency(env)
 
 
-def _build_external_dependency_list(name: str, env: Environment, kwargs: dict) -> list:
+def _build_external_dependency_list(name, env: Environment, kwargs: Dict[str, Any]) -> List[functools.partial[DubDependency]]:
     # First check if the method is valid
     if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:
         raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
