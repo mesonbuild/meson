@@ -255,6 +255,14 @@ libraries that have been compiled for single-threaded use instead.
 
 `method` may be `auto`, `config-tool`, `pkg-config`, `cmake` or `extraframework`.
 
+## Fortran Coarrays
+
+As of 0.50.0 Coarrays are a Fortran language intrinsic feature, enabled by
+`dependency('coarray')`.
+
+GCC will use OpenCoarrays if present to implement coarrays, while Intel and NAG
+use internal coarray support.
+
 ## GL
 
 This finds the OpenGL library in a way appropriate to the platform.
