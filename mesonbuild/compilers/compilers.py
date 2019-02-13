@@ -1898,7 +1898,7 @@ class IntelCompiler(GnuLikeCompiler):
     def get_optimization_args(self, optimization_level):
         return clike_optimization_args[optimization_level]
 
-    def get_pch_suffix(self):
+    def get_pch_suffix(self) -> str:
         return 'pchi'
 
     def get_pch_use_args(self, pch_dir, header):
@@ -1908,7 +1908,7 @@ class IntelCompiler(GnuLikeCompiler):
     def get_pch_name(self, header_name):
         return os.path.basename(header_name) + '.' + self.get_pch_suffix()
 
-    def openmp_flags(self):
+    def openmp_flags(self) -> List[str]:
         if version_compare(self.version, '>=15.0.0'):
             return ['-qopenmp']
         else:
