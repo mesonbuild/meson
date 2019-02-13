@@ -553,7 +553,7 @@ Timeout:            %4d
         self.is_run = True
         tests = self.get_tests()
         if not tests:
-            return 0
+            return 1
         self.run_tests(tests)
         return self.fail_count
 
@@ -738,7 +738,7 @@ Timeout:            %4d
             raise RuntimeError('Can not use run_special after a full run.')
         tests = self.get_tests()
         if not tests:
-            return 0
+            return 1
         self.run_tests(tests)
         return self.fail_count
 
