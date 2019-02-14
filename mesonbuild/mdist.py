@@ -60,6 +60,16 @@ def process_submodules(dirname):
     module_file = os.path.join(dirname, '.gitmodules')
     if not os.path.exists(module_file):
         return
+
+    # copy URLs from main configuration to avoid issues with relative paths
+    configs = subprocess.check_output(['git', 'config', '--get-regex', r'^submodule\..*\.url$'],
+                                      stderr=subprocess.STDOUT).decode()
+    configs = [s.strip() for s in configs.split('\n')]
+    for config in configs:
+        pair = config.split(' ', 1)
+        if len(pair) > 1:
+            subprocess.check_call(['git', 'config'] + pair, cwd=dirname)
+
     subprocess.check_call(['git', 'submodule', 'update', '--init', '--recursive'], cwd=dirname)
     for line in open(module_file):
         line = line.strip()
