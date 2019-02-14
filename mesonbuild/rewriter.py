@@ -292,9 +292,10 @@ rewriter_func_kwargs = {
 class Rewriter:
     def __init__(self, sourcedir: str, generator: str = 'ninja'):
         self.sourcedir = sourcedir
-        self.interpreter = IntrospectionInterpreter(sourcedir, '', generator)
-        self.id_generator = AstIDGenerator()
+        self.interpreter = IntrospectionInterpreter(sourcedir, '', generator, visitors = [AstIDGenerator(), AstIndentationGenerator()])
         self.modefied_nodes = []
+        self.to_remove_nodes = []
+        self.to_add_nodes = []
         self.functions = {
             'kwargs': self.process_kwargs,
             'target': self.process_target,
@@ -306,8 +307,6 @@ class Rewriter:
         self.interpreter.analyze()
         mlog.log('  -- Project:', mlog.bold(self.interpreter.project_data['descriptive_name']))
         mlog.log('  -- Version:', mlog.cyan(self.interpreter.project_data['version']))
-        self.interpreter.ast.accept(AstIndentationGenerator())
-        self.interpreter.ast.accept(self.id_generator)
 
     def add_info(self, cmd_type: str, cmd_id: str, data: dict):
         if self.info_dump is None:
@@ -455,6 +454,11 @@ class Rewriter:
 
         if num_changed > 0 and node not in self.modefied_nodes:
             self.modefied_nodes += [node]
+
+    def find_assignment_node(self, node: mparser.BaseNode) -> mparser.AssignmentNode:
+        if hasattr(node, 'ast_id') and node.ast_id in self.interpreter.reverse_assignment:
+            return self.interpreter.reverse_assignment[node.ast_id]
+        return None
 
     @RequiredKeys(rewriter_keys['target'])
     def process_target(self, cmd):

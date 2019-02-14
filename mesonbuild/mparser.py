@@ -358,7 +358,8 @@ class FunctionNode(BaseNode):
         self.args = args
 
 class AssignmentNode(BaseNode):
-    def __init__(self, lineno, colno, var_name, value):
+    def __init__(self, subdir, lineno, colno, var_name, value):
+        self.subdir = subdir
         self.lineno = lineno
         self.colno = colno
         self.var_name = var_name
@@ -366,7 +367,8 @@ class AssignmentNode(BaseNode):
         self.value = value
 
 class PlusAssignmentNode(BaseNode):
-    def __init__(self, lineno, colno, var_name, value):
+    def __init__(self, subdir, lineno, colno, var_name, value):
+        self.subdir = subdir
         self.lineno = lineno
         self.colno = colno
         self.var_name = var_name
@@ -522,13 +524,13 @@ class Parser:
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Plusassignment target must be an id.', self.getline(), left.lineno, left.colno)
-            return PlusAssignmentNode(left.lineno, left.colno, left.value, value)
+            return PlusAssignmentNode(left.subdir,left.lineno, left.colno, left.value, value)
         elif self.accept('assign'):
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Assignment target must be an id.',
                                      self.getline(), left.lineno, left.colno)
-            return AssignmentNode(left.lineno, left.colno, left.value, value)
+            return AssignmentNode(left.subdir, left.lineno, left.colno, left.value, value)
         elif self.accept('questionmark'):
             if self.in_ternary:
                 raise ParseException('Nested ternary operators are not allowed.',

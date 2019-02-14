@@ -15,12 +15,14 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
+from .visitor import AstVisitor
 from .. import interpreterbase, mparser, mesonlib
 from .. import environment
 
 from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest
 
 import os, sys
+from typing import List
 
 class DontCareObject(interpreterbase.InterpreterObject):
     pass
@@ -44,10 +46,12 @@ ADD_SOURCE = 0
 REMOVE_SOURCE = 1
 
 class AstInterpreter(interpreterbase.InterpreterBase):
-    def __init__(self, source_root, subdir):
+    def __init__(self, source_root: str, subdir: str, visitors: List[AstVisitor] = []):
         super().__init__(source_root, subdir)
+        self.visitors = visitors
         self.visited_subdirs = {}
         self.assignments = {}
+        self.reverse_assignment = {}
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
                            'benchmark': self.func_do_nothing,
@@ -104,6 +108,11 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def func_do_nothing(self, node, args, kwargs):
         return True
 
+    def load_root_meson_file(self):
+        super().load_root_meson_file()
+        for i in self.visitors:
+            self.ast.accept(i)
+
     def func_subdir(self, node, args, kwargs):
         args = self.flatten_args(args)
         if len(args) != 1 or not isinstance(args[0], str):
@@ -134,6 +143,8 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             raise me
 
         self.subdir = subdir
+        for i in self.visitors:
+            codeblock.accept(i)
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
 
@@ -148,6 +159,8 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         if node.var_name not in self.assignments:
             self.assignments[node.var_name] = []
         self.assignments[node.var_name] += [node.value] # Save a reference to the value node
+        if hasattr(node.value, 'ast_id'):
+            self.reverse_assignment[node.value.ast_id] = node
         self.evaluate_statement(node.value) # Evaluate the value just in case
 
     def evaluate_indexing(self, node):
@@ -185,6 +198,8 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def assignment(self, node):
         assert(isinstance(node, mparser.AssignmentNode))
         self.assignments[node.var_name] = [node.value] # Save a reference to the value node
+        if hasattr(node.value, 'ast_id'):
+            self.reverse_assignment[node.value.ast_id] = node
         self.evaluate_statement(node.value) # Evaluate the value just in case
 
     def flatten_args(self, args, include_unknown_args: bool = False):
