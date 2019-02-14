@@ -251,8 +251,9 @@ rewriter_keys = {
     },
     'target': {
         'target': (str, None, None),
-        'operation': (str, None, ['src_add', 'src_rm', 'info']),
+        'operation': (str, None, ['src_add', 'src_rm', 'tgt_rm', 'info']),
         'sources': (list, [], None),
+        'subdir': (str, '', None),
         'debug': (bool, False, None)
     }
 }
@@ -547,6 +548,14 @@ class Rewriter:
                 if root not in self.modefied_nodes:
                     self.modefied_nodes += [root]
 
+        elif cmd['operation'] == 'tgt_rm':
+            to_remove = self.find_assignment_node(target['node'])
+            if to_remove is None:
+                to_remove = target['node']
+            self.to_remove_nodes += [to_remove]
+            mlog.log('  -- Removing target', mlog.green(cmd['target']), 'at',
+                     mlog.yellow('{}:{}'.format(os.path.join(to_remove.subdir, environment.build_filename), to_remove.lineno)))
+
         elif cmd['operation'] == 'info':
             # List all sources in the target
             src_list = []
@@ -570,20 +579,28 @@ class Rewriter:
 
     def apply_changes(self):
         assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'subdir') for x in self.modefied_nodes))
+        assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'subdir') for x in self.to_remove_nodes))
         assert(all(isinstance(x, (mparser.ArrayNode, mparser.FunctionNode)) for x in self.modefied_nodes))
+        assert(all(isinstance(x, (mparser.ArrayNode, mparser.AssignmentNode, mparser.FunctionNode)) for x in self.to_remove_nodes))
         # Sort based on line and column in reversed order
-        work_nodes = list(sorted(self.modefied_nodes, key=lambda x: x.lineno * 1000 + x.colno, reverse=True))
+        work_nodes = [{'node': x, 'action': 'modify'} for x in self.modefied_nodes]
+        work_nodes += [{'node': x, 'action': 'rm'} for x in self.to_remove_nodes]
+        work_nodes = list(sorted(work_nodes, key=lambda x: x['node'].lineno * 1000 + x['node'].colno, reverse=True))
 
         # Generating the new replacement string
         str_list = []
         for i in work_nodes:
-            printer = AstPrinter()
-            i.accept(printer)
-            printer.post_process()
+            new_data = ''
+            if i['action'] == 'modify':
+                printer = AstPrinter()
+                i['node'].accept(printer)
+                printer.post_process()
+                new_data = printer.result.strip()
             data = {
-                'file': os.path.join(i.subdir, environment.build_filename),
-                'str': printer.result.strip(),
-                'node': i
+                'file': os.path.join(i['node'].subdir, environment.build_filename),
+                'str': new_data,
+                'node': i['node'],
+                'action': i['action']
             }
             str_list += [data]
 
@@ -612,7 +629,7 @@ class Rewriter:
             }
 
         # Replace in source code
-        for i in str_list:
+        def remove_node(i):
             offsets = files[i['file']]['offsets']
             raw = files[i['file']]['raw']
             node = i['node']
@@ -623,7 +640,7 @@ class Rewriter:
             if isinstance(node, mparser.ArrayNode):
                 if raw[end] != '[':
                     mlog.warning('Internal error: expected "[" at {}:{} but got "{}"'.format(line, col, raw[end]))
-                    continue
+                    return
                 counter = 1
                 while counter > 0:
                     end += 1
@@ -632,6 +649,7 @@ class Rewriter:
                     elif raw[end] == ']':
                         counter -= 1
                 end += 1
+
             elif isinstance(node, mparser.FunctionNode):
                 while raw[end] != '(':
                     end += 1
@@ -644,7 +662,22 @@ class Rewriter:
                     elif raw[end] == ')':
                         counter -= 1
                 end += 1
+
+            # Only removal is supported for assignments
+            elif isinstance(node, mparser.AssignmentNode) and i['action'] == 'rm':
+                if isinstance(node.value, (mparser.ArrayNode, mparser.FunctionNode)):
+                    remove_node({'file': i['file'], 'str': '', 'node': node.value, 'action': 'rm'})
+                    raw = files[i['file']]['raw']
+                while raw[end] != '=':
+                    end += 1
+                end += 1 # Handle the '='
+                while raw[end] in [' ', '\n', '\t']:
+                    end += 1
+
             raw = files[i['file']]['raw'] = raw[:start] + i['str'] + raw[end:]
+
+        for i in str_list:
+            remove_node(i)
 
         # Write the files back
         for key, val in files.items():
