@@ -524,7 +524,7 @@ class Parser:
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Plusassignment target must be an id.', self.getline(), left.lineno, left.colno)
-            return PlusAssignmentNode(left.subdir,left.lineno, left.colno, left.value, value)
+            return PlusAssignmentNode(left.subdir, left.lineno, left.colno, left.value, value)
         elif self.accept('assign'):
             value = self.e1()
             if not isinstance(left, IdNode):

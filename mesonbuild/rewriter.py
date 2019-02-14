@@ -28,7 +28,7 @@ from mesonbuild.mesonlib import MesonException
 from . import mlog, mparser, environment
 from functools import wraps
 from pprint import pprint
-from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, IdNode, FunctionNode, StringNode
+from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, IdNode, FunctionNode, StringNode
 import json, os
 
 class RewriterException(MesonException):
@@ -590,7 +590,7 @@ class Rewriter:
             src_list = []
             for i in target['sources']:
                 for j in arg_list_from_node(i):
-                    if isinstance(j, mparser.StringNode):
+                    if isinstance(j, StringNode):
                         src_list += [j.value]
             test_data = {
                 'name': target['name'],
@@ -609,8 +609,8 @@ class Rewriter:
     def apply_changes(self):
         assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'subdir') for x in self.modefied_nodes))
         assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'subdir') for x in self.to_remove_nodes))
-        assert(all(isinstance(x, (mparser.ArrayNode, mparser.FunctionNode)) for x in self.modefied_nodes))
-        assert(all(isinstance(x, (mparser.ArrayNode, mparser.AssignmentNode, mparser.FunctionNode)) for x in self.to_remove_nodes))
+        assert(all(isinstance(x, (ArrayNode, FunctionNode)) for x in self.modefied_nodes))
+        assert(all(isinstance(x, (ArrayNode, AssignmentNode, FunctionNode)) for x in self.to_remove_nodes))
         # Sort based on line and column in reversed order
         work_nodes = [{'node': x, 'action': 'modify'} for x in self.modefied_nodes]
         work_nodes += [{'node': x, 'action': 'rm'} for x in self.to_remove_nodes]
@@ -671,7 +671,7 @@ class Rewriter:
             col = node.colno
             start = offsets[line] + col
             end = start
-            if isinstance(node, mparser.ArrayNode):
+            if isinstance(node, ArrayNode):
                 if raw[end] != '[':
                     mlog.warning('Internal error: expected "[" at {}:{} but got "{}"'.format(line, col, raw[end]))
                     return
@@ -684,7 +684,7 @@ class Rewriter:
                         counter -= 1
                 end += 1
 
-            elif isinstance(node, mparser.FunctionNode):
+            elif isinstance(node, FunctionNode):
                 while raw[end] != '(':
                     end += 1
                 end += 1
@@ -698,8 +698,8 @@ class Rewriter:
                 end += 1
 
             # Only removal is supported for assignments
-            elif isinstance(node, mparser.AssignmentNode) and i['action'] == 'rm':
-                if isinstance(node.value, (mparser.ArrayNode, mparser.FunctionNode)):
+            elif isinstance(node, AssignmentNode) and i['action'] == 'rm':
+                if isinstance(node.value, (ArrayNode, FunctionNode)):
                     remove_node({'file': i['file'], 'str': '', 'node': node.value, 'action': 'rm'})
                     raw = files[i['file']]['raw']
                 while raw[end] != '=':
