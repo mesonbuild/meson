@@ -28,6 +28,7 @@ from mesonbuild.mesonlib import MesonException
 from . import mlog, mparser, environment
 from functools import wraps
 from pprint import pprint
+from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, IdNode, FunctionNode, StringNode
 import json, os
 
 class RewriterException(MesonException):
@@ -251,9 +252,10 @@ rewriter_keys = {
     },
     'target': {
         'target': (str, None, None),
-        'operation': (str, None, ['src_add', 'src_rm', 'tgt_rm', 'info']),
+        'operation': (str, None, ['src_add', 'src_rm', 'tgt_rm', 'tgt_add', 'info']),
         'sources': (list, [], None),
         'subdir': (str, '', None),
+        'target_type': (str, 'executable', ['both_libraries', 'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library']),
         'debug': (bool, False, None)
     }
 }
@@ -456,7 +458,7 @@ class Rewriter:
         if num_changed > 0 and node not in self.modefied_nodes:
             self.modefied_nodes += [node]
 
-    def find_assignment_node(self, node: mparser.BaseNode) -> mparser.AssignmentNode:
+    def find_assignment_node(self, node: mparser) -> AssignmentNode:
         if hasattr(node, 'ast_id') and node.ast_id in self.interpreter.reverse_assignment:
             return self.interpreter.reverse_assignment[node.ast_id]
         return None
@@ -465,7 +467,7 @@ class Rewriter:
     def process_target(self, cmd):
         mlog.log('Processing target', mlog.bold(cmd['target']), 'operation', mlog.cyan(cmd['operation']))
         target = self.find_target(cmd['target'])
-        if target is None:
+        if target is None and cmd['operation'] != 'tgt_add':
             mlog.error('Unknown target "{}" --> skipping'.format(cmd['target']))
             if cmd['debug']:
                 pprint(self.interpreter.targets)
@@ -476,13 +478,13 @@ class Rewriter:
         # Utility function to get a list of the sources from a node
         def arg_list_from_node(n):
             args = []
-            if isinstance(n, mparser.FunctionNode):
+            if isinstance(n, FunctionNode):
                 args = list(n.args.arguments)
                 if n.func_name in build_target_functions:
                     args.pop(0)
-            elif isinstance(n, mparser.ArrayNode):
+            elif isinstance(n, ArrayNode):
                 args = n.args.arguments
-            elif isinstance(n, mparser.ArgumentNode):
+            elif isinstance(n, ArgumentNode):
                 args = n.arguments
             return args
 
@@ -499,15 +501,15 @@ class Rewriter:
             for i in cmd['sources']:
                 mlog.log('  -- Adding source', mlog.green(i), 'at',
                          mlog.yellow('{}:{}'.format(os.path.join(node.subdir, environment.build_filename), node.lineno)))
-                token = mparser.Token('string', node.subdir, 0, 0, 0, None, i)
-                to_append += [mparser.StringNode(token)]
+                token = Token('string', node.subdir, 0, 0, 0, None, i)
+                to_append += [StringNode(token)]
 
             # Append to the AST at the right place
-            if isinstance(node, mparser.FunctionNode):
+            if isinstance(node, FunctionNode):
                 node.args.arguments += to_append
-            elif isinstance(node, mparser.ArrayNode):
+            elif isinstance(node, ArrayNode):
                 node.args.arguments += to_append
-            elif isinstance(node, mparser.ArgumentNode):
+            elif isinstance(node, ArgumentNode):
                 node.arguments += to_append
 
             # Mark the node as modified
@@ -519,7 +521,7 @@ class Rewriter:
             def find_node(src):
                 for i in target['sources']:
                     for j in arg_list_from_node(i):
-                        if isinstance(j, mparser.StringNode):
+                        if isinstance(j, StringNode):
                             if j.value == src:
                                 return i, j
                 return None, None
@@ -533,11 +535,11 @@ class Rewriter:
 
                 # Remove the found string node from the argument list
                 arg_node = None
-                if isinstance(root, mparser.FunctionNode):
+                if isinstance(root, FunctionNode):
                     arg_node = root.args
-                if isinstance(root, mparser.ArrayNode):
+                if isinstance(root, ArrayNode):
                     arg_node = root.args
-                if isinstance(root, mparser.ArgumentNode):
+                if isinstance(root, ArgumentNode):
                     arg_node = root
                 assert(arg_node is not None)
                 mlog.log('  -- Removing source', mlog.green(i), 'from',
@@ -547,6 +549,31 @@ class Rewriter:
                 # Mark the node as modified
                 if root not in self.modefied_nodes:
                     self.modefied_nodes += [root]
+
+        elif cmd['operation'] == 'tgt_add':
+            if target is not None:
+                mlog.error('Can not add target', mlog.bold(cmd['target']), 'because it already exists')
+                return
+
+            # Build src list
+            src_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
+            src_arr_node = ArrayNode(src_arg_node, 0, 0)
+            src_far_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
+            src_fun_node = FunctionNode(cmd['subdir'], 0, 0, 'files', src_far_node)
+            src_ass_node = AssignmentNode(cmd['subdir'], 0, 0, '{}_src'.format(cmd['target']), src_fun_node)
+            src_arg_node.arguments = [StringNode(Token('string', cmd['subdir'], 0, 0, 0, None, x)) for x in cmd['sources']]
+            src_far_node.arguments = [src_arr_node]
+
+            # Build target
+            tgt_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
+            tgt_fun_node = FunctionNode(cmd['subdir'], 0, 0, cmd['target_type'], tgt_arg_node)
+            tgt_ass_node = AssignmentNode(cmd['subdir'], 0, 0, '{}_tgt'.format(cmd['target']), tgt_fun_node)
+            tgt_arg_node.arguments = [
+                StringNode(Token('string', cmd['subdir'], 0, 0, 0, None, cmd['target'])),
+                IdNode(Token('string', cmd['subdir'], 0, 0, 0, None, '{}_src'.format(cmd['target'])))
+            ]
+
+            self.to_add_nodes += [src_ass_node, tgt_ass_node]
 
         elif cmd['operation'] == 'tgt_rm':
             to_remove = self.find_assignment_node(target['node'])
@@ -586,12 +613,13 @@ class Rewriter:
         work_nodes = [{'node': x, 'action': 'modify'} for x in self.modefied_nodes]
         work_nodes += [{'node': x, 'action': 'rm'} for x in self.to_remove_nodes]
         work_nodes = list(sorted(work_nodes, key=lambda x: x['node'].lineno * 1000 + x['node'].colno, reverse=True))
+        work_nodes += [{'node': x, 'action': 'add'} for x in self.to_add_nodes]
 
         # Generating the new replacement string
         str_list = []
         for i in work_nodes:
             new_data = ''
-            if i['action'] == 'modify':
+            if i['action'] == 'modify' or i['action'] == 'add':
                 printer = AstPrinter()
                 i['node'].accept(printer)
                 printer.post_process()
@@ -611,6 +639,10 @@ class Rewriter:
                 continue
             fpath = os.path.realpath(os.path.join(self.sourcedir, i['file']))
             fdata = ''
+            # Create an empty file if it does not exist
+            if not os.path.exists(fpath):
+                with open(fpath, 'w'):
+                    pass
             with open(fpath, 'r') as fp:
                 fdata = fp.read()
 
@@ -677,7 +709,10 @@ class Rewriter:
             raw = files[i['file']]['raw'] = raw[:start] + i['str'] + raw[end:]
 
         for i in str_list:
-            remove_node(i)
+            if i['action'] in ['modify', 'rm']:
+                remove_node(i)
+            elif i['action'] in ['add']:
+                files[i['file']]['raw'] += i['str'] + '\n'
 
         # Write the files back
         for key, val in files.items():

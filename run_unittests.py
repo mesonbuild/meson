@@ -5180,12 +5180,42 @@ class RewriterTests(BasePlatformTests):
         }
         self.assertDictEqual(out, expected)
 
+    def test_tatrget_add(self):
+        self.prime('1 basic')
+        self.rewrite(self.builddir, os.path.join(self.builddir, 'addTgt.json'))
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+
+        expected = {
+            'target': {
+                'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp']},
+                'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileB.cpp', 'fileC.cpp']},
+                'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp', 'fileA.cpp']},
+                'trivialprog4@exe': {'name': 'trivialprog4', 'sources': ['main.cpp', 'fileA.cpp']},
+                'trivialprog5@exe': {'name': 'trivialprog5', 'sources': ['main.cpp', 'fileB.cpp', 'fileC.cpp']},
+                'trivialprog6@exe': {'name': 'trivialprog6', 'sources': ['main.cpp', 'fileA.cpp']},
+                'trivialprog7@exe': {'name': 'trivialprog7', 'sources': ['fileB.cpp', 'fileC.cpp', 'main.cpp', 'fileA.cpp']},
+                'trivialprog8@exe': {'name': 'trivialprog8', 'sources': ['main.cpp', 'fileA.cpp']},
+                'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['main.cpp', 'fileA.cpp']},
+                'trivialprog10@sha': {'name': 'trivialprog10', 'sources': ['new1.cpp', 'new2.cpp']},
+            }
+        }
+        self.assertDictEqual(out, expected)
+
     def test_target_remove_subdir(self):
         self.prime('2 subdirs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'rmTgt.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         out = self.extract_test_data(out)
         self.assertDictEqual(out, {})
+
+    def test_tatrget_add_subdir(self):
+        self.prime('2 subdirs')
+        self.rewrite(self.builddir, os.path.join(self.builddir, 'addTgt.json'))
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+        expected = {'name': 'something', 'sources': ['first.c', 'second.c']}
+        self.assertDictEqual(list(out['target'].values())[0], expected)
 
     def test_kwargs_info(self):
         self.prime('3 kwargs')
