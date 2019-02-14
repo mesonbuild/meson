@@ -573,6 +573,8 @@ class Rewriter:
                 IdNode(Token('string', cmd['subdir'], 0, 0, 0, None, '{}_src'.format(cmd['target'])))
             ]
 
+            src_ass_node.accept(AstIndentationGenerator())
+            tgt_ass_node.accept(AstIndentationGenerator())
             self.to_add_nodes += [src_ass_node, tgt_ass_node]
 
         elif cmd['operation'] == 'tgt_rm':
