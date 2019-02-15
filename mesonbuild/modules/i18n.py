@@ -44,6 +44,14 @@ PRESET_ARGS = {
         '--flag=g_string_append_printf:2:c-format',
         '--flag=g_error_new:3:c-format',
         '--flag=g_set_error:4:c-format',
+        '--flag=g_markup_printf_escaped:1:c-format',
+        '--flag=g_log:3:c-format',
+        '--flag=g_print:1:c-format',
+        '--flag=g_printerr:1:c-format',
+        '--flag=g_printf:1:c-format',
+        '--flag=g_fprintf:2:c-format',
+        '--flag=g_sprintf:2:c-format',
+        '--flag=g_snprintf:3:c-format',
     ]
 }
 
