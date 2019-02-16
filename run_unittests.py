@@ -5299,6 +5299,20 @@ class RewriterTests(BasePlatformTests):
         }
         self.assertDictEqual(out, expected)
 
+    def test_kwargs_remove_regex(self):
+        self.prime('3 kwargs')
+        self.rewrite(self.builddir, os.path.join(self.builddir, 'remove_regex.json'))
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        out = self.extract_test_data(out)
+        expected = {
+            'kwargs': {
+                'project#': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=true']},
+                'target#tgt1': {'build_by_default': True},
+                'dependency#dep1': {'required': False}
+            }
+        }
+        self.assertDictEqual(out, expected)
+
     def test_kwargs_delete(self):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'delete.json'))

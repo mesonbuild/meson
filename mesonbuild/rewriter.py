@@ -29,7 +29,7 @@ from . import mlog, mparser, environment
 from functools import wraps
 from pprint import pprint
 from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, IdNode, FunctionNode, StringNode
-import json, os
+import json, os, re
 
 class RewriterException(MesonException):
     pass
@@ -109,6 +109,10 @@ class MTypeBase:
         # Overwrite in derived class
         mlog.warning('Cannot remove a value of type', mlog.bold(type(self).__name__), '--> skipping')
 
+    def remove_regex(self, value):
+        # Overwrite in derived class
+        mlog.warning('Cannot remove a regex in type', mlog.bold(type(self).__name__), '--> skipping')
+
 class MTypeStr(MTypeBase):
     def __init__(self, node: mparser.BaseNode):
         super().__init__(node)
@@ -165,7 +169,11 @@ class MTypeList(MTypeBase):
             self.node = self._new_node()
             self.node.args.arguments += [tmp]
 
-    def _check_is_equal(self, node, value):
+    def _check_is_equal(self, node, value) -> bool:
+        # Overwrite in derived class
+        return False
+
+    def _check_regex_matches(self, node, regex: str) -> bool:
         # Overwrite in derived class
         return False
 
@@ -197,10 +205,10 @@ class MTypeList(MTypeBase):
         for i in value:
             self.node.args.arguments += [self._new_element_node(i)]
 
-    def remove_value(self, value):
+    def _remove_helper(self, value, equal_func):
         def check_remove_node(node):
             for j in value:
-                if self._check_is_equal(i, j):
+                if equal_func(i, j):
                     return True
             return False
 
@@ -213,6 +221,12 @@ class MTypeList(MTypeBase):
                 removed_list += [i]
         self.node.args.arguments = removed_list
 
+    def remove_value(self, value):
+        self._remove_helper(value, self._check_is_equal)
+
+    def remove_regex(self, regex: str):
+        self._remove_helper(regex, self._check_regex_matches)
+
 class MTypeStrList(MTypeList):
     def __init__(self, node: mparser.BaseNode):
         super().__init__(node)
@@ -220,9 +234,14 @@ class MTypeStrList(MTypeList):
     def _new_element_node(self, value):
         return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, str(value)))
 
-    def _check_is_equal(self, node, value):
+    def _check_is_equal(self, node, value) -> bool:
         if isinstance(node, mparser.StringNode):
             return node.value == value
+        return False
+
+    def _check_regex_matches(self, node, regex: str) -> bool:
+        if isinstance(node, mparser.StringNode):
+            return re.match(regex, node.value) is not None
         return False
 
     def supported_element_nodes(self):
@@ -235,9 +254,14 @@ class MTypeIDList(MTypeList):
     def _new_element_node(self, value):
         return mparser.IdNode(mparser.Token('', '', 0, 0, 0, None, str(value)))
 
-    def _check_is_equal(self, node, value):
+    def _check_is_equal(self, node, value) -> bool:
         if isinstance(node, mparser.IdNode):
             return node.value == value
+        return False
+
+    def _check_regex_matches(self, node, regex: str) -> bool:
+        if isinstance(node, mparser.StringNode):
+            return re.match(regex, node.value) is not None
         return False
 
     def supported_element_nodes(self):
@@ -247,7 +271,7 @@ rewriter_keys = {
     'kwargs': {
         'function': (str, None, None),
         'id': (str, None, None),
-        'operation': (str, None, ['set', 'delete', 'add', 'remove', 'info']),
+        'operation': (str, None, ['set', 'delete', 'add', 'remove', 'remove_regex', 'info']),
         'kwargs': (dict, {}, None)
     },
     'target': {
@@ -451,6 +475,9 @@ class Rewriter:
             elif cmd['operation'] == 'remove':
                 mlog.log('  -- Removing', mlog.yellow(val_str), 'from', mlog.bold(key))
                 modifyer.remove_value(val)
+            elif cmd['operation'] == 'remove_regex':
+                mlog.log('  -- Removing all values matching', mlog.yellow(val_str), 'from', mlog.bold(key))
+                modifyer.remove_regex(val)
 
             # Write back the result
             arg_node.kwargs[key] = modifyer.get_node()
