@@ -3,7 +3,7 @@
     "type": "default_options",
     "operation": "set",
     "options": {
-      "cpp_std": "c++17"
+      "cpp_std": "c++14"
     }
   },
   {

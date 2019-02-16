@@ -5348,7 +5348,7 @@ class RewriterTests(BasePlatformTests):
         out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'default_options': ['cpp_std=c++17', 'debug=true']},
+                'project#': {'version': '0.0.1', 'default_options': ['cpp_std=c++14', 'debug=true']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
