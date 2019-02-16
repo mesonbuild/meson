@@ -213,7 +213,7 @@ class MTypeList(MTypeBase):
                 removed_list += [i]
         self.node.args.arguments = removed_list
 
-class MtypeStrList(MTypeList):
+class MTypeStrList(MTypeList):
     def __init__(self, node: mparser.BaseNode):
         super().__init__(node)
 
@@ -268,8 +268,8 @@ rewriter_func_kwargs = {
         'not_found_message': MTypeStr,
         'required': MTypeBool,
         'static': MTypeBool,
-        'version': MtypeStrList,
-        'modules': MtypeStrList
+        'version': MTypeStrList,
+        'modules': MTypeStrList
     },
     'target': {
         'build_by_default': MTypeBool,
@@ -285,8 +285,9 @@ rewriter_func_kwargs = {
         'pie': MTypeBool
     },
     'project': {
+        'default_options': MTypeStrList,
         'meson_version': MTypeStr,
-        'license': MtypeStrList,
+        'license': MTypeStrList,
         'subproject_dir': MTypeStr,
         'version': MTypeStr
     }
