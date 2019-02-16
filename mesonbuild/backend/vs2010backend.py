@@ -89,6 +89,7 @@ class Vs2010Backend(backends.Backend):
         self.vs_version = '2010'
         self.windows_target_platform_version = None
         self.subdirs = {}
+        self.handled_target_deps = {}
 
     def generate_custom_generator_commands(self, target, parent_node):
         generator_output_files = []
@@ -305,17 +306,9 @@ class Vs2010Backend(backends.Backend):
                     prj[0], prj[1], prj[2])
                 ofile.write(prj_line)
                 target_dict = {target.get_id(): target}
-                # Get direct deps
-                all_deps = self.get_target_deps(target_dict)
                 # Get recursive deps
                 recursive_deps = self.get_target_deps(
                     target_dict, recursive=True)
-                ofile.write('\tProjectSection(ProjectDependencies) = '
-                            'postProject\n')
-                for dep in all_deps.keys():
-                    guid = self.environment.coredata.target_guids[dep]
-                    ofile.write('\t\t{%s} = {%s}\n' % (guid, guid))
-                ofile.write('\tEndProjectSection\n')
                 ofile.write('EndProject\n')
                 for dep, target in recursive_deps.items():
                     if prj[0] in default_projlist:
@@ -444,10 +437,26 @@ class Vs2010Backend(backends.Backend):
     def quote_arguments(self, arr):
         return ['"%s"' % i for i in arr]
 
-    def add_project_reference(self, root, include, projid):
+    def add_project_reference(self, root, include, projid, link_outputs=False):
         ig = ET.SubElement(root, 'ItemGroup')
         pref = ET.SubElement(ig, 'ProjectReference', Include=include)
         ET.SubElement(pref, 'Project').text = '{%s}' % projid
+        if not link_outputs:
+            # Do not link in generated .lib files from dependencies automatically.
+            # We only use the dependencies for ordering and link in the generated
+            # objects and .lib files manually.
+            ET.SubElement(pref, 'LinkLibraryDependencies').text = 'false'
+
+    def add_target_deps(self, root, target):
+        target_dict = {target.get_id(): target}
+        for name, dep in self.get_target_deps(target_dict).items():
+            if dep.get_id() in self.handled_target_deps[target.get_id()]:
+                # This dependency was already handled manually.
+                continue
+            relpath = self.get_target_dir_relative_to(dep, target)
+            vcxproj = os.path.join(relpath, dep.get_id() + '.vcxproj')
+            tid = self.environment.coredata.target_guids[dep.get_id()]
+            self.add_project_reference(root, vcxproj, tid)
 
     def create_basic_crap(self, target, guid):
         project_name = target.name
@@ -517,6 +526,7 @@ class Vs2010Backend(backends.Backend):
         self.add_custom_build(root, 'run_target', cmd_templ % tuple(cmd))
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)
+        self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_custom_target_vcxproj(self, target, ofname, guid):
@@ -545,6 +555,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.generate_custom_generator_commands(target, root)
         self.add_regen_dependency(root)
+        self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     @classmethod
@@ -714,6 +725,7 @@ class Vs2010Backend(backends.Backend):
         mlog.debug('Generating vcxproj %s.' % target.name)
         entrypoint = 'WinMainCRTStartup'
         subsystem = 'Windows'
+        self.handled_target_deps[target.get_id()] = []
         if isinstance(target, build.Executable):
             conftype = 'Application'
             if not target.gui_app:
@@ -1100,7 +1112,10 @@ class Vs2010Backend(backends.Backend):
                 trelpath = self.get_target_dir_relative_to(t, target)
                 tvcxproj = os.path.join(trelpath, t.get_id() + '.vcxproj')
                 tid = self.environment.coredata.target_guids[t.get_id()]
-                self.add_project_reference(root, tvcxproj, tid)
+                self.add_project_reference(root, tvcxproj, tid, link_outputs=True)
+                # Mark the dependency as already handled to not have
+                # multiple references to the same target.
+                self.handled_target_deps[target.get_id()].append(t.get_id())
             else:
                 # Other libraries go into AdditionalDependencies
                 if linkname not in additional_links:
@@ -1209,6 +1224,7 @@ class Vs2010Backend(backends.Backend):
 
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)
+        self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_regenproj(self, project_name, ofname):
