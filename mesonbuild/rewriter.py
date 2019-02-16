@@ -268,6 +268,10 @@ class MTypeIDList(MTypeList):
         return [mparser.IdNode]
 
 rewriter_keys = {
+    'default_options': {
+        'operation': (str, None, ['set', 'delete']),
+        'options': (dict, {}, None)
+    },
     'kwargs': {
         'function': (str, None, None),
         'id': (str, None, None),
@@ -325,6 +329,7 @@ class Rewriter:
         self.to_remove_nodes = []
         self.to_add_nodes = []
         self.functions = {
+            'default_options': self.process_default_options,
             'kwargs': self.process_kwargs,
             'target': self.process_target,
         }
@@ -392,6 +397,50 @@ class Rewriter:
                     dep = check_list(name)
 
         return dep
+
+    @RequiredKeys(rewriter_keys['default_options'])
+    def process_default_options(self, cmd):
+        # First, remove the old values
+        kwargs_cmd = {
+            'function': 'project',
+            'id': "",
+            'operation': 'remove_regex',
+            'kwargs': {
+                'default_options': ['{}=.*'.format(x) for x in cmd['options'].keys()]
+            }
+        }
+        self.process_kwargs(kwargs_cmd)
+
+        # Then add the new values
+        if cmd['operation'] != 'set':
+            return
+
+        kwargs_cmd['operation'] = 'add'
+        kwargs_cmd['kwargs']['default_options'] = []
+
+        cdata = self.interpreter.coredata
+        options = {
+            **cdata.builtins,
+            **cdata.backend_options,
+            **cdata.base_options,
+            **cdata.compiler_options.build,
+            **cdata.user_options
+        }
+
+        for key, val in cmd['options'].items():
+            if key not in options:
+                mlog.error('Unknown options', mlog.bold(key), '--> skipping')
+                continue
+
+            try:
+                val = options[key].validate_value(val)
+            except MesonException as e:
+                mlog.error('Unable to set', mlog.bold(key), mlog.red(str(e)), '--> skipping')
+                continue
+
+            kwargs_cmd['kwargs']['default_options'] += ['{}={}'.format(key, val)]
+
+        self.process_kwargs(kwargs_cmd)
 
     @RequiredKeys(rewriter_keys['kwargs'])
     def process_kwargs(self, cmd):
