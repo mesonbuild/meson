@@ -51,9 +51,12 @@ class IntrospectionInterpreter(AstInterpreter):
         self.default_options = {'backend': self.backend}
         self.project_data = {}
         self.targets = []
+        self.dependencies = []
+        self.project_node = None
 
         self.funcs.update({
             'add_languages': self.func_add_languages,
+            'dependency': self.func_dependency,
             'executable': self.func_executable,
             'jar': self.func_jar,
             'library': self.func_library,
@@ -65,6 +68,9 @@ class IntrospectionInterpreter(AstInterpreter):
         })
 
     def func_project(self, node, args, kwargs):
+        if self.project_node:
+            raise InvalidArguments('Second call to project()')
+        self.project_node = node
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
 
@@ -125,6 +131,16 @@ class IntrospectionInterpreter(AstInterpreter):
             if lang not in self.coredata.compilers:
                 self.environment.detect_compilers(lang, need_cross_compiler)
 
+    def func_dependency(self, node, args, kwargs):
+        args = self.flatten_args(args)
+        if not args:
+            return
+        name = args[0]
+        self.dependencies += [{
+            'name': name,
+            'node': node
+        }]
+
     def build_target(self, node, args, kwargs, targetclass):
         if not args:
             return
@@ -159,10 +175,8 @@ class IntrospectionInterpreter(AstInterpreter):
             if elemetary_nodes:
                 source_nodes += [curr]
 
-        # Filter out kwargs from other target types. For example 'soversion'
-        # passed to library() when default_library == 'static'.
-        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
-
+        # Make sure nothing can crash when creating the build class
+        kwargs = {}
         is_cross = False
         objects = []
         empty_sources = [] # Passing the unresolved sources list causes errors

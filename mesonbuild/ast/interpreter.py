@@ -113,7 +113,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
         absdir = os.path.join(self.source_root, subdir)
-        buildfilename = os.path.join(self.subdir, environment.build_filename)
+        buildfilename = os.path.join(subdir, environment.build_filename)
         absname = os.path.join(self.source_root, buildfilename)
         symlinkless_dir = os.path.realpath(absdir)
         if symlinkless_dir in self.visited_subdirs:
@@ -128,7 +128,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             code = f.read()
         assert(isinstance(code, str))
         try:
-            codeblock = mparser.Parser(code, self.subdir).parse()
+            codeblock = mparser.Parser(code, subdir).parse()
         except mesonlib.MesonException as me:
             me.file = buildfilename
             raise me

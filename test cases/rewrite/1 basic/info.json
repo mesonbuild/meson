@@ -2,46 +2,46 @@
   {
     "type": "target",
     "target": "trivialprog1",
-    "operation": "test"
+    "operation": "info"
   },
   {
     "type": "target",
-    "target": "trivialprog2",
-    "operation": "test"
+    "target": "exe2",
+    "operation": "info"
   },
   {
     "type": "target",
     "target": "trivialprog3",
-    "operation": "test"
+    "operation": "info"
   },
   {
     "type": "target",
-    "target": "trivialprog4",
-    "operation": "test"
+    "target": "exe4",
+    "operation": "info"
   },
   {
     "type": "target",
     "target": "trivialprog5",
-    "operation": "test"
+    "operation": "info"
   },
   {
     "type": "target",
-    "target": "trivialprog6",
-    "operation": "test"
+    "target": "exe6",
+    "operation": "info"
   },
   {
     "type": "target",
     "target": "trivialprog7",
-    "operation": "test"
+    "operation": "info"
   },
   {
     "type": "target",
-    "target": "trivialprog8",
-    "operation": "test"
+    "target": "exe8",
+    "operation": "info"
   },
   {
     "type": "target",
     "target": "trivialprog9",
-    "operation": "test"
+    "operation": "info"
   }
 ]
