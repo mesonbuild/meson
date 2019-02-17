@@ -2133,8 +2133,8 @@ an external dependency with the following methods:
    partial dependency with the same rules. So , given:
 
    ```meson
-   dep1 = declare_dependency(compiler_args : '-Werror=foo', link_with : 'libfoo')
-   dep2 = declare_dependency(compiler_args : '-Werror=bar', dependencies : dep1)
+   dep1 = declare_dependency(compile_args : '-Werror=foo', link_with : 'libfoo')
+   dep2 = declare_dependency(compile_args : '-Werror=bar', dependencies : dep1)
    dep3 = dep2.partial_dependency(compile_args : true)
    ```
 
