@@ -1748,11 +1748,11 @@ rule FORTRAN_DEP_HACK%s
         outfilelist = genlist.get_outputs()
         extra_dependencies = [os.path.join(self.build_to_src, i) for i in genlist.extra_depends]
         for i in range(len(infilelist)):
+            curfile = infilelist[i]
             if len(generator.outputs) == 1:
                 sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
             else:
-                sole_output = ''
-            curfile = infilelist[i]
+                sole_output = '{}'.format(curfile)
             infilename = curfile.rel_to_builddir(self.build_to_src)
             base_args = generator.get_arglist(infilename)
             outfiles = genlist.get_outputs_for(curfile)
@@ -1769,7 +1769,7 @@ rule FORTRAN_DEP_HACK%s
                     for x in args]
             args = self.replace_outputs(args, self.get_target_private_dir(target), outfilelist)
             # We have consumed output files, so drop them from the list of remaining outputs.
-            if sole_output == '':
+            if len(generator.outputs) > 1:
                 outfilelist = outfilelist[len(generator.outputs):]
             args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
@@ -1792,7 +1792,11 @@ rule FORTRAN_DEP_HACK%s
                 elem.add_item('DEPFILE', depfile)
             if len(extra_dependencies) > 0:
                 elem.add_dep(extra_dependencies)
-            elem.add_item('DESC', 'Generating {!r}.'.format(sole_output))
+            if len(generator.outputs) == 1:
+                elem.add_item('DESC', 'Generating {!r}.'.format(sole_output))
+            else:
+                # since there are multiple outputs, we log the source that caused the rebuild
+                elem.add_item('DESC', 'Generating source from {!r}.'.format(sole_output))
             if isinstance(exe, build.BuildTarget):
                 elem.add_dep(self.get_target_filename(exe))
             elem.add_item('COMMAND', cmd)
