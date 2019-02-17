@@ -41,6 +41,7 @@ class Conf:
         if 'meson.build' in [os.path.basename(self.build_dir), self.build_dir]:
             self.build_dir = os.path.dirname(self.build_dir)
         self.build = None
+        self.max_choices_line_length = 60
 
         if os.path.isdir(os.path.join(self.build_dir, 'meson-private')):
             self.build = build.load(self.build_dir)
@@ -100,7 +101,20 @@ class Conf:
             if opt['choices']:
                 choices_found = True
                 if isinstance(opt['choices'], list):
-                    choices_col.append('[{0}]'.format(', '.join(make_lower_case(opt['choices']))))
+                    choices_list = make_lower_case(opt['choices'])
+                    current = '['
+                    while choices_list:
+                        i = choices_list.pop(0)
+                        if len(current) + len(i) >= self.max_choices_line_length:
+                            choices_col.append(current + ',')
+                            name_col.append('')
+                            value_col.append('')
+                            descr_col.append('')
+                            current = ' '
+                        if len(current) > 1:
+                            current += ', '
+                        current += i
+                    choices_col.append(current + ']')
                 else:
                     choices_col.append(make_lower_case(opt['choices']))
             else:
