@@ -380,6 +380,17 @@ class DCompiler(Compiler):
                 # translate library link flag
                 dcargs.append('-L=' + arg)
                 continue
+            elif arg.startswith('-isystem'):
+                # translate -isystem system include path
+                # this flag might sometimes be added by C library Cflags via
+                # pkg-config.
+                # NOTE: -isystem and -I are not 100% equivalent, so this is just
+                # a workaround for the most common cases.
+                if arg.startswith('-isystem='):
+                    dcargs.append('-I=' + arg[9:])
+                else:
+                    dcargs.append('-I')
+                continue
             elif arg.startswith('-L/') or arg.startswith('-L./'):
                 # we need to handle cases where -L is set by e.g. a pkg-config
                 # setting to select a linker search path. We can however not
