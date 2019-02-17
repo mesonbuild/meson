@@ -63,7 +63,7 @@ from run_tests import (
 
 def get_dynamic_section_entry(fname, entry):
     if is_cygwin() or is_osx():
-            raise unittest.SkipTest('Test only applicable to ELF platforms')
+        raise unittest.SkipTest('Test only applicable to ELF platforms')
 
     try:
         raw_out = subprocess.check_output(['readelf', '-d', fname],
@@ -1642,7 +1642,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_testsetups(self):
         if not shutil.which('valgrind'):
-                raise unittest.SkipTest('Valgrind not installed.')
+            raise unittest.SkipTest('Valgrind not installed.')
         testdir = os.path.join(self.unit_test_dir, '2 testsetups')
         self.init(testdir)
         self.build()
@@ -2969,6 +2969,33 @@ recommended as it is not supported on some platforms''')
             # support b_sanitize. We have to test with a base option because
             # they used to fail this test with Meson 0.46 an earlier versions.
             pass
+
+    def test_warning_level_0(self):
+        testdir = os.path.join(self.unit_test_dir, '213 warning level 0')
+
+        # Verify default values when passing no args
+        self.init(testdir)
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '0')
+        self.wipe()
+
+        # verify we can override w/ --warnlevel
+        self.init(testdir, extra_args=['--warnlevel=1'])
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '1')
+        self.setconf('--warnlevel=0')
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '0')
+        self.wipe()
+
+        # verify we can override w/ -Dwarning_level
+        self.init(testdir, extra_args=['-Dwarning_level=1'])
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '1')
+        self.setconf('-Dwarning_level=0')
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['warning_level'].value, '0')
+        self.wipe()
 
     def test_feature_check_usage_subprojects(self):
         testdir = os.path.join(self.unit_test_dir, '41 featurenew subprojects')

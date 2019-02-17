@@ -834,7 +834,7 @@ builtin_options = {
     'localstatedir':   [UserStringOption, 'Localstate data directory', 'var'],
     'sharedstatedir':  [UserStringOption, 'Architecture-independent data directory', 'com'],
     'werror':          [UserBooleanOption, 'Treat warnings as errors', False],
-    'warning_level':   [UserComboOption, 'Compiler warning level to use', ['1', '2', '3'], '1'],
+    'warning_level':   [UserComboOption, 'Compiler warning level to use', ['0', '1', '2', '3'], '1'],
     'layout':          [UserComboOption, 'Build directory layout', ['mirror', 'flat'], 'mirror'],
     'default_library': [UserComboOption, 'Default library type', ['shared', 'static', 'both'], 'shared'],
     'backend':         [UserComboOption, 'Backend to use', backendlist, 'ninja'],

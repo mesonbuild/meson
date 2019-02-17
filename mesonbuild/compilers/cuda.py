@@ -28,7 +28,8 @@ class CudaCompiler(Compiler):
         self.exe_wrapper = exe_wrapper
         self.id = 'nvcc'
         default_warn_args = []
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Xcompiler=-Wextra'],
                           '3': default_warn_args + ['-Xcompiler=-Wextra',
                                                     '-Xcompiler=-Wpedantic']}

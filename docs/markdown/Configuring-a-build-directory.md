@@ -33,7 +33,7 @@ sample output for a simple project.
       optimization    3             [0, g, 1, 2, 3, s]                                       Optimization level
       strip           false         [true, false]                                            Strip targets on install
       unity           off           [on, off, subprojects]                                   Unity build
-      warning_level   1             [1, 2, 3]                                                Compiler warning level to use
+      warning_level   1             [0, 1, 2, 3]                                             Compiler warning level to use
       werror          false         [true, false]                                            Treat warnings as errors
 
     Backend options:

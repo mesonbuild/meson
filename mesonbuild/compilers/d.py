@@ -487,7 +487,8 @@ class GnuDCompiler(DCompiler):
         DCompiler.__init__(self, exelist, version, is_cross, arch, **kwargs)
         self.id = 'gcc'
         default_warn_args = ['-Wall', '-Wdeprecated']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
         self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic', 'b_vscrt']
@@ -558,8 +559,10 @@ class LLVMDCompiler(DCompiler):
     def get_warn_args(self, level):
         if level == '2' or level == '3':
             return ['-wi', '-dw']
-        else:
+        elif level == '1':
             return ['-wi']
+        else:
+            return []
 
     def get_buildtype_args(self, buildtype):
         if buildtype != 'plain':

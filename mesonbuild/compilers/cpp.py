@@ -135,7 +135,8 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
         ClangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
@@ -166,7 +167,8 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
         ArmclangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
@@ -194,7 +196,8 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
         GnuCompiler.__init__(self, compiler_type, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
@@ -272,7 +275,8 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
         self.lang_header = 'c++-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark',
                              '-Wpch-messages', '-Wnon-virtual-dtor']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra']}
 

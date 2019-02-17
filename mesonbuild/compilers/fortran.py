@@ -280,7 +280,8 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
         GnuCompiler.__init__(self, compiler_type, defines)
         default_warn_args = ['-Wall']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
@@ -307,7 +308,8 @@ class G95FortranCompiler(FortranCompiler):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         self.id = 'g95'
         default_warn_args = ['-Wall']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-pedantic']}
 
@@ -352,7 +354,8 @@ class IntelFortranCompiler(IntelCompiler, FortranCompiler):
         IntelCompiler.__init__(self, CompilerType.ICC_STANDARD)
         self.id = 'intel'
         default_warn_args = ['-warn', 'general', '-warn', 'truncated_source']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-warn', 'unused'],
                           '3': ['-warn', 'all']}
 
@@ -374,7 +377,8 @@ class PathScaleFortranCompiler(FortranCompiler):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         self.id = 'pathscale'
         default_warn_args = ['-fullwarn']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args,
                           '3': default_warn_args}
 
@@ -394,7 +398,8 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
         ClangCompiler.__init__(self, CompilerType.CLANG_STANDARD)
         self.id = 'flang'
         default_warn_args = ['-Minform=inform']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args,
                           '3': default_warn_args}
 
@@ -403,7 +408,8 @@ class Open64FortranCompiler(FortranCompiler):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         self.id = 'open64'
         default_warn_args = ['-fullwarn']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args,
                           '3': default_warn_args}
 
