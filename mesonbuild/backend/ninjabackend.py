@@ -2327,8 +2327,6 @@ rule FORTRAN_DEP_HACK%s
         if isinstance(target, build.Executable):
             # Currently only used with the Swift compiler to add '-emit-executable'
             commands += linker.get_std_exe_link_args()
-            # If gui_app is significant on this platform, add the appropriate linker arguments
-            commands += linker.get_gui_app_args(target.gui_app)
             # If export_dynamic, add the appropriate linker arguments
             if target.export_dynamic:
                 commands += linker.gen_export_dynamic_link_args(self.environment)
@@ -2359,6 +2357,15 @@ rule FORTRAN_DEP_HACK%s
             commands += linker.get_std_link_args()
         else:
             raise RuntimeError('Unknown build target type.')
+        return commands
+
+    def get_target_type_link_args_post_dependencies(self, target, linker):
+        commands = []
+        if isinstance(target, build.Executable):
+            # If gui_app is significant on this platform, add the appropriate linker arguments.
+            # Unfortunately this can't be done in get_target_type_link_args, because some misguided
+            # libraries (such as SDL2) add -mwindows to their link flags.
+            commands += linker.get_gui_app_args(target.gui_app)
         return commands
 
     def get_link_whole_args(self, linker, target):
@@ -2538,6 +2545,9 @@ rule FORTRAN_DEP_HACK%s
                 commands += linker.openmp_flags()
             if need_threads:
                 commands += linker.thread_link_flags(self.environment)
+
+        # Add link args specific to this BuildTarget type that must not be overridden by dependencies
+        commands += self.get_target_type_link_args_post_dependencies(target, linker)
 
         # Add link args for c_* or cpp_* build options. Currently this only
         # adds c_winlibs and cpp_winlibs when building for Windows. This needs
