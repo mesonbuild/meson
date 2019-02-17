@@ -2971,7 +2971,7 @@ recommended as it is not supported on some platforms''')
             pass
 
     def test_warning_level_0(self):
-        testdir = os.path.join(self.unit_test_dir, '213 warning level 0')
+        testdir = os.path.join(self.common_test_dir, '213 warning level 0')
 
         # Verify default values when passing no args
         self.init(testdir)
