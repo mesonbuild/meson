@@ -2,6 +2,15 @@ project('linker script', 'c')
 
 cc = meson.get_compiler('c')
 
+if build_machine.system() == 'cygwin'
+  error('MESON_SKIP_TEST does not work on cygwin for some reason.')
+endif
+
+if cc.get_id() == 'clang-cl'
+  error('MESON_SKIP_TEST uses lld which is not supported yet. Patches welcome.')
+endif
+
+
 # Static map file
 if cc.get_id() == 'msvc'
   suffix = '.sym'
