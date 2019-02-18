@@ -22,9 +22,10 @@ project files and don't need this info."""
 import json
 from . import build, coredata as cdata
 from . import mesonlib
-from .ast import IntrospectionInterpreter
+from .ast import IntrospectionInterpreter, build_target_functions
 from . import mlog
 from .backend import backends
+from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
 import sys, os
 import pathlib
 
@@ -75,6 +76,7 @@ def get_meson_introspection_types(coredata: cdata.CoreData = None, builddata: bu
         },
         'targets': {
             'func': lambda: list_targets(builddata, installdata, backend),
+            'no_bd': lambda intr: list_targets_from_source(intr),
             'desc': 'List top level targets.',
         },
         'tests': {
@@ -114,6 +116,45 @@ def list_installed(installdata):
         for path, installpath, unused_custom_install_mode in installdata.man:
             res[path] = os.path.join(installdata.prefix, installpath)
     return res
+
+def list_targets_from_source(intr: IntrospectionInterpreter):
+    tlist = []
+    for i in intr.targets:
+        sources = []
+        for n in i['sources']:
+            args = []
+            if isinstance(n, FunctionNode):
+                args = list(n.args.arguments)
+                if n.func_name in build_target_functions:
+                    args.pop(0)
+            elif isinstance(n, ArrayNode):
+                args = n.args.arguments
+            elif isinstance(n, ArgumentNode):
+                args = n.arguments
+            for j in args:
+                if isinstance(j, StringNode):
+                    sources += [j.value]
+                elif isinstance(j, str):
+                    sources += [j]
+
+        tlist += [{
+            'name': i['name'],
+            'id': i['id'],
+            'type': i['type'],
+            'defined_in': i['defined_in'],
+            'filename': [os.path.join(i['subdir'], x) for x in i['outputs']],
+            'build_by_default': i['build_by_default'],
+            'target_sources': [{
+                'language': 'unknown',
+                'compiler': [],
+                'parameters': [],
+                'sources': [os.path.normpath(os.path.join(os.path.abspath(intr.source_root), i['subdir'], x)) for x in sources],
+                'generated_sources': []
+            }],
+            'installed': i['installed']
+        }]
+
+    return tlist
 
 def list_targets(builddata: build.Build, installdata, backend: backends.Backend):
     tlist = []
