@@ -1152,7 +1152,7 @@ class CCompiler(Compiler):
             # flags, so when we are testing a flag like "-Wno-forgotten-towel", also
             # check the equivalent enable flag too "-Wforgotten-towel"
             if arg.startswith('-Wno-'):
-                    args.append('-W' + arg[5:])
+                args.append('-W' + arg[5:])
             if arg.startswith('-Wl,'):
                 mlog.warning('{} looks like a linker argument, '
                              'but has_argument and other similar methods only '
@@ -1209,7 +1209,8 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
         ClangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
@@ -1243,7 +1244,8 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
         ArmclangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
@@ -1271,7 +1273,8 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
         GnuCompiler.__init__(self, compiler_type, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
@@ -1341,7 +1344,8 @@ class IntelCCompiler(IntelCompiler, CCompiler):
         IntelCompiler.__init__(self, compiler_type)
         self.lang_header = 'c-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra']}
 
@@ -1383,7 +1387,8 @@ class VisualStudioCCompiler(CCompiler):
         # /showIncludes is needed for build dependency tracking in Ninja
         # See: https://ninja-build.org/manual.html#_deps
         self.always_args = ['/nologo', '/showIncludes']
-        self.warn_args = {'1': ['/W2'],
+        self.warn_args = {'0': ['/W1'],
+                          '1': ['/W2'],
                           '2': ['/W3'],
                           '3': ['/W4']}
         self.base_options = ['b_pch', 'b_ndebug', 'b_vscrt'] # FIXME add lto, pgo and the like
