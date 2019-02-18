@@ -43,5 +43,10 @@
     "type": "target",
     "target": "trivialprog9",
     "operation": "info"
+  },
+  {
+    "type": "target",
+    "target": "trivialprog10",
+    "operation": "info"
   }
 ]

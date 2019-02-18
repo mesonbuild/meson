@@ -3,5 +3,10 @@
     "type": "target",
     "target": "something",
     "operation": "info"
+  },
+  {
+    "type": "target",
+    "target": "newLib",
+    "operation": "info"
   }
 ]

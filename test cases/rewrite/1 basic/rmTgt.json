@@ -1,0 +1,12 @@
+[
+  {
+    "type": "target",
+    "target": "trivialprog1",
+    "operation": "tgt_rm"
+  },
+  {
+    "type": "target",
+    "target": "trivialprog9",
+    "operation": "tgt_rm"
+  }
+]

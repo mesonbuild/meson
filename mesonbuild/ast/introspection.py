@@ -34,8 +34,8 @@ class IntrospectionHelper:
 class IntrospectionInterpreter(AstInterpreter):
     # Interpreter to detect the options without a build directory
     # Most of the code is stolen from interperter.Interpreter
-    def __init__(self, source_root, subdir, backend, cross_file=None, subproject='', subproject_dir='subprojects', env=None):
-        super().__init__(source_root, subdir)
+    def __init__(self, source_root, subdir, backend, visitors=[], cross_file=None, subproject='', subproject_dir='subprojects', env=None):
+        super().__init__(source_root, subdir, visitors=visitors)
 
         options = IntrospectionHelper(cross_file)
         self.cross_file = cross_file
@@ -162,9 +162,9 @@ class IntrospectionInterpreter(AstInterpreter):
                 # Try to resolve the ID and append the node to the queue
                 id = curr.value
                 if id in self.assignments and self.assignments[id]:
-                    node = self.assignments[id][0]
-                    if isinstance(node, (mparser.ArrayNode, mparser.IdNode, mparser.FunctionNode)):
-                        srcqueue += [node]
+                    tmp_node = self.assignments[id][0]
+                    if isinstance(tmp_node, (mparser.ArrayNode, mparser.IdNode, mparser.FunctionNode)):
+                        srcqueue += [tmp_node]
             if arg_node is None:
                 continue
             elemetary_nodes = list(filter(lambda x: isinstance(x, (str, mparser.StringNode)), arg_node.arguments))
