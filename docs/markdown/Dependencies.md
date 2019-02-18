@@ -427,7 +427,7 @@ include path of the given module(s) to the compiler flags.  (since v0.47.0)
 **Note** using private headers in your project is a bad idea, do so at your own
 risk.
 
-`method` may be `auto`, `pkgconfig` or `qmake`.
+`method` may be `auto`, `pkg-config` or `qmake`.
 
 ## SDL2
 
