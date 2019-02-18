@@ -37,7 +37,7 @@ def get_meson_introspection_version():
 def get_meson_introspection_required_version():
     return ['>=1.0', '<2.0']
 
-def get_meson_introspection_types(coredata: cdata.CoreData = None, builddata: build.Build = None, backend: backends.Backend = None):
+def get_meson_introspection_types(coredata: cdata.CoreData = None, builddata: build.Build = None, backend: backends.Backend = None, sourcedir: str = None):
     if backend and builddata:
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
         testdata = backend.create_test_serialisation(builddata.get_tests())
@@ -52,6 +52,7 @@ def get_meson_introspection_types(coredata: cdata.CoreData = None, builddata: bu
         },
         'buildoptions': {
             'func': lambda: list_buildoptions(coredata),
+            'no_bd': lambda intr: list_buildoptions_from_source(intr),
             'desc': 'List all build options.',
         },
         'buildsystem_files': {
@@ -69,6 +70,7 @@ def get_meson_introspection_types(coredata: cdata.CoreData = None, builddata: bu
         },
         'projectinfo': {
             'func': lambda: list_projinfo(builddata),
+            'no_bd': lambda intr: list_projinfo_from_source(sourcedir, intr),
             'desc': 'Information about projects.',
         },
         'targets': {
@@ -147,15 +149,8 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
         tlist.append(t)
     return tlist
 
-def list_buildoptions_from_source(sourcedir, backend, indent):
-    # Make sure that log entries in other parts of meson don't interfere with the JSON output
-    mlog.disable()
-    backend = backends.get_backend_from_name(backend, None)
-    intr = IntrospectionInterpreter(sourcedir, '', backend.name)
-    intr.analyze()
-    # Reenable logging just in case
-    mlog.enable()
-    print(json.dumps(list_buildoptions(intr.coredata), indent=indent))
+def list_buildoptions_from_source(intr: IntrospectionInterpreter):
+    return list_buildoptions(intr.coredata)
 
 def list_target_files(target_name: str, targets: list, source_dir: str):
     sys.stderr.write("WARNING: The --target-files introspection API is deprecated. Use --targets instead.\n")
@@ -299,14 +294,9 @@ def list_projinfo(builddata: build.Build):
     result['subprojects'] = subprojects
     return result
 
-def list_projinfo_from_source(sourcedir, indent):
+def list_projinfo_from_source(sourcedir: str, intr: IntrospectionInterpreter):
     files = find_buildsystem_files_list(sourcedir)
     files = [os.path.normpath(x) for x in files]
-
-    mlog.disable()
-    intr = IntrospectionInterpreter(sourcedir, '', 'ninja')
-    intr.analyze()
-    mlog.enable()
 
     for i in intr.project_data['subprojects']:
         basedir = os.path.join(intr.subproject_dir, i['name'])
@@ -315,23 +305,47 @@ def list_projinfo_from_source(sourcedir, indent):
 
     intr.project_data['buildsystem_files'] = files
     intr.project_data['subproject_dir'] = intr.subproject_dir
-    print(json.dumps(intr.project_data, indent=indent))
+    return intr.project_data
+
+def print_results(options, results, indent):
+    if len(results) == 0 and not options.force_dict:
+        print('No command specified')
+        return 1
+    elif len(results) == 1 and not options.force_dict:
+        # Make to keep the existing output format for a single option
+        print(json.dumps(results[0][1], indent=indent))
+    else:
+        out = {}
+        for i in results:
+            out[i[0]] = i[1]
+        print(json.dumps(out, indent=indent))
+    return 0
 
 def run(options):
     datadir = 'meson-private'
     infodir = 'meson-info'
-    indent = 4 if options.indent else None
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
         infodir = os.path.join(options.builddir, infodir)
+    indent = 4 if options.indent else None
+    results = []
+    sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
+    intro_types = get_meson_introspection_types(sourcedir=sourcedir)
+
     if 'meson.build' in [os.path.basename(options.builddir), options.builddir]:
-        sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
-        if options.projectinfo:
-            list_projinfo_from_source(sourcedir, indent)
-            return 0
-        if options.buildoptions:
-            list_buildoptions_from_source(sourcedir, options.backend, indent)
-            return 0
+        # Make sure that log entries in other parts of meson don't interfere with the JSON output
+        mlog.disable()
+        backend = backends.get_backend_from_name(options.backend, None)
+        intr = IntrospectionInterpreter(sourcedir, '', backend.name)
+        intr.analyze()
+        # Reenable logging just in case
+        mlog.enable()
+        for key, val in intro_types.items():
+            if (not options.all and not getattr(options, key, False)) or 'no_bd' not in val:
+                continue
+            results += [(key, val['no_bd'](intr))]
+        return print_results(options, results, indent)
+
     infofile = get_meson_info_file(infodir)
     if not os.path.isdir(datadir) or not os.path.isdir(infodir) or not os.path.isfile(infofile):
         print('Current directory is not a meson build directory.'
@@ -355,9 +369,6 @@ def run(options):
                   .format(intro_vers, ' and '.join(vers_to_check)))
             return 1
 
-    results = []
-    intro_types = get_meson_introspection_types()
-
     # Handle the one option that does not have its own JSON file (meybe deprecate / remove this?)
     if options.target_files is not None:
         targets_file = os.path.join(infodir, 'intro-targets.json')
@@ -376,18 +387,7 @@ def run(options):
         with open(curr, 'r') as fp:
             results += [(i, json.load(fp))]
 
-    if len(results) == 0 and not options.force_dict:
-        print('No command specified')
-        return 1
-    elif len(results) == 1 and not options.force_dict:
-        # Make to keep the existing output format for a single option
-        print(json.dumps(results[0][1], indent=indent))
-    else:
-        out = {}
-        for i in results:
-            out[i[0]] = i[1]
-        print(json.dumps(out, indent=indent))
-    return 0
+    return print_results(options, results, indent)
 
 updated_introspection_files = []
 
