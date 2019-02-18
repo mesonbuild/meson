@@ -1111,18 +1111,18 @@ class CMakeDependency(ExternalDependency):
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
-    def _cached_listdir(path: str) -> List[Tuple[str, str]]:
+    def _cached_listdir(path: str) -> Tuple[Tuple[str, str]]:
         try:
-            return [(x, str(x).lower()) for x in os.listdir(path)]
-        except:
-            return []
+            return tuple([(x, str(x).lower()) for x in os.listdir(path)])
+        except OSError:
+            return ()
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
     def _cached_isdir(path: str) -> bool:
         try:
             return os.path.isdir(path)
-        except:
+        except OSError:
             return False
 
     def _preliminary_find_check(self, name: str, module_path: List[str]) -> bool:
