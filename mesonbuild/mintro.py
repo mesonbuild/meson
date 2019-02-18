@@ -22,7 +22,7 @@ project files and don't need this info."""
 import json
 from . import build, coredata as cdata
 from . import mesonlib
-from .ast import IntrospectionInterpreter, build_target_functions
+from .ast import IntrospectionInterpreter, build_target_functions, AstConditionLevel, AstIDGenerator, AstIndentationGenerator
 from . import mlog
 from .backend import backends
 from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
@@ -63,6 +63,7 @@ def get_meson_introspection_types(coredata: cdata.CoreData = None, builddata: bu
         },
         'dependencies': {
             'func': lambda: list_deps(coredata),
+            'no_bd': lambda intr: list_deps_from_source(intr),
             'desc': 'List external dependencies.',
         },
         'installed': {
@@ -286,6 +287,12 @@ def list_buildsystem_files(builddata: build.Build):
     filelist = [os.path.join(src_dir, x) for x in filelist]
     return filelist
 
+def list_deps_from_source(intr: IntrospectionInterpreter):
+    result = []
+    for i in intr.dependencies:
+        result += [{k: v for k, v in i.items() if k in ['name', 'required', 'has_fallback', 'conditional']}]
+    return result
+
 def list_deps(coredata: cdata.CoreData):
     result = []
     for d in coredata.deps.values():
@@ -377,7 +384,7 @@ def run(options):
         # Make sure that log entries in other parts of meson don't interfere with the JSON output
         mlog.disable()
         backend = backends.get_backend_from_name(options.backend, None)
-        intr = IntrospectionInterpreter(sourcedir, '', backend.name)
+        intr = IntrospectionInterpreter(sourcedir, '', backend.name, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
         intr.analyze()
         # Reenable logging just in case
         mlog.enable()

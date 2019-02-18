@@ -137,8 +137,16 @@ class IntrospectionInterpreter(AstInterpreter):
         if not args:
             return
         name = args[0]
+        has_fallback = 'fallback' in kwargs
+        required = kwargs.get('required', True)
+        condition_level = node.condition_level if hasattr(node, 'condition_level') else 0
+        if isinstance(required, mparser.ElementaryNode):
+            required = required.value
         self.dependencies += [{
             'name': name,
+            'required': required,
+            'has_fallback': has_fallback,
+            'conditional': condition_level > 0,
             'node': node
         }]
 

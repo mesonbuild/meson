@@ -23,7 +23,7 @@
 # - move targets
 # - reindent?
 
-from .ast import IntrospectionInterpreter, build_target_functions, AstIDGenerator, AstIndentationGenerator, AstPrinter
+from .ast import IntrospectionInterpreter, build_target_functions, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
 from mesonbuild.mesonlib import MesonException
 from . import mlog, mparser, environment
 from functools import wraps
@@ -324,7 +324,7 @@ rewriter_func_kwargs = {
 class Rewriter:
     def __init__(self, sourcedir: str, generator: str = 'ninja'):
         self.sourcedir = sourcedir
-        self.interpreter = IntrospectionInterpreter(sourcedir, '', generator, visitors = [AstIDGenerator(), AstIndentationGenerator()])
+        self.interpreter = IntrospectionInterpreter(sourcedir, '', generator, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
         self.modefied_nodes = []
         self.to_remove_nodes = []
         self.to_add_nodes = []
