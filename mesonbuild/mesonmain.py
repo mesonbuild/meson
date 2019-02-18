@@ -80,6 +80,7 @@ class CommandLineParser:
     def run_runpython_command(self, options):
         import runpy
         sys.argv[1:] = options.script_args
+        sys.path.insert(0, os.path.dirname(options.script_file))
         runpy.run_path(options.script_file, run_name='__main__')
         return 0
 
