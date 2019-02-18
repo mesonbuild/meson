@@ -1113,7 +1113,7 @@ class CMakeDependency(ExternalDependency):
     @functools.lru_cache(maxsize=None)
     def _cached_listdir(path: str) -> Tuple[Tuple[str, str]]:
         try:
-            return tuple([(x, str(x).lower()) for x in os.listdir(path)])
+            return tuple((x, str(x).lower()) for x in os.listdir(path))
         except OSError:
             return ()
 
