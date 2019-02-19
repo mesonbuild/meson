@@ -450,7 +450,7 @@ class CCompiler(Compiler):
 
     def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
-        return self.compile(code, args, mode, want_output=want_output)
+        return self.compile(code, args, mode, want_output=want_output, cdata=env.coredata)
 
     def links(self, code, env, *, extra_args=None, dependencies=None):
         return self.compiles(code, env, extra_args=extra_args,
@@ -652,7 +652,7 @@ class CCompiler(Compiler):
         {delim}\n{define}'''
         args = self._get_compiler_check_args(env, extra_args, dependencies,
                                              mode='preprocess').to_native()
-        with self.compile(code.format(**fargs), args, 'preprocess') as p:
+        with self.compile(code.format(**fargs), args, 'preprocess', cdata=env.coredata) as p:
             if p.returncode != 0:
                 raise EnvironmentException('Could not get define {!r}'.format(dname))
         # Get the preprocessed value after the delimiter,

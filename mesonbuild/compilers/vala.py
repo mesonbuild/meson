@@ -121,7 +121,7 @@ class ValaCompiler(Compiler):
             args = env.coredata.get_external_args(for_machine, self.language)
             vapi_args = ['--pkg', libname]
             args += vapi_args
-            with self.compile(code, args, 'compile') as p:
+            with self.compile(code, args, 'compile', cdata=env.coredata) as p:
                 if p.returncode == 0:
                     return vapi_args
         # Not found? Try to find the vapi file itself.

@@ -875,8 +875,6 @@ class Compiler:
     # Libraries that are internal compiler implementations, and must not be
     # manually searched.
     internal_libs = ()
-    # Cache for the result of compiler checks which can be cached
-    compiler_check_cache = {}
 
     def __init__(self, exelist, version, **kwargs):
         if isinstance(exelist, str):
@@ -1148,16 +1146,16 @@ class Compiler:
         return os.path.join(dirname, 'output.' + suffix)
 
     @contextlib.contextmanager
-    def compile(self, code, extra_args=None, mode='link', want_output=False):
+    def compile(self, code, extra_args=None, mode='link', want_output=False, cdata: coredata.CoreData = None):
         if extra_args is None:
             textra_args = None
             extra_args = []
         else:
             textra_args = tuple(extra_args)
-        key = (code, textra_args, mode)
+        key = (tuple(self.exelist), self.version, code, textra_args, mode)
         if not want_output:
-            if key in self.compiler_check_cache:
-                p = self.compiler_check_cache[key]
+            if cdata is not None and key in cdata.compiler_check_cache:
+                p = cdata.compiler_check_cache[key]
                 mlog.debug('Using cached compile:')
                 mlog.debug('Cached command line: ', ' '.join(p.commands), '\n')
                 mlog.debug('Code:\n', code)
@@ -1206,8 +1204,15 @@ class Compiler:
                 p.input_name = srcname
                 if want_output:
                     p.output_name = output
-                else:
-                    self.compiler_check_cache[key] = p
+                elif cdata is not None:
+                    # Remove all attributes except the following
+                    # This way the object can be serialized
+                    tokeep = ['args', 'commands', 'input_name', 'output_name',
+                              'pid', 'returncode', 'stdo', 'stde', 'text_mode']
+                    todel = [x for x in vars(p).keys() if x not in tokeep]
+                    for i in todel:
+                        delattr(p, i)
+                    cdata.compiler_check_cache[key] = p
                 yield p
         except (PermissionError, OSError):
             # On Windows antivirus programs and the like hold on to files so
