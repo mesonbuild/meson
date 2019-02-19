@@ -1134,16 +1134,17 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Prefix argument of has_member must be a string.')
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
-        had = self.compiler.has_members(typename, [membername], prefix,
-                                        self.environment,
-                                        extra_args=extra_args,
-                                        dependencies=deps)
+        had, cached = self.compiler.has_members(typename, [membername], prefix,
+                                                self.environment,
+                                                extra_args=extra_args,
+                                                dependencies=deps)
+        cached = '(cached)' if cached else ''
         if had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
         mlog.log('Checking whether type', mlog.bold(typename, True),
-                 'has member', mlog.bold(membername, True), msg, hadtxt)
+                 'has member', mlog.bold(membername, True), msg, hadtxt, cached)
         return had
 
     @permittedKwargs({
@@ -1163,17 +1164,18 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Prefix argument of has_members must be a string.')
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
-        had = self.compiler.has_members(typename, membernames, prefix,
-                                        self.environment,
-                                        extra_args=extra_args,
-                                        dependencies=deps)
+        had, cached = self.compiler.has_members(typename, membernames, prefix,
+                                                self.environment,
+                                                extra_args=extra_args,
+                                                dependencies=deps)
+        cached = '(cached)' if cached else ''
         if had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
         members = mlog.bold(', '.join(['"{}"'.format(m) for m in membernames]))
         mlog.log('Checking whether type', mlog.bold(typename, True),
-                 'has members', members, msg, hadtxt)
+                 'has members', members, msg, hadtxt, cached)
         return had
 
     @permittedKwargs({
@@ -1193,14 +1195,15 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Prefix argument of has_function must be a string.')
         extra_args = self.determine_args(kwargs)
         deps, msg = self.determine_dependencies(kwargs)
-        had = self.compiler.has_function(funcname, prefix, self.environment,
+        had, cached = self.compiler.has_function(funcname, prefix, self.environment,
                                          extra_args=extra_args,
                                          dependencies=deps)
+        cached = '(cached)' if cached else ''
         if had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
-        mlog.log('Checking for function', mlog.bold(funcname, True), msg, hadtxt)
+        mlog.log('Checking for function', mlog.bold(funcname, True), msg, hadtxt, cached)
         return had
 
     @permittedKwargs({
@@ -1220,13 +1223,14 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Prefix argument of has_type must be a string.')
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
-        had = self.compiler.has_type(typename, prefix, self.environment,
-                                     extra_args=extra_args, dependencies=deps)
+        had, cached = self.compiler.has_type(typename, prefix, self.environment,
+                                             extra_args=extra_args, dependencies=deps)
+        cached = '(cached)' if cached else ''
         if had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
-        mlog.log('Checking for type', mlog.bold(typename, True), msg, hadtxt)
+        mlog.log('Checking for type', mlog.bold(typename, True), msg, hadtxt, cached)
         return had
 
     @FeatureNew('compiler.compute_int', '0.40.0')
@@ -1332,15 +1336,16 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Testname argument must be a string.')
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs, endl=None)
-        result = self.compiler.compiles(code, self.environment,
-                                        extra_args=extra_args,
-                                        dependencies=deps)
+        result, cached = self.compiler.compiles(code, self.environment,
+                                                extra_args=extra_args,
+                                                dependencies=deps)
         if len(testname) > 0:
             if result:
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
-            mlog.log('Checking if', mlog.bold(testname, True), msg, 'compiles:', h)
+            cached = '(cached)' if cached else ''
+            mlog.log('Checking if', mlog.bold(testname, True), msg, 'compiles:', h, cached)
         return result
 
     @permittedKwargs({
@@ -1364,15 +1369,16 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Testname argument must be a string.')
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs, endl=None)
-        result = self.compiler.links(code, self.environment,
-                                     extra_args=extra_args,
-                                     dependencies=deps)
+        result, cached = self.compiler.links(code, self.environment,
+                                             extra_args=extra_args,
+                                             dependencies=deps)
+        cached = '(cached)' if cached else ''
         if len(testname) > 0:
             if result:
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
-            mlog.log('Checking if', mlog.bold(testname, True), msg, 'links:', h)
+            mlog.log('Checking if', mlog.bold(testname, True), msg, 'links:', h, cached)
         return result
 
     @FeatureNew('compiler.check_header', '0.47.0')
@@ -1392,16 +1398,17 @@ class CompilerHolder(InterpreterObject):
             return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
-        haz = self.compiler.check_header(hname, prefix, self.environment,
-                                         extra_args=extra_args,
-                                         dependencies=deps)
+        haz, cached = self.compiler.check_header(hname, prefix, self.environment,
+                                                 extra_args=extra_args,
+                                                 dependencies=deps)
+        cached = '(cached)' if cached else ''
         if required and not haz:
             raise InterpreterException('{} header {!r} not usable'.format(self.compiler.get_display_language(), hname))
         elif haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        mlog.log('Check usable header', mlog.bold(hname, True), msg, h)
+        mlog.log('Check usable header', mlog.bold(hname, True), msg, h, cached)
         return haz
 
     @FeatureNewKwargs('compiler.has_header', '0.50.0', ['required'])
@@ -1420,15 +1427,16 @@ class CompilerHolder(InterpreterObject):
             return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
-        haz = self.compiler.has_header(hname, prefix, self.environment,
-                                       extra_args=extra_args, dependencies=deps)
+        haz, cached = self.compiler.has_header(hname, prefix, self.environment,
+                                               extra_args=extra_args, dependencies=deps)
+        cached = '(cached)' if cached else ''
         if required and not haz:
             raise InterpreterException('{} header {!r} not found'.format(self.compiler.get_display_language(), hname))
         elif haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        mlog.log('Has header', mlog.bold(hname, True), msg, h)
+        mlog.log('Has header', mlog.bold(hname, True), msg, h, cached)
         return haz
 
     @FeatureNewKwargs('compiler.has_header_symbol', '0.50.0', ['required'])
@@ -1447,16 +1455,17 @@ class CompilerHolder(InterpreterObject):
             return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
-        haz = self.compiler.has_header_symbol(hname, symbol, prefix, self.environment,
-                                              extra_args=extra_args,
-                                              dependencies=deps)
+        haz, cached = self.compiler.has_header_symbol(hname, symbol, prefix, self.environment,
+                                                      extra_args=extra_args,
+                                                      dependencies=deps)
         if required and not haz:
             raise InterpreterException('{} symbol {} not found in header {}'.format(self.compiler.get_display_language(), symbol, hname))
         elif haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        mlog.log('Header <{0}> has symbol'.format(hname), mlog.bold(symbol, True), msg, h)
+        cached = '(cached)' if cached else ''
+        mlog.log('Header <{0}> has symbol'.format(hname), mlog.bold(symbol, True), msg, h, cached)
         return haz
 
     def notfound_library(self, libname):
@@ -1518,15 +1527,16 @@ class CompilerHolder(InterpreterObject):
     @permittedKwargs({})
     def has_multi_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
-        result = self.compiler.has_multi_arguments(args, self.environment)
+        result, cached = self.compiler.has_multi_arguments(args, self.environment)
         if result:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
+        cached = '(cached)' if cached else ''
         mlog.log(
             'Compiler for {} supports arguments {}:'.format(
                 self.compiler.get_display_language(), ' '.join(args)),
-            h)
+            h, cached)
         return result
 
     @FeatureNew('compiler.get_supported_arguments', '0.43.0')
@@ -1560,7 +1570,8 @@ class CompilerHolder(InterpreterObject):
     @permittedKwargs({})
     def has_multi_link_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
-        result = self.compiler.has_multi_link_arguments(args, self.environment)
+        result, cached = self.compiler.has_multi_link_arguments(args, self.environment)
+        cached = '(cached)' if cached else ''
         if result:
             h = mlog.green('YES')
         else:
@@ -1568,7 +1579,7 @@ class CompilerHolder(InterpreterObject):
         mlog.log(
             'Compiler for {} supports link arguments {}:'.format(
                 self.compiler.get_display_language(), ' '.join(args)),
-            h)
+            h, cached)
         return result
 
     @FeatureNew('compiler.get_supported_link_arguments_method', '0.46.0')
@@ -1597,9 +1608,10 @@ class CompilerHolder(InterpreterObject):
         args = mesonlib.stringlistify(args)
         if len(args) != 1:
             raise InterpreterException('has_func_attribute takes exactly one argument.')
-        result = self.compiler.has_func_attribute(args[0], self.environment)
+        result, cached = self.compiler.has_func_attribute(args[0], self.environment)
+        cached = '(cached)' if cached else ''
         h = mlog.green('YES') if result else mlog.red('NO')
-        mlog.log('Compiler for {} supports function attribute {}:'.format(self.compiler.get_display_language(), args[0]), h)
+        mlog.log('Compiler for {} supports function attribute {}:'.format(self.compiler.get_display_language(), args[0]), h, cached)
         return result
 
     @FeatureNew('compiler.get_supported_function_attributes', '0.48.0')

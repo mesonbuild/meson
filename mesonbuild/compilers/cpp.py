@@ -65,10 +65,11 @@ class CPPCompiler(CCompiler):
 
     def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
         # Check if it's a C-like symbol
-        if super().has_header_symbol(hname, symbol, prefix, env,
-                                     extra_args=extra_args,
-                                     dependencies=dependencies):
-            return True
+        found, cached = super().has_header_symbol(hname, symbol, prefix, env,
+                                                  extra_args=extra_args,
+                                                  dependencies=dependencies)
+        if found:
+            return True, cached
         # Check if it's a class or a template
         if extra_args is None:
             extra_args = []
@@ -264,7 +265,7 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
     # So we should explicitly fail at this case.
     def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
         if funcname == 'lchmod':
-            return False
+            return False, False
         else:
             return super().has_function(funcname, prefix, env,
                                         extra_args=extra_args,

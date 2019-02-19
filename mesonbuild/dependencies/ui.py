@@ -641,7 +641,7 @@ class VulkanDependency(ExternalDependency):
         else:
             # simply try to guess it, usually works on linux
             libs = self.clib_compiler.find_library('vulkan', environment, [])
-            if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', environment):
+            if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', environment)[0]:
                 self.type_name = 'system'
                 self.is_found = True
                 for lib in libs:

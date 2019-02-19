@@ -376,7 +376,7 @@ class OpenMPDependency(ExternalDependency):
 
         if openmp_date:
             self.version = self.VERSIONS[openmp_date]
-            if self.clib_compiler.has_header('omp.h', '', self.env, dependencies=[self]):
+            if self.clib_compiler.has_header('omp.h', '', self.env, dependencies=[self])[0]:
                 self.is_found = True
                 self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
             else:
