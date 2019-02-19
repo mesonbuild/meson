@@ -1196,8 +1196,8 @@ class CompilerHolder(InterpreterObject):
         extra_args = self.determine_args(kwargs)
         deps, msg = self.determine_dependencies(kwargs)
         had, cached = self.compiler.has_function(funcname, prefix, self.environment,
-                                         extra_args=extra_args,
-                                         dependencies=deps)
+                                                 extra_args=extra_args,
+                                                 dependencies=deps)
         cached = '(cached)' if cached else ''
         if had:
             hadtxt = mlog.green('YES')
