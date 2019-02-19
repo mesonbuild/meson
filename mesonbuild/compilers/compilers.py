@@ -901,7 +901,7 @@ class Compiler:
         return repr_str.format(self.__class__.__name__, self.version,
                                ' '.join(self.exelist))
 
-    def can_compile(self, src):
+    def can_compile(self, src) -> bool:
         if hasattr(src, 'fname'):
             src = src.fname
         suffix = os.path.splitext(src)[1].lower()
@@ -909,40 +909,40 @@ class Compiler:
             return True
         return False
 
-    def get_id(self):
+    def get_id(self) -> str:
         return self.id
 
-    def get_version_string(self):
+    def get_version_string(self) -> str:
         details = [self.id, self.version]
         if self.full_version:
             details += ['"%s"' % (self.full_version)]
         return '(%s)' % (' '.join(details))
 
-    def get_language(self):
+    def get_language(self) -> str:
         return self.language
 
-    def get_display_language(self):
+    def get_display_language(self) -> str:
         return self.language.capitalize()
 
-    def get_default_suffix(self):
+    def get_default_suffix(self) -> str:
         return self.default_suffix
 
-    def get_define(self, dname, prefix, env, extra_args, dependencies):
+    def get_define(self, dname, prefix, env, extra_args, dependencies) -> (str, bool):
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
-    def compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies):
+    def compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies) -> int:
         raise EnvironmentException('%s does not support compute_int ' % self.get_id())
 
     def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
         raise EnvironmentException('%s does not support compute_parameters_with_absolute_paths ' % self.get_id())
 
-    def has_members(self, typename, membernames, prefix, env, *, extra_args=None, dependencies=None):
+    def has_members(self, typename, membernames, prefix, env, *, extra_args=None, dependencies=None) -> (bool, bool):
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
 
-    def has_type(self, typename, prefix, env, extra_args, *, dependencies=None):
+    def has_type(self, typename, prefix, env, extra_args, *, dependencies=None) -> (bool, bool):
         raise EnvironmentException('%s does not support has_type ' % self.get_id())
 
-    def symbols_have_underscore_prefix(self, env):
+    def symbols_have_underscore_prefix(self, env) -> bool:
         raise EnvironmentException('%s does not support symbols_have_underscore_prefix ' % self.get_id())
 
     def get_exelist(self):
@@ -1085,31 +1085,31 @@ class Compiler:
     def get_option_link_args(self, options):
         return []
 
-    def check_header(self, *args, **kwargs):
+    def check_header(self, *args, **kwargs) -> (bool, bool):
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header(self, *args, **kwargs):
+    def has_header(self, *args, **kwargs) -> (bool, bool):
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header_symbol(self, *args, **kwargs):
+    def has_header_symbol(self, *args, **kwargs) -> (bool, bool):
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
-    def compiles(self, *args, **kwargs):
+    def compiles(self, *args, **kwargs) -> (bool, bool):
         raise EnvironmentException('Language %s does not support compile checks.' % self.get_display_language())
 
-    def links(self, *args, **kwargs):
+    def links(self, *args, **kwargs) -> (bool, bool):
         raise EnvironmentException('Language %s does not support link checks.' % self.get_display_language())
 
-    def run(self, *args, **kwargs):
+    def run(self, *args, **kwargs) -> RunResult:
         raise EnvironmentException('Language %s does not support run checks.' % self.get_display_language())
 
-    def sizeof(self, *args, **kwargs):
+    def sizeof(self, *args, **kwargs) -> int:
         raise EnvironmentException('Language %s does not support sizeof checks.' % self.get_display_language())
 
-    def alignment(self, *args, **kwargs):
+    def alignment(self, *args, **kwargs) -> int:
         raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
-    def has_function(self, *args, **kwargs):
+    def has_function(self, *args, **kwargs) -> (bool, bool):
         raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
 
     @classmethod
@@ -1123,12 +1123,12 @@ class Compiler:
     def get_library_dirs(self, *args, **kwargs):
         return ()
 
-    def has_multi_arguments(self, args, env):
+    def has_multi_arguments(self, args, env) -> (bool, bool):
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
-    def has_multi_link_arguments(self, args, env):
+    def has_multi_link_arguments(self, args, env) -> (bool, bool):
         raise EnvironmentException(
             'Language {} does not support has_multi_link_arguments.'.format(
                 self.get_display_language()))
