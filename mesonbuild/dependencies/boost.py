@@ -250,7 +250,7 @@ class BoostDependency(ExternalDependency):
 
     def detect_headers_and_version(self):
         try:
-            version = self.clib_compiler.get_define('BOOST_LIB_VERSION', '#include <boost/version.hpp>', self.env, self.get_compile_args(), [])
+            version = self.clib_compiler.get_define('BOOST_LIB_VERSION', '#include <boost/version.hpp>', self.env, self.get_compile_args(), [])[0]
         except mesonlib.EnvironmentException:
             return
         except TypeError:

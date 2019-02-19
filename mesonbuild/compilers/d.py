@@ -327,7 +327,7 @@ class DCompiler(Compiler):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
 
         with self.compile(code, args, mode, cdata=env.coredata) as p:
-            return p.returncode == 0
+            return p.returncode == 0, p.cached
 
     def has_multi_arguments(self, args, env):
         return self.compiles('int i;\n', env, extra_args=args)

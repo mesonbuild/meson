@@ -1309,10 +1309,11 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Prefix argument of get_define() must be a string.')
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
-        value = self.compiler.get_define(element, prefix, self.environment,
-                                         extra_args=extra_args,
-                                         dependencies=deps)
-        mlog.log('Fetching value of define', mlog.bold(element, True), msg, value)
+        value, cached = self.compiler.get_define(element, prefix, self.environment,
+                                                 extra_args=extra_args,
+                                                 dependencies=deps)
+        cached = '(cached)' if cached else ''
+        mlog.log('Fetching value of define', mlog.bold(element, True), msg, value, cached)
         return value
 
     @permittedKwargs({

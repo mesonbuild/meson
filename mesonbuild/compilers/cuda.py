@@ -146,8 +146,9 @@ class CudaCompiler(Compiler):
         return super().get_compiler_check_args() + []
 
     def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
-        if super().has_header_symbol(hname, symbol, prefix, env, extra_args, dependencies):
-            return True
+        result, cached = super().has_header_symbol(hname, symbol, prefix, env, extra_args, dependencies)
+        if result:
+            return True, cached
         if extra_args is None:
             extra_args = []
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}

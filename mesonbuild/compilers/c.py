@@ -653,12 +653,13 @@ class CCompiler(Compiler):
         args = self._get_compiler_check_args(env, extra_args, dependencies,
                                              mode='preprocess').to_native()
         with self.compile(code.format(**fargs), args, 'preprocess', cdata=env.coredata) as p:
+            cached = p.cached
             if p.returncode != 0:
                 raise EnvironmentException('Could not get define {!r}'.format(dname))
         # Get the preprocessed value after the delimiter,
         # minus the extra newline at the end and
         # merge string literals.
-        return CCompiler.concatenate_string_literals(p.stdo.split(delim + '\n')[-1][:-1])
+        return CCompiler.concatenate_string_literals(p.stdo.split(delim + '\n')[-1][:-1]), cached
 
     def get_return_value(self, fname, rtype, prefix, env, extra_args, dependencies):
         if rtype == 'string':
@@ -1202,7 +1203,7 @@ class CCompiler(Compiler):
         if not (for_windows(env.is_cross_build(), env) or
                 for_cygwin(env.is_cross_build(), env)):
             if name in ['dllimport', 'dllexport']:
-                return False
+                return False, False
 
         # Clang and GCC both return warnings if the __attribute__ is undefined,
         # so set -Werror
@@ -1707,7 +1708,7 @@ class VisualStudioCCompiler(CCompiler):
     def has_func_attribute(self, name, env):
         # MSVC doesn't have __attribute__ like Clang and GCC do, so just return
         # false without compiling anything
-        return name in ['dllimport', 'dllexport']
+        return name in ['dllimport', 'dllexport'], False
 
     def get_argument_syntax(self):
         return 'msvc'
