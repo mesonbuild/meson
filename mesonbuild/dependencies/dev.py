@@ -24,7 +24,7 @@ from .. import mesonlib
 from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
-    strip_system_libdirs, ConfigToolDependency,
+    strip_system_libdirs, ConfigToolDependency, CMakeDependency
 )
 from .misc import ThreadDependency
 
@@ -399,6 +399,36 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             return 'modules: ' + ', '.join(self.module_details)
         return ''
 
+class LLVMDependencyCMake(CMakeDependency):
+    def __init__(self, env, kwargs):
+        self.llvm_modules = kwargs.get('modules', [])
+        super().__init__(name='LLVM', environment=env, language='cpp', kwargs=kwargs)
+
+        # Extract extra include directories and definitions
+        incDirs = self.get_cmake_var('PACKAGE_INCLUDE_DIRS')
+        defs = self.get_cmake_var('PACKAGE_DEFINITIONS')
+        temp = list(map(lambda x: '-I{}'.format(x), incDirs)) + defs
+        self.compile_args += [x for x in temp if x not in self.compile_args]
+
+    def _main_cmake_file(self):
+        # Use a custom CMakeLists.txt for LLVM
+        return 'CMakeListsLLVM.txt'
+
+    def _extra_cmake_opts(self):
+        return ['-DLLVM_MESON_MODULES={}'.format(';'.join(self.llvm_modules))]
+
+    def _map_module_list(self, modules):
+        return self.get_cmake_var('MESON_RESOLVED_LLVM_MODULES')
+
+    def need_threads(self):
+        return True
+
+    def log_details(self):
+        modules = self.get_cmake_var('MESON_RESOLVED_LLVM_MODULES')
+        if modules:
+            return 'modules: ' + ', '.join(modules)
+        return ''
+
 class LLVMDependency(ExternalDependency):
     def __init__(self, env, kwargs):
         super().__init__('LLVM', env, 'cpp', kwargs)
@@ -408,6 +438,9 @@ class LLVMDependency(ExternalDependency):
         methods = cls._process_method_kw(kwargs)
         candidates = []
 
+        if DependencyMethods.CMAKE in methods:
+            candidates.append(functools.partial(LLVMDependencyCMake, env, kwargs))
+
         if DependencyMethods.CONFIG_TOOL in methods:
             candidates.append(functools.partial(LLVMDependencyConfigTool, env, kwargs))
 
@@ -415,7 +448,7 @@ class LLVMDependency(ExternalDependency):
 
     @staticmethod
     def get_methods():
-        return [DependencyMethods.CONFIG_TOOL]
+        return [DependencyMethods.CMAKE, DependencyMethods.CONFIG_TOOL]
 
 class ValgrindDependency(PkgConfigDependency):
     '''

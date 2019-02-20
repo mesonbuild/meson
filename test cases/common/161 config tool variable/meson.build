@@ -15,7 +15,7 @@
 project('config tool variable', 'cpp')
 
 
-dep_llvm = dependency('llvm', required : false)
+dep_llvm = dependency('llvm', method : 'config-tool', required : false)
 if not dep_llvm.found()
   error('MESON_SKIP_TEST LLVM not installed.')
 endif
