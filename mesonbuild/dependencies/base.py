@@ -1892,7 +1892,7 @@ class DubDependency(ExternalDependency):
 
                 not_lib = True
                 if 'targetType' in package:
-                    if package['targetType'] == 'library':
+                    if package['targetType'] in ['library', 'sourceLibrary', 'staticLibrary', 'dynamicLibrary']:
                         not_lib = False
 
                 if not_lib:
