@@ -971,6 +971,19 @@ class CMakeDependency(ExternalDependency):
     def _gen_exception(self, msg):
         return DependencyException('Dependency {} not found: {}'.format(self.name, msg))
 
+    def _main_cmake_file(self):
+        return 'CMakeLists.txt'
+
+    def _extra_cmake_opts(self):
+        return []
+
+    def _map_module_list(self, modules: List[str]) -> List[str]:
+        # Map the input module list to something else
+        # This function will only be executed AFTER the initial CMake
+        # interpreter pass has completed. Thus variables defined in the
+        # CMakeLists.txt can be accessed here.
+        return modules
+
     def __init__(self, name: str, environment: Environment, kwargs, language=None):
         super().__init__('cmake', environment, language, kwargs)
         self.name = name
@@ -1265,11 +1278,12 @@ class CMakeDependency(ExternalDependency):
 
             # Prepare options
             cmake_opts = ['--trace-expand', '-DNAME={}'.format(name), '-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))] + args + ['.']
+            cmake_opts += self._extra_cmake_opts()
             if len(i) > 0:
                 cmake_opts = ['-G', i] + cmake_opts
 
             # Run CMake
-            ret1, out1, err1 = self._call_cmake(cmake_opts, 'CMakeLists.txt')
+            ret1, out1, err1 = self._call_cmake(cmake_opts, self._main_cmake_file())
 
             # Current generator was successful
             if ret1 == 0:
@@ -1327,6 +1341,10 @@ class CMakeDependency(ExternalDependency):
             self.version = vers_raw[0]
             self.version.strip('"\' ')
 
+        # Post-process module list. Used in derived classes to modify the
+        # module list (append prepend a string, etc.).
+        modules = self._map_module_list(modules)
+
         # Try guessing a CMake target if none is provided
         if len(modules) == 0:
             for i in self.targets:
@@ -1340,11 +1358,12 @@ class CMakeDependency(ExternalDependency):
         # Failed to guess a target --> try the old-style method
         if len(modules) == 0:
             incDirs = self.get_first_cmake_var_of(['PACKAGE_INCLUDE_DIRS'])
+            defs = self.get_first_cmake_var_of(['PACKAGE_DEFINITIONS'])
             libs = self.get_first_cmake_var_of(['PACKAGE_LIBRARIES'])
 
             # Try to use old style variables if no module is specified
             if len(libs) > 0:
-                self.compile_args = list(map(lambda x: '-I{}'.format(x), incDirs))
+                self.compile_args = list(map(lambda x: '-I{}'.format(x), incDirs)) + defs
                 self.link_args = libs
                 mlog.debug('using old-style CMake variables for dependency {}'.format(name))
                 return
