@@ -1518,17 +1518,14 @@ class CompilerHolder(InterpreterObject):
         return result
 
     def _get_supported_args(self, predicate, args, kwargs):
-        supported_args = set()
+        supported_args = []
 
         with ThreadPoolExecutor() as ex:
-            def check_arg(arg):
-                if predicate(arg, kwargs):
-                    return arg
+            for arg, supported in zip(args, ex.map(lambda a: predicate(a, kwargs), args)):
+                if supported:
+                    supported_args.append(arg)
 
-            supported_args = set(ex.map(check_arg, set(args)))
-
-        # Preserve order and duplicates
-        return [arg for arg in args if arg in supported_args]
+        return supported_args
 
     @FeatureNew('compiler.get_supported_arguments', '0.43.0')
     @permittedKwargs({})
