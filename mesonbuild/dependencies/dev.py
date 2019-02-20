@@ -192,7 +192,7 @@ class GMockDependency(ExternalDependency):
         return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
 
 
-class LLVMDependency(ConfigToolDependency):
+class LLVMDependencyConfigTool(ConfigToolDependency):
     """
     LLVM uses a special tool, llvm-config, which has arguments for getting
     c args, cxx args, and ldargs as well as version.
@@ -399,6 +399,23 @@ class LLVMDependency(ConfigToolDependency):
             return 'modules: ' + ', '.join(self.module_details)
         return ''
 
+class LLVMDependency(ExternalDependency):
+    def __init__(self, env, kwargs):
+        super().__init__('LLVM', env, 'cpp', kwargs)
+
+    @classmethod
+    def _factory(cls, env, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
+
+        if DependencyMethods.CONFIG_TOOL in methods:
+            candidates.append(functools.partial(LLVMDependencyConfigTool, env, kwargs))
+
+        return candidates
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.CONFIG_TOOL]
 
 class ValgrindDependency(PkgConfigDependency):
     '''
