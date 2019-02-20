@@ -2019,11 +2019,13 @@ A build target is either an [executable](#executable),
   previous versions.  The default will eventually be changed to `true`
   in a future version.
 
-- `extract_objects()` returns an opaque value representing the
-  generated object files of arguments, usually used to take single
-  object files and link them to unit tests or to compile some source
-  files with custom flags. To use the object file(s) in another build
-  target, use the `objects:` keyword argument.
+- `extract_objects(source1, source2, ...)` takes as its arguments
+  a number of source files as [`string`](#string-object) or
+  [`files()`](#files) and returns an opaque value representing the
+  object files generated for those source files. This is typically used
+  to take single object files and link them to unit tests or to compile
+  some source files with custom flags. To use the object file(s)
+  in another build target, use the `objects:` keyword argument.
 
 - `full_path()` returns a full path pointing to the result target file.
   NOTE: In most cases using the object itself will do the same job as
