@@ -450,10 +450,14 @@ class Python3Dependency(ExternalDependency):
         if pyplat.startswith('win'):
             vernum = sysconfig.get_config_var('py_version_nodot')
             if self.static:
-                libname = 'libpython{}.a'.format(vernum)
+                libpath = Path('libs') / 'libpython{}.a'.format(vernum)
             else:
-                libname = 'python{}.lib'.format(vernum)
-            lib = Path(sysconfig.get_config_var('base')) / 'libs' / libname
+                comp = self.get_compiler()
+                if comp.id == "gcc":
+                    libpath = 'python{}.dll'.format(vernum)
+                else:
+                    libpath = Path('libs') / 'python{}.lib'.format(vernum)
+            lib = Path(sysconfig.get_config_var('base')) / libpath
         elif pyplat == 'mingw':
             if self.static:
                 libname = sysconfig.get_config_var('LIBRARY')
