@@ -184,10 +184,14 @@ class PythonDependency(ExternalDependency):
         if self.platform.startswith('win'):
             vernum = self.variables.get('py_version_nodot')
             if self.static:
-                libname = 'libpython{}.a'.format(vernum)
+                libpath = Path('libs') / 'libpython{}.a'.format(vernum)
             else:
-                libname = 'python{}.lib'.format(vernum)
-            lib = Path(self.variables.get('base')) / 'libs' / libname
+                comp = self.get_compiler()
+                if comp.id == "gcc":
+                    libpath = 'python{}.dll'.format(vernum)
+                else:
+                    libpath = Path('libs') / 'python{}.lib'.format(vernum)
+            lib = Path(self.variables.get('base')) / libpath
         elif self.platform == 'mingw':
             if self.static:
                 libname = self.variables.get('LIBRARY')
