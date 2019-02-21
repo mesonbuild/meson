@@ -149,8 +149,17 @@ class TestResult(enum.Enum):
 
 
 class TestRun:
-    def __init__(self, res, returncode, should_fail, duration, stdo, stde, cmd,
-                 env):
+    @staticmethod
+    def make_exitcode(test, returncode, duration, stdo, stde, cmd):
+        if returncode == GNU_SKIP_RETURNCODE:
+            res = TestResult.SKIP
+        elif test.should_fail:
+            res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
+        else:
+            res = TestResult.FAIL if bool(returncode) else TestResult.OK
+        return TestRun(test, res, returncode, test.should_fail, duration, stdo, stde, cmd, test.env)
+
+    def __init__(self, test, res, returncode, duration, stdo, stde, cmd):
         assert isinstance(res, TestResult)
         self.res = res
         self.returncode = returncode
@@ -158,8 +167,8 @@ class TestRun:
         self.stdo = stdo
         self.stde = stde
         self.cmd = cmd
-        self.env = env
-        self.should_fail = should_fail
+        self.env = test.env
+        self.should_fail = test.should_fail
 
     def get_log(self):
         res = '--- command ---\n'
@@ -257,9 +266,8 @@ class SingleTestRunner:
         cmd = self._get_cmd()
         if cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
-            return TestRun(res=TestResult.SKIP, returncode=GNU_SKIP_RETURNCODE,
-                           should_fail=self.test.should_fail, duration=0.0,
-                           stdo=skip_stdout, stde=None, cmd=None, env=self.test.env)
+            return TestRun(test=self.test, res=TestResult.SKIP, returncode=GNU_SKIP_RETURNCODE,
+                           duration=0.0, stdo=skip_stdout, stde=None, cmd=None)
         else:
             wrap = TestHarness.get_wrapper(self.options)
             if self.options.gdb:
@@ -388,14 +396,9 @@ class SingleTestRunner:
             stdo = ""
             stde = additional_error
         if timed_out:
-            res = TestResult.TIMEOUT
-        elif p.returncode == GNU_SKIP_RETURNCODE:
-            res = TestResult.SKIP
-        elif self.test.should_fail:
-            res = TestResult.EXPECTEDFAIL if bool(p.returncode) else TestResult.UNEXPECTEDPASS
+            return TestRun(self.test, TestResult.TIMEOUT, p.returncode, duration, stdo, stde, cmd)
         else:
-            res = TestResult.FAIL if bool(p.returncode) else TestResult.OK
-        return TestRun(res, p.returncode, self.test.should_fail, duration, stdo, stde, cmd, self.test.env)
+            return TestRun.make_exitcode(self.test, p.returncode, duration, stdo, stde, cmd)
 
 
 class TestHarness:
