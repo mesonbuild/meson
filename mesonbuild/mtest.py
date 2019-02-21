@@ -36,6 +36,10 @@ import enum
 # mean that the test should be skipped.
 GNU_SKIP_RETURNCODE = 77
 
+# GNU autotools interprets a return code of 99 from tests it executes to
+# mean that the test failed even before testing what it is supposed to test.
+GNU_ERROR_RETURNCODE = 99
+
 def is_windows():
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
@@ -146,6 +150,7 @@ class TestResult(enum.Enum):
     FAIL = 'FAIL'
     EXPECTEDFAIL = 'EXPECTEDFAIL'
     UNEXPECTEDPASS = 'UNEXPECTEDPASS'
+    ERROR = 'ERROR'
 
 
 class TestRun:
@@ -153,11 +158,13 @@ class TestRun:
     def make_exitcode(test, returncode, duration, stdo, stde, cmd):
         if returncode == GNU_SKIP_RETURNCODE:
             res = TestResult.SKIP
+        elif returncode == GNU_ERROR_RETURNCODE:
+            res = TestResult.ERROR
         elif test.should_fail:
             res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        return TestRun(test, res, returncode, test.should_fail, duration, stdo, stde, cmd, test.env)
+        return TestRun(test, res, returncode, duration, stdo, stde, cmd)
 
     def __init__(self, test, res, returncode, duration, stdo, stde, cmd):
         assert isinstance(res, TestResult)
@@ -474,7 +481,7 @@ class TestHarness:
             self.skip_count += 1
         elif result.res is TestResult.OK:
             self.success_count += 1
-        elif result.res is TestResult.FAIL:
+        elif result.res is TestResult.FAIL or result.res is TestResult.ERROR:
             self.fail_count += 1
         elif result.res is TestResult.EXPECTEDFAIL:
             self.expectedfail_count += 1
@@ -496,7 +503,8 @@ class TestHarness:
             (num, name, padding1, result.res.value, padding2, result.duration,
              status)
         ok_statuses = (TestResult.OK, TestResult.EXPECTEDFAIL)
-        bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT, TestResult.UNEXPECTEDPASS)
+        bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT, TestResult.UNEXPECTEDPASS,
+                        TestResult.ERROR)
         if not self.options.quiet or result.res not in ok_statuses:
             if result.res not in ok_statuses and mlog.colorize_console:
                 if result.res in bad_statuses:
