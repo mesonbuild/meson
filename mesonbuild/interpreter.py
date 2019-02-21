@@ -31,6 +31,7 @@ from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabl
 from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
 from .interpreterbase import ObjectHolder
 from .modules import ModuleReturnValue
+from .cmake import CMakeInterpreter
 
 import os, shutil, uuid
 import re, shlex
@@ -2493,7 +2494,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if method == 'meson':
                 return self.do_subproject_meson(dirname, subdir, default_options, required, kwargs)
             elif method == 'cmake':
-                return self.do_subproject_cmake(dirname, subdir, required, kwargs)
+                return self.do_subproject_cmake(dirname, subdir_abs, required, kwargs)
             else:
                 raise InterpreterException('The method {} is invalid for the subproject {}'.format(method, dirname))
         # Invalid code is always an error
@@ -2513,7 +2514,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         with mlog.nested():
             new_build = self.build.copy()
             subi = Interpreter(new_build, self.backend, dirname, subdir, self.subproject_dir,
-                                self.modules, default_options)
+                               self.modules, default_options)
             subi.subprojects = self.subprojects
 
             subi.subproject_stack = self.subproject_stack + [dirname]
@@ -2538,7 +2539,13 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self.subprojects[dirname]
 
     def do_subproject_cmake(self, dirname, subdir, required, kwargs):
-        raise InterpreterException('CMake subprojects are currently a stub')
+        with mlog.nested():
+            build_dir = os.path.join(self.environment.get_scratch_dir(), 'cmake_subp_{}'.format(dirname))
+            new_build = self.build.copy()
+            subi = CMakeInterpreter(new_build, subdir, build_dir, new_build.environment, self.backend)
+            subi.run()
+
+        return None
 
     def get_option_internal(self, optname):
         for opts in chain(

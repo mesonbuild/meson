@@ -30,6 +30,7 @@ entries = {'console_scripts': ['meson=mesonbuild.mesonmain:main']}
 packages = ['mesonbuild',
             'mesonbuild.ast',
             'mesonbuild.backend',
+            'mesonbuild.cmake',
             'mesonbuild.compilers',
             'mesonbuild.dependencies',
             'mesonbuild.modules',
