@@ -496,9 +496,10 @@ class TestHarness:
             (num, name, padding1, result.res.value, padding2, result.duration,
              status)
         ok_statuses = (TestResult.OK, TestResult.EXPECTEDFAIL)
+        bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT, TestResult.UNEXPECTEDPASS)
         if not self.options.quiet or result.res not in ok_statuses:
             if result.res not in ok_statuses and mlog.colorize_console:
-                if result.res in (TestResult.FAIL, TestResult.TIMEOUT, TestResult.UNEXPECTEDPASS):
+                if result.res in bad_statuses:
                     decorator = mlog.red
                 elif result.res is TestResult.SKIP:
                     decorator = mlog.yellow
@@ -508,8 +509,7 @@ class TestHarness:
             else:
                 print(result_str)
         result_str += "\n\n" + result.get_log()
-        if (result.returncode != GNU_SKIP_RETURNCODE) \
-                and (result.returncode != 0) != result.should_fail:
+        if result.res in bad_statuses:
             if self.options.print_errorlogs:
                 self.collected_logs.append(result_str)
         if self.logfile:
