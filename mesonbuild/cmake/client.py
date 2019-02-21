@@ -232,14 +232,14 @@ class CMakeClient:
         if not cmake_exe.found():
             raise CMakeException('Unable to find CMake')
 
-        mlog.log('Starting CMake server with CMake', mlog.bold(' '.join(cmake_exe.get_command())), 'version', mlog.cyan(cmake_vers))
+        mlog.debug('Starting CMake server with CMake', mlog.bold(' '.join(cmake_exe.get_command())), 'version', mlog.cyan(cmake_vers))
         self.proc = Popen(cmake_exe.get_command() + ['-E', 'server', '--experimental', '--debug'], stdin=PIPE, stdout=PIPE)
 
     def shutdown(self) -> None:
         if self.proc is None:
             return
 
-        mlog.log('Shutting down the CMake server')
+        mlog.debug('Shutting down the CMake server')
 
         # Close the pipes to exit
         self.proc.stdin.close()
