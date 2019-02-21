@@ -1059,10 +1059,43 @@ class CMakeDependency(ExternalDependency):
         # List of successfully found modules
         self.found_modules = []
 
+        self.cmakebin, self.cmakevers, for_machine = self.find_cmake_binary(environment, self.want_cross, self.silent)
+        if self.cmakebin is False:
+            self.cmakebin = None
+            msg = 'No CMake binary for machine %s not found. Giving up.' % for_machine
+            if self.required:
+                raise DependencyException(msg)
+            mlog.debug(msg)
+            return
+
+        if CMakeDependency.class_cmakeinfo[for_machine] is None:
+            CMakeDependency.class_cmakeinfo[for_machine] = self._get_cmake_info()
+        self.cmakeinfo = CMakeDependency.class_cmakeinfo[for_machine]
+        if self.cmakeinfo is None:
+            raise self._gen_exception('Unable to obtain CMake system information')
+
+        modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
+        modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
+        cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))
+        cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
+        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
+        if cm_path:
+            cm_args.append('-DCMAKE_MODULE_PATH=' + ';'.join(cm_path))
+
+        pref_path = self.env.coredata.builtins_per_machine[for_machine]['cmake_prefix_path'].value
+        if pref_path:
+            cm_args.append('-DCMAKE_PREFIX_PATH={}'.format(';'.join(pref_path)))
+
+        if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[for_machine]):
+            return
+        self._detect_dep(name, modules, cm_args)
+
+    @staticmethod
+    def find_cmake_binary(environment: Environment, want_cross: bool = False, silent: bool = False) -> Tuple[str, str, MachineChoice]:
         # When finding dependencies for cross-compiling, we don't care about
         # the 'native' CMake binary
         # TODO: Test if this works as expected
-        if environment.is_cross_build() and not self.want_cross:
+        if environment.is_cross_build() and not want_cross:
             for_machine = MachineChoice.BUILD
         else:
             for_machine = MachineChoice.HOST
@@ -1097,54 +1130,24 @@ class CMakeDependency(ExternalDependency):
             for potential_cmakebin in search():
                 mlog.debug('Trying CMake binary {} for machine {} at {}'
                            .format(potential_cmakebin.name, for_machine, potential_cmakebin.command))
-                version_if_ok = self.check_cmake(potential_cmakebin)
+                version_if_ok = CMakeDependency.check_cmake(potential_cmakebin)
                 if not version_if_ok:
                     continue
-                if not self.silent:
+                if not silent:
                     mlog.log('Found CMake:', mlog.bold(potential_cmakebin.get_path()),
                              '(%s)' % version_if_ok)
                 CMakeDependency.class_cmakebin[for_machine] = potential_cmakebin
                 CMakeDependency.class_cmakevers[for_machine] = version_if_ok
                 break
             else:
-                if not self.silent:
+                if not silent:
                     mlog.log('Found CMake:', mlog.red('NO'))
                 # Set to False instead of None to signify that we've already
                 # searched for it and not found it
                 CMakeDependency.class_cmakebin[for_machine] = False
                 CMakeDependency.class_cmakevers[for_machine] = None
 
-        self.cmakebin = CMakeDependency.class_cmakebin[for_machine]
-        self.cmakevers = CMakeDependency.class_cmakevers[for_machine]
-        if self.cmakebin is False:
-            self.cmakebin = None
-            msg = 'No CMake binary for machine %s not found. Giving up.' % for_machine
-            if self.required:
-                raise DependencyException(msg)
-            mlog.debug(msg)
-            return
-
-        if CMakeDependency.class_cmakeinfo[for_machine] is None:
-            CMakeDependency.class_cmakeinfo[for_machine] = self._get_cmake_info()
-        self.cmakeinfo = CMakeDependency.class_cmakeinfo[for_machine]
-        if self.cmakeinfo is None:
-            raise self._gen_exception('Unable to obtain CMake system information')
-
-        modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
-        modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
-        cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))
-        cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
-        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
-        if cm_path:
-            cm_args.append('-DCMAKE_MODULE_PATH=' + ';'.join(cm_path))
-
-        pref_path = self.env.coredata.builtins_per_machine[for_machine]['cmake_prefix_path'].value
-        if pref_path:
-            cm_args.append('-DCMAKE_PREFIX_PATH={}'.format(';'.join(pref_path)))
-
-        if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[for_machine]):
-            return
-        self._detect_dep(name, modules, cm_args)
+        return CMakeDependency.class_cmakebin[for_machine], CMakeDependency.class_cmakevers[for_machine], for_machine
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
@@ -1841,7 +1844,8 @@ set(CMAKE_SIZEOF_VOID_P "{}")
     def get_methods():
         return [DependencyMethods.CMAKE]
 
-    def check_cmake(self, cmakebin):
+    @staticmethod
+    def check_cmake(cmakebin):
         if not cmakebin.found():
             mlog.log('Did not find CMake {!r}'.format(cmakebin.name))
             return None
