@@ -123,9 +123,10 @@ class Resolver:
                 raise WrapException('Directory key must be a name and not a path')
         self.dirname = os.path.join(self.subdir_root, self.directory)
         meson_file = os.path.join(self.dirname, 'meson.build')
+        cmake_file = os.path.join(self.dirname, 'CMakeLists.txt')
 
         # The directory is there and has meson.build? Great, use it.
-        if os.path.exists(meson_file):
+        if os.path.exists(meson_file) or os.path.exists(cmake_file):
             return self.directory
 
         # Check if the subproject is a git submodule

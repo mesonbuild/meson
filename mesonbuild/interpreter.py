@@ -2027,7 +2027,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'both_libraries': known_library_kwargs,
                     'library': known_library_kwargs,
                     'subdir': {'if_found'},
-                    'subproject': {'version', 'default_options', 'required'},
+                    'subproject': {'version', 'default_options', 'required', 'method'},
                     'test': {'args', 'depends', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir',
                              'suite', 'protocol'},
                     'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
@@ -2412,6 +2412,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
 
     @FeatureNewKwargs('subproject', '0.38.0', ['default_options'])
+    @FeatureNewKwargs('subproject', '0.50.0', ['method'])
     @permittedKwargs(permitted_kwargs['subproject'])
     @stringArgs
     def func_subproject(self, nodes, args, kwargs):
@@ -2432,6 +2433,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
         default_options = coredata.create_options_dict(default_options)
+        method = kwargs.get('method', 'auto')
         if dirname == '':
             raise InterpreterException('Subproject dir name must not be empty.')
         if dirname[0] == '.':
@@ -2473,22 +2475,27 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise e
 
         subdir = os.path.join(self.subproject_dir, resolved)
+        subdir_abs = os.path.join(subproject_dir_abs, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
+
+        # Determine the method to use when 'auto' is given
+        if method == 'auto':
+            if os.path.exists(os.path.join(subdir_abs, environment.build_filename)):
+                method = 'meson'
+            elif os.path.exists(os.path.join(subdir_abs, 'CMakeLists.txt')):
+                method = 'cmake'
+
         mlog.log()
         with mlog.nested():
-            mlog.log('Executing subproject', mlog.bold(dirname), '\n')
+            mlog.log('Executing subproject', mlog.bold(dirname), 'method', mlog.bold(method), '\n')
         try:
-            with mlog.nested():
-                new_build = self.build.copy()
-                subi = Interpreter(new_build, self.backend, dirname, subdir, self.subproject_dir,
-                                   self.modules, default_options)
-                subi.subprojects = self.subprojects
-
-                subi.subproject_stack = self.subproject_stack + [dirname]
-                current_active = self.active_projectname
-                subi.run()
-                mlog.log('Subproject', mlog.bold(dirname), 'finished.')
+            if method == 'meson':
+                return self.do_subproject_meson(dirname, subdir, default_options, required, kwargs)
+            elif method == 'cmake':
+                return self.do_subproject_cmake(dirname, subdir, required, kwargs)
+            else:
+                raise InterpreterException('The method {} is invalid for the subproject {}'.format(method, dirname))
         # Invalid code is always an error
         except InvalidCode:
             raise
@@ -2501,6 +2508,18 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.log('\nSubproject', mlog.bold(dirname), 'is buildable:', mlog.red('NO'), '(disabling)')
                 return self.disabled_subproject(dirname)
             raise e
+
+    def do_subproject_meson(self, dirname, subdir, default_options, required, kwargs):
+        with mlog.nested():
+            new_build = self.build.copy()
+            subi = Interpreter(new_build, self.backend, dirname, subdir, self.subproject_dir,
+                                self.modules, default_options)
+            subi.subprojects = self.subprojects
+
+            subi.subproject_stack = self.subproject_stack + [dirname]
+            current_active = self.active_projectname
+            subi.run()
+            mlog.log('Subproject', mlog.bold(dirname), 'finished.')
 
         mlog.log()
 
@@ -2517,6 +2536,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.merge(subi.build)
         self.build.subprojects[dirname] = subi.project_version
         return self.subprojects[dirname]
+
+    def do_subproject_cmake(self, dirname, subdir, required, kwargs):
+        raise InterpreterException('CMake subprojects are currently a stub')
 
     def get_option_internal(self, optname):
         for opts in chain(
