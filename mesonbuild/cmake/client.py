@@ -38,6 +38,8 @@ CMAKE_MESSAGE_TYPES = {
 
 CMAKE_REPLY_TYPES = {
     'handshake': [],
+    'configure': [],
+    'cmakeInputs': ['buildFiles', 'cmakeRootDirectory', 'sourceDirectory']
 }
 
 # Base CMake server message classes
@@ -93,7 +95,8 @@ class Message(MessageBase):
         self.message = message
 
     def log(self) -> None:
-        mlog.log(mlog.bold('CMake:'), self.message)
+        #mlog.log(mlog.bold('CMake:'), self.message)
+        pass
 
 class Progress(MessageBase):
     def __init__(self, cookie: str):
@@ -137,11 +140,54 @@ class RequestHandShake(RequestBase):
             'protocolVersion': vers
         }
 
+class RequestConfigure(RequestBase):
+    def __init__(self, args: Optional[List[str]] = None):
+        super().__init__('configure')
+        self.args = args
+
+    def to_dict(self) -> dict:
+        res = super().to_dict()
+        if self.args:
+            res['cacheArguments'] = self.args
+        return res
+
+class RequestCMakeInputs(RequestBase):
+    def __init__(self):
+        super().__init__('cmakeInputs')
+
 # Reply classes
 
 class ReplyHandShake(ReplyBase):
     def __init__(self, cookie: str):
         super().__init__(cookie, 'handshake')
+
+class ReplyConfigure(ReplyBase):
+    def __init__(self, cookie: str):
+        super().__init__(cookie, 'configure')
+
+class CMakeBuildFile:
+    def __init__(self, file: str, is_cmake: bool, is_temp: bool):
+        self.file = file
+        self.is_cmake = is_cmake
+        self.is_temp = is_temp
+
+    def __repr__(self):
+        return '<{}: {}; cmake={}; temp={}>'.format(self.__class__.__name__, self.file, self.is_cmake, self.is_temp)
+
+class ReplyCMakeInputs(ReplyBase):
+    def __init__(self, cookie: str, cmake_root: str, src_dir: str, build_files: List[CMakeBuildFile]):
+        super().__init__(cookie, 'cmakeInputs')
+        self.cmake_root = cmake_root
+        self.src_dir = src_dir
+        self.build_files = build_files
+
+    def log(self) -> None:
+        mlog.log('CMake root: ', mlog.bold(self.cmake_root))
+        mlog.log('Source dir: ', mlog.bold(self.src_dir))
+        mlog.log('Build files:', mlog.bold(str(len(self.build_files))))
+        with mlog.nested():
+            for i in self.build_files:
+                mlog.log(str(i))
 
 class CMakeClient:
     def __init__(self, env: Environment):
@@ -158,6 +204,8 @@ class CMakeClient:
 
         self.reply_map = {
             'handshake': lambda data: ReplyHandShake(data['cookie']),
+            'configure': lambda data: ReplyConfigure(data['cookie']),
+            'cmakeInputs': self.resolve_reply_cmakeInputs,
         }
 
     def readMessageRaw(self) -> dict:
@@ -209,6 +257,15 @@ class CMakeClient:
 
             reply.log()
 
+    def query_checked(self, request: RequestBase, message: str) -> ReplyBase:
+        reply = self.query(request)
+        h = mlog.green('SUCCEEDED') if reply.type == 'reply' else mlog.red('FAILED')
+        mlog.log(message, h)
+        if reply.type != 'reply':
+            reply.log()
+            raise CMakeException('CMake server query failed')
+        return reply
+
     def do_handshake(self, src_dir: str, build_dir: str, generator: str, vers_major: int, vers_minor: Optional[int] = None) -> None:
         # CMake prints the hello message on startup
         msg = self.readMessage()
@@ -219,9 +276,9 @@ class CMakeClient:
         reply = self.query(request)
         if not isinstance(reply, ReplyHandShake):
             reply.log()
-            mlog.log('CMake server handshake:', mlog.red('FAILED'))
+            mlog.log('CMake server handshake', mlog.red('FAILED'))
             raise CMakeException('Failed to perform the handshake with the CMake server')
-        mlog.log('CMake server handshake:', mlog.green('OK'))
+        mlog.log('CMake server handshake', mlog.green('SUCCEEDED'))
 
     def resolve_type_reply(self, data: dict) -> ReplyBase:
         reply_type = data['inReplyTo']
@@ -232,6 +289,13 @@ class CMakeClient:
             if i not in data:
                 raise CMakeException('Key "{}" is missing from CMake server message type {}'.format(i, type))
         return func(data)
+
+    def resolve_reply_cmakeInputs(self, data: dict) -> ReplyCMakeInputs:
+        files = []
+        for i in data['buildFiles']:
+            for j in i['sources']:
+                files += [CMakeBuildFile(j, i['isCMake'], i['isTemporary'])]
+        return ReplyCMakeInputs(data['cookie'], data['cmakeRootDirectory'], data['sourceDirectory'], files)
 
     @contextmanager
     def connect(self):

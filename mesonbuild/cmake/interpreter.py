@@ -16,7 +16,7 @@
 # or an interpreter-based tool.
 
 from .common import CMakeException
-from .client import CMakeClient
+from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, ReplyCMakeInputs
 from .. import mlog
 from ..build import Build
 from ..environment import Environment
@@ -101,7 +101,17 @@ class CMakeInterpreter:
             raise CMakeException('Failed to configure the CMake subproject')
 
     def run(self) -> None:
+        # Run configure the old way becuse doing it
+        # with the server doesn't work for some reason
         self.configure()
+
         with self.client.connect():
             generator = CMAKE_BACKEND_GENERATOR_MAP[self.backend_name]
             self.client.do_handshake(self.src_dir, self.build_dir, generator, 1)
+
+            # Do a second configure to initialise the server
+            self.client.query_checked(RequestConfigure(), 'CMake server configure')
+
+            # Get CMake build system files
+            bs_reply = self.client.query_checked(RequestCMakeInputs(), 'Querying build system files')
+            bs_reply.log()
