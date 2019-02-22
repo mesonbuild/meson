@@ -16,7 +16,7 @@
 # or an interpreter-based tool.
 
 from .common import CMakeException
-from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, ReplyCMakeInputs
+from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel
 from .. import mlog
 from ..build import Build
 from ..environment import Environment
@@ -96,7 +96,7 @@ class CMakeInterpreter:
             proc.communicate()
 
         h = mlog.green('SUCCEEDED') if proc.returncode == 0 else mlog.red('FAILED')
-        mlog.log('CMake configuration', h)
+        mlog.log('CMake configuration:', h)
         if proc.returncode != 0:
             raise CMakeException('Failed to configure the CMake subproject')
 
@@ -112,6 +112,12 @@ class CMakeInterpreter:
             # Do a second configure to initialise the server
             self.client.query_checked(RequestConfigure(), 'CMake server configure')
 
+            # Generate the build system files
+            self.client.query_checked(RequestCompute(), 'Generating build system files')
+
             # Get CMake build system files
             bs_reply = self.client.query_checked(RequestCMakeInputs(), 'Querying build system files')
-            bs_reply.log()
+
+            # Now get the CMake code model
+            cm_reply = self.client.query_checked(RequestCodeModel(), 'Querying the CMake code model')
+            cm_reply.log()

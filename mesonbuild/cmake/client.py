@@ -39,7 +39,9 @@ CMAKE_MESSAGE_TYPES = {
 CMAKE_REPLY_TYPES = {
     'handshake': [],
     'configure': [],
-    'cmakeInputs': ['buildFiles', 'cmakeRootDirectory', 'sourceDirectory']
+    'compute': [],
+    'cmakeInputs': ['buildFiles', 'cmakeRootDirectory', 'sourceDirectory'],
+    'codemodel': ['configurations']
 }
 
 # Base CMake server message classes
@@ -151,9 +153,17 @@ class RequestConfigure(RequestBase):
             res['cacheArguments'] = self.args
         return res
 
+class RequestCompute(RequestBase):
+    def __init__(self):
+        super().__init__('compute')
+
 class RequestCMakeInputs(RequestBase):
     def __init__(self):
         super().__init__('cmakeInputs')
+
+class RequestCodeModel(RequestBase):
+    def __init__(self):
+        super().__init__('codemodel')
 
 # Reply classes
 
@@ -164,6 +174,10 @@ class ReplyHandShake(ReplyBase):
 class ReplyConfigure(ReplyBase):
     def __init__(self, cookie: str):
         super().__init__(cookie, 'configure')
+
+class ReplyCompute(ReplyBase):
+    def __init__(self, cookie: str):
+        super().__init__(cookie, 'compute')
 
 class CMakeBuildFile:
     def __init__(self, file: str, is_cmake: bool, is_temp: bool):
@@ -189,6 +203,150 @@ class ReplyCMakeInputs(ReplyBase):
             for i in self.build_files:
                 mlog.log(str(i))
 
+def _flags_to_list(raw: str) -> List[str]:
+    res = []
+    curr = ''
+    escape = False
+    in_string = False
+    for i in raw:
+        if escape:
+            curr += i
+            escape = False
+        elif i == '\\':
+            escape = True
+        elif i == '"' or i == "'":
+            in_string = not in_string
+        elif i == ' ' or i == '\n':
+            if in_string:
+                curr += i
+            else:
+                res += [curr]
+                curr = ''
+        else:
+            curr += i
+    res += [curr]
+    res = list(filter(lambda x: len(x) > 0, res))
+    return res
+
+class CMakeFileGroup:
+    def __init__(self, data: dict):
+        self.defines = data.get('defines', '')
+        self.flags = _flags_to_list(data.get('compileFlags', ''))
+        self.includes = data.get('includePath', [])
+        self.is_generated = data.get('isGenerated', False)
+        self.language = data.get('language', 'C')
+        self.sources = data.get('sources', [])
+
+        # Fix the include directories
+        tmp = []
+        for i in self.includes:
+            if isinstance(i, dict) and 'path' in i:
+                tmp += [i['path']]
+            elif isinstance(i, str):
+                tmp += [i]
+        self.includes = tmp
+
+    def log(self) -> None:
+        mlog.log('flags        =', mlog.bold(', '.join(self.flags)))
+        mlog.log('defines      =', mlog.bold(', '.join(self.defines)))
+        mlog.log('includes     =', mlog.bold(', '.join(self.includes)))
+        mlog.log('is_generated =', mlog.bold('true' if self.is_generated else 'false'))
+        mlog.log('language     =', mlog.bold(self.language))
+        mlog.log('sources:')
+        for i in self.sources:
+            with mlog.nested():
+                mlog.log(i)
+
+class CMakeTarget:
+    def __init__(self, data: dict):
+        self.artifacts = data.get('artifacts', [])
+        self.src_dir = data.get('sourceDirectory', '')
+        self.build_dir = data.get('buildDirectory', '')
+        self.name = data.get('name', '')
+        self.full_name = data.get('fullName', '')
+        self.install = data.get('hasInstallRule', False)
+        self.install_paths = list(set(data.get('installPaths', [])))
+        self.link_lang = data.get('linkerLanguage', '')
+        self.link_libraries = _flags_to_list(data.get('linkLibraries', ''))
+        self.link_flags = _flags_to_list(data.get('linkFlags', ''))
+        self.link_lang_flags = _flags_to_list(data.get('linkLanguageFlags', ''))
+        self.link_path = data.get('linkPath', '')
+        self.type = data.get('type', 'EXECUTABLE')
+        self.is_generator_provided = data.get('isGeneratorProvided', False)
+        self.files = []
+
+        for i in data.get('fileGroups', []):
+            self.files += [CMakeFileGroup(i)]
+
+    def log(self) -> None:
+        mlog.log('artifacts             =', mlog.bold(', '.join(self.artifacts)))
+        mlog.log('src_dir               =', mlog.bold(self.src_dir))
+        mlog.log('build_dir             =', mlog.bold(self.build_dir))
+        mlog.log('name                  =', mlog.bold(self.name))
+        mlog.log('full_name             =', mlog.bold(self.full_name))
+        mlog.log('install               =', mlog.bold('true' if self.install else 'false'))
+        mlog.log('install_paths         =', mlog.bold(', '.join(self.install_paths)))
+        mlog.log('link_lang             =', mlog.bold(self.link_lang))
+        mlog.log('link_libraries        =', mlog.bold(', '.join(self.link_libraries)))
+        mlog.log('link_flags            =', mlog.bold(', '.join(self.link_flags)))
+        mlog.log('link_lang_flags       =', mlog.bold(', '.join(self.link_lang_flags)))
+        mlog.log('link_path             =', mlog.bold(self.link_path))
+        mlog.log('type                  =', mlog.bold(self.type))
+        mlog.log('is_generator_provided =', mlog.bold('true' if self.is_generator_provided else 'false'))
+        for idx, i in enumerate(self.files):
+            mlog.log('Files {}:'.format(idx))
+            with mlog.nested():
+                i.log()
+
+class CMakeProject:
+    def __init__(self, data: dict):
+        self.src_dir = data.get('sourceDirectory', '')
+        self.build_dir = data.get('buildDirectory', '')
+        self.name = data.get('name', '')
+        self.targets = []
+
+        for i in data.get('targets', []):
+            self.targets += [CMakeTarget(i)]
+
+    def log(self) -> None:
+        mlog.log('src_dir   =', mlog.bold(self.src_dir))
+        mlog.log('build_dir =', mlog.bold(self.build_dir))
+        mlog.log('name      =', mlog.bold(self.name))
+        for idx, i in enumerate(self.targets):
+            mlog.log('Target {}:'.format(idx))
+            with mlog.nested():
+                i.log()
+
+class CMakeConfiguration:
+    def __init__(self, data: dict):
+        self.name = data.get('name', '')
+        self.projects = []
+        for i in data.get('projects', []):
+            self.projects += [CMakeProject(i)]
+
+    def log(self) -> None:
+        mlog.log('name =', mlog.bold(self.name))
+        for idx, i in enumerate(self.projects):
+            mlog.log('Project {}:'.format(idx))
+            with mlog.nested():
+                i.log()
+
+class ReplyCodeModel(ReplyBase):
+    def __init__(self, data: dict):
+        super().__init__(data['cookie'], 'codemodel')
+        self.configs = []
+        for i in data['configurations']:
+            self.configs += [CMakeConfiguration(i)]
+
+    def log(self) -> None:
+        mlog.log('CMake code mode:')
+        for idx, i in enumerate(self.configs):
+            mlog.log('Configuration {}:'.format(idx))
+            with mlog.nested():
+                i.log()
+
+# Main client class
+
 class CMakeClient:
     def __init__(self, env: Environment):
         self.env = env
@@ -205,7 +363,9 @@ class CMakeClient:
         self.reply_map = {
             'handshake': lambda data: ReplyHandShake(data['cookie']),
             'configure': lambda data: ReplyConfigure(data['cookie']),
+            'compute': lambda data: ReplyCompute(data['cookie']),
             'cmakeInputs': self.resolve_reply_cmakeInputs,
+            'codemodel': lambda data: ReplyCodeModel(data),
         }
 
     def readMessageRaw(self) -> dict:
@@ -260,7 +420,7 @@ class CMakeClient:
     def query_checked(self, request: RequestBase, message: str) -> ReplyBase:
         reply = self.query(request)
         h = mlog.green('SUCCEEDED') if reply.type == 'reply' else mlog.red('FAILED')
-        mlog.log(message, h)
+        mlog.log(message + ':', h)
         if reply.type != 'reply':
             reply.log()
             raise CMakeException('CMake server query failed')
@@ -273,12 +433,7 @@ class CMakeClient:
             raise CMakeException('Recieved an unexpected message from the CMake server')
 
         request = RequestHandShake(src_dir, build_dir, generator, vers_major, vers_minor)
-        reply = self.query(request)
-        if not isinstance(reply, ReplyHandShake):
-            reply.log()
-            mlog.log('CMake server handshake', mlog.red('FAILED'))
-            raise CMakeException('Failed to perform the handshake with the CMake server')
-        mlog.log('CMake server handshake', mlog.green('SUCCEEDED'))
+        self.query_checked(request, 'CMake server handshake')
 
     def resolve_type_reply(self, data: dict) -> ReplyBase:
         reply_type = data['inReplyTo']
