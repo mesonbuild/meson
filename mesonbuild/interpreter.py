@@ -2038,7 +2038,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
 class Interpreter(InterpreterBase):
 
     def __init__(self, build, backend=None, subproject='', subdir='', subproject_dir='subprojects',
-                 modules = None, default_project_options=None, mock=False):
+                 modules = None, default_project_options=None, mock=False, ast=None):
         super().__init__(build.environment.get_source_dir(), subdir)
         self.an_unpicklable_object = mesonlib.an_unpicklable_object
         self.build = build
@@ -2055,8 +2055,11 @@ class Interpreter(InterpreterBase):
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
         self.subproject_dir = subproject_dir
         self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
-        if not mock:
+        if not mock and ast is None:
             self.load_root_meson_file()
+            self.sanity_check_ast()
+        elif ast is not None:
+            self.ast = ast
             self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(build, self)})
         self.generators = []
@@ -2494,7 +2497,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if method == 'meson':
                 return self.do_subproject_meson(dirname, subdir, default_options, required, kwargs)
             elif method == 'cmake':
-                return self.do_subproject_cmake(dirname, subdir_abs, required, kwargs)
+                return self.do_subproject_cmake(dirname, subdir, subdir_abs, default_options, required, kwargs)
             else:
                 raise InterpreterException('The method {} is invalid for the subproject {}'.format(method, dirname))
         # Invalid code is always an error
@@ -2510,11 +2513,11 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return self.disabled_subproject(dirname)
             raise e
 
-    def do_subproject_meson(self, dirname, subdir, default_options, required, kwargs):
+    def do_subproject_meson(self, dirname, subdir, default_options, required, kwargs, ast=None):
         with mlog.nested():
             new_build = self.build.copy()
             subi = Interpreter(new_build, self.backend, dirname, subdir, self.subproject_dir,
-                               self.modules, default_options)
+                               self.modules, default_options, ast=ast)
             subi.subprojects = self.subprojects
 
             subi.subproject_stack = self.subproject_stack + [dirname]
@@ -2538,14 +2541,24 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.subprojects[dirname] = subi.project_version
         return self.subprojects[dirname]
 
-    def do_subproject_cmake(self, dirname, subdir, required, kwargs):
+    def do_subproject_cmake(self, dirname, subdir, subdir_abs, default_options, required, kwargs):
         with mlog.nested():
             build_dir = os.path.join(self.environment.get_scratch_dir(), 'cmake_subp_{}'.format(dirname))
             new_build = self.build.copy()
-            subi = CMakeInterpreter(new_build, subdir, build_dir, new_build.environment, self.backend)
-            subi.run()
+            cm_int = CMakeInterpreter(new_build, subdir, subdir_abs, build_dir, new_build.environment, self.backend)
+            cm_int.initialise()
+            cm_int.analyse()
 
-        return None
+            # Generate a meson ast and execute it with the normal do_subproject_meson
+            mlog.log()
+            with mlog.nested():
+                mlog.log('Processing generated meson AST')
+                mlog.log()
+            ast = cm_int.pretend_to_be_meson()
+            result = self.do_subproject_meson(dirname, subdir, default_options, required, kwargs, ast)
+
+        mlog.log()
+        return result
 
     def get_option_internal(self, optname):
         for opts in chain(
