@@ -142,10 +142,11 @@ class IntrospectionInterpreter(AstInterpreter):
         }]
 
     def build_target(self, node, args, kwargs, targetclass):
+        args = self.flatten_args(args)
         if not args:
             return
         kwargs = self.flatten_kwargs(kwargs, True)
-        name = self.flatten_args(args)[0]
+        name = args[0]
         srcqueue = [node]
         if 'sources' in kwargs:
             srcqueue += kwargs['sources']
