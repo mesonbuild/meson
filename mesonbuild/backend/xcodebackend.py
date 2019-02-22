@@ -733,6 +733,8 @@ class XCodeBackend(backends.Backend):
                 else:
                     product_name = target.get_basename()
                 ldargs += target.link_args
+                for dep in target.get_external_deps():
+                    ldargs += dep.get_link_args()
                 ldstr = ' '.join(ldargs)
                 valid = self.buildconfmap[target_name][buildtype]
                 langargs = {}
