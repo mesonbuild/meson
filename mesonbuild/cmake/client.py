@@ -30,7 +30,10 @@ CMAKE_SERVER_END_STR = ']== "CMake Server" ==]'
 CMAKE_MESSAGE_TYPES = {
     'error': ['cookie', 'errorMessage'],
     'hello': ['supportedProtocolVersions'],
+    'message': ['cookie', 'message'],
+    'progress': ['cookie'],
     'reply': ['cookie', 'inReplyTo'],
+    'signal': ['cookie', 'name'],
 }
 
 CMAKE_REPLY_TYPES = {
@@ -66,6 +69,14 @@ class ReplyBase(MessageBase):
         super().__init__('reply', cookie)
         self.in_reply_to = in_reply_to
 
+class SignalBase(MessageBase):
+    def __init__(self, cookie: str, signal_name: str):
+        super().__init__('signal', cookie)
+        self.signal_name = signal_name
+
+    def log(self) -> None:
+        mlog.log(mlog.bold('CMake signal:'), mlog.yellow(self.signal_name))
+
 # Special Message classes
 
 class Error(MessageBase):
@@ -75,6 +86,21 @@ class Error(MessageBase):
 
     def log(self) -> None:
         mlog.error(mlog.bold('CMake server error:'), mlog.red(self.message))
+
+class Message(MessageBase):
+    def __init__(self, cookie: str, message: str):
+        super().__init__('message', cookie)
+        self.message = message
+
+    def log(self) -> None:
+        mlog.log(mlog.bold('CMake:'), self.message)
+
+class Progress(MessageBase):
+    def __init__(self, cookie: str):
+        super().__init__('progress', cookie)
+
+    def log(self) -> None:
+        pass
 
 class MessageHello(MessageBase):
     def __init__(self, supported_protocol_versions: List[dict]):
@@ -122,13 +148,16 @@ class CMakeClient:
         self.env = env
         self.proc = None
         self.type_map = {
-            'hello': self.resolve_type_hello,
-            'error': self.resolve_type_error,
+            'error': lambda data: Error(data['cookie'], data['errorMessage']),
+            'hello': lambda data: MessageHello(data['supportedProtocolVersions']),
+            'message': lambda data: Message(data['cookie'], data['message']),
+            'progress': lambda data: Progress(data['cookie']),
             'reply': self.resolve_type_reply,
+            'signal': lambda data: SignalBase(data['cookie'], data['name'])
         }
 
         self.reply_map = {
-            'handshake': self.resolve_reply_handshake,
+            'handshake': lambda data: ReplyHandShake(data['cookie']),
         }
 
     def readMessageRaw(self) -> dict:
@@ -175,7 +204,7 @@ class CMakeClient:
         self.writeMessage(request)
         while True:
             reply = self.readMessage()
-            if reply.cookie == request.cookie:
+            if reply.cookie == request.cookie and reply.type in ['reply', 'error']:
                 return reply
 
             reply.log()
@@ -194,12 +223,6 @@ class CMakeClient:
             raise CMakeException('Failed to perform the handshake with the CMake server')
         mlog.log('CMake server handshake:', mlog.green('OK'))
 
-    def resolve_type_error(self, data: dict) -> Error:
-        return Error(data['cookie'], data['errorMessage'])
-
-    def resolve_type_hello(self, data: dict) -> MessageHello:
-        return MessageHello(data['supportedProtocolVersions'])
-
     def resolve_type_reply(self, data: dict) -> ReplyBase:
         reply_type = data['inReplyTo']
         func = self.reply_map.get(reply_type, None)
@@ -209,9 +232,6 @@ class CMakeClient:
             if i not in data:
                 raise CMakeException('Key "{}" is missing from CMake server message type {}'.format(i, type))
         return func(data)
-
-    def resolve_reply_handshake(self, data: dict) -> ReplyHandShake:
-        return ReplyHandShake(data['cookie'])
 
     @contextmanager
     def connect(self):
