@@ -46,6 +46,9 @@ class CudaCompiler(Compiler):
     def get_no_stdinc_args(self):
         return []
 
+    def get_cross_extra_flags(self, environment, link=False):
+        return []
+
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanitycheckcuda.cu')
         binary_name = os.path.join(work_dir, 'sanitycheckcuda')
@@ -176,7 +179,7 @@ __global__ void kernel (void) {
         return cuda_debug_args[is_debug]
 
     def get_werror_args(self):
-        return ['-Werror']
+        return ['-Werror=cross-execution-space-call,deprecated-declarations,reorder']
 
     def get_linker_exelist(self):
         return self.exelist[:]

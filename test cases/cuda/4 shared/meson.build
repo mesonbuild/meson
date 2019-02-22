@@ -1,4 +1,4 @@
-project('simple', 'cuda', version : '1.0.0')
+project('simple', 'cuda', version : '1.0.0', default_options: ['werror=true'])
 
 subdir('shared')
 
