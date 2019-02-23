@@ -2028,7 +2028,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'both_libraries': known_library_kwargs,
                     'library': known_library_kwargs,
                     'subdir': {'if_found'},
-                    'subproject': {'version', 'default_options', 'required', 'method'},
+                    'subproject': {'version', 'default_options', 'required', 'method', 'cmake_options'},
                     'test': {'args', 'depends', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir',
                              'suite', 'protocol'},
                     'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
@@ -2548,8 +2548,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         with mlog.nested():
             new_build = self.build.copy()
             prefix = self.coredata.builtins['prefix'].value
+            cmake_options = mesonlib.stringlistify(kwargs.get('cmake_options', []))
             cm_int = CMakeInterpreter(new_build, subdir, subdir_abs, prefix, new_build.environment, self.backend)
-            cm_int.initialise()
+            cm_int.initialise(cmake_options)
             cm_int.analyse()
 
             # Generate a meson ast and execute it with the normal do_subproject_meson
@@ -2561,15 +2562,15 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.log()
 
                 # Debug print the generated meson file
-                mlog.log('=== BEGIN meson.build ===')
+                mlog.debug('=== BEGIN meson.build ===')
                 from .ast import AstIndentationGenerator, AstPrinter
                 printer = AstPrinter()
                 ast.accept(AstIndentationGenerator())
                 ast.accept(printer)
                 printer.post_process()
-                mlog.log(printer.result)
-                mlog.log('=== END meson.build ===')
-                mlog.log()
+                mlog.debug(printer.result)
+                mlog.debug('=== END meson.build ===')
+                mlog.debug()
 
             result = self.do_subproject_meson(dirname, subdir, default_options, required, kwargs, ast, cm_int.bs_files)
 

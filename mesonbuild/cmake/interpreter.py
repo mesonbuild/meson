@@ -226,7 +226,7 @@ class CMakeInterpreter:
         self.languages = []
         self.targets = []
 
-    def configure(self) -> None:
+    def configure(self, extra_cmake_options: List[str]) -> None:
         # Find CMake
         cmake_exe, cmake_vers, _ = CMakeDependency.find_cmake_binary(self.env)
         if cmake_exe is None or cmake_exe is False:
@@ -249,7 +249,9 @@ class CMakeInterpreter:
             elif len(exelist) == 2:
                 cmake_args += ['-DCMAKE_{}_COMPILER_LAUNCHER={}'.format(cmake_lang, exelist[0]),
                                '-DCMAKE_{}_COMPILER={}'.format(cmake_lang, exelist[1])]
-        cmake_args += ['-G', generator, '-DCMAKE_INSTALL_PREFIX={}'.format(self.install_prefix)]
+        cmake_args += ['-G', generator]
+        cmake_args += ['-DCMAKE_INSTALL_PREFIX={}'.format(self.install_prefix)]
+        cmake_args += extra_cmake_options
 
         # Run CMake
         mlog.log()
@@ -276,10 +278,10 @@ class CMakeInterpreter:
         if proc.returncode != 0:
             raise CMakeException('Failed to configure the CMake subproject')
 
-    def initialise(self) -> None:
+    def initialise(self, extra_cmake_options: List[str]) -> None:
         # Run configure the old way becuse doing it
         # with the server doesn't work for some reason
-        self.configure()
+        self.configure(extra_cmake_options)
 
         with self.client.connect():
             generator = CMAKE_BACKEND_GENERATOR_MAP[self.backend_name]
@@ -300,6 +302,7 @@ class CMakeInterpreter:
         src_dir = bs_reply.src_dir
         self.bs_files = [x.file for x in bs_reply.build_files if  not x.is_cmake and not x.is_temp]
         self.bs_files = [os.path.relpath(os.path.join(src_dir, x), self.env.get_source_dir()) for x in self.bs_files]
+        self.bs_files = list(set(self.bs_files))
         self.codemodel = cm_reply
 
     def analyse(self) -> None:
