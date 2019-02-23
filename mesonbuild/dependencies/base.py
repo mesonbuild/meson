@@ -33,7 +33,7 @@ from pathlib import Path, PurePath
 from .. import mlog
 from .. import mesonlib
 from ..compilers import clib_langs
-from ..environment import BinaryTable, Environment
+from ..environment import BinaryTable, Environment, MachineInfo
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
 from ..mesonlib import Version
@@ -1030,7 +1030,7 @@ class CMakeDependency(ExternalDependency):
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
         if cm_path:
             cm_args += ['-DCMAKE_MODULE_PATH={}'.format(';'.join(cm_path))]
-        if not self._preliminary_find_check(name, cm_path):
+        if not self._preliminary_find_check(name, cm_path, environment.machines[for_machine]):
             return
         self._detect_dep(name, modules, cm_args)
 
@@ -1064,6 +1064,7 @@ class CMakeDependency(ExternalDependency):
 
             # Current generator was successful
             if ret1 == 0:
+                CMakeDependency.class_working_generator = i
                 break
 
             mlog.debug('CMake failed to gather system information for generator {} with error code {}'.format(i, ret1))
@@ -1085,7 +1086,7 @@ class CMakeDependency(ExternalDependency):
             return None
 
         # Extract the variables and sanity check them
-        module_paths = list(sorted(list(set(self.get_cmake_var('MESON_PATHS_LIST')))))
+        module_paths = sorted(set(self.get_cmake_var('MESON_PATHS_LIST')))
         module_paths = list(filter(lambda x: os.path.isdir(x), module_paths))
         archs = self.get_cmake_var('MESON_ARCH_LIST')
 
@@ -1125,7 +1126,7 @@ class CMakeDependency(ExternalDependency):
         except OSError:
             return False
 
-    def _preliminary_find_check(self, name: str, module_path: List[str]) -> bool:
+    def _preliminary_find_check(self, name: str, module_path: List[str], machine: MachineInfo) -> bool:
         lname = str(name).lower()
 
         # Checks <path>, <path>/cmake, <path>/CMake
@@ -1184,11 +1185,12 @@ class CMakeDependency(ExternalDependency):
                     return True
 
             # Mac framework support
-            for j in ['{}.framework', '{}.app']:
-                j = j.format(lname)
-                if j in content:
-                    if find_module(os.path.join(i, j[0], 'Resources')):
-                        return True
+            if machine.is_darwin():
+                for j in ['{}.framework', '{}.app']:
+                    j = j.format(lname)
+                    if j in content:
+                        if find_module(os.path.join(i, j[0], 'Resources')) or find_module(os.path.join(i, j[0], 'Version')):
+                            return True
 
         # Check the environment path
         env_path = os.environ.get('{}_DIR'.format(name))
