@@ -111,10 +111,15 @@ and library dependency, especially if there are many generated headers:
 
 ```meson
 idep_foo = declare_dependency(
-    sources : [foo_h, bar_h],
+    include_directories : libfoo.private_dir_include(),
     link_with : [libfoo],
 )
 ```
+
+Adding the static library's private include directory to
+`include_directories` of `declare_dependency` will make sure all headers
+are generated before any sources of a target linking against libfoo are
+built.
 
 See [dependencies](Dependencies.md#declaring-your-own), and
 [reference](Reference-manual.md#decalre_dependency) for more information.
