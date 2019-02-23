@@ -1,0 +1,2 @@
+usr/lib/libcmModLib.so
+usr/bin/testEXE

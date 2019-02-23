@@ -553,6 +553,7 @@ def skip_csharp(backend):
 def detect_tests_to_run():
     # Name, subdirectory, skip condition.
     all_tests = [
+        ('cmake', 'cmake', not shutil.which('cmake')),
         ('common', 'common', False),
         ('warning-meson', 'warning', False),
         ('failing-meson', 'failing', False),
