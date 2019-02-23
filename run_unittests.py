@@ -3747,6 +3747,7 @@ class FailureTests(BasePlatformTests):
                                """Subproject "subprojects/not-found-subproject" disabled can't get_variable on it.""")
 
 
+@unittest.skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")
 class WindowsTests(BasePlatformTests):
     '''
     Tests that should run on Cygwin, MinGW, and MSVC
@@ -3857,6 +3858,7 @@ class WindowsTests(BasePlatformTests):
             return
         self.build()
 
+@unittest.skipUnless(is_osx(), "requires Darwin")
 class DarwinTests(BasePlatformTests):
     '''
     Tests that should run on macOS
@@ -3953,6 +3955,7 @@ class DarwinTests(BasePlatformTests):
         del os.environ["LDFLAGS"]
 
 
+@unittest.skipUnless(not is_windows(), "requires something Unix-like")
 class LinuxlikeTests(BasePlatformTests):
     '''
     Tests that should run on Linux, macOS, and *BSD
@@ -4931,6 +4934,10 @@ endian = 'little'
         self.assertEqual(max_count, 1, 'Export dynamic incorrectly deduplicated.')
 
 
+def should_run_cross_arm_tests():
+    return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
+
+@unittest.skipUnless(not is_windows() and should_run_cross_arm_tests(), "requires ability to cross compile to ARM")
 class LinuxCrossArmTests(BasePlatformTests):
     '''
     Tests that cross-compilation to Linux/ARM works
@@ -4979,6 +4986,10 @@ class LinuxCrossArmTests(BasePlatformTests):
         self.assertTrue(False, 'Option libdir not in introspect data.')
 
 
+def should_run_cross_mingw_tests():
+    return shutil.which('x86_64-w64-mingw32-gcc') and not (is_windows() or is_cygwin())
+
+@unittest.skipUnless(not is_windows() and should_run_cross_mingw_tests(), "requires ability to cross compile with MinGW")
 class LinuxCrossMingwTests(BasePlatformTests):
     '''
     Tests that cross-compilation to Windows/MinGW works
@@ -5655,26 +5666,12 @@ def unset_envs():
         if v in os.environ:
             del os.environ[v]
 
-def should_run_cross_arm_tests():
-    return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
-
-def should_run_cross_mingw_tests():
-    return shutil.which('x86_64-w64-mingw32-gcc') and not (is_windows() or is_cygwin())
-
 def main():
     unset_envs()
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
-             'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests']
-    if not is_windows():
-        cases += ['LinuxlikeTests']
-        if should_run_cross_arm_tests():
-            cases += ['LinuxCrossArmTests']
-        if should_run_cross_mingw_tests():
-            cases += ['LinuxCrossMingwTests']
-    if is_windows() or is_cygwin():
-        cases += ['WindowsTests']
-    if is_osx():
-        cases += ['DarwinTests']
+             'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests',
+             'LinuxlikeTests', 'LinuxCrossArmTests', 'LinuxCrossMingwTests',
+             'WindowsTests', 'DarwinTests']
 
     return unittest.main(defaultTest=cases, buffer=True)
 
