@@ -2513,7 +2513,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return self.disabled_subproject(dirname)
             raise e
 
-    def do_subproject_meson(self, dirname, subdir, default_options, required, kwargs, ast=None):
+    def do_subproject_meson(self, dirname, subdir, default_options, required, kwargs, ast=None, build_def_files=None):
         with mlog.nested():
             new_build = self.build.copy()
             subi = Interpreter(new_build, self.backend, dirname, subdir, self.subproject_dir,
@@ -2536,7 +2536,10 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.subprojects.update(subi.subprojects)
         self.subprojects[dirname] = SubprojectHolder(subi, self.subproject_dir, dirname)
         # Duplicates are possible when subproject uses files from project root
-        self.build_def_files = list(set(self.build_def_files + subi.build_def_files))
+        if build_def_files:
+            self.build_def_files += list(set(self.build_def_files + build_def_files))
+        else:
+            self.build_def_files += list(set(self.build_def_files + subi.build_def_files))
         self.build.merge(subi.build)
         self.build.subprojects[dirname] = subi.project_version
         return self.subprojects[dirname]
@@ -2550,12 +2553,22 @@ external dependencies (including libraries) must go to "dependencies".''')
             cm_int.analyse()
 
             # Generate a meson ast and execute it with the normal do_subproject_meson
+            ast = cm_int.pretend_to_be_meson()
+
             mlog.log()
             with mlog.nested():
                 mlog.log('Processing generated meson AST')
                 mlog.log()
-            ast = cm_int.pretend_to_be_meson()
-            result = self.do_subproject_meson(dirname, subdir, default_options, required, kwargs, ast)
+                mlog.log('=== BEGIN meson.build ===')
+                from .ast import AstIndentationGenerator, AstPrinter
+                printer = AstPrinter()
+                ast.accept(AstIndentationGenerator())
+                ast.accept(printer)
+                printer.post_process()
+                mlog.log(printer.result)
+                mlog.log('=== END meson.build ===')
+                mlog.log()
+            result = self.do_subproject_meson(dirname, subdir, default_options, required, kwargs, ast, cm_int.bs_files)
 
         mlog.log()
         return result

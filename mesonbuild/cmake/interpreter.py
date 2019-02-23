@@ -20,7 +20,7 @@ from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCo
 from .. import mlog
 from ..build import Build
 from ..environment import Environment
-from ..mparser import Token, CodeBlockNode, FunctionNode, ArrayNode, ArgumentNode, StringNode, IdNode
+from ..mparser import Token, BaseNode, CodeBlockNode, FunctionNode, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, StringNode, IdNode
 from ..backend.backends import Backend
 from ..dependencies.base import CMakeDependency, ExternalProgram
 from subprocess import Popen, PIPE, STDOUT
@@ -43,6 +43,13 @@ CMAKE_LANGUAGE_MAP = {
     'java': 'Java',
     'fortran': 'Fortran',
     'swift': 'Swift',
+}
+
+CMAKE_TGT_TYPE_MAP = {
+    'STATIC_LIBRARY': 'static_library',
+    'MODULE_LIBRARY': 'shared_module',
+    'SHARED_LIBRARY': 'shared_library',
+    'EXECUTABLE': 'executable',
 }
 
 class ConverterTarget:
@@ -68,6 +75,7 @@ class ConverterTarget:
         self.includes = []
         self.link_with = []
         self.compile_opts = {}
+        self.pie = False
 
         # Project default override options (c_std, cpp_std, etc.)
         self.override_options = []
@@ -99,7 +107,7 @@ class ConverterTarget:
 
     std_regex = re.compile(r'([-]{1,2}std=|/std:v?)(.*)')
 
-    def postprocess(self, output_target_map) -> None:
+    def postprocess(self, output_target_map: dict, root_src_dir: str) -> None:
         # Detect setting the C and C++ standard
         for i in ['c', 'cpp']:
             if not i in self.compile_opts:
@@ -110,6 +118,8 @@ class ConverterTarget:
                 m = ConverterTarget.std_regex.match(j)
                 if m:
                     self.override_options += ['{}_std={}'.format(i, m.group(2))]
+                elif j in ['-fPIC', '-fpic', '-fPIE', '-fpie']:
+                    self.pie = True
                 else:
                     temp += [j]
 
@@ -130,13 +140,22 @@ class ConverterTarget:
 
         # Make paths relative
         def rel_path(x: str) -> str:
-            if os.path.isabs(x) and os.path.commonpath([x, self.src_dir]) == self.src_dir:
-                return os.path.relpath(x, self.src_dir)
+            if not os.path.isabs(x):
+                x = os.path.normpath(os.path.join(self.src_dir, x))
+            if os.path.isabs(x) and os.path.commonpath([x, root_src_dir]) == root_src_dir:
+                return os.path.relpath(x, root_src_dir)
             return x
 
         self.includes = [rel_path(x) for x in self.includes]
         self.sources = [rel_path(x) for x in self.sources]
         self.generated = [rel_path(x) for x in self.generated]
+
+        # Make sure '.' is always in the include directories
+        if '.' not in self.includes:
+            self.includes += ['.']
+
+    def meson_func(self) -> str:
+        return CMAKE_TGT_TYPE_MAP.get(self.type.upper())
 
     def log(self) -> None:
         mlog.log('Target', mlog.bold(self.name))
@@ -151,6 +170,7 @@ class ConverterTarget:
         mlog.log('  -- includes:       ', mlog.bold(str(self.includes)))
         mlog.log('  -- sources:        ', mlog.bold(str(self.sources)))
         mlog.log('  -- generated:      ', mlog.bold(str(self.generated)))
+        mlog.log('  -- pie:            ', mlog.bold('true' if self.pie else 'false'))
         mlog.log('  -- override_opts:  ', mlog.bold(str(self.override_options)))
         mlog.log('  -- options:')
         for key, val in self.compile_opts.items():
@@ -174,6 +194,7 @@ class CMakeInterpreter:
         # Analysed data
         self.project_name = ''
         self.languages = []
+        self.targets = []
 
     def configure(self) -> None:
         # Find CMake
@@ -258,23 +279,23 @@ class CMakeInterpreter:
         # Clear analyser data
         self.project_name = ''
         self.languages = []
+        self.targets = []
 
         # Find all targets
-        targets = []
         for i in self.codemodel.configs:
             for j in i.projects:
                 if not self.project_name:
                     self.project_name = j.name
                 for k in j.targets:
-                    targets += [ConverterTarget(k)]
+                    self.targets += [ConverterTarget(k)]
 
-        output_target_map = {x.full_name: x for x in targets}
+        output_target_map = {x.full_name: x for x in self.targets}
 
-        for i in targets:
-            i.postprocess(output_target_map)
+        for i in self.targets:
+            i.postprocess(output_target_map, self.src_dir)
             self.languages += [x for x in i.languages if x not in self.languages]
 
-        mlog.log('CMake project', mlog.bold(self.project_name), 'has', mlog.bold(str(len(targets))), 'build targets.')
+        mlog.log('CMake project', mlog.bold(self.project_name), 'has', mlog.bold(str(len(self.targets))), 'build targets.')
 
     def pretend_to_be_meson(self) -> CodeBlockNode:
         if not self.project_name:
@@ -289,24 +310,100 @@ class CMakeInterpreter:
         def id(value: str) -> IdNode:
             return IdNode(token(val=value))
 
-        def array(elements: list) -> ArrayNode:
+        def nodeify(value):
+            if isinstance(value, str):
+                return string(value)
+            elif isinstance(value, bool):
+                return BooleanNode(token(), value)
+            elif isinstance(value, list):
+                return array(value)
+            return value
+
+        def array(elements) -> ArrayNode:
             args = ArgumentNode(token())
-            for i in elements:
-                if isinstance(i, str):
-                    i = string(i)
-                args.arguments += [i]
+            if not isinstance(elements, list):
+                elements = [args]
+            args.arguments += [nodeify(x) for x in elements]
             return ArrayNode(args, 0, 0)
 
-        def function(name: str, args=[]) -> FunctionNode:
+        def function(name: str, args=[], kwargs={}) -> FunctionNode:
             args_n = ArgumentNode(token())
-            for i in args:
-                if isinstance(i, str):
-                    i = string(i)
-                args_n.arguments += [i]
+            if not isinstance(args, list):
+                args = [args]
+            args_n.arguments = [nodeify(x) for x in args]
+            args_n.kwargs = {k: nodeify(v) for k, v in kwargs.items()}
             func_n = FunctionNode(self.subdir, 0, 0, name, args_n)
             return func_n
 
+        def assign(var_name: str, value: BaseNode) -> AssignmentNode:
+            return AssignmentNode(self.subdir, 0, 0, var_name, value)
+
+        # Generate the root code block and the project function call
         root_cb = CodeBlockNode(token())
-        root_cb.lines += [function('project', [self.project_name, array(self.languages)])]
+        root_cb.lines += [function('project', [self.project_name] + self.languages)]
+
+        processed = {}
+        def process_target(tgt: ConverterTarget):
+            # First handle inter dependencies
+            link_with = []
+            for i in tgt.link_with:
+                assert(isinstance(i, ConverterTarget))
+                if i.name not in processed:
+                    process_target(i)
+                link_with += [id(processed[i.name]['tgt'])]
+
+            # Determine the meson function to use for the build target
+            tgt_func = tgt.meson_func()
+            if not tgt_func:
+                raise CMakeException('Unknown target type "{}"'.format(tgt.type))
+
+            # Determine the variable names
+            base_name = tgt.name
+            inc_var = '{}_inc'.format(base_name)
+            src_var = '{}_src'.format(base_name)
+            dep_var = '{}_dep'.format(base_name)
+            tgt_var = base_name
+
+            # Generate target kwargs
+            tgt_kwargs = {
+                'link_args': tgt.link_flags + tgt.link_libraries,
+                'link_with': link_with,
+                'include_directories': id(inc_var),
+                'install': tgt.install,
+                'install_dir': tgt.install_dir,
+                'override_options': tgt.override_options,
+            }
+
+            # Handle compiler args
+            for key, val in tgt.compile_opts.items():
+                tgt_kwargs['{}_args'.format(key)] = val
+
+            # Handle -fPCI, etc
+            if tgt_func == 'executable':
+                tgt_kwargs['pie'] = tgt.pie
+            elif tgt_func == 'static_library':
+                tgt_kwargs['pic'] = tgt.pie
+
+            # declare_dependency kwargs
+            dep_kwargs = {
+                'link_args': tgt.link_flags + tgt.link_libraries,
+                'link_with': id(tgt_var),
+                'include_directories': id(inc_var),
+            }
+
+            # Generate the function nodes
+            inc_node = assign(inc_var, function('include_directories', tgt.includes))
+            src_node = assign(src_var, function('files', tgt.sources + tgt.generated))
+            tgt_node = assign(tgt_var, function(tgt_func, [base_name, id(src_var)], tgt_kwargs))
+            dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
+
+            # Add the nodes to the ast
+            root_cb.lines += [inc_node, src_node, tgt_node, dep_node]
+            processed[tgt.name] = {'inc': inc_var, 'src': src_var, 'dep': dep_var, 'tgt': tgt_var}
+
+        # Now generate the target function calls
+        for i in self.targets:
+            if i.name not in processed:
+                process_target(i)
 
         return root_cb
