@@ -53,10 +53,13 @@ CMAKE_TGT_TYPE_MAP = {
     'OBJECT_LIBRARY': 'static_library',
 }
 
+CMAKE_TGT_SKIP = ['UTILITY']
+
 class ConverterTarget:
     lang_cmake_to_meson = {val.lower(): key for key, val in CMAKE_LANGUAGE_MAP.items()}
 
-    def __init__(self, target: CMakeTarget):
+    def __init__(self, target: CMakeTarget, env: Environment):
+        self.env = env
         self.artifacts = target.artifacts
         self.src_dir = target.src_dir
         self.build_dir = target.build_dir
@@ -110,7 +113,7 @@ class ConverterTarget:
 
     std_regex = re.compile(r'([-]{1,2}std=|/std:v?)(.*)')
 
-    def postprocess(self, output_target_map: dict, root_src_dir: str, install_prefix: str) -> None:
+    def postprocess(self, output_target_map: dict, root_src_dir: str, subdir: str, install_prefix: str) -> None:
         # Detect setting the C and C++ standard
         for i in ['c', 'cpp']:
             if not i in self.compile_opts:
@@ -134,9 +137,11 @@ class ConverterTarget:
             # Let meson handle this arcane magic
             if ',-rpath,' in i:
                 continue
-            if i in output_target_map:
-                self.link_with += [output_target_map[i]]
-                continue
+            if not os.path.isabs(i):
+                basename = os.path.basename(i)
+                if basename in output_target_map:
+                    self.link_with += [output_target_map[basename]]
+                    continue
 
             temp += [i]
         self.link_libraries = temp
@@ -147,11 +152,14 @@ class ConverterTarget:
                 x = os.path.normpath(os.path.join(self.src_dir, x))
             if os.path.isabs(x) and os.path.commonpath([x, root_src_dir]) == root_src_dir:
                 return os.path.relpath(x, root_src_dir)
+            if os.path.isabs(x) and os.path.commonpath([x, self.env.get_build_dir()]) == self.env.get_build_dir():
+                return os.path.relpath(x, os.path.join(self.env.get_build_dir(), subdir))
             return x
 
-        self.includes = [rel_path(x) for x in set(self.includes + [self.build_dir])]
-        self.sources = [rel_path(x) for x in self.sources]
-        self.generated = [rel_path(x) for x in self.generated]
+        build_dir_rel = os.path.relpath(self.build_dir, os.path.join(self.env.get_build_dir(), subdir))
+        self.includes = list(set([rel_path(x) for x in set(self.includes)] + [build_dir_rel]))
+        self.sources = [rel_path(x) for x in self.sources if not x.endswith('.rule')]
+        self.generated = [rel_path(x) for x in self.generated if not x.endswith('.rule')]
 
         # Make sure '.' is always in the include directories
         if '.' not in self.includes:
@@ -197,12 +205,13 @@ class ConverterTarget:
             mlog.log('    -', key, '=', mlog.bold(str(val)))
 
 class CMakeInterpreter:
-    def __init__(self, build: Build, subdir: str, src_dir: str, build_dir: str, install_prefix: str, env: Environment, backend: Backend):
+    def __init__(self, build: Build, subdir: str, src_dir: str, install_prefix: str, env: Environment, backend: Backend):
         assert(hasattr(backend, 'name'))
         self.build = build
         self.subdir = subdir
         self.src_dir = src_dir
-        self.build_dir = build_dir
+        self.build_dir_rel = os.path.join(subdir, '__CMake_build')
+        self.build_dir = os.path.join(env.get_build_dir(), self.build_dir_rel)
         self.install_prefix = install_prefix
         self.env = env
         self.backend_name = backend.name
@@ -308,14 +317,15 @@ class CMakeInterpreter:
                 if not self.project_name:
                     self.project_name = j.name
                 for k in j.targets:
-                    self.targets += [ConverterTarget(k)]
+                    if k.type not in CMAKE_TGT_SKIP:
+                        self.targets += [ConverterTarget(k, self.env)]
 
         output_target_map = {x.full_name: x for x in self.targets}
         object_libs = []
 
         # First pass: Basic target cleanup
         for i in self.targets:
-            i.postprocess(output_target_map, self.src_dir, self.install_prefix)
+            i.postprocess(output_target_map, self.src_dir, self.subdir, self.install_prefix)
             if i.type == 'OBJECT_LIBRARY':
                 object_libs += [i]
             self.languages += [x for x in i.languages if x not in self.languages]
@@ -401,7 +411,8 @@ class CMakeInterpreter:
                 raise CMakeException('Unknown target type "{}"'.format(tgt.type))
 
             # Determine the variable names
-            base_name = tgt.name
+            base_name = str(tgt.name)
+            base_name = base_name.replace('-', '_')
             inc_var = '{}_inc'.format(base_name)
             src_var = '{}_src'.format(base_name)
             dep_var = '{}_dep'.format(base_name)

@@ -2546,10 +2546,9 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     def do_subproject_cmake(self, dirname, subdir, subdir_abs, default_options, required, kwargs):
         with mlog.nested():
-            build_dir = os.path.join(self.environment.get_scratch_dir(), 'cmake_subp_{}'.format(dirname))
             new_build = self.build.copy()
             prefix = self.coredata.builtins['prefix'].value
-            cm_int = CMakeInterpreter(new_build, subdir, subdir_abs, build_dir, prefix, new_build.environment, self.backend)
+            cm_int = CMakeInterpreter(new_build, subdir, subdir_abs, prefix, new_build.environment, self.backend)
             cm_int.initialise()
             cm_int.analyse()
 
@@ -2562,15 +2561,15 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.log()
 
                 # Debug print the generated meson file
-                mlog.debug('=== BEGIN meson.build ===')
+                mlog.log('=== BEGIN meson.build ===')
                 from .ast import AstIndentationGenerator, AstPrinter
                 printer = AstPrinter()
                 ast.accept(AstIndentationGenerator())
                 ast.accept(printer)
                 printer.post_process()
-                mlog.debug(printer.result)
-                mlog.debug('=== END meson.build ===')
-                mlog.debug()
+                mlog.log(printer.result)
+                mlog.log('=== END meson.build ===')
+                mlog.log()
 
             result = self.do_subproject_meson(dirname, subdir, default_options, required, kwargs, ast, cm_int.bs_files)
 
