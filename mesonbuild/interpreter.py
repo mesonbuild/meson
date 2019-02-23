@@ -2548,7 +2548,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         with mlog.nested():
             build_dir = os.path.join(self.environment.get_scratch_dir(), 'cmake_subp_{}'.format(dirname))
             new_build = self.build.copy()
-            cm_int = CMakeInterpreter(new_build, subdir, subdir_abs, build_dir, new_build.environment, self.backend)
+            prefix = self.coredata.builtins['prefix'].value
+            cm_int = CMakeInterpreter(new_build, subdir, subdir_abs, build_dir, prefix, new_build.environment, self.backend)
             cm_int.initialise()
             cm_int.analyse()
 

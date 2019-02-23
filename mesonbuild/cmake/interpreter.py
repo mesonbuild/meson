@@ -107,7 +107,7 @@ class ConverterTarget:
 
     std_regex = re.compile(r'([-]{1,2}std=|/std:v?)(.*)')
 
-    def postprocess(self, output_target_map: dict, root_src_dir: str) -> None:
+    def postprocess(self, output_target_map: dict, root_src_dir: str, install_prefix: str) -> None:
         # Detect setting the C and C++ standard
         for i in ['c', 'cpp']:
             if not i in self.compile_opts:
@@ -154,6 +154,11 @@ class ConverterTarget:
         if '.' not in self.includes:
             self.includes += ['.']
 
+        # make install dir relative to the install prefix
+        if self.install_dir and os.path.isabs(self.install_dir):
+            if os.path.commonpath([self.install_dir, install_prefix]) == install_prefix:
+                self.install_dir = os.path.relpath(self.install_dir, install_prefix)
+
     def meson_func(self) -> str:
         return CMAKE_TGT_TYPE_MAP.get(self.type.upper())
 
@@ -177,12 +182,13 @@ class ConverterTarget:
             mlog.log('    -', key, '=', mlog.bold(str(val)))
 
 class CMakeInterpreter:
-    def __init__(self, build: Build, subdir: str, src_dir: str, build_dir: str, env: Environment, backend: Backend):
+    def __init__(self, build: Build, subdir: str, src_dir: str, build_dir: str, install_prefix: str, env: Environment, backend: Backend):
         assert(hasattr(backend, 'name'))
         self.build = build
         self.subdir = subdir
         self.src_dir = src_dir
         self.build_dir = build_dir
+        self.install_prefix = install_prefix
         self.env = env
         self.backend_name = backend.name
         self.client = CMakeClient(self.env)
@@ -219,7 +225,7 @@ class CMakeInterpreter:
             elif len(exelist) == 2:
                 cmake_args += ['-DCMAKE_{}_COMPILER_LAUNCHER={}'.format(cmake_lang, exelist[0]),
                                '-DCMAKE_{}_COMPILER={}'.format(cmake_lang, exelist[1])]
-        cmake_args += ['-G', generator]
+        cmake_args += ['-G', generator, '-DCMAKE_INSTALL_PREFIX={}'.format(self.install_prefix)]
 
         # Run CMake
         mlog.log()
@@ -292,7 +298,7 @@ class CMakeInterpreter:
         output_target_map = {x.full_name: x for x in self.targets}
 
         for i in self.targets:
-            i.postprocess(output_target_map, self.src_dir)
+            i.postprocess(output_target_map, self.src_dir, self.install_prefix)
             self.languages += [x for x in i.languages if x not in self.languages]
 
         mlog.log('CMake project', mlog.bold(self.project_name), 'has', mlog.bold(str(len(self.targets))), 'build targets.')
