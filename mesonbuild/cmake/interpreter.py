@@ -58,6 +58,7 @@ class ConverterTarget:
     def __init__(self, target: CMakeTarget):
         self.artifacts = target.artifacts
         self.src_dir = target.src_dir
+        self.build_dir = target.build_dir
         self.name = target.name
         self.full_name = target.full_name
         self.type = target.type
@@ -146,7 +147,7 @@ class ConverterTarget:
                 return os.path.relpath(x, root_src_dir)
             return x
 
-        self.includes = [rel_path(x) for x in self.includes]
+        self.includes = [rel_path(x) for x in set(self.includes + [self.build_dir])]
         self.sources = [rel_path(x) for x in self.sources]
         self.generated = [rel_path(x) for x in self.generated]
 
