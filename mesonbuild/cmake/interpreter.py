@@ -20,11 +20,11 @@ from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCo
 from .. import mlog
 from ..build import Build
 from ..environment import Environment
-from ..mparser import Token, BaseNode, CodeBlockNode, FunctionNode, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, StringNode, IdNode
+from ..mparser import Token, BaseNode, CodeBlockNode, FunctionNode, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, StringNode, IdNode, MethodNode
 from ..backend.backends import Backend
 from ..dependencies.base import CMakeDependency, ExternalProgram
 from subprocess import Popen, PIPE, STDOUT
-from typing import Dict
+from typing import Dict, List
 import os, re
 
 CMAKE_BACKEND_GENERATOR_MAP = {
@@ -50,6 +50,7 @@ CMAKE_TGT_TYPE_MAP = {
     'MODULE_LIBRARY': 'shared_module',
     'SHARED_LIBRARY': 'shared_library',
     'EXECUTABLE': 'executable',
+    'OBJECT_LIBRARY': 'static_library',
 }
 
 class ConverterTarget:
@@ -75,6 +76,7 @@ class ConverterTarget:
         self.generated = []
         self.includes = []
         self.link_with = []
+        self.object_libs = []
         self.compile_opts = {}
         self.pie = False
 
@@ -160,6 +162,17 @@ class ConverterTarget:
             if os.path.commonpath([self.install_dir, install_prefix]) == install_prefix:
                 self.install_dir = os.path.relpath(self.install_dir, install_prefix)
 
+    def process_object_libs(self, obj_target_list: List['ConverterTarget']):
+        # Try to detect the object library(s) from the generated input sources
+        temp = [os.path.basename(x) for x in self.generated if x.endswith('.o')]
+        self.generated = [x for x in self.generated if not x.endswith('.o')]
+        for i in obj_target_list:
+            out_objects = [os.path.basename(x + '.o') for x in i.sources + i.generated]
+            for j in out_objects:
+                if j in temp:
+                    self.object_libs += [i]
+                    break
+
     def meson_func(self) -> str:
         return CMAKE_TGT_TYPE_MAP.get(self.type.upper())
 
@@ -171,6 +184,7 @@ class ConverterTarget:
         mlog.log('  -- install_dir:    ', mlog.bold(self.install_dir))
         mlog.log('  -- link_libraries: ', mlog.bold(str(self.link_libraries)))
         mlog.log('  -- link_with:      ', mlog.bold(str(self.link_with)))
+        mlog.log('  -- object_libs:    ', mlog.bold(str(self.object_libs)))
         mlog.log('  -- link_flags:     ', mlog.bold(str(self.link_flags)))
         mlog.log('  -- languages:      ', mlog.bold(str(self.languages)))
         mlog.log('  -- includes:       ', mlog.bold(str(self.includes)))
@@ -297,10 +311,18 @@ class CMakeInterpreter:
                     self.targets += [ConverterTarget(k)]
 
         output_target_map = {x.full_name: x for x in self.targets}
+        object_libs = []
 
+        # First pass: Basic target cleanup
         for i in self.targets:
             i.postprocess(output_target_map, self.src_dir, self.install_prefix)
+            if i.type == 'OBJECT_LIBRARY':
+                object_libs += [i]
             self.languages += [x for x in i.languages if x not in self.languages]
+
+        # Second pass: Detect object library dependencies
+        for i in self.targets:
+            i.process_object_libs(object_libs)
 
         mlog.log('CMake project', mlog.bold(self.project_name), 'has', mlog.bold(str(len(self.targets))), 'build targets.')
 
@@ -342,6 +364,14 @@ class CMakeInterpreter:
             func_n = FunctionNode(self.subdir, 0, 0, name, args_n)
             return func_n
 
+        def method(obj: BaseNode, name: str, args=[], kwargs={}) -> MethodNode:
+            args_n = ArgumentNode(token())
+            if not isinstance(args, list):
+                args = [args]
+            args_n.arguments = [nodeify(x) for x in args]
+            args_n.kwargs = {k: nodeify(v) for k, v in kwargs.items()}
+            return MethodNode(self.subdir, 0, 0, obj, name, args_n)
+
         def assign(var_name: str, value: BaseNode) -> AssignmentNode:
             return AssignmentNode(self.subdir, 0, 0, var_name, value)
 
@@ -351,13 +381,19 @@ class CMakeInterpreter:
 
         processed = {}
         def process_target(tgt: ConverterTarget):
-            # First handle inter dependencies
+            # First handle inter target dependencies
             link_with = []
+            objec_libs = []
             for i in tgt.link_with:
                 assert(isinstance(i, ConverterTarget))
                 if i.name not in processed:
                     process_target(i)
                 link_with += [id(processed[i.name]['tgt'])]
+            for i in tgt.object_libs:
+                assert(isinstance(i, ConverterTarget))
+                if i.name not in processed:
+                    process_target(i)
+                objec_libs += [processed[i.name]['tgt']]
 
             # Determine the meson function to use for the build target
             tgt_func = tgt.meson_func()
@@ -379,6 +415,7 @@ class CMakeInterpreter:
                 'install': tgt.install,
                 'install_dir': tgt.install_dir,
                 'override_options': tgt.override_options,
+                'objects': [method(id(x), 'extract_all_objects') for x in objec_libs],
             }
 
             # Handle compiler args
