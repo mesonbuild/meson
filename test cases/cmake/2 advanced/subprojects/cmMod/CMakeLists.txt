@@ -7,6 +7,9 @@ find_package(ZLIB REQUIRED)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
+set(CONFIG_OPT 42)
+configure_file("config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
+
 add_library(cmModLib SHARED lib/cmMod.cpp)
 add_executable(testEXE main.cpp)
 
