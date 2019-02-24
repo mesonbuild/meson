@@ -188,7 +188,7 @@ class CudaCompiler(Compiler):
         return cuda_debug_args[is_debug]
 
     def get_werror_args(self):
-        return ['-Werror']
+        return ['-Werror=cross-execution-space-call,deprecated-declarations,reorder']
 
     def get_linker_exelist(self):
         return self.exelist[:]
