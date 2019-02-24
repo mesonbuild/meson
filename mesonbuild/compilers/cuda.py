@@ -47,35 +47,97 @@ class CudaCompiler(Compiler):
         return []
 
     def sanity_check(self, work_dir, environment):
-        source_name = os.path.join(work_dir, 'sanitycheckcuda.cu')
-        binary_name = os.path.join(work_dir, 'sanitycheckcuda')
-        extra_flags = self.get_cross_extra_flags(environment, link=False)
-        if self.is_cross:
-            extra_flags += self.get_compile_only_args()
+        mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
+        mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
 
-        code = '''
-__global__ void kernel (void) {
+        sname = 'sanitycheckcuda.cu'
+        code = r'''
+        #include <cuda_runtime.h>
+        #include <stdio.h>
 
-}
+        __global__ void kernel (void) {}
 
-        int main(int argc,char** argv){
+        int main(void){
+            struct cudaDeviceProp prop;
+            int count, i;
+            cudaError_t ret = cudaGetDeviceCount(&count);
+            if(ret != cudaSuccess){
+                fprintf(stderr, "%d\n", (int)ret);
+            }else{
+                for(i=0;i<count;i++){
+                    if(cudaGetDeviceProperties(&prop, i) == cudaSuccess){
+                        fprintf(stdout, "%d.%d\n", prop.major, prop.minor);
+                    }
+                }
+            }
+            fflush(stderr);
+            fflush(stdout);
             return 0;
         }
         '''
-
+        binname = sname.rsplit('.', 1)[0]
+        binname += '_cross' if self.is_cross else ''
+        source_name = os.path.join(work_dir, sname)
+        binary_name = os.path.join(work_dir, binname + '.exe')
         with open(source_name, 'w') as ofile:
             ofile.write(code)
-        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
-        pc.wait()
+
+        # The Sanity Test for CUDA language will serve as both a sanity test
+        # and a native-build GPU architecture detection test, useful later.
+        #
+        # For this second purpose, NVCC has very handy flags, --run and
+        # --run-args, that allow one to run an application with the
+        # environment set up properly. Of course, this only works for native
+        # builds; For cross builds we must still use the exe_wrapper (if any).
+        self.detected_cc = ''
+        flags = ['-w', '-cudart', 'static', source_name]
+        if self.is_cross and self.exe_wrapper is None:
+            # Linking cross built apps is painful. You can't really
+            # tell if you should use -nostdlib or not and for example
+            # on OSX the compiler binary is the same but you need
+            # a ton of compiler flags to differentiate between
+            # arm and x86_64. So just compile.
+            flags += self.get_compile_only_args()
+        flags += self.get_output_args(binary_name)
+
+        # Compile sanity check
+        cmdlist = self.exelist + flags
+        mlog.debug('Sanity check compiler command line: ', ' '.join(cmdlist))
+        pc, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
+        mlog.debug('Sanity check compile stdout: ')
+        mlog.debug(stdo)
+        mlog.debug('-----\nSanity check compile stderr:')
+        mlog.debug(stde)
+        mlog.debug('-----')
         if pc.returncode != 0:
-            raise EnvironmentException('Cuda compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('Compiler {0} can not compile programs.'.format(self.name_string()))
+
+        # Run sanity check (if possible)
         if self.is_cross:
-            # Can't check if the binaries run so we have to assume they do
-            return
-        pe = subprocess.Popen(binary_name)
+            if self.exe_wrapper is None:
+                return
+            else:
+                cmdlist = self.exe_wrapper + [binary_name]
+        else:
+            cmdlist = self.exelist + ['--run', '"' + binary_name + '"']
+        mlog.debug('Sanity check run command line: ', ' '.join(cmdlist))
+        pe, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
+        mlog.debug('Sanity check run stdout: ')
+        mlog.debug(stdo)
+        mlog.debug('-----\nSanity check run stderr:')
+        mlog.debug(stde)
+        mlog.debug('-----')
         pe.wait()
         if pe.returncode != 0:
-            raise EnvironmentException('Executables created by Cuda compiler %s are not runnable.' % self.name_string())
+            raise EnvironmentException('Executables created by {0} compiler {1} are not runnable.'.format(self.language, self.name_string()))
+
+        # Interpret the result of the sanity test.
+        # As mentionned above, it is not only a sanity test but also a GPU
+        # architecture detection test.
+        if stde == '':
+            self.detected_cc = stdo
+        else:
+            mlog.debug('cudaGetDeviceCount() returned ' + stde)
 
     def get_compiler_check_args(self):
         return super().get_compiler_check_args() + []
@@ -91,56 +153,6 @@ __global__ void kernel (void) {
         using {symbol};
         int main () {{ return 0; }}'''
         return self.compiles(t.format(**fargs), env, extra_args, dependencies)
-
-    def sanity_check_impl(self, work_dir, environment, sname, code):
-        mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
-        mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
-
-        extra_flags = []
-        source_name = os.path.join(work_dir, sname)
-        binname = sname.rsplit('.', 1)[0]
-        if self.is_cross:
-            binname += '_cross'
-            if self.exe_wrapper is None:
-                # Linking cross built apps is painful. You can't really
-                # tell if you should use -nostdlib or not and for example
-                # on OSX the compiler binary is the same but you need
-                # a ton of compiler flags to differentiate between
-                # arm and x86_64. So just compile.
-                extra_flags += self.get_cross_extra_flags(environment, link=False)
-                extra_flags += self.get_compile_only_args()
-            else:
-                extra_flags += self.get_cross_extra_flags(environment, link=True)
-        # Is a valid executable output for all toolchains and platforms
-        binname += '.exe'
-        # Write binary check source
-        binary_name = os.path.join(work_dir, binname)
-        with open(source_name, 'w') as ofile:
-            ofile.write(code)
-        # Compile sanity check
-        cmdlist = self.exelist + extra_flags + [source_name] + self.get_output_args(binary_name)
-        pc, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
-        mlog.debug('Sanity check compiler command line:', ' '.join(cmdlist))
-        mlog.debug('Sanity check compile stdout:')
-        mlog.debug(stdo)
-        mlog.debug('-----\nSanity check compile stderr:')
-        mlog.debug(stde)
-        mlog.debug('-----')
-        if pc.returncode != 0:
-            raise EnvironmentException('Compiler {0} can not compile programs.'.format(self.name_string()))
-        # Run sanity check
-        if self.is_cross:
-            if self.exe_wrapper is None:
-                # Can't check if the binaries run so we have to assume they do
-                return
-            cmdlist = self.exe_wrapper + [binary_name]
-        else:
-            cmdlist = [binary_name]
-        mlog.debug('Running test binary command: ' + ' '.join(cmdlist))
-        pe = subprocess.Popen(cmdlist)
-        pe.wait()
-        if pe.returncode != 0:
-            raise EnvironmentException('Executables created by {0} compiler {1} are not runnable.'.format(self.language, self.name_string()))
 
     @staticmethod
     def _cook_link_args(args):
