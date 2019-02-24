@@ -502,7 +502,6 @@ class Vs2010Backend(backends.Backend):
 
     def gen_run_target_vcxproj(self, target, ofname, guid):
         root = self.create_basic_crap(target, guid)
-        action = ET.SubElement(root, 'ItemDefinitionGroup')
         cmd_raw = [target.command] + target.args
         cmd = python_command + \
             [os.path.join(self.environment.get_script_dir(), 'commandrunner.py'),
@@ -557,6 +556,12 @@ class Vs2010Backend(backends.Backend):
 
     @classmethod
     def lang_from_source_file(cls, src):
+        if isinstance(src, File):
+            if src.get_language() is not None:
+                if src.get_language() == 'c':
+                    return 'c'
+                if src.get_language() == 'cpp':
+                    return 'cpp'
         ext = src.split('.')[-1]
         if ext in compilers.c_suffixes:
             return 'c'

@@ -894,6 +894,9 @@ class Compiler:
                                ' '.join(self.exelist))
 
     def can_compile(self, src):
+        if isinstance(src, mesonlib.File):
+            if src.get_language() is not None and self.get_language() == src.get_language():
+                return True
         if hasattr(src, 'fname'):
             src = src.fname
         suffix = os.path.splitext(src)[1].lower()

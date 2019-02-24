@@ -651,14 +651,19 @@ The returned object also has methods that are documented in the
 ### files()
 
 ``` meson
-    file_array files(list_of_filenames)
+    file_array files(list_of_filenames, ...)
 ```
 
 This command takes the strings given to it in arguments and returns
 corresponding File objects that you can use as sources for build
 targets. The difference is that file objects remember the subdirectory
-they were defined in and can be used anywhere in the source tree. As
-an example suppose you have source file `foo.cpp` in subdirectory
+they were defined in and can be used anywhere in the source tree.
+Keyword arguments are the following:
+- `lang` (since 0.50.0) explicitly specify the language of the sources
+contained in the list which will be used to select the appropriate compiler
+by meson.
+
+As an example suppose you have source file `foo.cpp` in subdirectory
 `bar1` and you would like to use it in a build target that is defined
 in `bar2`. To make this happen you first create the object in `bar1`
 like this:
@@ -673,7 +678,13 @@ Then you can use it in `bar2` like this:
     executable('myprog', 'myprog.cpp', foofile, ...)
 ```
 
-Meson will then do the right thing.
+Meson will then do the right thing. You may also specify a language in the
+event your project uses non-standard file extensions. E.g.
+
+```meson
+   src = files('foo.C', 'bar.C', 'baz.C', lang: 'cpp')
+   exe = executable('exe', src, ...)
+```
 
 ### generator()
 

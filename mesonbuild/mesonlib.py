@@ -207,10 +207,11 @@ class FileMode:
         return perms
 
 class File:
-    def __init__(self, is_built: bool, subdir: str, fname: str):
+    def __init__(self, is_built: bool, subdir: str, fname: str, lang: str = None):
         self.is_built = is_built
         self.subdir = subdir
         self.fname = fname
+        self.lang = lang
         assert(isinstance(self.subdir, str))
         assert(isinstance(self.fname, str))
 
@@ -226,10 +227,10 @@ class File:
 
     @staticmethod
     @lru_cache(maxsize=None)
-    def from_source_file(source_root: str, subdir: str, fname: str):
+    def from_source_file(source_root: str, subdir: str, fname: str, lang: str = None):
         if not os.path.isfile(os.path.join(source_root, subdir, fname)):
             raise MesonException('File %s does not exist.' % fname)
-        return File(False, subdir, fname)
+        return File(False, subdir, fname, lang)
 
     @staticmethod
     def from_built_file(subdir: str, fname: str):
@@ -258,6 +259,9 @@ class File:
 
     def split(self, s: str) -> List[str]:
         return self.fname.split(s)
+
+    def get_language(self):
+        return self.lang
 
     def __eq__(self, other) -> bool:
         return (self.fname, self.subdir, self.is_built) == (other.fname, other.subdir, other.is_built)

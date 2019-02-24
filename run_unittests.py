@@ -2997,6 +2997,11 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(obj.builtins['warning_level'].value, '0')
         self.wipe()
 
+    def test_language_specification(self):
+        # verify we can specify source code as a particular language
+        testdir = os.path.join(self.common_test_dir, '214 specify source language')
+        self.init(testdir)
+
     def test_feature_check_usage_subprojects(self):
         testdir = os.path.join(self.unit_test_dir, '41 featurenew subprojects')
         out = self.init(testdir)

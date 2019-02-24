@@ -1943,8 +1943,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                    'static',
                                    'version',
                                    'private_headers',
-                                   'cmake_args',
-                                   },
+                                   'cmake_args'},
                     'declare_dependency': {'include_directories',
                                            'link_with',
                                            'sources',
@@ -1952,8 +1951,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                            'compile_args',
                                            'link_args',
                                            'link_whole',
-                                           'version',
-                                           },
+                                           'version'},
                     'executable': build.known_exe_kwargs,
                     'find_program': {'required', 'native'},
                     'generator': {'arguments', 'output', 'depfile', 'capture', 'preserve_path_from'},
@@ -1975,7 +1973,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'subproject': {'version', 'default_options', 'required'},
                     'test': {'args', 'depends', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
-                    }
+                    'files': {'lang'}}
 
 
 class Interpreter(InterpreterBase):
@@ -2210,9 +2208,13 @@ class Interpreter(InterpreterBase):
         return ModuleHolder(modname, self.modules[modname], self)
 
     @stringArgs
-    @noKwargs
+    @FeatureNewKwargs('declare_dependency', '0.50.0', ['lang'])
+    @permittedKwargs(permitted_kwargs['files'])
     def func_files(self, node, args, kwargs):
-        return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
+        if 'lang' in kwargs:
+            return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname, lang=kwargs['lang']) for fname in args]
+        else:
+            return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
 
     @FeatureNewKwargs('declare_dependency', '0.46.0', ['link_whole'])
     @permittedKwargs(permitted_kwargs['declare_dependency'])
