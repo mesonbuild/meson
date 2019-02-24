@@ -158,7 +158,7 @@ class CudaModule(ExtensionModule):
                 cuda_limit_gpu_architecture    = '7.0'        # noqa: E221
 
         if version_compare(cuda_version, '>=9.0'):
-            cuda_known_gpu_architectures  += ['Volta', 'Volta+Tegra']              # noqa: E221
+            cuda_known_gpu_architectures  += ['Volta', 'Xavier']                   # noqa: E221
             cuda_common_gpu_architectures += ['7.0', '7.0+PTX']                    # noqa: E221
             cuda_all_gpu_architectures    += ['7.0', '7.0+PTX', '7.2', '7.2+PTX']  # noqa: E221
 
@@ -225,7 +225,7 @@ class CudaModule(ExtensionModule):
                     'Pascal':        (['6.0', '6.1'],      ['6.1']),
                     'Pascal+Tegra':  (['6.2'],             []),
                     'Volta':         (['7.0'],             ['7.0']),
-                    'Volta+Tegra':   (['7.2'],             []),
+                    'Xavier':        (['7.2'],             []),
                     'Turing':        (['7.5'],             ['7.5']),
                 }.get(arch_name, (None, None))
 
