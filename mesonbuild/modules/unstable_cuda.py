@@ -77,9 +77,17 @@ class CudaModule(ExtensionModule):
 
     @staticmethod
     def _break_arch_string(s):
-        s = re.sub('[ \t,;]+', ';', s)
+        s = re.sub('[ \t\r\n,;]+', ';', s)
         s = s.strip(';').split(';')
         return s
+
+    @staticmethod
+    def _detected_cc_from_compiler(c):
+        if isinstance(c, CompilerHolder):
+            c = c.compiler
+        if isinstance(c, CudaCompiler):
+            return c.detected_cc
+        return ''
 
     @staticmethod
     def _version_from_compiler(c):
@@ -97,7 +105,8 @@ class CudaModule(ExtensionModule):
         if len(args) < 1:
             raise argerror
         else:
-            cuda_version = self._version_from_compiler(args[0])
+            compiler = args[0]
+            cuda_version = self._version_from_compiler(compiler)
             if cuda_version == 'unknown':
                 raise argerror
 
@@ -108,7 +117,8 @@ class CudaModule(ExtensionModule):
             raise InvalidArguments('''The special architectures 'All', 'Common' and 'Auto' must appear alone, as a positional argument!''')
         arch_list = arch_list[0] if len(arch_list) == 1 else arch_list
 
-        detected = flatten([kwargs.get('detected', [])])
+        detected = kwargs.get('detected', self._detected_cc_from_compiler(compiler))
+        detected = flatten([detected])
         detected = [self._break_arch_string(a) for a in detected]
         detected = flatten(detected)
         if not set(detected).isdisjoint({'All', 'Common', 'Auto'}):
