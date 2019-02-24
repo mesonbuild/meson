@@ -1876,7 +1876,7 @@ rule FORTRAN_DEP_HACK%s
                     # Check if a source uses a module it exports itself.
                     # Potential bug if multiple targets have a file with
                     # the same name.
-                    if mod_source_file.fname == os.path.basename(src):
+                    if os.path.realpath(mod_source_file.fname) == os.path.realpath(src):
                         continue
                     mod_name = compiler.module_name_to_filename(usename)
                     mod_files.append(os.path.join(dirname, mod_name))
