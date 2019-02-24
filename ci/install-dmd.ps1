@@ -68,4 +68,4 @@ $dmd_bin = Join-Path $dmd_install "dmd2\windows\bin"
 $Env:Path = $Env:Path + ";" + $dmd_bin
 
 #echo "Testing DMD..."
-& dmd.exe --version 2>&1>$null
+& dmd.exe --version
