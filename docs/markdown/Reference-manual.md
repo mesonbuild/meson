@@ -2256,7 +2256,8 @@ sample piece of code with [`compiler.run()`](#compiler-object) or
 [`run_command()`](#run_command). It has the following methods:
 
 - `compiled()` if true, the compilation succeeded, if false it did not
-  and the other methods return unspecified data
+  and the other methods return unspecified data. This is only available
+  for `compiler.run()` results.
 - `returncode()` the return code of executing the compiled binary
 - `stderr()` the standard error produced when the command was run
 - `stdout()` the standard out produced when the command was run
