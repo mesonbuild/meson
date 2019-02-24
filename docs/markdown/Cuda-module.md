@@ -71,6 +71,14 @@ mixed with architecture names or compute capabilities. Their interpretation is:
 | `'Common'`        | Relatively common CCs supported by given NVCC compiler. Generally excludes Tegra and Tesla devices. |
 | `'Auto'`          | The CCs provided by the `detected:` keyword, filtered for support by given NVCC compiler. |
 
+As a special case, when `nvcc_arch_flags()` is invoked with
+
+- an NVCC `compiler` object `nvcc`,
+- `'Auto'` mode and
+- no `detected:` keyword,
+
+Meson uses `nvcc`'s architecture auto-detection results.
+
 The supported architecture names and their corresponding compute capabilities
 are:
 
@@ -85,7 +93,7 @@ are:
 | `'Pascal'`        | 6.0, 6.1           |
 | `'Pascal+Tegra'`  | 6.2                |
 | `'Volta'`         | 7.0                |
-| `'Volta+Tegra'`   | 7.2                |
+| `'Xavier'`        | 7.2                |
 | `'Turing'`        | 7.5                |
 
 
