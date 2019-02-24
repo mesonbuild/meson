@@ -31,7 +31,7 @@ from . import ModuleReturnValue
 from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, extract_as_list, join_args
 )
-from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
+from ..dependencies import Dependency, PkgConfigDependency, InternalDependency, ExternalProgram
 from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs
 
 # gresource compilation is broken due to the way
@@ -729,7 +729,7 @@ class GnomeModule(ExtensionModule):
     @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
                       'export_packages', 'includes', 'dependencies', 'link_with', 'include_directories',
                       'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
-                      'packages', 'header', 'build_by_default'})
+                      'packages', 'header', 'build_by_default', 'python_executable'})
     def generate_gir(self, state, args, kwargs):
         if not args:
             raise MesonException('generate_gir takes at least one argument')
@@ -737,6 +737,11 @@ class GnomeModule(ExtensionModule):
             raise MesonException('install_dir is not supported with generate_gir(), see "install_dir_gir" and "install_dir_typelib"')
 
         giscanner = self.interpreter.find_program_impl('g-ir-scanner')
+        if kwargs.get('python_executable'):
+            python_program = ExternalProgram(kwargs.get('python_executable'))
+            python_program.command.append(giscanner.get_command())
+            giscanner = ExternalProgram('gi-ir-scanner', command=python_program.command, silent=True)
+
         gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
 
         girtargets = [self._unwrap_gir_target(arg, state) for arg in args]
