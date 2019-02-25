@@ -5236,13 +5236,13 @@ class RewriterTests(BasePlatformTests):
         out = self.extract_test_data(out)
         self.assertDictEqual(out, {})
 
-    def test_tatrget_add_subdir(self):
+    def test_target_add_subdir(self):
         self.prime('2 subdirs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'addTgt.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         out = self.extract_test_data(out)
         expected = {'name': 'something', 'sources': ['first.c', 'second.c']}
-        self.assertDictEqual(list(out['target'].values())[0], expected)
+        self.assertDictEqual(out['target']['94b671c@@something@exe'], expected)
 
     def test_kwargs_info(self):
         self.prime('3 kwargs')
