@@ -19,7 +19,7 @@ import pickle
 import subprocess
 from collections import OrderedDict
 import itertools
-from pathlib import PurePath
+from pathlib import PurePath, Path
 from functools import lru_cache
 
 from . import backends
@@ -1853,7 +1853,8 @@ rule FORTRAN_DEP_HACK%s
         submodre = re.compile(r"\s*\bsubmodule\b\s+\((\w+:?\w+)\)\s+(\w+)\s*$", re.IGNORECASE)
         dirname = self.get_target_private_dir(target)
         tdeps = self.fortran_deps[target.get_basename()]
-        with open(src, encoding='ascii', errors='ignore') as f:
+        src = Path(src)
+        with src.open(encoding='ascii', errors='ignore') as f:
             for line in f:
                 usematch = usere.match(line)
                 if usematch is not None:
@@ -1876,7 +1877,7 @@ rule FORTRAN_DEP_HACK%s
                     # Check if a source uses a module it exports itself.
                     # Potential bug if multiple targets have a file with
                     # the same name.
-                    if mod_source_file.fname == os.path.basename(src):
+                    if (Path(self.source_dir) / mod_source_file.fname).samefile(src):
                         continue
                     mod_name = compiler.module_name_to_filename(usename)
                     mod_files.append(os.path.join(dirname, mod_name))
