@@ -349,6 +349,17 @@ are not in your path, they can be specified by setting the standard
 environment variables `MPICC`, `MPICXX`, `MPIFC`, `MPIF90`, or
 `MPIF77`, during configuration.
 
+## NetCDF
+NetCDF is supported for C, C++ and Fortran. Because NetCDF dependencies are
+language-specific, you must specify the requested language using the
+`language` keyword argument, i.e.,
+ * `dependency('netcdf', language: 'c')` for the C NetCDF headers and libraries
+ * `dependency('netcdf', language: 'cpp')` for the C++ NetCDF headers and libraries
+ * `dependency('netcdf', language: 'fortran')` for the Fortran NetCDF headers and libraries
+
+Meson uses pkg-config to find NetCDF.
+
+
 ## OpenMP
 
 *(added 0.46.0)*
