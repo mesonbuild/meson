@@ -298,7 +298,6 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def language_stdlib_only_link_flags(self):
         return ['-lgfortran', '-lm']
 
-
 class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
         GnuFortranCompiler.__init__(self, exelist, version, compiler_type, is_cross, exe_wrapper, defines, **kwargs)
@@ -392,6 +391,9 @@ class PGIFortranCompiler(PGICompiler, FortranCompiler):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         PGICompiler.__init__(self, CompilerType.PGI_STANDARD)
 
+    def language_stdlib_only_link_flags(self) -> List[str]:
+        return ['-lpgf90rtl', '-lpgf90', '-lpgf90_rpm1', '-lpgf902',
+                '-lpgf90rtl', '-lpgftnrtl', '-lrt']
 
 class FlangFortranCompiler(ClangCompiler, FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
