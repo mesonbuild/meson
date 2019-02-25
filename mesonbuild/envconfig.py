@@ -255,7 +255,7 @@ class MachineInfo:
     def libdir_layout_is_win(self) -> bool:
         return self.is_windows() or self.is_cygwin()
 
-class PerMachineDefaultable(PerMachine[_T]):
+class PerMachineDefaultable(PerMachine[typing.Optional[_T]]):
     """Extends `PerMachine` with the ability to default from `None`s.
     """
     def __init__(self) -> None:
@@ -285,7 +285,7 @@ class PerMachineDefaultable(PerMachine[_T]):
         if self.host == self.build:
             self.host = None
 
-class MachineInfos(PerMachineDefaultable[typing.Optional[MachineInfo]]):
+class MachineInfos(PerMachineDefaultable[MachineInfo]):
     def matches_build_machine(self, machine: MachineChoice) -> bool:
         return self.build == self[machine]
 

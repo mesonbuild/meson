@@ -20,7 +20,7 @@ from pathlib import PurePath
 from collections import OrderedDict
 from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
-    default_libdir, default_libexecdir, default_prefix, stringlistify
+    default_libdir, default_libexecdir, default_prefix
 )
 from .wrap import WrapMode
 import ast

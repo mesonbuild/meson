@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, platform, re, sys, shlex, shutil, subprocess
+import os, platform, re, sys, shlex, shutil, subprocess, typing
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker
@@ -28,6 +28,7 @@ from .envconfig import (
 )
 from . import compilers
 from .compilers import (
+    Compiler,
     CompilerType,
     is_assembly,
     is_header,
@@ -82,6 +83,8 @@ from .compilers import (
 )
 
 build_filename = 'meson.build'
+
+CompilersDict = typing.Dict[str, Compiler]
 
 def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
     gcovr_exe = 'gcovr'
@@ -150,7 +153,7 @@ def detect_native_windows_arch():
             raise EnvironmentException('Unable to detect native OS architecture')
     return arch
 
-def detect_windows_arch(compilers):
+def detect_windows_arch(compilers: CompilersDict) -> str:
     """
     Detecting the 'native' architecture of Windows is not a trivial task. We
     cannot trust that the architecture that Python is built for is the 'native'
@@ -190,7 +193,7 @@ def detect_windows_arch(compilers):
             return 'x86'
     return os_arch
 
-def any_compiler_has_define(compilers, define):
+def any_compiler_has_define(compilers: CompilersDict, define):
     for c in compilers.values():
         try:
             if c.has_builtin_define(define):
@@ -200,7 +203,7 @@ def any_compiler_has_define(compilers, define):
             pass
     return False
 
-def detect_cpu_family(compilers):
+def detect_cpu_family(compilers: CompilersDict) -> str:
     """
     Python is inconsistent in its platform module.
     It returns different values for the same cpu.
@@ -262,7 +265,7 @@ def detect_cpu_family(compilers):
 
     return trial
 
-def detect_cpu(compilers):
+def detect_cpu(compilers: CompilersDict):
     if mesonlib.is_windows():
         trial = detect_windows_arch(compilers)
     else:
@@ -295,7 +298,7 @@ def detect_msys2_arch():
         return os.environ['MSYSTEM_CARCH']
     return None
 
-def detect_machine_info(compilers = None) -> MachineInfo:
+def detect_machine_info(compilers: typing.Optional[CompilersDict] = None) -> MachineInfo:
     """Detect the machine we're running on
 
     If compilers are not provided, we cannot know as much. None out those

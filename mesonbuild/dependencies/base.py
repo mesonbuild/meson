@@ -14,7 +14,6 @@
 
 # This file contains the detection logic for external dependencies.
 # Custom logic for several other packages are in separate files.
-from typing import Dict, Any
 import copy
 import functools
 import os
@@ -26,7 +25,7 @@ import textwrap
 import platform
 import itertools
 import ctypes
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 from enum import Enum
 from pathlib import Path, PurePath
 
@@ -2302,7 +2301,7 @@ class ExtraFrameworkDependency(ExternalDependency):
         return 'framework'
 
 
-def get_dep_identifier(name, kwargs, want_cross):
+def get_dep_identifier(name, kwargs, want_cross: bool) -> Tuple:
     identifier = (name, want_cross)
     for key, value in kwargs.items():
         # 'version' is irrelevant for caching; the caller must check version matches
