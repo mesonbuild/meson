@@ -440,6 +440,14 @@ def have_d_compiler():
     elif shutil.which("gdc"):
         return True
     elif shutil.which("dmd"):
+        # The Windows installer sometimes produces a DMD install
+        # that exists but segfaults every time the compiler is run.
+        # Don't know why. Don't know how to fix. Skip in this case.
+        cp = subprocess.run(['dmd', '--version'],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+        if cp.stdout == b'':
+            return False
         return True
     return False
 
