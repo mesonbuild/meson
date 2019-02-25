@@ -323,22 +323,20 @@ class MachineChoice(OrderedEnum):
     HOST = 1
     TARGET = 2
 
-_T = typing.TypeVar('_T')
-
 class PerMachine(typing.Generic[_T]):
-    def __init__(self, build: typing.Optional[_T], host: typing.Optional[_T], target: typing.Optional[_T]):
+    def __init__(self, build: _T, host: _T, target: _T):
         self.build = build
         self.host = host
         self.target = target
 
-    def __getitem__(self, machine: MachineChoice) -> typing.Optional[_T]:
+    def __getitem__(self, machine: MachineChoice) -> _T:
         return {
             MachineChoice.BUILD:  self.build,
             MachineChoice.HOST:   self.host,
             MachineChoice.TARGET: self.target
         }[machine]
 
-    def __setitem__(self, machine: MachineChoice, val: typing.Optional[_T]) -> None:
+    def __setitem__(self, machine: MachineChoice, val: _T) -> None:
         key = {
             MachineChoice.BUILD:  'build',
             MachineChoice.HOST:   'host',

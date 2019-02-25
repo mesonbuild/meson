@@ -28,7 +28,7 @@ from .mesonlib import (
     get_filenames_templates_dict, substitute_values,
     for_windows, for_darwin, for_cygwin, for_android, has_path_sep
 )
-from .compilers import is_object, clink_langs, sort_clink, lang_suffixes, get_macos_dylib_install_name
+from .compilers import Compiler, is_object, clink_langs, sort_clink, lang_suffixes, get_macos_dylib_install_name
 from .interpreterbase import FeatureNew
 
 pch_kwargs = set(['c_pch', 'cpp_pch'])
@@ -450,7 +450,7 @@ class BuildTarget(Target):
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
         self.environment = environment
         self.sources = []
-        self.compilers = OrderedDict()
+        self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
         self.objects = []
         self.external_deps = []
         self.include_dirs = []

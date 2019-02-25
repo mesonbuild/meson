@@ -27,7 +27,7 @@ from . import mlog
 from .backend import backends
 from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
 from typing import List, Optional
-import sys, os
+import os
 import pathlib
 
 def get_meson_info_file(info_dir: str):

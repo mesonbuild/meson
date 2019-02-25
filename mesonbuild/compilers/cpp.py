@@ -23,7 +23,6 @@ from .c import CCompiler, VisualStudioCCompiler, ClangClCCompiler, IntelClCCompi
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
-    CompilerType,
     ClangCompiler,
     GnuCompiler,
     ElbrusCompiler,
