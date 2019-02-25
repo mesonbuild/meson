@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
 import copy, os, re
 from collections import OrderedDict
 import itertools, pathlib
@@ -30,6 +29,7 @@ from .mesonlib import (
     get_filenames_templates_dict, substitute_values, has_path_sep,
 )
 from .compilers import Compiler, is_object, clink_langs, sort_clink, lang_suffixes, get_macos_dylib_install_name
+from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
 pch_kwargs = set(['c_pch', 'cpp_pch'])
@@ -113,16 +113,16 @@ class Build:
         self.environment = environment
         self.projects = {}
         self.targets = OrderedDict()
-        self.global_args = PerMachine({}, {})
-        self.projects_args = PerMachine({}, {})
-        self.global_link_args = PerMachine({}, {})
-        self.projects_link_args = PerMachine({}, {})
+        self.global_args = PerMachine({}, {})         # type: PerMachine[typing.Dict[str, typing.List[str]]]
+        self.projects_args = PerMachine({}, {})       # type: PerMachine[typing.Dict[str, typing.List[str]]]
+        self.global_link_args = PerMachine({}, {})    # type: PerMachine[typing.Dict[str, typing.List[str]]]
+        self.projects_link_args = PerMachine({}, {})  # type: PerMachine[typing.Dict[str, typing.List[str]]]
         self.tests = []
         self.benchmarks = []
         self.headers = []
         self.man = []
         self.data = []
-        self.static_linker = PerMachine(None, None)
+        self.static_linker = PerMachine(None, None)   # type: PerMachine[StaticLinker]
         self.subprojects = {}
         self.subproject_dir = ''
         self.install_scripts = []
@@ -1144,7 +1144,7 @@ You probably should put it in link_with instead.''')
     def get_aliases(self):
         return {}
 
-    def get_langs_used_by_deps(self) -> List[str]:
+    def get_langs_used_by_deps(self) -> typing.List[str]:
         '''
         Sometimes you want to link to a C++ library that exports C API, which
         means the linker must link in the C++ stdlib, and we must use a C++
