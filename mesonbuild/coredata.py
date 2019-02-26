@@ -569,13 +569,13 @@ class CoreData:
             self.cross_compilers[lang] = cross_comp
 
         # Native compiler always exist so always add its options.
-        new_options_for_build = comp.get_options()
+        new_options_for_build = comp.get_and_default_options(env.properties.build)
         preproc_flags_for_build = comp.get_preproc_flags()
         if cross_comp is not None:
-            new_options_for_host = cross_comp.get_options()
+            new_options_for_host = cross_comp.get_and_default_options(env.properties.host)
             preproc_flags_for_host = cross_comp.get_preproc_flags()
         else:
-            new_options_for_host = comp.get_options()
+            new_options_for_host = comp.get_and_default_options(env.properties.host)
             preproc_flags_for_host = comp.get_preproc_flags()
 
         opts_machines_list = [
@@ -588,9 +588,6 @@ class CoreData:
             for k, o in new_options.items():
                 if not k.startswith(optprefix):
                     raise MesonException('Internal error, %s has incorrect prefix.' % k)
-                if k in env.properties[for_machine]:
-                    # Get from configuration files.
-                    o.set_value(env.properties[for_machine][k])
                 if (env.machines.matches_build_machine(for_machine) and
                         k in env.cmd_line_options):
                     # TODO think about cross and command-line interface.
