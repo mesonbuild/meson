@@ -935,18 +935,17 @@ class CCompiler(Compiler):
         else:
             # Linux/BSDs
             shlibext = ['so']
-        patterns = []
         # Search priority
-        if libtype in ('default', 'shared-static'):
-            patterns += self._get_patterns(env, prefixes, shlibext, True)
-            patterns += self._get_patterns(env, prefixes, stlibext, False)
+        if libtype == 'shared-static':
+            patterns = self._get_patterns(env, prefixes, shlibext, True)
+            patterns.extend([x for x in self._get_patterns(env, prefixes, stlibext, False) if x not in patterns])
         elif libtype == 'static-shared':
-            patterns += self._get_patterns(env, prefixes, stlibext, False)
-            patterns += self._get_patterns(env, prefixes, shlibext, True)
+            patterns = self._get_patterns(env, prefixes, stlibext, False)
+            patterns.extend([x for x in self._get_patterns(env, prefixes, shlibext, True) if x not in patterns])
         elif libtype == 'shared':
-            patterns += self._get_patterns(env, prefixes, shlibext, True)
+            patterns = self._get_patterns(env, prefixes, shlibext, True)
         elif libtype == 'static':
-            patterns += self._get_patterns(env, prefixes, stlibext, False)
+            patterns = self._get_patterns(env, prefixes, stlibext, False)
         else:
             raise AssertionError('BUG: unknown libtype {!r}'.format(libtype))
         return tuple(patterns)
@@ -974,8 +973,8 @@ class CCompiler(Compiler):
         if '*' in pattern:
             # NOTE: globbing matches directories and broken symlinks
             # so we have to do an isfile test on it later
-            return cls._sort_shlibs_openbsd(glob.glob(str(f)))
-        return [f.as_posix()]
+            return [Path(x) for x in cls._sort_shlibs_openbsd(glob.glob(str(f)))]
+        return [f]
 
     @staticmethod
     def _get_file_from_list(env, files: List[str]) -> str:
@@ -992,7 +991,7 @@ class CCompiler(Compiler):
                     return f
         # Run `lipo` and check if the library supports the arch we want
         for f in files:
-            if not os.path.isfile(f):
+            if not f.is_file():
                 continue
             archs = darwin_get_object_archs(f)
             if archs and env.machines.host.cpu_family in archs:
@@ -1043,7 +1042,7 @@ class CCompiler(Compiler):
                 trial = self._get_file_from_list(env, trial)
                 if not trial:
                     continue
-                return [trial]
+                return [trial.as_posix()]
         return None
 
     def find_library_impl(self, libname, env, extra_dirs, code, libtype):
