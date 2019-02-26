@@ -1012,7 +1012,10 @@ class CCompiler(Compiler):
         # First try if we can just add the library as -l.
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
-        if not extra_dirs or libname in self.internal_libs:
+        # The built-in search procedure will always favour .so and then always
+        # search for .a. This is only allowd if libtype is 'shard-static'
+        if ((not extra_dirs or libname in self.internal_libs) and
+                libtype == 'shared-static'):
             args = ['-l' + libname]
             largs = self.linker_to_compiler_args(self.get_allow_undefined_link_args())
             if self.links(code, env, extra_args=(args + largs)):
@@ -1061,7 +1064,7 @@ class CCompiler(Compiler):
             return None
         return value[:]
 
-    def find_library(self, libname, env, extra_dirs, libtype='default'):
+    def find_library(self, libname, env, extra_dirs, libtype='shared-static'):
         code = 'int main(int argc, char **argv) { return 0; }'
         return self.find_library_impl(libname, env, extra_dirs, code, libtype)
 

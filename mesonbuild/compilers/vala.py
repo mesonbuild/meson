@@ -98,7 +98,7 @@ class ValaCompiler(Compiler):
             return ['--debug']
         return []
 
-    def find_library(self, libname, env, extra_dirs):
+    def find_library(self, libname, env, extra_dirs, *args):
         if extra_dirs and isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
         # Valac always looks in the default vapi dir, so only search there if
