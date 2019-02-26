@@ -2452,9 +2452,9 @@ rule FORTRAN_DEP_HACK%s
                 sharedlibs = self.guess_library_absolute_path(linker, libname,
                                                               search_dirs, shared_patterns)
                 if staticlibs:
-                    guessed_dependencies.append(os.path.realpath(staticlibs))
+                    guessed_dependencies.append(staticlibs.resolve().as_posix())
                 if sharedlibs:
-                    guessed_dependencies.append(os.path.realpath(sharedlibs))
+                    guessed_dependencies.append(sharedlibs.resolve().as_posix())
 
         return guessed_dependencies + absolute_libs
 

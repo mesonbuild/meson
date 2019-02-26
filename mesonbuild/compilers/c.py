@@ -977,7 +977,7 @@ class CCompiler(Compiler):
         return [f]
 
     @staticmethod
-    def _get_file_from_list(env, files: List[str]) -> str:
+    def _get_file_from_list(env, files: List[str]) -> Path:
         '''
         We just check whether the library exists. We can't do a link check
         because the library might have unresolved symbols that require other
@@ -985,9 +985,10 @@ class CCompiler(Compiler):
         architecture.
         '''
         # If not building on macOS for Darwin, do a simple file check
+        files = [Path(f) for f in files]
         if not env.machines.host.is_darwin() or not env.machines.build.is_darwin():
             for f in files:
-                if os.path.isfile(f):
+                if f.is_file():
                     return f
         # Run `lipo` and check if the library supports the arch we want
         for f in files:

@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import List
 import subprocess, os
+from pathlib import Path
 
 from .c import CCompiler
 from .compilers import (
@@ -272,7 +273,7 @@ class FortranCompiler(Compiler):
         return CCompiler._get_trials_from_pattern(pattern, directory, libname)
 
     @staticmethod
-    def _get_file_from_list(env, files: List[str]) -> str:
+    def _get_file_from_list(env, files: List[str]) -> Path:
         return CCompiler._get_file_from_list(env, files)
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):
