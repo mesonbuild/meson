@@ -92,10 +92,27 @@ class MesonConfigFile:
             out[s] = section
         return out
 
-class Properties:
+class HasEnvVarFallback:
+    """
+    A tiny class to indicate that this class contains data that can be
+    initialized from either a config file or environment file. The `fallback`
+    field says whether env vars should be used. Downstream logic (e.g. subclass
+    methods) can check it to decide what to do, since env vars are currently
+    lazily decoded.
+
+    Frankly, this is a pretty silly class at the moment. The hope is the way
+    that we deal with environment variables will become more structured, and
+    this can be starting point.
+    """
+    def __init__(self, fallback = True):
+        self.fallback = fallback
+
+class Properties(HasEnvVarFallback):
     def __init__(
             self,
-            properties: typing.Optional[typing.Dict[str, typing.Union[str, typing.List[str]]]] = None):
+            properties: typing.Optional[typing.Dict[str, typing.Union[str, typing.List[str]]]] = None,
+            fallback = True):
+        super().__init__(fallback)
         self.properties = properties or {}
 
     def has_stdlib(self, language):
@@ -269,10 +286,14 @@ class MachineInfos(PerMachineDefaultable):
     def matches_build_machine(self, machine: MachineChoice):
         return self.build == self[machine]
 
-class BinaryTable:
-    def __init__(self, binaries = {}, fallback = True):
-        self.binaries = binaries
-        self.fallback = fallback
+class BinaryTable(HasEnvVarFallback):
+    def __init__(
+            self,
+            binaries: typing.Optional[typing.Dict[str, typing.Union[str, typing.List[str]]]] = None,
+
+            fallback = True):
+        super().__init__(fallback)
+        self.binaries = binaries or {}
         for name, command in self.binaries.items():
             if not isinstance(command, (list, str)):
                 # TODO generalize message

@@ -375,12 +375,13 @@ class Environment:
         # that there is no meta data, only names/paths.
         self.binaries = PerMachineDefaultable()
 
+        # Misc other properties about each machine.
+        self.properties = PerMachineDefaultable()
+
         # Just uses hard-coded defaults and environment variables. Might be
         # overwritten by a native file.
-        self.binaries.build = BinaryTable({})
-
-        # Misc other properties about each machine.
-        self.properties = PerMachine(Properties(), Properties(), Properties())
+        self.binaries.build = BinaryTable()
+        self.properties.build = Properties()
 
         # Store paths for native and cross build files. There is no target
         # machine information here because nothing is installed for the target
@@ -395,7 +396,7 @@ class Environment:
 
         if self.coredata.cross_file is not None:
             config = MesonConfigFile.parse_datafile(self.coredata.cross_file)
-            self.properties.host.properties = config.get('properties', {})
+            self.properties.host = Properties(config.get('properties', {}), False)
             self.binaries.host = BinaryTable(config.get('binaries', {}), False)
             if 'host_machine' in config:
                 self.machines.host = MachineInfo.from_literal(config['host_machine'])
@@ -405,6 +406,7 @@ class Environment:
 
         self.machines.default_missing()
         self.binaries.default_missing()
+        self.properties.default_missing()
         self.paths.default_missing()
 
         exe_wrapper = self.binaries.host.lookup_entry('exe_wrapper')
