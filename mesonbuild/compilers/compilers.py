@@ -24,6 +24,9 @@ from ..mesonlib import (
     EnvironmentException, MesonException, OrderedSet,
     version_compare, Popen_safe
 )
+from ..envconfig import (
+    Properties,
+)
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
@@ -1009,24 +1012,41 @@ class Compiler:
 
     def get_options(self):
         opts = {} # build afresh every time
-
-        # Take default values from env variables.
-        if not self.is_cross:
-            compile_args, link_args = self.get_args_from_envvars()
-        else:
-            compile_args = []
-            link_args = []
         description = 'Extra arguments passed to the {}'.format(self.get_display_language())
         opts.update({
             self.language + '_args': coredata.UserArrayOption(
                 self.language + '_args',
                 description + ' compiler',
-                compile_args, shlex_split=True, user_input=True, allow_dups=True),
+                [], shlex_split=True, user_input=True, allow_dups=True),
             self.language + '_link_args': coredata.UserArrayOption(
                 self.language + '_link_args',
                 description + ' linker',
-                link_args, shlex_split=True, user_input=True, allow_dups=True),
+                [], shlex_split=True, user_input=True, allow_dups=True),
         })
+
+        return opts
+
+    def get_and_default_options(self, properties: Properties):
+        """
+        Take default values from env variables and/or config files.
+        """
+        opts = self.get_options()
+
+        if properties.fallback:
+            # Get from env vars.
+            compile_args, link_args = self.get_args_from_envvars()
+        else:
+            compile_args = []
+            link_args = []
+
+        for k, o in opts.items():
+            if k in properties:
+                # Get from configuration files.
+                o.set_value(properties[k])
+            elif k == self.language + '_args':
+                o.set_value(compile_args)
+            elif k == self.language + '_link_args':
+                o.set_value(link_args)
 
         return opts
 
