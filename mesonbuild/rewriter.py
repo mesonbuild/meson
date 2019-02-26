@@ -29,7 +29,7 @@ from . import mlog, mparser, environment
 from functools import wraps
 from pprint import pprint
 from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, IdNode, FunctionNode, StringNode
-import json, os
+import json, os, re
 
 class RewriterException(MesonException):
     pass
@@ -109,6 +109,10 @@ class MTypeBase:
         # Overwrite in derived class
         mlog.warning('Cannot remove a value of type', mlog.bold(type(self).__name__), '--> skipping')
 
+    def remove_regex(self, value):
+        # Overwrite in derived class
+        mlog.warning('Cannot remove a regex in type', mlog.bold(type(self).__name__), '--> skipping')
+
 class MTypeStr(MTypeBase):
     def __init__(self, node: mparser.BaseNode):
         super().__init__(node)
@@ -165,7 +169,11 @@ class MTypeList(MTypeBase):
             self.node = self._new_node()
             self.node.args.arguments += [tmp]
 
-    def _check_is_equal(self, node, value):
+    def _check_is_equal(self, node, value) -> bool:
+        # Overwrite in derived class
+        return False
+
+    def _check_regex_matches(self, node, regex: str) -> bool:
         # Overwrite in derived class
         return False
 
@@ -197,10 +205,10 @@ class MTypeList(MTypeBase):
         for i in value:
             self.node.args.arguments += [self._new_element_node(i)]
 
-    def remove_value(self, value):
+    def _remove_helper(self, value, equal_func):
         def check_remove_node(node):
             for j in value:
-                if self._check_is_equal(i, j):
+                if equal_func(i, j):
                     return True
             return False
 
@@ -213,16 +221,27 @@ class MTypeList(MTypeBase):
                 removed_list += [i]
         self.node.args.arguments = removed_list
 
-class MtypeStrList(MTypeList):
+    def remove_value(self, value):
+        self._remove_helper(value, self._check_is_equal)
+
+    def remove_regex(self, regex: str):
+        self._remove_helper(regex, self._check_regex_matches)
+
+class MTypeStrList(MTypeList):
     def __init__(self, node: mparser.BaseNode):
         super().__init__(node)
 
     def _new_element_node(self, value):
         return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, str(value)))
 
-    def _check_is_equal(self, node, value):
+    def _check_is_equal(self, node, value) -> bool:
         if isinstance(node, mparser.StringNode):
             return node.value == value
+        return False
+
+    def _check_regex_matches(self, node, regex: str) -> bool:
+        if isinstance(node, mparser.StringNode):
+            return re.match(regex, node.value) is not None
         return False
 
     def supported_element_nodes(self):
@@ -235,19 +254,28 @@ class MTypeIDList(MTypeList):
     def _new_element_node(self, value):
         return mparser.IdNode(mparser.Token('', '', 0, 0, 0, None, str(value)))
 
-    def _check_is_equal(self, node, value):
+    def _check_is_equal(self, node, value) -> bool:
         if isinstance(node, mparser.IdNode):
             return node.value == value
+        return False
+
+    def _check_regex_matches(self, node, regex: str) -> bool:
+        if isinstance(node, mparser.StringNode):
+            return re.match(regex, node.value) is not None
         return False
 
     def supported_element_nodes(self):
         return [mparser.IdNode]
 
 rewriter_keys = {
+    'default_options': {
+        'operation': (str, None, ['set', 'delete']),
+        'options': (dict, {}, None)
+    },
     'kwargs': {
         'function': (str, None, None),
         'id': (str, None, None),
-        'operation': (str, None, ['set', 'delete', 'add', 'remove', 'info']),
+        'operation': (str, None, ['set', 'delete', 'add', 'remove', 'remove_regex', 'info']),
         'kwargs': (dict, {}, None)
     },
     'target': {
@@ -268,8 +296,8 @@ rewriter_func_kwargs = {
         'not_found_message': MTypeStr,
         'required': MTypeBool,
         'static': MTypeBool,
-        'version': MtypeStrList,
-        'modules': MtypeStrList
+        'version': MTypeStrList,
+        'modules': MTypeStrList
     },
     'target': {
         'build_by_default': MTypeBool,
@@ -285,8 +313,9 @@ rewriter_func_kwargs = {
         'pie': MTypeBool
     },
     'project': {
+        'default_options': MTypeStrList,
         'meson_version': MTypeStr,
-        'license': MtypeStrList,
+        'license': MTypeStrList,
         'subproject_dir': MTypeStr,
         'version': MTypeStr
     }
@@ -300,6 +329,7 @@ class Rewriter:
         self.to_remove_nodes = []
         self.to_add_nodes = []
         self.functions = {
+            'default_options': self.process_default_options,
             'kwargs': self.process_kwargs,
             'target': self.process_target,
         }
@@ -367,6 +397,50 @@ class Rewriter:
                     dep = check_list(name)
 
         return dep
+
+    @RequiredKeys(rewriter_keys['default_options'])
+    def process_default_options(self, cmd):
+        # First, remove the old values
+        kwargs_cmd = {
+            'function': 'project',
+            'id': "",
+            'operation': 'remove_regex',
+            'kwargs': {
+                'default_options': ['{}=.*'.format(x) for x in cmd['options'].keys()]
+            }
+        }
+        self.process_kwargs(kwargs_cmd)
+
+        # Then add the new values
+        if cmd['operation'] != 'set':
+            return
+
+        kwargs_cmd['operation'] = 'add'
+        kwargs_cmd['kwargs']['default_options'] = []
+
+        cdata = self.interpreter.coredata
+        options = {
+            **cdata.builtins,
+            **cdata.backend_options,
+            **cdata.base_options,
+            **cdata.compiler_options.build,
+            **cdata.user_options
+        }
+
+        for key, val in cmd['options'].items():
+            if key not in options:
+                mlog.error('Unknown options', mlog.bold(key), '--> skipping')
+                continue
+
+            try:
+                val = options[key].validate_value(val)
+            except MesonException as e:
+                mlog.error('Unable to set', mlog.bold(key), mlog.red(str(e)), '--> skipping')
+                continue
+
+            kwargs_cmd['kwargs']['default_options'] += ['{}={}'.format(key, val)]
+
+        self.process_kwargs(kwargs_cmd)
 
     @RequiredKeys(rewriter_keys['kwargs'])
     def process_kwargs(self, cmd):
@@ -450,6 +524,9 @@ class Rewriter:
             elif cmd['operation'] == 'remove':
                 mlog.log('  -- Removing', mlog.yellow(val_str), 'from', mlog.bold(key))
                 modifyer.remove_value(val)
+            elif cmd['operation'] == 'remove_regex':
+                mlog.log('  -- Removing all values matching', mlog.yellow(val_str), 'from', mlog.bold(key))
+                modifyer.remove_regex(val)
 
             # Write back the result
             arg_node.kwargs[key] = modifyer.get_node()
