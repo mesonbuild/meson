@@ -309,6 +309,14 @@ int dummy;
     langs_cant_unity = ('d', 'fortran')
 
     def get_target_source_can_unity(self, target, source):
+        if isinstance(source, File) and source.get_language() is not None:
+            # user specified the language
+            if self.environment.is_llvm_ir(source.fname) or \
+               self.environment.is_assembly(source.fname):
+                return False
+            if source.get_language() in self.langs_cant_unity:
+                return False
+            return True
         if isinstance(source, File):
             source = source.fname
         if self.environment.is_llvm_ir(source) or \
@@ -516,9 +524,7 @@ int dummy;
                 if self.environment.is_llvm_ir(src):
                     obj_list.append(self.generate_llvm_ir_compile(target, outfile, src))
                 elif is_unity and self.get_target_source_can_unity(target, src):
-                    abs_src = os.path.join(self.environment.get_build_dir(),
-                                           src.rel_to_builddir(self.build_to_src))
-                    unity_src.append(abs_src)
+                    unity_src.append(src)
                 else:
                     obj_list.append(self.generate_single_compile(target, outfile, src, False, [], header_deps))
         obj_list += self.flatten_object_list(target)

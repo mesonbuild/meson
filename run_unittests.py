@@ -3002,6 +3002,12 @@ recommended as it is not supported on some platforms''')
         testdir = os.path.join(self.common_test_dir, '214 specify source language')
         self.init(testdir)
 
+    def test_unity_build(self):
+        # verify we can make unity build
+        testdir = os.path.join(self.common_test_dir, '215 plain unity build')
+        self.init(testdir)
+        self.build()
+
     def test_feature_check_usage_subprojects(self):
         testdir = os.path.join(self.unit_test_dir, '41 featurenew subprojects')
         out = self.init(testdir)

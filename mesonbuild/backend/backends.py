@@ -284,7 +284,16 @@ class Backend:
         for comp, srcs in compsrcs.items():
             with init_language_file(comp.get_default_suffix()) as ofile:
                 for src in srcs:
-                    ofile.write('#include<%s>\n' % src)
+                    if isinstance(src, str):
+                        if os.path.isabs(src):
+                            src = mesonlib.File.from_absolute_file(src)
+                        else:
+                            # what are you relative to? the target source dir? target private dir?
+                            # source root? build root?
+                            raise MesonException('Unity source is not absolute path.')
+                    src = os.path.join(self.environment.get_build_dir(),
+                                       src.rel_to_builddir(self.build_to_src))
+                    ofile.write('#include <%s>\n' % src)
         [mesonlib.replace_if_different(x, x + '.tmp') for x in abs_files]
         return result
 

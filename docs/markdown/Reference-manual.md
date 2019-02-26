@@ -659,9 +659,14 @@ corresponding File objects that you can use as sources for build
 targets. The difference is that file objects remember the subdirectory
 they were defined in and can be used anywhere in the source tree.
 Keyword arguments are the following:
-- `lang` (since 0.50.0) explicitly specify the language of the sources
-contained in the list which will be used to select the appropriate compiler
-by meson.
+- `lang` (since 0.50.0) override meson's automatic language detection
+based on file extension. This setting is useful for cases where viewing
+the extension in a case-insensitive manner can lead to ambiguities in the
+language (e.g. `.C` for C++ source and `.c` for C source). This setting
+will not attempt to add additional compiler or linker arguments based on
+the language specified. In the event you are using an extension not
+supported by your toolchain, you will still need to properly set cpp\_args
+or link\_args.
 
 As an example suppose you have source file `foo.cpp` in subdirectory
 `bar1` and you would like to use it in a build target that is defined

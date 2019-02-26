@@ -261,6 +261,7 @@ class File:
         return self.fname.split(s)
 
     def get_language(self):
+        # not None iff explicitly set via files(..., lang: <lang>)
         return self.lang
 
     def __eq__(self, other) -> bool:
@@ -275,7 +276,13 @@ class File:
 
 
 def get_compiler_for_source(compilers, src):
+    lang = None
+    if isinstance(src, File):
+        lang = src.get_language()
     for comp in compilers:
+        if lang is not None and lang == comp.get_language():
+            # user specified the source language via files(..., lang: <lang>)
+            return comp
         if comp.can_compile(src):
             return comp
     raise MesonException('No specified compiler can handle file {!s}'.format(src))
