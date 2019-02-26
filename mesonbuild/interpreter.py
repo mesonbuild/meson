@@ -2025,7 +2025,7 @@ class Interpreter(InterpreterBase):
         # have the compilers needed to gain more knowledge, so wipe out old
         # inferrence and start over.
         self.build.environment.machines.miss_defaulting()
-        self.build.environment.machines.detect_build(self.coredata.compilers)
+        self.build.environment.detect_build_machine(self.coredata.compilers)
         self.build.environment.machines.default_missing()
         assert self.build.environment.machines.build.cpu is not None
         assert self.build.environment.machines.host.cpu is not None
