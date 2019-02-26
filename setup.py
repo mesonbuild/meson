@@ -35,7 +35,7 @@ packages = ['mesonbuild',
             'mesonbuild.modules',
             'mesonbuild.scripts',
             'mesonbuild.wrap']
-package_data = {'mesonbuild.dependencies': ['data/CMakeLists.txt']}
+package_data = {'mesonbuild.dependencies': ['data/CMakeLists.txt', 'data/CMakePathInfo.txt']}
 data_files = []
 if sys.platform != 'win32':
     # Only useful on UNIX-like systems

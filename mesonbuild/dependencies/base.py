@@ -26,14 +26,14 @@ import textwrap
 import platform
 import itertools
 import ctypes
-from typing import List
+from typing import List, Tuple
 from enum import Enum
 from pathlib import Path, PurePath
 
 from .. import mlog
 from .. import mesonlib
 from ..compilers import clib_langs
-from ..environment import BinaryTable, Environment
+from ..environment import BinaryTable, Environment, MachineInfo
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
 from ..mesonlib import Version
@@ -916,12 +916,14 @@ class CMakeDependency(ExternalDependency):
     # multiple times in the same Meson invocation.
     class_cmakebin = PerMachine(None, None, None)
     class_cmakevers = PerMachine(None, None, None)
+    class_cmakeinfo = PerMachine(None, None, None)
     # We cache all pkg-config subprocess invocations to avoid redundant calls
     cmake_cache = {}
     # Version string for the minimum CMake version
     class_cmake_version = '>=3.4'
     # CMake generators to try (empty for no generator)
     class_cmake_generators = ['', 'Ninja', 'Unix Makefiles', 'Visual Studio 10 2010']
+    class_working_generator = None
 
     def _gen_exception(self, msg):
         return DependencyException('Dependency {} not found: {}'.format(self.name, msg))
@@ -934,6 +936,7 @@ class CMakeDependency(ExternalDependency):
         # stored in the pickled coredata and recovered.
         self.cmakebin = None
         self.cmakevers = None
+        self.cmakeinfo = None
 
         # Dict of CMake variables: '<var_name>': ['list', 'of', 'values']
         self.vars = {}
@@ -1009,6 +1012,12 @@ class CMakeDependency(ExternalDependency):
             mlog.debug(msg)
             return
 
+        if CMakeDependency.class_cmakeinfo[for_machine] is None:
+            CMakeDependency.class_cmakeinfo[for_machine] = self._get_cmake_info()
+        self.cmakeinfo = CMakeDependency.class_cmakeinfo[for_machine]
+        if self.cmakeinfo is None:
+            raise self._gen_exception('Unable to obtain CMake system information')
+
         modules = kwargs.get('modules', [])
         cm_path = kwargs.get('cmake_module_path', [])
         cm_args = kwargs.get('cmake_args', [])
@@ -1021,12 +1030,174 @@ class CMakeDependency(ExternalDependency):
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
         if cm_path:
             cm_args += ['-DCMAKE_MODULE_PATH={}'.format(';'.join(cm_path))]
+        if not self._preliminary_find_check(name, cm_path, environment.machines[for_machine]):
+            return
         self._detect_dep(name, modules, cm_args)
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
+
+    def _get_cmake_info(self):
+        mlog.debug("Extracting basic cmake information")
+        res = {}
+
+        # Try different CMake generators since specifying no generator may fail
+        # in cygwin for some reason
+        gen_list = []
+        # First try the last working generator
+        if CMakeDependency.class_working_generator is not None:
+            gen_list += [CMakeDependency.class_working_generator]
+        gen_list += CMakeDependency.class_cmake_generators
+
+        for i in gen_list:
+            mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
+
+            # Prepare options
+            cmake_opts = ['--trace-expand', '.']
+            if len(i) > 0:
+                cmake_opts = ['-G', i] + cmake_opts
+
+            # Run CMake
+            ret1, out1, err1 = self._call_cmake(cmake_opts, 'CMakePathInfo.txt')
+
+            # Current generator was successful
+            if ret1 == 0:
+                CMakeDependency.class_working_generator = i
+                break
+
+            mlog.debug('CMake failed to gather system information for generator {} with error code {}'.format(i, ret1))
+            mlog.debug('OUT:\n{}\n\n\nERR:\n{}\n\n'.format(out1, err1))
+
+        # Check if any generator succeeded
+        if ret1 != 0:
+            return None
+
+        try:
+            # First parse the trace
+            lexer1 = self._lex_trace(err1)
+
+            # Primary pass -- parse all invocations of set
+            for l in lexer1:
+                if l.func == 'set':
+                    self._cmake_set(l)
+        except:
+            return None
+
+        # Extract the variables and sanity check them
+        module_paths = sorted(set(self.get_cmake_var('MESON_PATHS_LIST')))
+        module_paths = list(filter(lambda x: os.path.isdir(x), module_paths))
+        archs = self.get_cmake_var('MESON_ARCH_LIST')
+
+        common_paths = ['lib', 'lib32', 'lib64', 'libx32', 'share']
+        for i in archs:
+            common_paths += [os.path.join('lib', i)]
+
+        res = {
+            'module_paths': module_paths,
+            'cmake_root': self.get_cmake_var('MESON_CMAKE_ROOT')[0],
+            'archs': archs,
+            'common_paths': common_paths
+        }
+
+        mlog.debug('  -- Module search paths:    {}'.format(res['module_paths']))
+        mlog.debug('  -- CMake root:             {}'.format(res['cmake_root']))
+        mlog.debug('  -- CMake architectures:    {}'.format(res['archs']))
+        mlog.debug('  -- CMake lib search paths: {}'.format(res['common_paths']))
+
+        # Reset variables
+        self.vars = {}
+        return res
+
+    @staticmethod
+    @functools.lru_cache(maxsize=None)
+    def _cached_listdir(path: str) -> Tuple[Tuple[str, str]]:
+        try:
+            return tuple((x, str(x).lower()) for x in os.listdir(path))
+        except OSError:
+            return ()
+
+    @staticmethod
+    @functools.lru_cache(maxsize=None)
+    def _cached_isdir(path: str) -> bool:
+        try:
+            return os.path.isdir(path)
+        except OSError:
+            return False
+
+    def _preliminary_find_check(self, name: str, module_path: List[str], machine: MachineInfo) -> bool:
+        lname = str(name).lower()
+
+        # Checks <path>, <path>/cmake, <path>/CMake
+        def find_module(path: str) -> bool:
+            for i in [path, os.path.join(path, 'cmake'), os.path.join(path, 'CMake')]:
+                if not self._cached_isdir(i):
+                    continue
+
+                for j in ['Find{}.cmake', '{}Config.cmake', '{}-config.cmake']:
+                    if os.path.isfile(os.path.join(i, j.format(name))):
+                        return True
+            return False
+
+        # Search in <path>/(lib/<arch>|lib*|share) for cmake files
+        def search_lib_dirs(path: str) -> bool:
+            for i in [os.path.join(path, x) for x in self.cmakeinfo['common_paths']]:
+                if not self._cached_isdir(i):
+                    continue
+
+                # Check <path>/(lib/<arch>|lib*|share)/cmake/<name>*/
+                cm_dir = os.path.join(i, 'cmake')
+                if self._cached_isdir(cm_dir):
+                    content = self._cached_listdir(cm_dir)
+                    content = list(filter(lambda x: x[1].startswith(lname), content))
+                    for k in content:
+                        if find_module(os.path.join(cm_dir, k[0])):
+                            return True
+
+                # <path>/(lib/<arch>|lib*|share)/<name>*/
+                # <path>/(lib/<arch>|lib*|share)/<name>*/(cmake|CMake)/
+                content = self._cached_listdir(i)
+                content = list(filter(lambda x: x[1].startswith(lname), content))
+                for k in content:
+                    if find_module(os.path.join(i, k[0])):
+                        return True
+
+            return False
+
+        # Check the user provided and system module paths
+        for i in module_path + [os.path.join(self.cmakeinfo['cmake_root'], 'Modules')]:
+            if find_module(i):
+                return True
+
+        # Check the system paths
+        for i in self.cmakeinfo['module_paths']:
+            if find_module(i):
+                return True
+
+            if search_lib_dirs(i):
+                return True
+
+            content = self._cached_listdir(i)
+            content = list(filter(lambda x: x[1].startswith(lname), content))
+            for k in content:
+                if search_lib_dirs(os.path.join(i, k[0])):
+                    return True
+
+            # Mac framework support
+            if machine.is_darwin():
+                for j in ['{}.framework', '{}.app']:
+                    j = j.format(lname)
+                    if j in content:
+                        if find_module(os.path.join(i, j[0], 'Resources')) or find_module(os.path.join(i, j[0], 'Version')):
+                            return True
+
+        # Check the environment path
+        env_path = os.environ.get('{}_DIR'.format(name))
+        if env_path and find_module(env_path):
+            return True
+
+        return False
 
     def _detect_dep(self, name: str, modules: List[str], args: List[str]):
         # Detect a dependency with CMake using the '--find-package' mode
@@ -1040,19 +1211,26 @@ class CMakeDependency(ExternalDependency):
 
         # Try different CMake generators since specifying no generator may fail
         # in cygwin for some reason
-        for i in CMakeDependency.class_cmake_generators:
+        gen_list = []
+        # First try the last working generator
+        if CMakeDependency.class_working_generator is not None:
+            gen_list += [CMakeDependency.class_working_generator]
+        gen_list += CMakeDependency.class_cmake_generators
+
+        for i in gen_list:
             mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
 
             # Prepare options
-            cmake_opts = ['--trace-expand', '-DNAME={}'.format(name)] + args + ['.']
+            cmake_opts = ['--trace-expand', '-DNAME={}'.format(name), '-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))] + args + ['.']
             if len(i) > 0:
                 cmake_opts = ['-G', i] + cmake_opts
 
             # Run CMake
-            ret1, out1, err1 = self._call_cmake(cmake_opts)
+            ret1, out1, err1 = self._call_cmake(cmake_opts, 'CMakeLists.txt')
 
             # Current generator was successful
             if ret1 == 0:
+                CMakeDependency.class_working_generator = i
                 break
 
             mlog.debug('CMake failed for generator {} and package {} with error code {}'.format(i, name, ret1))
@@ -1221,7 +1399,7 @@ class CMakeDependency(ExternalDependency):
 
     def get_cmake_var(self, var):
         # Return the value of the CMake variable var or an empty list if var does not exist
-        for var in self.vars:
+        if var in self.vars:
             return self.vars[var]
 
         return []
@@ -1449,24 +1627,25 @@ set(CMAKE_CXX_ABI_COMPILED TRUE)
 set(CMAKE_SIZEOF_VOID_P "{}")
 '''.format(os.path.realpath(__file__), ctypes.sizeof(ctypes.c_voidp)))
 
-    def _setup_cmake_dir(self):
+    def _setup_cmake_dir(self, cmake_file: str) -> str:
         # Setup the CMake build environment and return the "build" directory
         build_dir = '{}/cmake_{}'.format(self.cmake_root_dir, self.name)
         os.makedirs(build_dir, exist_ok=True)
 
         # Copy the CMakeLists.txt
         cmake_lists = '{}/CMakeLists.txt'.format(build_dir)
-        if not os.path.exists(cmake_lists):
-            dir_path = os.path.dirname(os.path.realpath(__file__))
-            src_cmake = '{}/data/CMakeLists.txt'.format(dir_path)
-            shutil.copyfile(src_cmake, cmake_lists)
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        src_cmake = '{}/data/{}'.format(dir_path, cmake_file)
+        if os.path.exists(cmake_lists):
+            os.remove(cmake_lists)
+        shutil.copyfile(src_cmake, cmake_lists)
 
         self._setup_compiler(build_dir)
         self._reset_cmake_cache(build_dir)
         return build_dir
 
-    def _call_cmake_real(self, args, env):
-        build_dir = self._setup_cmake_dir()
+    def _call_cmake_real(self, args, cmake_file: str, env):
+        build_dir = self._setup_cmake_dir(cmake_file)
         cmd = self.cmakebin.get_command() + args
         p, out, err = Popen_safe(cmd, env=env, cwd=build_dir)
         rc = p.returncode
@@ -1475,7 +1654,7 @@ set(CMAKE_SIZEOF_VOID_P "{}")
 
         return rc, out, err
 
-    def _call_cmake(self, args, env=None):
+    def _call_cmake(self, args, cmake_file: str, env=None):
         if env is None:
             fenv = env
             env = os.environ
@@ -1485,9 +1664,9 @@ set(CMAKE_SIZEOF_VOID_P "{}")
 
         # First check if cached, if not call the real cmake function
         cache = CMakeDependency.cmake_cache
-        if (self.cmakebin, targs, fenv) not in cache:
-            cache[(self.cmakebin, targs, fenv)] = self._call_cmake_real(args, env)
-        return cache[(self.cmakebin, targs, fenv)]
+        if (self.cmakebin, targs, cmake_file, fenv) not in cache:
+            cache[(self.cmakebin, targs, cmake_file, fenv)] = self._call_cmake_real(args, cmake_file, env)
+        return cache[(self.cmakebin, targs, cmake_file, fenv)]
 
     @staticmethod
     def get_methods():
