@@ -76,12 +76,13 @@ jobs:
         libglib2.0-devel,^
         libgtk3-devel,^
         ninja,^
-        python3-pip,^
+        python35-pip,^
         vala,^
         zlib-devel
       displayName: Install Dependencies
     - script: |
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
+        cp /usr/bin/python3.5 /usr/bin/python3
         env.exe -- python3 run_tests.py --backend=ninja
       displayName: Run Tests
     - task: CopyFiles@2
