@@ -19,7 +19,7 @@ import pickle
 import subprocess
 from collections import OrderedDict
 import itertools
-from pathlib import PurePath
+from pathlib import PurePath, Path
 from functools import lru_cache
 
 from . import backends
@@ -1851,9 +1851,11 @@ rule FORTRAN_DEP_HACK%s
         mod_files = []
         usere = re.compile(r"\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)", re.IGNORECASE)
         submodre = re.compile(r"\s*\bsubmodule\b\s+\((\w+:?\w+)\)\s+(\w+)\s*$", re.IGNORECASE)
-        dirname = self.get_target_private_dir(target)
+        dirname = Path(self.get_target_private_dir(target))
         tdeps = self.fortran_deps[target.get_basename()]
-        with open(src, encoding='ascii', errors='ignore') as f:
+        src = Path(src)
+        srcdir = Path(self.source_dir)
+        with src.open(encoding='ascii', errors='ignore') as f:
             for line in f:
                 usematch = usere.match(line)
                 if usematch is not None:
@@ -1876,10 +1878,14 @@ rule FORTRAN_DEP_HACK%s
                     # Check if a source uses a module it exports itself.
                     # Potential bug if multiple targets have a file with
                     # the same name.
-                    if mod_source_file.fname == os.path.basename(src):
-                        continue
+                    try:
+                        if (srcdir / mod_source_file.fname).samefile(src):
+                            continue
+                    except FileNotFoundError:
+                        pass
+
                     mod_name = compiler.module_name_to_filename(usename)
-                    mod_files.append(os.path.join(dirname, mod_name))
+                    mod_files.append(str(dirname / mod_name))
                 else:
                     submodmatch = submodre.match(line)
                     if submodmatch is not None:
@@ -1890,10 +1896,14 @@ rule FORTRAN_DEP_HACK%s
                         for parent in parents:
                             if parent not in tdeps:
                                 raise MesonException("submodule {} relies on parent module {} that was not found.".format(submodmatch.group(2).lower(), parent))
-                            if tdeps[parent].fname == os.path.basename(src):  # same file
-                                continue
+
+                            try:
+                                if (srcdir / tdeps[parent].fname).samefile(src):
+                                    continue
+                            except FileNotFoundError:
+                                pass
                             mod_name = compiler.module_name_to_filename(parent)
-                            mod_files.append(os.path.join(dirname, mod_name))
+                            mod_files.append(str(dirname / mod_name))
 
         return mod_files
 
