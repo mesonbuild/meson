@@ -705,8 +705,6 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(p, stc + shr)
         p = cc.get_library_naming(env, 'shared-static')
         self.assertEqual(p, shr + stc)
-        p = cc.get_library_naming(env, 'default')
-        self.assertEqual(p, shr + stc)
         # Test find library by mocking up openbsd
         if platform != 'openbsd':
             return
