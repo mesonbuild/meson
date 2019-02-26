@@ -12,7 +12,7 @@ namespace lib1 {
 struct Type0 {
 
    Type0();
-   ~Type0() noexcept;
+   ~Type0();
 
 
     int get0() const;
