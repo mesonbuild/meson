@@ -101,17 +101,6 @@ known_cpu_families = (
     'x86_64'
 )
 
-# Environment variables that each lang uses.
-cflags_mapping = {'c': 'CFLAGS',
-                  'cpp': 'CXXFLAGS',
-                  'cu': 'CUFLAGS',
-                  'objc': 'OBJCFLAGS',
-                  'objcpp': 'OBJCXXFLAGS',
-                  'fortran': 'FFLAGS',
-                  'd': 'DFLAGS',
-                  'vala': 'VALAFLAGS'}
-
-
 def detect_gcovr(version='3.1', log=False):
     gcovr_exe = 'gcovr'
     try:
