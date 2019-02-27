@@ -31,7 +31,7 @@ from .wrap import wraptool
 class CommandLineParser:
     def __init__(self):
         self.term_width = shutil.get_terminal_size().columns
-        self.formater = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width/2), width=self.term_width)
+        self.formater = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width / 2), width=self.term_width)
 
         self.commands = {}
         self.hidden_commands = []
