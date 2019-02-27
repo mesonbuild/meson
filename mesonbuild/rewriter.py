@@ -25,10 +25,10 @@
 
 from .ast import IntrospectionInterpreter, build_target_functions, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
 from mesonbuild.mesonlib import MesonException
-from . import mlog, mparser, environment
+from . import mlog, environment
 from functools import wraps
 from pprint import pprint
-from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, IdNode, FunctionNode, StringNode
+from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
 import json, os, re
 
 class RewriterException(MesonException):
@@ -73,7 +73,7 @@ class RequiredKeys:
         return wrapped
 
 class MTypeBase:
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: BaseNode):
         if node is None:
             self.node = self._new_node()
         else:
@@ -85,7 +85,7 @@ class MTypeBase:
 
     def _new_node(self):
         # Overwrite in derived class
-        return mparser.BaseNode()
+        return BaseNode()
 
     def can_modify(self):
         return self.node_type is not None
@@ -114,57 +114,57 @@ class MTypeBase:
         mlog.warning('Cannot remove a regex in type', mlog.bold(type(self).__name__), '--> skipping')
 
 class MTypeStr(MTypeBase):
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: BaseNode):
         super().__init__(node)
 
     def _new_node(self):
-        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, ''))
+        return StringNode(Token('', '', 0, 0, 0, None, ''))
 
     def supported_nodes(self):
-        return [mparser.StringNode]
+        return [StringNode]
 
     def set_value(self, value):
         self.node.value = str(value)
 
 class MTypeBool(MTypeBase):
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: BaseNode):
         super().__init__(node)
 
     def _new_node(self):
-        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, False))
+        return StringNode(Token('', '', 0, 0, 0, None, False))
 
     def supported_nodes(self):
-        return [mparser.BooleanNode]
+        return [BooleanNode]
 
     def set_value(self, value):
         self.node.value = bool(value)
 
 class MTypeID(MTypeBase):
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: BaseNode):
         super().__init__(node)
 
     def _new_node(self):
-        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, ''))
+        return StringNode(Token('', '', 0, 0, 0, None, ''))
 
     def supported_nodes(self):
-        return [mparser.IdNode]
+        return [IdNode]
 
     def set_value(self, value):
         self.node.value = str(value)
 
 class MTypeList(MTypeBase):
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: BaseNode):
         super().__init__(node)
 
     def _new_node(self):
-        return mparser.ArrayNode(mparser.ArgumentNode(mparser.Token('', '', 0, 0, 0, None, '')), 0, 0, 0, 0)
+        return ArrayNode(ArgumentNode(Token('', '', 0, 0, 0, None, '')), 0, 0, 0, 0)
 
     def _new_element_node(self, value):
         # Overwrite in derived class
-        return mparser.BaseNode()
+        return BaseNode()
 
     def _ensure_array_node(self):
-        if not isinstance(self.node, mparser.ArrayNode):
+        if not isinstance(self.node, ArrayNode):
             tmp = self.node
             self.node = self._new_node()
             self.node.args.arguments += [tmp]
@@ -178,7 +178,7 @@ class MTypeList(MTypeBase):
         return False
 
     def get_node(self):
-        if isinstance(self.node, mparser.ArrayNode):
+        if isinstance(self.node, ArrayNode):
             if len(self.node.args.arguments) == 1:
                 return self.node.args.arguments[0]
         return self.node
@@ -188,7 +188,7 @@ class MTypeList(MTypeBase):
         return []
 
     def supported_nodes(self):
-        return [mparser.ArrayNode] + self.supported_element_nodes()
+        return [ArrayNode] + self.supported_element_nodes()
 
     def set_value(self, value):
         if not isinstance(value, list):
@@ -228,44 +228,44 @@ class MTypeList(MTypeBase):
         self._remove_helper(regex, self._check_regex_matches)
 
 class MTypeStrList(MTypeList):
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: BaseNode):
         super().__init__(node)
 
     def _new_element_node(self, value):
-        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, str(value)))
+        return StringNode(Token('', '', 0, 0, 0, None, str(value)))
 
     def _check_is_equal(self, node, value) -> bool:
-        if isinstance(node, mparser.StringNode):
+        if isinstance(node, StringNode):
             return node.value == value
         return False
 
     def _check_regex_matches(self, node, regex: str) -> bool:
-        if isinstance(node, mparser.StringNode):
+        if isinstance(node, StringNode):
             return re.match(regex, node.value) is not None
         return False
 
     def supported_element_nodes(self):
-        return [mparser.StringNode]
+        return [StringNode]
 
 class MTypeIDList(MTypeList):
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: BaseNode):
         super().__init__(node)
 
     def _new_element_node(self, value):
-        return mparser.IdNode(mparser.Token('', '', 0, 0, 0, None, str(value)))
+        return IdNode(Token('', '', 0, 0, 0, None, str(value)))
 
     def _check_is_equal(self, node, value) -> bool:
-        if isinstance(node, mparser.IdNode):
+        if isinstance(node, IdNode):
             return node.value == value
         return False
 
     def _check_regex_matches(self, node, regex: str) -> bool:
-        if isinstance(node, mparser.StringNode):
+        if isinstance(node, StringNode):
             return re.match(regex, node.value) is not None
         return False
 
     def supported_element_nodes(self):
-        return [mparser.IdNode]
+        return [IdNode]
 
 rewriter_keys = {
     'default_options': {
@@ -370,7 +370,7 @@ class Rewriter:
         # Check the assignments
         if target in self.interpreter.assignments:
             node = self.interpreter.assignments[target][0]
-            if isinstance(node, mparser.FunctionNode):
+            if isinstance(node, FunctionNode):
                 if node.func_name in ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']:
                     name = self.interpreter.flatten_args(node.args)[0]
                     tgt = check_list(name)
@@ -391,7 +391,7 @@ class Rewriter:
         # Check the assignments
         if dependency in self.interpreter.assignments:
             node = self.interpreter.assignments[dependency][0]
-            if isinstance(node, mparser.FunctionNode):
+            if isinstance(node, FunctionNode):
                 if node.func_name in ['dependency']:
                     name = self.interpreter.flatten_args(node.args)[0]
                     dep = check_list(name)
@@ -468,21 +468,21 @@ class Rewriter:
                 arg_node = node.args
         if not node:
             mlog.error('Unable to find the function node')
-        assert(isinstance(node, mparser.FunctionNode))
-        assert(isinstance(arg_node, mparser.ArgumentNode))
+        assert(isinstance(node, FunctionNode))
+        assert(isinstance(arg_node, ArgumentNode))
 
         # Print kwargs info
         if cmd['operation'] == 'info':
             info_data = {}
             for key, val in sorted(arg_node.kwargs.items()):
                 info_data[key] = None
-                if isinstance(val, mparser.ElementaryNode):
+                if isinstance(val, ElementaryNode):
                     info_data[key] = val.value
-                elif isinstance(val, mparser.ArrayNode):
+                elif isinstance(val, ArrayNode):
                     data_list = []
                     for i in val.args.arguments:
                         element = None
-                        if isinstance(i, mparser.ElementaryNode):
+                        if isinstance(i, ElementaryNode):
                             element = i.value
                         data_list += [element]
                     info_data[key] = data_list
@@ -535,7 +535,7 @@ class Rewriter:
         if num_changed > 0 and node not in self.modefied_nodes:
             self.modefied_nodes += [node]
 
-    def find_assignment_node(self, node: mparser) -> AssignmentNode:
+    def find_assignment_node(self, node: BaseNode) -> AssignmentNode:
         if hasattr(node, 'ast_id') and node.ast_id in self.interpreter.reverse_assignment:
             return self.interpreter.reverse_assignment[node.ast_id]
         return None
