@@ -1874,15 +1874,14 @@ rule FORTRAN_DEP_HACK%s
                         # a common occurrence, which would lead to lots of
                         # distracting noise.
                         continue
-                    mod_source_file = tdeps[usename]
-                    # Check if a source uses a module it exports itself.
-                    # Potential bug if multiple targets have a file with
-                    # the same name.
-                    try:
-                        if (srcdir / mod_source_file.fname).samefile(src):
+                    srcfile = srcdir / tdeps[usename].fname
+                    if not srcfile.is_file():
+                        if srcfile.name != src.name:  # generated source file
+                            pass
+                        else:  # subproject
                             continue
-                    except FileNotFoundError:
-                        pass
+                    elif srcfile.samefile(src):  # self-reference
+                        continue
 
                     mod_name = compiler.module_name_to_filename(usename)
                     mod_files.append(str(dirname / mod_name))
@@ -1896,12 +1895,14 @@ rule FORTRAN_DEP_HACK%s
                         for parent in parents:
                             if parent not in tdeps:
                                 raise MesonException("submodule {} relies on parent module {} that was not found.".format(submodmatch.group(2).lower(), parent))
-
-                            try:
-                                if (srcdir / tdeps[parent].fname).samefile(src):
+                            submodsrcfile = srcdir / tdeps[parent].fname
+                            if not submodsrcfile.is_file():
+                                if submodsrcfile.name != src.name:  # generated source file
+                                    pass
+                                else:  # subproject
                                     continue
-                            except FileNotFoundError:
-                                pass
+                            elif submodsrcfile.samefile(src):  # self-reference
+                                continue
                             mod_name = compiler.module_name_to_filename(parent)
                             mod_files.append(str(dirname / mod_name))
 
@@ -2198,6 +2199,7 @@ rule FORTRAN_DEP_HACK%s
             for modname, srcfile in self.fortran_deps[target.get_basename()].items():
                 modfile = os.path.join(self.get_target_private_dir(target),
                                        compiler.module_name_to_filename(modname))
+
                 if srcfile == src:
                     depelem = NinjaBuildElement(self.all_outputs, modfile, 'FORTRAN_DEP_HACK' + crstr, rel_obj)
                     depelem.write(outfile)
