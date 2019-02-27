@@ -44,6 +44,7 @@ class CudaModule(ExtensionModule):
                 raise argerror
 
         driver_version_table = [
+            {'cuda_version': '>=10.1.105', 'windows': '418.96', 'linux': '418.39'},
             {'cuda_version': '>=10.0.130', 'windows': '411.31', 'linux': '410.48'},
             {'cuda_version': '>=9.2.148',  'windows': '398.26', 'linux': '396.37'},
             {'cuda_version': '>=9.2.88',   'windows': '397.44', 'linux': '396.26'},
