@@ -36,7 +36,7 @@ class RewriterException(MesonException):
 
 def add_arguments(parser, formater=None):
     parser.add_argument('--sourcedir', type=str, default='.', metavar='SRCDIR', help='Path to source directory.')
-    subparsers = parser.add_subparsers(dest='type', required=True, title='Rewriter commands', description='Rewrite command to execute')
+    subparsers = parser.add_subparsers(dest='type', title='Rewriter commands', description='Rewrite command to execute')
 
     # Target
     tgt_parser = subparsers.add_parser('target', aliases=['tgt'], help='Modify a target', formatter_class=formater)
@@ -899,6 +899,11 @@ cli_type_map = {
 def run(options):
     rewriter = Rewriter(options.sourcedir)
     rewriter.analyze_meson()
+
+    if options.type is None:
+        print('No command specified')
+        return 1
+
     commands = cli_type_map[options.type](options)
 
     if not isinstance(commands, list):
