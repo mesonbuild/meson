@@ -27,7 +27,6 @@ from .ast import IntrospectionInterpreter, build_target_functions, AstConditionL
 from mesonbuild.mesonlib import MesonException
 from . import mlog, environment
 from functools import wraps
-from pprint import pprint
 from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
 import json, os, re
 
@@ -284,7 +283,6 @@ rewriter_keys = {
         'sources': (list, [], None),
         'subdir': (str, '', None),
         'target_type': (str, 'executable', ['both_libraries', 'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library']),
-        'debug': (bool, False, None)
     }
 }
 
@@ -546,11 +544,7 @@ class Rewriter:
         target = self.find_target(cmd['target'])
         if target is None and cmd['operation'] != 'tgt_add':
             mlog.error('Unknown target "{}" --> skipping'.format(cmd['target']))
-            if cmd['debug']:
-                pprint(self.interpreter.targets)
             return
-        if cmd['debug']:
-            pprint(target)
 
         # Make source paths relative to the current subdir
         def rel_source(src: str) -> str:
