@@ -1,27 +1,19 @@
 project('netcdf_test', 'c', 'cpp')
 
-if build_machine.system() == 'darwin'
-  error('MESON_SKIP_TEST: NetCDF CI image not setup for OSX.')
-endif
-
-if build_machine.system() == 'cygwin'
-  error('MESON_SKIP_TEST: NetCDF CI image not setup for Cygwin.')
-endif
-
 
 # --- C tests
-NCc = dependency('netcdf', language : 'c', required : false)
-if not NCc.found()
+nc_c = dependency('netcdf', language : 'c', required : false)
+if not nc_c.found()
   error('MESON_SKIP_TEST: NetCDF C library not found, skipping NetCDF framework tests.')
 endif
-exec = executable('exec', 'main.c', dependencies : NCc)
+exec = executable('exec', 'main.c', dependencies : nc_c)
 
 test('NetCDF C', exec)
 
 # --- C++ tests
-NCcpp = dependency('netcdf', language : 'cpp', required : false)
-if NCcpp.found()
-  execpp = executable('execpp', 'main.cpp', dependencies : NCcpp)
+nc_cpp = dependency('netcdf', language : 'cpp', required : false)
+if nc_cpp.found()
+  execpp = executable('execpp', 'main.cpp', dependencies : nc_cpp)
   test('NetCDF C++', execpp)
 endif
 
@@ -29,15 +21,15 @@ endif
 if build_machine.system() != 'windows'
   add_languages('fortran')
 
-  NCf = dependency('netcdf', language : 'fortran', required : false)
-  if NCf.found()
-    exef = executable('exef', 'main.f90', dependencies : NCf)
+  nc_f = dependency('netcdf', language : 'fortran', required : false)
+  if nc_f.found()
+    exef = executable('exef', 'main.f90', dependencies : nc_f)
 
     test('NetCDF Fortran', exef)
   endif
 endif
 
 # Check we can apply a version constraint
-if NCc.version() != 'unknown'
-  dependency('netcdf', version: '>=@0@'.format(NCc.version()))
+if nc_c.version() != 'unknown'
+  dependency('netcdf', version: '>=@0@'.format(nc_c.version()))
 endif
