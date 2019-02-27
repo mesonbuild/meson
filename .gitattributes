@@ -3,3 +3,10 @@
 * text eol=lf
 *.png binary
 *.icns binary
+
+test?cases/* linguist-detectable=false
+manual?tests/* linguist-detectable=false
+data/* linguist-detectable=false
+mesonbuild/dependencies/data/* linguist-detectable=false
+ci/* linguist-detectable=false
+ciimage/* linguist-detectable=false
