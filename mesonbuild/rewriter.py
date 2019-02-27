@@ -427,7 +427,7 @@ class Rewriter:
             **cdata.user_options
         }
 
-        for key, val in cmd['options'].items():
+        for key, val in sorted(cmd['options'].items()):
             if key not in options:
                 mlog.error('Unknown options', mlog.bold(key), '--> skipping')
                 continue
@@ -474,7 +474,7 @@ class Rewriter:
         # Print kwargs info
         if cmd['operation'] == 'info':
             info_data = {}
-            for key, val in arg_node.kwargs.items():
+            for key, val in sorted(arg_node.kwargs.items()):
                 info_data[key] = None
                 if isinstance(val, mparser.ElementaryNode):
                     info_data[key] = val.value
@@ -492,7 +492,7 @@ class Rewriter:
 
         # Modify the kwargs
         num_changed = 0
-        for key, val in cmd['kwargs'].items():
+        for key, val in sorted(cmd['kwargs'].items()):
             if key not in kwargs_def:
                 mlog.error('Cannot modify unknown kwarg --> skipping', mlog.bold(key))
                 continue
