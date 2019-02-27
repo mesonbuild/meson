@@ -53,7 +53,11 @@ $ MESON_TESTTHREADS=5 ninja test
 
 ## Skipped tests and hard errors
 
-Sometimes a test can only determine at runtime that it can not be run. The GNU standard approach in this case is to exit the program with error code 77. Meson will detect this and report these tests as skipped rather than failed. This behavior was added in version 0.37.0.
+Sometimes a test can only determine at runtime that it can not be run.
+
+For the default `exitcode` testing protocol, the GNU standard approach in this case is to exit the program with error code 77. Meson will detect this and report these tests as skipped rather than failed. This behavior was added in version 0.37.0.
+
+For TAP-based tests, skipped tests should print a single line starting with `1..0 # SKIP`.
 
 In addition, sometimes a test fails set up so that it should fail even if it is marked as an expected failure. The GNU standard approach in this case is to exit the program with error code 99. Again, Meson will detect this and report these tests as `ERROR`, ignoring the setting of `should_fail`. This behavior was added in version 0.50.0.
 
