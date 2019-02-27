@@ -5261,6 +5261,17 @@ class RewriterTests(BasePlatformTests):
         out = self.extract_test_data(out)
         self.assertDictEqual(out, expected)
 
+    def test_target_add_sources_abs(self):
+        self.prime('1 basic')
+        abs_src = [os.path.join(self.builddir, x) for x in ['a1.cpp', 'a2.cpp', 'a6.cpp']]
+        add = json.dumps([{"type": "target", "target": "trivialprog1", "operation": "src_add", "sources": abs_src}])
+        inf = json.dumps([{"type": "target", "target": "trivialprog1", "operation": "info"}])
+        self.rewrite(self.builddir, add)
+        out = self.rewrite(self.builddir, inf)
+        out = self.extract_test_data(out)
+        expected = {'target': {'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']}}}
+        self.assertDictEqual(out, expected)
+
     def test_target_remove_sources(self):
         self.prime('1 basic')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'rmSrc.json'))

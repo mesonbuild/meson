@@ -552,6 +552,19 @@ class Rewriter:
         if cmd['debug']:
             pprint(target)
 
+        # Make source paths relative to the current subdir
+        def rel_source(src: str) -> str:
+            subdir = os.path.abspath(os.path.join(self.sourcedir, target['subdir']))
+            if os.path.isabs(src):
+                return os.path.relpath(src, subdir)
+            elif not os.path.exists(src):
+                return src # Trust the user when the source doesn't exist
+            # Make sure that the path is relative to the subdir
+            return os.path.relpath(os.path.abspath(src), subdir)
+
+        if target is not None:
+            cmd['sources'] = [rel_source(x) for x in cmd['sources']]
+
         # Utility function to get a list of the sources from a node
         def arg_list_from_node(n):
             args = []
