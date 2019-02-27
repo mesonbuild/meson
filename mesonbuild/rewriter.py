@@ -27,18 +27,45 @@ from .ast import IntrospectionInterpreter, build_target_functions, AstConditionL
 from mesonbuild.mesonlib import MesonException
 from . import mlog, environment
 from functools import wraps
+from typing import List, Dict
 from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
 import json, os, re
 
 class RewriterException(MesonException):
     pass
 
-def add_arguments(parser):
-    parser.add_argument('--sourcedir', default='.',
-                        help='Path to source directory.')
-    parser.add_argument('-p', '--print', action='store_true', default=False, dest='print',
-                        help='Print the parsed AST.')
-    parser.add_argument('command', type=str)
+def add_arguments(parser, formater=None):
+    parser.add_argument('--sourcedir', type=str, default='.', metavar='SRCDIR', help='Path to source directory.')
+    subparsers = parser.add_subparsers(dest='type', required=True, title='Rewriter commands', description='Rewrite command to execute')
+
+    # Target
+    tgt_parser = subparsers.add_parser('target', aliases=['tgt'], help='Modify a target', formatter_class=formater)
+    tgt_parser.add_argument('-s', '--subdir', default='', dest='subdir', help='Subdirectory of the new target (only for the "add_target" action)')
+    tgt_parser.add_argument('--type', dest='tgt_type', choices=rewriter_keys['target']['target_type'][2], default='executable',
+                            help='Type of the target to add (only for the "add_target" action)')
+    tgt_parser.add_argument('target', help='Name or ID of the target')
+    tgt_parser.add_argument('operation', choices=['add', 'rm', 'add_target', 'rm_target', 'info'],
+                            help='Action to execute')
+    tgt_parser.add_argument('sources', nargs='*', help='Sources to add/remove')
+
+    # KWARGS
+    kw_parser = subparsers.add_parser('kwargs', help='Modify keyword arguments', formatter_class=formater)
+    kw_parser.add_argument('operation', choices=rewriter_keys['kwargs']['operation'][2],
+                           help='Action to execute')
+    kw_parser.add_argument('function', choices=list(rewriter_func_kwargs.keys()),
+                           help='Function type to modify')
+    kw_parser.add_argument('id', help='ID of the function to modify (can be anything for "project")')
+    kw_parser.add_argument('kwargs', nargs='*', help='Pairs of keyword and value')
+
+    # Default options
+    def_parser = subparsers.add_parser('default-options', aliases=['def'], help='Modify the project default options', formatter_class=formater)
+    def_parser.add_argument('operation', choices=rewriter_keys['default_options']['operation'][2],
+                            help='Action to execute')
+    def_parser.add_argument('options', nargs='*', help='Key, value pairs of configuration option')
+
+    # JSON file/command
+    cmd_parser = subparsers.add_parser('command', aliases=['cmd'], help='Execute a JSON array of commands', formatter_class=formater)
+    cmd_parser.add_argument('json', help='JSON string or file to execute')
 
 class RequiredKeys:
     def __init__(self, keys):
@@ -809,14 +836,70 @@ class Rewriter:
             with open(val['path'], 'w') as fp:
                 fp.write(val['raw'])
 
+target_operation_map = {
+    'add': 'src_add',
+    'rm': 'src_rm',
+    'add_target': 'tgt_add',
+    'rm_target': 'tgt_rm',
+    'info': 'info',
+}
+
+def list_to_dict(in_list: List[str]) -> Dict[str, str]:
+    if len(in_list) % 2 != 0:
+        raise TypeError('An even ammount of arguments are required')
+    result = {}
+    for i in range(0, len(in_list), 2):
+        result[in_list[i]] = in_list[i + 1]
+    return result
+
+def generate_target(options) -> List[dict]:
+    return [{
+        'type': 'target',
+        'target': options.target,
+        'operation': target_operation_map[options.operation],
+        'sources': options.sources,
+        'subdir': options.subdir,
+        'target_type': options.tgt_type,
+    }]
+
+def generate_kwargs(options) -> List[dict]:
+    return [{
+        'type': 'kwargs',
+        'function': options.function,
+        'id': options.id,
+        'operation': options.operation,
+        'kwargs': list_to_dict(options.kwargs),
+    }]
+
+def generate_def_opts(options) -> List[dict]:
+    return [{
+        'type': 'default_options',
+        'operation': options.operation,
+        'options': list_to_dict(options.options),
+    }]
+
+def genreate_cmd(options) -> List[dict]:
+    if os.path.exists(options.json):
+        with open(options.json, 'r') as fp:
+            return json.load(fp)
+    else:
+        return json.loads(options.json)
+
+# Map options.type to the actual type name
+cli_type_map = {
+    'target': generate_target,
+    'tgt': generate_target,
+    'kwargs': generate_kwargs,
+    'default-options': generate_def_opts,
+    'def': generate_def_opts,
+    'command': genreate_cmd,
+    'cmd': genreate_cmd,
+}
+
 def run(options):
     rewriter = Rewriter(options.sourcedir)
     rewriter.analyze_meson()
-    if os.path.exists(options.command):
-        with open(options.command, 'r') as fp:
-            commands = json.load(fp)
-    else:
-        commands = json.loads(options.command)
+    commands = cli_type_map[options.type](options)
 
     if not isinstance(commands, list):
         raise TypeError('Command is not a list')

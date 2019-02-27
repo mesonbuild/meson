@@ -5196,7 +5196,7 @@ class RewriterTests(BasePlatformTests):
     def prime(self, dirname):
         copy_tree(os.path.join(self.rewrite_test_dir, dirname), self.builddir)
 
-    def rewrite(self, directory, args):
+    def rewrite_raw(self, directory, args):
         if isinstance(args, str):
             args = [args]
         command = self.rewrite_command + ['--sourcedir', directory] + args
@@ -5208,6 +5208,11 @@ class RewriterTests(BasePlatformTests):
                 raise unittest.SkipTest('Project requested skipping.')
             raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
         return p.stdout
+
+    def rewrite(self, directory, args):
+        if isinstance(args, str):
+            args = [args]
+        return self.rewrite_raw(directory, ['command'] + args)
 
     def extract_test_data(self, out):
         match = RewriterTests.data_regex.match(out)
