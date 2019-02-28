@@ -2286,6 +2286,7 @@ display_name_map = {
     'hdf5': 'HDF5',
     'llvm': 'LLVM',
     'mpi': 'MPI',
+    'netcdf': 'NetCDF',
     'openmp': 'OpenMP',
     'wxwidgets': 'WxWidgets',
 }

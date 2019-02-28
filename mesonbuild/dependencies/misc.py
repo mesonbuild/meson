@@ -117,6 +117,35 @@ class HDF5Dependency(ExternalDependency):
             except Exception:
                 pass
 
+class NetCDFDependency(ExternalDependency):
+
+    def __init__(self, environment, kwargs):
+        language = kwargs.get('language', 'c')
+        super().__init__('netcdf', environment, language, kwargs)
+        kwargs['required'] = False
+        kwargs['silent'] = True
+        self.is_found = False
+
+        pkgconfig_files = ['netcdf']
+
+        if language not in ('c', 'cpp', 'fortran'):
+            raise DependencyException('Language {} is not supported with NetCDF.'.format(language))
+
+        if language == 'fortran':
+            pkgconfig_files.append('netcdf-fortran')
+
+        self.compile_args = []
+        self.link_args = []
+        self.pcdep = []
+        for pkg in pkgconfig_files:
+            pkgdep = PkgConfigDependency(pkg, environment, kwargs, language=self.language)
+            if pkgdep.found():
+                self.compile_args.extend(pkgdep.get_compile_args())
+                self.link_args.extend(pkgdep.get_link_args())
+                self.version = pkgdep.get_version()
+                self.is_found = True
+                self.pcdep.append(pkgdep)
+
 class MPIDependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
