@@ -257,7 +257,9 @@ libraries that have been compiled for single-threaded use instead.
 
 ## Fortran Coarrays
 
-As of 0.50.0 Coarrays are a Fortran language intrinsic feature, enabled by
+*(added 0.50.0)*
+
+ Coarrays are a Fortran language intrinsic feature, enabled by
 `dependency('coarray')`.
 
 GCC will use OpenCoarrays if present to implement coarrays, while Intel and NAG
@@ -286,6 +288,9 @@ test('gtest test', e)
 ```
 
 ## HDF5
+
+*(added 0.50.0)*
+
 HDF5 is supported for C, C++ and Fortran. Because dependencies are
 language-specific, you must specify the requested language using the
 `language` keyword argument, i.e.,
@@ -350,6 +355,9 @@ environment variables `MPICC`, `MPICXX`, `MPIFC`, `MPIF90`, or
 `MPIF77`, during configuration.
 
 ## NetCDF
+
+*(added 0.50.0)*
+
 NetCDF is supported for C, C++ and Fortran. Because NetCDF dependencies are
 language-specific, you must specify the requested language using the
 `language` keyword argument, i.e.,
