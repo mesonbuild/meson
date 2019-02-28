@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re, subprocess, os.path
+import re, os.path
 
 from .. import mlog
 from ..mesonlib import EnvironmentException, Popen_safe
@@ -45,6 +45,9 @@ class CudaCompiler(Compiler):
 
     def get_no_stdinc_args(self):
         return []
+
+    def thread_link_flags(self, environment):
+        return ['-Xcompiler=-pthread']
 
     def sanity_check(self, work_dir, environment):
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
