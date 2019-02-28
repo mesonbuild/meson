@@ -3242,7 +3242,7 @@ recommended as it is not supported on some platforms''')
         res = self.introspect('--targets')
 
         expected = {
-            'sublib': "sublib",
+            'sublib': 'sublib',
             'simpletest': 'sublib',
             'user': None
         }
