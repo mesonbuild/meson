@@ -3236,6 +3236,21 @@ recommended as it is not supported on some platforms''')
         }
         self.assertDictEqual(res, expected)
 
+    def test_introspection_target_subproject(self):
+        testdir = os.path.join(self.common_test_dir, '46 subproject')
+        self.init(testdir)
+        res = self.introspect('--targets')
+
+        expected = {
+            'sublib': 'sublib',
+            'simpletest': 'sublib',
+            'user': None
+        }
+
+        for entry in res:
+            name = entry['name']
+            self.assertEquals(entry['subproject'], expected[name])
+
     @skipIfNoExecutable('clang-format')
     def test_clang_format(self):
         if self.backend is not Backend.ninja:

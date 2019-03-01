@@ -54,6 +54,7 @@ for one target is defined as follows:
     "id": "The internal ID meson uses",
     "type": "<TYPE>",
     "defined_in": "/Path/to/the/targets/meson.build",
+    "subproject": null,
     "filename": ["list", "of", "generated", "files"],
     "build_by_default": true / false,
     "target_sources": [],
@@ -65,6 +66,9 @@ If the key `installed` is set to `true`, the key `install_filename` will also
 be present. It stores the installation location for each file in `filename`.
 If one file in `filename` is not installed, its corresponding install location
 is set to `null`.
+
+The `subproject' key specifies the name of the subproject this target was
+defined in, or `null` if the target was defined in the top level project.
 
 A target usually generates only one file. However, it is possible for custom
 targets to have multiple outputs.

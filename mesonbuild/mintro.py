@@ -135,7 +135,8 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
             'defined_in': os.path.normpath(os.path.join(src_dir, target.subdir, 'meson.build')),
             'filename': [os.path.join(build_dir, target.subdir, x) for x in target.get_outputs()],
             'build_by_default': target.build_by_default,
-            'target_sources': backend.get_introspection_data(idname, target)
+            'target_sources': backend.get_introspection_data(idname, target),
+            'subproject': target.subproject or None
         }
 
         if installdata and target.should_install():
