@@ -142,9 +142,16 @@ steps:
        MSBuild /version
      }
 
+     echo "=== PATH BEGIN ==="
+     echo ($env:Path).Replace(';',"`n")
+     echo "=== PATH END ==="
+     echo ""
+     echo "Locating Python:"
      where.exe python
      python --version
 
+     echo ""
+     echo "=== Start running tests ==="
      python run_tests.py --backend $(backend)
 
 - task: PublishTestResults@2
