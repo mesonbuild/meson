@@ -26,6 +26,7 @@ from .ast import IntrospectionInterpreter, build_target_functions, AstConditionL
 from . import mlog
 from .backend import backends
 from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
+from typing import List, Optional
 import sys, os
 import pathlib
 
@@ -38,7 +39,10 @@ def get_meson_introspection_version():
 def get_meson_introspection_required_version():
     return ['>=1.0', '<2.0']
 
-def get_meson_introspection_types(coredata: cdata.CoreData = None, builddata: build.Build = None, backend: backends.Backend = None, sourcedir: str = None):
+def get_meson_introspection_types(coredata: Optional[cdata.CoreData] = None,
+                                  builddata: Optional[build.Build] = None,
+                                  backend: Optional[backends.Backend] = None,
+                                  sourcedir: Optional[str] = None):
     if backend and builddata:
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
         testdata = backend.create_test_serialisation(builddata.get_tests())
@@ -191,7 +195,7 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
         tlist.append(t)
     return tlist
 
-def list_buildoptions_from_source(intr: IntrospectionInterpreter):
+def list_buildoptions_from_source(intr: IntrospectionInterpreter) -> List[dict]:
     return list_buildoptions(intr.coredata)
 
 def list_target_files(target_name: str, targets: list, source_dir: str):
@@ -215,7 +219,7 @@ def list_target_files(target_name: str, targets: list, source_dir: str):
 
     return result
 
-def list_buildoptions(coredata: cdata.CoreData):
+def list_buildoptions(coredata: cdata.CoreData) -> List[dict]:
     optlist = []
 
     dir_option_names = ['bindir',
