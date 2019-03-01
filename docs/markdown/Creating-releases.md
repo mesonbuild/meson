@@ -17,7 +17,8 @@ single command:
 This creates a file called `projectname-version.tar.xz` in the build
 tree subdirectory `meson-dist`. This archive contains the full
 contents of the latest commit in revision control including all the
-submodules. All revision control metadata is removed. Meson then takes
+submodules (recursively). All revision control metadata is removed.
+Meson then takes
 this archive and tests that it works by doing a full compile + test +
 install cycle. If all these pass, Meson will then create a SHA-256
 checksum file next to the archive.
