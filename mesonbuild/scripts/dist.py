@@ -62,7 +62,7 @@ def process_submodules(dirname):
     module_file = os.path.join(dirname, '.gitmodules')
     if not os.path.exists(module_file):
         return
-    subprocess.check_call(['git', 'submodule', 'update', '--init'], cwd=dirname)
+    subprocess.check_call(['git', 'submodule', 'update', '--init', '--recursive'], cwd=dirname)
     for line in open(module_file):
         line = line.strip()
         if '=' not in line:
