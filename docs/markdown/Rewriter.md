@@ -87,7 +87,7 @@ Currently, only the following function types are supported:
 
 - dependency
 - target (any build target, the function ID is the target name/ID)
-- project (the function ID can be anything since project() can only be called once)
+- project (the function ID must be an empty string since project() can only be called once)
 
 For more information see the help output of the rewriter kwargs command.
 

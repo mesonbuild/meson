@@ -479,6 +479,8 @@ class Rewriter:
         node = None
         arg_node = None
         if cmd['function'] == 'project':
+            if cmd['id'] != '':
+                mlog.error('The ID for the function type project must be an empty string --> skipping')
             node = self.interpreter.project_node
             arg_node = node.args
         elif cmd['function'] == 'target':
