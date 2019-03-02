@@ -57,7 +57,7 @@ class CommandLineParser:
         self.add_command('help', self.add_help_arguments, self.run_help_command,
                          help='Print help of a subcommand')
         self.add_command('rewrite', lambda parser: rewriter.add_arguments(parser, self.formater), rewriter.run,
-                         help='Modify the project definition', aliases=['rw'])
+                         help='Modify the project definition')
 
         # Hidden commands
         self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,

@@ -39,7 +39,7 @@ def add_arguments(parser, formater=None):
     subparsers = parser.add_subparsers(dest='type', title='Rewriter commands', description='Rewrite command to execute')
 
     # Target
-    tgt_parser = subparsers.add_parser('target', aliases=['tgt'], help='Modify a target', formatter_class=formater)
+    tgt_parser = subparsers.add_parser('target', help='Modify a target', formatter_class=formater)
     tgt_parser.add_argument('-s', '--subdir', default='', dest='subdir', help='Subdirectory of the new target (only for the "add_target" action)')
     tgt_parser.add_argument('--type', dest='tgt_type', choices=rewriter_keys['target']['target_type'][2], default='executable',
                             help='Type of the target to add (only for the "add_target" action)')
@@ -58,13 +58,13 @@ def add_arguments(parser, formater=None):
     kw_parser.add_argument('kwargs', nargs='*', help='Pairs of keyword and value')
 
     # Default options
-    def_parser = subparsers.add_parser('default-options', aliases=['def'], help='Modify the project default options', formatter_class=formater)
+    def_parser = subparsers.add_parser('default-options', help='Modify the project default options', formatter_class=formater)
     def_parser.add_argument('operation', choices=rewriter_keys['default_options']['operation'][2],
                             help='Action to execute')
     def_parser.add_argument('options', nargs='*', help='Key, value pairs of configuration option')
 
     # JSON file/command
-    cmd_parser = subparsers.add_parser('command', aliases=['cmd'], help='Execute a JSON array of commands', formatter_class=formater)
+    cmd_parser = subparsers.add_parser('command', help='Execute a JSON array of commands', formatter_class=formater)
     cmd_parser.add_argument('json', help='JSON string or file to execute')
 
 class RequiredKeys:

@@ -26,10 +26,9 @@ frontends, etc.)
 
 ## Using the rewriter
 
-All rewriter functions are accessed via `meson rewrite` (or the rewriter alias
-`meson rw`). The meson rewriter assumes that it is run inside the project root
-directory. If this isn't the case, use `--sourcedir` to specify the actual
-project source directory.
+All rewriter functions are accessed via `meson rewrite`. The meson rewriter
+assumes that it is run inside the project root directory. If this isn't the
+case, use `--sourcedir` to specify the actual project source directory.
 
 ### Adding and removing sources
 
