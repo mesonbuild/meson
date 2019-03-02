@@ -5291,6 +5291,48 @@ class RewriterTests(BasePlatformTests):
         expected = {'name': 'something', 'sources': ['first.c', 'second.c']}
         self.assertDictEqual(out['target']['94b671c@@something@exe'], expected)
 
+    def test_target_source_sorting(self):
+        self.prime('5 sorting')
+        add_json = json.dumps([{'type': 'target', 'target': 'exe1', 'operation': 'src_add', 'sources': ['a666.c']}])
+        inf_json = json.dumps([{'type': 'target', 'target': 'exe1', 'operation': 'info'}])
+        out = self.rewrite(self.builddir, add_json)
+        out = self.rewrite(self.builddir, inf_json)
+        out = self.extract_test_data(out)
+        expected = {
+            'target': {
+                'exe1@exe': {
+                    'name': 'exe1',
+                    'sources': [
+                        'aaa/a/a1.c',
+                        'aaa/b/b1.c',
+                        'aaa/b/b2.c',
+                        'aaa/f1.c',
+                        'aaa/f2.c',
+                        'aaa/f3.c',
+                        'bbb/a/b1.c',
+                        'bbb/b/b2.c',
+                        'bbb/b3.c',
+                        'bbb/b4.c',
+                        'bbb/b5.c',
+                        'a1.c',
+                        'a10.c',
+                        'a100.c',
+                        'a101.c',
+                        'a110.c',
+                        'a2.c',
+                        'a20.c',
+                        'a210.c',
+                        'a3.c',
+                        'a30.c',
+                        'a666.c',
+                        'b1.c',
+                        'c2.c'
+                    ]
+                }
+            }
+        }
+        self.assertDictEqual(out, expected)
+
     def test_kwargs_info(self):
         self.prime('3 kwargs')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
