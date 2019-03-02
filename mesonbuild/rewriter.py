@@ -573,9 +573,19 @@ class Rewriter:
                 node = target['node']
             assert(node is not None)
 
+            # Generate the current source list
+            src_list = []
+            for i in target['sources']:
+                for j in arg_list_from_node(i):
+                    if isinstance(j, StringNode):
+                        src_list += [j.value]
+
             # Generate the new String nodes
             to_append = []
-            for i in cmd['sources']:
+            for i in sorted(set(cmd['sources'])):
+                if i in src_list:
+                    mlog.log('  -- Source', mlog.green(i), 'is already defined for the target --> skipping')
+                    continue
                 mlog.log('  -- Adding source', mlog.green(i), 'at',
                          mlog.yellow('{}:{}'.format(os.path.join(node.subdir, environment.build_filename), node.lineno)))
                 token = Token('string', node.subdir, 0, 0, 0, None, i)
