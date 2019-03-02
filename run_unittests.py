@@ -44,7 +44,7 @@ import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.ast import AstInterpreter
 from mesonbuild.mesonlib import (
-    is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku,
+    is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_sunos,
     windows_proof_rmtree, python_command, version_compare,
     BuildDirLock, Version, PerMachine
 )
@@ -66,8 +66,12 @@ def get_dynamic_section_entry(fname, entry):
         raise unittest.SkipTest('Test only applicable to ELF platforms')
 
     try:
-        raw_out = subprocess.check_output(['readelf', '-d', fname],
-                                          universal_newlines=True)
+        if is_sunos():
+            raw_out = subprocess.check_output(['/usr/gnu/bin/readelf', '-d', fname],
+                                              universal_newlines=True)
+        else:
+            raw_out = subprocess.check_output(['readelf', '-d', fname],
+                                              universal_newlines=True)
     except FileNotFoundError:
         # FIXME: Try using depfixer.py:Elf() as a fallback
         raise unittest.SkipTest('readelf not found')
@@ -1870,7 +1874,7 @@ class AllPlatformTests(BasePlatformTests):
         ar = mesonbuild.linkers.ArLinker
         lib = mesonbuild.linkers.VisualStudioLinker
         langs = [('c', 'CC'), ('cpp', 'CXX')]
-        if not is_windows():
+        if not is_windows() and not is_sunos():
             langs += [('objc', 'OBJC'), ('objcpp', 'OBJCXX')]
         testdir = os.path.join(self.unit_test_dir, '5 compiler detection')
         env = get_fake_env(testdir, self.builddir, self.prefix)
@@ -1917,6 +1921,8 @@ class AllPlatformTests(BasePlatformTests):
                     self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_MINGW)
                 elif is_cygwin():
                     self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_CYGWIN)
+                elif is_sunos():
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_SUNOS)
                 else:
                     self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_STANDARD)
             if isinstance(cc, clang):
@@ -2211,6 +2217,10 @@ int main(int argc, char **argv) {
                 # so ignore that.
                 self.assertTrue(rpath.startswith('/usr/lib/gcc'))
                 rpaths = rpath.split(':')[1:]
+            elif is_sunos():
+                # OpenIndiana prepends /usr/gcc/VERSION/lib
+                self.assertTrue(rpath.startswith('/usr/gcc'))
+                rpaths = rpath.split(':')[1:]
             else:
                 rpaths = rpath.split(':')
             for path in rpaths:
@@ -2221,6 +2231,10 @@ int main(int argc, char **argv) {
             if is_dragonflybsd():
                 # The rpath should be equal to /usr/lib/gccVERSION
                 self.assertTrue(rpath.startswith('/usr/lib/gcc'))
+                self.assertEqual(len(rpath.split(':')), 1)
+            elif is_sunos():
+                # The rpath should be equal to /usr/gcc
+                self.assertTrue(rpath.startswith('/usr/gcc'))
                 self.assertEqual(len(rpath.split(':')), 1)
             else:
                 self.assertTrue(rpath is None)
@@ -2613,20 +2627,36 @@ int main(int argc, char **argv) {
             raise unittest.SkipTest('system crossfile paths not defined for Windows (yet)')
 
         testdir = os.path.join(self.common_test_dir, '1 trivial')
-        cross_content = textwrap.dedent("""\
-            [binaries]
-            c = '/usr/bin/cc'
-            ar = '/usr/bin/ar'
-            strip = '/usr/bin/ar'
+        if is_sunos():
+            cross_content = textwrap.dedent("""\
+                [binaries]
+                c = '/usr/bin/gcc'
+                ar = '/usr/bin/gar'
+                strip = '/usr/bin/gar'
 
-            [properties]
+                [properties]
 
-            [host_machine]
-            system = 'linux'
-            cpu_family = 'x86'
-            cpu = 'i686'
-            endian = 'little'
-            """)
+                [host_machine]
+                system = 'sunos'
+                cpu_family = 'x86'
+                cpu = 'i686'
+                endian = 'little'
+                """)
+        else:
+            cross_content = textwrap.dedent("""\
+                [binaries]
+                c = '/usr/bin/cc'
+                ar = '/usr/bin/ar'
+                strip = '/usr/bin/ar'
+
+                [properties]
+
+                [host_machine]
+                system = 'linux'
+                cpu_family = 'x86'
+                cpu = 'i686'
+                endian = 'little'
+                """)
 
         with tempfile.TemporaryDirectory() as d:
             dir_ = os.path.join(d, 'meson', 'cross')
@@ -4170,6 +4200,8 @@ class LinuxlikeTests(BasePlatformTests):
     def test_generate_gir_with_address_sanitizer(self):
         if is_cygwin():
             raise unittest.SkipTest('asan not available on Cygwin')
+        elif is_sunos():
+            raise unittest.SkipTest('asan not available on SunOS')
 
         testdir = os.path.join(self.framework_test_dir, '7 gnome')
         self.init(testdir, ['-Db_sanitize=address', '-Db_lundef=false'])
@@ -4613,6 +4645,9 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertListEqual(t['filename'], [os.path.join(self.builddir, 'gdbus/generated-gdbus-doc-' + os.path.basename(ifile))])
 
     def test_build_rpath(self):
+        #
+        # Todo: SunOS tests have to be made a little strikter.
+        #
         if is_cygwin():
             raise unittest.SkipTest('Windows PE/COFF binaries do not use RPATH')
         testdir = os.path.join(self.unit_test_dir, '10 build_rpath')
@@ -4620,21 +4655,35 @@ class LinuxlikeTests(BasePlatformTests):
         self.build()
         # C program RPATH
         build_rpath = get_rpath(os.path.join(self.builddir, 'prog'))
-        self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar')
+        if is_sunos():
+            self.assertTrue(build_rpath.endswith('$ORIGIN/sub:/foo/bar'))
+        else:
+            self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar')
         self.install()
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/prog'))
-        self.assertEqual(install_rpath, '/baz')
+        if is_sunos():
+            self.assertTrue(install_rpath.endswith('/baz'))
+        else:
+            self.assertEqual(install_rpath, '/baz')
         # C++ program RPATH
         build_rpath = get_rpath(os.path.join(self.builddir, 'progcxx'))
-        self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar')
+        if is_sunos():
+            self.assertTrue(build_rpath.endswith('$ORIGIN/sub:/foo/bar'))
+        else:
+            self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar')
         self.install()
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/progcxx'))
-        self.assertEqual(install_rpath, 'baz')
+        if is_sunos():
+            self.assertEqual(install_rpath, 'baz')
+        else:
+            self.assertEqual(install_rpath, 'baz')
 
     @skip_if_not_base_option('b_sanitize')
     def test_pch_with_address_sanitizer(self):
         if is_cygwin():
             raise unittest.SkipTest('asan not available on Cygwin')
+        if is_sunos():
+            raise unittest.SkipTest('asan not available on SunOS')
 
         testdir = os.path.join(self.common_test_dir, '13 pch')
         self.init(testdir, ['-Db_sanitize=address'])
@@ -4662,7 +4711,8 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '11 cross prog')
         crossfile = tempfile.NamedTemporaryFile(mode='w')
         print(os.path.join(testdir, 'some_cross_tool.py'))
-        crossfile.write('''[binaries]
+        if not is_sunos():
+            crossfile.write('''[binaries]
 c = '/usr/bin/cc'
 ar = '/usr/bin/ar'
 strip = '/usr/bin/ar'
@@ -4677,6 +4727,23 @@ cpu_family = 'arm'
 cpu = 'armv7' # Not sure if correct.
 endian = 'little'
 '''.format(os.path.join(testdir, 'some_cross_tool.py')))
+        else:
+            crossfile.write('''[binaries]
+c = '/usr/bin/gcc'
+ar = '/usr/bin/gar'
+strip = '/usr/bin/gar'
+sometool.py = ['{0}']
+someothertool.py = '{0}'
+
+[properties]
+
+[host_machine]
+system = 'sunos'
+cpu_family = 'arm'
+cpu = 'armv7' # Not sure if correct.
+endian = 'little'
+'''.format(os.path.join(testdir, 'some_cross_tool.py')))
+
         crossfile.flush()
         self.meson_cross_file = crossfile.name
         self.init(testdir)
@@ -4837,11 +4904,16 @@ endian = 'little'
         self.init(testdir)
         if is_osx():
             rpathre = re.compile(r'-rpath,.*/subprojects/sub1.*-rpath,.*/subprojects/sub2')
+        elif is_sunos():
+            rpathre = re.compile(r'-R,\$\$ORIGIN/subprojects/sub1:\$\$ORIGIN/subprojects/sub2')
         else:
             rpathre = re.compile(r'-rpath,\$\$ORIGIN/subprojects/sub1:\$\$ORIGIN/subprojects/sub2')
         with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
             for line in bfile:
                 if '-rpath' in line:
+                    self.assertRegex(line, rpathre)
+                    return
+                elif '-R' in line:
                     self.assertRegex(line, rpathre)
                     return
         raise RuntimeError('Could not find the rpath')
@@ -4951,8 +5023,8 @@ endian = 'little'
     @skipIfNoPkgconfigDep('gmodule-2.0')
     def test_ldflag_dedup(self):
         testdir = os.path.join(self.unit_test_dir, '49 ldflagdedup')
-        if is_cygwin() or is_osx():
-            raise unittest.SkipTest('Not applicable on Cygwin or OSX.')
+        if is_cygwin() or is_osx() or is_sunos():
+            raise unittest.SkipTest('Not applicable on Cygwin, OSX or SunOS.')
         self.init(testdir)
         build_ninja = os.path.join(self.builddir, 'build.ninja')
         max_count = 0

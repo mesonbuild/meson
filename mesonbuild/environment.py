@@ -222,7 +222,7 @@ def detect_cpu_family(compilers):
                 trial = 'ppc64'
         if 'powerpc64' in stdo:
             trial = 'ppc64'
-    elif trial in ('amd64', 'x64'):
+    elif trial in ('amd64', 'x64', 'i86pc'):
         trial = 'x86_64'
 
     # On Linux (and maybe others) there can be any mixture of 32/64 bit code in
@@ -253,7 +253,7 @@ def detect_cpu(compilers):
         trial = detect_windows_arch(compilers)
     else:
         trial = platform.machine().lower()
-    if trial in ('amd64', 'x64'):
+    if trial in ('amd64', 'x64', 'i86pc'):
         trial = 'x86_64'
     if trial == 'x86_64':
         # Same check as above for cpu_family
@@ -449,6 +449,11 @@ class Environment:
         self.clang_static_linker = ['llvm-ar']
         self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
+        if mesonlib.is_sunos():
+            self.default_objc = ['gcc']
+            self.default_objcpp = ['g++']
+            self.gcc_static_linker = ['gar']
+
 
         # Various prefixes and suffixes for import libraries, shared libraries,
         # static libraries, and executables.
@@ -569,6 +574,8 @@ class Environment:
             return CompilerType.GCC_MINGW
         elif '__CYGWIN__' in defines:
             return CompilerType.GCC_CYGWIN
+        elif '__sun' in defines:
+            return CompilerType.GCC_SUNOS
         return CompilerType.GCC_STANDARD
 
     def _get_compilers(self, lang, want_cross):

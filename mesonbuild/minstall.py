@@ -417,7 +417,7 @@ class Installer:
             name = ' '.join(script + args)
             print('Running custom install script {!r}'.format(name))
             try:
-                rc = subprocess.call(script + args, env=child_env)
+                rc = subprocess.call([sys.executable] + script + args, env=child_env)
                 if rc != 0:
                     sys.exit(rc)
             except OSError:
