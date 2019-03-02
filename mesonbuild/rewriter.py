@@ -29,7 +29,7 @@ from . import mlog, environment
 from functools import wraps
 from typing import List, Dict
 from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
-import json, os, re
+import json, os, re, sys
 
 class RewriterException(MesonException):
     pass
@@ -376,10 +376,7 @@ class Rewriter:
     def print_info(self):
         if self.info_dump is None:
             return
-        # Wrap the dump in magic strings
-        print('!!==JSON DUMP: BEGIN==!!')
-        print(json.dumps(self.info_dump, indent=2))
-        print('!!==JSON DUMP: END==!!')
+        sys.stderr.write(json.dumps(self.info_dump, indent=2))
 
     def find_target(self, target: str):
         def check_list(name: str):
