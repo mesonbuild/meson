@@ -379,23 +379,31 @@ class Rewriter:
         sys.stderr.write(json.dumps(self.info_dump, indent=2))
 
     def find_target(self, target: str):
-        def check_list(name: str):
+        def check_list(name: str) -> List[BaseNode]:
+            result = []
             for i in self.interpreter.targets:
                 if name == i['name'] or name == i['id']:
-                    return i
-            return None
+                    result += [i]
+            return result
 
-        tgt = check_list(target)
-        if tgt is not None:
-            return tgt
+        targets = check_list(target)
+        if targets:
+            if len(targets) == 1:
+                return targets[0]
+            else:
+                mlog.error('There are multiple targets matching', mlog.bold(target))
+                for i in targets:
+                    mlog.error('  -- Target name', mlog.bold(i['name']), 'with ID', mlog.bold(i['id']))
+                mlog.error('Please try again with the unique ID of the target --> skipping')
+                return None
 
         # Check the assignments
+        tgt = None
         if target in self.interpreter.assignments:
             node = self.interpreter.assignments[target][0]
             if isinstance(node, FunctionNode):
                 if node.func_name in ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']:
-                    name = self.interpreter.flatten_args(node.args)[0]
-                    tgt = check_list(name)
+                    tgt = self.interpreter.assign_vals[target][0]
 
         return tgt
 

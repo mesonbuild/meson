@@ -5401,6 +5401,15 @@ class RewriterTests(BasePlatformTests):
         }
         self.assertDictEqual(out, expected)
 
+    def test_target_same_name_skip(self):
+        self.prime('4 same name targets')
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        expected = {'name': 'myExe', 'sources': ['main.cpp']}
+        self.assertEqual(len(out['target']), 2)
+        for _, val in out['target'].items():
+            self.assertDictEqual(expected, val)
+
     def test_kwargs_info(self):
         self.prime('3 kwargs')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))

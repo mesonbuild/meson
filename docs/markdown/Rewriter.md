@@ -63,7 +63,8 @@ exe1 = executable('testExe', src)
 
 In this case, `exe1` could also have been used for the target name. This is
 possible because the rewriter also searches for assignments and unique meson
-IDs, which can be acquired with introspection.
+IDs, which can be acquired with introspection. If there are multiple targets
+with the same name, meson will do nothing and print an error message.
 
 For more information see the help output of the rewriter target command.
 
