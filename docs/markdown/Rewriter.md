@@ -175,7 +175,7 @@ The format for the type `target` is defined as follows:
 {
   "type": "target",
   "target": "target ID/name/assignment variable",
-  "operation": "one of ['src_add', 'src_rm', 'tgt_rm', 'tgt_add', 'info']",
+  "operation": "one of ['src_add', 'src_rm', 'target_rm', 'target_add', 'info']",
   "sources": ["list", "of", "source", "files", "to", "add, remove"],
   "subdir": "subdir where the new target should be added (only has an effect for operation 'tgt_add')",
   "target_type": "function name of the new target -- same as in the CLI (only has an effect for operation 'tgt_add')"

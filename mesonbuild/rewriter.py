@@ -306,7 +306,7 @@ rewriter_keys = {
     },
     'target': {
         'target': (str, None, None),
-        'operation': (str, None, ['src_add', 'src_rm', 'tgt_rm', 'tgt_add', 'info']),
+        'operation': (str, None, ['src_add', 'src_rm', 'target_rm', 'target_add', 'info']),
         'sources': (list, [], None),
         'subdir': (str, '', None),
         'target_type': (str, 'executable', ['both_libraries', 'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library']),
@@ -571,7 +571,7 @@ class Rewriter:
     def process_target(self, cmd):
         mlog.log('Processing target', mlog.bold(cmd['target']), 'operation', mlog.cyan(cmd['operation']))
         target = self.find_target(cmd['target'])
-        if target is None and cmd['operation'] != 'tgt_add':
+        if target is None and cmd['operation'] != 'target_add':
             mlog.error('Unknown target "{}" --> skipping'.format(cmd['target']))
             return
 
@@ -678,7 +678,7 @@ class Rewriter:
                 if root not in self.modefied_nodes:
                     self.modefied_nodes += [root]
 
-        elif cmd['operation'] == 'tgt_add':
+        elif cmd['operation'] == 'target_add':
             if target is not None:
                 mlog.error('Can not add target', mlog.bold(cmd['target']), 'because it already exists')
                 return
@@ -705,7 +705,7 @@ class Rewriter:
             tgt_ass_node.accept(AstIndentationGenerator())
             self.to_add_nodes += [src_ass_node, tgt_ass_node]
 
-        elif cmd['operation'] == 'tgt_rm':
+        elif cmd['operation'] == 'target_rm':
             to_remove = self.find_assignment_node(target['node'])
             if to_remove is None:
                 to_remove = target['node']
@@ -841,8 +841,8 @@ class Rewriter:
 target_operation_map = {
     'add': 'src_add',
     'rm': 'src_rm',
-    'add_target': 'tgt_add',
-    'rm_target': 'tgt_rm',
+    'add_target': 'target_add',
+    'rm_target': 'target_rm',
     'info': 'info',
 }
 

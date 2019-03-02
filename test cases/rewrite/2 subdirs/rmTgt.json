@@ -2,6 +2,6 @@
   {
     "type": "target",
     "target": "something",
-    "operation": "tgt_rm"
+    "operation": "target_rm"
   }
 ]
