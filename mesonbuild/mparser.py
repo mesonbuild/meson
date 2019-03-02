@@ -405,7 +405,8 @@ class IfNode(BaseNode):
         self.block = block
 
 class TernaryNode(BaseNode):
-    def __init__(self, lineno, colno, condition, trueblock, falseblock):
+    def __init__(self, subdir, lineno, colno, condition, trueblock, falseblock):
+        self.subdir = subdir
         self.lineno = lineno
         self.colno = colno
         self.condition = condition
@@ -540,7 +541,7 @@ class Parser:
             self.expect('colon')
             falseblock = self.e1()
             self.in_ternary = False
-            return TernaryNode(left.lineno, left.colno, left, trueblock, falseblock)
+            return TernaryNode(left.subdir, left.lineno, left.colno, left, trueblock, falseblock)
         return left
 
     def e2(self):
