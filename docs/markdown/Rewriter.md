@@ -61,9 +61,9 @@ src = ['main.cpp', 'fileA.cpp', 'fileB.cpp']
 exe1 = executable('testExe', src)
 ```
 
-In this case, `exe1` could also have been used for the target name, since the
-rewriter also takes assignments and internal meson IDs into consideration when
-searching for the target in the `meson.build` files.
+In this case, `exe1` could also have been used for the target name. This is
+possible because the rewriter also searches for assignments and unique meson
+IDs, which can be acquired with introspection.
 
 For more information see the help output of the rewriter target command.
 
