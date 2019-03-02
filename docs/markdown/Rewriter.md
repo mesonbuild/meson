@@ -99,10 +99,48 @@ For setting and deleting default options, use the following command:
 meson rewrite default-options {set/delete} <opt1> <value1> <opt2> <value2> ...
 ```
 
+## Limitations
+
+Rewriting a meson file is not guranteed to keep the indentation of the modified
+functions. Additionally, comments inside a modified statement will be removed.
+Furthermore, all source files will be sorted alphabetically.
+
+For instance adding `e.c` to srcs in the following code
+
+```meson
+# Important comment
+
+srcs = [
+'a.c', 'c.c', 'f.c',
+# something important about b
+       'b.c', 'd.c', 'g.c'
+]
+
+# COMMENT
+```
+
+would result in the following code:
+
+```meson
+# Important comment
+
+srcs = [
+  'a.c',
+  'b.c',
+  'c.c',
+  'd.c',
+  'e.c',
+  'f.c',
+  'g.c'
+]
+
+# COMMENT
+```
+
 ## Using the "script mode"
 
-The "script mode" should be the preferred API for party programs, since it
-offers more flexibility and higher API stability. The "scripts" are stored
+The "script mode" should be the preferred API for third party programs, since
+it offers more flexibility and higher API stability. The "scripts" are stored
 in JSON format and executed with `meson rewrite command <JSON file or string>`.
 
 The JSON format is defined as follows:
