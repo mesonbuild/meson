@@ -156,6 +156,7 @@ def list_targets_from_source(intr: IntrospectionInterpreter):
                 'sources': [os.path.normpath(os.path.join(os.path.abspath(intr.source_root), i['subdir'], x)) for x in sources],
                 'generated_sources': []
             }],
+            'subproject': None, # Subprojects are not supported
             'installed': i['installed']
         }]
 
