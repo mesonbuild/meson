@@ -92,7 +92,7 @@ def update_git(wrap, repo_dir, options):
                      '     To rebase your branch on top of', mlog.bold(revision), 'use', mlog.bold('--rebase'), 'option.')
             return
 
-    git(['submodule', 'update'], repo_dir)
+    git(['submodule', 'update', '--checkout', '--recursive'], repo_dir)
     git_show(repo_dir)
 
 def update_hg(wrap, repo_dir, options):
