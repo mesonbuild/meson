@@ -219,3 +219,13 @@ The format for the type `default_options` is defined as follows:
 ```
 
 For operation `delete`, the values of the `options` can be anything (including `null`)
+
+## Extracting information
+
+The rewriter also offers operation `info` for the types `target` and `kwargs`.
+When this operation is used, meson will print a JSON dump to stderr, containing
+all available information to the rewriter about the build target / function
+kwargs in question.
+
+The output format is guaranteed to be backwards compatible, but new keys may be
+added in the future.
