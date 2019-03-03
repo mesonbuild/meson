@@ -35,8 +35,9 @@ class RewriterException(MesonException):
     pass
 
 def add_arguments(parser, formater=None):
-    parser.add_argument('--sourcedir', type=str, default='.', metavar='SRCDIR', help='Path to source directory.')
+    parser.add_argument('-s', '--sourcedir', type=str, default='.', metavar='SRCDIR', help='Path to source directory.')
     parser.add_argument('-V', '--verbose', action='store_true', default=False, help='Enable verbose output')
+    parser.add_argument('-S', '--skip-errors', dest='skip', action='store_true', default=False, help='Skip errors instead of aborting')
     subparsers = parser.add_subparsers(dest='type', title='Rewriter commands', description='Rewrite command to execute')
 
     # Target
@@ -348,9 +349,10 @@ rewriter_func_kwargs = {
 }
 
 class Rewriter:
-    def __init__(self, sourcedir: str, generator: str = 'ninja'):
+    def __init__(self, sourcedir: str, generator: str = 'ninja', skip_errors: bool = False):
         self.sourcedir = sourcedir
         self.interpreter = IntrospectionInterpreter(sourcedir, '', generator, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
+        self.skip_errors = skip_errors
         self.modefied_nodes = []
         self.to_remove_nodes = []
         self.to_add_nodes = []
@@ -379,6 +381,16 @@ class Rewriter:
             return
         sys.stderr.write(json.dumps(self.info_dump, indent=2))
 
+    def on_error(self):
+        if self.skip_errors:
+            return mlog.cyan('-->'), mlog.yellow('skipping')
+        return mlog.cyan('-->'), mlog.red('aborting')
+
+    def handle_error(self):
+        if self.skip_errors:
+            return None
+        raise MesonException('Rewriting the meson.build failed')
+
     def find_target(self, target: str):
         def check_list(name: str) -> List[BaseNode]:
             result = []
@@ -395,7 +407,8 @@ class Rewriter:
                 mlog.error('There are multiple targets matching', mlog.bold(target))
                 for i in targets:
                     mlog.error('  -- Target name', mlog.bold(i['name']), 'with ID', mlog.bold(i['id']))
-                mlog.error('Please try again with the unique ID of the target --> skipping')
+                mlog.error('Please try again with the unique ID of the target', *self.on_error())
+                self.handle_error()
                 return None
 
         # Check the assignments
@@ -460,13 +473,15 @@ class Rewriter:
 
         for key, val in sorted(cmd['options'].items()):
             if key not in options:
-                mlog.error('Unknown options', mlog.bold(key), '--> skipping')
+                mlog.error('Unknown options', mlog.bold(key), *self.on_error())
+                self.handle_error()
                 continue
 
             try:
                 val = options[key].validate_value(val)
             except MesonException as e:
-                mlog.error('Unable to set', mlog.bold(key), mlog.red(str(e)), '--> skipping')
+                mlog.error('Unable to set', mlog.bold(key), mlog.red(str(e)), *self.on_error())
+                self.handle_error()
                 continue
 
             kwargs_cmd['kwargs']['default_options'] += ['{}={}'.format(key, val)]
@@ -477,8 +492,8 @@ class Rewriter:
     def process_kwargs(self, cmd):
         mlog.log('Processing function type', mlog.bold(cmd['function']), 'with id', mlog.cyan("'" + cmd['id'] + "'"))
         if cmd['function'] not in rewriter_func_kwargs:
-            mlog.error('Unknown function type {} --> skipping'.format(cmd['function']))
-            return
+            mlog.error('Unknown function type', cmd['function'], *self.on_error())
+            return self.handle_error()
         kwargs_def = rewriter_func_kwargs[cmd['function']]
 
         # Find the function node to modify
@@ -486,7 +501,8 @@ class Rewriter:
         arg_node = None
         if cmd['function'] == 'project':
             if cmd['id'] != '':
-                mlog.error('The ID for the function type project must be an empty string --> skipping')
+                mlog.error('The ID for the function type project must be an empty string', *self.on_error())
+                self.handle_error()
             node = self.interpreter.project_node
             arg_node = node.args
         elif cmd['function'] == 'target':
@@ -527,7 +543,8 @@ class Rewriter:
         num_changed = 0
         for key, val in sorted(cmd['kwargs'].items()):
             if key not in kwargs_def:
-                mlog.error('Cannot modify unknown kwarg --> skipping', mlog.bold(key))
+                mlog.error('Cannot modify unknown kwarg', mlog.bold(key), *self.on_error())
+                self.handle_error()
                 continue
 
             # Remove the key from the kwargs
@@ -578,8 +595,8 @@ class Rewriter:
         mlog.log('Processing target', mlog.bold(cmd['target']), 'operation', mlog.cyan(cmd['operation']))
         target = self.find_target(cmd['target'])
         if target is None and cmd['operation'] != 'target_add':
-            mlog.error('Unknown target "{}" --> skipping'.format(cmd['target']))
-            return
+            mlog.error('Unknown target', mlog.bold(cmd['target']), *self.on_error())
+            return self.handle_error()
 
         # Make source paths relative to the current subdir
         def rel_source(src: str) -> str:
@@ -908,25 +925,28 @@ def run(options):
     if not options.verbose:
         mlog.set_quiet()
 
-    rewriter = Rewriter(options.sourcedir)
-    rewriter.analyze_meson()
+    try:
+        rewriter = Rewriter(options.sourcedir, skip_errors=options.skip)
+        rewriter.analyze_meson()
 
-    if options.type is None:
-        mlog.error('No command specified')
+        if options.type is None:
+            mlog.error('No command specified')
+            return 1
+
+        commands = cli_type_map[options.type](options)
+
+        if not isinstance(commands, list):
+            raise TypeError('Command is not a list')
+
+        for i in commands:
+            if not isinstance(i, object):
+                raise TypeError('Command is not an object')
+            rewriter.process(i)
+
+        rewriter.apply_changes()
+        rewriter.print_info()
+        return 0
+    except Exception as e:
+        raise e
+    finally:
         mlog.set_verbose()
-        return 1
-
-    commands = cli_type_map[options.type](options)
-
-    if not isinstance(commands, list):
-        raise TypeError('Command is not a list')
-
-    for i in commands:
-        if not isinstance(i, object):
-            raise TypeError('Command is not an object')
-        rewriter.process(i)
-
-    rewriter.apply_changes()
-    rewriter.print_info()
-    mlog.set_verbose()
-    return 0

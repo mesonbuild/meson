@@ -5197,7 +5197,7 @@ class RewriterTests(BasePlatformTests):
     def rewrite_raw(self, directory, args):
         if isinstance(args, str):
             args = [args]
-        command = self.rewrite_command + ['--verbose', '--sourcedir', directory] + args
+        command = self.rewrite_command + ['--verbose', '--skip', '--sourcedir', directory] + args
         p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                            universal_newlines=True, timeout=60)
         print('STDOUT:')
