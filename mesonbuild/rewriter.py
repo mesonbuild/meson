@@ -157,7 +157,7 @@ class MTypeList(MTypeBase):
         super().__init__(node)
 
     def _new_node(self):
-        return mparser.ArrayNode(mparser.ArgumentNode(mparser.Token('', '', 0, 0, 0, None, '')), 0, 0)
+        return mparser.ArrayNode(mparser.ArgumentNode(mparser.Token('', '', 0, 0, 0, None, '')), 0, 0, 0, 0)
 
     def _new_element_node(self, value):
         # Overwrite in derived class
@@ -644,16 +644,16 @@ class Rewriter:
 
             # Build src list
             src_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
-            src_arr_node = ArrayNode(src_arg_node, 0, 0)
+            src_arr_node = ArrayNode(src_arg_node, 0, 0, 0, 0)
             src_far_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
-            src_fun_node = FunctionNode(cmd['subdir'], 0, 0, 'files', src_far_node)
+            src_fun_node = FunctionNode(cmd['subdir'], 0, 0, 0, 0, 'files', src_far_node)
             src_ass_node = AssignmentNode(cmd['subdir'], 0, 0, '{}_src'.format(cmd['target']), src_fun_node)
             src_arg_node.arguments = [StringNode(Token('string', cmd['subdir'], 0, 0, 0, None, x)) for x in cmd['sources']]
             src_far_node.arguments = [src_arr_node]
 
             # Build target
             tgt_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
-            tgt_fun_node = FunctionNode(cmd['subdir'], 0, 0, cmd['target_type'], tgt_arg_node)
+            tgt_fun_node = FunctionNode(cmd['subdir'], 0, 0, 0, 0, cmd['target_type'], tgt_arg_node)
             tgt_ass_node = AssignmentNode(cmd['subdir'], 0, 0, '{}_tgt'.format(cmd['target']), tgt_fun_node)
             tgt_arg_node.arguments = [
                 StringNode(Token('string', cmd['subdir'], 0, 0, 0, None, cmd['target'])),
@@ -758,31 +758,8 @@ class Rewriter:
             col = node.colno
             start = offsets[line] + col
             end = start
-            if isinstance(node, ArrayNode):
-                if raw[end] != '[':
-                    mlog.warning('Internal error: expected "[" at {}:{} but got "{}"'.format(line, col, raw[end]))
-                    return
-                counter = 1
-                while counter > 0:
-                    end += 1
-                    if raw[end] == '[':
-                        counter += 1
-                    elif raw[end] == ']':
-                        counter -= 1
-                end += 1
-
-            elif isinstance(node, FunctionNode):
-                while raw[end] != '(':
-                    end += 1
-                end += 1
-                counter = 1
-                while counter > 0:
-                    end += 1
-                    if raw[end] == '(':
-                        counter += 1
-                    elif raw[end] == ')':
-                        counter -= 1
-                end += 1
+            if isinstance(node, (ArrayNode, FunctionNode)):
+                end = offsets[node.end_lineno - 1] + node.end_colno
 
             # Only removal is supported for assignments
             elif isinstance(node, AssignmentNode) and i['action'] == 'rm':
