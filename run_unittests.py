@@ -5158,6 +5158,7 @@ class RewriterTests(BasePlatformTests):
         out = self.extract_test_data(out)
         expected = {
             'target': {
+                'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['main.cpp', 'fileA.cpp', 'fileB.cpp', 'fileC.cpp']},
                 'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp']},
                 'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileB.cpp', 'fileC.cpp']},
                 'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp', 'fileA.cpp']},
@@ -5177,6 +5178,7 @@ class RewriterTests(BasePlatformTests):
         out = self.extract_test_data(out)
         expected = {
             'target': {
+                'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp', 'fileB.cpp', 'fileC.cpp', 'a7.cpp']},
                 'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
                 'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileB.cpp', 'fileC.cpp', 'a7.cpp']},
                 'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp', 'fileA.cpp', 'a5.cpp']},
@@ -5201,6 +5203,7 @@ class RewriterTests(BasePlatformTests):
         out = self.extract_test_data(out)
         expected = {
             'target': {
+                'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['main.cpp', 'fileC.cpp']},
                 'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp']},
                 'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileC.cpp']},
                 'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp']},
@@ -5258,6 +5261,7 @@ class RewriterTests(BasePlatformTests):
 
         expected = {
             'target': {
+                'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['main.cpp', 'fileA.cpp', 'fileB.cpp', 'fileC.cpp']},
                 'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp']},
                 'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileB.cpp', 'fileC.cpp']},
                 'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp', 'fileA.cpp']},

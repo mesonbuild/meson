@@ -143,7 +143,7 @@ class IntrospectionInterpreter(AstInterpreter):
 
     def build_target(self, node, args, kwargs, targetclass):
         args = self.flatten_args(args)
-        if not args:
+        if not args or not isinstance(args[0], str):
             return
         kwargs = self.flatten_kwargs(kwargs, True)
         name = args[0]
@@ -166,10 +166,12 @@ class IntrospectionInterpreter(AstInterpreter):
                     tmp_node = self.assignments[id][0]
                     if isinstance(tmp_node, (mparser.ArrayNode, mparser.IdNode, mparser.FunctionNode)):
                         srcqueue += [tmp_node]
+            elif isinstance(curr, mparser.ArithmeticNode):
+                srcqueue += [curr.left, curr.right]
             if arg_node is None:
                 continue
             elemetary_nodes = list(filter(lambda x: isinstance(x, (str, mparser.StringNode)), arg_node.arguments))
-            srcqueue += list(filter(lambda x: isinstance(x, (mparser.FunctionNode, mparser.ArrayNode, mparser.IdNode)), arg_node.arguments))
+            srcqueue += list(filter(lambda x: isinstance(x, (mparser.FunctionNode, mparser.ArrayNode, mparser.IdNode, mparser.ArithmeticNode)), arg_node.arguments))
             # Pop the first element if the function is a build target function
             if isinstance(curr, mparser.FunctionNode) and curr.func_name in build_target_functions:
                 elemetary_nodes.pop(0)
