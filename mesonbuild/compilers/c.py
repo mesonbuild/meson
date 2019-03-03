@@ -763,7 +763,7 @@ class CCompiler(Compiler):
             val = env.properties.host.get(varname, None)
             if val is not None:
                 if isinstance(val, bool):
-                    return val, True
+                    return val, False
                 raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
 
         fargs = {'prefix': prefix, 'func': funcname}
