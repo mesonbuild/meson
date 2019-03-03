@@ -24,6 +24,12 @@ normal CLI is mostly designed for everyday use. The "script mode", on the
 other hand, is meant to be used by external programs (IDEs, graphical
 frontends, etc.)
 
+The rewriter itself is considered stable, however the user interface and the
+"script mode" API might change in the future. These changes may also break
+backwards comaptibility to older releases.
+
+We are also open to suggestions for API improvements.
+
 ## Using the rewriter
 
 All rewriter functions are accessed via `meson rewrite`. The meson rewriter
