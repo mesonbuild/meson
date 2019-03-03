@@ -1,6 +1,11 @@
 [
   {
     "type": "target",
+    "target": "exe0",
+    "operation": "tgt_rm"
+  },
+  {
+    "type": "target",
     "target": "trivialprog1",
     "operation": "tgt_rm"
   },
