@@ -70,6 +70,11 @@ def get_meson_introspection_types(coredata: Optional[cdata.CoreData] = None,
             'no_bd': lambda intr: list_deps_from_source(intr),
             'desc': 'List external dependencies.',
         },
+        'scan_dependencies': {
+            'no_bd': lambda intr: list_deps_from_source(intr),
+            'desc': 'Scan for dependencies used in the meson.build file.',
+            'key': 'scan-dependencies',
+        },
         'installed': {
             'func': lambda: list_installed(installdata),
             'desc': 'List all installed files and directories.',
@@ -431,6 +436,8 @@ def run(options):
 
     # Extract introspection information from JSON
     for i in intro_types.keys():
+        if 'func' not in intro_types[i]:
+            continue
         if not options.all and not getattr(options, i, False):
             continue
         curr = os.path.join(infodir, 'intro-{}.json'.format(i))
@@ -461,6 +468,8 @@ def generate_introspection_file(builddata: build.Build, backend: backends.Backen
     intro_info = []
 
     for key, val in intro_types.items():
+        if 'func' not in val:
+            continue
         intro_info += [(key, val['func']())]
 
     write_intro_info(intro_info, builddata.environment.info_dir)
@@ -489,6 +498,8 @@ def write_meson_info_file(builddata: build.Build, errors: list, build_files_upda
     intro_info = {}
 
     for i in intro_types.keys():
+        if 'func' not in intro_types[i]:
+            continue
         intro_info[i] = {
             'file': 'intro-{}.json'.format(i),
             'updated': i in updated_introspection_files

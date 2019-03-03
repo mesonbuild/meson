@@ -1,10 +1,7 @@
-## `introspect --dependencies` can now be used without configured build directory
+## `introspect --scan-dependencies` can now be used to scan for dependencies used in a project
 
-It is now possible to run `meson introspect --dependencies /path/to/meson.build`
-without a configured build directory.
-
-However, the generated output is vastly different from running the introspection
-command with a build directory.
+It is now possible to run `meson introspect --scan-dependencies /path/to/meson.build`
+without a configured build directory to scan for dependencies.
 
 The output format is as follows:
 

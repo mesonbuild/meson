@@ -3545,7 +3545,7 @@ recommended as it is not supported on some platforms''')
     def test_introspect_dependencies_from_source(self):
         testdir = os.path.join(self.unit_test_dir, '52 introspection')
         testfile = os.path.join(testdir, 'meson.build')
-        res_nb = self.introspect_directory(testfile, ['--dependencies'] + self.meson_args)
+        res_nb = self.introspect_directory(testfile, ['--scan-dependencies'] + self.meson_args)
         expected = [
             {
                 'name': 'threads',

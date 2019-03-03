@@ -187,13 +187,10 @@ The list of all _found_ dependencies can be acquired from
 `intro-dependencies.json`. Here, the name, compiler and linker arguments for
 a dependency are listed.
 
-### Using `--dependencies` without a build directory
+### Scanning for dependecie with `--scan-dependencies`
 
-It is also possible to get most targets without a build directory. This can be
-done by running `meson introspect --dependencies /path/to/meson.build`.
-
-However, the generated output is vastly different from running the introspection
-command with a build directory.
+It is also possible to get most dependencies used without a build directory.
+This can be done by running `meson introspect --scan-dependencies /path/to/meson.build`.
 
 The output format is as follows:
 
