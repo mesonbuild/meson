@@ -694,7 +694,7 @@ class Rewriter:
         for i in to_sort_nodes:
             convert = lambda text: int(text) if text.isdigit() else text.lower()
             alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
-            path_sorter = lambda key: (0 if '/' in key else 1, key.split('/'), alphanum_key(key))
+            path_sorter = lambda key: ([(not key.split('/')[idx + 1:], alphanum_key(x)) for idx, x in enumerate(key.split('/'))])
 
             unknown = [x for x in i.arguments if not isinstance(x, StringNode)]
             sources = [x for x in i.arguments if isinstance(x, StringNode)]
