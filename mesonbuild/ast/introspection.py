@@ -137,8 +137,16 @@ class IntrospectionInterpreter(AstInterpreter):
         if not args:
             return
         name = args[0]
+        has_fallback = 'fallback' in kwargs
+        required = kwargs.get('required', True)
+        condition_level = node.condition_level if hasattr(node, 'condition_level') else 0
+        if isinstance(required, ElementaryNode):
+            required = required.value
         self.dependencies += [{
             'name': name,
+            'required': required,
+            'has_fallback': has_fallback,
+            'conditional': condition_level > 0,
             'node': node
         }]
 
@@ -180,11 +188,11 @@ class IntrospectionInterpreter(AstInterpreter):
                 source_nodes += [curr]
 
         # Make sure nothing can crash when creating the build class
-        kwargs = {}
+        kwargs_reduced = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs and k in ['install', 'build_by_default', 'build_always']}
         is_cross = False
         objects = []
         empty_sources = [] # Passing the unresolved sources list causes errors
-        target = targetclass(name, self.subdir, self.subproject, is_cross, empty_sources, objects, self.environment, kwargs)
+        target = targetclass(name, self.subdir, self.subproject, is_cross, empty_sources, objects, self.environment, kwargs_reduced)
 
         self.targets += [{
             'name': target.get_basename(),
@@ -193,6 +201,8 @@ class IntrospectionInterpreter(AstInterpreter):
             'defined_in': os.path.normpath(os.path.join(self.source_root, self.subdir, environment.build_filename)),
             'subdir': self.subdir,
             'build_by_default': target.build_by_default,
+            'installed': target.should_install(),
+            'outputs': target.get_outputs(),
             'sources': source_nodes,
             'kwargs': kwargs,
             'node': node,

@@ -84,3 +84,33 @@ class AstIDGenerator(AstVisitor):
             self.counter[name] = 0
         node.ast_id = name + '#' + str(self.counter[name])
         self.counter[name] += 1
+
+class AstConditionLevel(AstVisitor):
+    def __init__(self):
+        self.condition_level = 0
+
+    def visit_default_func(self, node: mparser.BaseNode):
+        node.condition_level = self.condition_level
+
+    def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode):
+        self.visit_default_func(node)
+        self.condition_level += 1
+        node.items.accept(self)
+        node.block.accept(self)
+        self.condition_level -= 1
+
+    def visit_IfClauseNode(self, node: mparser.IfClauseNode):
+        self.visit_default_func(node)
+        for i in node.ifs:
+            i.accept(self)
+        if node.elseblock:
+            self.condition_level += 1
+            node.elseblock.accept(self)
+            self.condition_level -= 1
+
+    def visit_IfNode(self, node: mparser.IfNode):
+        self.visit_default_func(node)
+        self.condition_level += 1
+        node.condition.accept(self)
+        node.block.accept(self)
+        self.condition_level -= 1

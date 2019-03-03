@@ -3511,6 +3511,70 @@ recommended as it is not supported on some platforms''')
 
         self.assertListEqual(res1, res2)
 
+    def test_introspect_targets_from_source(self):
+        testdir = os.path.join(self.unit_test_dir, '52 introspection')
+        testfile = os.path.join(testdir, 'meson.build')
+        introfile = os.path.join(self.builddir, 'meson-info', 'intro-targets.json')
+        self.init(testdir)
+        self.assertPathExists(introfile)
+        with open(introfile, 'r') as fp:
+            res_wb = json.load(fp)
+
+        res_nb = self.introspect_directory(testfile, ['--targets'] + self.meson_args)
+
+        # Account for differences in output
+        for i in res_wb:
+            i['filename'] = [os.path.relpath(x, self.builddir) for x in i['filename']]
+            if 'install_filename' in i:
+                del i['install_filename']
+
+            sources = []
+            for j in i['target_sources']:
+                sources += j['sources']
+            i['target_sources'] = [{
+                'language': 'unknown',
+                'compiler': [],
+                'parameters': [],
+                'sources': sources,
+                'generated_sources': []
+            }]
+
+        self.maxDiff = None
+        self.assertListEqual(res_nb, res_wb)
+
+    def test_introspect_dependencies_from_source(self):
+        testdir = os.path.join(self.unit_test_dir, '52 introspection')
+        testfile = os.path.join(testdir, 'meson.build')
+        res_nb = self.introspect_directory(testfile, ['--scan-dependencies'] + self.meson_args)
+        expected = [
+            {
+                'name': 'threads',
+                'required': True,
+                'has_fallback': False,
+                'conditional': False
+            },
+            {
+                'name': 'zlib',
+                'required': False,
+                'has_fallback': False,
+                'conditional': False
+            },
+            {
+                'name': 'somethingthatdoesnotexist',
+                'required': True,
+                'has_fallback': False,
+                'conditional': True
+            },
+            {
+                'name': 'look_i_have_a_fallback',
+                'required': True,
+                'has_fallback': True,
+                'conditional': True
+            }
+        ]
+        self.maxDiff = None
+        self.assertListEqual(res_nb, expected)
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically

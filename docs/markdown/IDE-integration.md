@@ -109,6 +109,29 @@ The following table shows all valid types for a target.
  `run`            | A Meson run target
  `jar`            | A Java JAR target
 
+### Using `--targets` without a build directory
+
+It is also possible to get most targets without a build directory. This can be
+done by running `meson introspect --targets /path/to/meson.build`.
+
+The generated output is similar to running the introspection with a build
+directory or reading the `intro-targets.json`. However, there are some key
+differences:
+
+- The paths in `filename` now are _relative_ to the future build directory
+- The `install_filename` key is completely missing
+- There is only one entry in `target_sources`:
+  - With the language set to `unknown`
+  - Empty lists for `compiler` and `parameters` and `generated_sources`
+  - The `sources` list _should_ contain all sources of the target
+
+There is no guarantee that the sources list in `target_sources` is correct.
+There might be differences, due to internal limitations. It is also not
+guaranteed that all targets will be listed in the output. It might even be
+possible that targets are listed, which won't exist when meson is run normally.
+This can happen if a target is defined inside an if statement.
+Use this feature with care.
+
 ## Build Options
 
 The list of all build options (build type, warning level, etc.) is stored in
@@ -157,6 +180,38 @@ running it with a freshly configured build directory.
 However, this behavior is not guaranteed if subprojects are present. Due to
 internal limitations all subprojects are processed even if they are never used
 in a real meson run. Because of this options for the subprojects can differ.
+
+## The dependencies section
+
+The list of all _found_ dependencies can be acquired from
+`intro-dependencies.json`. Here, the name, compiler and linker arguments for
+a dependency are listed.
+
+### Scanning for dependecie with `--scan-dependencies`
+
+It is also possible to get most dependencies used without a build directory.
+This can be done by running `meson introspect --scan-dependencies /path/to/meson.build`.
+
+The output format is as follows:
+
+```json
+[
+  {
+    "name": "The name of the dependency",
+    "required": true,
+    "conditional": false,
+    "has_fallback": false
+  }
+]
+```
+
+The `required` keyword specifies whether the dependency is marked as required
+in the `meson.build` (all dependencies are required by default). The
+`conditional` key indicates whether the `dependency()` function was called
+inside a conditional block. In a real meson run these dependencies might not be
+used, thus they _may_ not be required, even if the `required` key is set. The
+`has_fallback` key just indicates whether a fallback was directly set in the
+`dependency()` function.
 
 ## Tests
 
