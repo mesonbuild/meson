@@ -227,5 +227,4 @@ When this operation is used, meson will print a JSON dump to stderr, containing
 all available information to the rewriter about the build target / function
 kwargs in question.
 
-The output format is guaranteed to be backwards compatible, but new keys may be
-added in the future.
+The output format is currently experimental and may change in the future.
