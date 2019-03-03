@@ -611,6 +611,8 @@ class Headers(InterpreterObject):
         InterpreterObject.__init__(self)
         self.sources = sources
         self.install_subdir = kwargs.get('subdir', '')
+        if os.path.isabs(self.install_subdir):
+            raise InterpreterException('Subdir keyword must not be an absolute path.')
         self.custom_install_dir = kwargs.get('install_dir', None)
         self.custom_install_mode = kwargs.get('install_mode', None)
         if self.custom_install_dir is not None:
