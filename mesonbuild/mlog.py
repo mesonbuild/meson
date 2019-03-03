@@ -48,6 +48,7 @@ log_depth = 0
 log_timestamp_start = None
 log_fatal_warnings = False
 log_disable_stdout = False
+log_errors_only = False
 
 def disable():
     global log_disable_stdout
@@ -56,6 +57,14 @@ def disable():
 def enable():
     global log_disable_stdout
     log_disable_stdout = False
+
+def set_quiet():
+    global log_errors_only
+    log_errors_only = True
+
+def set_verbose():
+    global log_errors_only
+    log_errors_only = False
 
 def initialize(logdir, fatal_warnings=False):
     global log_dir, log_file, log_fatal_warnings
@@ -152,14 +161,16 @@ def debug(*args, **kwargs):
         print(*arr, file=log_file, **kwargs) # Log file never gets ANSI codes.
         log_file.flush()
 
-def log(*args, **kwargs):
+def log(*args, is_error=False, **kwargs):
+    global log_errors_only
     arr = process_markup(args, False)
     if log_file is not None:
         print(*arr, file=log_file, **kwargs) # Log file never gets ANSI codes.
         log_file.flush()
     if colorize_console:
         arr = process_markup(args, True)
-    force_print(*arr, **kwargs)
+    if not log_errors_only or is_error:
+        force_print(*arr, **kwargs)
 
 def _log_error(severity, *args, **kwargs):
     from .mesonlib import get_error_location_string
@@ -187,13 +198,13 @@ def _log_error(severity, *args, **kwargs):
         raise MesonException("Fatal warnings enabled, aborting")
 
 def error(*args, **kwargs):
-    return _log_error('error', *args, **kwargs)
+    return _log_error('error', *args, **kwargs, is_error=True)
 
 def warning(*args, **kwargs):
-    return _log_error('warning', *args, **kwargs)
+    return _log_error('warning', *args, **kwargs, is_error=True)
 
 def deprecation(*args, **kwargs):
-    return _log_error('deprecation', *args, **kwargs)
+    return _log_error('deprecation', *args, **kwargs, is_error=True)
 
 def exception(e, prefix=red('ERROR:')):
     log()

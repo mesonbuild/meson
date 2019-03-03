@@ -36,6 +36,7 @@ class RewriterException(MesonException):
 
 def add_arguments(parser, formater=None):
     parser.add_argument('--sourcedir', type=str, default='.', metavar='SRCDIR', help='Path to source directory.')
+    parser.add_argument('-V', '--verbose', action='store_true', default=False, help='Enable verbose output')
     subparsers = parser.add_subparsers(dest='type', title='Rewriter commands', description='Rewrite command to execute')
 
     # Target
@@ -904,11 +905,15 @@ cli_type_map = {
 }
 
 def run(options):
+    if not options.verbose:
+        mlog.set_quiet()
+
     rewriter = Rewriter(options.sourcedir)
     rewriter.analyze_meson()
 
     if options.type is None:
-        print('No command specified')
+        mlog.error('No command specified')
+        mlog.set_verbose()
         return 1
 
     commands = cli_type_map[options.type](options)
@@ -923,4 +928,5 @@ def run(options):
 
     rewriter.apply_changes()
     rewriter.print_info()
+    mlog.set_verbose()
     return 0
