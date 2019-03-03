@@ -27,7 +27,7 @@ from .ast import IntrospectionInterpreter, build_target_functions, AstConditionL
 from mesonbuild.mesonlib import MesonException
 from . import mlog, environment
 from functools import wraps
-from typing import List, Dict
+from typing import List, Dict, Optional
 from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
 import json, os, re, sys
 
@@ -99,7 +99,7 @@ class RequiredKeys:
         return wrapped
 
 class MTypeBase:
-    def __init__(self, node: BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         if node is None:
             self.node = self._new_node()
         else:
@@ -140,7 +140,7 @@ class MTypeBase:
         mlog.warning('Cannot remove a regex in type', mlog.bold(type(self).__name__), '--> skipping')
 
 class MTypeStr(MTypeBase):
-    def __init__(self, node: BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         super().__init__(node)
 
     def _new_node(self):
@@ -153,7 +153,7 @@ class MTypeStr(MTypeBase):
         self.node.value = str(value)
 
 class MTypeBool(MTypeBase):
-    def __init__(self, node: BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         super().__init__(node)
 
     def _new_node(self):
@@ -166,7 +166,7 @@ class MTypeBool(MTypeBase):
         self.node.value = bool(value)
 
 class MTypeID(MTypeBase):
-    def __init__(self, node: BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         super().__init__(node)
 
     def _new_node(self):
@@ -179,7 +179,7 @@ class MTypeID(MTypeBase):
         self.node.value = str(value)
 
 class MTypeList(MTypeBase):
-    def __init__(self, node: BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         super().__init__(node)
 
     def _new_node(self):
@@ -254,7 +254,7 @@ class MTypeList(MTypeBase):
         self._remove_helper(regex, self._check_regex_matches)
 
 class MTypeStrList(MTypeList):
-    def __init__(self, node: BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         super().__init__(node)
 
     def _new_element_node(self, value):
@@ -274,7 +274,7 @@ class MTypeStrList(MTypeList):
         return [StringNode]
 
 class MTypeIDList(MTypeList):
-    def __init__(self, node: BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         super().__init__(node)
 
     def _new_element_node(self, value):
