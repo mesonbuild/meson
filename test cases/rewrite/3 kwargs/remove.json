@@ -2,7 +2,7 @@
   {
     "type": "kwargs",
     "function": "project",
-    "id": "",
+    "id": "/",
     "operation": "set",
     "kwargs": {
       "license": ["GPL", "MIT", "BSD"]
@@ -11,7 +11,7 @@
   {
     "type": "kwargs",
     "function": "project",
-    "id": "",
+    "id": "/",
     "operation": "remove",
     "kwargs": {
       "license": ["MIT"]
@@ -20,7 +20,7 @@
   {
     "type": "kwargs",
     "function": "project",
-    "id": "",
+    "id": "/",
     "operation": "remove",
     "kwargs": {
       "license": "BSD"

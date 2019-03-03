@@ -5415,7 +5415,7 @@ class RewriterTests(BasePlatformTests):
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1'},
+                'project#/': {'version': '0.0.1'},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5428,7 +5428,7 @@ class RewriterTests(BasePlatformTests):
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.2', 'meson_version': '0.50.0', 'license': ['GPL', 'MIT']},
+                'project#/': {'version': '0.0.2', 'meson_version': '0.50.0', 'license': ['GPL', 'MIT']},
                 'target#tgt1': {'build_by_default': False, 'build_rpath': '/usr/local', 'dependencies': 'dep1'},
                 'dependency#dep1': {'required': True, 'method': 'cmake'}
             }
@@ -5441,7 +5441,7 @@ class RewriterTests(BasePlatformTests):
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'license': ['GPL', 'MIT', 'BSD']},
+                'project#/': {'version': '0.0.1', 'license': ['GPL', 'MIT', 'BSD']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5454,7 +5454,7 @@ class RewriterTests(BasePlatformTests):
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'license': 'GPL'},
+                'project#/': {'version': '0.0.1', 'license': 'GPL'},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5467,7 +5467,7 @@ class RewriterTests(BasePlatformTests):
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=true']},
+                'project#/': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=true']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5480,7 +5480,7 @@ class RewriterTests(BasePlatformTests):
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         expected = {
             'kwargs': {
-                'project#': {},
+                'project#/': {},
                 'target#tgt1': {},
                 'dependency#dep1': {'required': False}
             }
@@ -5493,7 +5493,7 @@ class RewriterTests(BasePlatformTests):
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=True', 'cpp_std=c++11']},
+                'project#/': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=True', 'cpp_std=c++11']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5506,7 +5506,7 @@ class RewriterTests(BasePlatformTests):
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'default_options': ['cpp_std=c++14', 'debug=true']},
+                'project#/': {'version': '0.0.1', 'default_options': ['cpp_std=c++14', 'debug=true']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }

@@ -86,14 +86,14 @@ meson rewriter kwargs {set/delete} <function type> <function ID> <key1> <value1>
 For instance, setting the project version can be achieved with this command:
 
 ```bash
-meson rewriter kwargs set project '' version 1.0.0
+meson rewriter kwargs set project / version 1.0.0
 ```
 
 Currently, only the following function types are supported:
 
 - dependency
 - target (any build target, the function ID is the target name/ID)
-- project (the function ID must be an empty string since project() can only be called once)
+- project (the function ID must be `/` since project() can only be called once)
 
 For more information see the help output of the rewriter kwargs command.
 

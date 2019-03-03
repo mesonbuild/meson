@@ -500,7 +500,7 @@ class Rewriter:
         node = None
         arg_node = None
         if cmd['function'] == 'project':
-            if cmd['id'] != '':
+            if cmd['id'] != '/':
                 mlog.error('The ID for the function type project must be an empty string', *self.on_error())
                 self.handle_error()
             node = self.interpreter.project_node
