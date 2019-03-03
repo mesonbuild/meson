@@ -444,17 +444,17 @@ class CCompiler(Compiler):
         args += extra_args
         return args
 
-    def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile'):
-        with self._build_wrapper(code, env, extra_args, dependencies, mode) as p:
+    def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile', disable_cache=False):
+        with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
             return p.returncode == 0, p.cached
 
-    def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False):
+    def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False, disable_cache=False):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
-        return self.compile(code, args, mode, want_output=want_output, cdata=env.coredata)
+        return self.compile(code, args, mode, want_output=want_output, cdata=env.coredata if not disable_cache else None)
 
-    def links(self, code, env, *, extra_args=None, dependencies=None):
+    def links(self, code, env, *, extra_args=None, dependencies=None, disable_cache=False):
         return self.compiles(code, env, extra_args=extra_args,
-                             dependencies=dependencies, mode='link')
+                             dependencies=dependencies, mode='link', disable_cache=disable_cache)
 
     def run(self, code: str, env, *, extra_args=None, dependencies=None):
         if self.is_cross and self.exe_wrapper is None:
@@ -1022,7 +1022,7 @@ class CCompiler(Compiler):
                 libname in self.internal_libs):
             args = ['-l' + libname]
             largs = self.linker_to_compiler_args(self.get_allow_undefined_link_args())
-            if self.links(code, env, extra_args=(args + largs))[0]:
+            if self.links(code, env, extra_args=(args + largs), disable_cache=True)[0]:
                 return args
             # Don't do a manual search for internal libs
             if libname in self.internal_libs:
@@ -1111,7 +1111,7 @@ class CCompiler(Compiler):
         # then we must also pass -L/usr/lib to pick up libSystem.dylib
         extra_args = [] if allow_system else ['-Z', '-L/usr/lib']
         link_args += ['-framework', name]
-        if self.links(code, env, extra_args=(extra_args + link_args))[0]:
+        if self.links(code, env, extra_args=(extra_args + link_args), disable_cache=True)[0]:
             return link_args
 
     def find_framework_impl(self, name, env, extra_dirs, allow_system):
