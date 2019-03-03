@@ -297,11 +297,11 @@ class FortranCompiler(Compiler):
     def has_multi_arguments(self, args, env):
         return CCompiler.has_multi_arguments(self, args, env)
 
-    def has_header(self, hname, prefix, env, *, extra_args=None, dependencies=None):
-        return CCompiler.has_header(self, hname, prefix, env, extra_args=extra_args, dependencies=dependencies)
+    def has_header(self, hname, prefix, env, *, extra_args=None, dependencies=None, disable_cache=False):
+        return CCompiler.has_header(self, hname, prefix, env, extra_args=extra_args, dependencies=dependencies, disable_cache=disable_cache)
 
-    def get_define(self, dname, prefix, env, extra_args, dependencies):
-        return CCompiler.get_define(self, dname, prefix, env, extra_args, dependencies)
+    def get_define(self, dname, prefix, env, extra_args, dependencies, disable_cache=False):
+        return CCompiler.get_define(self, dname, prefix, env, extra_args, dependencies, disable_cache=disable_cache)
 
     @classmethod
     def _get_trials_from_pattern(cls, pattern, directory, libname):

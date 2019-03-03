@@ -368,7 +368,7 @@ class CCompiler(Compiler):
         return self.compiles(code.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies)
 
-    def has_header(self, hname, prefix, env, *, extra_args=None, dependencies=None):
+    def has_header(self, hname, prefix, env, *, extra_args=None, dependencies=None, disable_cache=False):
         fargs = {'prefix': prefix, 'header': hname}
         code = '''{prefix}
         #ifdef __has_include
@@ -379,7 +379,7 @@ class CCompiler(Compiler):
          #include <{header}>
         #endif'''
         return self.compiles(code.format(**fargs), env, extra_args=extra_args,
-                             dependencies=dependencies, mode='preprocess')
+                             dependencies=dependencies, mode='preprocess', disable_cache=disable_cache)
 
     def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
@@ -641,7 +641,7 @@ class CCompiler(Compiler):
             raise EnvironmentException('Could not determine alignment of %s. Sorry. You might want to file a bug.' % typename)
         return align
 
-    def get_define(self, dname, prefix, env, extra_args, dependencies):
+    def get_define(self, dname, prefix, env, extra_args, dependencies, disable_cache=False):
         delim = '"MESON_GET_DEFINE_DELIMITER"'
         fargs = {'prefix': prefix, 'define': dname, 'delim': delim}
         code = '''
@@ -652,7 +652,7 @@ class CCompiler(Compiler):
         {delim}\n{define}'''
         args = self._get_compiler_check_args(env, extra_args, dependencies,
                                              mode='preprocess').to_native()
-        with self.compile(code.format(**fargs), args, 'preprocess', cdata=env.coredata) as p:
+        with self.compile(code.format(**fargs), args, 'preprocess', cdata=env.coredata if not disable_cache else None) as p:
             cached = p.cached
             if p.returncode != 0:
                 raise EnvironmentException('Could not get define {!r}'.format(dname))

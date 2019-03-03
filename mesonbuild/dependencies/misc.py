@@ -368,7 +368,7 @@ class OpenMPDependency(ExternalDependency):
         self.is_found = False
         try:
             openmp_date = self.clib_compiler.get_define(
-                '_OPENMP', '', self.env, self.clib_compiler.openmp_flags(), [self])[0]
+                '_OPENMP', '', self.env, self.clib_compiler.openmp_flags(), [self], disable_cache=True)[0]
         except mesonlib.EnvironmentException as e:
             mlog.debug('OpenMP support not available in the compiler')
             mlog.debug(e)
@@ -376,7 +376,7 @@ class OpenMPDependency(ExternalDependency):
 
         if openmp_date:
             self.version = self.VERSIONS[openmp_date]
-            if self.clib_compiler.has_header('omp.h', '', self.env, dependencies=[self])[0]:
+            if self.clib_compiler.has_header('omp.h', '', self.env, dependencies=[self], disable_cache=True)[0]:
                 self.is_found = True
                 self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
             else:
