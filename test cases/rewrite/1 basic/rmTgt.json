@@ -2,7 +2,7 @@
   {
     "type": "target",
     "target": "exe0",
-    "operation": "tgt_rm"
+    "operation": "target_rm"
   },
   {
     "type": "target",
