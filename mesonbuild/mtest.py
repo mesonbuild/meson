@@ -23,6 +23,9 @@ from mesonbuild.dependencies import ExternalProgram
 from mesonbuild.mesonlib import substring_is_in_list, MesonException
 from mesonbuild import mlog
 
+from collections import namedtuple
+import io
+import re
 import tempfile
 import time, datetime, multiprocessing, json
 import concurrent.futures as conc
@@ -35,6 +38,10 @@ import enum
 # GNU autotools interprets a return code of 77 from tests it executes to
 # mean that the test should be skipped.
 GNU_SKIP_RETURNCODE = 77
+
+# GNU autotools interprets a return code of 99 from tests it executes to
+# mean that the test failed even before testing what it is supposed to test.
+GNU_ERROR_RETURNCODE = 99
 
 def is_windows():
     platname = platform.system().lower()
@@ -146,11 +153,202 @@ class TestResult(enum.Enum):
     FAIL = 'FAIL'
     EXPECTEDFAIL = 'EXPECTEDFAIL'
     UNEXPECTEDPASS = 'UNEXPECTEDPASS'
+    ERROR = 'ERROR'
+
+
+class TAPParser(object):
+    Plan = namedtuple('Plan', ['count', 'late', 'skipped', 'explanation'])
+    Bailout = namedtuple('Bailout', ['message'])
+    Test = namedtuple('Test', ['number', 'name', 'result', 'explanation'])
+    Error = namedtuple('Error', ['message'])
+    Version = namedtuple('Version', ['version'])
+
+    _MAIN = 1
+    _AFTER_TEST = 2
+    _YAML = 3
+
+    _RE_BAILOUT = r'Bail out!\s*(.*)'
+    _RE_DIRECTIVE = r'(?:\s*\#\s*([Ss][Kk][Ii][Pp]\S*|[Tt][Oo][Dd][Oo])\b\s*(.*))?'
+    _RE_PLAN = r'1\.\.([0-9]+)' + _RE_DIRECTIVE
+    _RE_TEST = r'((?:not )?ok)\s*(?:([0-9]+)\s*)?([^#]*)' + _RE_DIRECTIVE
+    _RE_VERSION = r'TAP version ([0-9]+)'
+    _RE_YAML_START = r'(\s+)---.*'
+    _RE_YAML_END = r'\s+\.\.\.\s*'
+
+    def __init__(self, io):
+        self.io = io
+
+    def parse_test(self, ok, num, name, directive, explanation):
+        name = name.strip()
+        explanation = explanation.strip() if explanation else None
+        if directive is not None:
+            directive = directive.upper()
+            if directive == 'SKIP':
+                if ok:
+                    yield self.Test(num, name, TestResult.SKIP, explanation)
+                    return
+            elif directive == 'TODO':
+                yield self.Test(num, name, TestResult.UNEXPECTEDPASS if ok else TestResult.EXPECTEDFAIL, explanation)
+                return
+            else:
+                yield self.Error('invalid directive "%s"' % (directive,))
+
+        yield self.Test(num, name, TestResult.OK if ok else TestResult.FAIL, explanation)
+
+    def parse(self):
+        found_late_test = False
+        bailed_out = False
+        plan = None
+        lineno = 0
+        num_tests = 0
+        yaml_lineno = None
+        yaml_indent = None
+        state = self._MAIN
+        version = 12
+        while True:
+            lineno += 1
+            try:
+                line = next(self.io).rstrip()
+            except StopIteration:
+                break
+
+            # YAML blocks are only accepted after a test
+            if state == self._AFTER_TEST:
+                if version >= 13:
+                    m = re.match(self._RE_YAML_START, line)
+                    if m:
+                        state = self._YAML
+                        yaml_lineno = lineno
+                        yaml_indent = m.group(1)
+                        continue
+                state = self._MAIN
+
+            elif state == self._YAML:
+                if re.match(self._RE_YAML_END, line):
+                    state = self._MAIN
+                    continue
+                if line.startswith(yaml_indent):
+                    continue
+                yield self.Error('YAML block not terminated (started on line %d)' % (yaml_lineno,))
+                state = self._MAIN
+
+            assert state == self._MAIN
+            if line.startswith('#'):
+                continue
+
+            m = re.match(self._RE_TEST, line)
+            if m:
+                if plan and plan.late and not found_late_test:
+                    yield self.Error('unexpected test after late plan')
+                    found_late_test = True
+                num_tests += 1
+                num = num_tests if m.group(2) is None else int(m.group(2))
+                if num != num_tests:
+                    yield self.Error('out of order test numbers')
+                yield from self.parse_test(m.group(1) == 'ok', num,
+                                           m.group(3), m.group(4), m.group(5))
+                state = self._AFTER_TEST
+                continue
+
+            m = re.match(self._RE_PLAN, line)
+            if m:
+                if plan:
+                    yield self.Error('more than one plan found')
+                else:
+                    count = int(m.group(1))
+                    skipped = (count == 0)
+                    if m.group(2):
+                        if m.group(2).upper().startswith('SKIP'):
+                            if count > 0:
+                                yield self.Error('invalid SKIP directive for plan')
+                            skipped = True
+                        else:
+                            yield self.Error('invalid directive for plan')
+                    plan = self.Plan(count=count, late=(num_tests > 0),
+                                     skipped=skipped, explanation=m.group(3))
+                    yield plan
+                continue
+
+            m = re.match(self._RE_BAILOUT, line)
+            if m:
+                yield self.Bailout(m.group(1))
+                bailed_out = True
+                continue
+
+            m = re.match(self._RE_VERSION, line)
+            if m:
+                # The TAP version is only accepted as the first line
+                if lineno != 1:
+                    yield self.Error('version number must be on the first line')
+                    continue
+                version = int(m.group(1))
+                if version < 13:
+                    yield self.Error('version number should be at least 13')
+                else:
+                    yield self.Version(version=version)
+                continue
+
+            yield self.Error('unexpected input at line %d' % (lineno,))
+
+        if state == self._YAML:
+            yield self.Error('YAML block not terminated (started on line %d)' % (yaml_lineno,))
+
+        if not bailed_out and plan and num_tests != plan.count:
+            if num_tests < plan.count:
+                yield self.Error('Too few tests run (expected %d, got %d)' % (plan.count, num_tests))
+            else:
+                yield self.Error('Too many tests run (expected %d, got %d)' % (plan.count, num_tests))
 
 
 class TestRun:
-    def __init__(self, res, returncode, should_fail, duration, stdo, stde, cmd,
-                 env):
+    @staticmethod
+    def make_exitcode(test, returncode, duration, stdo, stde, cmd):
+        if returncode == GNU_SKIP_RETURNCODE:
+            res = TestResult.SKIP
+        elif returncode == GNU_ERROR_RETURNCODE:
+            res = TestResult.ERROR
+        elif test.should_fail:
+            res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
+        else:
+            res = TestResult.FAIL if bool(returncode) else TestResult.OK
+        return TestRun(test, res, returncode, duration, stdo, stde, cmd)
+
+    def make_tap(test, returncode, duration, stdo, stde, cmd):
+        res = None
+        num_tests = 0
+        failed = False
+        num_skipped = 0
+
+        for i in TAPParser(io.StringIO(stdo)).parse():
+            if isinstance(i, TAPParser.Bailout):
+                res = TestResult.ERROR
+            elif isinstance(i, TAPParser.Test):
+                if i.result == TestResult.SKIP:
+                    num_skipped += 1
+                elif i.result in (TestResult.FAIL, TestResult.UNEXPECTEDPASS):
+                    failed = True
+                num_tests += 1
+            elif isinstance(i, TAPParser.Error):
+                res = TestResult.ERROR
+                stde += '\nTAP parsing error: ' + i.message
+
+        if returncode != 0:
+            res = TestResult.ERROR
+            stde += '\n(test program exited with status code %d)' % (returncode,)
+
+        if res is None:
+            # Now determine the overall result of the test based on the outcome of the subcases
+            if num_skipped == num_tests:
+                # This includes the case where num_tests is zero
+                res = TestResult.SKIP
+            elif test.should_fail:
+                res = TestResult.EXPECTEDFAIL if failed else TestResult.UNEXPECTEDPASS
+            else:
+                res = TestResult.FAIL if failed else TestResult.OK
+
+        return TestRun(test, res, returncode, duration, stdo, stde, cmd)
+
+    def __init__(self, test, res, returncode, duration, stdo, stde, cmd):
         assert isinstance(res, TestResult)
         self.res = res
         self.returncode = returncode
@@ -158,8 +356,8 @@ class TestRun:
         self.stdo = stdo
         self.stde = stde
         self.cmd = cmd
-        self.env = env
-        self.should_fail = should_fail
+        self.env = test.env
+        self.should_fail = test.should_fail
 
     def get_log(self):
         res = '--- command ---\n'
@@ -257,9 +455,8 @@ class SingleTestRunner:
         cmd = self._get_cmd()
         if cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
-            return TestRun(res=TestResult.SKIP, returncode=GNU_SKIP_RETURNCODE,
-                           should_fail=self.test.should_fail, duration=0.0,
-                           stdo=skip_stdout, stde=None, cmd=None, env=self.test.env)
+            return TestRun(test=self.test, res=TestResult.SKIP, returncode=GNU_SKIP_RETURNCODE,
+                           duration=0.0, stdo=skip_stdout, stde=None, cmd=None)
         else:
             wrap = TestHarness.get_wrapper(self.options)
             if self.options.gdb:
@@ -388,14 +585,12 @@ class SingleTestRunner:
             stdo = ""
             stde = additional_error
         if timed_out:
-            res = TestResult.TIMEOUT
-        elif p.returncode == GNU_SKIP_RETURNCODE:
-            res = TestResult.SKIP
-        elif self.test.should_fail:
-            res = TestResult.EXPECTEDFAIL if bool(p.returncode) else TestResult.UNEXPECTEDPASS
+            return TestRun(self.test, TestResult.TIMEOUT, p.returncode, duration, stdo, stde, cmd)
         else:
-            res = TestResult.FAIL if bool(p.returncode) else TestResult.OK
-        return TestRun(res, p.returncode, self.test.should_fail, duration, stdo, stde, cmd, self.test.env)
+            if self.test.protocol == 'exitcode':
+                return TestRun.make_exitcode(self.test, p.returncode, duration, stdo, stde, cmd)
+            else:
+                return TestRun.make_tap(self.test, p.returncode, duration, stdo, stde, cmd)
 
 
 class TestHarness:
@@ -471,7 +666,7 @@ class TestHarness:
             self.skip_count += 1
         elif result.res is TestResult.OK:
             self.success_count += 1
-        elif result.res is TestResult.FAIL:
+        elif result.res is TestResult.FAIL or result.res is TestResult.ERROR:
             self.fail_count += 1
         elif result.res is TestResult.EXPECTEDFAIL:
             self.expectedfail_count += 1
@@ -493,9 +688,11 @@ class TestHarness:
             (num, name, padding1, result.res.value, padding2, result.duration,
              status)
         ok_statuses = (TestResult.OK, TestResult.EXPECTEDFAIL)
+        bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT, TestResult.UNEXPECTEDPASS,
+                        TestResult.ERROR)
         if not self.options.quiet or result.res not in ok_statuses:
             if result.res not in ok_statuses and mlog.colorize_console:
-                if result.res in (TestResult.FAIL, TestResult.TIMEOUT, TestResult.UNEXPECTEDPASS):
+                if result.res in bad_statuses:
                     decorator = mlog.red
                 elif result.res is TestResult.SKIP:
                     decorator = mlog.yellow
@@ -505,8 +702,7 @@ class TestHarness:
             else:
                 print(result_str)
         result_str += "\n\n" + result.get_log()
-        if (result.returncode != GNU_SKIP_RETURNCODE) \
-                and (result.returncode != 0) != result.should_fail:
+        if result.res in bad_statuses:
             if self.options.print_errorlogs:
                 self.collected_logs.append(result_str)
         if self.logfile:

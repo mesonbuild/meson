@@ -1,0 +1,10 @@
+project('test features', 'c')
+
+tester = executable('tester', 'tester.c')
+test('pass', tester, args : ['ok'], protocol: 'tap')
+test('fail', tester, args : ['not ok'], should_fail: true, protocol: 'tap')
+test('xfail', tester, args : ['not ok # todo'], protocol: 'tap')
+test('xpass', tester, args : ['ok # todo'], should_fail: true, protocol: 'tap')
+test('skip', tester, args : ['ok # skip'], protocol: 'tap')
+test('skip failure', tester, args : ['not ok # skip'], should_fail: true, protocol: 'tap')
+test('no tests', tester, args : ['1..0 # skip'], protocol: 'tap')
