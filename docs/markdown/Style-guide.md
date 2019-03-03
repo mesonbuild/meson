@@ -42,6 +42,9 @@ errors and often reduces merge conflicts. Furthermore, the paths should be
 sorted with a natural sorting algorithm, so that numbers are sorted in an
 intuitive way (`1, 2, 3, 10, 20` instead of `1, 10, 2, 20, 3`).
 
+Numbers should also be sorted before characters (`a111` before `ab0`).
+Furthermore, strings should be sorted case insensitive.
+
 Additionally, if a path contains a directory it should be sorted before
 normal files. This rule also applies recursively for subdirectories.
 
