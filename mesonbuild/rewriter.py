@@ -708,7 +708,7 @@ class Rewriter:
 
             id_base = re.sub(r'[- ]', '_', cmd['target'])
             target_id = id_base + '_exe' if cmd['target_type'] == 'executable' else '_lib'
-            source_id = id_base + '_src'
+            source_id = id_base + '_sources'
 
             # Build src list
             src_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
