@@ -759,7 +759,7 @@ class Rewriter:
         # Sort based on line and column in reversed order
         work_nodes = [{'node': x, 'action': 'modify'} for x in self.modefied_nodes]
         work_nodes += [{'node': x, 'action': 'rm'} for x in self.to_remove_nodes]
-        work_nodes = list(sorted(work_nodes, key=lambda x: x['node'].lineno * 1000 + x['node'].colno, reverse=True))
+        work_nodes = list(sorted(work_nodes, key=lambda x: (x['node'].lineno, x['node'].colno), reverse=True))
         work_nodes += [{'node': x, 'action': 'add'} for x in self.to_add_nodes]
 
         # Generating the new replacement string
