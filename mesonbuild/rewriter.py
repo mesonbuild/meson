@@ -703,25 +703,29 @@ class Rewriter:
 
         elif cmd['operation'] == 'target_add':
             if target is not None:
-                mlog.error('Can not add target', mlog.bold(cmd['target']), 'because it already exists')
-                return
+                mlog.error('Can not add target', mlog.bold(cmd['target']), 'because it already exists', *self.on_error())
+                return self.handle_error()
+
+            id_base = re.sub(r'[- ]', '_', cmd['target'])
+            target_id = id_base + '_exe' if cmd['target_type'] == 'executable' else '_lib'
+            source_id = id_base + '_src'
 
             # Build src list
             src_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
             src_arr_node = ArrayNode(src_arg_node, 0, 0, 0, 0)
             src_far_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
             src_fun_node = FunctionNode(cmd['subdir'], 0, 0, 0, 0, 'files', src_far_node)
-            src_ass_node = AssignmentNode(cmd['subdir'], 0, 0, '{}_src'.format(cmd['target']), src_fun_node)
+            src_ass_node = AssignmentNode(cmd['subdir'], 0, 0, source_id, src_fun_node)
             src_arg_node.arguments = [StringNode(Token('string', cmd['subdir'], 0, 0, 0, None, x)) for x in cmd['sources']]
             src_far_node.arguments = [src_arr_node]
 
             # Build target
             tgt_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
             tgt_fun_node = FunctionNode(cmd['subdir'], 0, 0, 0, 0, cmd['target_type'], tgt_arg_node)
-            tgt_ass_node = AssignmentNode(cmd['subdir'], 0, 0, '{}_tgt'.format(cmd['target']), tgt_fun_node)
+            tgt_ass_node = AssignmentNode(cmd['subdir'], 0, 0, target_id, tgt_fun_node)
             tgt_arg_node.arguments = [
                 StringNode(Token('string', cmd['subdir'], 0, 0, 0, None, cmd['target'])),
-                IdNode(Token('string', cmd['subdir'], 0, 0, 0, None, '{}_src'.format(cmd['target'])))
+                IdNode(Token('string', cmd['subdir'], 0, 0, 0, None, source_id))
             ]
 
             src_ass_node.accept(AstIndentationGenerator())
