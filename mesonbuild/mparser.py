@@ -262,17 +262,21 @@ class BreakNode(ElementaryNode):
     pass
 
 class ArrayNode(BaseNode):
-    def __init__(self, args, lineno, colno):
+    def __init__(self, args, lineno, colno, end_lineno, end_colno):
         self.subdir = args.subdir
         self.lineno = lineno
         self.colno = colno
+        self.end_lineno = end_lineno
+        self.end_colno = end_colno
         self.args = args
 
 class DictNode(BaseNode):
-    def __init__(self, args, lineno, colno):
+    def __init__(self, args, lineno, colno, end_lineno, end_colno):
         self.subdir = args.subdir
         self.lineno = lineno
         self.colno = colno
+        self.end_lineno = end_lineno
+        self.end_colno = end_colno
         self.args = args
 
 class EmptyNode(BaseNode):
@@ -349,10 +353,12 @@ class MethodNode(BaseNode):
         self.args = args
 
 class FunctionNode(BaseNode):
-    def __init__(self, subdir, lineno, colno, func_name, args):
+    def __init__(self, subdir, lineno, colno, end_lineno, end_colno, func_name, args):
         self.subdir = subdir
         self.lineno = lineno
         self.colno = colno
+        self.end_lineno = end_lineno
+        self.end_colno = end_colno
         self.func_name = func_name
         assert(isinstance(func_name, str))
         self.args = args
@@ -620,7 +626,7 @@ class Parser:
             if not isinstance(left, IdNode):
                 raise ParseException('Function call must be applied to plain id',
                                      self.getline(), left.lineno, left.colno)
-            left = FunctionNode(left.subdir, left.lineno, left.colno, left.value, args)
+            left = FunctionNode(left.subdir, left.lineno, left.colno, self.current.lineno, self.current.colno, left.value, args)
         go_again = True
         while go_again:
             go_again = False
@@ -641,11 +647,11 @@ class Parser:
         elif self.accept('lbracket'):
             args = self.args()
             self.block_expect('rbracket', block_start)
-            return ArrayNode(args, block_start.lineno, block_start.colno)
+            return ArrayNode(args, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
         elif self.accept('lcurl'):
             key_values = self.key_values()
             self.block_expect('rcurl', block_start)
-            return DictNode(key_values, block_start.lineno, block_start.colno)
+            return DictNode(key_values, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
         else:
             return self.e9()
 
