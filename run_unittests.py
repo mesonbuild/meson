@@ -5266,7 +5266,7 @@ class RewriterTests(BasePlatformTests):
         inf = json.dumps([{"type": "target", "target": "trivialprog1", "operation": "info"}])
         self.rewrite(self.builddir, add)
         out = self.rewrite(self.builddir, inf)
-        expected = {'target': {'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']}}}
+        expected = {'target': {'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp']}}}
         self.assertDictEqual(out, expected)
 
     def test_target_remove_sources(self):
@@ -5361,7 +5361,6 @@ class RewriterTests(BasePlatformTests):
         inf_json = json.dumps([{'type': 'target', 'target': 'exe1', 'operation': 'info'}])
         out = self.rewrite(self.builddir, add_json)
         out = self.rewrite(self.builddir, inf_json)
-        out = self.extract_test_data(out)
         expected = {
             'target': {
                 'exe1@exe': {
