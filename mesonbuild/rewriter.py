@@ -565,6 +565,8 @@ class Rewriter:
                 args = n.arguments
             return args
 
+        to_sort_nodes = []
+
         if cmd['operation'] == 'src_add':
             node = None
             if target['sources']:
@@ -592,14 +594,17 @@ class Rewriter:
                 to_append += [StringNode(token)]
 
             # Append to the AST at the right place
-            if isinstance(node, FunctionNode):
-                node.args.arguments += to_append
-            elif isinstance(node, ArrayNode):
-                node.args.arguments += to_append
+            arg_node = None
+            if isinstance(node, (FunctionNode, ArrayNode)):
+                arg_node = node.args
             elif isinstance(node, ArgumentNode):
-                node.arguments += to_append
+                arg_node = node
+            assert(arg_node is not None)
+            arg_node.arguments += to_append
 
             # Mark the node as modified
+            if arg_node not in to_sort_nodes and not isinstance(node, FunctionNode):
+                to_sort_nodes += [arg_node]
             if node not in self.modefied_nodes:
                 self.modefied_nodes += [node]
 
@@ -622,11 +627,9 @@ class Rewriter:
 
                 # Remove the found string node from the argument list
                 arg_node = None
-                if isinstance(root, FunctionNode):
+                if isinstance(root, (FunctionNode, ArrayNode)):
                     arg_node = root.args
-                if isinstance(root, ArrayNode):
-                    arg_node = root.args
-                if isinstance(root, ArgumentNode):
+                elif isinstance(root, ArgumentNode):
                     arg_node = root
                 assert(arg_node is not None)
                 mlog.log('  -- Removing source', mlog.green(i), 'from',
@@ -634,6 +637,8 @@ class Rewriter:
                 arg_node.arguments.remove(string_node)
 
                 # Mark the node as modified
+                if arg_node not in to_sort_nodes and not isinstance(root, FunctionNode):
+                    to_sort_nodes += [arg_node]
                 if root not in self.modefied_nodes:
                     self.modefied_nodes += [root]
 
@@ -684,6 +689,17 @@ class Rewriter:
                 'sources': src_list
             }
             self.add_info('target', target['id'], test_data)
+
+        # Sort files
+        for i in to_sort_nodes:
+            convert = lambda text: int(text) if text.isdigit() else text.lower()
+            alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+            path_sorter = lambda key: ([(key.count('/') <= idx, alphanum_key(x)) for idx, x in enumerate(key.split('/'))])
+
+            unknown = [x for x in i.arguments if not isinstance(x, StringNode)]
+            sources = [x for x in i.arguments if isinstance(x, StringNode)]
+            sources = sorted(sources, key=lambda x: path_sorter(x.value))
+            i.arguments = unknown + sources
 
     def process(self, cmd):
         if 'type' not in cmd:

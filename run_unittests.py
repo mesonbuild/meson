@@ -5242,16 +5242,16 @@ class RewriterTests(BasePlatformTests):
         out = self.extract_test_data(out)
         expected = {
             'target': {
-                'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp', 'fileB.cpp', 'fileC.cpp', 'a7.cpp']},
-                'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
-                'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileB.cpp', 'fileC.cpp', 'a7.cpp']},
-                'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp', 'fileA.cpp', 'a5.cpp']},
-                'trivialprog4@exe': {'name': 'trivialprog4', 'sources': ['main.cpp', 'a5.cpp', 'fileA.cpp']},
-                'trivialprog5@exe': {'name': 'trivialprog5', 'sources': ['main.cpp', 'a3.cpp', 'fileB.cpp', 'fileC.cpp', 'a7.cpp']},
+                'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp', 'a7.cpp', 'fileB.cpp', 'fileC.cpp']},
+                'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp']},
+                'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['a7.cpp', 'fileB.cpp', 'fileC.cpp']},
+                'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['a5.cpp', 'fileA.cpp', 'main.cpp']},
+                'trivialprog4@exe': {'name': 'trivialprog4', 'sources': ['a5.cpp', 'main.cpp', 'fileA.cpp']},
+                'trivialprog5@exe': {'name': 'trivialprog5', 'sources': ['a3.cpp', 'main.cpp', 'a7.cpp', 'fileB.cpp', 'fileC.cpp']},
                 'trivialprog6@exe': {'name': 'trivialprog6', 'sources': ['main.cpp', 'fileA.cpp', 'a4.cpp']},
-                'trivialprog7@exe': {'name': 'trivialprog7', 'sources': ['fileB.cpp', 'fileC.cpp', 'main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
-                'trivialprog8@exe': {'name': 'trivialprog8', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
-                'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
+                'trivialprog7@exe': {'name': 'trivialprog7', 'sources': ['fileB.cpp', 'fileC.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp']},
+                'trivialprog8@exe': {'name': 'trivialprog8', 'sources': ['a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp']},
+                'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp']},
             }
         }
         self.assertDictEqual(out, expected)
@@ -5354,6 +5354,52 @@ class RewriterTests(BasePlatformTests):
         out = self.extract_test_data(out)
         expected = {'name': 'something', 'sources': ['first.c', 'second.c']}
         self.assertDictEqual(out['target']['94b671c@@something@exe'], expected)
+
+    def test_target_source_sorting(self):
+        self.prime('5 sorting')
+        add_json = json.dumps([{'type': 'target', 'target': 'exe1', 'operation': 'src_add', 'sources': ['a666.c']}])
+        inf_json = json.dumps([{'type': 'target', 'target': 'exe1', 'operation': 'info'}])
+        out = self.rewrite(self.builddir, add_json)
+        out = self.rewrite(self.builddir, inf_json)
+        out = self.extract_test_data(out)
+        expected = {
+            'target': {
+                'exe1@exe': {
+                    'name': 'exe1',
+                    'sources': [
+                        'aaa/a/a1.c',
+                        'aaa/b/b1.c',
+                        'aaa/b/b2.c',
+                        'aaa/f1.c',
+                        'aaa/f2.c',
+                        'aaa/f3.c',
+                        'bbb/a/b1.c',
+                        'bbb/b/b2.c',
+                        'bbb/c1/b5.c',
+                        'bbb/c2/b7.c',
+                        'bbb/c10/b6.c',
+                        'bbb/a4.c',
+                        'bbb/b3.c',
+                        'bbb/b4.c',
+                        'bbb/b5.c',
+                        'a1.c',
+                        'a2.c',
+                        'a3.c',
+                        'a10.c',
+                        'a20.c',
+                        'a30.c',
+                        'a100.c',
+                        'a101.c',
+                        'a110.c',
+                        'a210.c',
+                        'a666.c',
+                        'b1.c',
+                        'c2.c'
+                    ]
+                }
+            }
+        }
+        self.assertDictEqual(out, expected)
 
     def test_kwargs_info(self):
         self.prime('3 kwargs')

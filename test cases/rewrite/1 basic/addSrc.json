@@ -3,7 +3,7 @@
     "type": "target",
     "target": "trivialprog1",
     "operation": "src_add",
-    "sources": ["a1.cpp", "a2.cpp", "a1.cpp"]
+    "sources": ["a2.cpp", "a1.cpp", "a2.cpp"]
   },
   {
     "type": "target",
