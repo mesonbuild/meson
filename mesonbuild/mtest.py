@@ -943,6 +943,7 @@ def list_tests(th):
     tests = th.get_tests()
     for t in tests:
         print(th.get_pretty_suite(t))
+    return not tests
 
 def rebuild_all(wd):
     if not os.path.isfile(os.path.join(wd, 'build.ninja')):
@@ -996,8 +997,7 @@ def run(options):
     try:
         th = TestHarness(options)
         if options.list:
-            list_tests(th)
-            return 0
+            return list_tests(th)
         if not options.args:
             return th.doit()
         return th.run_special()
