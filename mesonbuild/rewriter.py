@@ -25,21 +25,49 @@
 
 from .ast import IntrospectionInterpreter, build_target_functions, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
 from mesonbuild.mesonlib import MesonException
-from . import mlog, mparser, environment
+from . import mlog, environment
 from functools import wraps
-from pprint import pprint
-from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, IdNode, FunctionNode, StringNode
-import json, os, re
+from typing import List, Dict, Optional
+from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
+import json, os, re, sys
 
 class RewriterException(MesonException):
     pass
 
-def add_arguments(parser):
-    parser.add_argument('--sourcedir', default='.',
-                        help='Path to source directory.')
-    parser.add_argument('-p', '--print', action='store_true', default=False, dest='print',
-                        help='Print the parsed AST.')
-    parser.add_argument('command', type=str)
+def add_arguments(parser, formater=None):
+    parser.add_argument('-s', '--sourcedir', type=str, default='.', metavar='SRCDIR', help='Path to source directory.')
+    parser.add_argument('-V', '--verbose', action='store_true', default=False, help='Enable verbose output')
+    parser.add_argument('-S', '--skip-errors', dest='skip', action='store_true', default=False, help='Skip errors instead of aborting')
+    subparsers = parser.add_subparsers(dest='type', title='Rewriter commands', description='Rewrite command to execute')
+
+    # Target
+    tgt_parser = subparsers.add_parser('target', help='Modify a target', formatter_class=formater)
+    tgt_parser.add_argument('-s', '--subdir', default='', dest='subdir', help='Subdirectory of the new target (only for the "add_target" action)')
+    tgt_parser.add_argument('--type', dest='tgt_type', choices=rewriter_keys['target']['target_type'][2], default='executable',
+                            help='Type of the target to add (only for the "add_target" action)')
+    tgt_parser.add_argument('target', help='Name or ID of the target')
+    tgt_parser.add_argument('operation', choices=['add', 'rm', 'add_target', 'rm_target', 'info'],
+                            help='Action to execute')
+    tgt_parser.add_argument('sources', nargs='*', help='Sources to add/remove')
+
+    # KWARGS
+    kw_parser = subparsers.add_parser('kwargs', help='Modify keyword arguments', formatter_class=formater)
+    kw_parser.add_argument('operation', choices=rewriter_keys['kwargs']['operation'][2],
+                           help='Action to execute')
+    kw_parser.add_argument('function', choices=list(rewriter_func_kwargs.keys()),
+                           help='Function type to modify')
+    kw_parser.add_argument('id', help='ID of the function to modify (can be anything for "project")')
+    kw_parser.add_argument('kwargs', nargs='*', help='Pairs of keyword and value')
+
+    # Default options
+    def_parser = subparsers.add_parser('default-options', help='Modify the project default options', formatter_class=formater)
+    def_parser.add_argument('operation', choices=rewriter_keys['default_options']['operation'][2],
+                            help='Action to execute')
+    def_parser.add_argument('options', nargs='*', help='Key, value pairs of configuration option')
+
+    # JSON file/command
+    cmd_parser = subparsers.add_parser('command', help='Execute a JSON array of commands', formatter_class=formater)
+    cmd_parser.add_argument('json', help='JSON string or file to execute')
 
 class RequiredKeys:
     def __init__(self, keys):
@@ -73,7 +101,7 @@ class RequiredKeys:
         return wrapped
 
 class MTypeBase:
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         if node is None:
             self.node = self._new_node()
         else:
@@ -85,7 +113,7 @@ class MTypeBase:
 
     def _new_node(self):
         # Overwrite in derived class
-        return mparser.BaseNode()
+        return BaseNode()
 
     def can_modify(self):
         return self.node_type is not None
@@ -114,57 +142,57 @@ class MTypeBase:
         mlog.warning('Cannot remove a regex in type', mlog.bold(type(self).__name__), '--> skipping')
 
 class MTypeStr(MTypeBase):
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         super().__init__(node)
 
     def _new_node(self):
-        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, ''))
+        return StringNode(Token('', '', 0, 0, 0, None, ''))
 
     def supported_nodes(self):
-        return [mparser.StringNode]
+        return [StringNode]
 
     def set_value(self, value):
         self.node.value = str(value)
 
 class MTypeBool(MTypeBase):
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         super().__init__(node)
 
     def _new_node(self):
-        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, False))
+        return StringNode(Token('', '', 0, 0, 0, None, False))
 
     def supported_nodes(self):
-        return [mparser.BooleanNode]
+        return [BooleanNode]
 
     def set_value(self, value):
         self.node.value = bool(value)
 
 class MTypeID(MTypeBase):
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         super().__init__(node)
 
     def _new_node(self):
-        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, ''))
+        return StringNode(Token('', '', 0, 0, 0, None, ''))
 
     def supported_nodes(self):
-        return [mparser.IdNode]
+        return [IdNode]
 
     def set_value(self, value):
         self.node.value = str(value)
 
 class MTypeList(MTypeBase):
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         super().__init__(node)
 
     def _new_node(self):
-        return mparser.ArrayNode(mparser.ArgumentNode(mparser.Token('', '', 0, 0, 0, None, '')), 0, 0, 0, 0)
+        return ArrayNode(ArgumentNode(Token('', '', 0, 0, 0, None, '')), 0, 0, 0, 0)
 
     def _new_element_node(self, value):
         # Overwrite in derived class
-        return mparser.BaseNode()
+        return BaseNode()
 
     def _ensure_array_node(self):
-        if not isinstance(self.node, mparser.ArrayNode):
+        if not isinstance(self.node, ArrayNode):
             tmp = self.node
             self.node = self._new_node()
             self.node.args.arguments += [tmp]
@@ -178,7 +206,7 @@ class MTypeList(MTypeBase):
         return False
 
     def get_node(self):
-        if isinstance(self.node, mparser.ArrayNode):
+        if isinstance(self.node, ArrayNode):
             if len(self.node.args.arguments) == 1:
                 return self.node.args.arguments[0]
         return self.node
@@ -188,7 +216,7 @@ class MTypeList(MTypeBase):
         return []
 
     def supported_nodes(self):
-        return [mparser.ArrayNode] + self.supported_element_nodes()
+        return [ArrayNode] + self.supported_element_nodes()
 
     def set_value(self, value):
         if not isinstance(value, list):
@@ -228,44 +256,44 @@ class MTypeList(MTypeBase):
         self._remove_helper(regex, self._check_regex_matches)
 
 class MTypeStrList(MTypeList):
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         super().__init__(node)
 
     def _new_element_node(self, value):
-        return mparser.StringNode(mparser.Token('', '', 0, 0, 0, None, str(value)))
+        return StringNode(Token('', '', 0, 0, 0, None, str(value)))
 
     def _check_is_equal(self, node, value) -> bool:
-        if isinstance(node, mparser.StringNode):
+        if isinstance(node, StringNode):
             return node.value == value
         return False
 
     def _check_regex_matches(self, node, regex: str) -> bool:
-        if isinstance(node, mparser.StringNode):
+        if isinstance(node, StringNode):
             return re.match(regex, node.value) is not None
         return False
 
     def supported_element_nodes(self):
-        return [mparser.StringNode]
+        return [StringNode]
 
 class MTypeIDList(MTypeList):
-    def __init__(self, node: mparser.BaseNode):
+    def __init__(self, node: Optional[BaseNode] = None):
         super().__init__(node)
 
     def _new_element_node(self, value):
-        return mparser.IdNode(mparser.Token('', '', 0, 0, 0, None, str(value)))
+        return IdNode(Token('', '', 0, 0, 0, None, str(value)))
 
     def _check_is_equal(self, node, value) -> bool:
-        if isinstance(node, mparser.IdNode):
+        if isinstance(node, IdNode):
             return node.value == value
         return False
 
     def _check_regex_matches(self, node, regex: str) -> bool:
-        if isinstance(node, mparser.StringNode):
+        if isinstance(node, StringNode):
             return re.match(regex, node.value) is not None
         return False
 
     def supported_element_nodes(self):
-        return [mparser.IdNode]
+        return [IdNode]
 
 rewriter_keys = {
     'default_options': {
@@ -280,11 +308,10 @@ rewriter_keys = {
     },
     'target': {
         'target': (str, None, None),
-        'operation': (str, None, ['src_add', 'src_rm', 'tgt_rm', 'tgt_add', 'info']),
+        'operation': (str, None, ['src_add', 'src_rm', 'target_rm', 'target_add', 'info']),
         'sources': (list, [], None),
         'subdir': (str, '', None),
         'target_type': (str, 'executable', ['both_libraries', 'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library']),
-        'debug': (bool, False, None)
     }
 }
 
@@ -322,9 +349,10 @@ rewriter_func_kwargs = {
 }
 
 class Rewriter:
-    def __init__(self, sourcedir: str, generator: str = 'ninja'):
+    def __init__(self, sourcedir: str, generator: str = 'ninja', skip_errors: bool = False):
         self.sourcedir = sourcedir
         self.interpreter = IntrospectionInterpreter(sourcedir, '', generator, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
+        self.skip_errors = skip_errors
         self.modefied_nodes = []
         self.to_remove_nodes = []
         self.to_add_nodes = []
@@ -351,29 +379,45 @@ class Rewriter:
     def print_info(self):
         if self.info_dump is None:
             return
-        # Wrap the dump in magic strings
-        print('!!==JSON DUMP: BEGIN==!!')
-        print(json.dumps(self.info_dump, indent=2))
-        print('!!==JSON DUMP: END==!!')
+        sys.stderr.write(json.dumps(self.info_dump, indent=2))
+
+    def on_error(self):
+        if self.skip_errors:
+            return mlog.cyan('-->'), mlog.yellow('skipping')
+        return mlog.cyan('-->'), mlog.red('aborting')
+
+    def handle_error(self):
+        if self.skip_errors:
+            return None
+        raise MesonException('Rewriting the meson.build failed')
 
     def find_target(self, target: str):
-        def check_list(name: str):
+        def check_list(name: str) -> List[BaseNode]:
+            result = []
             for i in self.interpreter.targets:
                 if name == i['name'] or name == i['id']:
-                    return i
-            return None
+                    result += [i]
+            return result
 
-        tgt = check_list(target)
-        if tgt is not None:
-            return tgt
+        targets = check_list(target)
+        if targets:
+            if len(targets) == 1:
+                return targets[0]
+            else:
+                mlog.error('There are multiple targets matching', mlog.bold(target))
+                for i in targets:
+                    mlog.error('  -- Target name', mlog.bold(i['name']), 'with ID', mlog.bold(i['id']))
+                mlog.error('Please try again with the unique ID of the target', *self.on_error())
+                self.handle_error()
+                return None
 
         # Check the assignments
+        tgt = None
         if target in self.interpreter.assignments:
             node = self.interpreter.assignments[target][0]
-            if isinstance(node, mparser.FunctionNode):
+            if isinstance(node, FunctionNode):
                 if node.func_name in ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']:
-                    name = self.interpreter.flatten_args(node.args)[0]
-                    tgt = check_list(name)
+                    tgt = self.interpreter.assign_vals[target][0]
 
         return tgt
 
@@ -391,7 +435,7 @@ class Rewriter:
         # Check the assignments
         if dependency in self.interpreter.assignments:
             node = self.interpreter.assignments[dependency][0]
-            if isinstance(node, mparser.FunctionNode):
+            if isinstance(node, FunctionNode):
                 if node.func_name in ['dependency']:
                     name = self.interpreter.flatten_args(node.args)[0]
                     dep = check_list(name)
@@ -429,13 +473,15 @@ class Rewriter:
 
         for key, val in sorted(cmd['options'].items()):
             if key not in options:
-                mlog.error('Unknown options', mlog.bold(key), '--> skipping')
+                mlog.error('Unknown options', mlog.bold(key), *self.on_error())
+                self.handle_error()
                 continue
 
             try:
                 val = options[key].validate_value(val)
             except MesonException as e:
-                mlog.error('Unable to set', mlog.bold(key), mlog.red(str(e)), '--> skipping')
+                mlog.error('Unable to set', mlog.bold(key), mlog.red(str(e)), *self.on_error())
+                self.handle_error()
                 continue
 
             kwargs_cmd['kwargs']['default_options'] += ['{}={}'.format(key, val)]
@@ -446,14 +492,17 @@ class Rewriter:
     def process_kwargs(self, cmd):
         mlog.log('Processing function type', mlog.bold(cmd['function']), 'with id', mlog.cyan("'" + cmd['id'] + "'"))
         if cmd['function'] not in rewriter_func_kwargs:
-            mlog.error('Unknown function type {} --> skipping'.format(cmd['function']))
-            return
+            mlog.error('Unknown function type', cmd['function'], *self.on_error())
+            return self.handle_error()
         kwargs_def = rewriter_func_kwargs[cmd['function']]
 
         # Find the function node to modify
         node = None
         arg_node = None
         if cmd['function'] == 'project':
+            if cmd['id'] != '/':
+                mlog.error('The ID for the function type project must be an empty string', *self.on_error())
+                self.handle_error()
             node = self.interpreter.project_node
             arg_node = node.args
         elif cmd['function'] == 'target':
@@ -468,21 +517,21 @@ class Rewriter:
                 arg_node = node.args
         if not node:
             mlog.error('Unable to find the function node')
-        assert(isinstance(node, mparser.FunctionNode))
-        assert(isinstance(arg_node, mparser.ArgumentNode))
+        assert(isinstance(node, FunctionNode))
+        assert(isinstance(arg_node, ArgumentNode))
 
         # Print kwargs info
         if cmd['operation'] == 'info':
             info_data = {}
             for key, val in sorted(arg_node.kwargs.items()):
                 info_data[key] = None
-                if isinstance(val, mparser.ElementaryNode):
+                if isinstance(val, ElementaryNode):
                     info_data[key] = val.value
-                elif isinstance(val, mparser.ArrayNode):
+                elif isinstance(val, ArrayNode):
                     data_list = []
                     for i in val.args.arguments:
                         element = None
-                        if isinstance(i, mparser.ElementaryNode):
+                        if isinstance(i, ElementaryNode):
                             element = i.value
                         data_list += [element]
                     info_data[key] = data_list
@@ -494,7 +543,8 @@ class Rewriter:
         num_changed = 0
         for key, val in sorted(cmd['kwargs'].items()):
             if key not in kwargs_def:
-                mlog.error('Cannot modify unknown kwarg --> skipping', mlog.bold(key))
+                mlog.error('Cannot modify unknown kwarg', mlog.bold(key), *self.on_error())
+                self.handle_error()
                 continue
 
             # Remove the key from the kwargs
@@ -535,7 +585,7 @@ class Rewriter:
         if num_changed > 0 and node not in self.modefied_nodes:
             self.modefied_nodes += [node]
 
-    def find_assignment_node(self, node: mparser) -> AssignmentNode:
+    def find_assignment_node(self, node: BaseNode) -> AssignmentNode:
         if hasattr(node, 'ast_id') and node.ast_id in self.interpreter.reverse_assignment:
             return self.interpreter.reverse_assignment[node.ast_id]
         return None
@@ -544,13 +594,22 @@ class Rewriter:
     def process_target(self, cmd):
         mlog.log('Processing target', mlog.bold(cmd['target']), 'operation', mlog.cyan(cmd['operation']))
         target = self.find_target(cmd['target'])
-        if target is None and cmd['operation'] != 'tgt_add':
-            mlog.error('Unknown target "{}" --> skipping'.format(cmd['target']))
-            if cmd['debug']:
-                pprint(self.interpreter.targets)
-            return
-        if cmd['debug']:
-            pprint(target)
+        if target is None and cmd['operation'] != 'target_add':
+            mlog.error('Unknown target', mlog.bold(cmd['target']), *self.on_error())
+            return self.handle_error()
+
+        # Make source paths relative to the current subdir
+        def rel_source(src: str) -> str:
+            subdir = os.path.abspath(os.path.join(self.sourcedir, target['subdir']))
+            if os.path.isabs(src):
+                return os.path.relpath(src, subdir)
+            elif not os.path.exists(src):
+                return src # Trust the user when the source doesn't exist
+            # Make sure that the path is relative to the subdir
+            return os.path.relpath(os.path.abspath(src), subdir)
+
+        if target is not None:
+            cmd['sources'] = [rel_source(x) for x in cmd['sources']]
 
         # Utility function to get a list of the sources from a node
         def arg_list_from_node(n):
@@ -642,34 +701,38 @@ class Rewriter:
                 if root not in self.modefied_nodes:
                     self.modefied_nodes += [root]
 
-        elif cmd['operation'] == 'tgt_add':
+        elif cmd['operation'] == 'target_add':
             if target is not None:
-                mlog.error('Can not add target', mlog.bold(cmd['target']), 'because it already exists')
-                return
+                mlog.error('Can not add target', mlog.bold(cmd['target']), 'because it already exists', *self.on_error())
+                return self.handle_error()
+
+            id_base = re.sub(r'[- ]', '_', cmd['target'])
+            target_id = id_base + '_exe' if cmd['target_type'] == 'executable' else '_lib'
+            source_id = id_base + '_sources'
 
             # Build src list
             src_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
             src_arr_node = ArrayNode(src_arg_node, 0, 0, 0, 0)
             src_far_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
             src_fun_node = FunctionNode(cmd['subdir'], 0, 0, 0, 0, 'files', src_far_node)
-            src_ass_node = AssignmentNode(cmd['subdir'], 0, 0, '{}_src'.format(cmd['target']), src_fun_node)
+            src_ass_node = AssignmentNode(cmd['subdir'], 0, 0, source_id, src_fun_node)
             src_arg_node.arguments = [StringNode(Token('string', cmd['subdir'], 0, 0, 0, None, x)) for x in cmd['sources']]
             src_far_node.arguments = [src_arr_node]
 
             # Build target
             tgt_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
             tgt_fun_node = FunctionNode(cmd['subdir'], 0, 0, 0, 0, cmd['target_type'], tgt_arg_node)
-            tgt_ass_node = AssignmentNode(cmd['subdir'], 0, 0, '{}_tgt'.format(cmd['target']), tgt_fun_node)
+            tgt_ass_node = AssignmentNode(cmd['subdir'], 0, 0, target_id, tgt_fun_node)
             tgt_arg_node.arguments = [
                 StringNode(Token('string', cmd['subdir'], 0, 0, 0, None, cmd['target'])),
-                IdNode(Token('string', cmd['subdir'], 0, 0, 0, None, '{}_src'.format(cmd['target'])))
+                IdNode(Token('string', cmd['subdir'], 0, 0, 0, None, source_id))
             ]
 
             src_ass_node.accept(AstIndentationGenerator())
             tgt_ass_node.accept(AstIndentationGenerator())
             self.to_add_nodes += [src_ass_node, tgt_ass_node]
 
-        elif cmd['operation'] == 'tgt_rm':
+        elif cmd['operation'] == 'target_rm':
             to_remove = self.find_assignment_node(target['node'])
             if to_remove is None:
                 to_remove = target['node']
@@ -717,7 +780,7 @@ class Rewriter:
         # Sort based on line and column in reversed order
         work_nodes = [{'node': x, 'action': 'modify'} for x in self.modefied_nodes]
         work_nodes += [{'node': x, 'action': 'rm'} for x in self.to_remove_nodes]
-        work_nodes = list(sorted(work_nodes, key=lambda x: x['node'].lineno * 1000 + x['node'].colno, reverse=True))
+        work_nodes = list(sorted(work_nodes, key=lambda x: (x['node'].lineno, x['node'].colno), reverse=True))
         work_nodes += [{'node': x, 'action': 'add'} for x in self.to_add_nodes]
 
         # Generating the new replacement string
@@ -802,23 +865,92 @@ class Rewriter:
             with open(val['path'], 'w') as fp:
                 fp.write(val['raw'])
 
-def run(options):
-    rewriter = Rewriter(options.sourcedir)
-    rewriter.analyze_meson()
-    if os.path.exists(options.command):
-        with open(options.command, 'r') as fp:
-            commands = json.load(fp)
+target_operation_map = {
+    'add': 'src_add',
+    'rm': 'src_rm',
+    'add_target': 'target_add',
+    'rm_target': 'target_rm',
+    'info': 'info',
+}
+
+def list_to_dict(in_list: List[str]) -> Dict[str, str]:
+    if len(in_list) % 2 != 0:
+        raise TypeError('An even ammount of arguments are required')
+    result = {}
+    for i in range(0, len(in_list), 2):
+        result[in_list[i]] = in_list[i + 1]
+    return result
+
+def generate_target(options) -> List[dict]:
+    return [{
+        'type': 'target',
+        'target': options.target,
+        'operation': target_operation_map[options.operation],
+        'sources': options.sources,
+        'subdir': options.subdir,
+        'target_type': options.tgt_type,
+    }]
+
+def generate_kwargs(options) -> List[dict]:
+    return [{
+        'type': 'kwargs',
+        'function': options.function,
+        'id': options.id,
+        'operation': options.operation,
+        'kwargs': list_to_dict(options.kwargs),
+    }]
+
+def generate_def_opts(options) -> List[dict]:
+    return [{
+        'type': 'default_options',
+        'operation': options.operation,
+        'options': list_to_dict(options.options),
+    }]
+
+def genreate_cmd(options) -> List[dict]:
+    if os.path.exists(options.json):
+        with open(options.json, 'r') as fp:
+            return json.load(fp)
     else:
-        commands = json.loads(options.command)
+        return json.loads(options.json)
 
-    if not isinstance(commands, list):
-        raise TypeError('Command is not a list')
+# Map options.type to the actual type name
+cli_type_map = {
+    'target': generate_target,
+    'tgt': generate_target,
+    'kwargs': generate_kwargs,
+    'default-options': generate_def_opts,
+    'def': generate_def_opts,
+    'command': genreate_cmd,
+    'cmd': genreate_cmd,
+}
 
-    for i in commands:
-        if not isinstance(i, object):
-            raise TypeError('Command is not an object')
-        rewriter.process(i)
+def run(options):
+    if not options.verbose:
+        mlog.set_quiet()
 
-    rewriter.apply_changes()
-    rewriter.print_info()
-    return 0
+    try:
+        rewriter = Rewriter(options.sourcedir, skip_errors=options.skip)
+        rewriter.analyze_meson()
+
+        if options.type is None:
+            mlog.error('No command specified')
+            return 1
+
+        commands = cli_type_map[options.type](options)
+
+        if not isinstance(commands, list):
+            raise TypeError('Command is not a list')
+
+        for i in commands:
+            if not isinstance(i, object):
+                raise TypeError('Command is not an object')
+            rewriter.process(i)
+
+        rewriter.apply_changes()
+        rewriter.print_info()
+        return 0
+    except Exception as e:
+        raise e
+    finally:
+        mlog.set_verbose()

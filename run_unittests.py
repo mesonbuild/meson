@@ -5187,8 +5187,6 @@ class PythonTests(BasePlatformTests):
 
 
 class RewriterTests(BasePlatformTests):
-    data_regex = re.compile(r'.*\n!!==JSON DUMP: BEGIN==!!\n(.*)\n!!==JSON DUMP: END==!!\n', re.MULTILINE | re.DOTALL)
-
     def setUp(self):
         super().setUp()
         self.maxDiff = None
@@ -5196,30 +5194,32 @@ class RewriterTests(BasePlatformTests):
     def prime(self, dirname):
         copy_tree(os.path.join(self.rewrite_test_dir, dirname), self.builddir)
 
-    def rewrite(self, directory, args):
+    def rewrite_raw(self, directory, args):
         if isinstance(args, str):
             args = [args]
-        command = self.rewrite_command + ['--sourcedir', directory] + args
-        p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        command = self.rewrite_command + ['--verbose', '--skip', '--sourcedir', directory] + args
+        p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                            universal_newlines=True, timeout=60)
+        print('STDOUT:')
         print(p.stdout)
+        print('STDERR:')
+        print(p.stderr)
         if p.returncode != 0:
             if 'MESON_SKIP_TEST' in p.stdout:
                 raise unittest.SkipTest('Project requested skipping.')
             raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
-        return p.stdout
+        if not p.stderr:
+            return {}
+        return json.loads(p.stderr)
 
-    def extract_test_data(self, out):
-        match = RewriterTests.data_regex.match(out)
-        result = {}
-        if match:
-            result = json.loads(match.group(1))
-        return result
+    def rewrite(self, directory, args):
+        if isinstance(args, str):
+            args = [args]
+        return self.rewrite_raw(directory, ['command'] + args)
 
     def test_target_source_list(self):
         self.prime('1 basic')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'target': {
                 'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['main.cpp', 'fileA.cpp', 'fileB.cpp', 'fileC.cpp']},
@@ -5239,7 +5239,6 @@ class RewriterTests(BasePlatformTests):
     def test_target_add_sources(self):
         self.prime('1 basic')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
-        out = self.extract_test_data(out)
         expected = {
             'target': {
                 'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp', 'a7.cpp', 'fileB.cpp', 'fileC.cpp']},
@@ -5258,13 +5257,21 @@ class RewriterTests(BasePlatformTests):
 
         # Check the written file
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
+        self.assertDictEqual(out, expected)
+
+    def test_target_add_sources_abs(self):
+        self.prime('1 basic')
+        abs_src = [os.path.join(self.builddir, x) for x in ['a1.cpp', 'a2.cpp', 'a6.cpp']]
+        add = json.dumps([{"type": "target", "target": "trivialprog1", "operation": "src_add", "sources": abs_src}])
+        inf = json.dumps([{"type": "target", "target": "trivialprog1", "operation": "info"}])
+        self.rewrite(self.builddir, add)
+        out = self.rewrite(self.builddir, inf)
+        expected = {'target': {'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp']}}}
         self.assertDictEqual(out, expected)
 
     def test_target_remove_sources(self):
         self.prime('1 basic')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'rmSrc.json'))
-        out = self.extract_test_data(out)
         expected = {
             'target': {
                 'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['main.cpp', 'fileC.cpp']},
@@ -5283,26 +5290,22 @@ class RewriterTests(BasePlatformTests):
 
         # Check the written file
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         self.assertDictEqual(out, expected)
 
     def test_target_subdir(self):
         self.prime('2 subdirs')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
-        out = self.extract_test_data(out)
         expected = {'name': 'something', 'sources': ['first.c', 'second.c', 'third.c']}
         self.assertDictEqual(list(out['target'].values())[0], expected)
 
         # Check the written file
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         self.assertDictEqual(list(out['target'].values())[0], expected)
 
     def test_target_remove(self):
         self.prime('1 basic')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'rmTgt.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
 
         expected = {
             'target': {
@@ -5321,7 +5324,6 @@ class RewriterTests(BasePlatformTests):
         self.prime('1 basic')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'addTgt.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
 
         expected = {
             'target': {
@@ -5344,14 +5346,12 @@ class RewriterTests(BasePlatformTests):
         self.prime('2 subdirs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'rmTgt.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         self.assertDictEqual(out, {})
 
     def test_target_add_subdir(self):
         self.prime('2 subdirs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'addTgt.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {'name': 'something', 'sources': ['first.c', 'second.c']}
         self.assertDictEqual(out['target']['94b671c@@something@exe'], expected)
 
@@ -5361,7 +5361,6 @@ class RewriterTests(BasePlatformTests):
         inf_json = json.dumps([{'type': 'target', 'target': 'exe1', 'operation': 'info'}])
         out = self.rewrite(self.builddir, add_json)
         out = self.rewrite(self.builddir, inf_json)
-        out = self.extract_test_data(out)
         expected = {
             'target': {
                 'exe1@exe': {
@@ -5401,13 +5400,21 @@ class RewriterTests(BasePlatformTests):
         }
         self.assertDictEqual(out, expected)
 
+    def test_target_same_name_skip(self):
+        self.prime('4 same name targets')
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        expected = {'name': 'myExe', 'sources': ['main.cpp']}
+        self.assertEqual(len(out['target']), 2)
+        for _, val in out['target'].items():
+            self.assertDictEqual(expected, val)
+
     def test_kwargs_info(self):
         self.prime('3 kwargs')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1'},
+                'project#/': {'version': '0.0.1'},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5418,10 +5425,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'set.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.2', 'meson_version': '0.50.0', 'license': ['GPL', 'MIT']},
+                'project#/': {'version': '0.0.2', 'meson_version': '0.50.0', 'license': ['GPL', 'MIT']},
                 'target#tgt1': {'build_by_default': False, 'build_rpath': '/usr/local', 'dependencies': 'dep1'},
                 'dependency#dep1': {'required': True, 'method': 'cmake'}
             }
@@ -5432,10 +5438,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'add.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'license': ['GPL', 'MIT', 'BSD']},
+                'project#/': {'version': '0.0.1', 'license': ['GPL', 'MIT', 'BSD']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5446,10 +5451,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'remove.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'license': 'GPL'},
+                'project#/': {'version': '0.0.1', 'license': 'GPL'},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5460,10 +5464,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'remove_regex.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=true']},
+                'project#/': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=true']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5474,10 +5477,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'delete.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {},
+                'project#/': {},
                 'target#tgt1': {},
                 'dependency#dep1': {'required': False}
             }
@@ -5488,10 +5490,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'defopts_set.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=True', 'cpp_std=c++11']},
+                'project#/': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=True', 'cpp_std=c++11']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5502,10 +5503,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'defopts_delete.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'default_options': ['cpp_std=c++14', 'debug=true']},
+                'project#/': {'version': '0.0.1', 'default_options': ['cpp_std=c++14', 'debug=true']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }

@@ -194,7 +194,7 @@ class IntrospectionInterpreter(AstInterpreter):
         empty_sources = [] # Passing the unresolved sources list causes errors
         target = targetclass(name, self.subdir, self.subproject, is_cross, empty_sources, objects, self.environment, kwargs_reduced)
 
-        self.targets += [{
+        new_target = {
             'name': target.get_basename(),
             'id': target.get_id(),
             'type': target.get_typename(),
@@ -206,9 +206,10 @@ class IntrospectionInterpreter(AstInterpreter):
             'sources': source_nodes,
             'kwargs': kwargs,
             'node': node,
-        }]
+        }
 
-        return
+        self.targets += [new_target]
+        return new_target
 
     def build_library(self, node, args, kwargs):
         default_library = self.coredata.get_builtin_option('default_library')
