@@ -155,6 +155,19 @@ class HotdocTargetBuilder:
     def replace_dirs_in_string(self, string):
         return string.replace("@SOURCE_ROOT@", self.sourcedir).replace("@BUILD_ROOT@", self.builddir)
 
+    def process_gi_c_source_roots(self):
+        if self.hotdoc.run_hotdoc(['--has-extension=gi-extension']) != 0:
+            return
+
+        value, _ = self.get_value([list, str], 'gi_c_source_roots', default=[], force_list=True)
+        value.extend([
+            os.path.join(self.state.environment.get_source_dir(),
+                         self.interpreter.subproject_dir, self.state.subproject),
+            os.path.join(self.state.environment.get_build_dir(), self.interpreter.subproject_dir, self.state.subproject)
+        ])
+
+        self.cmd += ['--gi-c-source-roots'] + value
+
     def process_dependencies(self, deps):
         cflags = set()
         for dep in mesonlib.listify(ensure_list(deps)):
@@ -271,6 +284,7 @@ class HotdocTargetBuilder:
         self.process_known_arg('--c-include-directories',
                                [Dependency, build.StaticLibrary, build.SharedLibrary, list], argname="dependencies",
                                force_list=True, value_processor=self.process_dependencies)
+        self.process_gi_c_source_roots()
         self.process_extra_assets()
         self.process_extra_extension_paths()
         self.process_subprojects()
