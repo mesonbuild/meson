@@ -203,12 +203,12 @@ gnulike_buildtype_linker_args = {'plain': [],
                                  }
 
 solaris_buildtype_linker_args = {'plain': [],
-                               'debug': [],
-                               'debugoptimized': [],
-                               'release': [],
-                               'minsize': [],
-                               'custom': [],
-                               }
+                                 'debug': [],
+                                 'debugoptimized': [],
+                                 'release': [],
+                                 'minsize': [],
+                                 'custom': [],
+                                 }
 
 arm_buildtype_linker_args = {'plain': [],
                              'debug': [],

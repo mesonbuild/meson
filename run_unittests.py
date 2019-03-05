@@ -73,7 +73,7 @@ def get_dynamic_section_entry(fname, entry):
         if is_solaris():
             cmd = '/usr/gnu/bin/readelf'
         raw_out = subprocess.check_output([cmd, '-d', fname],
-                                              universal_newlines=True)
+                                          universal_newlines=True)
     except FileNotFoundError:
         # FIXME: Try using depfixer.py:Elf() as a fallback
         raise unittest.SkipTest('readelf not found')

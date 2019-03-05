@@ -274,6 +274,8 @@ def detect_system():
     system = platform.system().lower()
     if system.startswith('cygwin'):
         return 'cygwin'
+    if system.startswith('sunos'):
+        return 'solaris'
     return system
 
 def detect_msys2_arch():
