@@ -45,7 +45,7 @@ import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.ast import AstInterpreter
 from mesonbuild.mesonlib import (
-    is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_sunos,
+    is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_solaris,
     windows_proof_rmtree, python_command, version_compare,
     BuildDirLock, Version, PerMachine
 )
@@ -69,11 +69,10 @@ def get_dynamic_section_entry(fname, entry):
         raise unittest.SkipTest('Test only applicable to ELF platforms')
 
     try:
-        if is_sunos():
-            raw_out = subprocess.check_output(['/usr/gnu/bin/readelf', '-d', fname],
-                                              universal_newlines=True)
-        else:
-            raw_out = subprocess.check_output(['readelf', '-d', fname],
+        cmd = 'readelf'
+        if is_solaris():
+            cmd = '/usr/gnu/bin/readelf'
+        raw_out = subprocess.check_output([cmd, '-d', fname],
                                               universal_newlines=True)
     except FileNotFoundError:
         # FIXME: Try using depfixer.py:Elf() as a fallback
@@ -1877,7 +1876,7 @@ class AllPlatformTests(BasePlatformTests):
         ar = mesonbuild.linkers.ArLinker
         lib = mesonbuild.linkers.VisualStudioLinker
         langs = [('c', 'CC'), ('cpp', 'CXX')]
-        if not is_windows() and not is_sunos():
+        if not is_windows() and not is_solaris():
             langs += [('objc', 'OBJC'), ('objcpp', 'OBJCXX')]
         testdir = os.path.join(self.unit_test_dir, '5 compiler detection')
         env = get_fake_env(testdir, self.builddir, self.prefix)
@@ -1924,8 +1923,8 @@ class AllPlatformTests(BasePlatformTests):
                     self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_MINGW)
                 elif is_cygwin():
                     self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_CYGWIN)
-                elif is_sunos():
-                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_SUNOS)
+                elif is_solaris():
+                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_SOLARIS)
                 else:
                     self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_STANDARD)
             if isinstance(cc, clang):
@@ -2220,7 +2219,7 @@ int main(int argc, char **argv) {
                 # so ignore that.
                 self.assertTrue(rpath.startswith('/usr/lib/gcc'))
                 rpaths = rpath.split(':')[1:]
-            elif is_sunos():
+            elif is_solaris():
                 # OpenIndiana prepends /usr/gcc/VERSION/lib
                 self.assertTrue(rpath.startswith('/usr/gcc'))
                 rpaths = rpath.split(':')[1:]
@@ -2235,7 +2234,7 @@ int main(int argc, char **argv) {
                 # The rpath should be equal to /usr/lib/gccVERSION
                 self.assertTrue(rpath.startswith('/usr/lib/gcc'))
                 self.assertEqual(len(rpath.split(':')), 1)
-            elif is_sunos():
+            elif is_solaris():
                 # The rpath should be equal to /usr/gcc
                 self.assertTrue(rpath.startswith('/usr/gcc'))
                 self.assertEqual(len(rpath.split(':')), 1)
@@ -2630,7 +2629,7 @@ int main(int argc, char **argv) {
             raise unittest.SkipTest('system crossfile paths not defined for Windows (yet)')
 
         testdir = os.path.join(self.common_test_dir, '1 trivial')
-        if is_sunos():
+        if is_solaris():
             cross_content = textwrap.dedent("""\
                 [binaries]
                 c = '/usr/bin/gcc'
@@ -2640,7 +2639,7 @@ int main(int argc, char **argv) {
                 [properties]
 
                 [host_machine]
-                system = 'sunos'
+                system = 'solaris'
                 cpu_family = 'x86'
                 cpu = 'i686'
                 endian = 'little'
@@ -4265,10 +4264,8 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skip_if_not_base_option('b_sanitize')
     def test_generate_gir_with_address_sanitizer(self):
-        if is_cygwin():
-            raise unittest.SkipTest('asan not available on Cygwin')
-        elif is_sunos():
-            raise unittest.SkipTest('asan not available on SunOS')
+        if is_cygwin() or is_solaris():
+            raise unittest.SkipTest('asan not available on this platform.')
 
         testdir = os.path.join(self.framework_test_dir, '7 gnome')
         self.init(testdir, ['-Db_sanitize=address', '-Db_lundef=false'])
@@ -4713,7 +4710,7 @@ class LinuxlikeTests(BasePlatformTests):
 
     def test_build_rpath(self):
         #
-        # Todo: SunOS tests have to be made a little strikter.
+        # Todo: Solaris tests have to be made a little stricter.
         #
         if is_cygwin():
             raise unittest.SkipTest('Windows PE/COFF binaries do not use RPATH')
@@ -4722,35 +4719,33 @@ class LinuxlikeTests(BasePlatformTests):
         self.build()
         # C program RPATH
         build_rpath = get_rpath(os.path.join(self.builddir, 'prog'))
-        if is_sunos():
+        if is_solaris():
             self.assertTrue(build_rpath.endswith('$ORIGIN/sub:/foo/bar'))
         else:
             self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar')
         self.install()
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/prog'))
-        if is_sunos():
+        if is_solaris():
             self.assertTrue(install_rpath.endswith('/baz'))
         else:
             self.assertEqual(install_rpath, '/baz')
         # C++ program RPATH
         build_rpath = get_rpath(os.path.join(self.builddir, 'progcxx'))
-        if is_sunos():
+        if is_solaris():
             self.assertTrue(build_rpath.endswith('$ORIGIN/sub:/foo/bar'))
         else:
             self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar')
         self.install()
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/progcxx'))
-        if is_sunos():
+        if is_solaris():
             self.assertEqual(install_rpath, 'baz')
         else:
             self.assertEqual(install_rpath, 'baz')
 
     @skip_if_not_base_option('b_sanitize')
     def test_pch_with_address_sanitizer(self):
-        if is_cygwin():
-            raise unittest.SkipTest('asan not available on Cygwin')
-        if is_sunos():
-            raise unittest.SkipTest('asan not available on SunOS')
+        if is_cygwin() or is_solaris():
+            raise unittest.SkipTest('asan not available on this platform')
 
         testdir = os.path.join(self.common_test_dir, '13 pch')
         self.init(testdir, ['-Db_sanitize=address'])
@@ -4778,7 +4773,7 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '11 cross prog')
         crossfile = tempfile.NamedTemporaryFile(mode='w')
         print(os.path.join(testdir, 'some_cross_tool.py'))
-        if not is_sunos():
+        if not is_solaris():
             crossfile.write('''[binaries]
 c = '/usr/bin/cc'
 ar = '/usr/bin/ar'
@@ -4805,7 +4800,7 @@ someothertool.py = '{0}'
 [properties]
 
 [host_machine]
-system = 'sunos'
+system = 'solaris'
 cpu_family = 'arm'
 cpu = 'armv7' # Not sure if correct.
 endian = 'little'
@@ -4971,7 +4966,7 @@ endian = 'little'
         self.init(testdir)
         if is_osx():
             rpathre = re.compile(r'-rpath,.*/subprojects/sub1.*-rpath,.*/subprojects/sub2')
-        elif is_sunos():
+        elif is_solaris():
             rpathre = re.compile(r'-R,\$\$ORIGIN/subprojects/sub1:\$\$ORIGIN/subprojects/sub2')
         else:
             rpathre = re.compile(r'-rpath,\$\$ORIGIN/subprojects/sub1:\$\$ORIGIN/subprojects/sub2')
@@ -5090,8 +5085,8 @@ endian = 'little'
     @skipIfNoPkgconfigDep('gmodule-2.0')
     def test_ldflag_dedup(self):
         testdir = os.path.join(self.unit_test_dir, '49 ldflagdedup')
-        if is_cygwin() or is_osx() or is_sunos():
-            raise unittest.SkipTest('Not applicable on Cygwin, OSX or SunOS.')
+        if is_cygwin() or is_osx() or is_solaris():
+            raise unittest.SkipTest('Not applicable on this platform.')
         self.init(testdir)
         build_ninja = os.path.join(self.builddir, 'build.ninja')
         max_count = 0

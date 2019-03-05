@@ -449,7 +449,7 @@ class Environment:
         self.clang_static_linker = ['llvm-ar']
         self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
-        if mesonlib.is_sunos():
+        if mesonlib.is_solaris():
             self.default_objc = ['gcc']
             self.default_objcpp = ['g++']
             self.gcc_static_linker = ['gar']
@@ -575,7 +575,7 @@ class Environment:
         elif '__CYGWIN__' in defines:
             return CompilerType.GCC_CYGWIN
         elif '__sun' in defines:
-            return CompilerType.GCC_SUNOS
+            return CompilerType.GCC_SOLARIS
         return CompilerType.GCC_STANDARD
 
     def _get_compilers(self, lang, want_cross):

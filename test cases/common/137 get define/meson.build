@@ -35,7 +35,7 @@ foreach lang : ['c', 'cpp']
   elif host_system == 'gnu'
     d = cc.get_define('__GNU__')
     assert(d == '1', '__GNU__ value is @0@ instead of 1'.format(d))
-  elif host_system == 'sunos'
+  elif host_system == 'solaris'
     d = cc.get_define('__sun')
     assert(d == '1', '__sun value is @0@ instead of 1'.format(d))
   else
