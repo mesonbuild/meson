@@ -51,6 +51,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         self.visitors = visitors
         self.visited_subdirs = {}
         self.assignments = {}
+        self.assign_vals = {}
         self.reverse_assignment = {}
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
@@ -161,7 +162,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         self.assignments[node.var_name] += [node.value] # Save a reference to the value node
         if hasattr(node.value, 'ast_id'):
             self.reverse_assignment[node.value.ast_id] = node
-        self.evaluate_statement(node.value) # Evaluate the value just in case
+        self.assign_vals[node.var_name] += [self.evaluate_statement(node.value)]
 
     def evaluate_indexing(self, node):
         return 0
@@ -200,7 +201,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         self.assignments[node.var_name] = [node.value] # Save a reference to the value node
         if hasattr(node.value, 'ast_id'):
             self.reverse_assignment[node.value.ast_id] = node
-        self.evaluate_statement(node.value) # Evaluate the value just in case
+        self.assign_vals[node.var_name] = [self.evaluate_statement(node.value)] # Evaluate the value just in case
 
     def flatten_args(self, args, include_unknown_args: bool = False):
         # Resolve mparser.ArrayNode if needed

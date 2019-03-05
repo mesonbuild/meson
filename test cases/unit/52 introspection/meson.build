@@ -1,6 +1,12 @@
 project('introspection', ['c', 'cpp'], version: '1.2.3', default_options: ['cpp_std=c++11', 'buildtype=debug'])
 
 dep1 = dependency('threads')
+dep2 = dependency('zlib', required: false)
+
+if false
+  dependency('somethingthatdoesnotexist', required: true)
+  dependency('look_i_have_a_fallback', fallback: ['oh_no', 'the_subproject_does_not_exist'])
+endif
 
 subdir('sharedlib')
 subdir('staticlib')

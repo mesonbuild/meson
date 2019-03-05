@@ -27,6 +27,7 @@ import unittest
 import platform
 import pickle
 import functools
+import io
 from itertools import chain
 from unittest import mock
 from configparser import ConfigParser
@@ -53,6 +54,8 @@ from mesonbuild.mesonlib import MesonException, EnvironmentException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 from mesonbuild.build import Target
 import mesonbuild.modules.pkgconfig
+
+from mesonbuild.mtest import TAPParser, TestResult
 
 from run_tests import (
     Backend, FakeBuild, FakeCompilerOptions,
@@ -3538,6 +3541,70 @@ recommended as it is not supported on some platforms''')
 
         self.assertListEqual(res1, res2)
 
+    def test_introspect_targets_from_source(self):
+        testdir = os.path.join(self.unit_test_dir, '52 introspection')
+        testfile = os.path.join(testdir, 'meson.build')
+        introfile = os.path.join(self.builddir, 'meson-info', 'intro-targets.json')
+        self.init(testdir)
+        self.assertPathExists(introfile)
+        with open(introfile, 'r') as fp:
+            res_wb = json.load(fp)
+
+        res_nb = self.introspect_directory(testfile, ['--targets'] + self.meson_args)
+
+        # Account for differences in output
+        for i in res_wb:
+            i['filename'] = [os.path.relpath(x, self.builddir) for x in i['filename']]
+            if 'install_filename' in i:
+                del i['install_filename']
+
+            sources = []
+            for j in i['target_sources']:
+                sources += j['sources']
+            i['target_sources'] = [{
+                'language': 'unknown',
+                'compiler': [],
+                'parameters': [],
+                'sources': sources,
+                'generated_sources': []
+            }]
+
+        self.maxDiff = None
+        self.assertListEqual(res_nb, res_wb)
+
+    def test_introspect_dependencies_from_source(self):
+        testdir = os.path.join(self.unit_test_dir, '52 introspection')
+        testfile = os.path.join(testdir, 'meson.build')
+        res_nb = self.introspect_directory(testfile, ['--scan-dependencies'] + self.meson_args)
+        expected = [
+            {
+                'name': 'threads',
+                'required': True,
+                'has_fallback': False,
+                'conditional': False
+            },
+            {
+                'name': 'zlib',
+                'required': False,
+                'has_fallback': False,
+                'conditional': False
+            },
+            {
+                'name': 'somethingthatdoesnotexist',
+                'required': True,
+                'has_fallback': False,
+                'conditional': True
+            },
+            {
+                'name': 'look_i_have_a_fallback',
+                'required': True,
+                'has_fallback': True,
+                'conditional': True
+            }
+        ]
+        self.maxDiff = None
+        self.assertListEqual(res_nb, expected)
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically
@@ -5192,8 +5259,6 @@ class PythonTests(BasePlatformTests):
 
 
 class RewriterTests(BasePlatformTests):
-    data_regex = re.compile(r'.*\n!!==JSON DUMP: BEGIN==!!\n(.*)\n!!==JSON DUMP: END==!!\n', re.MULTILINE | re.DOTALL)
-
     def setUp(self):
         super().setUp()
         self.maxDiff = None
@@ -5201,32 +5266,35 @@ class RewriterTests(BasePlatformTests):
     def prime(self, dirname):
         copy_tree(os.path.join(self.rewrite_test_dir, dirname), self.builddir)
 
-    def rewrite(self, directory, args):
+    def rewrite_raw(self, directory, args):
         if isinstance(args, str):
             args = [args]
-        command = self.rewrite_command + ['--sourcedir', directory] + args
-        p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        command = self.rewrite_command + ['--verbose', '--skip', '--sourcedir', directory] + args
+        p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                            universal_newlines=True, timeout=60)
+        print('STDOUT:')
         print(p.stdout)
+        print('STDERR:')
+        print(p.stderr)
         if p.returncode != 0:
             if 'MESON_SKIP_TEST' in p.stdout:
                 raise unittest.SkipTest('Project requested skipping.')
             raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
-        return p.stdout
+        if not p.stderr:
+            return {}
+        return json.loads(p.stderr)
 
-    def extract_test_data(self, out):
-        match = RewriterTests.data_regex.match(out)
-        result = {}
-        if match:
-            result = json.loads(match.group(1))
-        return result
+    def rewrite(self, directory, args):
+        if isinstance(args, str):
+            args = [args]
+        return self.rewrite_raw(directory, ['command'] + args)
 
     def test_target_source_list(self):
         self.prime('1 basic')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'target': {
+                'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['main.cpp', 'fileA.cpp', 'fileB.cpp', 'fileC.cpp']},
                 'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp']},
                 'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileB.cpp', 'fileC.cpp']},
                 'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp', 'fileA.cpp']},
@@ -5243,33 +5311,42 @@ class RewriterTests(BasePlatformTests):
     def test_target_add_sources(self):
         self.prime('1 basic')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
-        out = self.extract_test_data(out)
         expected = {
             'target': {
-                'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
-                'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileB.cpp', 'fileC.cpp', 'a7.cpp']},
-                'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp', 'fileA.cpp', 'a5.cpp']},
-                'trivialprog4@exe': {'name': 'trivialprog4', 'sources': ['main.cpp', 'a5.cpp', 'fileA.cpp']},
-                'trivialprog5@exe': {'name': 'trivialprog5', 'sources': ['main.cpp', 'a3.cpp', 'fileB.cpp', 'fileC.cpp', 'a7.cpp']},
+                'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp', 'a7.cpp', 'fileB.cpp', 'fileC.cpp']},
+                'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp']},
+                'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['a7.cpp', 'fileB.cpp', 'fileC.cpp']},
+                'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['a5.cpp', 'fileA.cpp', 'main.cpp']},
+                'trivialprog4@exe': {'name': 'trivialprog4', 'sources': ['a5.cpp', 'main.cpp', 'fileA.cpp']},
+                'trivialprog5@exe': {'name': 'trivialprog5', 'sources': ['a3.cpp', 'main.cpp', 'a7.cpp', 'fileB.cpp', 'fileC.cpp']},
                 'trivialprog6@exe': {'name': 'trivialprog6', 'sources': ['main.cpp', 'fileA.cpp', 'a4.cpp']},
-                'trivialprog7@exe': {'name': 'trivialprog7', 'sources': ['fileB.cpp', 'fileC.cpp', 'main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
-                'trivialprog8@exe': {'name': 'trivialprog8', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
-                'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['main.cpp', 'fileA.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp']},
+                'trivialprog7@exe': {'name': 'trivialprog7', 'sources': ['fileB.cpp', 'fileC.cpp', 'a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp']},
+                'trivialprog8@exe': {'name': 'trivialprog8', 'sources': ['a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp']},
+                'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp']},
             }
         }
         self.assertDictEqual(out, expected)
 
         # Check the written file
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
+        self.assertDictEqual(out, expected)
+
+    def test_target_add_sources_abs(self):
+        self.prime('1 basic')
+        abs_src = [os.path.join(self.builddir, x) for x in ['a1.cpp', 'a2.cpp', 'a6.cpp']]
+        add = json.dumps([{"type": "target", "target": "trivialprog1", "operation": "src_add", "sources": abs_src}])
+        inf = json.dumps([{"type": "target", "target": "trivialprog1", "operation": "info"}])
+        self.rewrite(self.builddir, add)
+        out = self.rewrite(self.builddir, inf)
+        expected = {'target': {'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['a1.cpp', 'a2.cpp', 'a6.cpp', 'fileA.cpp', 'main.cpp']}}}
         self.assertDictEqual(out, expected)
 
     def test_target_remove_sources(self):
         self.prime('1 basic')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'rmSrc.json'))
-        out = self.extract_test_data(out)
         expected = {
             'target': {
+                'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['main.cpp', 'fileC.cpp']},
                 'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp']},
                 'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileC.cpp']},
                 'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp']},
@@ -5285,26 +5362,22 @@ class RewriterTests(BasePlatformTests):
 
         # Check the written file
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         self.assertDictEqual(out, expected)
 
     def test_target_subdir(self):
         self.prime('2 subdirs')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
-        out = self.extract_test_data(out)
         expected = {'name': 'something', 'sources': ['first.c', 'second.c', 'third.c']}
         self.assertDictEqual(list(out['target'].values())[0], expected)
 
         # Check the written file
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         self.assertDictEqual(list(out['target'].values())[0], expected)
 
     def test_target_remove(self):
         self.prime('1 basic')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'rmTgt.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
 
         expected = {
             'target': {
@@ -5323,10 +5396,10 @@ class RewriterTests(BasePlatformTests):
         self.prime('1 basic')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'addTgt.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
 
         expected = {
             'target': {
+                'trivialprog0@exe': {'name': 'trivialprog0', 'sources': ['main.cpp', 'fileA.cpp', 'fileB.cpp', 'fileC.cpp']},
                 'trivialprog1@exe': {'name': 'trivialprog1', 'sources': ['main.cpp', 'fileA.cpp']},
                 'trivialprog2@exe': {'name': 'trivialprog2', 'sources': ['fileB.cpp', 'fileC.cpp']},
                 'trivialprog3@exe': {'name': 'trivialprog3', 'sources': ['main.cpp', 'fileA.cpp']},
@@ -5345,24 +5418,75 @@ class RewriterTests(BasePlatformTests):
         self.prime('2 subdirs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'rmTgt.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         self.assertDictEqual(out, {})
 
     def test_target_add_subdir(self):
         self.prime('2 subdirs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'addTgt.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {'name': 'something', 'sources': ['first.c', 'second.c']}
         self.assertDictEqual(out['target']['94b671c@@something@exe'], expected)
+
+    def test_target_source_sorting(self):
+        self.prime('5 sorting')
+        add_json = json.dumps([{'type': 'target', 'target': 'exe1', 'operation': 'src_add', 'sources': ['a666.c']}])
+        inf_json = json.dumps([{'type': 'target', 'target': 'exe1', 'operation': 'info'}])
+        out = self.rewrite(self.builddir, add_json)
+        out = self.rewrite(self.builddir, inf_json)
+        expected = {
+            'target': {
+                'exe1@exe': {
+                    'name': 'exe1',
+                    'sources': [
+                        'aaa/a/a1.c',
+                        'aaa/b/b1.c',
+                        'aaa/b/b2.c',
+                        'aaa/f1.c',
+                        'aaa/f2.c',
+                        'aaa/f3.c',
+                        'bbb/a/b1.c',
+                        'bbb/b/b2.c',
+                        'bbb/c1/b5.c',
+                        'bbb/c2/b7.c',
+                        'bbb/c10/b6.c',
+                        'bbb/a4.c',
+                        'bbb/b3.c',
+                        'bbb/b4.c',
+                        'bbb/b5.c',
+                        'a1.c',
+                        'a2.c',
+                        'a3.c',
+                        'a10.c',
+                        'a20.c',
+                        'a30.c',
+                        'a100.c',
+                        'a101.c',
+                        'a110.c',
+                        'a210.c',
+                        'a666.c',
+                        'b1.c',
+                        'c2.c'
+                    ]
+                }
+            }
+        }
+        self.assertDictEqual(out, expected)
+
+    def test_target_same_name_skip(self):
+        self.prime('4 same name targets')
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        expected = {'name': 'myExe', 'sources': ['main.cpp']}
+        self.assertEqual(len(out['target']), 2)
+        for _, val in out['target'].items():
+            self.assertDictEqual(expected, val)
 
     def test_kwargs_info(self):
         self.prime('3 kwargs')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1'},
+                'project#/': {'version': '0.0.1'},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5373,10 +5497,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'set.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.2', 'meson_version': '0.50.0', 'license': ['GPL', 'MIT']},
+                'project#/': {'version': '0.0.2', 'meson_version': '0.50.0', 'license': ['GPL', 'MIT']},
                 'target#tgt1': {'build_by_default': False, 'build_rpath': '/usr/local', 'dependencies': 'dep1'},
                 'dependency#dep1': {'required': True, 'method': 'cmake'}
             }
@@ -5387,10 +5510,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'add.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'license': ['GPL', 'MIT', 'BSD']},
+                'project#/': {'version': '0.0.1', 'license': ['GPL', 'MIT', 'BSD']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5401,10 +5523,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'remove.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'license': 'GPL'},
+                'project#/': {'version': '0.0.1', 'license': 'GPL'},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5415,10 +5536,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'remove_regex.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=true']},
+                'project#/': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=true']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5429,10 +5549,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'delete.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {},
+                'project#/': {},
                 'target#tgt1': {},
                 'dependency#dep1': {'required': False}
             }
@@ -5443,10 +5562,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'defopts_set.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=True', 'cpp_std=c++11']},
+                'project#/': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=True', 'cpp_std=c++11']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5457,10 +5575,9 @@ class RewriterTests(BasePlatformTests):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'defopts_delete.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
-        out = self.extract_test_data(out)
         expected = {
             'kwargs': {
-                'project#': {'version': '0.0.1', 'default_options': ['cpp_std=c++14', 'debug=true']},
+                'project#/': {'version': '0.0.1', 'default_options': ['cpp_std=c++14', 'debug=true']},
                 'target#tgt1': {'build_by_default': True},
                 'dependency#dep1': {'required': False}
             }
@@ -5800,6 +5917,272 @@ class CrossFileTests(BasePlatformTests):
                               '-Ddef_sysconfdir=sysconfbar'])
 
 
+class TAPParserTests(unittest.TestCase):
+    def assert_test(self, events, **kwargs):
+        if 'explanation' not in kwargs:
+            kwargs['explanation'] = None
+        self.assertEqual(next(events), TAPParser.Test(**kwargs))
+
+    def assert_plan(self, events, **kwargs):
+        if 'skipped' not in kwargs:
+            kwargs['skipped'] = False
+        if 'explanation' not in kwargs:
+            kwargs['explanation'] = None
+        self.assertEqual(next(events), TAPParser.Plan(**kwargs))
+
+    def assert_version(self, events, **kwargs):
+        self.assertEqual(next(events), TAPParser.Version(**kwargs))
+
+    def assert_error(self, events):
+        self.assertEqual(type(next(events)), TAPParser.Error)
+
+    def assert_bailout(self, events, **kwargs):
+        self.assertEqual(next(events), TAPParser.Bailout(**kwargs))
+
+    def assert_last(self, events):
+        with self.assertRaises(StopIteration):
+            next(events)
+
+    def parse_tap(self, s):
+        parser = TAPParser(io.StringIO(s))
+        return iter(parser.parse())
+
+    def parse_tap_v13(self, s):
+        events = self.parse_tap('TAP version 13\n' + s)
+        self.assert_version(events, version=13)
+        return events
+
+    def test_empty(self):
+        events = self.parse_tap('')
+        self.assert_last(events)
+
+    def test_empty_plan(self):
+        events = self.parse_tap('1..0')
+        self.assert_plan(events, count=0, late=False, skipped=True)
+        self.assert_last(events)
+
+    def test_plan_directive(self):
+        events = self.parse_tap('1..0 # skipped for some reason')
+        self.assert_plan(events, count=0, late=False, skipped=True,
+                         explanation='for some reason')
+        self.assert_last(events)
+
+        events = self.parse_tap('1..1 # skipped for some reason\nok 1')
+        self.assert_error(events)
+        self.assert_plan(events, count=1, late=False, skipped=True,
+                         explanation='for some reason')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_last(events)
+
+        events = self.parse_tap('1..1 # todo not supported here\nok 1')
+        self.assert_error(events)
+        self.assert_plan(events, count=1, late=False, skipped=False,
+                         explanation='not supported here')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_last(events)
+
+    def test_one_test_ok(self):
+        events = self.parse_tap('ok')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_last(events)
+
+    def test_one_test_with_number(self):
+        events = self.parse_tap('ok 1')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_last(events)
+
+    def test_one_test_with_name(self):
+        events = self.parse_tap('ok 1 abc')
+        self.assert_test(events, number=1, name='abc', result=TestResult.OK)
+        self.assert_last(events)
+
+    def test_one_test_not_ok(self):
+        events = self.parse_tap('not ok')
+        self.assert_test(events, number=1, name='', result=TestResult.FAIL)
+        self.assert_last(events)
+
+    def test_one_test_todo(self):
+        events = self.parse_tap('not ok 1 abc # TODO')
+        self.assert_test(events, number=1, name='abc', result=TestResult.EXPECTEDFAIL)
+        self.assert_last(events)
+
+        events = self.parse_tap('ok 1 abc # TODO')
+        self.assert_test(events, number=1, name='abc', result=TestResult.UNEXPECTEDPASS)
+        self.assert_last(events)
+
+    def test_one_test_skip(self):
+        events = self.parse_tap('ok 1 abc # SKIP')
+        self.assert_test(events, number=1, name='abc', result=TestResult.SKIP)
+        self.assert_last(events)
+
+    def test_one_test_skip_failure(self):
+        events = self.parse_tap('not ok 1 abc # SKIP')
+        self.assert_test(events, number=1, name='abc', result=TestResult.FAIL)
+        self.assert_last(events)
+
+    def test_many_early_plan(self):
+        events = self.parse_tap('1..4\nok 1\nnot ok 2\nok 3\nnot ok 4')
+        self.assert_plan(events, count=4, late=False)
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_test(events, number=2, name='', result=TestResult.FAIL)
+        self.assert_test(events, number=3, name='', result=TestResult.OK)
+        self.assert_test(events, number=4, name='', result=TestResult.FAIL)
+        self.assert_last(events)
+
+    def test_many_late_plan(self):
+        events = self.parse_tap('ok 1\nnot ok 2\nok 3\nnot ok 4\n1..4')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_test(events, number=2, name='', result=TestResult.FAIL)
+        self.assert_test(events, number=3, name='', result=TestResult.OK)
+        self.assert_test(events, number=4, name='', result=TestResult.FAIL)
+        self.assert_plan(events, count=4, late=True)
+        self.assert_last(events)
+
+    def test_directive_case(self):
+        events = self.parse_tap('ok 1 abc # skip')
+        self.assert_test(events, number=1, name='abc', result=TestResult.SKIP)
+        self.assert_last(events)
+
+        events = self.parse_tap('ok 1 abc # ToDo')
+        self.assert_test(events, number=1, name='abc', result=TestResult.UNEXPECTEDPASS)
+        self.assert_last(events)
+
+    def test_directive_explanation(self):
+        events = self.parse_tap('ok 1 abc # skip why')
+        self.assert_test(events, number=1, name='abc', result=TestResult.SKIP,
+                         explanation='why')
+        self.assert_last(events)
+
+        events = self.parse_tap('ok 1 abc # ToDo Because')
+        self.assert_test(events, number=1, name='abc', result=TestResult.UNEXPECTEDPASS,
+                         explanation='Because')
+        self.assert_last(events)
+
+    def test_one_test_early_plan(self):
+        events = self.parse_tap('1..1\nok')
+        self.assert_plan(events, count=1, late=False)
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_last(events)
+
+    def test_one_test_late_plan(self):
+        events = self.parse_tap('ok\n1..1')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_plan(events, count=1, late=True)
+        self.assert_last(events)
+
+    def test_out_of_order(self):
+        events = self.parse_tap('ok 2')
+        self.assert_error(events)
+        self.assert_test(events, number=2, name='', result=TestResult.OK)
+        self.assert_last(events)
+
+    def test_middle_plan(self):
+        events = self.parse_tap('ok 1\n1..2\nok 2')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_plan(events, count=2, late=True)
+        self.assert_error(events)
+        self.assert_test(events, number=2, name='', result=TestResult.OK)
+        self.assert_last(events)
+
+    def test_too_many_plans(self):
+        events = self.parse_tap('1..1\n1..2\nok 1')
+        self.assert_plan(events, count=1, late=False)
+        self.assert_error(events)
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_last(events)
+
+    def test_too_many(self):
+        events = self.parse_tap('ok 1\nnot ok 2\n1..1')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_test(events, number=2, name='', result=TestResult.FAIL)
+        self.assert_plan(events, count=1, late=True)
+        self.assert_error(events)
+        self.assert_last(events)
+
+        events = self.parse_tap('1..1\nok 1\nnot ok 2')
+        self.assert_plan(events, count=1, late=False)
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_test(events, number=2, name='', result=TestResult.FAIL)
+        self.assert_error(events)
+        self.assert_last(events)
+
+    def test_too_few(self):
+        events = self.parse_tap('ok 1\nnot ok 2\n1..3')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_test(events, number=2, name='', result=TestResult.FAIL)
+        self.assert_plan(events, count=3, late=True)
+        self.assert_error(events)
+        self.assert_last(events)
+
+        events = self.parse_tap('1..3\nok 1\nnot ok 2')
+        self.assert_plan(events, count=3, late=False)
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_test(events, number=2, name='', result=TestResult.FAIL)
+        self.assert_error(events)
+        self.assert_last(events)
+
+    def test_too_few_bailout(self):
+        events = self.parse_tap('1..3\nok 1\nnot ok 2\nBail out! no third test')
+        self.assert_plan(events, count=3, late=False)
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_test(events, number=2, name='', result=TestResult.FAIL)
+        self.assert_bailout(events, message='no third test')
+        self.assert_last(events)
+
+    def test_diagnostics(self):
+        events = self.parse_tap('1..1\n# ignored\nok 1')
+        self.assert_plan(events, count=1, late=False)
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_last(events)
+
+        events = self.parse_tap('# ignored\n1..1\nok 1\n# ignored too')
+        self.assert_plan(events, count=1, late=False)
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_last(events)
+
+        events = self.parse_tap('# ignored\nok 1\n1..1\n# ignored too')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_plan(events, count=1, late=True)
+        self.assert_last(events)
+
+    def test_unexpected(self):
+        events = self.parse_tap('1..1\ninvalid\nok 1')
+        self.assert_plan(events, count=1, late=False)
+        self.assert_error(events)
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_last(events)
+
+    def test_version(self):
+        events = self.parse_tap('TAP version 13\n')
+        self.assert_version(events, version=13)
+        self.assert_last(events)
+
+        events = self.parse_tap('TAP version 12\n')
+        self.assert_error(events)
+        self.assert_last(events)
+
+        events = self.parse_tap('1..0\nTAP version 13\n')
+        self.assert_plan(events, count=0, late=False, skipped=True)
+        self.assert_error(events)
+        self.assert_last(events)
+
+    def test_yaml(self):
+        events = self.parse_tap_v13('ok\n ---\n foo: abc\n  bar: def\n ...\nok 2')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_test(events, number=2, name='', result=TestResult.OK)
+        self.assert_last(events)
+
+        events = self.parse_tap_v13('ok\n ---\n foo: abc\n  bar: def')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_error(events)
+        self.assert_last(events)
+
+        events = self.parse_tap_v13('ok 1\n ---\n foo: abc\n  bar: def\nnot ok 2')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_error(events)
+        self.assert_test(events, number=2, name='', result=TestResult.FAIL)
+        self.assert_last(events)
+
 def unset_envs():
     # For unit tests we must fully control all command lines
     # so that there are no unexpected changes coming from the
@@ -5813,6 +6196,8 @@ def main():
     unset_envs()
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
              'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests',
+             'TAPParserTests',
+
              'LinuxlikeTests', 'LinuxCrossArmTests', 'LinuxCrossMingwTests',
              'WindowsTests', 'DarwinTests']
 

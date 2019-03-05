@@ -37,6 +37,11 @@
   },
   {
     "type": "target",
+    "target": "trivialprog0",
+    "operation": "info"
+  },
+  {
+    "type": "target",
     "target": "trivialprog1",
     "operation": "info"
   },

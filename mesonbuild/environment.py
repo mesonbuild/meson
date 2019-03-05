@@ -938,6 +938,10 @@ class Environment:
             raise EnvironmentException('Could not execute Java compiler "%s"' % ' '.join(exelist))
         if 'javac' in out or 'javac' in err:
             version = search_version(err if 'javac' in err else out)
+            if not version or version == 'unknown version':
+                parts = (err if 'javac' in err else out).split()
+                if len(parts) > 1:
+                    version = parts[1]
             return JavaCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 

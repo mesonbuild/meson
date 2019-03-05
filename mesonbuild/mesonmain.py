@@ -18,6 +18,7 @@ import importlib
 import traceback
 import argparse
 import codecs
+import shutil
 
 from . import mesonlib
 from . import mlog
@@ -27,11 +28,16 @@ from .environment import detect_msys2_arch
 from .wrap import wraptool
 
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 class CommandLineParser:
     def __init__(self):
+        self.term_width = shutil.get_terminal_size().columns
+        self.formater = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width / 2), width=self.term_width)
+
         self.commands = {}
         self.hidden_commands = []
-        self.parser = argparse.ArgumentParser(prog='meson')
+        self.parser = argparse.ArgumentParser(prog='meson', formatter_class=self.formater)
         self.subparsers = self.parser.add_subparsers(title='Commands',
                                                      description='If no command is specified it defaults to setup command.')
         self.add_command('setup', msetup.add_arguments, msetup.run,
@@ -52,26 +58,27 @@ class CommandLineParser:
                          help='Manage subprojects')
         self.add_command('help', self.add_help_arguments, self.run_help_command,
                          help='Print help of a subcommand')
+        self.add_command('rewrite', lambda parser: rewriter.add_arguments(parser, self.formater), rewriter.run,
+                         help='Modify the project definition')
 
         # Hidden commands
-        self.add_command('rewrite', rewriter.add_arguments, rewriter.run,
-                         help=argparse.SUPPRESS)
         self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,
                          help=argparse.SUPPRESS)
         self.add_command('unstable-coredata', munstable_coredata.add_arguments, munstable_coredata.run,
                          help=argparse.SUPPRESS)
 
-    def add_command(self, name, add_arguments_func, run_func, help):
+    def add_command(self, name, add_arguments_func, run_func, help, aliases=[]):
         # FIXME: Cannot have hidden subparser:
         # https://bugs.python.org/issue22848
         if help == argparse.SUPPRESS:
-            p = argparse.ArgumentParser(prog='meson ' + name)
+            p = argparse.ArgumentParser(prog='meson ' + name, formatter_class=self.formater)
             self.hidden_commands.append(name)
         else:
-            p = self.subparsers.add_parser(name, help=help)
+            p = self.subparsers.add_parser(name, help=help, aliases=aliases, formatter_class=self.formater)
         add_arguments_func(p)
         p.set_defaults(run_func=run_func)
-        self.commands[name] = p
+        for i in [name] + aliases:
+            self.commands[i] = p
 
     def add_runpython_arguments(self, parser):
         parser.add_argument('script_file')

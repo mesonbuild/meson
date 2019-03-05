@@ -60,6 +60,7 @@ index.md
 	Reference-manual.md
 	Reference-tables.md
 	Style-guide.md
+	Rewriter.md
 	FAQ.md
 	Reproducible-builds.md
 	howtox.md

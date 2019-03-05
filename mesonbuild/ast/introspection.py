@@ -16,10 +16,11 @@
 # or an interpreter-based tool
 
 from . import AstInterpreter
-from .. import compilers, environment, mesonlib, mparser, optinterpreter
+from .. import compilers, environment, mesonlib, optinterpreter
 from .. import coredata as cdata
 from ..interpreterbase import InvalidArguments
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
+from ..mparser import ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
 import os
 
 build_target_functions = ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']
@@ -77,7 +78,7 @@ class IntrospectionInterpreter(AstInterpreter):
         proj_name = args[0]
         proj_vers = kwargs.get('version', 'undefined')
         proj_langs = self.flatten_args(args[1:])
-        if isinstance(proj_vers, mparser.ElementaryNode):
+        if isinstance(proj_vers, ElementaryNode):
             proj_vers = proj_vers.value
         if not isinstance(proj_vers, str):
             proj_vers = 'undefined'
@@ -96,7 +97,7 @@ class IntrospectionInterpreter(AstInterpreter):
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
-            if isinstance(spdirname, mparser.ElementaryNode):
+            if isinstance(spdirname, ElementaryNode):
                 self.subproject_dir = spdirname.value
         if not self.is_subproject():
             self.project_data['subprojects'] = []
@@ -136,14 +137,22 @@ class IntrospectionInterpreter(AstInterpreter):
         if not args:
             return
         name = args[0]
+        has_fallback = 'fallback' in kwargs
+        required = kwargs.get('required', True)
+        condition_level = node.condition_level if hasattr(node, 'condition_level') else 0
+        if isinstance(required, ElementaryNode):
+            required = required.value
         self.dependencies += [{
             'name': name,
+            'required': required,
+            'has_fallback': has_fallback,
+            'conditional': condition_level > 0,
             'node': node
         }]
 
     def build_target(self, node, args, kwargs, targetclass):
         args = self.flatten_args(args)
-        if not args:
+        if not args or not isinstance(args[0], str):
             return
         kwargs = self.flatten_kwargs(kwargs, True)
         name = args[0]
@@ -155,47 +164,52 @@ class IntrospectionInterpreter(AstInterpreter):
         while srcqueue:
             curr = srcqueue.pop(0)
             arg_node = None
-            if isinstance(curr, mparser.FunctionNode):
+            if isinstance(curr, FunctionNode):
                 arg_node = curr.args
-            elif isinstance(curr, mparser.ArrayNode):
+            elif isinstance(curr, ArrayNode):
                 arg_node = curr.args
-            elif isinstance(curr, mparser.IdNode):
+            elif isinstance(curr, IdNode):
                 # Try to resolve the ID and append the node to the queue
                 id = curr.value
                 if id in self.assignments and self.assignments[id]:
                     tmp_node = self.assignments[id][0]
-                    if isinstance(tmp_node, (mparser.ArrayNode, mparser.IdNode, mparser.FunctionNode)):
+                    if isinstance(tmp_node, (ArrayNode, IdNode, FunctionNode)):
                         srcqueue += [tmp_node]
+            elif isinstance(curr, ArithmeticNode):
+                srcqueue += [curr.left, curr.right]
             if arg_node is None:
                 continue
-            elemetary_nodes = list(filter(lambda x: isinstance(x, (str, mparser.StringNode)), arg_node.arguments))
-            srcqueue += list(filter(lambda x: isinstance(x, (mparser.FunctionNode, mparser.ArrayNode, mparser.IdNode)), arg_node.arguments))
+            elemetary_nodes = list(filter(lambda x: isinstance(x, (str, StringNode)), arg_node.arguments))
+            srcqueue += list(filter(lambda x: isinstance(x, (FunctionNode, ArrayNode, IdNode, ArithmeticNode)), arg_node.arguments))
             # Pop the first element if the function is a build target function
-            if isinstance(curr, mparser.FunctionNode) and curr.func_name in build_target_functions:
+            if isinstance(curr, FunctionNode) and curr.func_name in build_target_functions:
                 elemetary_nodes.pop(0)
             if elemetary_nodes:
                 source_nodes += [curr]
 
         # Make sure nothing can crash when creating the build class
-        kwargs = {}
+        kwargs_reduced = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs and k in ['install', 'build_by_default', 'build_always']}
         is_cross = False
         objects = []
         empty_sources = [] # Passing the unresolved sources list causes errors
-        target = targetclass(name, self.subdir, self.subproject, is_cross, empty_sources, objects, self.environment, kwargs)
+        target = targetclass(name, self.subdir, self.subproject, is_cross, empty_sources, objects, self.environment, kwargs_reduced)
 
-        self.targets += [{
+        new_target = {
             'name': target.get_basename(),
             'id': target.get_id(),
             'type': target.get_typename(),
             'defined_in': os.path.normpath(os.path.join(self.source_root, self.subdir, environment.build_filename)),
             'subdir': self.subdir,
             'build_by_default': target.build_by_default,
+            'installed': target.should_install(),
+            'outputs': target.get_outputs(),
             'sources': source_nodes,
             'kwargs': kwargs,
             'node': node,
-        }]
+        }
 
-        return
+        self.targets += [new_target]
+        return new_target
 
     def build_library(self, node, args, kwargs):
         default_library = self.coredata.get_builtin_option('default_library')
@@ -231,7 +245,7 @@ class IntrospectionInterpreter(AstInterpreter):
         if 'target_type' not in kwargs:
             return
         target_type = kwargs.pop('target_type')
-        if isinstance(target_type, mparser.ElementaryNode):
+        if isinstance(target_type, ElementaryNode):
             target_type = target_type.value
         if target_type == 'executable':
             return self.build_target(node, args, kwargs, Executable)

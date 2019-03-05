@@ -611,6 +611,8 @@ class Headers(InterpreterObject):
         InterpreterObject.__init__(self)
         self.sources = sources
         self.install_subdir = kwargs.get('subdir', '')
+        if os.path.isabs(self.install_subdir):
+            raise InterpreterException('Subdir keyword must not be an absolute path.')
         self.custom_install_dir = kwargs.get('install_dir', None)
         self.custom_install_mode = kwargs.get('install_mode', None)
         if self.custom_install_dir is not None:
@@ -850,7 +852,7 @@ class RunTargetHolder(InterpreterObject, ObjectHolder):
 
 class Test(InterpreterObject):
     def __init__(self, name, project, suite, exe, depends, is_parallel,
-                 cmd_args, env, should_fail, timeout, workdir):
+                 cmd_args, env, should_fail, timeout, workdir, protocol):
         InterpreterObject.__init__(self)
         self.name = name
         self.suite = suite
@@ -863,6 +865,7 @@ class Test(InterpreterObject):
         self.should_fail = should_fail
         self.timeout = timeout
         self.workdir = workdir
+        self.protocol = protocol
 
     def get_exe(self):
         return self.exe
@@ -1973,7 +1976,8 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'library': known_library_kwargs,
                     'subdir': {'if_found'},
                     'subproject': {'version', 'default_options', 'required'},
-                    'test': {'args', 'depends', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir', 'suite'},
+                    'test': {'args', 'depends', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir',
+                             'suite', 'protocol'},
                     'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
                     }
 
@@ -3269,6 +3273,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             workdir = None
         if not isinstance(timeout, int):
             raise InterpreterException('Timeout must be an integer.')
+        protocol = kwargs.get('protocol', 'exitcode')
+        if protocol not in ('exitcode', 'tap'):
+            raise InterpreterException('Protocol must be "exitcode" or "tap".')
         suite = []
         prj = self.subproject if self.is_subproject() else self.build.project_name
         for s in mesonlib.stringlistify(kwargs.get('suite', '')):
@@ -3280,7 +3287,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             if not isinstance(dep, (build.CustomTarget, build.BuildTarget)):
                 raise InterpreterException('Depends items must be build targets.')
         t = Test(args[0], prj, suite, exe.held_object, depends, par, cmd_args,
-                 env, should_fail, timeout, workdir)
+                 env, should_fail, timeout, workdir, protocol)
         if is_base_test:
             self.build.tests.append(t)
             mlog.debug('Adding test', mlog.bold(args[0], True))

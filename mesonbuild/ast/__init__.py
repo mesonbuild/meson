@@ -16,6 +16,7 @@
 # or an interpreter-based tool.
 
 __all__ = [
+    'AstConditionLevel',
     'AstInterpreter',
     'AstIDGenerator',
     'AstIndentationGenerator',
@@ -28,5 +29,5 @@ __all__ = [
 from .interpreter import AstInterpreter
 from .introspection import IntrospectionInterpreter, build_target_functions
 from .visitor import AstVisitor
-from .postprocess import AstIDGenerator, AstIndentationGenerator
+from .postprocess import AstConditionLevel, AstIDGenerator, AstIndentationGenerator
 from .printer import AstPrinter

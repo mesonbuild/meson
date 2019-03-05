@@ -1406,10 +1406,7 @@ executable to run.  The executable can be an [executable build target
 object](#build-target-object) returned by
 [`executable()`](#executable) or an [external program
 object](#external-program-object) returned by
-[`find_program()`](#find_program). The executable's exit code is used
-by the test harness to record the outcome of the test, for example
-exit code zero indicates success. For more on the Meson test harness
-protocol read [Unit Tests](Unit-tests.md).
+[`find_program()`](#find_program).
 
 Keyword arguments are the following:
 
@@ -1445,6 +1442,12 @@ Keyword arguments are the following:
   targets internally, e.g. plugins or globbing. Those targets are built
   before test is executed even if they have `build_by_default : false`.
   Since 0.46.0
+
+- `protocol` specifies how the test results are parsed and can be one
+  of `exitcode` (the executable's exit code is used by the test harness
+  to record the outcome of the test) or `tap` ([Test Anything
+  Protocol](https://www.testanything.org/)). For more on the Meson test
+  harness protocol read [Unit Tests](Unit-tests.md). Since 0.50.0
 
 Defined tests can be run in a backend-agnostic way by calling
 `meson test` inside the build dir, or by using backend-specific

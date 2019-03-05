@@ -84,7 +84,7 @@ class ExecutableSerialisation:
 
 class TestSerialisation:
     def __init__(self, name, project, suite, fname, is_cross_built, exe_wrapper, is_parallel,
-                 cmd_args, env, should_fail, timeout, workdir, extra_paths):
+                 cmd_args, env, should_fail, timeout, workdir, extra_paths, protocol):
         self.name = name
         self.project_name = project
         self.suite = suite
@@ -100,6 +100,7 @@ class TestSerialisation:
         self.timeout = timeout
         self.workdir = workdir
         self.extra_paths = extra_paths
+        self.protocol = protocol
 
 class OptionProxy:
     def __init__(self, name, value):
@@ -756,7 +757,7 @@ class Backend:
                     raise MesonException('Bad object in test command.')
             ts = TestSerialisation(t.get_name(), t.project_name, t.suite, cmd, is_cross,
                                    exe_wrapper, t.is_parallel, cmd_args, t.env,
-                                   t.should_fail, t.timeout, t.workdir, extra_paths)
+                                   t.should_fail, t.timeout, t.workdir, extra_paths, t.protocol)
             arr.append(ts)
         return arr
 

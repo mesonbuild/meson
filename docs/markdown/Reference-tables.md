@@ -196,3 +196,18 @@ which are supported by MSVC, GCC, Clang, and other compilers.
 |----------------------|
 | dllexport            |
 | dllimport            |
+
+
+## Dependency lookup methods
+
+These are the values that can be passed to `dependency` function's
+`method` keyword argument.
+
+| Name              | Comment                                      |
+| -----             | -------                                      |
+| auto              | Automatic method selection                   |
+| pkg-config        | Use Pkg-Config                               |
+| cmake             | Look up as a CMake module                    |
+| config-tool       | Use a custom dep tool such as `cups-config`  |
+| system            | System provided (e.g. OpenGL)                |
+| extraframework    | A macOS/iOS framework                        |
