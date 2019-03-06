@@ -2630,35 +2630,32 @@ int main(int argc, char **argv) {
 
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         if is_solaris():
-            cross_content = textwrap.dedent("""\
-                [binaries]
-                c = '/usr/bin/gcc'
-                ar = '/usr/bin/gar'
-                strip = '/usr/bin/gar'
-
-                [properties]
-
-                [host_machine]
-                system = 'solaris'
-                cpu_family = 'x86'
-                cpu = 'i686'
-                endian = 'little'
-                """)
+            c = '/usr/bin/gcc'
+            ar = '/usr/bin/gar'
+            strip = '/usr/bin/gar'
+            system = 'solaris'
         else:
-            cross_content = textwrap.dedent("""\
-                [binaries]
-                c = '/usr/bin/cc'
-                ar = '/usr/bin/ar'
-                strip = '/usr/bin/ar'
+            c = '/usr/bin/cc'
+            ar = '/usr/bin/ar'
+            strip = '/usr/bin/ar'
+            system = 'linux'
 
-                [properties]
+        cross_content = textwrap.dedent("""\
+            [binaries]
+            c = '{0}'
+            ar = '{1}'
+            strip = '{2}'
 
-                [host_machine]
-                system = 'linux'
-                cpu_family = 'x86'
-                cpu = 'i686'
-                endian = 'little'
-                """)
+            [properties]
+
+            [host_machine]
+            system = '{3}'
+            cpu_family = 'x86'
+            cpu = 'i686'
+            endian = 'little'
+            """)
+
+        cross_content.format(c, ar, strip, system)
 
         with tempfile.TemporaryDirectory() as d:
             dir_ = os.path.join(d, 'meson', 'cross')
@@ -4773,11 +4770,20 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '11 cross prog')
         crossfile = tempfile.NamedTemporaryFile(mode='w')
         print(os.path.join(testdir, 'some_cross_tool.py'))
-        if not is_solaris():
+
+        if is_solaris():
+             c = '/usr/bin/gcc'
+            ar = '/usr/bin/gar'
+            strip = '/usr/bin/gar'
+        else:
+            c = '/usr/bin/cc'
+            ar = '/usr/bin/ar'
+            strip = '/usr/bin/ar'
+
             crossfile.write('''[binaries]
-c = '/usr/bin/cc'
-ar = '/usr/bin/ar'
-strip = '/usr/bin/ar'
+c = '{1}'
+ar = '{2}'
+strip = '{3}'
 sometool.py = ['{0}']
 someothertool.py = '{0}'
 
@@ -4788,23 +4794,7 @@ system = 'linux'
 cpu_family = 'arm'
 cpu = 'armv7' # Not sure if correct.
 endian = 'little'
-'''.format(os.path.join(testdir, 'some_cross_tool.py')))
-        else:
-            crossfile.write('''[binaries]
-c = '/usr/bin/gcc'
-ar = '/usr/bin/gar'
-strip = '/usr/bin/gar'
-sometool.py = ['{0}']
-someothertool.py = '{0}'
-
-[properties]
-
-[host_machine]
-system = 'solaris'
-cpu_family = 'arm'
-cpu = 'armv7' # Not sure if correct.
-endian = 'little'
-'''.format(os.path.join(testdir, 'some_cross_tool.py')))
+'''.format(os.path.join(testdir, 'some_cross_tool.py'), c, ar, strip))
 
         crossfile.flush()
         self.meson_cross_file = crossfile.name
