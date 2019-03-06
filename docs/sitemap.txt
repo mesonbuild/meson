@@ -43,6 +43,7 @@ index.md
 			Qt5-module.md
 			RPM-module.md
 			Simd-module.md
+			SourceSet-module.md
 			Windows-module.md
 			Cuda-module.md
 			Kconfig-module.md
