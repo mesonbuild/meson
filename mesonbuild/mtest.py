@@ -463,6 +463,12 @@ class SingleTestRunner:
                 self.test.timeout = None
             return self._run_cmd(wrap + cmd + self.test.cmd_args + self.options.test_args)
 
+    def get_cmdline(self, cmd):
+        test_only_env = sorted(set(self.env.items()) - set(os.environ.items()))
+        env = ' '.join(('%s=%s' % (k, shlex.quote(v)) for k, v in test_only_env))
+        cmdline = ' '.join((shlex.quote(x) for x in cmd))
+        return '%s %s' % (env, cmdline)
+
     def _run_cmd(self, cmd):
         starttime = time.time()
 
@@ -508,6 +514,9 @@ class SingleTestRunner:
                 # terminal in order to handle ^C and not show tcsetpgrp()
                 # errors avoid not being able to use the terminal.
                 os.setsid()
+
+        if self.options.verbose and not is_windows():
+            print(self.get_cmdline(cmd))
 
         p = subprocess.Popen(cmd,
                              stdout=stdout,
