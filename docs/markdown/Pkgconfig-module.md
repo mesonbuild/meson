@@ -51,7 +51,7 @@ keyword arguments.
   e.g. `datadir=${prefix}/share`. The names `prefix`, `libdir` and
   `installdir` are reserved and may not be used.
 - `version` a string describing the version of this library, used to set the
-  `Version:` field. Defaults to the project version if unspecified.
+  `Version:` field. (*since 0.46.0*) Defaults to the project version if unspecified.
 - `d_module_versions` a list of module version flags used when compiling
    D sources referred to by this pkg-config file
 
