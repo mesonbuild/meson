@@ -2640,7 +2640,7 @@ int main(int argc, char **argv) {
             strip = '/usr/bin/ar'
             system = 'linux'
 
-        cross_content = textwrap.dedent("""\
+        cross_content_template = """\
             [binaries]
             c = '{0}'
             ar = '{1}'
@@ -2653,9 +2653,9 @@ int main(int argc, char **argv) {
             cpu_family = 'x86'
             cpu = 'i686'
             endian = 'little'
-            """)
+            """
 
-        cross_content.format(c, ar, strip, system)
+        cross_content = textwrap.dedent(cross_content_template.format(c, ar, strip, system))
 
         with tempfile.TemporaryDirectory() as d:
             dir_ = os.path.join(d, 'meson', 'cross')
