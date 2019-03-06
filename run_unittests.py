@@ -4772,7 +4772,7 @@ class LinuxlikeTests(BasePlatformTests):
         print(os.path.join(testdir, 'some_cross_tool.py'))
 
         if is_solaris():
-             c = '/usr/bin/gcc'
+            c = '/usr/bin/gcc'
             ar = '/usr/bin/gar'
             strip = '/usr/bin/gar'
         else:
