@@ -14,10 +14,6 @@
 
 """An Executor that can act as a GNU Make jobserver client."""
 
-# Based on ThreadPoolExecutor,
-# Copyright 2009 Brian Quinlan. All Rights Reserved.
-# Licensed to PSF under a Contributor Agreement.
-
 import atexit
 import concurrent.futures as conc
 import queue
@@ -28,22 +24,17 @@ import os
 from mesonbuild.mesonlib import is_windows
 import re
 
-# Workers are created as daemon threads. This is done to allow the interpreter
-# to exit when there are still idle threads in a ThreadPoolExecutor's thread
-# pool (i.e. shutdown() was not called). However, allowing workers to die with
-# the interpreter has two undesirable properties:
-#   - The workers would still be running during interpreter shutdown,
-#     meaning that they would fail in unpredictable ways.
-#   - The workers could be killed while evaluating a work item, which could
-#     be bad if the callable being evaluated has external side-effects e.g.
-#     writing to a file.
-#
-# To work around this problem, an exit handler is installed which tells all
-# pools to shutdown immediately, and then waits until their threads finish.
-
 _pools = weakref.WeakSet()
 
 def _python_exit():
+    # Worker threads must be daemon threads, or _python_exit would not
+    # even be reached as long as ThreadPoolExecutor.shutdown() is not
+    # called; the idle threads would stay there and block exiting
+    # the interpreter.  On the other hand, we do not want to exit
+    # while a work item is running.  So here we shut down all pools,
+    # thus forcing all threads to reach the idle state, and wait
+    # the pools to complete their work items.  p.join_all() actually
+    # waits for idle threads to exit, but that does not matter here.
     for p in _pools:
         p.shutdown = True
     for p in _pools:
@@ -209,6 +200,7 @@ class _TokenPool(object):
 
     def _worker(self):
         spawned_worker = False
+        exception = None
         try:
             while True:
                 work_fn = self.get()
@@ -241,20 +233,22 @@ class _TokenPool(object):
                     with self._lock:
                         self._idle_threads += 1
                     self.deposit_token()
-        except:
-            # Create another worker thread to replace us, and die
-            with self._lock:
-                self._create_worker_thread()
-            raise
+        except BaseException as e:
+            exception = e
 
-        # Balance the increment in self._create_worker_thread
         with self._lock:
+            # Balance the increment in self._create_worker_thread
             self._idle_threads -= 1
+            if exception:
+                # Create another worker thread to replace us before dying
+                self._create_worker_thread()
+
+        if exception:
+            raise exception
 
     def _create_worker_thread(self):
         # Called with self._lock taken.
-        t = threading.Thread(target=self._worker)
-        t.daemon = True
+        t = threading.Thread(target=self._worker, daemon=True)
         t.start()
         self._idle_threads += 1
         self._threads.append(t)
@@ -336,4 +330,3 @@ if __name__ == '__main__':
     print('2. Waiting on futures')
     for f in futures:
         f.result()
-    ex.shutdown(True)
