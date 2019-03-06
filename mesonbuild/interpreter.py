@@ -1461,7 +1461,7 @@ class CompilerHolder(InterpreterObject):
                                            silent=True)
         return ExternalLibraryHolder(lib, self.subproject)
 
-    @FeatureNewKwargs('compiler.find_library', '0.50.0', ['static'])
+    @FeatureNewKwargs('compiler.find_library', '0.51.0', ['static'])
     @FeatureNewKwargs('compiler.find_library', '0.50.0', ['has_headers'])
     @FeatureNewKwargs('compiler.find_library', '0.49.0', ['disabler'])
     @disablerIfNotFound
