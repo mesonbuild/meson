@@ -1091,22 +1091,31 @@ class Backend:
                                           t.get_aliases(), should_strip, mappings,
                                           t.install_rpath, install_mode)
                     d.targets.append(i)
-                    # On toolchains/platforms that use an import library for
-                    # linking (separate from the shared library with all the
-                    # code), we need to install that too (dll.a/.lib).
-                    if isinstance(t, (build.SharedLibrary, build.SharedModule, build.Executable)) and t.get_import_filename():
-                        if custom_install_dir:
-                            # If the DLL is installed into a custom directory,
-                            # install the import library into the same place so
-                            # it doesn't go into a surprising place
-                            implib_install_dir = outdirs[0]
-                        else:
-                            implib_install_dir = self.environment.get_import_lib_dir()
-                        # Install the import library; may not exist for shared modules
-                        i = TargetInstallData(self.get_target_filename_for_linking(t),
-                                              implib_install_dir, {}, False, {}, '', install_mode,
-                                              optional=isinstance(t, build.SharedModule))
-                        d.targets.append(i)
+
+                    if isinstance(t, (build.SharedLibrary, build.SharedModule, build.Executable)):
+                        # On toolchains/platforms that use an import library for
+                        # linking (separate from the shared library with all the
+                        # code), we need to install that too (dll.a/.lib).
+                        if t.get_import_filename():
+                            if custom_install_dir:
+                                # If the DLL is installed into a custom directory,
+                                # install the import library into the same place so
+                                # it doesn't go into a surprising place
+                                implib_install_dir = outdirs[0]
+                            else:
+                                implib_install_dir = self.environment.get_import_lib_dir()
+                            # Install the import library; may not exist for shared modules
+                            i = TargetInstallData(self.get_target_filename_for_linking(t),
+                                                  implib_install_dir, {}, False, {}, '', install_mode,
+                                                  optional=isinstance(t, build.SharedModule))
+                            d.targets.append(i)
+
+                        if not should_strip and t.get_debug_filename():
+                            debug_file = os.path.join(self.get_target_dir(t), t.get_debug_filename())
+                            i = TargetInstallData(debug_file, outdirs[0],
+                                                  {}, False, {}, '',
+                                                  install_mode, optional=True)
+                            d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
                 if num_outdirs > 1:
                     for output, outdir in zip(t.get_outputs()[1:], outdirs[1:]):

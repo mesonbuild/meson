@@ -4424,6 +4424,20 @@ class WindowsTests(BasePlatformTests):
             return
         self.build()
 
+    def test_install_pdb_introspection(self):
+        testdir = os.path.join(self.platform_test_dir, '1 basic')
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        if cc.get_argument_syntax() != 'msvc':
+            raise unittest.SkipTest('Test only applies to MSVC-like compilers')
+
+        self.init(testdir)
+        installed = self.introspect('--installed')
+        files = [os.path.basename(path) for path in installed.values()]
+
+        self.assertTrue('prog.pdb' in files)
+
 @unittest.skipUnless(is_osx(), "requires Darwin")
 class DarwinTests(BasePlatformTests):
     '''
