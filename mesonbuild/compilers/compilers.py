@@ -1436,8 +1436,7 @@ def get_compiler_is_solarislike(compiler):
 
 def get_compiler_uses_sunld(c):
     compiler_type = getattr(c, 'compiler_type', None)
-    return compiler_type in (
-        CompilerType.GCC_SOLARIS)
+    return compiler_type == CompilerType.GCC_SOLARIS
 
 def get_compiler_uses_gnuld(c):
     # FIXME: Perhaps we should detect the linker in the environment?
