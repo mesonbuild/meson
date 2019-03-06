@@ -1014,7 +1014,7 @@ class CCompiler(Compiler):
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
         # The built-in search procedure will always favour .so and then always
-        # search for .a. This is only allowd if libtype is 'shard-static'
+        # search for .a. This is only allowed if libtype is 'shared-static'
         if ((not extra_dirs and libtype == 'shared-static') or
                 libname in self.internal_libs):
             args = ['-l' + libname]
