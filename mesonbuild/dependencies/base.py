@@ -1420,8 +1420,9 @@ class CMakeDependency(ExternalDependency):
 
             # Try to use old style variables if no module is specified
             if len(libs) > 0:
-                self.compile_args = list(map(lambda x: '-I{}'.format(x), incDirs)) + defs
-                self.link_args = libs
+                self.compile_args = list(map(lambda x: '-I{}'.format(x), incDirs))
+                self.compile_args += list(map(lambda x: '-D{}'.format(x), defs))
+                self.link_args = list(map(lambda x: '-l{}'.format(x), libs))
                 mlog.debug('using old-style CMake variables for dependency {}'.format(name))
                 mlog.debug('Include Dirs:         {}'.format(incDirs))
                 mlog.debug('Compiler Definitions: {}'.format(defs))
