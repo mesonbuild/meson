@@ -3,6 +3,8 @@ title: Release 0.49
 short-description: Release notes for 0.49
 ...
 
+# New features
+
 ## Libgcrypt dependency now supports libgcrypt-config
 
 Earlier, `dependency('libgcrypt')` could only detect the library with pkg-config
