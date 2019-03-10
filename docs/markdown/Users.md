@@ -51,7 +51,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [JsonCpp](https://github.com/open-source-parsers/jsoncpp), a C++ library for interacting with JSON
  - [Json-glib](https://gitlab.gnome.org/GNOME/json-glib), GLib-based JSON manipulation library
  - [Ksh](https://github.com/att/ast), a Korn Shell
- - [lc0](https://github.com/LeelaChessZero/lc0), LeelaChessZero is a UCI-compliant chess engine designed to play chess via neural network
+ - [Lc0](https://github.com/LeelaChessZero/lc0), LeelaChessZero is a UCI-compliant chess engine designed to play chess via neural network
  - [Libdrm](https://cgit.freedesktop.org/drm/libdrm/), a library for abstracting DRM kernel interfaces
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [libfuse](https://github.com/libfuse/libfuse), the reference implementation of the Linux FUSE (Filesystem in Userspace) interface
