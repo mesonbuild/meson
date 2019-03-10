@@ -34,7 +34,7 @@ class AppleFrameworks(ExternalDependency):
             args = self.clib_compiler.find_framework(f, env, [])
             if args is not None:
                 # No compile args are needed for system frameworks
-                self.link_args = args
+                self.link_args += args
             else:
                 self.is_found = False
 
