@@ -1848,8 +1848,9 @@ rule FORTRAN_DEP_HACK%s
                     else:
                         submodmatch = submodre.match(line)
                         if submodmatch is not None:
-                            # '_' is arbitrarily used to distinguish submod from mod.
-                            submodname = '_' + submodmatch.group(2).lower()
+                            parents = submodmatch.group(1).lower().split(':')
+                            submodname = parents[0] + '_' + submodmatch.group(2).lower()
+
                             if submodname in submodule_files:
                                 raise InvalidArguments(
                                     'Namespace collision: submodule %s defined in '
@@ -1907,23 +1908,26 @@ rule FORTRAN_DEP_HACK%s
                             'submodule ancestry must be specified as'
                             ' ancestor:parent but Meson found {}'.parents)
 
-                        if len(parents) == 2:
-                            parents[1] = '_' + parents[1]
+                        ancestor_child = '_'.join(parents)
 
-                        for parent in parents:
-                            if parent not in tdeps:
-                                raise MesonException("submodule {} relies on parent module {} that was not found.".format(submodmatch.group(2).lower(), parent))
-                            submodsrcfile = srcdir / tdeps[parent].fname
-                            if not submodsrcfile.is_file():
-                                if submodsrcfile.name != src.name:  # generated source file
-                                    pass
-                                else:  # subproject
-                                    continue
-                            elif submodsrcfile.samefile(src):  # self-reference
+                        if ancestor_child not in tdeps:
+                            raise MesonException("submodule {} relies on ancestor module {} that was not found.".format(submodmatch.group(2).lower(), ancestor_child.split('_')[0]))
+                        submodsrcfile = srcdir / tdeps[ancestor_child].fname
+                        if not submodsrcfile.is_file():
+                            if submodsrcfile.name != src.name:  # generated source file
+                                pass
+                            else:  # subproject
                                 continue
+<<<<<<< HEAD
                             mod_name = compiler.module_name_to_filename(parent)
                             mod_files.append(str(dirname / mod_name))
 >>>>>>> allow fortran submodule to have same name as module
+=======
+                        elif submodsrcfile.samefile(src):  # self-reference
+                            continue
+                        mod_name = compiler.module_name_to_filename(ancestor_child)
+                        mod_files.append(str(dirname / mod_name))
+>>>>>>> Squashed commit of the following:
 
         mod_files = _scan_fortran_file_deps(src, srcdir, dirname, tdeps, compiler)
         return mod_files
