@@ -180,7 +180,17 @@ class FortranCompiler(Compiler):
         return parameter_list
 
     def module_name_to_filename(self, module_name: str) -> str:
-        return module_name.lower() + '.mod'
+        if '_' in module_name:  # submodule
+            if self.id in ('gcc', 'intel'):
+                filename = module_name.lower() + '.smod'
+            elif self.id in ('pgi', 'flang'):
+                filename = module_name.lower() + '.mod'
+            else:
+                filename = module_name.lower() + '.mod'
+        else:  # module
+            filename = module_name.lower() + '.mod'
+
+        return filename
 
     def get_std_shared_lib_link_args(self):
         return CCompiler.get_std_shared_lib_link_args(self)
