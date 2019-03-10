@@ -51,7 +51,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [JsonCpp](https://github.com/open-source-parsers/jsoncpp), a C++ library for interacting with JSON
  - [Json-glib](https://gitlab.gnome.org/GNOME/json-glib), GLib-based JSON manipulation library
  - [Ksh](https://github.com/att/ast), a Korn Shell
- - [Lc0](https://github.com/LeelaChessZero/), LeelaChessZero is a UCI-compliant chess engine designed to play chess via neural network
+ - [lc0](https://github.com/LeelaChessZero/lc0), LeelaChessZero is a UCI-compliant chess engine designed to play chess via neural network
  - [Libdrm](https://cgit.freedesktop.org/drm/libdrm/), a library for abstracting DRM kernel interfaces
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [libfuse](https://github.com/libfuse/libfuse), the reference implementation of the Linux FUSE (Filesystem in Userspace) interface
@@ -93,7 +93,6 @@ format files
  - [Taisei Project](https://taisei-project.org/), an open-source Touhou Project clone and fangame
  - [Terminology](https://github.com/billiob/terminology), a terminal emulator based on the Enlightenment Foundation Libraries
  - [Tilix](https://github.com/gnunn1/tilix), a tiling terminal emulator for Linux using GTK+ 3
- - [Tokei](https://github.com/Aaronepower/tokei), a program that displays statistics about your code
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
  - [Wayland and Weston](https://lists.freedesktop.org/archives/wayland-devel/2016-November/031984.html), a next generation display server (not merged yet)
  - [wlroots](https://github.com/swaywm/wlroots), a modular Wayland compositor library
