@@ -1485,8 +1485,10 @@ class GnuLikeCompiler(abc.ABC):
         self.compiler_type = compiler_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_ndebug', 'b_staticpic', 'b_pie']
-        if not self.compiler_type.is_osx_compiler and not self.compiler_type.is_windows_compiler:
-            self.base_options.append('b_lundef')
+        if (not self.compiler_type.is_osx_compiler and
+            not self.compiler_type.is_windows_compiler and
+            not mesonlib.is_openbsd()):
+                self.base_options.append('b_lundef')
         if not self.compiler_type.is_windows_compiler:
             self.base_options.append('b_asneeded')
         # All GCC-like backends can do assembly
