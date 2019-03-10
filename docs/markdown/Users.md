@@ -45,7 +45,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [GVfs](https://git.gnome.org/browse/gvfs/), a userspace virtual filesystem designed to work with the I/O abstraction of GIO
  - [Hardcode-Tray](https://github.com/bil-elmoussaoui/Hardcode-Tray), fixes hardcoded tray icons in Linux
  - [HexChat](https://github.com/hexchat/hexchat), a cross-platform IRC client in C
- - [IGT](https://cgit.freedesktop.org/xorg/app/intel-gpu-tools/), Linux kernel graphics driver test suite.
+ - [IGT](https://cgit.freedesktop.org/xorg/app/intel-gpu-tools/), Linux kernel graphics driver test suite
  - [iSH](https://github.com/tbodt/ish), Linux shell for iOS
  - [json](https://github.com/nlohmann/json), JSON for Modern C++
  - [JsonCpp](https://github.com/open-source-parsers/jsoncpp), a C++ library for interacting with JSON
