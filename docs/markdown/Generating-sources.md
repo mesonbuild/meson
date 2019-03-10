@@ -117,7 +117,7 @@ idep_foo = declare_dependency(
 ```
 
 See [dependencies](Dependencies.md#declaring-your-own), and
-[reference](Reference-manual.md#decalre_dependency) for more information.
+[reference](Reference-manual.md#declare_dependency) for more information.
 
 ## Using generator()
 
