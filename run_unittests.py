@@ -734,7 +734,7 @@ class InternalTests(unittest.TestCase):
         unix_static = ('lib{}.a', '{}.a')
         msvc_static = ('lib{}.a', 'lib{}.lib', '{}.a', '{}.lib')
         # This is the priority list of pattern matching for library searching
-        patterns = {'openbsd': {'shared': ('lib{}.so', '{}.so', 'lib{}.so.[0-9]*.[0-9]*'),
+        patterns = {'openbsd': {'shared': ('lib{}.so', '{}.so', 'lib{}.so.[0-9]*.[0-9]*', '{}.so.[0-9]*.[0-9]*'),
                                 'static': unix_static},
                     'linux': {'shared': ('lib{}.so', '{}.so'),
                               'static': unix_static},
@@ -759,15 +759,13 @@ class InternalTests(unittest.TestCase):
                 self._test_all_naming(cc, env, patterns, 'windows-msvc')
             else:
                 self._test_all_naming(cc, env, patterns, 'windows-mingw')
+        elif is_openbsd():
+            self._test_all_naming(cc, env, patterns, 'openbsd')
         else:
             self._test_all_naming(cc, env, patterns, 'linux')
-            # Mock OpenBSD since we don't have tests for it
             true = lambda x, y: True
-            if not is_openbsd():
-                with PatchModule(mesonbuild.compilers.c.for_openbsd,
-                                 'mesonbuild.compilers.c.for_openbsd', true):
-                    self._test_all_naming(cc, env, patterns, 'openbsd')
-            else:
+            with PatchModule(mesonbuild.compilers.c.for_openbsd,
+                             'mesonbuild.compilers.c.for_openbsd', true):
                 self._test_all_naming(cc, env, patterns, 'openbsd')
             with PatchModule(mesonbuild.compilers.c.for_darwin,
                              'mesonbuild.compilers.c.for_darwin', true):
