@@ -902,7 +902,8 @@ class CCompiler(Compiler):
             # is expensive. It's wrong in many edge cases, but it will match
             # correctly-named libraries and hopefully no one on OpenBSD names
             # their files libfoo.so.9a.7b.1.0
-            patterns.append('lib{}.so.[0-9]*.[0-9]*')
+            for p in prefixes:
+                patterns.append(p + '{}.so.[0-9]*.[0-9]*')
         return patterns
 
     def get_library_naming(self, env, libtype, strict=False):

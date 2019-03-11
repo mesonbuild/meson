@@ -737,7 +737,7 @@ class InternalTests(unittest.TestCase):
         unix_static = ('lib{}.a', '{}.a')
         msvc_static = ('lib{}.a', 'lib{}.lib', '{}.a', '{}.lib')
         # This is the priority list of pattern matching for library searching
-        patterns = {'openbsd': {'shared': ('lib{}.so', '{}.so', 'lib{}.so.[0-9]*.[0-9]*'),
+        patterns = {'openbsd': {'shared': ('lib{}.so', '{}.so', 'lib{}.so.[0-9]*.[0-9]*', '{}.so.[0-9]*.[0-9]*'),
                                 'static': unix_static},
                     'linux': {'shared': ('lib{}.so', '{}.so'),
                               'static': unix_static},
@@ -762,15 +762,13 @@ class InternalTests(unittest.TestCase):
                 self._test_all_naming(cc, env, patterns, 'windows-msvc')
             else:
                 self._test_all_naming(cc, env, patterns, 'windows-mingw')
+        elif is_openbsd():
+            self._test_all_naming(cc, env, patterns, 'openbsd')
         else:
             self._test_all_naming(cc, env, patterns, 'linux')
-            # Mock OpenBSD since we don't have tests for it
             true = lambda x, y: True
-            if not is_openbsd():
-                with PatchModule(mesonbuild.compilers.c.for_openbsd,
-                                 'mesonbuild.compilers.c.for_openbsd', true):
-                    self._test_all_naming(cc, env, patterns, 'openbsd')
-            else:
+            with PatchModule(mesonbuild.compilers.c.for_openbsd,
+                             'mesonbuild.compilers.c.for_openbsd', true):
                 self._test_all_naming(cc, env, patterns, 'openbsd')
             with PatchModule(mesonbuild.compilers.c.for_darwin,
                              'mesonbuild.compilers.c.for_darwin', true):
@@ -1702,7 +1700,7 @@ class AllPlatformTests(BasePlatformTests):
                           self.mtest_command + ['--setup=main:onlyinbar'])
 
     def test_testsetup_default(self):
-        testdir = os.path.join(self.unit_test_dir, '47 testsetup default')
+        testdir = os.path.join(self.unit_test_dir, '49 testsetup default')
         self.init(testdir)
         self.build()
 
@@ -3000,7 +2998,7 @@ recommended as it is not supported on some platforms''')
             pass
 
     def test_warning_level_0(self):
-        testdir = os.path.join(self.common_test_dir, '213 warning level 0')
+        testdir = os.path.join(self.common_test_dir, '215 warning level 0')
 
         # Verify default values when passing no args
         self.init(testdir)
@@ -3158,7 +3156,7 @@ recommended as it is not supported on some platforms''')
             pickle.dump(obj, f)
 
     def test_reconfigure(self):
-        testdir = os.path.join(self.unit_test_dir, '46 reconfigure')
+        testdir = os.path.join(self.unit_test_dir, '48 reconfigure')
         self.init(testdir, extra_args=['-Dopt1=val1'])
         self.setconf('-Dopt2=val2')
 
@@ -3195,7 +3193,7 @@ recommended as it is not supported on some platforms''')
             self.init(testdir, extra_args=['--wipe'])
 
     def test_minor_version_does_not_reconfigure_wipe(self):
-        testdir = os.path.join(self.unit_test_dir, '46 reconfigure')
+        testdir = os.path.join(self.unit_test_dir, '48 reconfigure')
         self.init(testdir, extra_args=['-Dopt1=val1'])
         self.setconf('-Dopt2=val2')
 
@@ -3298,7 +3296,7 @@ recommended as it is not supported on some platforms''')
     def test_clang_format(self):
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('Clang-format is for now only supported on Ninja, not {}'.format(self.backend.name))
-        testdir = os.path.join(self.unit_test_dir, '51 clang-format')
+        testdir = os.path.join(self.unit_test_dir, '53 clang-format')
         testfile = os.path.join(testdir, 'prog.c')
         badfile = os.path.join(testdir, 'prog_orig_c')
         goodfile = os.path.join(testdir, 'prog_expected_c')
@@ -3318,7 +3316,7 @@ recommended as it is not supported on some platforms''')
                          Path(goodfile).read_text())
 
     def test_introspect_buildoptions_without_configured_build(self):
-        testdir = os.path.join(self.unit_test_dir, '53 introspect buildoptions')
+        testdir = os.path.join(self.unit_test_dir, '56 introspect buildoptions')
         testfile = os.path.join(testdir, 'meson.build')
         res_nb = self.introspect_directory(testfile, ['--buildoptions'] + self.meson_args)
         self.init(testdir, default_args=False)
@@ -3327,7 +3325,7 @@ recommended as it is not supported on some platforms''')
         self.assertListEqual(res_nb, res_wb)
 
     def test_introspect_json_dump(self):
-        testdir = os.path.join(self.unit_test_dir, '52 introspection')
+        testdir = os.path.join(self.unit_test_dir, '55 introspection')
         self.init(testdir)
         infodir = os.path.join(self.builddir, 'meson-info')
         self.assertPathExists(infodir)
@@ -3471,7 +3469,7 @@ recommended as it is not supported on some platforms''')
         self.assertDictEqual(targets_to_find, {})
 
     def test_introspect_file_dump_equals_all(self):
-        testdir = os.path.join(self.unit_test_dir, '52 introspection')
+        testdir = os.path.join(self.unit_test_dir, '55 introspection')
         self.init(testdir)
         res_all = self.introspect('--all')
         res_file = {}
@@ -3498,7 +3496,7 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(res_all, res_file)
 
     def test_introspect_meson_info(self):
-        testdir = os.path.join(self.unit_test_dir, '52 introspection')
+        testdir = os.path.join(self.unit_test_dir, '55 introspection')
         introfile = os.path.join(self.builddir, 'meson-info', 'meson-info.json')
         self.init(testdir)
         self.assertPathExists(introfile)
@@ -3512,7 +3510,7 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(res1['build_files_updated'], True)
 
     def test_introspect_config_update(self):
-        testdir = os.path.join(self.unit_test_dir, '52 introspection')
+        testdir = os.path.join(self.unit_test_dir, '55 introspection')
         introfile = os.path.join(self.builddir, 'meson-info', 'intro-buildoptions.json')
         self.init(testdir)
         self.assertPathExists(introfile)
@@ -3538,7 +3536,7 @@ recommended as it is not supported on some platforms''')
         self.assertListEqual(res1, res2)
 
     def test_introspect_targets_from_source(self):
-        testdir = os.path.join(self.unit_test_dir, '52 introspection')
+        testdir = os.path.join(self.unit_test_dir, '55 introspection')
         testfile = os.path.join(testdir, 'meson.build')
         introfile = os.path.join(self.builddir, 'meson-info', 'intro-targets.json')
         self.init(testdir)
@@ -3569,7 +3567,7 @@ recommended as it is not supported on some platforms''')
         self.assertListEqual(res_nb, res_wb)
 
     def test_introspect_dependencies_from_source(self):
-        testdir = os.path.join(self.unit_test_dir, '52 introspection')
+        testdir = os.path.join(self.unit_test_dir, '55 introspection')
         testfile = os.path.join(testdir, 'meson.build')
         res_nb = self.introspect_directory(testfile, ['--scan-dependencies'] + self.meson_args)
         expected = [
@@ -4912,7 +4910,7 @@ endian = 'little'
     @skipIfNoPkgconfig
     @skip_if_not_language('cs')
     def test_pkgconfig_csharp_library(self):
-        testdir = os.path.join(self.unit_test_dir, '48 pkgconfig csharp library')
+        testdir = os.path.join(self.unit_test_dir, '50 pkgconfig csharp library')
         self.init(testdir)
         myenv = os.environ.copy()
         myenv['PKG_CONFIG_PATH'] = self.privatedir
@@ -4925,7 +4923,7 @@ endian = 'little'
         '''
         Test that libraries are listed before their dependencies.
         '''
-        testdir = os.path.join(self.unit_test_dir, '50 pkgconfig static link order')
+        testdir = os.path.join(self.unit_test_dir, '52 pkgconfig static link order')
         self.init(testdir)
         myenv = os.environ.copy()
         myenv['PKG_CONFIG_PATH'] = self.privatedir
@@ -5074,7 +5072,7 @@ endian = 'little'
 
     @skipIfNoPkgconfigDep('gmodule-2.0')
     def test_ldflag_dedup(self):
-        testdir = os.path.join(self.unit_test_dir, '49 ldflagdedup')
+        testdir = os.path.join(self.unit_test_dir, '51 ldflagdedup')
         if is_cygwin() or is_osx() or is_solaris():
             raise unittest.SkipTest('Not applicable on this platform.')
         self.init(testdir)
@@ -5573,7 +5571,7 @@ class NativeFileTests(BasePlatformTests):
 
     def setUp(self):
         super().setUp()
-        self.testcase = os.path.join(self.unit_test_dir, '46 native file binary')
+        self.testcase = os.path.join(self.unit_test_dir, '47 native file binary')
         self.current_config = 0
         self.current_wrapper = 0
 
@@ -5846,12 +5844,12 @@ class NativeFileTests(BasePlatformTests):
         self.assertEqual(compiler.version, '1.2345')
 
     def test_native_file_dirs(self):
-        testcase = os.path.join(self.unit_test_dir, '54 native file override')
+        testcase = os.path.join(self.unit_test_dir, '57 native file override')
         self.init(testcase, default_args=False,
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile')])
 
     def test_native_file_dirs_overriden(self):
-        testcase = os.path.join(self.unit_test_dir, '54 native file override')
+        testcase = os.path.join(self.unit_test_dir, '57 native file override')
         self.init(testcase, default_args=False,
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
                               '-Ddef_libdir=liblib', '-Dlibdir=liblib'])
@@ -5866,7 +5864,7 @@ class CrossFileTests(BasePlatformTests):
     """
 
     def test_cross_file_dirs(self):
-        testcase = os.path.join(self.unit_test_dir, '54 native file override')
+        testcase = os.path.join(self.unit_test_dir, '57 native file override')
         self.init(testcase, default_args=False,
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
                               '--cross-file', os.path.join(testcase, 'crossfile'),
@@ -5884,7 +5882,7 @@ class CrossFileTests(BasePlatformTests):
                               '-Ddef_sysconfdir=sysconfbar'])
 
     def test_cross_file_dirs_overriden(self):
-        testcase = os.path.join(self.unit_test_dir, '54 native file override')
+        testcase = os.path.join(self.unit_test_dir, '57 native file override')
         self.init(testcase, default_args=False,
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
                               '--cross-file', os.path.join(testcase, 'crossfile'),

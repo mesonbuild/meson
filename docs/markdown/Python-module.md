@@ -61,6 +61,17 @@ added methods.
 
 ### Methods
 
+#### `path()`
+
+```meson
+str py_installation.path()
+```
+
+*Added 0.50.0*
+
+Works like the path method of other `ExternalProgram` objects. Was not
+provided prior to 0.50.0 due to a bug.
+
 #### `extension_module()`
 
 ``` meson
