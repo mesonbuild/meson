@@ -4824,6 +4824,23 @@ endian = 'little'
             subprocess.check_call(test_exe, env=myenv)
 
     @skipIfNoPkgconfig
+    def test_pkgconfig_relative_paths(self):
+        testdir = os.path.join(self.unit_test_dir, '58 pkgconfig relative paths')
+        pkg_dir = os.path.join(testdir, 'pkgconfig')
+        self.assertTrue(os.path.exists(os.path.join(pkg_dir, 'librelativepath.pc')))
+        os.environ['PKG_CONFIG_PATH'] = pkg_dir
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        kwargs = {'required': True, 'silent': True}
+        relative_path_dep = PkgConfigDependency('librelativepath', env, kwargs)
+        self.assertTrue(relative_path_dep.found())
+
+        # Ensure link_args are properly quoted
+        libpath = Path(self.builddir) / '../relativepath/lib'
+        link_args = ['-L' + libpath.as_posix(), '-lrelativepath']
+        self.assertEqual(relative_path_dep.get_link_args(), link_args)
+
+    @skipIfNoPkgconfig
     def test_pkgconfig_internal_libraries(self):
         '''
         '''
