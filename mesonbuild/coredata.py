@@ -527,7 +527,7 @@ class CoreData:
 
     def set_default_options(self, default_options, subproject, env):
         # Set defaults first from conf files (cross or native), then
-        # override them as nec as necessary.
+        # override them as necessary.
         for k, v in env.paths.host:
             if v is not None:
                 env.cmd_line_options.setdefault(k, v)
