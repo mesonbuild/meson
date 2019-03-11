@@ -2307,8 +2307,13 @@ def load(build_dir):
             obj = pickle.load(f)
     except FileNotFoundError:
         raise MesonException(nonexisting_fail_msg)
-    except pickle.UnpicklingError:
+    except (pickle.UnpicklingError, EOFError):
         raise MesonException(load_fail_msg)
+    except AttributeError:
+        raise MesonException(
+            "Build data file {!r} references functions or classes that don't "
+            "exist. This probably means that it was generated with an old "
+            "version of meson. Try running meson {} --wipe".format(filename, build_dir))
     if not isinstance(obj, Build):
         raise MesonException(load_fail_msg)
     return obj
