@@ -684,7 +684,11 @@ class PkgConfigDependency(ExternalDependency):
         raw_link_args = self._convert_mingw_paths(shlex.split(out_raw))
         for arg in raw_link_args:
             if arg.startswith('-L') and not arg.startswith(('-L-l', '-L-L')):
-                prefix_libpaths.add(arg[2:])
+                path = arg[2:]
+                if not os.path.isabs(path):
+                    # Resolve the path as a compiler in the build directory would
+                    path = os.path.join(self.env.get_build_dir(), path)
+                prefix_libpaths.add(path)
         system_libpaths = OrderedSet()
         full_args = self._convert_mingw_paths(shlex.split(out))
         for arg in full_args:
