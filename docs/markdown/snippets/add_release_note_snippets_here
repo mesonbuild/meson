@@ -1,3 +1,6 @@
 ## Added `cpp_std` option for the Visual Studio C++ compiler
 Allows the use of C++17 features and experimental not-yet-standardized
 features. Valid options are `c++11`, `c++14`, `c++17`, and `c++latest`.
+## Added c_std values 'c17' and 'c18' for recent GCC and Clang versions
+For gcc >=8.0.0 allow c_std='c17' 'c18' 'gnu17' 'gnu18'.
+For clang >=7.0.0 allow c_std='c17' 'gnu17'.

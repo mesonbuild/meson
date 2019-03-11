@@ -1217,9 +1217,13 @@ class ClangCCompiler(ClangCompiler, CCompiler):
 
     def get_options(self):
         opts = CCompiler.get_options(self)
+        c_stds = ['c89', 'c99', 'c11']
+        g_stds = ['gnu89', 'gnu99', 'gnu11']
+        if version_compare(self.version, '>=7.0.0'):
+            c_stds += ['c17']
+            g_stds += ['gnu17']
         opts.update({'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
-                                                       ['none', 'c89', 'c99', 'c11',
-                                                        'gnu89', 'gnu99', 'gnu11'],
+                                                       ['none'] + c_stds + g_stds,
                                                        'none')})
         return opts
 
@@ -1281,9 +1285,13 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
     def get_options(self):
         opts = CCompiler.get_options(self)
+        c_stds = ['c89', 'c99', 'c11']
+        g_stds = ['gnu89', 'gnu99', 'gnu11']
+        if version_compare(self.version, '>=8.0.0'):
+            c_stds += ['c17', 'c18']
+            g_stds += ['gnu17', 'gnu18']
         opts.update({'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
-                                                       ['none', 'c89', 'c99', 'c11',
-                                                        'gnu89', 'gnu99', 'gnu11'],
+                                                       ['none'] + c_stds + g_stds,
                                                        'none')})
         if self.compiler_type.is_windows_compiler:
             opts.update({
