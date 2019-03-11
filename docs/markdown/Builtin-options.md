@@ -112,7 +112,7 @@ compiler being used:
 | ------       | ------------- | ---------------                          | ----------- |
 | c_args       |               | free-form comma-separated list           | C compile arguments to use |
 | c_link_args  |               | free-form comma-separated list           | C link arguments to use |
-| c_std        | none          | none, c89, c99, c11, gnu89, gnu99, gnu11 | C language standard to use |
+| c_std        | none          | none, c89, c99, c11, c17, c18, gnu89, gnu99, gnu11, gnu17, gnu18 | C language standard to use |
 | c_winlibs    | see below     | free-form comma-separated list           | Standard Windows libs to link against |
 | cpp_args     |               | free-form comma-separated list           | C++ compile arguments to use |
 | cpp_link_args|               | free-form comma-separated list           | C++ link arguments to use |
