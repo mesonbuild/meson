@@ -324,8 +324,26 @@ def search_version(text):
     # This regex is reaching magic levels. If it ever needs
     # to be updated, do not complexify but convert to something
     # saner instead.
-    version_regex = r'(?<!(\d|\.))(\d{1,2}(\.\d+)+(-[a-zA-Z0-9]+)?)'
-    match = re.search(version_regex, text)
+    # We'll demystify it a bit with a verbose definition.
+    version_regex = re.compile(r"""
+    (?<!                # Zero-width negative lookbehind assertion
+        (
+            \d          # One digit
+            | \.        # Or one period
+        )               # One occurrence
+    )
+    # Following pattern must not follow a digit or period
+    (
+        \d{1,2}         # One or two digits
+        (
+            \.\d+       # Period and one or more digits
+        )+              # One or more occurrences
+        (
+            -[a-zA-Z0-9]+   # Hyphen and one or more alphanumeric
+        )?              # Zero or one occurrence
+    )                   # One occurrence
+    """, re.VERBOSE)
+    match = version_regex.search(text)
     if match:
         return match.group(0)
     return 'unknown version'
