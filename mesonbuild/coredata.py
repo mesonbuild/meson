@@ -532,6 +532,10 @@ class CoreData:
             if v is not None:
                 env.cmd_line_options.setdefault(k, v)
 
+        # Do the same thing for meson level options
+        for k, v in env.meson_options.host.items():
+            env.cmd_line_options.setdefault(k, v)
+
         # Set default options as if they were passed to the command line.
         # Subprojects can only define default for user options.
         from . import optinterpreter

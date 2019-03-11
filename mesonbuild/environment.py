@@ -388,11 +388,16 @@ class Environment:
         # architecture, just the build and host architectures
         self.paths = PerMachineDefaultable()
 
+        # Store meson level options from the host/native files.
+        self.meson_options = PerMachineDefaultable()
+        self.meson_options.build = {}
+
         if self.coredata.config_files is not None:
             config = MesonConfigFile.from_config_parser(
                 coredata.load_configs(self.coredata.config_files))
             self.binaries.build = BinaryTable(config.get('binaries', {}))
             self.paths.build = Directories(**config.get('paths', {}))
+            self.meson_options.build = config.get('meson options', {})
 
         if self.coredata.cross_file is not None:
             config = MesonConfigFile.parse_datafile(self.coredata.cross_file)
@@ -403,11 +408,13 @@ class Environment:
             if 'target_machine' in config:
                 self.machines.target = MachineInfo.from_literal(config['target_machine'])
             self.paths.host = Directories(**config.get('paths', {}))
+            self.meson_options.host = config.get('meson options', {})
 
         self.machines.default_missing()
         self.binaries.default_missing()
         self.properties.default_missing()
         self.paths.default_missing()
+        self.meson_options.default_missing()
 
         exe_wrapper = self.binaries.host.lookup_entry('exe_wrapper')
         if exe_wrapper is not None:
