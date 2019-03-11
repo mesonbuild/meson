@@ -62,7 +62,7 @@ sources = files([
   'bbb/b6.c',
   'f1.c',
   'f2.c',
-  'f10.c,
+  'f10.c',
   'f20.c'
 ])
 ```
