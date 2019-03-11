@@ -622,6 +622,8 @@ class DmdDCompiler(DCompiler):
         return []
 
     def get_std_shared_lib_link_args(self):
+        if is_windows():
+            return []
         return ['-shared', '-defaultlib=libphobos2.so']
 
     def get_target_arch_args(self):
