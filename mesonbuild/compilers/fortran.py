@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import List
 import subprocess, os
+from pathlib import Path
 
 from .c import CCompiler
 from .compilers import (
@@ -240,7 +241,7 @@ class FortranCompiler(Compiler):
     def find_library_impl(self, *args):
         return CCompiler.find_library_impl(self, *args)
 
-    def find_library(self, libname, env, extra_dirs, libtype='default'):
+    def find_library(self, libname, env, extra_dirs, libtype='shared-static'):
         code = '''program main
             call exit(0)
         end program main'''
@@ -272,7 +273,7 @@ class FortranCompiler(Compiler):
         return CCompiler._get_trials_from_pattern(pattern, directory, libname)
 
     @staticmethod
-    def _get_file_from_list(env, files: List[str]) -> str:
+    def _get_file_from_list(env, files: List[str]) -> Path:
         return CCompiler._get_file_from_list(env, files)
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):

@@ -700,16 +700,16 @@ class InternalTests(unittest.TestCase):
     def _test_all_naming(self, cc, env, patterns, platform):
         shr = patterns[platform]['shared']
         stc = patterns[platform]['static']
+        shrstc = shr + tuple([x for x in stc if x not in shr])
+        stcshr = stc + tuple([x for x in shr if x not in stc])
         p = cc.get_library_naming(env, 'shared')
         self.assertEqual(p, shr)
         p = cc.get_library_naming(env, 'static')
         self.assertEqual(p, stc)
         p = cc.get_library_naming(env, 'static-shared')
-        self.assertEqual(p, stc + shr)
+        self.assertEqual(p, stcshr)
         p = cc.get_library_naming(env, 'shared-static')
-        self.assertEqual(p, shr + stc)
-        p = cc.get_library_naming(env, 'default')
-        self.assertEqual(p, shr + stc)
+        self.assertEqual(p, shrstc)
         # Test find library by mocking up openbsd
         if platform != 'openbsd':
             return
@@ -724,7 +724,7 @@ class InternalTests(unittest.TestCase):
                 f.write('')
             with open(os.path.join(tmpdir, 'libfoo.so.70.0.so.1'), 'w') as f:
                 f.write('')
-            found = cc.find_library_real('foo', env, [tmpdir], '', 'default')
+            found = cc.find_library_real('foo', env, [tmpdir], '', 'shared-static')
             self.assertEqual(os.path.basename(found[0]), 'libfoo.so.54.0')
 
     def test_find_library_patterns(self):

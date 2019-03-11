@@ -703,7 +703,7 @@ class PkgConfigDependency(ExternalDependency):
         libs_found = OrderedSet()
         # Track not-found libraries to know whether to add library paths
         libs_notfound = []
-        libtype = 'static' if self.static else 'default'
+        libtype = 'static' if self.static else 'shared-static'
         # Generate link arguments for this library
         link_args = []
         for lib in full_args:

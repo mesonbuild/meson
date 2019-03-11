@@ -919,6 +919,7 @@ find_library_permitted_kwargs = set([
     'has_headers',
     'required',
     'dirs',
+    'static',
 ])
 
 find_library_permitted_kwargs |= set(['header_' + k for k in header_permitted_kwargs])
@@ -1463,6 +1464,7 @@ class CompilerHolder(InterpreterObject):
                                            silent=True)
         return ExternalLibraryHolder(lib, self.subproject)
 
+    @FeatureNewKwargs('compiler.find_library', '0.51.0', ['static'])
     @FeatureNewKwargs('compiler.find_library', '0.50.0', ['has_headers'])
     @FeatureNewKwargs('compiler.find_library', '0.49.0', ['disabler'])
     @disablerIfNotFound
@@ -1491,9 +1493,15 @@ class CompilerHolder(InterpreterObject):
         for i in search_dirs:
             if not os.path.isabs(i):
                 raise InvalidCode('Search directory %s is not an absolute path.' % i)
-        linkargs = self.compiler.find_library(libname, self.environment, search_dirs)
+        libtype = 'shared-static'
+        if 'static' in kwargs:
+            if not isinstance(kwargs['static'], bool):
+                raise InterpreterException('static must be a boolean')
+            libtype = 'static' if kwargs['static'] else 'shared'
+        linkargs = self.compiler.find_library(libname, self.environment, search_dirs, libtype)
         if required and not linkargs:
-            raise InterpreterException('{} library {!r} not found'.format(self.compiler.get_display_language(), libname))
+            raise InterpreterException(
+                '{} library {!r} not found'.format(self.compiler.get_display_language(), libname))
         lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
                                            self.compiler.language)
         return ExternalLibraryHolder(lib, self.subproject)

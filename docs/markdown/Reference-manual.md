@@ -1724,7 +1724,9 @@ the following methods:
   instead of a not-found dependency. *Since 0.50.0* the `has_headers` keyword
   argument can be a list of header files that must be found as well, using
   `has_header()` method. All keyword arguments prefixed with `header_` will be
-  passed down to `has_header()` method with the prefix removed.
+  passed down to `has_header()` method with the prefix removed. *Since 0.51.0*
+  the `static` keyword (boolean) can be set to `true` to limit the search to
+  static libraries and `false` for dynamic/shared.
 
 - `first_supported_argument(list_of_strings)`, given a list of
   strings, returns the first argument that passes the `has_argument`

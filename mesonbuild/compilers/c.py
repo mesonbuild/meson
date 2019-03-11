@@ -936,18 +936,17 @@ class CCompiler(Compiler):
         else:
             # Linux/BSDs
             shlibext = ['so']
-        patterns = []
         # Search priority
-        if libtype in ('default', 'shared-static'):
-            patterns += self._get_patterns(env, prefixes, shlibext, True)
-            patterns += self._get_patterns(env, prefixes, stlibext, False)
+        if libtype == 'shared-static':
+            patterns = self._get_patterns(env, prefixes, shlibext, True)
+            patterns.extend([x for x in self._get_patterns(env, prefixes, stlibext, False) if x not in patterns])
         elif libtype == 'static-shared':
-            patterns += self._get_patterns(env, prefixes, stlibext, False)
-            patterns += self._get_patterns(env, prefixes, shlibext, True)
+            patterns = self._get_patterns(env, prefixes, stlibext, False)
+            patterns.extend([x for x in self._get_patterns(env, prefixes, shlibext, True) if x not in patterns])
         elif libtype == 'shared':
-            patterns += self._get_patterns(env, prefixes, shlibext, True)
+            patterns = self._get_patterns(env, prefixes, shlibext, True)
         elif libtype == 'static':
-            patterns += self._get_patterns(env, prefixes, stlibext, False)
+            patterns = self._get_patterns(env, prefixes, stlibext, False)
         else:
             raise AssertionError('BUG: unknown libtype {!r}'.format(libtype))
         return tuple(patterns)
@@ -975,11 +974,11 @@ class CCompiler(Compiler):
         if '*' in pattern:
             # NOTE: globbing matches directories and broken symlinks
             # so we have to do an isfile test on it later
-            return cls._sort_shlibs_openbsd(glob.glob(str(f)))
-        return [f.as_posix()]
+            return [Path(x) for x in cls._sort_shlibs_openbsd(glob.glob(str(f)))]
+        return [f]
 
     @staticmethod
-    def _get_file_from_list(env, files: List[str]) -> str:
+    def _get_file_from_list(env, files: List[str]) -> Path:
         '''
         We just check whether the library exists. We can't do a link check
         because the library might have unresolved symbols that require other
@@ -987,13 +986,14 @@ class CCompiler(Compiler):
         architecture.
         '''
         # If not building on macOS for Darwin, do a simple file check
+        files = [Path(f) for f in files]
         if not env.machines.host.is_darwin() or not env.machines.build.is_darwin():
             for f in files:
-                if os.path.isfile(f):
+                if f.is_file():
                     return f
         # Run `lipo` and check if the library supports the arch we want
         for f in files:
-            if not os.path.isfile(f):
+            if not f.is_file():
                 continue
             archs = darwin_get_object_archs(f)
             if archs and env.machines.host.cpu_family in archs:
@@ -1014,7 +1014,10 @@ class CCompiler(Compiler):
         # First try if we can just add the library as -l.
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
-        if not extra_dirs or libname in self.internal_libs:
+        # The built-in search procedure will always favour .so and then always
+        # search for .a. This is only allowed if libtype is 'shared-static'
+        if ((not extra_dirs and libtype == 'shared-static') or
+                libname in self.internal_libs):
             args = ['-l' + libname]
             largs = self.linker_to_compiler_args(self.get_allow_undefined_link_args())
             if self.links(code, env, extra_args=(args + largs)):
@@ -1044,7 +1047,7 @@ class CCompiler(Compiler):
                 trial = self._get_file_from_list(env, trial)
                 if not trial:
                     continue
-                return [trial]
+                return [trial.as_posix()]
         return None
 
     def find_library_impl(self, libname, env, extra_dirs, code, libtype):
@@ -1063,7 +1066,7 @@ class CCompiler(Compiler):
             return None
         return value[:]
 
-    def find_library(self, libname, env, extra_dirs, libtype='default'):
+    def find_library(self, libname, env, extra_dirs, libtype='shared-static'):
         code = 'int main(int argc, char **argv) { return 0; }'
         return self.find_library_impl(libname, env, extra_dirs, code, libtype)
 
