@@ -888,7 +888,7 @@ class Environment:
                 return GnuObjCCompiler(ccache + compiler, version, compiler_type, is_cross, exe_wrap, defines)
             if out.startswith('Apple LLVM'):
                 return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_OSX, is_cross, exe_wrap)
-            if out.startswith('clang'):
+            if out.startswith(('clang', 'OpenBSD clang')):
                 return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_STANDARD, is_cross, exe_wrap)
         self._handle_exceptions(popen_exceptions, compilers)
 
@@ -915,7 +915,7 @@ class Environment:
                 return GnuObjCPPCompiler(ccache + compiler, version, compiler_type, is_cross, exe_wrap, defines)
             if out.startswith('Apple LLVM'):
                 return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_OSX, is_cross, exe_wrap)
-            if out.startswith('clang'):
+            if out.startswith(('clang', 'OpenBSD clang')):
                 return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_STANDARD, is_cross, exe_wrap)
         self._handle_exceptions(popen_exceptions, compilers)
 
