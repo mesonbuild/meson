@@ -57,16 +57,16 @@ ninja clang-format
 ```
 
 
-## Added a .path() method to object return by python.find_installation()
+## Added `.path()` method to object returned by `python.find_installation()`
 
 `ExternalProgram` objects as well as the object returned by the
-`python3` module provide this method, but the new python module did
+`python3` module provide this method, but the new `python` module did
 not.
 
 ## Fix ninja console log from generators with multiple output nodes
 
-This resolves ticket #4760 where a generator w/ multiple output nodes
-printed an empty string to the console
+This resolves [issue #4760](https://github.com/mesonbuild/meson/issues/4760)
+where a generator with multiple output nodes printed an empty string to the console
 
 ## `introspect --buildoptions` can now be used without configured build directory
 
@@ -95,13 +95,13 @@ Is equivalent to this:
 
 ```meson
 foo_inc = include_directories('foo')
-executable(..., include_directories: inc)
+executable(..., include_directories: foo_inc)
 ```
 
 ## Fortran submodule support
 
-Initial support for Fortran ``submodule`` was added, where the submodule is in
-the same or different file than the parent ``module``.
+Initial support for Fortran `submodule` was added, where the submodule is in
+the same or different file than the parent `module`.
 The submodule hierarchy specified in the source Fortran code `submodule`
 statements are used by Meson to resolve source file dependencies.
 For example:
@@ -111,7 +111,7 @@ submodule (ancestor:parent) child
 ```
 
 
-## Add subproject_dir to --projectinfo introspection output
+## Add `subproject_dir` to `--projectinfo` introspection output
 
 This allows applications interfacing with Meson (such as IDEs) to know about
 an overridden subproject directory.
@@ -142,12 +142,13 @@ libfoo = find_library('foo',
 
 NetCDF support for C, C++ and Fortran is added via pkg-config.
 
-## added the Flang compiler
+## Added the Flang compiler
+
 [Flang](https://github.com/flang-compiler/flang/releases) Fortran
 compiler support was added.  As with other Fortran compilers, flang is
 specified using `FC=flang meson ..` or similar.
 
-## New `not_found_message` for dependency
+## New `not_found_message` for `dependency()`
 
 You can now specify a `not_found_message` that will be printed if the
 specified dependency was not found. The point is to convert constructs
@@ -194,7 +195,7 @@ Ninja backend. This has been tested only on Linux for now.
 Because NVidia's Cuda compiler does not produce `.d` dependency files,
 dependency tracking does not work.
 
-## `run_command` accepts `env` kwarg
+## `run_command()` accepts `env` kwarg
 
 You can pass [`environment`](Reference-manual.html#environment-object)
 object to [`run_command`](Reference-manual.html#run-command), just
@@ -206,7 +207,7 @@ env.set('FOO', 'bar')
 run_command('command', 'arg1', 'arg2', env: env)
 ```
 
-## `extract_objects` accepts `File` arguments
+## `extract_objects:` accepts `File` arguments
 
 The `extract_objects` function now supports File objects to tell it
 what to extract. Previously, file paths could only be passed as strings.
@@ -316,7 +317,7 @@ Additionlly the format of `meson introspect target` was changed:
   - New: the `subproject` key. It stores the name of the subproject where a target is defined.
   - Added new target types (`jar`, `shared module`).
 
-## meson configure can now print the default options of an unconfigured project
+## `meson configure` can now print the default options of an unconfigured project
 
 With this release, it is also possible to get a list of all build options
 by invoking `meson configure` with the project source directory or
