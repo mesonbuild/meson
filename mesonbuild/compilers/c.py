@@ -35,6 +35,7 @@ from .compilers import (
     get_largefile_args,
     gnu_winlibs,
     msvc_winlibs,
+    unixy_compiler_internal_libs,
     vs32_instruction_set_args,
     vs64_instruction_set_args,
     ArmCompiler,
@@ -52,8 +53,6 @@ from .compilers import (
     CcrxCompiler,
 )
 
-gnu_compiler_internal_libs = ('m', 'c', 'pthread', 'dl', 'rt')
-
 
 class CCompiler(Compiler):
     # TODO: Replace this manual cache with functools.lru_cache
@@ -61,7 +60,7 @@ class CCompiler(Compiler):
     program_dirs_cache = {}
     find_library_cache = {}
     find_framework_cache = {}
-    internal_libs = gnu_compiler_internal_libs
+    internal_libs = unixy_compiler_internal_libs
 
     @staticmethod
     def attribute_check_func(name):
@@ -1374,7 +1373,7 @@ class IntelCCompiler(IntelCompiler, CCompiler):
 class VisualStudioCCompiler(CCompiler):
     std_warn_args = ['/W3']
     std_opt_args = ['/O2']
-    ignore_libs = gnu_compiler_internal_libs
+    ignore_libs = unixy_compiler_internal_libs
     internal_libs = ()
 
     crt_args = {'none': [],
