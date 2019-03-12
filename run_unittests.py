@@ -763,19 +763,14 @@ class InternalTests(unittest.TestCase):
             self._test_all_naming(cc, env, patterns, 'openbsd')
         else:
             self._test_all_naming(cc, env, patterns, 'linux')
-            true = lambda x, y: True
-            with PatchModule(mesonbuild.compilers.c.for_openbsd,
-                             'mesonbuild.compilers.c.for_openbsd', true):
-                self._test_all_naming(cc, env, patterns, 'openbsd')
-            with PatchModule(mesonbuild.compilers.c.for_darwin,
-                             'mesonbuild.compilers.c.for_darwin', true):
-                self._test_all_naming(cc, env, patterns, 'darwin')
-            with PatchModule(mesonbuild.compilers.c.for_cygwin,
-                             'mesonbuild.compilers.c.for_cygwin', true):
-                self._test_all_naming(cc, env, patterns, 'cygwin')
-            with PatchModule(mesonbuild.compilers.c.for_windows,
-                             'mesonbuild.compilers.c.for_windows', true):
-                self._test_all_naming(cc, env, patterns, 'windows-mingw')
+            env.machines.host.system = 'openbsd'
+            self._test_all_naming(cc, env, patterns, 'openbsd')
+            env.machines.host.system = 'darwin'
+            self._test_all_naming(cc, env, patterns, 'darwin')
+            env.machines.host.system = 'cygwin'
+            self._test_all_naming(cc, env, patterns, 'cygwin')
+            env.machines.host.system = 'windows'
+            self._test_all_naming(cc, env, patterns, 'windows-mingw')
 
     def test_pkgconfig_parse_libs(self):
         '''
