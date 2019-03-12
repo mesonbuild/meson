@@ -216,6 +216,8 @@ class Backend:
                 return os.path.join(self.get_target_dir(target), target.get_import_filename())
             else:
                 return None
+        elif isinstance(target, build.CustomTarget):
+            return os.path.join(self.get_target_dir(target), target.get_filename())
         raise AssertionError('BUG: Tried to link to {!r} which is not linkable'.format(target))
 
     def get_target_dir(self, target):

@@ -1061,7 +1061,7 @@ You probably should put it in link_with instead.''')
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if self.is_cross != t.is_cross:
+            if not isinstance(t, CustomTarget) and self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_targets.append(t)
 
@@ -1866,6 +1866,7 @@ class CustomTarget(Target):
     def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False):
         self.typename = 'custom'
         super().__init__(name, subdir, subproject, False)
+        self.compilers = OrderedDict() # Always empty
         self.dependencies = []
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
@@ -1891,6 +1892,15 @@ class CustomTarget(Target):
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
+
+    def get_all_link_deps(self):
+        return []
+
+    def get_link_deps_mapping(self, prefix, environment):
+        return {}
+
+    def get_link_dep_subdirs(self):
+        return OrderedSet()
 
     def get_target_dependencies(self):
         deps = self.dependencies[:]
@@ -2100,6 +2110,9 @@ class CustomTarget(Target):
 
     def __delitem__(self, index):
         raise NotImplementedError
+
+    def is_linkable_target(self):
+        return True
 
 class RunTarget(Target):
     def __init__(self, name, command, args, dependencies, subdir, subproject):
