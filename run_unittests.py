@@ -3893,7 +3893,7 @@ class WindowsTests(BasePlatformTests):
         if cc.get_argument_syntax() != 'msvc':
             raise unittest.SkipTest('Not using MSVC')
         # To force people to update this test, and also test
-        self.assertEqual(set(cc.ignore_libs), {'c', 'm', 'pthread', 'dl', 'rt'})
+        self.assertEqual(set(cc.ignore_libs), {'c', 'm', 'pthread', 'dl', 'rt', 'execinfo'})
         for l in cc.ignore_libs:
             self.assertEqual(cc.find_library(l, env, []), [])
 
@@ -5042,6 +5042,19 @@ endian = 'little'
             for line in f:
                 max_count = max(max_count, line.count(search_term))
         self.assertEqual(max_count, 1, 'Export dynamic incorrectly deduplicated.')
+
+    def test_compiler_libs_static_dedup(self):
+        testdir = os.path.join(self.unit_test_dir, '55 dedup compiler libs')
+        self.init(testdir)
+        build_ninja = os.path.join(self.builddir, 'build.ninja')
+        with open(build_ninja, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        for lib in ('-ldl', '-lm', '-lc', '-lrt'):
+            for line in lines:
+                if lib not in line:
+                    continue
+                # Assert that
+                self.assertEqual(len(line.split(lib)), 2, msg=(lib, line))
 
 
 def should_run_cross_arm_tests():
