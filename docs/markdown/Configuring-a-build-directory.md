@@ -24,7 +24,7 @@ sample output for a simple project.
       Option          Current Value Possible Values                                          Description
       ------          ------------- ---------------                                          -----------
       auto_features   auto          [enabled, disabled, auto]                                Override value of all 'auto' features
-      backend         ninja         [ninja, vs, vs2010, vs2015, vs2017, xcode]               Backend to use
+      backend         ninja         [ninja, vs, vs2010, vs2015, vs2017, vs2019, xcode]       Backend to use
       buildtype       release       [plain, debug, debugoptimized, release, minsize, custom] Build type to use
       debug           false         [true, false]                                            Debug
       default_library shared        [shared, static, both]                                   Default library type

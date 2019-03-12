@@ -41,6 +41,15 @@ Installation options are all relative to the prefix, except:
 | sbindir                              | sbin          | System executable directory |
 | sharedstatedir                       | com           | Architecture-independent data directory |
 | sysconfdir                           | etc           | Sysconf data directory |
+| werror                               | false         | Treat warnings as errors |
+| warning_level {0, 1, 2, 3}           | 1             | Set the warning level. From 0 = none to 3 = highest |
+| layout {mirror,flat}                 | mirror        | Build directory layout. |
+| default_library {shared, static, both} | shared       | Default library type. |
+| backend {ninja, vs,<br>vs2010, vs2015, vs2017, vs2019, xcode} |               | Backend to use (default: ninja). |
+| stdsplit                             |               | Split stdout and stderr in test logs. |
+| errorlogs                            |               | Whether to print the logs from failing tests. |
+| cross-file CROSS_FILE                |               | File describing cross compilation environment. |
+| wrap-mode {default, nofallback, nodownload, forcefallback} | | Special wrap mode to use |
 
 
 `prefix` defaults to `C:/` on Windows, and `/usr/local/` otherwise. You should always

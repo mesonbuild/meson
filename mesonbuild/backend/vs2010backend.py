@@ -46,6 +46,10 @@ def autodetect_vs_version(build):
        'Visual Studio\\2017' in vs_install_dir:
         from mesonbuild.backend.vs2017backend import Vs2017Backend
         return Vs2017Backend(build)
+    if vs_version == '16.0' or 'Visual Studio 19' in vs_install_dir or \
+       'Visual Studio\\2019' in vs_install_dir:
+        from mesonbuild.backend.vs2019backend import Vs2019Backend
+        return Vs2019Backend(build)
     if 'Visual Studio 10.0' in vs_install_dir:
         return Vs2010Backend(build)
     raise MesonException('Could not detect Visual Studio using VisualStudioVersion: {!r} or VSINSTALLDIR: {!r}!\n'
@@ -203,7 +207,7 @@ class Vs2010Backend(backends.Backend):
         if 'VCINSTALLDIR' in os.environ:
             vs_version = os.environ['VisualStudioVersion'] \
                 if 'VisualStudioVersion' in os.environ else None
-            relative_path = 'Auxiliary\\Build\\' if vs_version == '15.0' else ''
+            relative_path = 'Auxiliary\\Build\\' if vs_version >= '15.0' else ''
             script_path = os.environ['VCINSTALLDIR'] + relative_path + 'vcvarsall.bat'
             if os.path.exists(script_path):
                 if has_arch_values:
