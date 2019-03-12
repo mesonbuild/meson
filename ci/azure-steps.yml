@@ -99,6 +99,8 @@ steps:
      # import visual studio variables
      if ($env:compiler -eq 'msvc2015') {
        $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
+     } elseif($env:compiler -eq 'msvc2019') {
+       $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
      } else {
        $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
      }
@@ -154,7 +156,10 @@ steps:
 
      echo ""
      echo "=== Start running tests ==="
-     python run_tests.py --backend $(backend)
+     # Starting from VS2019 Powershell(?) will fail the test run
+     # if it prints anything to stderr. Python's test runner
+     # does that by default so we need to forward it.
+     cmd /c 'python 2>&1' run_tests.py --backend $(backend)
 
 - task: PublishTestResults@2
   inputs:
