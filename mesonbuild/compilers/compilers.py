@@ -81,6 +81,9 @@ cflags_mapping = {'c': 'CFLAGS',
                   'vala': 'VALAFLAGS',
                   'rust': 'RUSTFLAGS'}
 
+# execinfo is a compiler lib on BSD
+unixy_compiler_internal_libs = ('m', 'c', 'pthread', 'dl', 'rt', 'execinfo')
+
 # All these are only for C-linkable languages; see `clink_langs` above.
 
 def sort_clink(lang):
@@ -659,6 +662,9 @@ class CompilerArgs(list):
     # Only UNIX shared libraries require this. Others have a fixed extension.
     dedup1_regex = re.compile(r'([\/\\]|\A)lib.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
     dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread')
+    # In generate_link() we add external libs without de-dup, but we must
+    # *always* de-dup these because they're special arguments to the linker
+    always_dedup_args = tuple('-l' + lib for lib in unixy_compiler_internal_libs)
     compiler = None
 
     def _check_args(self, args):
@@ -793,7 +799,7 @@ class CompilerArgs(list):
         normal_flags = []
         lflags = []
         for i in iterable:
-            if i.startswith('-l') or i.startswith('-L'):
+            if i not in self.always_dedup_args and (i.startswith('-l') or i.startswith('-L')):
                 lflags.append(i)
             else:
                 normal_flags.append(i)
