@@ -911,8 +911,10 @@ class CCompiler(Compiler):
         priority
         '''
         stlibext = ['a']
-        # We've always allowed libname to be both `foo` and `libfoo`,
-        # and now people depend on it
+        # We've always allowed libname to be both `foo` and `libfoo`, and now
+        # people depend on it. Also, some people use prebuilt `foo.so` instead
+        # of `libfoo.so` for unknown reasons, and may also want to create
+        # `foo.so` by setting name_prefix to ''
         if strict and not isinstance(self, VisualStudioCCompiler): # lib prefix is not usually used with msvc
             prefixes = ['lib']
         else:
