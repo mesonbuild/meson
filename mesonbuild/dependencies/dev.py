@@ -1,4 +1,4 @@
-# Copyright 2013-2017 The Meson development team
+# Copyright 2013-2019 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import os
 import re
 
 from .. import mesonlib
-from ..mesonlib import version_compare, stringlistify, extract_as_list
+from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
     strip_system_libdirs, ConfigToolDependency,
@@ -203,30 +203,40 @@ class LLVMDependency(ConfigToolDependency):
     LLVM uses a special tool, llvm-config, which has arguments for getting
     c args, cxx args, and ldargs as well as version.
     """
-
-    # Ordered list of llvm-config binaries to try. Start with base, then try
-    # newest back to oldest (3.5 is arbitrary), and finally the devel version.
-    # Please note that llvm-config-6.0 is a development snapshot and it should
-    # not be moved to the beginning of the list.
-    tools = [
-        'llvm-config', # base
-        'llvm-config-8',   'llvm-config80',
-        'llvm-config-7',   'llvm-config70',
-        'llvm-config-6.0', 'llvm-config60',
-        'llvm-config-5.0', 'llvm-config50',
-        'llvm-config-4.0', 'llvm-config40',
-        'llvm-config-3.9', 'llvm-config39',
-        'llvm-config-3.8', 'llvm-config38',
-        'llvm-config-3.7', 'llvm-config37',
-        'llvm-config-3.6', 'llvm-config36',
-        'llvm-config-3.5', 'llvm-config35',
-        'llvm-config-9',     # Debian development snapshot
-        'llvm-config-devel', # FreeBSD development snapshot
-    ]
     tool_name = 'llvm-config'
     __cpp_blacklist = {'-DNDEBUG'}
 
     def __init__(self, environment, kwargs):
+        # Ordered list of llvm-config binaries to try. Start with base, then try
+        # newest back to oldest (3.5 is arbitrary), and finally the devel version.
+        # Please note that llvm-config-6.0 is a development snapshot and it should
+        # not be moved to the beginning of the list.
+        self.tools = [
+            'llvm-config', # base
+            'llvm-config-8',   'llvm-config80',
+            'llvm-config-7',   'llvm-config70',
+            'llvm-config-6.0', 'llvm-config60',
+            'llvm-config-5.0', 'llvm-config50',
+            'llvm-config-4.0', 'llvm-config40',
+            'llvm-config-3.9', 'llvm-config39',
+            'llvm-config-3.8', 'llvm-config38',
+            'llvm-config-3.7', 'llvm-config37',
+            'llvm-config-3.6', 'llvm-config36',
+            'llvm-config-3.5', 'llvm-config35',
+            'llvm-config-9',     # Debian development snapshot
+            'llvm-config-devel', # FreeBSD development snapshot
+        ]
+
+        # Fedora starting with Fedora 30 adds a suffix of the number
+        # of bits in the isa that llvm targets, for example, on x86_64
+        # and aarch64 the name will be llvm-config-64, on x86 and arm
+        # it will be llvm-config-32.
+        m = MachineChoice.BUILD if environment.is_cross_build() and kwargs.get('native', True) else MachineChoice.HOST
+        if environment.machines[m].is_64_bit:
+            self.tools.append('llvm-config-64')
+        else:
+            self.tools.append('llvm-config-32')
+
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
         super().__init__('LLVM', environment, 'cpp', kwargs)
