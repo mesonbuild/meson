@@ -204,6 +204,8 @@ def detect_cpu_family(compilers):
         trial = platform.machine().lower()
     if trial.startswith('i') and trial.endswith('86'):
         trial = 'x86'
+    elif trial == 'bepc':
+        trial = 'x86'
     elif trial.startswith('arm'):
         trial = 'arm'
     elif trial.startswith('ppc64'):
