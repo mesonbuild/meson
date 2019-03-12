@@ -55,6 +55,18 @@ known_cpu_families = (
     'x86_64'
 )
 
+# It would feel more natural to call this "64_BIT_CPU_FAMILES", but
+# python identifiers cannot start with numbers
+CPU_FAMILES_64_BIT = [
+    'aarch64',
+    'ia64',
+    'mips64',
+    'ppc64',
+    'riscv64',
+    'sparc64',
+    'x86_64',
+]
+
 class MesonConfigFile:
     @classmethod
     def parse_datafile(cls, filename):
@@ -150,6 +162,7 @@ class MachineInfo:
         self.cpu_family = cpu_family
         self.cpu = cpu
         self.endian = endian
+        self.is_64_bit = cpu_family in CPU_FAMILES_64_BIT
 
     def __eq__(self, other):
         if self.__class__ is not other.__class__:
