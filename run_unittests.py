@@ -4237,6 +4237,8 @@ class LinuxlikeTests(BasePlatformTests):
     def test_generate_gir_with_address_sanitizer(self):
         if is_cygwin():
             raise unittest.SkipTest('asan not available on Cygwin')
+        if is_openbsd():
+            raise unittest.SkipTest('-fsanitize=address is not supported on OpenBSD')
 
         testdir = os.path.join(self.framework_test_dir, '7 gnome')
         self.init(testdir, ['-Db_sanitize=address', '-Db_lundef=false'])
