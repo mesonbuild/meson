@@ -1553,7 +1553,8 @@ the following methods.
   `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT` set.
 
 - `backend()` *(added 0.37.0)* returns a string representing the
-  current backend: `ninja`, `vs2010`, `vs2015`, `vs2017`, or `xcode`.
+  current backend: `ninja`, `vs2010`, `vs2015`, `vs2017`, `vs2019`,
+  or `xcode`.
 
 - `build_root()` returns a string with the absolute path to the build
   root directory. Note: this function will return the build root of

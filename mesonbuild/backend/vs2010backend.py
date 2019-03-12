@@ -207,7 +207,7 @@ class Vs2010Backend(backends.Backend):
         if 'VCINSTALLDIR' in os.environ:
             vs_version = os.environ['VisualStudioVersion'] \
                 if 'VisualStudioVersion' in os.environ else None
-            relative_path = 'Auxiliary\\Build\\' if vs_version == '15.0' else ''
+            relative_path = 'Auxiliary\\Build\\' if vs_version >= '15.0' else ''
             script_path = os.environ['VCINSTALLDIR'] + relative_path + 'vcvarsall.bat'
             if os.path.exists(script_path):
                 if has_arch_values:
