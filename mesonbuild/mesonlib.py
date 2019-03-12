@@ -356,6 +356,9 @@ def is_haiku() -> bool:
 def is_openbsd() -> bool:
     return platform.system().lower() == 'openbsd'
 
+def is_solaris() -> bool:
+    return platform.system().lower() == 'sunos'
+
 def is_windows() -> bool:
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname

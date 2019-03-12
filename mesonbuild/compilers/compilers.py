@@ -202,6 +202,14 @@ gnulike_buildtype_linker_args = {'plain': [],
                                  'custom': [],
                                  }
 
+solaris_buildtype_linker_args = {'plain': [],
+                                 'debug': [],
+                                 'debugoptimized': [],
+                                 'release': [],
+                                 'minsize': [],
+                                 'custom': [],
+                                 }
+
 arm_buildtype_linker_args = {'plain': [],
                              'debug': [],
                              'debugoptimized': [],
@@ -751,7 +759,7 @@ class CompilerArgs(list):
             new = self.copy()
         else:
             new = self
-        if get_compiler_uses_gnuld(self.compiler):
+        if get_compiler_uses_gnuld(self.compiler) or get_compiler_uses_sunld(self.compiler):
             global soregex
             group_start = -1
             group_end = -1
@@ -1248,7 +1256,7 @@ class Compiler:
             # macOS does not support colon-separated strings in LC_RPATH,
             # hence we have to pass each path component individually
             args += ['-Wl,-rpath,' + rp for rp in all_paths]
-        else:
+        elif not mesonlib.is_solaris():
             # In order to avoid relinking for RPATH removal, the binary needs to contain just
             # enough space in the ELF header to hold the final installation RPATH.
             paths = ':'.join(all_paths)
@@ -1259,6 +1267,17 @@ class Compiler:
                 else:
                     paths = paths + ':' + padding
             args.append('-Wl,-rpath,' + paths)
+
+        if get_compiler_is_solarislike(self):
+            args.append('-Wl,-z,origin')
+            paths = ':'.join(all_paths)
+            if len(paths) < len(install_rpath):
+                padding = 'X' * (len(install_rpath) - len(paths))
+                if not paths:
+                    paths = padding
+                else:
+                    paths = paths + ':' + padding
+            args.append('-Wl,-R,' + paths)
 
         if get_compiler_is_linuxlike(self):
             # Rpaths to use while linking must be absolute. These are not
@@ -1345,6 +1364,7 @@ class CompilerType(enum.Enum):
     GCC_OSX = 1
     GCC_MINGW = 2
     GCC_CYGWIN = 3
+    GCC_SOLARIS = 4
 
     CLANG_STANDARD = 10
     CLANG_OSX = 11
@@ -1373,6 +1393,10 @@ class CompilerType(enum.Enum):
     def is_windows_compiler(self):
         return self.name in ('GCC_MINGW', 'GCC_CYGWIN', 'CLANG_MINGW', 'ICC_WIN', 'ARM_WIN', 'CCRX_WIN')
 
+    @property
+    def is_solaris_compiler(self):
+        return self.name in ('GCC_SOLARIS')
+
 
 def get_macos_dylib_install_name(prefix, shlib_name, suffix, soversion):
     install_name = prefix + shlib_name
@@ -1385,6 +1409,9 @@ def get_gcc_soname_args(compiler_type, prefix, shlib_name, suffix, soversion, da
     if compiler_type.is_standard_compiler:
         sostr = '' if soversion is None else '.' + soversion
         return ['-Wl,-soname,%s%s.%s%s' % (prefix, shlib_name, suffix, sostr)]
+    elif compiler_type.is_solaris_compiler:
+        sostr = '' if soversion is None else '.' + soversion
+        return ['-Wl,-h,%s%s.%s%s' % (prefix, shlib_name, suffix, sostr)]
     elif compiler_type.is_windows_compiler:
         # For PE/COFF the soname argument has no effect with GNU LD
         return []
@@ -1402,6 +1429,14 @@ def get_gcc_soname_args(compiler_type, prefix, shlib_name, suffix, soversion, da
 def get_compiler_is_linuxlike(compiler):
     compiler_type = getattr(compiler, 'compiler_type', None)
     return compiler_type and compiler_type.is_standard_compiler
+
+def get_compiler_is_solarislike(compiler):
+    compiler_type = getattr(compiler, 'compiler_type', None)
+    return compiler_type and compiler_type.is_solaris_compiler
+
+def get_compiler_uses_sunld(c):
+    compiler_type = getattr(c, 'compiler_type', None)
+    return compiler_type == CompilerType.GCC_SOLARIS
 
 def get_compiler_uses_gnuld(c):
     # FIXME: Perhaps we should detect the linker in the environment?
@@ -1489,7 +1524,7 @@ class GnuLikeCompiler(abc.ABC):
                 not self.compiler_type.is_windows_compiler and
                 not mesonlib.is_openbsd()):
             self.base_options.append('b_lundef')
-        if not self.compiler_type.is_windows_compiler:
+        if not self.compiler_type.is_windows_compiler and not self.compiler_type.is_solaris_compiler:
             self.base_options.append('b_asneeded')
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
@@ -1528,6 +1563,8 @@ class GnuLikeCompiler(abc.ABC):
     def get_buildtype_linker_args(self, buildtype):
         if self.compiler_type.is_osx_compiler:
             return apple_buildtype_linker_args[buildtype]
+        if self.compiler_type.is_solaris_compiler:
+            return solaris_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
 
     @abc.abstractmethod

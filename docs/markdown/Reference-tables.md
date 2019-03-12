@@ -90,6 +90,7 @@ These are provided by the `.system()` method call.
 | haiku               | |
 | linux               | |
 | netbsd              | |
+| sunos               | Solaris/Illumos/OpenIndiana |
 | windows             | Any version of Windows |
 
 Any string not listed above is not guaranteed to remain stable in
