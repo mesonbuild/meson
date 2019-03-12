@@ -1291,8 +1291,8 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         c_stds = ['c89', 'c99', 'c11']
         g_stds = ['gnu89', 'gnu99', 'gnu11']
         if version_compare(self.version, '>=8.0.0'):
-            c_stds += ['c17','c18']
-            g_stds += ['gnu17','gnu18']
+            c_stds += ['c17', 'c18']
+            g_stds += ['gnu17', 'gnu18']
         opts.update({'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
                                                        ['none'] + c_stds + g_stds,
                                                        'none')})
