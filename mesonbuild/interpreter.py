@@ -2040,6 +2040,7 @@ class MesonMain(InterpreterObject):
             return props[propname]
         except Exception:
             if len(args) == 2:
+                mlog.warning('Cross property %s is using default value %s' % (propname, args[1]))
                 return args[1]
             raise InterpreterException('Unknown cross property: %s.' % propname)
 
