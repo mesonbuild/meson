@@ -1105,7 +1105,7 @@ class Vs2010Backend(backends.Backend):
 
         # Add more libraries to be linked if needed
         for t in target.get_dependencies():
-            if isinstance(t, CustomTarget) or isinstance(t, CustomTargetIndex):
+            if isinstance(t, build.CustomTarget) or isinstance(t, build.CustomTargetIndex):
                 # Custom targets are handled below with get_custom_target_provided_libraries()
                 continue
             lobj = self.build.targets[t.get_id()]
