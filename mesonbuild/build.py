@@ -65,7 +65,6 @@ buildtarget_kwargs = set([
     'link_whole',
     'link_args',
     'link_depends',
-    'link_language',
     'implicit_include_directories',
     'include_directories',
     'install',
@@ -89,7 +88,7 @@ known_build_target_kwargs = (
     rust_kwargs |
     cs_kwargs)
 
-known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie'}
+known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'link_language', 'pie'}
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions'}
 known_shmod_kwargs = known_build_target_kwargs
 known_stlib_kwargs = known_build_target_kwargs | {'pic'}
@@ -346,7 +345,6 @@ a hard error in the future.''' % name)
         self.install = False
         self.build_always_stale = False
         self.option_overrides = {}
-        self.link_language = None
         if not hasattr(self, 'typename'):
             raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
 
@@ -447,6 +445,7 @@ class BuildTarget(Target):
         self.objects = []
         self.external_deps = []
         self.include_dirs = []
+        self.link_language = kwargs.get('link_language')
         self.link_targets = []
         self.link_whole_targets = []
         self.link_depends = []
@@ -565,9 +564,7 @@ class BuildTarget(Target):
             compilers = self.environment.coredata.compilers
 
         # did user override clink_langs for this target?
-        link_langs = self.link_language if self.link_language else clink_langs
-        # if self.link_language:
-            # link_langs.append(self.link_language)
+        link_langs = [self.link_language] if self.link_language else clink_langs
 
         # If this library is linked against another library we need to consider
         # the languages of those libraries as well.
@@ -1150,9 +1147,8 @@ You probably should put it in link_with instead.''')
         '''
         langs = []
 
-        # User specified link_langugage of target (for multi-language targets)
+        # User specified link_language of target (for multi-language targets)
         if self.link_language:
-            #langs.append(self.link_language)
             return [self.link_language]
 
         # Check if any of the external libraries were written in this language
