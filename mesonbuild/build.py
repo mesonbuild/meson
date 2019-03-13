@@ -1053,6 +1053,8 @@ You probably should put it in link_with instead.''')
 
     def link(self, target):
         for t in listify(target, unholder=True):
+            if isinstance(t, CustomTarget) or isinstance(t, CustomTargetIndex):
+                t = CustomTargetLinkTarget(t)
             if not isinstance(t, Target):
                 raise InvalidArguments('{!r} is not a target.'.format(t))
             if not t.is_linkable_target():
@@ -1061,7 +1063,7 @@ You probably should put it in link_with instead.''')
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if not isinstance(t, CustomTarget) and self.is_cross != t.is_cross:
+            if not isinstance(t, CustomTargetLinkTarget) and self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_targets.append(t)
 
@@ -1866,7 +1868,6 @@ class CustomTarget(Target):
     def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False):
         self.typename = 'custom'
         super().__init__(name, subdir, subproject, False)
-        self.compilers = OrderedDict() # Always empty
         self.dependencies = []
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
@@ -1892,15 +1893,6 @@ class CustomTarget(Target):
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
-
-    def get_all_link_deps(self):
-        return []
-
-    def get_link_deps_mapping(self, prefix, environment):
-        return {}
-
-    def get_link_dep_subdirs(self):
-        return OrderedSet()
 
     def get_target_dependencies(self):
         deps = self.dependencies[:]
@@ -2110,6 +2102,45 @@ class CustomTarget(Target):
 
     def __delitem__(self, index):
         raise NotImplementedError
+
+class CustomTargetLinkTarget(Target):
+    def __init__(self, target):
+        assert(isinstance(target, CustomTarget) or isinstance(target, CustomTargetIndex))
+
+        self.typename = 'custom'
+        parent_target = target if isinstance(target, CustomTarget) else target.target
+        super().__init__(parent_target.name, parent_target.subdir, parent_target.subproject, parent_target.build_by_default)
+        self.dependencies = parent_target.dependencies
+        self.target = target
+        self.compilers = OrderedDict() # Always empty, required for link targets
+
+    def __lt__(self, other):
+        return self.get_id() < other.get_id()
+
+    def __repr__(self):
+        repr_str = "<{0} {1}: {2}>"
+        return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
+
+    def get_all_link_deps(self):
+        return []
+
+    def get_link_deps_mapping(self, prefix, environment):
+        return {}
+
+    def get_link_dep_subdirs(self):
+        return OrderedSet()
+
+    def get_dependencies(self):
+        return self.dependencies
+
+    def get_filename(self):
+        return self.target.get_outputs()[0]
+
+    def get_outputs(self):
+        return self.target.get_outputs()
+
+    def type_suffix(self):
+        return "@cus"
 
     def is_linkable_target(self):
         return True

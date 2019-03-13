@@ -163,7 +163,7 @@ class Backend:
                                              self.environment.get_build_dir())
 
     def get_target_filename(self, t):
-        if isinstance(t, build.CustomTarget):
+        if isinstance(t, build.CustomTarget) or isinstance(t, build.CustomTargetLinkTarget):
             if len(t.get_outputs()) != 1:
                 mlog.warning('custom_target {!r} has more than one output! '
                              'Using the first one.'.format(t.name))
@@ -216,7 +216,7 @@ class Backend:
                 return os.path.join(self.get_target_dir(target), target.get_import_filename())
             else:
                 return None
-        elif isinstance(target, build.CustomTarget):
+        elif isinstance(target, build.CustomTargetLinkTarget):
             return os.path.join(self.get_target_dir(target), target.get_filename())
         raise AssertionError('BUG: Tried to link to {!r} which is not linkable'.format(target))
 
