@@ -1030,8 +1030,9 @@ This will become a hard error in a future Meson release.''')
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)
             elif isinstance(dep, dependencies.Dependency):
-                self.external_deps.append(dep)
-                self.process_sourcelist(dep.get_sources())
+                if dep not in self.external_deps:
+                    self.external_deps.append(dep)
+                    self.process_sourcelist(dep.get_sources())
             elif isinstance(dep, BuildTarget):
                 raise InvalidArguments('''Tried to use a build target as a dependency.
 You probably should put it in link_with instead.''')
