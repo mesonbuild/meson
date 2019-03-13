@@ -559,7 +559,7 @@ def detect_tests_to_run():
         ('C#', 'csharp', skip_csharp(backend)),
         ('vala', 'vala', backend is not Backend.ninja or not shutil.which('valac')),
         ('rust', 'rust', backend is not Backend.ninja or not shutil.which('rustc')),
-        ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
+        ('d', 'd', backend is not Backend.ninja or not have_d_compiler() or mesonlib.is_windows()),
         ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or mesonlib.is_windows() or not have_objc_compiler()),
         ('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or mesonlib.is_windows() or not have_objcpp_compiler()),
         ('fortran', 'fortran', backend is not Backend.ninja or not shutil.which('gfortran')),
