@@ -51,6 +51,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [JsonCpp](https://github.com/open-source-parsers/jsoncpp), a C++ library for interacting with JSON
  - [Json-glib](https://gitlab.gnome.org/GNOME/json-glib), GLib-based JSON manipulation library
  - [Kiwix libraries](https://github.com/kiwix/kiwix-lib)
+ - [Knot Resolver](https://gitlab.labs.nic.cz/knot/knot-resolver), Full caching DNS resolver implementation
  - [Ksh](https://github.com/att/ast), a Korn Shell
  - [Lc0](https://github.com/LeelaChessZero/lc0), LeelaChessZero is a UCI-compliant chess engine designed to play chess via neural network
  - [Libdrm](https://cgit.freedesktop.org/drm/libdrm/), a library for abstracting DRM kernel interfaces
