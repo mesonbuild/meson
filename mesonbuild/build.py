@@ -2120,8 +2120,8 @@ class CustomTargetLinkTarget(Target):
         return self.get_id() < other.get_id()
 
     def __repr__(self):
-        repr_str = "<{0} {1}: {2}>"
-        return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
+        repr_str = "<{}: {!r}>"
+        return repr_str.format(self.__class__.__name__, self.target)
 
     def get_all_link_deps(self):
         return []
