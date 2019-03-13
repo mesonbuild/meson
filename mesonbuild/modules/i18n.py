@@ -64,8 +64,7 @@ class I18nModule(ExtensionModule):
         return [path.join(src_dir, d) for d in dirs]
 
     @FeatureNew('i18n.merge_file', '0.37.0')
-    @permittedKwargs({'languages', 'data_dirs', 'preset', 'args', 'po_dir', 'type',
-                      'input', 'output', 'install', 'install_dir'})
+    @permittedKwargs(build.CustomTarget.known_kwargs | {'data_dirs', 'po_dir', 'type'})
     def merge_file(self, state, args, kwargs):
         podir = kwargs.pop('po_dir', None)
         if not podir:
