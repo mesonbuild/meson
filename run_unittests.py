@@ -4704,6 +4704,8 @@ class LinuxlikeTests(BasePlatformTests):
     def test_pch_with_address_sanitizer(self):
         if is_cygwin():
             raise unittest.SkipTest('asan not available on Cygwin')
+        if is_openbsd():
+            raise unittest.SkipTest('-fsanitize=address is not supported on OpenBSD')
 
         testdir = os.path.join(self.common_test_dir, '13 pch')
         self.init(testdir, ['-Db_sanitize=address'])
