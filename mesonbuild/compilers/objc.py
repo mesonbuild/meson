@@ -14,7 +14,7 @@
 
 import os.path, subprocess
 
-from ..mesonlib import EnvironmentException
+from ..mesonlib import EnvironmentException, MachineChoice
 
 from .c import CCompiler
 from .compilers import ClangCompiler, GnuCompiler
@@ -33,6 +33,7 @@ class ObjCCompiler(CCompiler):
         binary_name = os.path.join(work_dir, 'sanitycheckobjc')
         extra_flags = []
         if self.is_cross:
+            extra_flags += environment.coredata.get_external_args(MachineChoice.HOST, self.language)
             extra_flags += self.get_compile_only_args()
         with open(source_name, 'w') as ofile:
             ofile.write('#import<stdio.h>\n'

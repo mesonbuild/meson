@@ -14,7 +14,7 @@
 
 import subprocess, os.path
 
-from ..mesonlib import EnvironmentException
+from ..mesonlib import EnvironmentException, MachineChoice
 
 from .compilers import Compiler, swift_buildtype_args, clike_debug_args
 
@@ -105,7 +105,11 @@ class SwiftCompiler(Compiler):
         with open(source_name, 'w') as ofile:
             ofile.write('''print("Swift compilation is working.")
 ''')
-        pc = subprocess.Popen(self.exelist + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
+        extra_flags = []
+        if self.is_cross:
+            extra_flags += environment.coredata.get_external_args(MachineChoice.HOST, self.language)
+            extra_flags += environment.coredata.get_external_link_args(MachineChoice.HOST, self.language)
+        pc = subprocess.Popen(self.exelist + extra_flags + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Swift compiler %s can not compile programs.' % self.name_string())

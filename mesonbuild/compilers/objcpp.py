@@ -14,7 +14,7 @@
 
 import os.path, subprocess
 
-from ..mesonlib import EnvironmentException
+from ..mesonlib import EnvironmentException, MachineChoice
 
 from .cpp import CPPCompiler
 from .compilers import ClangCompiler, GnuCompiler
@@ -31,11 +31,15 @@ class ObjCPPCompiler(CPPCompiler):
         # TODO try to use sanity_check_impl instead of duplicated code
         source_name = os.path.join(work_dir, 'sanitycheckobjcpp.mm')
         binary_name = os.path.join(work_dir, 'sanitycheckobjcpp')
+        extra_flags = []
+        if self.is_cross:
+            extra_flags += environment.coredata.get_external_args(MachineChoice.HOST, self.language)
+            extra_flags += self.get_compile_only_args()
         with open(source_name, 'w') as ofile:
             ofile.write('#import<stdio.h>\n'
                         'class MyClass;'
                         'int main(int argc, char **argv) { return 0; }\n')
-        pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
+        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('ObjC++ compiler %s can not compile programs.' % self.name_string())
