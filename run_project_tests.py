@@ -547,6 +547,7 @@ def detect_tests_to_run():
     # Name, subdirectory, skip condition.
     all_tests = [
         ('common', 'common', False),
+        ('warning-meson', 'warning', False),
         ('failing-meson', 'failing', False),
         ('failing-build', 'failing build', False),
         ('failing-test',  'failing test', False),
@@ -623,9 +624,14 @@ def _run_tests(all_tests, log_name_base, failfast, extra_args):
             (testnum, testbase) = t.name.split(' ', 1)
             testname = '%.3d %s' % (int(testnum), testbase)
             should_fail = False
+            suite_args = []
             if name.startswith('failing'):
                 should_fail = name.split('failing-')[1]
-            result = executor.submit(run_test, skipped, t.as_posix(), extra_args, system_compiler, backend, backend_flags, commands, should_fail)
+            if name.startswith('warning'):
+                suite_args = ['--fatal-meson-warnings']
+                should_fail = name.split('warning-')[1]
+            result = executor.submit(run_test, skipped, t.as_posix(), extra_args + suite_args,
+                                     system_compiler, backend, backend_flags, commands, should_fail)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             sys.stdout.flush()
