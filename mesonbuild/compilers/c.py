@@ -1219,7 +1219,11 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         opts = CCompiler.get_options(self)
         c_stds = ['c89', 'c99', 'c11']
         g_stds = ['gnu89', 'gnu99', 'gnu11']
-        if version_compare(self.version, '>=7.0.0'):
+        if self.compiler_type is CompilerType.CLANG_OSX:
+            v = '>=10.0.0'
+        else:
+            v = '>=7.0.0'
+        if version_compare(self.version, v):
             c_stds += ['c17']
             g_stds += ['gnu17']
         opts.update({'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
