@@ -1822,7 +1822,7 @@ rule FORTRAN_DEP_HACK%s
             return
 
         modre = re.compile(r"\s*\bmodule\b\s+(\w+)\s*$", re.IGNORECASE)
-        submodre = re.compile(r"\s*\bsubmodule\b\s*\((\w+:?\w+)\)\s*(\w+)\s*$", re.IGNORECASE)
+        submodre = re.compile(r"\s*submodule\s*\((\w+:?\w+)\)\s*(\w+)\s*$", re.IGNORECASE)
         module_files = {}
         submodule_files = {}
         for s in target.get_sources():
