@@ -606,8 +606,18 @@ The result of this is undefined and will become a hard error in a future Meson r
             raise InterpreterException('Argument to negation is not an integer.')
         return -v
 
+    @FeatureNew('/ with list arguments', '0.51.0')
+    def evaluate_path_cartesian_product(self, l, r):
+        if not isinstance(l, list):
+            l = [l]
+        if not isinstance(r, list):
+            r = [r]
+        return [self.evaluate_path_join(ll, rr) for ll in l for rr in r]
+
     @FeatureNew('/ with string arguments', '0.49.0')
     def evaluate_path_join(self, l, r):
+        if isinstance(l, list) or isinstance(r, list):
+            return self.evaluate_path_cartesian_product(l, r)
         if not isinstance(l, str):
             raise InvalidCode('The division operator can only append to a string.')
         if not isinstance(r, str):
@@ -615,7 +625,8 @@ The result of this is undefined and will become a hard error in a future Meson r
         return self.join_path_strings((l, r))
 
     def evaluate_division(self, l, r):
-        if isinstance(l, str) or isinstance(r, str):
+        if isinstance(l, str) or isinstance(r, str) or \
+           isinstance(l, list) or isinstance(r, list):
             return self.evaluate_path_join(l, r)
         if isinstance(l, int) and isinstance(r, int):
             if r == 0:

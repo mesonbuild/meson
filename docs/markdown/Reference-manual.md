@@ -1044,10 +1044,20 @@ dropped. That means that `join_paths('foo', '/bar')` returns `/bar`.
 Since 0.49.0 using the`/` operator on strings is equivalent to calling
 `join_paths`.
 
+Since 0.51.0 the `/` operator also supports lists of strings for one or
+both operands.  The result will be a list combining all elements of the
+left-hand side with all elements of the right-hand-side.
+
 ```meson
 # res1 and res2 will have identical values
 res1 = join_paths(foo, bar)
 res2 = foo / bar
+
+# res3 will be ['a/foo.c', 'a/bar.c']
+res3 = 'a' / ['foo.c', 'bar.c']
+
+# res4 will have six elements!
+res4 = ['x', 'y', 'z'] / ['foo.c', 'bar.c']
 ```
 
 ### library()
