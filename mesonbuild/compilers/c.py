@@ -315,6 +315,7 @@ class CCompiler(Compiler):
         binname = sname.rsplit('.', 1)[0]
         if self.is_cross:
             binname += '_cross'
+            extra_flags += environment.coredata.get_external_args(MachineChoice.HOST, self.language)
             if self.exe_wrapper is None:
                 # Linking cross built apps is painful. You can't really
                 # tell if you should use -nostdlib or not and for example
@@ -322,6 +323,8 @@ class CCompiler(Compiler):
                 # a ton of compiler flags to differentiate between
                 # arm and x86_64. So just compile.
                 extra_flags += self.get_compile_only_args()
+            else:
+                extra_flags += environment.coredata.get_external_link_args(MachineChoice.HOST, self.language)
         # Is a valid executable output for all toolchains and platforms
         binname += '.exe'
         # Write binary check source
