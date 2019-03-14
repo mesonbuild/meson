@@ -606,6 +606,23 @@ The result of this is undefined and will become a hard error in a future Meson r
             raise InterpreterException('Argument to negation is not an integer.')
         return -v
 
+    @FeatureNew('/ with string arguments', '0.49.0')
+    def evaluate_path_join(self, l, r):
+        if not isinstance(l, str):
+            raise InvalidCode('The division operator can only append to a string.')
+        if not isinstance(r, str):
+            raise InvalidCode('The division operator can only append a string.')
+        return self.join_path_strings((l, r))
+
+    def evaluate_division(self, l, r):
+        if isinstance(l, str) or isinstance(r, str):
+            return self.evaluate_path_join(l, r)
+        if isinstance(l, int) and isinstance(r, int):
+            if r == 0:
+                raise InvalidCode('Division by zero.')
+            return l // r
+        raise InvalidCode('Division works only with strings, integers or lists.')
+
     def evaluate_arithmeticstatement(self, cur):
         l = self.evaluate_statement(cur.left)
         if is_disabler(l):
@@ -630,13 +647,7 @@ The result of this is undefined and will become a hard error in a future Meson r
                 raise InvalidCode('Multiplication works only with integers.')
             return l * r
         elif cur.operation == 'div':
-            if isinstance(l, str) and isinstance(r, str):
-                return self.join_path_strings((l, r))
-            if isinstance(l, int) and isinstance(r, int):
-                if r == 0:
-                    raise InvalidCode('Division by zero.')
-                return l // r
-            raise InvalidCode('Division works only with strings or integers.')
+            return self.evaluate_division(l, r)
         elif cur.operation == 'mod':
             if not isinstance(l, int) or not isinstance(r, int):
                 raise InvalidCode('Modulo works only with integers.')
