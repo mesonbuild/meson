@@ -36,6 +36,8 @@ from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
 from ..build import InvalidArguments
 
+FORTRAN_SUBMOD_PAT = r"\s*submodule\s*\((\w+:?\w+)\)\s*(\w+)\s*$"
+
 if mesonlib.is_windows():
     quote_func = lambda s: '"{}"'.format(s)
     execute_wrapper = 'cmd /c'
@@ -1822,7 +1824,7 @@ rule FORTRAN_DEP_HACK%s
             return
 
         modre = re.compile(r"\s*\bmodule\b\s+(\w+)\s*$", re.IGNORECASE)
-        submodre = re.compile(r"\s*submodule\s*\((\w+:?\w+)\)\s*(\w+)\s*$", re.IGNORECASE)
+        submodre = re.compile(FORTRAN_SUBMOD_PAT, re.IGNORECASE)
         module_files = {}
         submodule_files = {}
         for s in target.get_sources():
@@ -1861,10 +1863,16 @@ rule FORTRAN_DEP_HACK%s
         self.fortran_deps[target.get_basename()] = {**module_files, **submodule_files}
 
     def get_fortran_deps(self, compiler: FortranCompiler, src: str, target) -> List[str]:
+<<<<<<< HEAD
         """
         Find all modules and submodules needed by a target
         """
 
+=======
+        mod_files = []
+        usere = re.compile(r"\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)", re.IGNORECASE)
+        submodre = re.compile(FORTRAN_SUBMOD_PAT, re.IGNORECASE)
+>>>>>>> DRY Fortran submodule regex
         dirname = Path(self.get_target_private_dir(target))
         tdeps = self.fortran_deps[target.get_basename()]
         srcdir = Path(self.source_dir)
