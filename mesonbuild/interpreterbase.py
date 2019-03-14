@@ -894,6 +894,8 @@ The result of this is undefined and will become a hard error in a future Meson r
                 return int(obj)
             except Exception:
                 raise InterpreterException('String {!r} cannot be converted to int'.format(obj))
+        elif method_name == 'length':
+            return len(obj)
         elif method_name == 'join':
             if len(posargs) != 1:
                 raise InterpreterException('Join() takes exactly one argument.')
@@ -975,6 +977,8 @@ The result of this is undefined and will become a hard error in a future Meson r
             if len(posargs) != 0:
                 raise InterpreterException('keys() takes no arguments.')
             return list(obj.keys())
+        elif method_name == 'length':
+            return len(obj)
 
         raise InterpreterException('Dictionaries do not have a method called "%s".' % method_name)
 
