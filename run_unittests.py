@@ -5871,6 +5871,25 @@ class CrossFileTests(BasePlatformTests):
                               '-Ddef_sharedstatedir=sharedstatebar',
                               '-Ddef_sysconfdir=sysconfbar'])
 
+    def test_cross_file_dirs_chain(self):
+        # crossfile2 overrides crossfile overrides nativefile
+        testcase = os.path.join(self.unit_test_dir, '57 native file override')
+        self.init(testcase, default_args=False,
+                  extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
+                              '--cross-file', os.path.join(testcase, 'crossfile'),
+                              '--cross-file', os.path.join(testcase, 'crossfile2'),
+                              '-Ddef_bindir=binbar2',
+                              '-Ddef_datadir=databar',
+                              '-Ddef_includedir=includebar',
+                              '-Ddef_infodir=infobar',
+                              '-Ddef_libdir=libbar',
+                              '-Ddef_libexecdir=libexecbar',
+                              '-Ddef_localedir=localebar',
+                              '-Ddef_localstatedir=localstatebar',
+                              '-Ddef_mandir=manbar',
+                              '-Ddef_sbindir=sbinbar',
+                              '-Ddef_sharedstatedir=sharedstatebar',
+                              '-Ddef_sysconfdir=sysconfbar'])
 
 class TAPParserTests(unittest.TestCase):
     def assert_test(self, events, **kwargs):
