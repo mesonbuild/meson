@@ -1811,6 +1811,7 @@ rule FORTRAN_DEP_HACK%s
         if compiler is None:
             self.fortran_deps[target.get_basename()] = {}
             return
+
         modre = re.compile(r"\s*\bmodule\b\s+(\w+)\s*$", re.IGNORECASE)
         submodre = re.compile(r"\s*\bsubmodule\b\s+\((\w+:?\w+)\)\s+(\w+)\s*$", re.IGNORECASE)
         module_files = {}
@@ -1848,64 +1849,15 @@ rule FORTRAN_DEP_HACK%s
         self.fortran_deps[target.get_basename()] = module_files
 
     def get_fortran_deps(self, compiler: FortranCompiler, src: str, target) -> List[str]:
-        mod_files = []
-        usere = re.compile(r"\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)", re.IGNORECASE)
-        submodre = re.compile(r"\s*\bsubmodule\b\s+\((\w+:?\w+)\)\s+(\w+)\s*$", re.IGNORECASE)
+        """
+        Find all modules and submodules needed by a target
+        """
+
         dirname = Path(self.get_target_private_dir(target))
         tdeps = self.fortran_deps[target.get_basename()]
-        src = Path(src)
         srcdir = Path(self.source_dir)
-        with src.open(encoding='ascii', errors='ignore') as f:
-            for line in f:
-                usematch = usere.match(line)
-                if usematch is not None:
-                    usename = usematch.group(1).lower()
-                    if usename == 'intrinsic':  # this keeps the regex simpler
-                        continue
-                    if usename not in tdeps:
-                        # The module is not provided by any source file. This
-                        # is due to:
-                        #   a) missing file/typo/etc
-                        #   b) using a module provided by the compiler, such as
-                        #      OpenMP
-                        # There's no easy way to tell which is which (that I
-                        # know of) so just ignore this and go on. Ideally we
-                        # would print a warning message to the user but this is
-                        # a common occurrence, which would lead to lots of
-                        # distracting noise.
-                        continue
-                    srcfile = srcdir / tdeps[usename].fname
-                    if not srcfile.is_file():
-                        if srcfile.name != src.name:  # generated source file
-                            pass
-                        else:  # subproject
-                            continue
-                    elif srcfile.samefile(src):  # self-reference
-                        continue
 
-                    mod_name = compiler.module_name_to_filename(usename)
-                    mod_files.append(str(dirname / mod_name))
-                else:
-                    submodmatch = submodre.match(line)
-                    if submodmatch is not None:
-                        parents = submodmatch.group(1).lower().split(':')
-                        assert len(parents) in (1, 2), (
-                            'submodule ancestry must be specified as'
-                            ' ancestor:parent but Meson found {}'.parents)
-                        for parent in parents:
-                            if parent not in tdeps:
-                                raise MesonException("submodule {} relies on parent module {} that was not found.".format(submodmatch.group(2).lower(), parent))
-                            submodsrcfile = srcdir / tdeps[parent].fname
-                            if not submodsrcfile.is_file():
-                                if submodsrcfile.name != src.name:  # generated source file
-                                    pass
-                                else:  # subproject
-                                    continue
-                            elif submodsrcfile.samefile(src):  # self-reference
-                                continue
-                            mod_name = compiler.module_name_to_filename(parent)
-                            mod_files.append(str(dirname / mod_name))
-
+        mod_files = _scan_fortran_file_deps(src, srcdir, dirname, tdeps, compiler)
         return mod_files
 
     def get_cross_stdlib_args(self, target, compiler):
@@ -2797,3 +2749,86 @@ def load(build_dir):
     with open(filename, 'rb') as f:
         obj = pickle.load(f)
     return obj
+
+
+def _scan_fortran_file_deps(src: str, srcdir: Path, dirname: Path, tdeps, compiler) -> List[str]:
+    """
+    scan a Fortran file for dependencies. Needs to be distinct from target
+    to allow for recursion induced by `include` statements.er
+
+    It makes a number of assumptions, including
+
+    * `use`, `module`, `submodule` name is not on a continuation line
+
+    Regex
+    -----
+
+    * `incre` works for `#include "foo.f90"` and `include "foo.f90"`
+    * `usere` works for legacy and Fortran 2003 `use` statements
+    * `submodre` is for Fortran >= 2008 `submodule`
+    """
+
+    incre = re.compile(r"#?include\s*['\"](\w+\.\w+)['\"]\s*$", re.IGNORECASE)
+    usere = re.compile(r"\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)", re.IGNORECASE)
+    submodre = re.compile(r"\s*\bsubmodule\b\s+\((\w+:?\w+)\)\s+(\w+)\s*$", re.IGNORECASE)
+
+    mod_files = []
+    src = Path(src)
+    with src.open(encoding='ascii', errors='ignore') as f:
+        for line in f:
+            # included files
+            incmatch = incre.match(line)
+            if incmatch is not None:
+                incfile = srcdir / incmatch.group(1)
+                if incfile.suffix.lower()[1:] in compiler.file_suffixes:
+                    mod_files.extend(_scan_fortran_file_deps(incfile, srcdir, dirname, tdeps, compiler))
+            # modules
+            usematch = usere.match(line)
+            if usematch is not None:
+                usename = usematch.group(1).lower()
+                if usename == 'intrinsic':  # this keeps the regex simpler
+                    continue
+                if usename not in tdeps:
+                    # The module is not provided by any source file. This
+                    # is due to:
+                    #   a) missing file/typo/etc
+                    #   b) using a module provided by the compiler, such as
+                    #      OpenMP
+                    # There's no easy way to tell which is which (that I
+                    # know of) so just ignore this and go on. Ideally we
+                    # would print a warning message to the user but this is
+                    # a common occurrence, which would lead to lots of
+                    # distracting noise.
+                    continue
+                srcfile = srcdir / tdeps[usename].fname
+                if not srcfile.is_file():
+                    if srcfile.name != src.name:  # generated source file
+                        pass
+                    else:  # subproject
+                        continue
+                elif srcfile.samefile(src):  # self-reference
+                    continue
+
+                mod_name = compiler.module_name_to_filename(usename)
+                mod_files.append(str(dirname / mod_name))
+            else:  # submodules
+                submodmatch = submodre.match(line)
+                if submodmatch is not None:
+                    parents = submodmatch.group(1).lower().split(':')
+                    assert len(parents) in (1, 2), (
+                        'submodule ancestry must be specified as'
+                        ' ancestor:parent but Meson found {}'.parents)
+                    for parent in parents:
+                        if parent not in tdeps:
+                            raise MesonException("submodule {} relies on parent module {} that was not found.".format(submodmatch.group(2).lower(), parent))
+                        submodsrcfile = srcdir / tdeps[parent].fname
+                        if not submodsrcfile.is_file():
+                            if submodsrcfile.name != src.name:  # generated source file
+                                pass
+                            else:  # subproject
+                                continue
+                        elif submodsrcfile.samefile(src):  # self-reference
+                            continue
+                        mod_name = compiler.module_name_to_filename(parent)
+                        mod_files.append(str(dirname / mod_name))
+    return mod_files
