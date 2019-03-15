@@ -1814,6 +1814,9 @@ rule FORTRAN_DEP_HACK%s
             elem.write(outfile)
 
     def scan_fortran_module_outputs(self, target):
+        """
+        Find all module and submodule made available in a Fortran code file.
+        """
         compiler = None
         for lang, c in self.build.compilers.items():
             if lang == 'fortran':
@@ -1850,6 +1853,7 @@ rule FORTRAN_DEP_HACK%s
                     else:
                         submodmatch = submodre.match(line)
                         if submodmatch is not None:
+                            # '_' is arbitrarily used to distinguish submod from mod.
                             parents = submodmatch.group(1).lower().split(':')
                             submodname = parents[0] + '_' + submodmatch.group(2).lower()
 
@@ -1863,79 +1867,13 @@ rule FORTRAN_DEP_HACK%s
         self.fortran_deps[target.get_basename()] = {**module_files, **submodule_files}
 
     def get_fortran_deps(self, compiler: FortranCompiler, src: str, target) -> List[str]:
-<<<<<<< HEAD
         """
-        Find all modules and submodules needed by a target
+        Find all module and submodule needed by a Fortran target
         """
 
-=======
-        mod_files = []
-        usere = re.compile(r"\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)", re.IGNORECASE)
-        submodre = re.compile(FORTRAN_SUBMOD_PAT, re.IGNORECASE)
->>>>>>> DRY Fortran submodule regex
         dirname = Path(self.get_target_private_dir(target))
         tdeps = self.fortran_deps[target.get_basename()]
         srcdir = Path(self.source_dir)
-<<<<<<< HEAD
-=======
-        with src.open(encoding='ascii', errors='ignore') as f:
-            for line in f:
-                usematch = usere.match(line)
-                if usematch is not None:
-                    usename = usematch.group(1).lower()
-                    if usename == 'intrinsic':  # this keeps the regex simpler
-                        continue
-                    if usename not in tdeps:
-                        # The module is not provided by any source file. This
-                        # is due to:
-                        #   a) missing file/typo/etc
-                        #   b) using a module provided by the compiler, such as
-                        #      OpenMP
-                        # There's no easy way to tell which is which (that I
-                        # know of) so just ignore this and go on. Ideally we
-                        # would print a warning message to the user but this is
-                        # a common occurrence, which would lead to lots of
-                        # distracting noise.
-                        continue
-                    srcfile = srcdir / tdeps[usename].fname
-                    if not srcfile.is_file():
-                        if srcfile.name != src.name:  # generated source file
-                            pass
-                        else:  # subproject
-                            continue
-                    elif srcfile.samefile(src):  # self-reference
-                        continue
-
-                    mod_name = compiler.module_name_to_filename(usename)
-                    mod_files.append(str(dirname / mod_name))
-                else:
-                    submodmatch = submodre.match(line)
-                    if submodmatch is not None:
-                        parents = submodmatch.group(1).lower().split(':')
-                        assert len(parents) in (1, 2), (
-                            'submodule ancestry must be specified as'
-                            ' ancestor:parent but Meson found {}'.parents)
-
-                        ancestor_child = '_'.join(parents)
-
-                        if ancestor_child not in tdeps:
-                            raise MesonException("submodule {} relies on ancestor module {} that was not found.".format(submodmatch.group(2).lower(), ancestor_child.split('_')[0]))
-                        submodsrcfile = srcdir / tdeps[ancestor_child].fname
-                        if not submodsrcfile.is_file():
-                            if submodsrcfile.name != src.name:  # generated source file
-                                pass
-                            else:  # subproject
-                                continue
-<<<<<<< HEAD
-                            mod_name = compiler.module_name_to_filename(parent)
-                            mod_files.append(str(dirname / mod_name))
->>>>>>> allow fortran submodule to have same name as module
-=======
-                        elif submodsrcfile.samefile(src):  # self-reference
-                            continue
-                        mod_name = compiler.module_name_to_filename(ancestor_child)
-                        mod_files.append(str(dirname / mod_name))
->>>>>>> Squashed commit of the following:
 
         mod_files = _scan_fortran_file_deps(src, srcdir, dirname, tdeps, compiler)
         return mod_files
@@ -2845,7 +2783,7 @@ def _scan_fortran_file_deps(src: str, srcdir: Path, dirname: Path, tdeps, compil
 
     incre = re.compile(r"#?include\s*['\"](\w+\.\w+)['\"]\s*$", re.IGNORECASE)
     usere = re.compile(r"\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)", re.IGNORECASE)
-    submodre = re.compile(r"\s*\bsubmodule\b\s+\((\w+:?\w+)\)\s+(\w+)\s*$", re.IGNORECASE)
+    submodre = re.compile(FORTRAN_SUBMOD_PAT, re.IGNORECASE)
 
     mod_files = []
     src = Path(src)
@@ -2893,17 +2831,18 @@ def _scan_fortran_file_deps(src: str, srcdir: Path, dirname: Path, tdeps, compil
                     assert len(parents) in (1, 2), (
                         'submodule ancestry must be specified as'
                         ' ancestor:parent but Meson found {}'.parents)
-                    for parent in parents:
-                        if parent not in tdeps:
-                            raise MesonException("submodule {} relies on parent module {} that was not found.".format(submodmatch.group(2).lower(), parent))
-                        submodsrcfile = srcdir / tdeps[parent].fname
-                        if not submodsrcfile.is_file():
-                            if submodsrcfile.name != src.name:  # generated source file
-                                pass
-                            else:  # subproject
-                                continue
-                        elif submodsrcfile.samefile(src):  # self-reference
+
+                    ancestor_child = '_'.join(parents)
+                    if ancestor_child not in tdeps:
+                        raise MesonException("submodule {} relies on ancestor module {} that was not found.".format(submodmatch.group(2).lower(), ancestor_child.split('_')[0]))
+                    submodsrcfile = srcdir / tdeps[ancestor_child].fname
+                    if not submodsrcfile.is_file():
+                        if submodsrcfile.name != src.name:  # generated source file
+                            pass
+                        else:  # subproject
                             continue
-                        mod_name = compiler.module_name_to_filename(parent)
-                        mod_files.append(str(dirname / mod_name))
+                    elif submodsrcfile.samefile(src):  # self-reference
+                        continue
+                    mod_name = compiler.module_name_to_filename(ancestor_child)
+                    mod_files.append(str(dirname / mod_name))
     return mod_files
