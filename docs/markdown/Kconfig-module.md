@@ -38,6 +38,14 @@ This function loads a kconfig output file and returns a dictionary object.
 file.  Therefore, true boolean values will be represented as the string "y"
 and integer values will have to be converted with `.to_int()`.
 
+Kconfig frontends usually have ".config" as the default name for the
+configuration file.  However, placing the configuration file in the source
+directory limits the user to one configuration per source directory.
+In order to allow separate configurations for each build directory, as is
+the Meson standard, `meson.build` should not hardcode ".config" as the
+argument to `kconfig.load()`, and should instead make the argument to
+`kconfig.load()` a [project build option](Build-options.md).
+
 * The first (and only) argument is the path to the configuration file to
   load (usually ".config").
 
