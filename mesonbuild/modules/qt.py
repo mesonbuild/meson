@@ -19,7 +19,7 @@ from ..mesonlib import MesonException, Popen_safe, extract_as_list, File
 from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args, ExtensionModule
-from ..interpreterbase import permittedKwargs, FeatureNewKwargs
+from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
 
 _QT_DEPS_LUT = {
     4: Qt4Dependency,
@@ -199,7 +199,7 @@ class QtBaseModule(ExtensionModule):
             sources.append(moc_output)
         return ModuleReturnValue(sources, sources)
 
-    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
+    @FeatureNew('qt.compile_translations', '0.44.0')
     @permittedKwargs({'ts_files', 'install', 'install_dir', 'build_by_default', 'method'})
     def compile_translations(self, state, args, kwargs):
         ts_files, install_dir = extract_as_list(kwargs, 'ts_files', 'install_dir', pop=True)
