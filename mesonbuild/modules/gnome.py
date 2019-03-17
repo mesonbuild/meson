@@ -189,9 +189,13 @@ class GnomeModule(ExtensionModule):
                 gresource_ld_binary = True
 
         gresource = kwargs.pop('gresource_bundle', False)
-        if gresource or gresource_ld_binary:
+
+        if gresource:
             g_output = args[0] + '.gresource'
             g_name = args[0] + '_gresource'
+        elif gresource_ld_binary:
+            g_output = args[0] + '_ld_binary.gresource'
+            g_name = args[0] + '_ld_binary_gresource'
 
         output = args[0] + '.c'
         name = args[0] + '_c'
@@ -240,10 +244,7 @@ class GnomeModule(ExtensionModule):
         if gresource or gresource_ld_binary:
             target_g = GResourceTarget(g_name, state.subdir, state.subproject, g_kwargs)
             if gresource: # Only one target for .gresource files
-                if target_g.get_id() not in self.interpreter.build.targets:
-                    return ModuleReturnValue(target_g, [target_g])
-                else:
-                    return ModuleReturnValue(target_g, [])
+                return ModuleReturnValue(target_g, [target_g])
 
         target_c = GResourceTarget(name, state.subdir, state.subproject, kwargs)
 
