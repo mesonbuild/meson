@@ -334,6 +334,7 @@ the following special string substitutions:
 - `@DEPFILE@` the full path to the dependency file passed to `depfile`
 - `@PLAINNAME@`: the input filename, without a path
 - `@BASENAME@`: the input filename, with extension removed
+- `@PRIVATE_DIR@`: path to a directory where the custom target must store all its intermediate files, available since 0.50.1
 
 The `depfile` keyword argument also accepts the `@BASENAME@` and `@PLAINNAME@`
 substitutions. *(since 0.47)*

@@ -964,6 +964,12 @@ class Backend:
                     raise MesonException(msg)
                 dfilename = os.path.join(outdir, target.depfile)
                 i = i.replace('@DEPFILE@', dfilename)
+            elif '@PRIVATE_DIR@' in i:
+                if target.absolute_paths:
+                    pdir = self.get_target_private_dir_abs(target)
+                else:
+                    pdir = self.get_target_private_dir(target)
+                i = i.replace('@PRIVATE_DIR@', pdir)
             elif '@PRIVATE_OUTDIR_' in i:
                 match = re.search(r'@PRIVATE_OUTDIR_(ABS_)?([^/\s*]*)@', i)
                 if not match:
