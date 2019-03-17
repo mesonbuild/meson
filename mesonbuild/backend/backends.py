@@ -211,6 +211,10 @@ class Backend:
             return os.path.join(self.get_target_dir(target), link_lib)
         elif isinstance(target, build.StaticLibrary):
             return os.path.join(self.get_target_dir(target), target.get_filename())
+        elif isinstance(target, build.CustomTarget):
+            if not target.is_linkable_target():
+                raise MesonException('Tried to link against custom target "%s", which is not linkable.' % target.name)
+            return os.path.join(self.get_target_dir(target), target.get_filename())
         elif isinstance(target, build.Executable):
             if target.import_filename:
                 return os.path.join(self.get_target_dir(target), target.get_import_filename())

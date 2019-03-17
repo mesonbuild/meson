@@ -16,5 +16,10 @@ clib = custom_target('linkcustom',
             '-o', '@OUTPUT@',
             '--private-dir', '@PRIVATE_DIR@'] + cc.cmd_array())
 
-#exe = executable('prog', 'prog.c', link_with: clib)
-#test('linkcustom', exe)
+exe = executable('prog', 'prog.c', link_with: clib)
+test('linkcustom', exe)
+
+d = declare_dependency(link_with: clib)
+
+exe2 = executable('prog2', 'prog.c', dependencies: d)
+test('linkcustom2', exe2)
