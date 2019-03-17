@@ -86,6 +86,7 @@ jobs:
         zlib-devel
       displayName: Install Dependencies
     - script: |
+        set BOOST_ROOT=
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
         cp /usr/bin/python3.5 /usr/bin/python3
         env.exe -- python3 run_tests.py --backend=ninja
@@ -150,6 +151,7 @@ jobs:
         %TOOLCHAIN%
       displayName: Install Dependencies
     - script: |
+        set BOOST_ROOT=
         set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
         set PATHEXT=%PATHEXT%;.py
         if %compiler%==clang ( set CC=clang && set CXX=clang++ )

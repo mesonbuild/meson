@@ -71,6 +71,8 @@ steps:
        Start-Process "boost_$boost_filename-msvc-$boost_abi_tag-$boost_bitness.exe" -ArgumentList "/dir=$(System.WorkFolder)\boost_$boost_filename /silent" -Wait
        $env:BOOST_ROOT = "$(System.WorkFolder)\boost_$boost_filename"
        $env:Path = "$env:Path;$env:BOOST_ROOT\lib$boost_bitness-msvc-$boost_abi_tag"
+     } else {
+       $env:BOOST_ROOT = ""
      }
 
      # install D compiler and dub packages
