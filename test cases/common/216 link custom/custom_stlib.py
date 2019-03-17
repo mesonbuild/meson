@@ -8,8 +8,6 @@ parser.add_argument('--private-dir', required=True)
 parser.add_argument('-o', required=True)
 parser.add_argument('cmparr', nargs='+')
 
-static_linker = 'ar'
-
 contents = '''#include<stdio.h>
 
 void flob() {
@@ -17,12 +15,8 @@ void flob() {
 }
 '''
 
-def generate_lib(outfile, private_dir, compiler_array):
-    outdir = pathlib.Path(private_dir)
-    if not outdir.exists():
-        outdir.mkdir()
-    c_file = outdir / 'flob.c'
-    c_file.write_text(contents)
+def generate_lib_gnulike(outfile, c_file, private_dir, compiler_array):
+    static_linker = 'ar'
     o_file = c_file.with_suffix('.o')
     compile_cmd = compiler_array + ['-c', '-g', '-O2', '-o', o_file, c_file]
     subprocess.check_call(compile_cmd)
@@ -31,8 +25,42 @@ def generate_lib(outfile, private_dir, compiler_array):
         out_file.unlink()
     link_cmd = [static_linker, 'csrD', outfile, o_file]
     subprocess.check_call(link_cmd)
+    return 0
+
+
+def generate_lib_msvc(outfile, c_file, private_dir, compiler_array):
+    static_linker = 'lib'
+    o_file = c_file.with_suffix('.obj')
+    compile_cmd = compiler_array + ['/MDd',
+                                    '/nologo',
+                                    '/ZI',
+                                    '/Ob0',
+                                    '/Od',
+                                    '/c',
+                                    '/Fo' + str(o_file),
+                                    str(c_file)]
+    subprocess.check_call(compile_cmd)
+    out_file = pathlib.Path(outfile)
+    if out_file.exists():
+        out_file.unlink()
+    link_cmd = [static_linker,
+                '/nologo',
+                '/OUT:' + str(outfile),
+                str(o_file)]
+    subprocess.check_call(link_cmd)
+    return 0
+
+def generate_lib(outfile, private_dir, compiler_array):
+    private_dir = pathlib.Path(private_dir)
+    if not private_dir.exists():
+        private_dir.mkdir()
+    c_file = private_dir / 'flob.c'
+    c_file.write_text(contents)
+    for i in compiler_array:
+        if i.endswith('cl') or i.endswith('cl.exe'):
+            return generate_lib_msvc(outfile, c_file, private_dir, compiler_array)
+    return generate_lib_gnulike(outfile, c_file, private_dir, compiler_array)
 
 if __name__ == '__main__':
     options = parser.parse_args()
-    generate_lib(options.o, options.private_dir, options.cmparr)
-    sys.exit(1)
+    sys.exit(generate_lib(options.o, options.private_dir, options.cmparr))
