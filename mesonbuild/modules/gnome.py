@@ -341,13 +341,13 @@ class GnomeModule(ExtensionModule):
 
             target_o3 = GResourceObjectTarget(args[0] + '3_o', state.subdir, state.subproject, o3_kwargs)
 
-            rv1 = [target_c, target_h, target_o3]
+            rv1 = [[target_c, target_o3], target_h]
             if target_g.get_id() not in self.interpreter.build.targets:
                 rv2 = rv1 + [target_g, target_o, target_o2]
             else:
                 rv2 = rv1 + [target_o, target_o2]
         else:
-            rv1 = [target_c, target_h, target_o2]
+            rv1 = [[target_c, target_o2], target_h]
             if target_g.get_id() not in self.interpreter.build.targets:
                 rv2 = rv1 + [target_g, target_o]
             else:
