@@ -211,8 +211,8 @@ class UserFeatureOption(UserComboOption):
         return self.value == 'auto'
 
 
-def load_configs(filenames):
-    """Load native files."""
+def load_configs(filenames, subdir):
+    """Load configuration files from a named subdirectory."""
     def gen():
         for f in filenames:
             f = os.path.expanduser(os.path.expandvars(f))
@@ -225,7 +225,7 @@ def load_configs(filenames):
                     os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')),
                 ] + os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share').split(':')
                 for path in paths:
-                    path_to_try = os.path.join(path, 'meson', 'native', f)
+                    path_to_try = os.path.join(path, 'meson', subdir, f)
                     if os.path.isfile(path_to_try):
                         yield path_to_try
                         break
