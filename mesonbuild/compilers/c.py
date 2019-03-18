@@ -410,8 +410,6 @@ class CCompiler(Compiler):
             args += d.get_compile_args()
             if d.need_threads():
                 args += self.thread_flags(env)
-            elif d.need_openmp():
-                args += self.openmp_flags()
             if mode == 'link':
                 # Add link flags needed to find dependencies
                 args += d.get_link_args()

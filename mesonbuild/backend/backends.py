@@ -641,8 +641,6 @@ class Backend:
             # pkg-config puts the thread flags itself via `Cflags:`
             if dep.need_threads():
                 commands += compiler.thread_flags(self.environment)
-            elif dep.need_openmp():
-                commands += compiler.openmp_flags()
         # Fortran requires extra include directives.
         if compiler.language == 'fortran':
             for lt in target.link_targets:

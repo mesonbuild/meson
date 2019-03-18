@@ -152,9 +152,6 @@ class Dependency:
     def get_exe_args(self, compiler):
         return []
 
-    def need_openmp(self):
-        return False
-
     def need_threads(self):
         return False
 
