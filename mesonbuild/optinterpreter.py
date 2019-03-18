@@ -22,6 +22,7 @@ from . import compilers
 
 forbidden_option_names = coredata.get_builtin_options()
 forbidden_prefixes = [lang + '_' for lang in compilers.all_languages] + ['b_', 'backend_']
+reserved_prefixes = ['cross_']
 
 def is_invalid_name(name):
     if name in forbidden_option_names:
@@ -29,6 +30,9 @@ def is_invalid_name(name):
     pref = name.split('_')[0] + '_'
     if pref in forbidden_prefixes:
         return True
+    if pref in reserved_prefixes:
+        from . import mlog
+        mlog.deprecation('Option uses prefix "%s", which is reserved for Meson. This will become an error in the future.' % pref)
     return False
 
 class OptionException(mesonlib.MesonException):
