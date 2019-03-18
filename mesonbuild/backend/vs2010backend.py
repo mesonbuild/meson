@@ -507,7 +507,6 @@ class Vs2010Backend(backends.Backend):
 
     def gen_run_target_vcxproj(self, target, ofname, guid):
         root = self.create_basic_crap(target, guid)
-        action = ET.SubElement(root, 'ItemDefinitionGroup')
         cmd_raw = [target.command] + target.args
         cmd = python_command + \
             [os.path.join(self.environment.get_script_dir(), 'commandrunner.py'),
