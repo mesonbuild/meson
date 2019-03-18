@@ -377,7 +377,8 @@ class QtBaseDependency(ExternalDependency):
         if self.env.machines.host.is_darwin() and 'ios' not in qvars['QMAKE_XSPEC']:
             mlog.debug("Building for macOS, looking for framework")
             self._framework_detect(qvars, mods, kwargs)
-            return qmake
+            if self.is_found:
+                return qmake
         incdir = qvars['QT_INSTALL_HEADERS']
         self.compile_args.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
@@ -444,6 +445,12 @@ class QtBaseDependency(ExternalDependency):
         fw_kwargs = kwargs.copy()
         fw_kwargs.pop('method', None)
 
+        # Use temporaries so that if we fail to find any modules we
+        # can fall back to trying to detect a non-framework version of
+        # Qt
+        c_args = []
+        l_args = []
+
         for m in modules:
             fname = 'Qt' + m
             mlog.debug('Looking for qt framework ' + fname)
@@ -451,15 +458,17 @@ class QtBaseDependency(ExternalDependency):
                                                self.language, fw_kwargs)
             self.compile_args.append('-F' + libdir)
             if fwdep.found():
-                self.compile_args += fwdep.get_compile_args(with_private_headers=self.private_headers,
+                c_args += fwdep.get_compile_args(with_private_headers=self.private_headers,
                                                             qt_version=self.version)
-                self.link_args += fwdep.get_link_args()
+                l_args += fwdep.get_link_args()
             else:
                 break
         else:
+            self.compile_args += c_args
+            self.link_args += l_args
             self.is_found = True
-        # Used by self.compilers_detect()
-        self.bindir = self.get_qmake_host_bins(qvars)
+            # Used by self.compilers_detect()
+            self.bindir = self.get_qmake_host_bins(qvars)
 
     def get_qmake_host_bins(self, qvars):
         # Prefer QT_HOST_BINS (qt5, correct for cross and native compiling)
