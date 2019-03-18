@@ -408,7 +408,7 @@ class Environment:
 
         if self.coredata.config_files is not None:
             config = MesonConfigFile.from_config_parser(
-                coredata.load_configs(self.coredata.config_files))
+                coredata.load_configs(self.coredata.config_files, 'native'))
             self.binaries.build = BinaryTable(config.get('binaries', {}))
             self.paths.build = Directories(**config.get('paths', {}))
 
