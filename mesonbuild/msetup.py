@@ -29,7 +29,9 @@ from .mesonlib import MesonException
 
 def add_arguments(parser):
     coredata.register_builtin_arguments(parser)
-    parser.add_argument('--cross-file', default=None,
+    parser.add_argument('--cross-file',
+                        default=[],
+                        action='append',
                         help='File describing cross compilation environment.')
     parser.add_argument('--native-file',
                         default=[],

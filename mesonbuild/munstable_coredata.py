@@ -81,8 +81,9 @@ def run(options):
             print('Last seen PKGCONFIG enviroment variable value: ' + v)
         elif k == 'version':
             print('Meson version: ' + v)
-        elif k == 'cross_file':
-            print('Cross File: ' + (v or 'None'))
+        elif k == 'cross_files':
+            if v:
+                print('Cross File: ' + ' '.join(v))
         elif k == 'config_files':
             if v:
                 print('Native File: ' + ' '.join(v))
