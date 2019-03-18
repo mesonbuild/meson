@@ -612,7 +612,7 @@ class InternalTests(unittest.TestCase):
         configfile.flush()
         configfile.close()
         opts = get_fake_options()
-        opts.cross_file = configfilename
+        opts.cross_file = (configfilename,)
         env = get_fake_env(opts=opts)
         detected_value = env.need_exe_wrapper()
         os.unlink(configfilename)
@@ -627,7 +627,7 @@ class InternalTests(unittest.TestCase):
         config.write(configfile)
         configfile.close()
         opts = get_fake_options()
-        opts.cross_file = configfilename
+        opts.cross_file = (configfilename,)
         env = get_fake_env(opts=opts)
         forced_value = env.need_exe_wrapper()
         os.unlink(configfilename)
