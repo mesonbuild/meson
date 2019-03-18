@@ -215,7 +215,7 @@ def load_configs(filenames, subdir):
     """Load configuration files from a named subdirectory."""
     def gen():
         for f in filenames:
-            f = os.path.expanduser(os.path.expandvars(f))
+            f = os.path.abspath(os.path.expanduser(os.path.expandvars(f)))
             if os.path.exists(f):
                 yield f
                 continue
@@ -271,16 +271,8 @@ class CoreData:
         self.deps = OrderedDict()
         # Only to print a warning if it changes between Meson invocations.
         self.pkgconf_envvar = os.environ.get('PKG_CONFIG_PATH', '')
-        self.config_files = self.__load_config_files(options.native_file)
+        self.config_files = options.native_file or []
         self.libdir_cross_fixup()
-
-    @staticmethod
-    def __load_config_files(filenames):
-        if not filenames:
-            return []
-        filenames = [os.path.abspath(os.path.expanduser(os.path.expanduser(f)))
-                     for f in filenames]
-        return filenames
 
     @staticmethod
     def __load_cross_file(filename):
