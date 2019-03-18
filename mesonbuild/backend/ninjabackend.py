@@ -31,7 +31,7 @@ from .. import dependencies
 from .. import compilers
 from ..compilers import CompilerArgs, CCompiler, VisualStudioCCompiler, FortranCompiler
 from ..linkers import ArLinker
-from ..mesonlib import File, MachineChoice, MesonException, OrderedSet
+from ..mesonlib import File, MachineChoice, MesonException, OrderedSet, LibType
 from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
 from ..build import InvalidArguments
@@ -2401,8 +2401,8 @@ rule FORTRAN_DEP_HACK%s
         # TODO The get_library_naming requirement currently excludes link targets that use d or fortran as their main linker
         if hasattr(linker, 'get_library_naming'):
             search_dirs = tuple(search_dirs) + linker.get_library_dirs(self.environment)
-            static_patterns = linker.get_library_naming(self.environment, 'static', strict=True)
-            shared_patterns = linker.get_library_naming(self.environment, 'shared', strict=True)
+            static_patterns = linker.get_library_naming(self.environment, LibType.STATIC, strict=True)
+            shared_patterns = linker.get_library_naming(self.environment, LibType.SHARED, strict=True)
             for libname in libs:
                 # be conservative and record most likely shared and static resolution, because we don't know exactly
                 # which one the linker will prefer

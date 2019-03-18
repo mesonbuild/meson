@@ -47,7 +47,7 @@ from mesonbuild.ast import AstInterpreter
 from mesonbuild.mesonlib import (
     is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku,
     windows_proof_rmtree, python_command, version_compare,
-    BuildDirLock, Version, PerMachine
+    BuildDirLock, Version, PerMachine, LibType
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -702,13 +702,13 @@ class InternalTests(unittest.TestCase):
         stc = patterns[platform]['static']
         shrstc = shr + tuple([x for x in stc if x not in shr])
         stcshr = stc + tuple([x for x in shr if x not in stc])
-        p = cc.get_library_naming(env, 'shared')
+        p = cc.get_library_naming(env, LibType.SHARED)
         self.assertEqual(p, shr)
-        p = cc.get_library_naming(env, 'static')
+        p = cc.get_library_naming(env, LibType.STATIC)
         self.assertEqual(p, stc)
-        p = cc.get_library_naming(env, 'static-shared')
+        p = cc.get_library_naming(env, LibType.PREFER_STATIC)
         self.assertEqual(p, stcshr)
-        p = cc.get_library_naming(env, 'shared-static')
+        p = cc.get_library_naming(env, LibType.PREFER_SHARED)
         self.assertEqual(p, shrstc)
         # Test find library by mocking up openbsd
         if platform != 'openbsd':
@@ -724,7 +724,7 @@ class InternalTests(unittest.TestCase):
                 f.write('')
             with open(os.path.join(tmpdir, 'libfoo.so.70.0.so.1'), 'w') as f:
                 f.write('')
-            found = cc.find_library_real('foo', env, [tmpdir], '', 'shared-static')
+            found = cc.find_library_real('foo', env, [tmpdir], '', LibType.PREFER_SHARED)
             self.assertEqual(os.path.basename(found[0]), 'libfoo.so.54.0')
 
     def test_find_library_patterns(self):

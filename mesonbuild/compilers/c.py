@@ -27,7 +27,7 @@ from . import compilers
 from ..mesonlib import (
     EnvironmentException, MachineChoice, MesonException, Popen_safe, listify,
     version_compare, for_windows, for_darwin, for_cygwin, for_haiku,
-    for_openbsd, darwin_get_object_archs
+    for_openbsd, darwin_get_object_archs, LibType
 )
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 
@@ -905,7 +905,7 @@ class CCompiler(Compiler):
                 patterns.append(p + '{}.so.[0-9]*.[0-9]*')
         return patterns
 
-    def get_library_naming(self, env, libtype, strict=False):
+    def get_library_naming(self, env, libtype: LibType, strict=False):
         '''
         Get library prefixes and suffixes for the target platform ordered by
         priority
@@ -938,18 +938,17 @@ class CCompiler(Compiler):
             # Linux/BSDs
             shlibext = ['so']
         # Search priority
-        if libtype == 'shared-static':
+        if libtype is LibType.PREFER_SHARED:
             patterns = self._get_patterns(env, prefixes, shlibext, True)
             patterns.extend([x for x in self._get_patterns(env, prefixes, stlibext, False) if x not in patterns])
-        elif libtype == 'static-shared':
+        elif libtype is LibType.PREFER_STATIC:
             patterns = self._get_patterns(env, prefixes, stlibext, False)
             patterns.extend([x for x in self._get_patterns(env, prefixes, shlibext, True) if x not in patterns])
-        elif libtype == 'shared':
+        elif libtype is LibType.SHARED:
             patterns = self._get_patterns(env, prefixes, shlibext, True)
-        elif libtype == 'static':
-            patterns = self._get_patterns(env, prefixes, stlibext, False)
         else:
-            raise AssertionError('BUG: unknown libtype {!r}'.format(libtype))
+            assert libtype is LibType.STATIC
+            patterns = self._get_patterns(env, prefixes, stlibext, False)
         return tuple(patterns)
 
     @staticmethod
@@ -1011,13 +1010,13 @@ class CCompiler(Compiler):
         '''
         return self.sizeof('void *', '', env) == 8
 
-    def find_library_real(self, libname, env, extra_dirs, code, libtype):
+    def find_library_real(self, libname, env, extra_dirs, code, libtype: LibType):
         # First try if we can just add the library as -l.
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
         # The built-in search procedure will always favour .so and then always
-        # search for .a. This is only allowed if libtype is 'shared-static'
-        if ((not extra_dirs and libtype == 'shared-static') or
+        # search for .a. This is only allowed if libtype is LibType.PREFER_SHARED
+        if ((not extra_dirs and libtype is LibType.PREFER_SHARED) or
                 libname in self.internal_libs):
             args = ['-l' + libname]
             largs = self.linker_to_compiler_args(self.get_allow_undefined_link_args())
@@ -1051,7 +1050,7 @@ class CCompiler(Compiler):
                 return [trial.as_posix()]
         return None
 
-    def find_library_impl(self, libname, env, extra_dirs, code, libtype):
+    def find_library_impl(self, libname, env, extra_dirs, code, libtype: LibType):
         # These libraries are either built-in or invalid
         if libname in self.ignore_libs:
             return []
@@ -1067,7 +1066,7 @@ class CCompiler(Compiler):
             return None
         return value[:]
 
-    def find_library(self, libname, env, extra_dirs, libtype='shared-static'):
+    def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):
         code = 'int main(int argc, char **argv) { return 0; }'
         return self.find_library_impl(libname, env, extra_dirs, code, libtype)
 

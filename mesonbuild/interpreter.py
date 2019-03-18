@@ -1493,11 +1493,11 @@ class CompilerHolder(InterpreterObject):
         for i in search_dirs:
             if not os.path.isabs(i):
                 raise InvalidCode('Search directory %s is not an absolute path.' % i)
-        libtype = 'shared-static'
+        libtype = mesonlib.LibType.PREFER_SHARED
         if 'static' in kwargs:
             if not isinstance(kwargs['static'], bool):
                 raise InterpreterException('static must be a boolean')
-            libtype = 'static' if kwargs['static'] else 'shared'
+            libtype = mesonlib.LibType.STATIC if kwargs['static'] else mesonlib.LibType.SHARED
         linkargs = self.compiler.find_library(libname, self.environment, search_dirs, libtype)
         if required and not linkargs:
             raise InterpreterException(
