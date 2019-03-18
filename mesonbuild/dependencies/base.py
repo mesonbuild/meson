@@ -1993,6 +1993,12 @@ class ExternalProgram:
                     # We know what python3 is, we're running on it
                     if len(commands) > 0 and commands[0] == 'python3':
                         commands = mesonlib.python_command + commands[1:]
+                else:
+                    # Replace python3 with the actual python3 that we are using
+                    if commands[0] == '/usr/bin/env' and commands[1] == 'python3':
+                        commands = mesonlib.python_command + commands[2:]
+                    elif commands[0].split('/')[-1] == 'python3':
+                        commands = mesonlib.python_command + commands[1:]
                 return commands + [script]
         except Exception as e:
             mlog.debug(e)
