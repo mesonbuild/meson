@@ -18,12 +18,12 @@ void flob() {
 def generate_lib_gnulike(outfile, c_file, private_dir, compiler_array):
     static_linker = 'ar'
     o_file = c_file.with_suffix('.o')
-    compile_cmd = compiler_array + ['-c', '-g', '-O2', '-o', o_file, c_file]
+    compile_cmd = compiler_array + ['-c', '-g', '-O2', '-o', str(o_file), str(c_file)]
     subprocess.check_call(compile_cmd)
     out_file = pathlib.Path(outfile)
     if out_file.exists():
         out_file.unlink()
-    link_cmd = [static_linker, 'csrD', outfile, o_file]
+    link_cmd = [static_linker, 'csrD', outfile, str(o_file)]
     subprocess.check_call(link_cmd)
     return 0
 

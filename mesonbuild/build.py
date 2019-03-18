@@ -2101,6 +2101,9 @@ class CustomTarget(Target):
         if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so':
             return True
 
+    def get_link_deps_mapping(self, prefix, environment):
+        return {}
+
     def get_link_dep_subdirs(self):
         return OrderedSet()
 
