@@ -36,7 +36,7 @@ from ..compilers import clib_langs
 from ..environment import BinaryTable, Environment, MachineInfo
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
-from ..mesonlib import Version
+from ..mesonlib import Version, LibType
 
 # These must be defined in this file to avoid cyclical references.
 packages = {}
@@ -703,7 +703,7 @@ class PkgConfigDependency(ExternalDependency):
         libs_found = OrderedSet()
         # Track not-found libraries to know whether to add library paths
         libs_notfound = []
-        libtype = 'static' if self.static else 'shared-static'
+        libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         # Generate link arguments for this library
         link_args = []
         for lib in full_args:

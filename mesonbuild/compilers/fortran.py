@@ -31,7 +31,7 @@ from .compilers import (
     PGICompiler
 )
 
-from mesonbuild.mesonlib import EnvironmentException, is_osx
+from mesonbuild.mesonlib import EnvironmentException, is_osx, LibType
 
 
 class FortranCompiler(Compiler):
@@ -241,7 +241,7 @@ class FortranCompiler(Compiler):
     def find_library_impl(self, *args):
         return CCompiler.find_library_impl(self, *args)
 
-    def find_library(self, libname, env, extra_dirs, libtype='shared-static'):
+    def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):
         code = '''program main
             call exit(0)
         end program main'''

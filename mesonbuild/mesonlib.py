@@ -1274,3 +1274,13 @@ def relpath(path, start):
         return os.path.relpath(path, start)
     except ValueError:
         return path
+
+
+class LibType(Enum):
+
+    """Enumeration for library types."""
+
+    SHARED = 0
+    STATIC = 1
+    PREFER_SHARED = 2
+    PREFER_STATIC = 3
