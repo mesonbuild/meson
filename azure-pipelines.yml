@@ -59,7 +59,7 @@ jobs:
 
 - job: vs2019
   pool:
-    vmImage: VS2019-Win2019
+    vmImage: windows-2019
 
   strategy:
     matrix:
