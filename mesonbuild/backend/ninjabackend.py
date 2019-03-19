@@ -1757,7 +1757,7 @@ rule FORTRAN_DEP_HACK%s
         exe_arr = self.exe_object_to_cmd_array(exe)
         infilelist = genlist.get_inputs()
         outfilelist = genlist.get_outputs()
-        extra_dependencies = [os.path.join(self.build_to_src, i) for i in genlist.extra_depends]
+        extra_dependencies = self.get_custom_target_depend_files(genlist)
         for i in range(len(infilelist)):
             curfile = infilelist[i]
             if len(generator.outputs) == 1:
