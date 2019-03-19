@@ -126,6 +126,7 @@ class Vs2010Backend(backends.Backend):
                         sole_output = ''
                     curfile = infilelist[i]
                     infilename = os.path.join(down, curfile.rel_to_builddir(self.build_to_src))
+                    deps = self.get_custom_target_depend_files(genlist, True)
                     base_args = generator.get_arglist(infilename)
                     outfiles_rel = genlist.get_outputs_for(curfile)
                     outfiles = [os.path.join(target_private_dir, of) for of in outfiles_rel]
@@ -156,6 +157,8 @@ class Vs2010Backend(backends.Backend):
                     cbs = ET.SubElement(idgroup, 'CustomBuild', Include=infilename)
                     ET.SubElement(cbs, 'Command').text = ' '.join(self.quote_arguments(cmd))
                     ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
+                    if deps:
+                        ET.SubElement(cbs, 'AdditionalInputs').text = ';'.join(deps)
         return generator_output_files, custom_target_output_files, custom_target_include_dirs
 
     def generate(self, interp):
