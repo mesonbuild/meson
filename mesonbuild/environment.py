@@ -1179,7 +1179,7 @@ class Environment:
                 popen_exceptions[' '.join(linker + [arg])] = e
                 continue
             if '/OUT:' in out.upper() or '/OUT:' in err.upper():
-                return VisualStudioLinker(linker)
+                return VisualStudioLinker(linker, getattr(compiler, 'machine', None))
             if p.returncode == 0 and ('armar' in linker or 'armar.exe' in linker):
                 return ArmarLinker(linker)
             if 'DMD32 D Compiler' in out or 'DMD64 D Compiler' in out:
