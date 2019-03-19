@@ -1340,8 +1340,17 @@ class GeneratedList:
         self.outfilelist = []
         self.outmap = {}
         self.extra_depends = []
+        self.depend_files = []
         self.preserve_path_from = preserve_path_from
         self.extra_args = extra_args
+        if isinstance(generator.exe, dependencies.ExternalProgram):
+            if not generator.exe.found():
+                raise InvalidArguments('Tried to use not-found external program as generator')
+            path = generator.exe.get_path()
+            if os.path.isabs(path):
+                # Can only add a dependency on an external program which we
+                # know the absolute path of
+                self.depend_files.append(File.from_absolute_file(path))
 
     def add_preserved_path_segment(self, infile, outfiles, state):
         result = []
@@ -1932,8 +1941,7 @@ class CustomTarget(Target):
                 final_cmd.append(c)
             elif isinstance(c, dependencies.ExternalProgram):
                 if not c.found():
-                    m = 'Tried to use not-found external program {!r} in "command"'
-                    raise InvalidArguments(m.format(c.name))
+                    raise InvalidArguments('Tried to use not-found external program in "command"')
                 path = c.get_path()
                 if os.path.isabs(path):
                     # Can only add a dependency on an external program which we
