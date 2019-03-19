@@ -23,7 +23,7 @@ def generate_lib_gnulike(outfile, c_file, private_dir, compiler_array):
     out_file = pathlib.Path(outfile)
     if out_file.exists():
         out_file.unlink()
-    link_cmd = [static_linker, 'csrD', outfile, str(o_file)]
+    link_cmd = [static_linker, 'csr', outfile, str(o_file)]
     subprocess.check_call(link_cmd)
     return 0
 
