@@ -2041,7 +2041,8 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_preprocessor_checks_CPPFLAGS(self):
         '''
-        Test that preprocessor compiler checks read CPPFLAGS but not CFLAGS
+        Test that preprocessor compiler checks read CPPFLAGS and also CFLAGS but
+        not LDFLAGS.
         '''
         testdir = os.path.join(self.common_test_dir, '137 get define')
         define = 'MESON_TEST_DEFINE_VALUE'
@@ -2051,9 +2052,10 @@ class AllPlatformTests(BasePlatformTests):
         # % and # confuse the MSVC preprocessor
         # !, ^, *, and < confuse lcc preprocessor
         value = 'spaces and fun@$&()-=_+{}[]:;>?,./~`'
-        os.environ['CPPFLAGS'] = '-D{}="{}"'.format(define, value)
-        os.environ['CFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
-        self.init(testdir, ['-D{}={}'.format(define, value)])
+        for env_var in ['CPPFLAGS', 'CFLAGS']:
+            os.environ[env_var] = '-D{}="{}"'.format(define, value)
+            os.environ['LDFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
+            self.init(testdir, ['-D{}={}'.format(define, value)])
 
     def test_custom_target_exe_data_deterministic(self):
         testdir = os.path.join(self.common_test_dir, '114 custom target capture')
