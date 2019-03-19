@@ -971,11 +971,11 @@ class Compiler:
         """
         return []
 
-    def use_preproc_flags(self):
+    def use_preproc_flags(self) -> bool:
         """
         Whether the compiler (or processes it spawns) cares about CPPFLAGS
         """
-        return self.get_language() in ('c', 'cpp', 'objc', 'objcpp')
+        return self.get_language() in {'c', 'cpp', 'objc', 'objcpp'}
 
     def get_args_from_envvars(self):
         """
