@@ -207,7 +207,7 @@ class MachineInfo:
         """
         Machine is windows?
         """
-        return self.system == 'windows'
+        return self.system in {'windows', 'mingw'}
 
     def is_cygwin(self):
         """
@@ -225,7 +225,7 @@ class MachineInfo:
         """
         Machine is Darwin (iOS/OS X)?
         """
-        return self.system in ('darwin', 'ios')
+        return self.system in {'darwin', 'ios'}
 
     def is_android(self):
         """
