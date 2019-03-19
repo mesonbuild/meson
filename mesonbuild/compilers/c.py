@@ -422,11 +422,8 @@ class CCompiler(Compiler):
             for_machine = MachineChoice.BUILD
         else:
             for_machine = MachineChoice.HOST
-        if mode == 'preprocess':
-            # Add CPPFLAGS from the env.
-            args += env.coredata.get_external_preprocess_args(for_machine, self.language)
-        elif mode == 'compile':
-            # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
+        if mode in {'compile', 'preprocess'}:
+            # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
             sys_args = env.coredata.get_external_args(for_machine, self.language)
             # Apparently it is a thing to inject linker flags both
             # via CFLAGS _and_ LDFLAGS, even though the former are

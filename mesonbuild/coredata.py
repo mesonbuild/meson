@@ -264,7 +264,6 @@ class CoreData:
         self.user_options = {}
         self.compiler_options = PerMachine({}, {}, {})
         self.base_options = {}
-        self.external_preprocess_args = PerMachine({}, {}, {}) # CPPFLAGS only
         self.cross_files = self.__load_config_files(options.cross_file)
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
@@ -446,9 +445,6 @@ class CoreData:
     def get_external_link_args(self, for_machine: MachineChoice, lang):
         return self.compiler_options[for_machine][lang + '_link_args'].value
 
-    def get_external_preprocess_args(self, for_machine: MachineChoice, lang):
-        return self.external_preprocess_args[for_machine][lang]
-
     def merge_user_options(self, options):
         for (name, value) in options.items():
             if name not in self.user_options:
@@ -532,21 +528,18 @@ class CoreData:
 
         # Native compiler always exist so always add its options.
         new_options_for_build = comp.get_and_default_options(env.properties.build)
-        preproc_flags_for_build = comp.get_preproc_flags()
         if cross_comp is not None:
             new_options_for_host = cross_comp.get_and_default_options(env.properties.host)
-            preproc_flags_for_host = cross_comp.get_preproc_flags()
         else:
             new_options_for_host = comp.get_and_default_options(env.properties.host)
-            preproc_flags_for_host = comp.get_preproc_flags()
 
         opts_machines_list = [
-            (new_options_for_build, preproc_flags_for_build, MachineChoice.BUILD),
-            (new_options_for_host, preproc_flags_for_host, MachineChoice.HOST),
+            (new_options_for_build, MachineChoice.BUILD),
+            (new_options_for_host, MachineChoice.HOST),
         ]
 
         optprefix = lang + '_'
-        for new_options, preproc_flags, for_machine in opts_machines_list:
+        for new_options, for_machine in opts_machines_list:
             for k, o in new_options.items():
                 if not k.startswith(optprefix):
                     raise MesonException('Internal error, %s has incorrect prefix.' % k)
@@ -555,17 +548,6 @@ class CoreData:
                     # TODO think about cross and command-line interface.
                     o.set_value(env.cmd_line_options[k])
                 self.compiler_options[for_machine].setdefault(k, o)
-
-            # Unlike compiler and linker flags, preprocessor flags are not in
-            # compiler_options because they are not visible to user.
-            preproc_flags = shlex.split(preproc_flags)
-            k = lang + '_args'
-            if lang in ('c', 'cpp', 'objc', 'objcpp') and k in env.properties[for_machine]:
-                # `c_args` in the cross file are used, like CPPFLAGS but *not*
-                # CFLAGS, for tests. this is weird, but how it was already
-                # implemented. Hopefully a new version of #3916 fixes it.
-                preproc_flags = stringlistify(env.properties[for_machine][k])
-            self.external_preprocess_args[for_machine].setdefault(lang, preproc_flags)
 
         enabled_opts = []
         for optname in comp.base_options:
