@@ -429,6 +429,8 @@ class GnomeModule(ExtensionModule):
         if isinstance(lib, build.SharedLibrary):
             libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
             link_command.append('-L' + libdir)
+            if include_rpath:
+                link_command.append('-Wl,-rpath,' + libdir)
             # Needed for the following binutils bug:
             # https://github.com/mesonbuild/meson/issues/1911
             # However, g-ir-scanner does not understand -Wl,-rpath
@@ -438,8 +440,6 @@ class GnomeModule(ExtensionModule):
                 link_command.append('-L' + d)
                 if include_rpath:
                     link_command.append('-Wl,-rpath,' + d)
-            if include_rpath:
-                link_command.append('-Wl,-rpath,' + libdir)
             depends.append(lib)
         if gir_has_option(self.interpreter, '--extra-library') and use_gir_args:
             link_command.append('--extra-library=' + lib.name)
@@ -683,6 +683,10 @@ class GnomeModule(ExtensionModule):
                     libname = girtarget.get_basename()
                 else:
                     libname = os.path.join("@PRIVATE_OUTDIR_ABS_%s@" % girtarget.get_id(), girtarget.get_filename())
+                # need to put our output directory first as we need to use the
+                # generated libraries instead of any possibly installed system/prefix
+                # ones.
+                ret += ["-L@PRIVATE_OUTDIR_ABS_%s@" % girtarget.get_id()]
                 # Needed for the following binutils bug:
                 # https://github.com/mesonbuild/meson/issues/1911
                 # However, g-ir-scanner does not understand -Wl,-rpath
@@ -691,10 +695,6 @@ class GnomeModule(ExtensionModule):
                     d = os.path.join(state.environment.get_build_dir(), d)
                     ret.append('-L' + d)
                 ret += ['--library', libname]
-                # need to put our output directory first as we need to use the
-                # generated libraries instead of any possibly installed system/prefix
-                # ones.
-                ret += ["-L@PRIVATE_OUTDIR_ABS_%s@" % girtarget.get_id()]
 
         return ret
 
