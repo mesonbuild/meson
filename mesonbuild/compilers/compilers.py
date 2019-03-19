@@ -971,10 +971,11 @@ class Compiler:
         """
         return []
 
-    def get_preproc_flags(self):
-        if self.get_language() in ('c', 'cpp', 'objc', 'objcpp'):
-            return os.environ.get('CPPFLAGS', '')
-        return ''
+    def use_preproc_flags(self):
+        """
+        Whether the compiler (or processes it spawns) cares about CPPFLAGS
+        """
+        return self.get_language() in ('c', 'cpp', 'objc', 'objcpp')
 
     def get_args_from_envvars(self):
         """
@@ -1008,11 +1009,12 @@ class Compiler:
             # this when the linker is stand-alone such as with MSVC C/C++, etc.
             link_flags = compile_flags + link_flags
 
-        # Pre-processor flags (not for fortran or D)
-        preproc_flags = self.get_preproc_flags()
-        log_var('CPPFLAGS', preproc_flags)
-        preproc_flags = shlex.split(preproc_flags)
-        compile_flags += preproc_flags
+        # Pre-processor flags for certain languages
+        if self.use_preproc_flags():
+            preproc_flags = os.environ.get('CPPFLAGS', '')
+            log_var('CPPFLAGS', preproc_flags)
+            preproc_flags = shlex.split(preproc_flags)
+            compile_flags += preproc_flags
 
         return compile_flags, link_flags
 

@@ -118,10 +118,6 @@ def run(options):
                 print('Cached dependencies:')
                 for dep_key, dep in cross:
                     print_dep(dep_key, dep)
-        elif k == 'external_preprocess_args':
-            for lang, opts in v.items():
-                if opts:
-                    print('Preprocessor args for ' + lang + ': ' + ' '.join(opts))
         else:
             print(k + ':')
             print(textwrap.indent(pprint.pformat(v), '  '))
