@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys, subprocess, argparse, pathlib
+import shutil, sys, subprocess, argparse, pathlib
 
 parser = argparse.ArgumentParser()
 
@@ -16,7 +16,14 @@ void flob() {
 '''
 
 def generate_lib_gnulike(outfile, c_file, private_dir, compiler_array):
-    static_linker = 'ar'
+    if shutil.which('ar'):
+        static_linker = 'ar'
+    elif shutil.which('llvm-ar'):
+        static_linker = 'llvm-ar'
+    elif shutil.which('gcc-ar'):
+        static_linker = 'gcc-ar'
+    else:
+        sys.exit('Could not detect a static linker.')
     o_file = c_file.with_suffix('.o')
     compile_cmd = compiler_array + ['-c', '-g', '-O2', '-o', str(o_file), str(c_file)]
     subprocess.check_call(compile_cmd)
@@ -57,7 +64,7 @@ def generate_lib(outfile, private_dir, compiler_array):
     c_file = private_dir / 'flob.c'
     c_file.write_text(contents)
     for i in compiler_array:
-        if i.endswith('cl') or i.endswith('cl.exe'):
+        if (i.endswith('cl') or i.endswith('cl.exe')) and 'clang-cl' not in i:
             return generate_lib_msvc(outfile, c_file, private_dir, compiler_array)
     return generate_lib_gnulike(outfile, c_file, private_dir, compiler_array)
 
