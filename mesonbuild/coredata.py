@@ -211,8 +211,8 @@ class UserFeatureOption(UserComboOption):
         return self.value == 'auto'
 
 
-def load_configs(filenames):
-    """Load native files."""
+def load_configs(filenames, subdir):
+    """Load configuration files from a named subdirectory."""
     def gen():
         for f in filenames:
             f = os.path.expanduser(os.path.expandvars(f))
@@ -225,7 +225,7 @@ def load_configs(filenames):
                     os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')),
                 ] + os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share').split(':')
                 for path in paths:
-                    path_to_try = os.path.join(path, 'meson', 'native', f)
+                    path_to_try = os.path.join(path, 'meson', subdir, f)
                     if os.path.isfile(path_to_try):
                         yield path_to_try
                         break
@@ -265,7 +265,7 @@ class CoreData:
         self.compiler_options = PerMachine({}, {}, {})
         self.base_options = {}
         self.external_preprocess_args = PerMachine({}, {}, {}) # CPPFLAGS only
-        self.cross_file = self.__load_cross_file(options.cross_file)
+        self.cross_files = self.__load_config_files(options.cross_file)
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
         self.deps = OrderedDict()
@@ -276,57 +276,19 @@ class CoreData:
 
     @staticmethod
     def __load_config_files(filenames):
+        # Need to try and make the passed filenames absolute because when the
+        # files are parsed later we'll have chdir()d.
         if not filenames:
             return []
         filenames = [os.path.abspath(os.path.expanduser(os.path.expanduser(f)))
                      for f in filenames]
         return filenames
 
-    @staticmethod
-    def __load_cross_file(filename):
-        """Try to load the cross file.
-
-        If the filename is None return None. If the filename is an absolute
-        (after resolving variables and ~), return that absolute path. Next,
-        check if the file is relative to the current source dir. If the path
-        still isn't resolved do the following:
-            Windows:
-                - Error
-            *:
-                - $XDG_DATA_HOME/meson/cross (or ~/.local/share/meson/cross if
-                  undefined)
-                - $XDG_DATA_DIRS/meson/cross (or
-                  /usr/local/share/meson/cross:/usr/share/meson/cross if undefined)
-                - Error
-
-        Non-Windows follows the Linux path and will honor XDG_* if set. This
-        simplifies the implementation somewhat.
-        """
-        if filename is None:
-            return None
-        filename = os.path.expanduser(os.path.expandvars(filename))
-        if os.path.isabs(filename):
-            return filename
-        path_to_try = os.path.abspath(filename)
-        if os.path.isfile(path_to_try):
-            return path_to_try
-        if sys.platform != 'win32':
-            paths = [
-                os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')),
-            ] + os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share').split(':')
-            for path in paths:
-                path_to_try = os.path.join(path, 'meson', 'cross', filename)
-                if os.path.isfile(path_to_try):
-                    return path_to_try
-            raise MesonException('Cannot find specified cross file: ' + filename)
-
-        raise MesonException('Cannot find specified cross file: ' + filename)
-
     def libdir_cross_fixup(self):
         # By default set libdir to "lib" when cross compiling since
         # getting the "system default" is always wrong on multiarch
         # platforms as it gets a value like lib/x86_64-linux-gnu.
-        if self.cross_file is not None:
+        if self.cross_files:
             self.builtins['libdir'].value = 'lib'
 
     def sanitize_prefix(self, prefix):
@@ -642,8 +604,8 @@ def read_cmd_line_file(build_dir, options):
     options.cmd_line_options = d
 
     properties = config['properties']
-    if options.cross_file is None:
-        options.cross_file = properties.get('cross_file', None)
+    if not options.cross_file:
+        options.cross_file = ast.literal_eval(properties.get('cross_file', '[]'))
     if not options.native_file:
         # This will be a string in the form: "['first', 'second', ...]", use
         # literal_eval to get it into the list of strings.
@@ -654,7 +616,7 @@ def write_cmd_line_file(build_dir, options):
     config = CmdLineFileParser()
 
     properties = {}
-    if options.cross_file is not None:
+    if options.cross_file:
         properties['cross_file'] = options.cross_file
     if options.native_file:
         properties['native_file'] = options.native_file

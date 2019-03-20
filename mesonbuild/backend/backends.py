@@ -788,8 +788,7 @@ class Backend:
         deps = [os.path.join(self.build_to_src, df)
                 for df in self.interpreter.get_build_def_files()]
         if self.environment.is_cross_build():
-            deps.append(os.path.join(self.build_to_src,
-                                     self.environment.coredata.cross_file))
+            deps.extend(self.environment.coredata.cross_files)
         deps.append('meson-private/coredata.dat')
         if os.path.exists(os.path.join(self.environment.get_source_dir(), 'meson_options.txt')):
             deps.append(os.path.join(self.build_to_src, 'meson_options.txt'))
