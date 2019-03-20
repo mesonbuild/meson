@@ -1,4 +1,4 @@
-# Copyright 2012-2017 The Meson development team
+# Copyright 2012-2019 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import subprocess
 import functools
 import itertools
 from pathlib import Path
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from .. import mlog
 from .. import coredata
@@ -53,6 +53,9 @@ from .compilers import (
     CcrxCompiler,
 )
 
+if TYPE_CHECKING:
+    from ..linker import DynamicLinker
+
 
 class CCompiler(Compiler):
     # TODO: Replace this manual cache with functools.lru_cache
@@ -69,11 +72,11 @@ class CCompiler(Compiler):
         except KeyError:
             raise MesonException('Unknown function attribute "{}"'.format(name))
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
+    def __init__(self, exelist, version, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, **kwargs):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
         if not hasattr(self, 'language'):
             self.language = 'c'
-        super().__init__(exelist, version, **kwargs)
+        super().__init__(exelist, version, dynamic_linker, **kwargs)
         self.id = 'unknown'
         self.is_cross = is_cross
         self.can_compile_suffixes.add('h')
@@ -1204,8 +1207,8 @@ class CCompiler(Compiler):
 
 
 class ClangCCompiler(ClangCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, compiler_type, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, exe_wrapper, **kwargs)
         ClangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
@@ -1239,8 +1242,8 @@ class ClangCCompiler(ClangCompiler, CCompiler):
 
 
 class ArmclangCCompiler(ArmclangCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, compiler_type, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, exe_wrapper, **kwargs)
         ArmclangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
@@ -1268,9 +1271,9 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
 
 
 class GnuCCompiler(GnuCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
-        GnuCompiler.__init__(self, compiler_type, defines)
+    def __init__(self, exelist, version, compiler_type, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, defines=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, exe_wrapper, **kwargs)
+        GnuCompiler.__init__(self, compiler_type, dynamic_linker, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -1306,14 +1309,14 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
 
 class PGICCompiler(PGICompiler, CCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, exe_wrapper, **kwargs)
         PGICompiler.__init__(self, CompilerType.PGI_STANDARD)
 
 
 class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        GnuCCompiler.__init__(self, exelist, version, compiler_type, is_cross, exe_wrapper, defines, **kwargs)
+    def __init__(self, exelist, version, compiler_type, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, defines=None, **kwargs):
+        GnuCCompiler.__init__(self, exelist, version, compiler_type, is_cross, dynamic_linker, exe_wrapper, defines, **kwargs)
         ElbrusCompiler.__init__(self, compiler_type, defines)
 
     # It does support some various ISO standards and c/gnu 90, 9x, 1x in addition to those which GNU CC supports.
@@ -1338,8 +1341,8 @@ class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
 
 
 class IntelCCompiler(IntelCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, compiler_type, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, exe_wrapper, **kwargs)
         IntelCompiler.__init__(self, compiler_type)
         self.lang_header = 'c-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark']
@@ -1380,8 +1383,8 @@ class VisualStudioCCompiler(CCompiler):
                 'mtd': ['/MTd'],
                 }
 
-    def __init__(self, exelist, version, is_cross, exe_wrap, target):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+    def __init__(self, exelist, version, is_cross, dynamic_linker: 'DynamicLinker', exe_wrap, target):
+        CCompiler.__init__(self, exelist, version, dynamic_linker, is_cross, exe_wrap)
         self.id = 'msvc'
         # /showIncludes is needed for build dependency tracking in Ninja
         # See: https://ninja-build.org/manual.html#_deps
@@ -1696,14 +1699,14 @@ class VisualStudioCCompiler(CCompiler):
 
 
 class ClangClCCompiler(VisualStudioCCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap, target):
-        super().__init__(exelist, version, is_cross, exe_wrap, target)
+    def __init__(self, exelist, version, is_cross, dynamic_linker: 'DynamicLinker', exe_wrap, target):
+        super().__init__(exelist, version, is_cross, dynamic_linker, exe_wrap, target)
         self.id = 'clang-cl'
 
 
 class ArmCCompiler(ArmCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, compiler_type, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, exe_wrapper, **kwargs)
         ArmCompiler.__init__(self, compiler_type)
 
     def get_options(self):
@@ -1721,8 +1724,8 @@ class ArmCCompiler(ArmCompiler, CCompiler):
         return args
 
 class CcrxCCompiler(CcrxCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, compiler_type, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, exe_wrapper, **kwargs)
         CcrxCompiler.__init__(self, compiler_type)
 
     # Override CCompiler.get_always_args

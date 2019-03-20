@@ -21,7 +21,7 @@ from .compilers import Compiler, java_buildtype_args
 class JavaCompiler(Compiler):
     def __init__(self, exelist, version):
         self.language = 'java'
-        super().__init__(exelist, version)
+        super().__init__(exelist, version, None)
         self.id = 'unknown'
         self.is_cross = False
         self.javarunner = 'java'

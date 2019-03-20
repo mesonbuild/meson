@@ -238,6 +238,7 @@ class CcrxLinker(StaticLinker):
     def get_buildtype_linker_args(self, buildtype):
         return []
 
+
     def get_linker_always_args(self):
         return ['-nologo', '-form=library']
 

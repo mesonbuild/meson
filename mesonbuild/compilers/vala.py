@@ -13,16 +13,20 @@
 # limitations under the License.
 
 import os.path
+import typing
 
 from .. import mlog
 from ..mesonlib import EnvironmentException, version_compare
 
 from .compilers import Compiler
 
+if typing.TYPE_CHECKING:
+    from ..linkers import DynamicLinker
+
 class ValaCompiler(Compiler):
-    def __init__(self, exelist, version):
+    def __init__(self, exelist, version, dynamic_linker: 'DynamicLinker'):
         self.language = 'vala'
-        super().__init__(exelist, version)
+        super().__init__(exelist, version, dynamic_linker)
         self.version = version
         self.id = 'valac'
         self.is_cross = False

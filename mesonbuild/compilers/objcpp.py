@@ -13,16 +13,20 @@
 # limitations under the License.
 
 import os.path, subprocess
+import typing
 
 from ..mesonlib import EnvironmentException
 
 from .cpp import CPPCompiler
 from .compilers import ClangCompiler, GnuCompiler
 
+if typing.TYPE_CHECKING:
+    from ..linkers import DynamicLinker
+
 class ObjCPPCompiler(CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap):
+    def __init__(self, exelist, version, is_cross, dynamic_linker: 'DynamicLinker', exe_wrap):
         self.language = 'objcpp'
-        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        CPPCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, exe_wrap)
 
     def get_display_language(self):
         return 'Objective-C++'
@@ -49,9 +53,9 @@ class ObjCPPCompiler(CPPCompiler):
 
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None):
-        ObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        GnuCompiler.__init__(self, compiler_type, defines)
+    def __init__(self, exelist, version, compiler_type, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, defines=None):
+        ObjCPPCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, exe_wrapper)
+        GnuCompiler.__init__(self, compiler_type, dynamic_linker, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -60,8 +64,8 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
 
 
 class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None):
-        ObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, compiler_type, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, defines=None):
+        ObjCPPCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, exe_wrapper)
         ClangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'0': [],

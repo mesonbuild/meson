@@ -29,7 +29,7 @@ rust_optimization_args = {'0': [],
 class RustCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         self.language = 'rust'
-        super().__init__(exelist, version)
+        super().__init__(exelist, version, None)
         self.is_cross = is_cross
         self.exe_wrapper = exe_wrapper
         self.id = 'rustc'

@@ -14,7 +14,7 @@
 
 import abc, contextlib, enum, os.path, re, tempfile, shlex
 import subprocess
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, TYPE_CHECKING
 
 from ..linkers import StaticLinker
 from .. import coredata
@@ -27,6 +27,9 @@ from ..mesonlib import (
 from ..envconfig import (
     Properties,
 )
+
+if TYPE_CHECKING:
+    from .linkers import DynamicLinker
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
@@ -874,7 +877,7 @@ class Compiler:
     # Cache for the result of compiler checks which can be cached
     compiler_check_cache = {}
 
-    def __init__(self, exelist, version, **kwargs):
+    def __init__(self, exelist, version, dynamic_linker: 'DynamicLinker', **kwargs):
         if isinstance(exelist, str):
             self.exelist = [exelist]
         elif isinstance(exelist, list):
@@ -893,6 +896,7 @@ class Compiler:
         else:
             self.full_version = None
         self.base_options = []
+        self.dynamic_linker = dynamic_linker
 
     def __repr__(self):
         repr_str = "<{0}: v{1} `{2}`>"
@@ -1640,11 +1644,12 @@ class GnuCompiler(GnuLikeCompiler):
     GnuCompiler represents an actual GCC in its many incarnations.
     Compilers imitating GCC (Clang/Intel) should use the GnuLikeCompiler ABC.
     """
-    def __init__(self, compiler_type, defines: dict):
+    def __init__(self, compiler_type, dynamic_linker: 'DynamicLinker', defines: dict):
         super().__init__(compiler_type)
         self.id = 'gcc'
         self.defines = defines or {}
         self.base_options.append('b_colorout')
+        self.linker = dynamic_linker
 
     def get_colorout_args(self, colortype: str) -> List[str]:
         if mesonlib.version_compare(self.version, '>=4.9.0'):

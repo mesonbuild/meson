@@ -329,7 +329,7 @@ class InternalTests(unittest.TestCase):
 
     def test_compiler_args_class(self):
         cargsfunc = mesonbuild.compilers.CompilerArgs
-        cc = mesonbuild.compilers.CCompiler([], 'fake', False)
+        cc = mesonbuild.compilers.CCompiler([], 'fake', False, None)
         # Test that bad initialization fails
         self.assertRaises(TypeError, cargsfunc, [])
         self.assertRaises(TypeError, cargsfunc, [], [])
@@ -415,7 +415,7 @@ class InternalTests(unittest.TestCase):
     def test_compiler_args_class_gnuld(self):
         cargsfunc = mesonbuild.compilers.CompilerArgs
         ## Test --start/end-group
-        gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', mesonbuild.compilers.CompilerType.GCC_STANDARD, False)
+        gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', mesonbuild.compilers.CompilerType.GCC_STANDARD, False, None)
         ## Test that 'direct' append and extend works
         l = cargsfunc(gcc, ['-Lfoodir', '-lfoo'])
         self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Wl,--end-group'])

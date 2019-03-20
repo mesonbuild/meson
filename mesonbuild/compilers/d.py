@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os.path, subprocess
+import typing
 
 from ..mesonlib import (
     EnvironmentException, MachineChoice, version_compare, is_windows, is_osx
@@ -30,6 +31,9 @@ from .compilers import (
     Compiler,
     CompilerArgs,
 )
+
+if typing.TYPE_CHECKING:
+    from ..linkers import DynamicLinker
 
 d_feature_args = {'gcc':  {'unittest': '-funittest',
                            'debug': '-fdebug',
@@ -73,9 +77,9 @@ class DCompiler(Compiler):
         'mtd': ['-mscrtlib=libcmtd'],
     }
 
-    def __init__(self, exelist, version, is_cross, arch, **kwargs):
+    def __init__(self, exelist, version, is_cross, dynamic_linker: 'DynamicLinker', arch, **kwargs):
         self.language = 'd'
-        super().__init__(exelist, version, **kwargs)
+        super().__init__(exelist, version, dynamic_linker, **kwargs)
         self.id = 'unknown'
         self.is_cross = is_cross
         self.arch = arch
@@ -494,8 +498,8 @@ class DCompiler(Compiler):
         return ['-pthread']
 
 class GnuDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, is_cross, arch, **kwargs)
+    def __init__(self, exelist, version, is_cross, dynamic_linker: 'DynamicLinker', arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, arch, **kwargs)
         self.id = 'gcc'
         default_warn_args = ['-Wall', '-Wdeprecated']
         self.warn_args = {'0': [],
@@ -557,8 +561,8 @@ class GnuDCompiler(DCompiler):
         return gnu_optimization_args[optimization_level]
 
 class LLVMDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, is_cross, arch, **kwargs)
+    def __init__(self, exelist, version, is_cross, dynamic_linker: 'DynamicLinker', arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, arch, **kwargs)
         self.id = 'llvm'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
 
@@ -595,8 +599,8 @@ class LLVMDCompiler(DCompiler):
 
 
 class DmdDCompiler(DCompiler):
-    def __init__(self, exelist, version, is_cross, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, is_cross, arch, **kwargs)
+    def __init__(self, exelist, version, is_cross, dynamic_linker: 'DynamicLinker', arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, arch, **kwargs)
         self.id = 'dmd'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
 

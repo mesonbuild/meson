@@ -30,7 +30,7 @@ cs_optimization_args = {'0': [],
 class CsCompiler(Compiler):
     def __init__(self, exelist, version, id, runner=None):
         self.language = 'cs'
-        super().__init__(exelist, version)
+        super().__init__(exelist, version, None)  # TODO: is None really safe here?
         self.id = id
         self.is_cross = False
         self.runner = runner
