@@ -62,6 +62,11 @@ class GResourceObjectTarget(build.CustomTarget):
     def __init__(self, name, subdir, subproject, kwargs):
         super().__init__(name, subdir, subproject, kwargs)
 
+class GResourceExternTarget(build.CustomTarget):
+    def __init__(self, name, resource_object, subdir, subproject, kwargs):
+        super().__init__(name, subdir, subproject, kwargs)
+        self.resource_object = resource_object
+
 class GirTarget(build.CustomTarget):
     def __init__(self, name, subdir, subproject, kwargs):
         super().__init__(name, subdir, subproject, kwargs)

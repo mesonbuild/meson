@@ -289,6 +289,12 @@ int dummy;
             for s in gensrc.get_outputs():
                 f = self.get_target_generated_dir(target, gensrc, s)
                 srcs[f] = s
+                # Target generates a gresource c file that
+                # declares it's data external and therefore needs
+                # an additional object linked in to compile
+                if isinstance(gensrc, modules.GResourceExternTarget):
+                    f = self.get_target_generated_dir(target, gensrc, gensrc.resource_object.get_outputs()[0])
+                    srcs[f] = gensrc.resource_object.get_outputs()[0]
         return srcs
 
     def get_target_sources(self, target):
@@ -302,6 +308,15 @@ int dummy;
             f = s.rel_to_builddir(self.build_to_src)
             srcs[f] = s
         return srcs
+
+    def add_gresource_data_objects(self, target, srcs):
+        # GResourceExternTarget generates a gresource c file that
+        # declares it's data external and therefore needs
+        # an additional object linked in to compile
+        for gensrc in target.get_generated_sources():
+            if isinstance(gensrc, modules.GResourceExternTarget):
+                f = self.get_target_generated_dir(target, gensrc, gensrc.resource_object.get_outputs()[0])
+                srcs[f] = gensrc.resource_object.get_outputs()[0]
 
     # Languages that can mix with C or C++ but don't support unity builds yet
     # because the syntax we use for unity builds is specific to C/++/ObjC/++.
@@ -416,6 +431,7 @@ int dummy;
             target_sources = self.get_target_sources(target)
             generated_sources = self.get_target_generated_sources(target)
             vala_generated_sources = []
+        self.add_gresource_data_objects(target, generated_sources)
         self.scan_fortran_module_outputs(target)
         # Generate rules for GeneratedLists
         self.generate_generator_list_rules(target, outfile)
@@ -1140,7 +1156,7 @@ int dummy;
                     target.install_dir[3] = os.path.join(self.environment.get_datadir(), 'gir-1.0')
         # Detect gresources and add --gresources arguments for each
         for (gres, gensrc) in other_src[1].items():
-            if isinstance(gensrc, modules.GResourceTarget):
+            if isinstance(gensrc, modules.GResourceTarget) or isinstance(gensrc, modules.GResourceExternTarget):
                 gres_xml, = self.get_custom_target_sources(gensrc)
                 args += ['--gresources=' + gres_xml]
         extra_args = []

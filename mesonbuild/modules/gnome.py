@@ -27,7 +27,7 @@ from .. import mlog
 from .. import mesonlib
 from .. import compilers
 from .. import interpreter
-from . import GResourceTarget, GResourceHeaderTarget, GResourceObjectTarget, GirTarget, TypelibTarget, VapiTarget
+from . import GResourceTarget, GResourceHeaderTarget, GResourceObjectTarget, GResourceExternTarget, GirTarget, TypelibTarget, VapiTarget
 from . import get_include_args
 from . import ExtensionModule
 from . import ModuleReturnValue
@@ -246,8 +246,6 @@ class GnomeModule(ExtensionModule):
             if gresource: # Only one target for .gresource files
                 return ModuleReturnValue(target_g, [target_g])
 
-        target_c = GResourceTarget(name, state.subdir, state.subproject, kwargs)
-
         h_kwargs = {
             'command': cmd,
             'input': args[1],
@@ -264,13 +262,14 @@ class GnomeModule(ExtensionModule):
         target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, state.subproject, h_kwargs)
 
         if gresource_ld_binary:
-            return self._create_gresource_ld_binary_targets(args, state, ifile, ld_obj, c_name, target_g, g_output, target_c, target_h)
+            return self._create_gresource_ld_binary_targets(args, state, ifile, ld_obj, c_name, name, kwargs, target_g, g_output, target_h)
         else:
+            target_c = GResourceTarget(name, state.subdir, state.subproject, kwargs)
             rv = [target_c, target_h]
 
         return ModuleReturnValue(rv, rv)
 
-    def _create_gresource_ld_binary_targets(self, args, state, ifile, ld_obj, c_name, target_g, g_output, target_c, target_h):
+    def _create_gresource_ld_binary_targets(self, args, state, ifile, ld_obj, c_name, name, kwargs, target_g, g_output, target_h):
         if c_name is None:
             # Create proper c identifier from filename in the way glib-compile-resources does
             c_name = os.path.basename(ifile).partition('.')[0]
@@ -341,17 +340,15 @@ class GnomeModule(ExtensionModule):
 
             target_o3 = GResourceObjectTarget(args[0] + '3_o', state.subdir, state.subproject, o3_kwargs)
 
-            rv1 = [target_c, target_h, target_o3]
-            if target_g.get_id() not in self.interpreter.build.targets:
-                rv2 = rv1 + [target_g, target_o, target_o2]
-            else:
-                rv2 = rv1 + [target_o, target_o2]
+            target_c = GResourceExternTarget(name, target_o3, state.subdir, state.subproject, kwargs)
+
+            rv1 = [target_c, target_h]
+            rv2 = rv1 + [target_g, target_o, target_o2, target_o3]
         else:
-            rv1 = [target_c, target_h, target_o2]
-            if target_g.get_id() not in self.interpreter.build.targets:
-                rv2 = rv1 + [target_g, target_o]
-            else:
-                rv2 = rv1 + [target_o]
+            target_c = GResourceExternTarget(name, target_o2, state.subdir, state.subproject, kwargs)
+
+            rv1 = [target_c, target_h]
+            rv2 = rv1 + [target_g, target_o, target_o2]
 
         return ModuleReturnValue(rv1, rv2)
 
