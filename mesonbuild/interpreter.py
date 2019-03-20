@@ -2119,6 +2119,9 @@ class Interpreter(InterpreterBase):
     def holderify(self, item):
         if isinstance(item, list):
             return [self.holderify(x) for x in item]
+        if isinstance(item, dict):
+            return {k: self.holderify(v) for k, v in item.items()}
+
         if isinstance(item, build.CustomTarget):
             return CustomTargetHolder(item, self)
         elif isinstance(item, (int, str, bool)) or item is None:

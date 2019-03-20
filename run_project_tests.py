@@ -551,6 +551,7 @@ def detect_tests_to_run():
         ('failing-meson', 'failing', False),
         ('failing-build', 'failing build', False),
         ('failing-test',  'failing test', False),
+        ('kconfig', 'kconfig', False),
 
         ('platform-osx', 'osx', not mesonlib.is_osx()),
         ('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
