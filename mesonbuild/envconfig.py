@@ -69,16 +69,6 @@ CPU_FAMILES_64_BIT = [
 
 class MesonConfigFile:
     @classmethod
-    def parse_datafile(cls, filename):
-        config = configparser.ConfigParser()
-        try:
-            with open(filename, 'r') as f:
-                config.read_file(f, filename)
-        except FileNotFoundError:
-            raise EnvironmentException('File not found: %s.' % filename)
-        return cls.from_config_parser(config)
-
-    @classmethod
     def from_config_parser(cls, parser: configparser.ConfigParser):
         out = {}
         # This is a bit hackish at the moment.
