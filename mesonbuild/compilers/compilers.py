@@ -14,7 +14,7 @@
 
 import abc, contextlib, enum, os.path, re, tempfile, shlex
 import subprocess
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from ..linkers import StaticLinker
 from .. import coredata
@@ -982,9 +982,11 @@ class Compiler:
         Returns a tuple of (compile_flags, link_flags) for the specified language
         from the inherited environment
         """
-        def log_var(var, val):
+        def log_var(var, val: Optional[str]):
             if val:
                 mlog.log('Appending {} from environment: {!r}'.format(var, val))
+            else:
+                mlog.debug('No {} in the environment, not changing global flags.'.format(var))
 
         lang = self.get_language()
         compiler_is_linker = False
@@ -994,14 +996,19 @@ class Compiler:
         if lang not in cflags_mapping:
             return [], []
 
-        compile_flags = os.environ.get(cflags_mapping[lang], '')
-        log_var(cflags_mapping[lang], compile_flags)
-        compile_flags = shlex.split(compile_flags)
+        compile_flags = []
+        link_flags = []
+
+        env_compile_flags = os.environ.get(cflags_mapping[lang])
+        log_var(cflags_mapping[lang], env_compile_flags)
+        if env_compile_flags is not None:
+            compile_flags += shlex.split(env_compile_flags)
 
         # Link flags (same for all languages)
-        link_flags = os.environ.get('LDFLAGS', '')
-        log_var('LDFLAGS', link_flags)
-        link_flags = shlex.split(link_flags)
+        env_link_flags = os.environ.get('LDFLAGS')
+        log_var('LDFLAGS', env_link_flags)
+        if env_link_flags is not None:
+            link_flags += shlex.split(env_link_flags)
         if compiler_is_linker:
             # When the compiler is used as a wrapper around the linker (such as
             # with GCC and Clang), the compile flags can be needed while linking
@@ -1011,10 +1018,10 @@ class Compiler:
 
         # Pre-processor flags for certain languages
         if self.use_preproc_flags():
-            preproc_flags = os.environ.get('CPPFLAGS', '')
-            log_var('CPPFLAGS', preproc_flags)
-            preproc_flags = shlex.split(preproc_flags)
-            compile_flags += preproc_flags
+            env_preproc_flags = os.environ.get('CPPFLAGS')
+            log_var('CPPFLAGS', env_preproc_flags)
+            if env_preproc_flags is not None:
+                compile_flags += shlex.split(env_preproc_flags)
 
         return compile_flags, link_flags
 
