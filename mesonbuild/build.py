@@ -1102,6 +1102,8 @@ You probably should put it in link_with instead.''')
         elif len(pchlist) > 2:
             raise InvalidArguments('PCH definition may have a maximum of 2 files.')
         for f in pchlist:
+            if not isinstance(f, str):
+                raise MesonException('PCH arguments must be strings.')
             if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, f)):
                 raise MesonException('File %s does not exist.' % f)
         self.pch[language] = pchlist
