@@ -700,8 +700,6 @@ class Environment:
             if 'ccrx' in compiler[0]:
                 out = err
 
-            linker = None
-
             full_version = out.split('\n', 1)[0]
             version = search_version(out)
 
@@ -723,6 +721,12 @@ class Environment:
                 else:
                     version = self.get_gnu_version_from_defines(defines)
                     cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
+                # This is incorrect, but it replicates the current logic used in mesa
+                if compiler_type.is_osx_compiler:
+                    linker = AppleDynamicLinker(compiler, compiler_type)
+                else:
+                    linker = GNUGoldDDynamicLinker(compiler, compiler_type)
+                
                 return cls(ccache + compiler, version, compiler_type, is_cross, linker, exe_wrap, defines, full_version=full_version)
 
             if 'armclang' in out:
@@ -765,6 +769,11 @@ class Environment:
                     compiler_type = CompilerType.CLANG_MINGW
                 else:
                     compiler_type = CompilerType.CLANG_STANDARD
+                # This is strictly wrong, but keeps the same behavior
+                if compiler_type.is_osx_compiler:
+                    linker = AppleDynamicLinker(compiler, compiler_type)
+                else:
+                    linker = GNUGoldDDynamicLinker(compiler, compiler_type)
                 cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, is_cross, linker, exe_wrap, full_version=full_version)
             if 'Microsoft' in out or 'Microsoft' in err:
@@ -797,6 +806,10 @@ class Environment:
                     compiler_type = CompilerType.ICC_WIN
                 else:
                     compiler_type = CompilerType.ICC_STANDARD
+                if compiler_type.is_osx_compiler:
+                    linker = AppleDynamicLinker(compiler, compiler_type)
+                else:
+                    linker = GNUGoldDDynamicLinker(compiler, compiler_type)
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, is_cross, linker, exe_wrap, full_version=full_version)
             if 'ARM' in out:
@@ -853,7 +866,7 @@ class Environment:
     def detect_fortran_compiler(self, want_cross):
         popen_exceptions = {}
         compilers, ccache, is_cross, exe_wrap = self._get_compilers('fortran', want_cross)
-        linker = None
+        for_machine = MachineChoice.HOST if want_cross else MachineChoice.BUILD
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -885,16 +898,26 @@ class Environment:
                     else:
                         version = self.get_gnu_version_from_defines(defines)
                         cls = GnuFortranCompiler
+                    if compiler_type.is_osx_compiler:
+                        linker = AppleDynamicLinker(compiler, compiler_type)
+                    else:
+                        linker = GNUGoldDDynamicLinker(compiler, compiler_type)
                     return cls(compiler, version, compiler_type, is_cross, linker, exe_wrap, defines, full_version=full_version)
 
                 if 'G95' in out:
-                    return G95FortranCompiler(compiler, version, is_cross, linker, exe_wrap, full_version=full_version)
+                    compiler_type = CompilerType.GCC_STANDARD
+                    linker = GNUGoldDDynamicLinker(compiler, compiler_type)
+                    return G95FortranCompiler(compiler, version, compiler_type, is_cross, linker, exe_wrap, full_version=full_version)
 
                 if 'Sun Fortran' in err:
                     version = search_version(err)
                     return SunFortranCompiler(compiler, version, is_cross, linker, exe_wrap, full_version=full_version)
 
                 if 'ifort (IFORT)' in out:
+                    if self.machines[for_machine].is_darwin():
+                        linker = AppleDynamicLinker(compiler, CompilerType.ICC_OSX)
+                    else:
+                        linker = GNUGoldDDynamicLinker(compiler, CompilerType.ICC_STANDARD)
                     return IntelFortranCompiler(compiler, version, is_cross, linker, exe_wrap, full_version=full_version)
 
                 if 'PathScale EKOPath(tm)' in err:
@@ -919,7 +942,6 @@ class Environment:
     def detect_objc_compiler(self, want_cross):
         popen_exceptions = {}
         compilers, ccache, is_cross, exe_wrap = self._get_compilers('objc', want_cross)
-        linker = None
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -937,17 +959,25 @@ class Environment:
                     continue
                 compiler_type = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
-                return GnuObjCCompiler(ccache + compiler, version, compiler_type, is_cross, exe_wrap, linker, defines)
+                if compiler_type.is_osx_compiler:
+                    linker = AppleDynamicLinker(compiler, compiler_type)
+                else:
+                    linker = GNUGoldDDynamicLinker(compiler, compiler_type)
+                return GnuObjCCompiler(ccache + compiler, version, compiler_type, is_cross, linker, exe_wrap,  defines)
             if out.startswith('Apple LLVM'):
-                return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_OSX, is_cross, linker, exe_wrap)
+                compiler_type = CompilerType.CLANG_OSX
+                linker = AppleDynamicLinker(compiler, compiler_type)
+                return ClangObjCCompiler(ccache + compiler, version, compiler_type, is_cross, linker, exe_wrap)
             if out.startswith(('clang', 'OpenBSD clang')):
-                return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_STANDARD, is_cross, linker, exe_wrap)
+                # This might not be right, need to fire up an OpenBSD VM to test
+                compiler_type = CompilerType.CLANG_STANDARD
+                linker = GNUBFDDynamicLinker(compiler, compiler_type)
+                return ClangObjCCompiler(ccache + compiler, version, compiler_type, is_cross, linker, exe_wrap)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_objcpp_compiler(self, want_cross):
         popen_exceptions = {}
         compilers, ccache, is_cross, exe_wrap = self._get_compilers('objcpp', want_cross)
-        linker = None
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -965,11 +995,20 @@ class Environment:
                     continue
                 compiler_type = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
-                return GnuObjCPPCompiler(ccache + compiler, version, compiler_type, is_cross, exe_wrap, linker, defines)
+                if compiler_type.is_osx_compiler:
+                    linker = AppleDynamicLinker(compiler, compiler_type)
+                else:
+                    linker = GNUGoldDDynamicLinker(compiler, compiler_type)
+                return GnuObjCPPCompiler(ccache + compiler, version, compiler_type, is_cross, linker, exe_wrap,  defines)
             if out.startswith('Apple LLVM'):
-                return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_OSX, is_cross, linker, exe_wrap)
+                compiler_type = CompilerType.CLANG_OSX
+                linker = AppleDynamicLinker(compiler, compiler_type)
+                return ClangObjCPPCompiler(ccache + compiler, version, compiler_type, is_cross, linker, exe_wrap)
             if out.startswith(('clang', 'OpenBSD clang')):
-                return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_STANDARD, is_cross, linker, exe_wrap)
+                # This might not be right, need to fire up an OpenBSD VM to test
+                compiler_type = CompilerType.CLANG_STANDARD
+                linker = GNUBFDDynamicLinker(compiler, compiler_type)
+                return ClangObjCPPCompiler(ccache + compiler, version, compiler_type, is_cross, linker, exe_wrap)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self):
@@ -1049,7 +1088,6 @@ class Environment:
     def detect_d_compiler(self, want_cross):
         is_cross = want_cross and self.is_cross_build()
         exelist = self.binaries.host.lookup_entry('d')
-        linker = None
         # Search for a D compiler.
         # We prefer LDC over GDC unless overridden with the DC
         # environment variable because LDC has a much more
@@ -1082,6 +1120,17 @@ class Environment:
         if is_msvc and arch == 'x86':
             arch = 'x86_mscoff'
 
+        if mesonlib.for_darwin(want_cross, self):
+            compiler_type = CompilerType.CLANG_OSX
+        elif mesonlib.for_windows(want_cross, self):
+            # TODO: fix ICC on Windows
+            compiler_type = CompilerType.CLANG_WIN
+        else:
+            compiler_type = CompilerType.CLANG_STANDARD
+        if compiler_type.is_osx_compiler:
+            linker = AppleDynamicLinker(exelist, compiler_type)
+        else:
+            linker = GNUGoldDDynamicLinker(exelist, compiler_type)
         if 'LLVM D compiler' in out:
             return compilers.LLVMDCompiler(exelist, version, is_cross, linker, arch, full_version=full_version)
         elif 'gdc' in out:

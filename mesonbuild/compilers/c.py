@@ -100,17 +100,10 @@ class CCompiler(Compiler):
         return ['-pipe'] + get_largefile_args(self)
 
     def get_linker_debug_crt_args(self):
-        """
-        Arguments needed to select a debug crt for the linker
-        This is only needed for MSVC
-        """
-        return []
+        return self.linker.get_linker_debug_crt_args()
 
     def get_no_stdinc_args(self):
         return ['-nostdinc']
-
-    def get_no_stdlib_link_args(self):
-        return ['-nostdlib']
 
     def get_warn_args(self, level):
         return self.warn_args[level]
@@ -144,9 +137,6 @@ class CCompiler(Compiler):
     def get_exelist(self):
         return self.exelist[:]
 
-    def get_linker_exelist(self):
-        return self.exelist[:]
-
     def get_preprocess_only_args(self):
         return ['-E', '-P']
 
@@ -167,12 +157,9 @@ class CCompiler(Compiler):
         return ['-o', target]
 
     def get_linker_output_args(self, outputname):
-        return ['-o', outputname]
+        return self.linker.get_linker_output_args(outputname)
 
     def get_coverage_args(self):
-        return ['--coverage']
-
-    def get_coverage_link_args(self):
         return ['--coverage']
 
     def get_werror_args(self):
@@ -187,9 +174,6 @@ class CCompiler(Compiler):
         if is_system:
             return ['-isystem', path]
         return ['-I' + path]
-
-    def get_std_shared_lib_link_args(self):
-        return ['-shared']
 
     @functools.lru_cache()
     def _get_search_dirs(self, env):
@@ -285,9 +269,6 @@ class CCompiler(Compiler):
 
     def get_pch_name(self, header_name):
         return os.path.basename(header_name) + '.' + self.get_pch_suffix()
-
-    def get_linker_search_args(self, dirname):
-        return ['-L' + dirname]
 
     def get_default_include_dirs(self):
         return []
@@ -1142,9 +1123,6 @@ class CCompiler(Compiler):
             return []
         return ['-pthread']
 
-    def linker_to_compiler_args(self, args):
-        return args
-
     def has_arguments(self, args, env, code, mode):
         return self.compiles(code, env, extra_args=args, mode=mode)
 
@@ -1231,15 +1209,6 @@ class ClangCCompiler(ClangCompiler, CCompiler):
             args.append('-std=' + std.value)
         return args
 
-    def get_option_link_args(self, options):
-        return []
-
-    def get_linker_always_args(self):
-        basic = super().get_linker_always_args()
-        if self.compiler_type.is_osx_compiler:
-            return basic + ['-Wl,-headerpad_max_install_names']
-        return basic
-
 
 class ArmclangCCompiler(ArmclangCompiler, CCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, **kwargs):
@@ -1265,9 +1234,6 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
-
-    def get_option_link_args(self, options):
-        return []
 
 
 class GnuCCompiler(GnuCompiler, CCompiler):
@@ -1298,11 +1264,6 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
-
-    def get_option_link_args(self, options):
-        if self.compiler_type.is_windows_compiler:
-            return options['c_winlibs'].value[:]
-        return []
 
     def get_pch_use_args(self, pch_dir, header):
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
@@ -1404,29 +1365,17 @@ class VisualStudioCCompiler(CCompiler):
         else:
             self.machine = target
 
+        self.invokes_linker = False
+
     # Override CCompiler.get_always_args
     def get_always_args(self):
         return self.always_args
-
-    def get_linker_debug_crt_args(self):
-        """
-        Arguments needed to select a debug crt for the linker
-
-        Sometimes we need to manually select the CRT (C runtime) to use with
-        MSVC. One example is when trying to link with static libraries since
-        MSVC won't auto-select a CRT for us in that case and will error out
-        asking us to select one.
-        """
-        return ['/MDd']
 
     def get_buildtype_args(self, buildtype):
         args = compilers.msvc_buildtype_args[buildtype]
         if self.id == 'msvc' and version_compare(self.version, '<18.0'):
             args = [arg for arg in args if arg != '/Gw']
         return args
-
-    def get_buildtype_linker_args(self, buildtype):
-        return compilers.msvc_buildtype_linker_args[buildtype]
 
     def get_pch_suffix(self):
         return 'pch'
@@ -1467,26 +1416,6 @@ class VisualStudioCCompiler(CCompiler):
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
 
-    def get_linker_exelist(self):
-        # FIXME, should have same path as compiler.
-        # FIXME, should be controllable via cross-file.
-        if self.id == 'clang-cl':
-            return ['lld-link']
-        else:
-            return ['link']
-
-    def get_linker_always_args(self):
-        return ['/nologo']
-
-    def get_linker_output_args(self, outputname):
-        return ['/MACHINE:' + self.machine, '/OUT:' + outputname]
-
-    def get_linker_search_args(self, dirname):
-        return ['/LIBPATH:' + dirname]
-
-    def linker_to_compiler_args(self, args):
-        return ['/link'] + args
-
     def get_gui_app_args(self, value):
         # the default is for the linker to guess the subsystem based on presence
         # of main or WinMain symbols, so always be explicit
@@ -1500,9 +1429,6 @@ class VisualStudioCCompiler(CCompiler):
 
     def gen_export_dynamic_link_args(self, env):
         return [] # Not applicable with MSVC
-
-    def get_std_shared_lib_link_args(self):
-        return ['/DLL']
 
     def gen_vs_module_defs_args(self, defsfile):
         if not isinstance(defsfile, str):
@@ -1538,9 +1464,6 @@ class VisualStudioCCompiler(CCompiler):
                                                            'Windows libs to link against.',
                                                            msvc_winlibs)})
         return opts
-
-    def get_option_link_args(self, options):
-        return options['c_winlibs'].value[:]
 
     @classmethod
     def unix_args_to_native(cls, args):
@@ -1616,11 +1539,6 @@ class VisualStudioCCompiler(CCompiler):
         pdbarr += ['pdb']
         return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
 
-    def get_link_whole_for(self, args):
-        # Only since VS2015
-        args = listify(args)
-        return ['/WHOLEARCHIVE:' + x for x in args]
-
     def get_instruction_set_args(self, instruction_set):
         if self.is_64:
             return vs64_instruction_set_args.get(instruction_set, None)
@@ -1693,10 +1611,6 @@ class VisualStudioCCompiler(CCompiler):
     def get_argument_syntax(self):
         return 'msvc'
 
-    def get_allow_undefined_link_args(self):
-        # link.exe
-        return ['/FORCE:UNRESOLVED']
-
 
 class ClangClCCompiler(VisualStudioCCompiler):
     def __init__(self, exelist, version, is_cross, dynamic_linker: 'DynamicLinker', exe_wrap, target):
@@ -1756,9 +1670,6 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
 
     def get_output_args(self, target):
         return ['-output=obj=%s' % target]
-
-    def get_linker_output_args(self, outputname):
-        return ['-output=%s' % outputname]
 
     def get_werror_args(self):
         return ['-change_message=error']

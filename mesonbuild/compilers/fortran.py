@@ -319,8 +319,9 @@ class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
         ElbrusCompiler.__init__(self, compiler_type, defines)
 
 class G95FortranCompiler(FortranCompiler):
-    def __init__(self, exelist, version, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, **kwags):
+    def __init__(self, exelist, version, compiler_type, is_cross, dynamic_linker: 'DynamicLinker', exe_wrapper=None, **kwags):
         FortranCompiler.__init__(self, exelist, version, is_cross, dynamic_linker, exe_wrapper, **kwags)
+        self.compiler_type = compiler_type
         self.id = 'g95'
         default_warn_args = ['-Wall']
         self.warn_args = {'0': [],
