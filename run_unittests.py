@@ -4368,12 +4368,11 @@ class LinuxlikeTests(BasePlatformTests):
         cmd_std = '-std=FAIL'
         env_flags = p.upper() + 'FLAGS'
         os.environ[env_flags] = cmd_std
-        self.init(testdir)
-        cmd = self.get_compdb()[0]['command']
-        qcmd_std = " {} ".format(cmd_std)
-        self.assertIn(qcmd_std, cmd)
-        with self.assertRaises(subprocess.CalledProcessError,
-                               msg='{} should have failed'.format(qcmd_std)):
+        with self.assertRaises((subprocess.CalledProcessError, mesonbuild.mesonlib.EnvironmentException),
+                               msg='C compiler should have failed with -std=FAIL'):
+            self.init(testdir)
+            # ICC won't fail in the above because additional flags are needed to
+            # make unknown -std=... options errors.
             self.build()
 
     def test_compiler_c_stds(self):
