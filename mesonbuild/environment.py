@@ -1127,14 +1127,6 @@ class Environment:
 
         return comp, cross_comp
 
-    def check_compilers(self, lang: str, comp: Compiler, cross_comp: Compiler):
-        if comp is None:
-            raise EnvironmentException('Tried to use unknown language "%s".' % lang)
-
-        comp.sanity_check(self.get_scratch_dir(), self)
-        if cross_comp:
-            cross_comp.sanity_check(self.get_scratch_dir(), self)
-
     def detect_compilers(self, lang: str, need_cross_compiler: bool):
         (comp, cross_comp) = self.compilers_from_language(lang, need_cross_compiler)
         if comp is not None:

@@ -2700,7 +2700,11 @@ external dependencies (including libraries) must go to "dependencies".''')
             else:
                 try:
                     (comp, cross_comp) = self.environment.detect_compilers(lang, need_cross_compiler)
-                    self.environment.check_compilers(lang, comp, cross_comp)
+                    if comp is None:
+                        raise InvalidArguments('Tried to use unknown language "%s".' % lang)
+                    comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
+                    if cross_comp:
+                        cross_comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
                 except Exception:
                     if not required:
                         mlog.log('Compiler for language', mlog.bold(lang), 'not found.')
