@@ -460,6 +460,7 @@ def have_objc_compiler():
             return False
         if not objc_comp:
             return False
+        env.coredata.process_new_compilers('objc', objc_comp, None, env)
         try:
             objc_comp.sanity_check(env.get_scratch_dir(), env)
         except mesonlib.MesonException:
@@ -475,6 +476,7 @@ def have_objcpp_compiler():
             return False
         if not objcpp_comp:
             return False
+        env.coredata.process_new_compilers('objcpp', objcpp_comp, None, env)
         try:
             objcpp_comp.sanity_check(env.get_scratch_dir(), env)
         except mesonlib.MesonException:
