@@ -368,6 +368,13 @@ int dummy;
         src_block['sources'] += sources
         src_block['generated_sources'] += generated_sources
 
+    def is_rust_target(self, target):
+        if len(target.sources) > 0:
+            first_file = target.sources[0]
+            if first_file.fname.endswith('.rs'):
+                return True
+        return False
+
     def generate_target(self, target, outfile):
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target, outfile)
@@ -386,7 +393,7 @@ int dummy;
         if isinstance(target, build.Jar):
             self.generate_jar_target(target, outfile)
             return
-        if 'rust' in target.compilers:
+        if self.is_rust_target(target):
             self.generate_rust_target(target, outfile)
             return
         if 'cs' in target.compilers:

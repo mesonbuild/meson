@@ -93,3 +93,9 @@ class RustCompiler(Compiler):
                         break
 
         return parameter_list
+
+    def get_buildtype_linker_args(self, build_type):
+        return []
+
+    def get_std_exe_link_args(self):
+        return []
