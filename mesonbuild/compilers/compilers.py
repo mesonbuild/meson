@@ -61,7 +61,6 @@ c_suffixes = lang_suffixes['c'] + ('h',)
 clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran',)
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
-# XXX: Add Rust to this?
 clink_langs = ('d', 'cuda') + clib_langs
 clink_suffixes = ()
 for _l in clink_langs + ('vala',):

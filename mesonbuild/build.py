@@ -1193,6 +1193,10 @@ You probably should put it in link_with instead.''')
         m = 'Could not get a dynamic linker for build target {!r}'
         raise AssertionError(m.format(self.name))
 
+    def get_using_rustc(self):
+        if len(self.sources) > 0 and self.sources[0].fname.endswith('.rs'):
+            return True
+
     def get_using_msvc(self):
         '''
         Check if the dynamic linker is MSVC. Used by Executable, StaticLibrary,
@@ -1610,7 +1614,12 @@ class SharedLibrary(BuildTarget):
             suffix = 'dll'
             self.vs_import_filename = '{0}{1}.lib'.format(self.prefix if self.prefix is not None else '', self.name)
             self.gcc_import_filename = '{0}{1}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
-            if self.get_using_msvc():
+            if self.get_using_rustc():
+                # Shared library is of the form foo.dll
+                prefix = ''
+                # Import library is called foo.dll.lib
+                self.import_filename = '{0}.dll.lib'.format(self.name)
+            elif self.get_using_msvc():
                 # Shared library is of the form foo.dll
                 prefix = ''
                 # Import library is called foo.lib
