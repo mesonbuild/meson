@@ -18,7 +18,7 @@ from .base import (  # noqa: F401
     ExternalDependency, NotFoundDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
     PkgConfigDependency, CMakeDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language)
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
-from .misc import (CoarrayDependency, HDF5Dependency, MPIDependency, NetCDFDependency, OpenMPDependency, Python3Dependency, ThreadDependency, PcapDependency, CupsDependency, LibWmfDependency, LibGCryptDependency)
+from .misc import (CoarrayDependency, HDF5Dependency, MPIDependency, NetCDFDependency, OpenMPDependency, Python3Dependency, ThreadDependency, PcapDependency, CupsDependency, LibWmfDependency, LibGCryptDependency, ShadercDependency)
 from .platform import AppleFrameworks
 from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, VulkanDependency
 
@@ -43,6 +43,7 @@ packages.update({
     'cups': CupsDependency,
     'libwmf': LibWmfDependency,
     'libgcrypt': LibGCryptDependency,
+    'shaderc': ShadercDependency,
 
     # From platform:
     'appleframeworks': AppleFrameworks,
