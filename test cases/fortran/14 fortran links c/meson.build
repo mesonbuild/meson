@@ -1,5 +1,10 @@
 project('Fortran calling C', 'fortran', 'c')
 
+cc = meson.get_compiler('c')
+if cc.get_id() == 'msvc'
+  error('MESON_SKIP_TEST: MSVC and GCC do not interoperate like this.')
+endif
+
 c_lib = library('clib', 'clib.c')
 
 f_call_c = executable('f_call_c', 'f_call_c.f90',
