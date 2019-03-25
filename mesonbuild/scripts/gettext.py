@@ -44,9 +44,9 @@ def read_linguas(src_sub):
         return []
 
 def run_potgen(src_sub, pkgname, datadirs, args):
-    listfile = os.path.join(src_sub, 'POTFILES')
+    listfile = os.path.join(src_sub, 'POTFILES.in')
     if not os.path.exists(listfile):
-        listfile = os.path.join(src_sub, 'POTFILES.in')
+        listfile = os.path.join(src_sub, 'POTFILES')
         if not os.path.exists(listfile):
             print('Could not find file POTFILES in %s' % src_sub)
             return 1
