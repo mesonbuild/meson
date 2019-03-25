@@ -1,7 +1,7 @@
 project('Fortran calling C', 'fortran', 'c')
 
-cc = meson.get_compiler('c')
-if cc.get_id() == 'msvc'
+ccid = meson.get_compiler('c').get_id()
+if ccid == 'msvc' or ccid == 'clang-cl'
   error('MESON_SKIP_TEST: MSVC and GCC do not interoperate like this.')
 endif
 
