@@ -124,7 +124,14 @@ def detect_ninja(version='1.5', log=False):
         if p.returncode == 0 and mesonlib.version_compare(found, '>=' + version):
             n = shutil.which(n)
             if log:
-                mlog.log('Found ninja-{} at {}'.format(found, shlex.quote(n)))
+                name = os.path.basename(n)
+                if name.endswith('-' + found):
+                    name = name[0:-1 - len(found)]
+                if name == 'ninja-build':
+                    name = 'ninja'
+                if name == 'samu':
+                    name = 'samurai'
+                mlog.log('Found {}-{} at {}'.format(name, found, shlex.quote(n)))
             return n
 
 def detect_native_windows_arch():
