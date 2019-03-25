@@ -21,6 +21,7 @@
         --sharedstatedir=%{_sharedstatedir} \
         --wrap-mode=%{__meson_wrap_mode} \
         --auto-features=%{__meson_auto_features} \
+        -Db_ndebug=true \
         %{_vpath_srcdir} %{_vpath_builddir} \
 	%{nil}}
 
