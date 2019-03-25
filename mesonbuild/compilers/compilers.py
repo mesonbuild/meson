@@ -510,7 +510,7 @@ def get_base_compile_args(options, compiler):
     try:
         if (options['b_ndebug'].value == 'true' or
                 (options['b_ndebug'].value == 'if-release' and
-                 options['buildtype'].value == 'release')):
+                 options['buildtype'].value in {'release', 'plain'})):
             args += ['-DNDEBUG']
     except KeyError:
         pass
