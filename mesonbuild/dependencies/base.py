@@ -405,9 +405,10 @@ class ConfigToolDependency(ExternalDependency):
             tools = [tool]
         else:
             if self.env.is_cross_build() and not self.native:
-                mlog.warning('No entry for {0} specified in your cross file. '
-                             'Falling back to searching PATH. This may find a '
-                             'native version of {0}!'.format(self.tool_name))
+                mlog.deprecation('No entry for {0} specified in your cross file. '
+                                 'Falling back to searching PATH. This may find a '
+                                 'native version of {0}! This will become a hard '
+                                 'error in a future version of meson'.format(self.tool_name))
             tools = [[t] for t in self.tools]
 
         best_match = (None, None)
