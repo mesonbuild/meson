@@ -95,6 +95,7 @@ from .linkers import (
     AppleDynamicLinker,
     ArmNixDynamicLinker,
     ArmclangNixDynamicLinker,
+    CcrxDynamicLinker,
     DMDDynamicLinker,
     PGIDynamiclinker,
 )
@@ -745,6 +746,8 @@ class Environment:
                 full_version = arm_ver_str
                 compiler_type = CompilerType.ARM_WIN
                 cls = ArmclangCCompiler if lang == 'c' else ArmclangCPPCompiler
+                # XXX: untested
+                linker = ArmclangNixDynamicLinker(compiler, compiler_type)
                 return cls(ccache + compiler, version, compiler_type, is_cross, linker, exe_wrap, full_version=full_version)
             if 'CL.EXE COMPATIBILITY' in out:
                 # if this is clang-cl masquerading as cl, detect it as cl, not
@@ -815,10 +818,14 @@ class Environment:
             if 'ARM' in out:
                 compiler_type = CompilerType.ARM_WIN
                 cls = ArmCCompiler if lang == 'c' else ArmCPPCompiler
+                # XXX: untested
+                linker = ArmNixDynamicLinker(compiler, compiler_type)
                 return cls(ccache + compiler, version, compiler_type, is_cross, linker, exe_wrap, full_version=full_version)
             if 'RX Family' in out:
                 compiler_type = CompilerType.CCRX_WIN
                 cls = CcrxCCompiler if lang == 'c' else CcrxCPPCompiler
+                # XXX: untested
+                linker = CcrxDynamicLinker(compiler, compiler_type)
                 return cls(ccache + compiler, version, compiler_type, is_cross, linker, exe_wrap, full_version=full_version)
 
         self._handle_exceptions(popen_exceptions, compilers)
