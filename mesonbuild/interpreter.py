@@ -3617,7 +3617,12 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             mlog.deprecation('Please use the new `install:` kwarg instead of passing '
                              '`false` to `install_dir:`', location=node)
         if not isinstance(idir, str):
-            raise InterpreterException('"install_dir" must be a string')
+            if isinstance(idir, list) and len(idir) == 0:
+                mlog.deprecation('install_dir: kwarg must be a string and not an empty array. '
+                                 'Please use the install: kwarg to enable or disable installation. '
+                                 'This will be a hard error in the next release.')
+            else:
+                raise InterpreterException('"install_dir" must be a string')
         install = kwargs.get('install', idir != '')
         if not isinstance(install, bool):
             raise InterpreterException('"install" must be a boolean')
