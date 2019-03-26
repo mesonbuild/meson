@@ -1,4 +1,4 @@
-module mother
+module parent
 real, parameter :: pi = 4.*atan(1.)
 real :: tau
 
@@ -8,13 +8,10 @@ module elemental real function pi2tau(pi)
 end function pi2tau
 end interface
 
-contains 
-
-end module mother
+end module parent
 
 
-program hier1
-use mother
+use parent
 
 tau = pi2tau(pi)
 
