@@ -1084,65 +1084,43 @@ class Environment:
             return compilers.SwiftCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def compilers_from_language(self, lang: str, need_cross_compiler: bool):
-        comp = None
-        cross_comp = None
+    def compiler_from_language(self, lang: str, want_cross: bool):
         if lang == 'c':
-            comp = self.detect_c_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.detect_c_compiler(True)
+            comp = self.detect_c_compiler(want_cross)
         elif lang == 'cpp':
-            comp = self.detect_cpp_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.detect_cpp_compiler(True)
+            comp = self.detect_cpp_compiler(want_cross)
         elif lang == 'objc':
-            comp = self.detect_objc_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.detect_objc_compiler(True)
+            comp = self.detect_objc_compiler(want_cross)
         elif lang == 'cuda':
-            comp = self.detect_cuda_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.detect_cuda_compiler(True)
+            comp = self.detect_cuda_compiler(want_cross)
         elif lang == 'objcpp':
-            comp = self.detect_objcpp_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.detect_objcpp_compiler(True)
+            comp = self.detect_objcpp_compiler(want_cross)
         elif lang == 'java':
-            comp = self.detect_java_compiler()
-            if need_cross_compiler:
-                cross_comp = comp  # Java is platform independent.
+            comp = self.detect_java_compiler()  # Java is platform independent.
         elif lang == 'cs':
-            comp = self.detect_cs_compiler()
-            if need_cross_compiler:
-                cross_comp = comp  # C# is platform independent.
+            comp = self.detect_cs_compiler()  # C# is platform independent.
         elif lang == 'vala':
-            comp = self.detect_vala_compiler()
-            if need_cross_compiler:
-                cross_comp = comp  # Vala compiles to platform-independent C
+            comp = self.detect_vala_compiler()  # Vala compiles to platform-independent C
         elif lang == 'd':
-            comp = self.detect_d_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.detect_d_compiler(True)
+            comp = self.detect_d_compiler(want_cross)
         elif lang == 'rust':
-            comp = self.detect_rust_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.detect_rust_compiler(True)
+            comp = self.detect_rust_compiler(want_cross)
         elif lang == 'fortran':
-            comp = self.detect_fortran_compiler(False)
-            if need_cross_compiler:
-                cross_comp = self.detect_fortran_compiler(True)
+            comp = self.detect_fortran_compiler(want_cross)
         elif lang == 'swift':
-            comp = self.detect_swift_compiler()
-            if need_cross_compiler:
+            if want_cross:
                 raise EnvironmentException('Cross compilation with Swift is not working yet.')
-                # cross_comp = self.environment.detect_fortran_compiler(True)
+            comp = self.detect_swift_compiler()
         else:
-            return None, None
-
-        return comp, cross_comp
+            comp = None
+        return comp
 
     def detect_compilers(self, lang: str, need_cross_compiler: bool):
-        (comp, cross_comp) = self.compilers_from_language(lang, need_cross_compiler)
+        comp = self.compiler_from_language(lang, False)
+        if need_cross_compiler:
+            cross_comp = self.compiler_from_language(lang, True)
+        else:
+            cross_comp = None
         if comp is not None:
             self.coredata.process_new_compilers(lang, comp, cross_comp, self)
         return comp, cross_comp
