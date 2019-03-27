@@ -490,7 +490,9 @@ class SingleTestRunner:
         stderr = None
         if not self.options.verbose:
             stdout = tempfile.TemporaryFile("wb+")
-            stderr = tempfile.TemporaryFile("wb+") if self.options and self.options.split else stdout
+            stderr = tempfile.TemporaryFile("wb+") if self.options.split else stdout
+        if self.test.protocol == 'tap' and stdout == stderr:
+            stdout = tempfile.TemporaryFile("wb+")
 
         # Let gdb handle ^C instead of us
         if self.options.gdb:
@@ -570,17 +572,16 @@ class SingleTestRunner:
         endtime = time.time()
         duration = endtime - starttime
         if additional_error is None:
-            if stdout is None:  # if stdout is None stderr should be as well
+            if stdout is None:
                 stdo = ''
-                stde = ''
             else:
                 stdout.seek(0)
                 stdo = decode(stdout.read())
-                if stderr != stdout:
-                    stderr.seek(0)
-                    stde = decode(stderr.read())
-                else:
-                    stde = ""
+            if stderr is None or stderr == stdout:
+                stde = ''
+            else:
+                stderr.seek(0)
+                stde = decode(stderr.read())
         else:
             stdo = ""
             stde = additional_error
@@ -590,6 +591,8 @@ class SingleTestRunner:
             if self.test.protocol == 'exitcode':
                 return TestRun.make_exitcode(self.test, p.returncode, duration, stdo, stde, cmd)
             else:
+                if self.options.verbose:
+                    print(stdo, end='')
                 return TestRun.make_tap(self.test, p.returncode, duration, stdo, stde, cmd)
 
 
