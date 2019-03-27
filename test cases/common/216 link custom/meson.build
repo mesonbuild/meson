@@ -16,6 +16,8 @@ clib = custom_target('linkcustom',
             '-o', '@OUTPUT@',
             '--private-dir', '@PRIVATE_DIR@'] + cc.cmd_array())
 
+# custom_target tests
+
 exe = executable('prog', 'prog.c', link_with: clib)
 test('linkcustom', exe)
 
@@ -33,3 +35,23 @@ d2 = declare_dependency(link_whole: clib)
 
 exe4 = executable('prog4', 'prog.c', dependencies: d2)
 test('linkwhole2', exe2)
+
+# custom_target[i] tests
+
+exe_i = executable('prog_i', 'prog.c', link_with: clib[0])
+test('linkcustom', exe_i)
+
+d_i = declare_dependency(link_with: clib[0])
+
+exe2_i = executable('prog2_i', 'prog.c', dependencies: d_i)
+test('linkcustom2_i', exe2_i)
+
+# Link whole tests
+
+exe3_i = executable('prog3_i', 'prog.c', link_whole: clib[0])
+test('linkwhole', exe)
+
+d2_i = declare_dependency(link_whole: clib[0])
+
+exe4_i = executable('prog4_i', 'prog.c', dependencies: d2_i)
+test('linkwhole2_i', exe2_i)
