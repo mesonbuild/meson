@@ -898,6 +898,12 @@ class Compiler:
         self.base_options = []
         self.dynamic_linker = dynamic_linker
 
+        # If the compiler is used to invoke the dynamic linker this is true.
+        # Though this seems like a linker property, it really is a compiler
+        # property because link.exe can be invoked by clang on
+        # windows, but MSVC is not used to invoke link.exe
+        self.invokes_linker = True
+
     def __repr__(self):
         repr_str = "<{0}: v{1} `{2}`>"
         return repr_str.format(self.__class__.__name__, self.version,
