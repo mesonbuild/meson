@@ -893,7 +893,7 @@ Timeout:            %4d
                     visible_name = self.get_pretty_suite(test)
                     single_test = self.get_test_runner(test)
 
-                    if not test.is_parallel or single_test.options.gdb:
+                    if not test.is_parallel or self.options.num_processes == 1 or single_test.options.gdb:
                         self.drain_futures(futures)
                         futures = []
                         res = single_test.run()
