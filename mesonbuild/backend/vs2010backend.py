@@ -249,9 +249,15 @@ class Vs2010Backend(backends.Backend):
                         all_deps[d.get_id()] = d
             elif isinstance(target, build.BuildTarget):
                 for ldep in target.link_targets:
-                    all_deps[ldep.get_id()] = ldep
+                    if isinstance(ldep, build.CustomTargetIndex):
+                        all_deps[ldep.get_id()] = ldep.target
+                    else:
+                        all_deps[ldep.get_id()] = ldep
                 for ldep in target.link_whole_targets:
-                    all_deps[ldep.get_id()] = ldep
+                    if isinstance(ldep, build.CustomTargetIndex):
+                        all_deps[ldep.get_id()] = ldep.target
+                    else:
+                        all_deps[ldep.get_id()] = ldep
                 for obj_id, objdep in self.get_obj_target_deps(target.objects):
                     all_deps[obj_id] = objdep
                 for gendep in target.get_generated_sources():

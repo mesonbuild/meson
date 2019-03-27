@@ -171,6 +171,8 @@ class Backend:
                 mlog.warning('custom_target {!r} has more than one output! '
                              'Using the first one.'.format(t.name))
             filename = t.get_outputs()[0]
+        elif isinstance(t, build.CustomTargetIndex):
+            filename = t.get_outputs()[0]
         else:
             assert(isinstance(t, build.BuildTarget))
             filename = t.get_filename()
@@ -214,7 +216,7 @@ class Backend:
             return os.path.join(self.get_target_dir(target), link_lib)
         elif isinstance(target, build.StaticLibrary):
             return os.path.join(self.get_target_dir(target), target.get_filename())
-        elif isinstance(target, build.CustomTarget):
+        elif isinstance(target, build.CustomTarget) or isinstance(target, build.CustomTargetIndex):
             if not target.is_linkable_target():
                 raise MesonException('Tried to link against custom target "%s", which is not linkable.' % target.name)
             return os.path.join(self.get_target_dir(target), target.get_filename())
