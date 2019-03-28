@@ -1070,13 +1070,18 @@ You probably should put it in link_with instead.''')
 
     def link_whole(self, target):
         for t in listify(target, unholder=True):
-            if not isinstance(t, StaticLibrary):
+            if isinstance(t, CustomTarget):
+                if not t.is_linkable_target():
+                    raise InvalidArguments('Custom target {!r} is not linkable.'.format(t))
+                if not t.get_filename().endswith('.a'):
+                    raise InvalidArguments('Can only link_whole custom targets that are .a archives.')
+            elif not isinstance(t, StaticLibrary):
                 raise InvalidArguments('{!r} is not a static library.'.format(t))
             if isinstance(self, SharedLibrary) and not t.pic:
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if self.is_cross != t.is_cross:
+            if not isinstance(t, CustomTarget) and self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_whole_targets.append(t)
 

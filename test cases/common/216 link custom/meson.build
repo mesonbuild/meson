@@ -23,3 +23,13 @@ d = declare_dependency(link_with: clib)
 
 exe2 = executable('prog2', 'prog.c', dependencies: d)
 test('linkcustom2', exe2)
+
+# Link whole tests
+
+exe3 = executable('prog3', 'prog.c', link_whole: clib)
+test('linkwhole', exe)
+
+d2 = declare_dependency(link_whole: clib)
+
+exe4 = executable('prog4', 'prog.c', dependencies: d2)
+test('linkwhole2', exe2)
