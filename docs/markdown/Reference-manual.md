@@ -519,11 +519,18 @@ be passed to [shared and static libraries](#library).
   when this file changes.
 - `link_whole` links all contents of the given static libraries
   whether they are used by not, equivalent to the
-  `-Wl,--whole-archive` argument flag of GCC, available since
-  0.40.0. As of 0.41.0 if passed a list that list will be flattened.
+  `-Wl,--whole-archive` argument flag of GCC, available since 0.40.0.
+  As of 0.41.0 if passed a list that list will be flattened. Starting
+  from version 0.51.0 this argument also accepts outputs produced by
+  custom targets. The user must ensure that the output is a library in
+  the correct format.
 - `link_with`, one or more shared or static libraries (built by this
   project) that this target should be linked with, If passed a list
-  this list will be flattened as of 0.41.0.
+  this list will be flattened as of 0.41.0. Starting with version
+  0.51.0, the arguments can also be custom targets. In this case Meson
+  will assume that merely adding the output file in the linker command
+  line is sufficient to make linking work. If this is not sufficient,
+  then the build system writer must write all other steps manually.
 - `export_dynamic` when set to true causes the target's symbols to be
   dynamically exported, allowing modules built using the
   [`shared_module`](#shared_module) function to refer to functions,
