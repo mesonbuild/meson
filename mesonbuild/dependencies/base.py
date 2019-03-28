@@ -164,8 +164,9 @@ class Dependency:
     def get_configtool_variable(self, variable_name):
         raise DependencyException('{!r} is not a config-tool dependency'.format(self.name))
 
-    def get_partial_dependency(self, *, compile_args=False, link_args=False,
-                               links=False, includes=False, sources=False):
+    def get_partial_dependency(self, *, compile_args: bool = False,
+                               link_args: bool = False, links: bool = False,
+                               includes: bool = False, sources: bool = False):
         """Create a new dependency that contains part of the parent dependency.
 
         The following options can be inherited:
@@ -203,8 +204,9 @@ class InternalDependency(Dependency):
         raise DependencyException('Method "get_configtool_variable()" is '
                                   'invalid for an internal dependency')
 
-    def get_partial_dependency(self, *, compile_args=False, link_args=False,
-                               links=False, includes=False, sources=False):
+    def get_partial_dependency(self, *, compile_args: bool = False,
+                               link_args: bool = False, links: bool = False,
+                               includes: bool = False, sources: bool = False):
         compile_args = self.compile_args.copy() if compile_args else []
         link_args = self.link_args.copy() if link_args else []
         libraries = self.libraries.copy() if links else []
@@ -265,8 +267,9 @@ class ExternalDependency(Dependency):
     def get_compiler(self):
         return self.clib_compiler
 
-    def get_partial_dependency(self, *, compile_args=False, link_args=False,
-                               links=False, includes=False, sources=False):
+    def get_partial_dependency(self, *, compile_args: bool = False,
+                               link_args: bool = False, links: bool = False,
+                               includes: bool = False, sources: bool = False):
         new = copy.copy(self)
         if not compile_args:
             new.compile_args = []
@@ -329,8 +332,9 @@ class NotFoundDependency(Dependency):
         self.name = 'not-found'
         self.is_found = False
 
-    def get_partial_dependency(self, *, compile_args=False, link_args=False,
-                               links=False, includes=False, sources=False):
+    def get_partial_dependency(self, *, compile_args: bool = False,
+                               link_args: bool = False, links: bool = False,
+                               includes: bool = False, sources: bool = False):
         return copy.copy(self)
 
 
@@ -2166,8 +2170,9 @@ class ExternalLibrary(ExternalDependency):
             return []
         return super().get_link_args(**kwargs)
 
-    def get_partial_dependency(self, *, compile_args=False, link_args=False,
-                               links=False, includes=False, sources=False):
+    def get_partial_dependency(self, *, compile_args: bool = False,
+                               link_args: bool = False, links: bool = False,
+                               includes: bool = False, sources: bool = False):
         # External library only has link_args, so ignore the rest of the
         # interface.
         new = copy.copy(self)
