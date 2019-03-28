@@ -2335,8 +2335,12 @@ external dependencies (including libraries) must go to "dependencies".''')
                                            'or not executable'.format(cmd))
             cmd = prog
         cmd_path = mesonlib.relpath(cmd.get_path(), start=srcdir)
-        if not cmd_path.startswith('..') and cmd_path not in self.build_def_files:
-            self.build_def_files.append(cmd_path)
+        if not cmd_path.startswith('..'):
+            # On Windows, program on a different drive than srcdir won't have
+            # an expressible relative path; cmd_path will be absolute instead.
+            if not os.path.isabs(cmd_path):
+                if cmd_path not in self.build_def_files:
+                    self.build_def_files.append(cmd_path)
         expanded_args = []
         for a in listify(cargs):
             if isinstance(a, str):
