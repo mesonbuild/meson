@@ -2144,6 +2144,20 @@ class AllPlatformTests(BasePlatformTests):
             self.utime(os.path.join(testdir, f))
             self.assertRebuiltTarget('prog')
 
+    def test_source_generator_program_cause_rebuild(self):
+        '''
+        Test that changes to generator programs in the source tree cause
+        a rebuild.
+        '''
+        testdir = os.path.join(self.common_test_dir, '95 gen extra')
+        self.init(testdir)
+        self.build()
+        # Immediately rebuilding should not do anything
+        self.assertBuildIsNoop()
+        # Changing mtime of generator should rebuild the executable
+        self.utime(os.path.join(testdir, 'srcgen.py'))
+        self.assertRebuiltTarget('basic')
+
     def test_static_library_lto(self):
         '''
         Test that static libraries can be built with LTO and linked to
