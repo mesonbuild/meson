@@ -204,18 +204,19 @@ class InternalDependency(Dependency):
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
                                includes: bool = False, sources: bool = False):
-        compile_args = self.compile_args.copy() if compile_args else []
-        link_args = self.link_args.copy() if link_args else []
-        libraries = self.libraries.copy() if links else []
-        whole_libraries = self.whole_libraries.copy() if links else []
-        sources = self.sources.copy() if sources else []
-        includes = self.include_directories.copy() if includes else []
-        deps = [d.get_partial_dependency(
+        final_compile_args = self.compile_args.copy() if compile_args else []
+        final_link_args = self.link_args.copy() if link_args else []
+        final_libraries = self.libraries.copy() if links else []
+        final_whole_libraries = self.whole_libraries.copy() if links else []
+        final_sources = self.sources.copy() if sources else []
+        final_includes = self.include_directories.copy() if includes else []
+        final_deps = [d.get_partial_dependency(
             compile_args=compile_args, link_args=link_args, links=links,
             includes=includes, sources=sources) for d in self.ext_deps]
         return InternalDependency(
-            self.version, includes, compile_args, link_args, libraries,
-            whole_libraries, sources, deps)
+            self.version, final_includes, final_compile_args,
+            final_link_args, final_libraries, final_whole_libraries,
+            final_sources, final_deps)
 
 
 class ExternalDependency(Dependency):
