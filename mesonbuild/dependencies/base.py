@@ -278,6 +278,10 @@ class ExternalDependency(Dependency):
             new.link_args = []
         if not sources:
             new.sources = []
+        if not includes:
+            new.include_directories = []
+        if not sources:
+            new.sources = []
 
         return new
 
