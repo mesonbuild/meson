@@ -27,7 +27,7 @@ Usually dependencies consist of some header files plus a library to link against
 To declare this internal dependency use `declare_dependency` function.  
 
 As an example, suppose we have a simple project that provides a shared
-library. It's `meson.build` would look like this.
+library. Its `meson.build` would look like this.
 
 ```meson
 project('libsimple', 'c')
