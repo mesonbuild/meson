@@ -456,7 +456,8 @@ Print the argument string and halts the build process.
     environment_object environment()
 ```
 
-Returns an empty [environment variable object](#environment-object).
+Returns an empty [environment variable object](#environment-object). Added in
+0.35.0.
 
 ### executable()
 
