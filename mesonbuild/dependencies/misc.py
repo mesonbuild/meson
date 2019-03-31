@@ -46,18 +46,28 @@ class LapackDependency(ExternalDependency):
 
         mkltype = 'static' if self.static else 'dynamic'
 
-        if 'mkl' in modules or 'mkl64' in modules:
+        if 'mkl' in modules or 'mkl64' in modules or 'mkl95' in modules:
             mklroot = os.environ.get('MKLROOT')
             if not mklroot:
                 raise DependencyException('Intel MKL cannot be found without MKLROOT environment variable')
             mklroot = Path(mklroot).expanduser()
 
             mkl_bitflag = 'i' if 'mkl64' in modules else ''
+
             pkgconfig_files = ['mkl-{}-{}lp64-iomp'.format(mkltype, mkl_bitflag)]
+            if 'mkl95' in modules:
+                pkgconfig_files.append('mkl_blas95_{0}lp64 mkl_lapack95_{0}lp64'.format(mkl_bitflag))
         elif 'atlas' in modules:
             pkgconfig_files = ['lapack-atlas', 'blas-atlas']
+        elif 'netlib' in modules or 'netlib95' in modules or not modules:
+            pkgconfig_files = []
+            if language in ('c', 'cpp'):
+                pkgconfig_files.append('lapacke')
+            if 'netlib95' in modules:
+                pkgconfig_files.append('lapack95')
+            pkgconfig_files += ['lapack', 'blas']
         else:
-            pkgconfig_files = ['lapack', 'blas']
+            raise DependencyException('Unknown LAPACK module {}'.format(modules))
 
         if language not in ('c', 'cpp', 'fortran'):
             raise DependencyException('Language {} is not supported with Lapack.'.format(language))

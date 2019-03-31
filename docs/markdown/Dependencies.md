@@ -301,6 +301,48 @@ language-specific, you must specify the requested language using the
 Meson uses pkg-config to find HDF5. The standard low-level HDF5 function and the `HL` high-level HDF5 functions are linked for each language.
 
 
+## LAPACK
+
+*(added 0.51.0)*
+
+
+LAPACK is a widely used linear algebra library with numerous implementations.
+Meson can specify numerous LAPACK vendors and configurations.
+
+* Intel MKL: `dependency('lapack', modules: 'mkl')`
+* Atlas: `dependency('lapack', modules: 'atlas')`
+* Netlib (default): `dependency('lapack', modules: 'netlib')
+
+LAPACK95 adds convenient Fortran interfaces to the base LAPACK implementation:
+
+* Intel MKL: `dependency('lapack', modules: 'mkl95')`
+* Intel MKL: `dependency('lapack', modules: 'netlib95')`
+
+
+Tested configurations include:
+
+Windows:
+
+Compiler | Lapack
+---------|-------
+MSVC | Intel MKL
+PGI | Intel MKL
+
+
+Linux:
+
+Compiler | Lapack
+---------|-------
+gcc + gfortran | Netlib Lapack
+gcc + gfortran | Intel MKL
+gcc + gfortran | Atlas
+Clang + gfortran  | Netlib Lapack
+Clang + gfortran  | Intel MKL
+Clang + gfortran  | Atlas
+Clang + Flang | Netlib Lapack
+Clang + Flang | Intel MKL
+Clang + Flang | Atlas
+
 ## libwmf
 
 *(added 0.44.0)*
