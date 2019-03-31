@@ -35,7 +35,7 @@ from .. import mesonlib
 from ..compilers import clib_langs
 from ..environment import BinaryTable, Environment, MachineInfo
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
-from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
+from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list
 from ..mesonlib import Version, LibType
 
 # These must be defined in this file to avoid cyclical references.
@@ -1074,16 +1074,10 @@ class CMakeDependency(ExternalDependency):
         if self.cmakeinfo is None:
             raise self._gen_exception('Unable to obtain CMake system information')
 
-        modules = [(x, True) for x in kwargs.get('modules', [])]
-        modules += [(x, False) for x in kwargs.get('optional_modules', [])]
-        cm_path = kwargs.get('cmake_module_path', [])
-        cm_args = kwargs.get('cmake_args', [])
-        if not isinstance(modules, list):
-            modules = [modules]
-        if not isinstance(cm_path, list):
-            cm_path = [cm_path]
-        if not isinstance(cm_args, list):
-            cm_args = [cm_args]
+        modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
+        modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
+        cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))
+        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
         if cm_path:
             cm_args += ['-DCMAKE_MODULE_PATH={}'.format(';'.join(cm_path))]
