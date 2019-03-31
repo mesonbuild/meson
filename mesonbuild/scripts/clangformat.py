@@ -21,6 +21,7 @@ from ..compilers import lang_suffixes
 def clangformat(srcdir_name, builddir_name):
     srcdir = pathlib.Path(srcdir_name)
     suffixes = set(lang_suffixes['c']).union(set(lang_suffixes['cpp']))
+    suffixes.add('h')
     futures = []
     with ThreadPoolExecutor() as e:
         for f in (x for suff in suffixes for x in srcdir.glob('**/*.' + suff)):
