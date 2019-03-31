@@ -45,7 +45,7 @@ class LapackDependency(ExternalDependency):
         if language not in ('c', 'cpp', 'fortran'):
             raise DependencyException('Language {} is not supported with Lapack.'.format(language))
 
-        modules: List[str] = kwargs.get('modules', [])
+        modules = kwargs.get('modules', [])  # type: List[str]
 
         mkltype = 'static' if self.static else 'dynamic'
 

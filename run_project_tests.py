@@ -498,6 +498,10 @@ def skippable(suite, test):
     if test.endswith('10 gtk-doc'):
         return True
 
+    # LAPACK is not in the CI image
+    if test.endswith('lapack'):
+        return True
+
     # NetCDF is not in the CI image
     if test.endswith('netcdf'):
         return True
