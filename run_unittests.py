@@ -3271,20 +3271,25 @@ recommended as it is not supported on some platforms''')
         testfile = os.path.join(testdir, 'prog.c')
         badfile = os.path.join(testdir, 'prog_orig_c')
         goodfile = os.path.join(testdir, 'prog_expected_c')
+        testheader = os.path.join(testdir, 'header.h')
+        badheader = os.path.join(testdir, 'header_orig_h')
+        goodheader = os.path.join(testdir, 'header_expected_h')
         try:
-            self.run_clangformat(testdir, testfile, badfile, goodfile)
+            shutil.copyfile(badfile, testfile)
+            shutil.copyfile(badheader, testheader)
+            self.init(testdir)
+            self.assertNotEqual(Path(testfile).read_text(),
+                                Path(goodfile).read_text())
+            self.assertNotEqual(Path(testheader).read_text(),
+                                Path(goodheader).read_text())
+            self.run_target('clang-format')
+            self.assertEqual(Path(testheader).read_text(),
+                             Path(goodheader).read_text())
         finally:
             if os.path.exists(testfile):
                 os.unlink(testfile)
-
-    def run_clangformat(self, testdir, testfile, badfile, goodfile):
-        shutil.copyfile(badfile, testfile)
-        self.init(testdir)
-        self.assertNotEqual(Path(testfile).read_text(),
-                            Path(goodfile).read_text())
-        self.run_target('clang-format')
-        self.assertEqual(Path(testfile).read_text(),
-                         Path(goodfile).read_text())
+            if os.path.exists(testheader):
+                os.unlink(testheader)
 
     def test_introspect_buildoptions_without_configured_build(self):
         testdir = os.path.join(self.unit_test_dir, '56 introspect buildoptions')
