@@ -567,6 +567,8 @@ class BuildTarget(Target):
         if self.link_targets or self.link_whole_targets:
             extra = set()
             for t in itertools.chain(self.link_targets, self.link_whole_targets):
+                if isinstance(t, CustomTarget):
+                    continue # We can't know anything about these.
                 for name, compiler in t.compilers.items():
                     if name in clink_langs:
                         extra.add((name, compiler))
@@ -1062,19 +1064,24 @@ You probably should put it in link_with instead.''')
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if self.is_cross != t.is_cross:
+            if not isinstance(t, CustomTarget) and self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_targets.append(t)
 
     def link_whole(self, target):
         for t in listify(target, unholder=True):
-            if not isinstance(t, StaticLibrary):
+            if isinstance(t, CustomTarget):
+                if not t.is_linkable_target():
+                    raise InvalidArguments('Custom target {!r} is not linkable.'.format(t))
+                if not t.get_filename().endswith('.a'):
+                    raise InvalidArguments('Can only link_whole custom targets that are .a archives.')
+            elif not isinstance(t, StaticLibrary):
                 raise InvalidArguments('{!r} is not a static library.'.format(t))
             if isinstance(self, SharedLibrary) and not t.pic:
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if self.is_cross != t.is_cross:
+            if not isinstance(t, CustomTarget) and self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_whole_targets.append(t)
 
@@ -1151,6 +1158,8 @@ You probably should put it in link_with instead.''')
         # Check if any of the internal libraries this target links to were
         # written in this language
         for link_target in itertools.chain(self.link_targets, self.link_whole_targets):
+            if isinstance(link_target, CustomTarget):
+                continue
             for language in link_target.compilers:
                 if language not in langs:
                     langs.append(language)
@@ -2100,6 +2109,22 @@ class CustomTarget(Target):
             if '@BASENAME@' in self.depfile or '@PLAINNAME@' in self.depfile:
                 raise InvalidArguments('Substitution in depfile for custom_target that does not have an input file.')
             return self.depfile
+
+    def is_linkable_target(self):
+        if len(self.outputs) != 1:
+            return False
+        suf = os.path.splitext(self.outputs[0])[-1]
+        if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so':
+            return True
+
+    def get_link_deps_mapping(self, prefix, environment):
+        return {}
+
+    def get_link_dep_subdirs(self):
+        return OrderedSet()
+
+    def get_all_link_deps(self):
+        return []
 
     def type_suffix(self):
         return "@cus"
