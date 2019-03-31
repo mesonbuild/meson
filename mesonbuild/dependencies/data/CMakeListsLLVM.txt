@@ -17,8 +17,10 @@ endwhile()
 if(LLVM_FOUND)
   set(PACKAGE_FOUND TRUE)
 
-  llvm_map_components_to_libnames(llvm_libs ${LLVM_MESON_MODULES})
-  set(MESON_RESOLVED_LLVM_MODULES ${llvm_libs})
+  llvm_map_components_to_libnames(llvm_libs     ${LLVM_MESON_MODULES})
+  llvm_map_components_to_libnames(llvm_libs_opt ${LLVM_MESON_OPT_MODULES})
+  set(MESON_RESOLVED_LLVM_MODULES     ${llvm_libs})
+  set(MESON_RESOLVED_LLVM_MODULES_OPT ${llvm_libs_opt})
 
   # Check the following variables:
   # LLVM_PACKAGE_VERSION

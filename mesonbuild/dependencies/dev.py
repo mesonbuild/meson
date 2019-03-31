@@ -401,7 +401,8 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
 class LLVMDependencyCMake(CMakeDependency):
     def __init__(self, env, kwargs):
-        self.llvm_modules = kwargs.get('modules', [])
+        self.llvm_modules = stringlistify(extract_as_list(kwargs, 'modules'))
+        self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
         super().__init__(name='LLVM', environment=env, language='cpp', kwargs=kwargs)
 
         # Extract extra include directories and definitions
@@ -415,10 +416,13 @@ class LLVMDependencyCMake(CMakeDependency):
         return 'CMakeListsLLVM.txt'
 
     def _extra_cmake_opts(self):
-        return ['-DLLVM_MESON_MODULES={}'.format(';'.join(self.llvm_modules))]
+        return ['-DLLVM_MESON_MODULES={}'.format(';'.join(self.llvm_modules)),
+                '-DLLVM_MESON_OPT_MODULES={}'.format(';'.join(self.llvm_opt_modules))]
 
     def _map_module_list(self, modules):
-        return self.get_cmake_var('MESON_RESOLVED_LLVM_MODULES')
+        modules = [(x, True) for x in self.get_cmake_var('MESON_RESOLVED_LLVM_MODULES')]
+        modules += [(x, False) for x in self.get_cmake_var('MESON_RESOLVED_LLVM_MODULES_OPT')]
+        return modules
 
     def need_threads(self):
         return True

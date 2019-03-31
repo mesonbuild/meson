@@ -977,7 +977,7 @@ class CMakeDependency(ExternalDependency):
     def _extra_cmake_opts(self):
         return []
 
-    def _map_module_list(self, modules: List[str]) -> List[str]:
+    def _map_module_list(self, modules: List[Tuple[str, bool]]) -> List[Tuple[str, bool]]:
         # Map the input module list to something else
         # This function will only be executed AFTER the initial CMake
         # interpreter pass has completed. Thus variables defined in the
@@ -1074,7 +1074,8 @@ class CMakeDependency(ExternalDependency):
         if self.cmakeinfo is None:
             raise self._gen_exception('Unable to obtain CMake system information')
 
-        modules = kwargs.get('modules', [])
+        modules = [(x, True) for x in kwargs.get('modules', [])]
+        modules += [(x, False) for x in kwargs.get('optional_modules', [])]
         cm_path = kwargs.get('cmake_module_path', [])
         cm_args = kwargs.get('cmake_args', [])
         if not isinstance(modules, list):
@@ -1255,7 +1256,7 @@ class CMakeDependency(ExternalDependency):
 
         return False
 
-    def _detect_dep(self, name: str, modules: List[str], args: List[str]):
+    def _detect_dep(self, name: str, modules: List[Tuple[str, bool]], args: List[str]):
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
@@ -1352,7 +1353,7 @@ class CMakeDependency(ExternalDependency):
                 lname = name.lower()
                 if '{}::{}'.format(lname, lname) == tg or lname == tg.replace('::', ''):
                     mlog.debug('Guessed CMake target \'{}\''.format(i))
-                    modules = [i]
+                    modules = [(i, True)]
                     break
 
         # Failed to guess a target --> try the old-style method
@@ -1380,8 +1381,11 @@ class CMakeDependency(ExternalDependency):
         compileDefinitions = []
         compileOptions = []
         libraries = []
-        for i in modules:
+        for i, required in modules:
             if i not in self.targets:
+                if not required:
+                    mlog.warning('CMake: Optional CMake target', mlog.bold(i), 'for', mlog.bold(name), 'was not found')
+                    continue
                 raise self._gen_exception('CMake: invalid CMake target {} for {}.\n'
                                           'Try to explicitly specify one or more targets with the "modules" property.\n'
                                           'Valid targets are:\n{}'.format(i, name, list(self.targets.keys())))
