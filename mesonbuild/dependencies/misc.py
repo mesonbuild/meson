@@ -42,6 +42,9 @@ class LapackDependency(ExternalDependency):
         kwargs['silent'] = True
         self.is_found = False
 
+        if language not in ('c', 'cpp', 'fortran'):
+            raise DependencyException('Language {} is not supported with Lapack.'.format(language))
+
         modules: List[str] = kwargs.get('modules', [])
 
         mkltype = 'static' if self.static else 'dynamic'
@@ -68,9 +71,6 @@ class LapackDependency(ExternalDependency):
             pkgconfig_files += ['lapack', 'blas']
         else:
             raise DependencyException('Unknown LAPACK module {}'.format(modules))
-
-        if language not in ('c', 'cpp', 'fortran'):
-            raise DependencyException('Language {} is not supported with Lapack.'.format(language))
 
         self.compile_args = []
         self.link_args = []
