@@ -20,6 +20,7 @@ import os
 import re
 import shlex
 import sysconfig
+from typing import Sequence, List
 
 from .. import mlog
 from .. import mesonlib
@@ -30,6 +31,92 @@ from .base import (
     ExternalProgram, ExtraFrameworkDependency, PkgConfigDependency,
     CMakeDependency, ConfigToolDependency,
 )
+
+
+class LapackDependency(ExternalDependency):
+
+    def __init__(self, environment, kwargs):
+        language = kwargs.get('language', 'c')
+        super().__init__('lapack', environment, language, kwargs)
+        kwargs['required'] = False
+        kwargs['silent'] = True
+        self.is_found = False
+
+        modules: List[str] = kwargs.get('modules', [])
+
+        mkltype = 'static' if self.static else 'dynamic'
+
+        if 'mkl' in modules or 'mkl64' in modules:
+            mklroot = os.environ.get('MKLROOT')
+            if not mklroot:
+                raise DependencyException('Intel MKL cannot be found without MKLROOT environment variable')
+            mklroot = Path(mklroot).expanduser()
+
+            mkl_bitflag = 'i' if 'mkl64' in modules else ''
+            pkgconfig_files = ['mkl-{}-{}lp64-iomp'.format(mkltype, mkl_bitflag)]
+        elif 'atlas' in modules:
+            pkgconfig_files = ['lapack-atlas', 'blas-atlas']
+        else:
+            pkgconfig_files = ['lapack', 'blas']
+
+        if language not in ('c', 'cpp', 'fortran'):
+            raise DependencyException('Language {} is not supported with Lapack.'.format(language))
+
+        self.compile_args = []
+        self.link_args = []
+        self.pcdep = []
+        for pkg in pkgconfig_files:
+            pkgdep = PkgConfigDependency(pkg, environment, kwargs, language=self.language)
+            if pkgdep.found():
+                compile_args = pkgdep.get_compile_args()
+                if os.name == 'nt':
+                    compile_args = self._fix_windows_pkgconfig(compile_args)
+                self.compile_args.extend(compile_args)
+
+                link_args = pkgdep.get_link_args()
+                if os.name == 'nt':
+                    link_args = self._fix_windows_pkgconfig(link_args)
+                if pkg == 'blas-atlas' and language in ('c', 'cpp'):
+                    lpath = Path(link_args[0])
+                    lname = lpath.name.split('blas')
+                    cblas = lpath.parent / (lname[0] + 'cblas' + lname[1])
+                    if not cblas.is_file():
+                        cblas = lpath.parents[1] / (lname[0] + 'cblas' + lname[1])
+                        if not cblas.is_file():
+                            raise DependencyException('Atlas CBLAS not found in {}'.format(lpath))
+                    link_args.append(str(cblas))
+                self.link_args.extend(link_args)
+
+                self.version = pkgdep.get_version()
+                self.is_found = True
+                self.pcdep.append(pkgdep)
+
+    @staticmethod
+    def _fix_windows_pkgconfig(paths: Sequence[str]) -> List[str]:
+        """
+        pkg-config on Windows mangles paths with spaces.
+        Perhaps this should be handled more generally in Meson in the future.
+        It's not Python `pathlib.PurePath` fault, pkg-config.exe itself outputs:
+
+            Program\\ Files\\ (x86)
+
+        Parameters
+        ----------
+
+        paths: list of str
+            list of paths to fix
+
+        Reults
+        ------
+
+        fixed: list of str
+            paths fixed
+        """
+
+        if isinstance(paths, str):
+            paths = [paths]
+
+        return [s.replace('Program\\ Files\\ ', 'Program Files ') for s in paths]
 
 
 class CoarrayDependency(ExternalDependency):
