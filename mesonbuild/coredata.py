@@ -575,7 +575,7 @@ class CoreData:
             new_options_for_host = cross_comp.get_and_default_options(env.properties.host)
             preproc_flags_for_host = cross_comp.get_preproc_flags()
         else:
-            new_options_for_host = comp.get_and_default_options(env.properties.host)
+            new_options_for_host = new_options_for_build
             preproc_flags_for_host = comp.get_preproc_flags()
 
         opts_machines_list = [
