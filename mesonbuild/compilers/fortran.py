@@ -31,7 +31,9 @@ from .compilers import (
     PGICompiler
 )
 
-from mesonbuild.mesonlib import EnvironmentException, is_osx, LibType
+from mesonbuild.mesonlib import (
+    EnvironmentException, MachineChoice, is_osx, LibType
+)
 
 
 class FortranCompiler(Compiler):
@@ -79,7 +81,13 @@ class FortranCompiler(Compiler):
         binary_name = os.path.join(work_dir, 'sanitycheckf')
         with open(source_name, 'w') as ofile:
             ofile.write('print *, "Fortran compilation is working."; end')
-        pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
+        if environment.is_cross_build() and not self.is_cross:
+            for_machine = MachineChoice.BUILD
+        else:
+            for_machine = MachineChoice.HOST
+        extra_flags = environment.coredata.get_external_args(for_machine, self.language)
+        extra_flags += environment.coredata.get_external_link_args(for_machine, self.language)
+        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
@@ -222,6 +230,9 @@ class FortranCompiler(Compiler):
 
     def gen_import_library_args(self, implibname):
         return CCompiler.gen_import_library_args(self, implibname)
+
+    def _get_basic_compiler_args(self, env, mode):
+        return CCompiler._get_basic_compiler_args(self, env, mode)
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         return CCompiler._get_compiler_check_args(self, env, extra_args, dependencies, mode='compile')

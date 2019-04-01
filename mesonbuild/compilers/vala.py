@@ -15,7 +15,7 @@
 import os.path
 
 from .. import mlog
-from ..mesonlib import EnvironmentException, version_compare
+from ..mesonlib import EnvironmentException, MachineChoice, version_compare
 
 from .compilers import Compiler
 
@@ -87,7 +87,16 @@ class ValaCompiler(Compiler):
 
     def sanity_check(self, work_dir, environment):
         code = 'class MesonSanityCheck : Object { }'
-        with self.compile(code, [], 'compile') as p:
+        if environment.is_cross_build() and not self.is_cross:
+            for_machine = MachineChoice.BUILD
+        else:
+            for_machine = MachineChoice.HOST
+        extra_flags = environment.coredata.get_external_args(for_machine, self.language)
+        if self.is_cross:
+            extra_flags += self.get_compile_only_args()
+        else:
+            extra_flags += environment.coredata.get_external_link_args(for_machine, self.language)
+        with self.compile(code, extra_flags, 'compile') as p:
             if p.returncode != 0:
                 msg = 'Vala compiler {!r} can not compile programs' \
                       ''.format(self.name_string())
@@ -105,8 +114,14 @@ class ValaCompiler(Compiler):
         # no extra dirs are specified.
         if not extra_dirs:
             code = 'class MesonFindLibrary : Object { }'
+            if env.is_cross_build() and not self.is_cross:
+                for_machine = MachineChoice.BUILD
+            else:
+                for_machine = MachineChoice.HOST
+            args = env.coredata.get_external_args(for_machine, self.language)
             vapi_args = ['--pkg', libname]
-            with self.compile(code, vapi_args, 'compile') as p:
+            args += vapi_args
+            with self.compile(code, args, 'compile') as p:
                 if p.returncode == 0:
                     return vapi_args
         # Not found? Try to find the vapi file itself.

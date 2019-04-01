@@ -309,9 +309,9 @@ class CCompiler(Compiler):
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
 
-        extra_flags = []
         source_name = os.path.join(work_dir, sname)
         binname = sname.rsplit('.', 1)[0]
+        mode = 'link'
         if self.is_cross:
             binname += '_cross'
             if self.exe_wrapper is None:
@@ -320,7 +320,9 @@ class CCompiler(Compiler):
                 # on OSX the compiler binary is the same but you need
                 # a ton of compiler flags to differentiate between
                 # arm and x86_64. So just compile.
-                extra_flags += self.get_compile_only_args()
+                mode = 'compile'
+        extra_flags = self._get_basic_compiler_args(environment, mode)
+
         # Is a valid executable output for all toolchains and platforms
         binname += '.exe'
         # Write binary check source
@@ -392,6 +394,29 @@ class CCompiler(Compiler):
         return self.compiles(t.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies)
 
+    def _get_basic_compiler_args(self, env, mode):
+        args = []
+        # Select a CRT if needed since we're linking
+        if mode == 'link':
+            args += self.get_linker_debug_crt_args()
+        if env.is_cross_build() and not self.is_cross:
+            for_machine = MachineChoice.BUILD
+        else:
+            for_machine = MachineChoice.HOST
+        if mode in {'compile', 'preprocess'}:
+            # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
+            sys_args = env.coredata.get_external_args(for_machine, self.language)
+            # Apparently it is a thing to inject linker flags both
+            # via CFLAGS _and_ LDFLAGS, even though the former are
+            # also used during linking. These flags can break
+            # argument checks. Thanks, Autotools.
+            cleaned_sys_args = self.remove_linkerlike_args(sys_args)
+            args += cleaned_sys_args
+        elif mode == 'link':
+            # Add LDFLAGS from the env
+            args += env.coredata.get_external_link_args(for_machine, self.language)
+        return args
+
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         if extra_args is None:
             extra_args = []
@@ -415,25 +440,9 @@ class CCompiler(Compiler):
                 args += d.get_link_args()
                 if d.need_threads():
                     args += self.thread_link_flags(env)
-        # Select a CRT if needed since we're linking
-        if mode == 'link':
-            args += self.get_linker_debug_crt_args()
-        if env.is_cross_build() and not self.is_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-        if mode in {'compile', 'preprocess'}:
-            # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
-            sys_args = env.coredata.get_external_args(for_machine, self.language)
-            # Apparently it is a thing to inject linker flags both
-            # via CFLAGS _and_ LDFLAGS, even though the former are
-            # also used during linking. These flags can break
-            # argument checks. Thanks, Autotools.
-            cleaned_sys_args = self.remove_linkerlike_args(sys_args)
-            args += cleaned_sys_args
-        elif mode == 'link':
-            # Add LDFLAGS from the env
-            args += env.coredata.get_external_link_args(for_machine, self.language)
+
+        args += self._get_basic_compiler_args(env, mode)
+
         args += self.get_compiler_check_args()
         # extra_args must override all other arguments, so we add them last
         args += extra_args

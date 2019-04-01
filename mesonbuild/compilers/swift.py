@@ -14,7 +14,7 @@
 
 import subprocess, os.path
 
-from ..mesonlib import EnvironmentException
+from ..mesonlib import EnvironmentException, MachineChoice
 
 from .compilers import Compiler, swift_buildtype_args, clike_debug_args
 
@@ -102,13 +102,25 @@ class SwiftCompiler(Compiler):
         src = 'swifttest.swift'
         source_name = os.path.join(work_dir, src)
         output_name = os.path.join(work_dir, 'swifttest')
+        if environment.is_cross_build() and not self.is_cross:
+            for_machine = MachineChoice.BUILD
+        else:
+            for_machine = MachineChoice.HOST
+        extra_flags = environment.coredata.get_external_args(for_machine, self.language)
+        if self.is_cross:
+            extra_flags += self.get_compile_only_args()
+        else:
+            extra_flags += environment.coredata.get_external_link_args(for_machine, self.language)
         with open(source_name, 'w') as ofile:
             ofile.write('''print("Swift compilation is working.")
 ''')
-        pc = subprocess.Popen(self.exelist + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
+        pc = subprocess.Popen(self.exelist + extra_flags + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Swift compiler %s can not compile programs.' % self.name_string())
+        if self.is_cross:
+            # Can't check if the binaries run so we have to assume they do
+            return
         if subprocess.call(output_name) != 0:
             raise EnvironmentException('Executables created by Swift compiler %s are not runnable.' % self.name_string())
 
