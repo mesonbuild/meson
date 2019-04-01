@@ -318,6 +318,10 @@ LAPACK95 adds convenient Fortran interfaces to the base LAPACK implementation:
 * Intel MKL: `dependency('lapack', modules: 'mkl95')`
 * Intel MKL: `dependency('lapack', modules: 'netlib95')`
 
+The default language is `c`, so Fortran targets will use:
+```meson
+lapack_f = dependency('lapack', ..., language: 'fortran')
+```
 
 Tested configurations include:
 
