@@ -531,7 +531,7 @@ class CoreData:
         if cross_comp is not None:
             new_options_for_host = cross_comp.get_and_default_options(env.properties.host)
         else:
-            new_options_for_host = comp.get_and_default_options(env.properties.host)
+            new_options_for_host = new_options_for_build
 
         opts_machines_list = [
             (new_options_for_build, MachineChoice.BUILD),
