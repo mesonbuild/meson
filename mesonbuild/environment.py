@@ -206,6 +206,9 @@ def detect_cpu_family(compilers):
         trial = 'x86'
     elif trial == 'bepc':
         trial = 'x86'
+    # OpenBSD's 64 bit arm architecute identifies as 'arm64'
+    elif trial == 'arm64':
+        trial = 'aarch64'
     elif trial.startswith('arm'):
         trial = 'arm'
     elif trial.startswith('ppc64'):
