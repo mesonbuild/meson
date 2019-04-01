@@ -2158,7 +2158,7 @@ an external dependency with the following methods:
    of any target it is added to, but libfoo will not be added to the
    link_args.
    
-   *Note*: A bug present until 0.51.0 results in the above behavior
+   *Note*: A bug present until 0.50.1 results in the above behavior
    not working correctly.
 
    The following arguments will add the following attributes:
