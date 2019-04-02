@@ -702,17 +702,14 @@ class ShadercDependency(ExternalDependency):
         methods = cls._process_method_kw(kwargs)
         candidates = []
 
-        if DependencyMethods.PKGCONFIG in methods:
-            candidates.append(functools.partial(PkgConfigDependency, 'shaderc', environment, kwargs))
-
-        if DependencyMethods.CMAKE in methods:
-            candidates.append(functools.partial(CMakeDependency, 'Shaderc', environment, kwargs))
-
         if DependencyMethods.SYSTEM in methods:
             candidates.append(functools.partial(ShadercDependency, environment, kwargs))
+
+        if DependencyMethods.PKGCONFIG in methods:
+            candidates.append(functools.partial(PkgConfigDependency, 'shaderc', environment, kwargs))
 
         return candidates
 
     @staticmethod
     def get_methods():
-        return [DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM]
+        return [DependencyMethods.SYSTEM, DependencyMethods.PKGCONFIG]

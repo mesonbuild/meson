@@ -485,13 +485,15 @@ Meson substitutes `modules` to `wx-config` invocation, it generates
 
 ## Shaderc
 
-*(added 0.50.1)*
+*(added 0.51.0)*
 
 Shaderc currently does not ship with any means of detection. Nevertheless, Meson
-will try to detect it using `pkg-config` and `CMake`, and fall back to looking for
-the appropriate library manually. If the `static` keyword argument is `true`,
+can try to detect it using `pkg-config`, but will default to looking for the
+appropriate library manually. If the `static` keyword argument is `true`,
 `shaderc_combined` is preferred. Otherwise, `shaderc_shared` is preferred. Note
-that it is not possible to obtain the shaderc version from this fallback.
+that it is not possible to obtain the shaderc version using this method.
+
+`method` may be `auto`, `pkg-config` or `system`.
 
 ### Example
 
