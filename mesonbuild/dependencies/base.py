@@ -984,6 +984,11 @@ class CMakeDependency(ExternalDependency):
         # CMakeLists.txt can be accessed here.
         return modules
 
+    def _original_module_name(self, module: str) -> str:
+        # Reverse the module mapping done by _map_module_list for
+        # one module
+        return module
+
     def __init__(self, name: str, environment: Environment, kwargs, language=None):
         super().__init__('cmake', environment, language, kwargs)
         self.name = name
@@ -1002,6 +1007,9 @@ class CMakeDependency(ExternalDependency):
 
         # Where all CMake "build dirs" are located
         self.cmake_root_dir = environment.scratch_dir
+
+        # List of successfully found modules
+        self.found_modules = []
 
         # When finding dependencies for cross-compiling, we don't care about
         # the 'native' CMake binary
@@ -1339,6 +1347,7 @@ class CMakeDependency(ExternalDependency):
         # Post-process module list. Used in derived classes to modify the
         # module list (append prepend a string, etc.).
         modules = self._map_module_list(modules)
+        autodetected_module_list = False
 
         # Try guessing a CMake target if none is provided
         if len(modules) == 0:
@@ -1348,6 +1357,7 @@ class CMakeDependency(ExternalDependency):
                 if '{}::{}'.format(lname, lname) == tg or lname == tg.replace('::', ''):
                     mlog.debug('Guessed CMake target \'{}\''.format(i))
                     modules = [(i, True)]
+                    autodetected_module_list = True
                     break
 
         # Failed to guess a target --> try the old-style method
@@ -1378,13 +1388,16 @@ class CMakeDependency(ExternalDependency):
         for i, required in modules:
             if i not in self.targets:
                 if not required:
-                    mlog.warning('CMake: Optional CMake target', mlog.bold(i), 'for', mlog.bold(name), 'was not found')
+                    mlog.warning('CMake: Optional module', mlog.bold(self._original_module_name(i)), 'for', mlog.bold(name), 'was not found')
                     continue
-                raise self._gen_exception('CMake: invalid CMake target {} for {}.\n'
+                raise self._gen_exception('CMake: invalid module {} for {}.\n'
                                           'Try to explicitly specify one or more targets with the "modules" property.\n'
-                                          'Valid targets are:\n{}'.format(i, name, list(self.targets.keys())))
+                                          'Valid targets are:\n{}'.format(self._original_module_name(i), name, list(self.targets.keys())))
 
             targets = [i]
+            if not autodetected_module_list:
+                self.found_modules += [i]
+
             while len(targets) > 0:
                 curr = targets.pop(0)
 
@@ -1763,6 +1776,12 @@ set(CMAKE_SIZEOF_VOID_P "{}")
 
     def log_tried(self):
         return self.type_name
+
+    def log_details(self) -> str:
+        modules = [self._original_module_name(x) for x in self.found_modules]
+        if modules:
+            return 'modules: ' + ', '.join(modules)
+        return ''
 
 class DubDependency(ExternalDependency):
     class_dubbin = None
