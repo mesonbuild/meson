@@ -2,6 +2,12 @@ project('introspection', ['c', 'cpp'], version: '1.2.3', default_options: ['cpp_
 
 dep1 = dependency('threads')
 dep2 = dependency('zlib', required: false)
+dep3 = dependency('bugDep1', required: get_option('test_opt1'))
+
+b1 = get_option('test_opt1')
+b2 = get_option('test_opt2')
+test_bool = b1 or b2
+test_bool = b1 and b2
 
 if false
   dependency('somethingthatdoesnotexist', required: true)
@@ -11,7 +17,7 @@ endif
 subdir('sharedlib')
 subdir('staticlib')
 
-t1 = executable('test1', 't1.cpp', link_with: [sharedlib], install: true)
+t1 = executable('test1', 't1.cpp', link_with: [sharedlib], install: true, build_by_default: get_option('test_opt2'))
 t2 = executable('test2', 't2.cpp', link_with: [staticlib])
 t3 = executable('test3', 't3.cpp', link_with: [sharedlib, staticlib], dependencies: [dep1])
 

@@ -3408,7 +3408,7 @@ recommended as it is not supported on some platforms''')
         self.assertDictEqual(buildopts_to_find, {})
 
         # Check buildsystem_files
-        bs_files = ['meson.build', 'sharedlib/meson.build', 'staticlib/meson.build']
+        bs_files = ['meson.build', 'meson_options.txt', 'sharedlib/meson.build', 'staticlib/meson.build']
         bs_files = [os.path.join(testdir, x) for x in bs_files]
         self.assertPathListEqual(list(sorted(res['buildsystem_files'])), list(sorted(bs_files)))
 
@@ -3555,6 +3555,12 @@ recommended as it is not supported on some platforms''')
             },
             {
                 'name': 'zlib',
+                'required': False,
+                'has_fallback': False,
+                'conditional': False
+            },
+            {
+                'name': 'bugDep1',
                 'required': False,
                 'has_fallback': False,
                 'conditional': False

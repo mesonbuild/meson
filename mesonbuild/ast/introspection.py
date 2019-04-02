@@ -20,7 +20,7 @@ from .. import compilers, environment, mesonlib, optinterpreter
 from .. import coredata as cdata
 from ..interpreterbase import InvalidArguments
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
-from ..mparser import ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
+from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
 import os
 
 build_target_functions = ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']
@@ -142,6 +142,8 @@ class IntrospectionInterpreter(AstInterpreter):
         condition_level = node.condition_level if hasattr(node, 'condition_level') else 0
         if isinstance(required, ElementaryNode):
             required = required.value
+        if not isinstance(required, bool):
+            required = False
         self.dependencies += [{
             'name': name,
             'required': required,
@@ -189,6 +191,8 @@ class IntrospectionInterpreter(AstInterpreter):
 
         # Make sure nothing can crash when creating the build class
         kwargs_reduced = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs and k in ['install', 'build_by_default', 'build_always']}
+        kwargs_reduced = {k: v.value if isinstance(v, ElementaryNode) else v for k, v in kwargs_reduced.items()}
+        kwargs_reduced = {k: v for k, v in kwargs_reduced.items() if not isinstance(v, BaseNode)}
         is_cross = False
         objects = []
         empty_sources = [] # Passing the unresolved sources list causes errors
