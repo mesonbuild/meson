@@ -153,7 +153,19 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         return True
 
     def evaluate_arithmeticstatement(self, cur):
+        self.evaluate_statement(cur.left)
+        self.evaluate_statement(cur.right)
         return 0
+
+    def evaluate_uminusstatement(self, cur):
+        self.evaluate_statement(cur.value)
+        return 0
+
+    def evaluate_ternary(self, node):
+        assert(isinstance(node, mparser.TernaryNode))
+        self.evaluate_statement(node.condition)
+        self.evaluate_statement(node.trueblock)
+        self.evaluate_statement(node.falseblock)
 
     def evaluate_plusassign(self, node):
         assert(isinstance(node, mparser.PlusAssignmentNode))
@@ -177,6 +189,18 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         return args.arguments, args.kwargs
 
     def evaluate_comparison(self, node):
+        self.evaluate_statement(node.left)
+        self.evaluate_statement(node.right)
+        return False
+
+    def evaluate_andstatement(self, cur):
+        self.evaluate_statement(cur.left)
+        self.evaluate_statement(cur.right)
+        return False
+
+    def evaluate_orstatement(self, cur):
+        self.evaluate_statement(cur.left)
+        self.evaluate_statement(cur.right)
         return False
 
     def evaluate_foreach(self, node):
