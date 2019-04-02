@@ -521,14 +521,14 @@ class PythonModule(ExtensionModule):
                 pythonpath = self._get_win_pythonpath(name_or_path)
                 if pythonpath is not None:
                     name_or_path = pythonpath
-                    python = ExternalProgram(name_or_path, silent = True)
+                    python = ExternalProgram(name_or_path, silent=True)
 
             # Last ditch effort, python2 or python3 can be named python
             # on various platforms, let's not give up just yet, if an executable
             # named python is available and has a compatible version, let's use
             # it
             if not python.found() and name_or_path in ['python2', 'python3']:
-                python = ExternalProgram('python', silent = True)
+                python = ExternalProgram('python', silent=True)
 
         if not python.found():
             if required:
