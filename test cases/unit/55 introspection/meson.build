@@ -2,6 +2,7 @@ project('introspection', ['c', 'cpp'], version: '1.2.3', default_options: ['cpp_
 
 dep1 = dependency('threads')
 dep2 = dependency('zlib', required: false)
+dep3 = dependency('bugDep1', required: get_option('test_opt1'))
 
 if false
   dependency('somethingthatdoesnotexist', required: true)

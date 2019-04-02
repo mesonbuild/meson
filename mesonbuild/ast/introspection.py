@@ -142,6 +142,8 @@ class IntrospectionInterpreter(AstInterpreter):
         condition_level = node.condition_level if hasattr(node, 'condition_level') else 0
         if isinstance(required, ElementaryNode):
             required = required.value
+        if not isinstance(required, bool):
+            required = False
         self.dependencies += [{
             'name': name,
             'required': required,
