@@ -117,6 +117,7 @@ class HDF5Dependency(ExternalDependency):
             except Exception:
                 pass
 
+
 class NetCDFDependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
@@ -666,3 +667,49 @@ class LibGCryptDependency(ExternalDependency):
     @staticmethod
     def get_methods():
         return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
+
+
+class ShadercDependency(ExternalDependency):
+
+    def __init__(self, environment, kwargs):
+        super().__init__('shaderc', environment, None, kwargs)
+
+        static_lib = 'shaderc_combined'
+        shared_lib = 'shaderc_shared'
+
+        libs = [shared_lib, static_lib]
+        if self.static:
+            libs.reverse()
+
+        cc = self.get_compiler()
+
+        for lib in libs:
+            self.link_args = cc.find_library(lib, environment, [])
+            if self.link_args is not None:
+                self.is_found = True
+
+                if self.static and lib != static_lib:
+                    mlog.warning('Static library {!r} not found for dependency {!r}, may '
+                                 'not be statically linked'.format(static_lib, self.name))
+
+                break
+
+    def log_tried(self):
+        return 'system'
+
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
+
+        if DependencyMethods.SYSTEM in methods:
+            candidates.append(functools.partial(ShadercDependency, environment, kwargs))
+
+        if DependencyMethods.PKGCONFIG in methods:
+            candidates.append(functools.partial(PkgConfigDependency, 'shaderc', environment, kwargs))
+
+        return candidates
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.SYSTEM, DependencyMethods.PKGCONFIG]
