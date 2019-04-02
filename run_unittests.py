@@ -2653,38 +2653,6 @@ int main(int argc, char **argv) {
                 self.init(testdir, ['--cross-file=' + name], inprocess=True)
                 self.wipe()
 
-    def test_introspect_target_files(self):
-        '''
-        Tests that mesonintrospect --target-files returns expected output.
-        '''
-        testdir = os.path.join(self.common_test_dir, '8 install')
-        self.init(testdir)
-        expected = {
-            'stat@sta': ['stat.c'],
-            'prog@exe': ['prog.c'],
-        }
-        t_intro = self.introspect('--targets')
-        self.assertCountEqual([t['id'] for t in t_intro], expected)
-        for t in t_intro:
-            id = t['id']
-            tf_intro = self.introspect(['--target-files', id])
-            self.assertEqual(tf_intro, expected[id])
-        self.wipe()
-
-        testdir = os.path.join(self.common_test_dir, '53 custom target')
-        self.init(testdir)
-        expected = {
-            'bindat@cus': ['data_source.txt'],
-            'a685fbc@@depfile@cus': [],
-        }
-        t_intro = self.introspect('--targets')
-        self.assertCountEqual([t['id'] for t in t_intro], expected)
-        for t in t_intro:
-            id = t['id']
-            tf_intro = self.introspect(['--target-files', id])
-            self.assertEqual(tf_intro, expected[id])
-        self.wipe()
-
     def test_compiler_run_command(self):
         '''
         The test checks that the compiler object can be passed to
@@ -4683,8 +4651,7 @@ class LinuxlikeTests(BasePlatformTests):
                 docbook_target = t
                 break
         self.assertIsInstance(docbook_target, dict)
-        ifile = self.introspect(['--target-files', '8d60afc@@generated-gdbus-docbook@cus'])[0]
-        self.assertListEqual(t['filename'], [os.path.join(self.builddir, 'gdbus/generated-gdbus-doc-' + os.path.basename(ifile))])
+        self.assertEqual(os.path.basename(t['filename'][0]), 'generated-gdbus-doc-' + os.path.basename(t['target_sources'][0]['sources'][0]))
 
     def test_build_rpath(self):
         if is_cygwin():

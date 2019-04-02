@@ -101,8 +101,6 @@ def add_arguments(parser):
         flag = '--' + val.get('key', key)
         parser.add_argument(flag, action='store_true', dest=key, default=False, help=val['desc'])
 
-    parser.add_argument('--target-files', action='store', dest='target_files', default=None,
-                        help='List source files for a given target.')
     parser.add_argument('--backend', choices=cdata.backendlist, dest='backend', default='ninja',
                         help='The backend to use for the --buildoptions introspection.')
     parser.add_argument('-a', '--all', action='store_true', dest='all', default=False,
@@ -203,27 +201,6 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
 
 def list_buildoptions_from_source(intr: IntrospectionInterpreter) -> List[dict]:
     return list_buildoptions(intr.coredata)
-
-def list_target_files(target_name: str, targets: list, source_dir: str):
-    sys.stderr.write("WARNING: The --target-files introspection API is deprecated. Use --targets instead.\n")
-    result = []
-    tgt = None
-
-    for i in targets:
-        if i['id'] == target_name:
-            tgt = i
-            break
-
-    if tgt is None:
-        print('Target with the ID "{}" could not be found'.format(target_name))
-        sys.exit(1)
-
-    for i in tgt['target_sources']:
-        result += i['sources'] + i['generated_sources']
-
-    result = list(map(lambda x: os.path.relpath(x, source_dir), result))
-
-    return result
 
 def list_buildoptions(coredata: cdata.CoreData) -> List[dict]:
     optlist = []
@@ -413,11 +390,9 @@ def run(options):
         return 1
 
     intro_vers = '0.0.0'
-    source_dir = None
     with open(infofile, 'r') as fp:
         raw = json.load(fp)
         intro_vers = raw.get('introspection', {}).get('version', {}).get('full', '0.0.0')
-        source_dir = raw.get('directories', {}).get('source', None)
 
     vers_to_check = get_meson_introspection_required_version()
     for i in vers_to_check:
@@ -426,13 +401,6 @@ def run(options):
                   'The required version is: {}'
                   .format(intro_vers, ' and '.join(vers_to_check)))
             return 1
-
-    # Handle the one option that does not have its own JSON file (meybe deprecate / remove this?)
-    if options.target_files is not None:
-        targets_file = os.path.join(infodir, 'intro-targets.json')
-        with open(targets_file, 'r') as fp:
-            targets = json.load(fp)
-        results += [('target_files', list_target_files(options.target_files, targets, source_dir))]
 
     # Extract introspection information from JSON
     for i in intro_types.keys():
