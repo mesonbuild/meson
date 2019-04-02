@@ -971,10 +971,10 @@ class CMakeDependency(ExternalDependency):
     def _gen_exception(self, msg):
         return DependencyException('Dependency {} not found: {}'.format(self.name, msg))
 
-    def _main_cmake_file(self):
+    def _main_cmake_file(self) -> str:
         return 'CMakeLists.txt'
 
-    def _extra_cmake_opts(self):
+    def _extra_cmake_opts(self) -> List[str]:
         return []
 
     def _map_module_list(self, modules: List[Tuple[str, bool]]) -> List[Tuple[str, bool]]:

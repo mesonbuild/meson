@@ -28,6 +28,8 @@ from .base import (
 )
 from .misc import ThreadDependency
 
+from typing import List, Tuple
+
 
 def get_shared_library_suffix(environment, native):
     """This is only gauranteed to work for languages that compile to machine
@@ -406,28 +408,28 @@ class LLVMDependencyCMake(CMakeDependency):
         super().__init__(name='LLVM', environment=env, language='cpp', kwargs=kwargs)
 
         # Extract extra include directories and definitions
-        incDirs = self.get_cmake_var('PACKAGE_INCLUDE_DIRS')
+        inc_dirs = self.get_cmake_var('PACKAGE_INCLUDE_DIRS')
         defs = self.get_cmake_var('PACKAGE_DEFINITIONS')
-        temp = list(map(lambda x: '-I{}'.format(x), incDirs)) + defs
+        temp = ['-I' + x for x in inc_dirs] + defs
         self.compile_args += [x for x in temp if x not in self.compile_args]
 
-    def _main_cmake_file(self):
+    def _main_cmake_file(self) -> str:
         # Use a custom CMakeLists.txt for LLVM
         return 'CMakeListsLLVM.txt'
 
-    def _extra_cmake_opts(self):
+    def _extra_cmake_opts(self) -> List[str]:
         return ['-DLLVM_MESON_MODULES={}'.format(';'.join(self.llvm_modules)),
                 '-DLLVM_MESON_OPT_MODULES={}'.format(';'.join(self.llvm_opt_modules))]
 
-    def _map_module_list(self, modules):
+    def _map_module_list(self, modules: List[Tuple[str, bool]]) -> List[Tuple[str, bool]]:
         modules = [(x, True) for x in self.get_cmake_var('MESON_RESOLVED_LLVM_MODULES')]
         modules += [(x, False) for x in self.get_cmake_var('MESON_RESOLVED_LLVM_MODULES_OPT')]
         return modules
 
-    def need_threads(self):
+    def need_threads(self) -> bool:
         return True
 
-    def log_details(self):
+    def log_details(self) -> str:
         modules = self.get_cmake_var('MESON_RESOLVED_LLVM_MODULES')
         if modules:
             return 'modules: ' + ', '.join(modules)
