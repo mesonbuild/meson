@@ -131,7 +131,7 @@ class PythonDependency(ExternalDependency):
         if self.is_found:
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES ({})'.format(py_lookup_method)))
         else:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
+            mlog.log('Dependency', mlog.bold(self.name), 'found:', [mlog.red('NO')])
 
     def _find_libpy(self, python_holder, environment):
         if python_holder.is_pypy:
@@ -512,8 +512,7 @@ class PythonModule(ExtensionModule):
                 raise InvalidArguments('find_installation argument must be a string.')
 
         if not name_or_path:
-            mlog.log("Using meson's python {}".format(mesonlib.python_command))
-            python = ExternalProgram('python3', mesonlib.python_command, silent=True)
+            python = ExternalProgram('python3', mesonlib.python_command)
         else:
             python = ExternalProgram.from_entry('python3', name_or_path)
 
@@ -529,6 +528,9 @@ class PythonModule(ExtensionModule):
             # it
             if not python.found() and name_or_path in ['python2', 'python3']:
                 python = ExternalProgram('python', silent=True)
+
+            mlog.log('Program', python.name, 'found:',
+                     *[mlog.green('YES'), '({})'.format(' '.join(python.command))] if python.found() else [mlog.red('NO')])
 
         if not python.found():
             if required:
