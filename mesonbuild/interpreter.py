@@ -2471,7 +2471,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.active_projectname = current_active
         self.subprojects.update(subi.subprojects)
         self.subprojects[dirname] = SubprojectHolder(subi, self.subproject_dir, dirname)
-        self.build_def_files += subi.build_def_files
+        # Duplicates are possible when subproject uses files from project root
+        self.build_def_files = list(set(self.build_def_files + subi.build_def_files))
         self.build.merge(subi.build)
         self.build.subprojects[dirname] = subi.project_version
         return self.subprojects[dirname]
