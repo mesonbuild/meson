@@ -491,7 +491,7 @@ class SingleTestRunner:
         if not self.options.verbose:
             stdout = tempfile.TemporaryFile("wb+")
             stderr = tempfile.TemporaryFile("wb+") if self.options.split else stdout
-        if self.test.protocol == 'tap' and stdout == stderr:
+        if self.test.protocol == 'tap' and stderr is stdout:
             stdout = tempfile.TemporaryFile("wb+")
 
         # Let gdb handle ^C instead of us
@@ -577,7 +577,7 @@ class SingleTestRunner:
             else:
                 stdout.seek(0)
                 stdo = decode(stdout.read())
-            if stderr is None or stderr == stdout:
+            if stderr is None or stderr is stdout:
                 stde = ''
             else:
                 stderr.seek(0)
