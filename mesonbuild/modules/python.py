@@ -509,7 +509,7 @@ class PythonModule(ExtensionModule):
                 raise InvalidArguments('find_installation argument must be a string.')
 
         if disabled:
-            mlog.log('find_installation skipped: feature', mlog.bold(feature), 'disabled')
+            mlog.log('Program', name_or_path or 'python', 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(feature), ')')
             return ExternalProgramHolder(NonExistingExternalProgram())
 
         if not name_or_path:
