@@ -3756,7 +3756,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             self.build.data.append(build.Data([cfile], idir, install_mode))
         return mesonlib.File.from_built_file(self.subdir, output)
 
-    @FeatureNew('shared_module', '0.51.0')
+    @FeatureNew('include', '0.51.0')
     @permittedKwargs(permitted_kwargs['include'])
     def func_include(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
