@@ -4878,7 +4878,7 @@ endian = 'little'
         myenv['PKG_CONFIG_PATH'] = self.privatedir
         stdo = subprocess.check_output(['pkg-config', '--libs-only-l', 'libsomething'], env=myenv)
         deps = [b'-lgobject-2.0', b'-lgio-2.0', b'-lglib-2.0', b'-lsomething']
-        if is_windows() or is_cygwin() or is_osx():
+        if is_windows() or is_cygwin() or is_osx() or is_openbsd():
             # On Windows, libintl is a separate library
             deps.append(b'-lintl')
         self.assertEqual(set(deps), set(stdo.split()))
