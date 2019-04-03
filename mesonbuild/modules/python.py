@@ -498,9 +498,6 @@ class PythonModule(ExtensionModule):
     def find_installation(self, interpreter, state, args, kwargs):
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
-        if disabled:
-            mlog.log('find_installation skipped: feature', mlog.bold(feature), 'disabled')
-            return ExternalProgramHolder(NonExistingExternalProgram())
 
         if len(args) > 1:
             raise InvalidArguments('find_installation takes zero or one positional argument.')
@@ -510,6 +507,10 @@ class PythonModule(ExtensionModule):
             name_or_path = args[0]
             if not isinstance(name_or_path, str):
                 raise InvalidArguments('find_installation argument must be a string.')
+
+        if disabled:
+            mlog.log('find_installation skipped: feature', mlog.bold(feature), 'disabled')
+            return ExternalProgramHolder(NonExistingExternalProgram())
 
         if not name_or_path:
             python = ExternalProgram('python3', mesonlib.python_command)
