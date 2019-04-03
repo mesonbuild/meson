@@ -200,7 +200,7 @@ wmf_dep = dependency('libwmf', method : 'config-tool')
 ## Dependencies using config tools
 
 [CUPS](#cups), [LLVM](#llvm), [pcap](#pcap), [WxWidgets](#wxwidgets),
-[libwmf](#libwmf), [GCrypt](#libgcrypt), and GnuStep either do not provide pkg-config
+[libwmf](#libwmf), [GCrypt](#libgcrypt), [GPGME](#gpgme), and GnuStep either do not provide pkg-config
 modules or additionally can be detected via a config tool
 (cups-config, llvm-config, libgcrypt-config, etc). Meson has native support for these
 tools, and they can be found like other dependencies:
@@ -210,6 +210,7 @@ pcap_dep = dependency('pcap', version : '>=1.0')
 cups_dep = dependency('cups', version : '>=1.4')
 llvm_dep = dependency('llvm', version : '>=4.0')
 libgcrypt_dep = dependency('libgcrypt', version: '>= 1.8')
+gpgme_dep = dependency('gpgme', version: '>= 1.0')
 ```
 
 ## AppleFrameworks
@@ -388,6 +389,12 @@ The `language` keyword may used.
 *(added 0.49.0)*
 
 `method` may be `auto`, `config-tool` or `pkg-config`.
+
+## GPGME
+
+*(added 0.51.0)*
+
+`method` may be `auto` or `config-tool`.
 
 ## Python3
 
