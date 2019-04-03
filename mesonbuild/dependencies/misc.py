@@ -672,6 +672,34 @@ class LibGCryptDependency(ExternalDependency):
         return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
 
+class GpgmeDependency(ExternalDependency):
+    def __init__(self, environment, kwargs):
+        super().__init__('gpgme', environment, None, kwargs)
+
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
+
+        if DependencyMethods.CONFIG_TOOL in methods:
+            candidates.append(functools.partial(ConfigToolDependency.factory,
+                                                'gpgme', environment, None, kwargs, ['gpgme-config'],
+                                                'gpgme-config',
+                                                GpgmeDependency.tool_finish_init))
+
+        return candidates
+
+    @staticmethod
+    def tool_finish_init(ctdep):
+        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+        ctdep.version = ctdep.get_config_value(['--version'], 'version')[0]
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.CONFIG_TOOL]
+
+
 class ShadercDependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
