@@ -14,6 +14,7 @@
 
 import sys, os, subprocess, re
 
+
 def config_vcs_tag(infile, outfile, fallback, source_dir, replace_string, regex_selector, cmd):
     try:
         output = subprocess.check_output(cmd, cwd=source_dir)
@@ -21,16 +22,17 @@ def config_vcs_tag(infile, outfile, fallback, source_dir, replace_string, regex_
     except Exception:
         new_string = fallback
 
-    with open(infile) as f:
+    with open(infile, encoding='utf8') as f:
         new_data = f.read().replace(replace_string, new_string)
     if os.path.exists(outfile):
-        with open(outfile) as f:
+        with open(outfile, encoding='utf8') as f:
             needs_update = (f.read() != new_data)
     else:
         needs_update = True
     if needs_update:
-        with open(outfile, 'w') as f:
+        with open(outfile, 'w', encoding='utf8') as f:
             f.write(new_data)
+
 
 def run(args):
     infile, outfile, fallback, source_dir, replace_string, regex_selector = args[0:6]
