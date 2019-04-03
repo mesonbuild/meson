@@ -3756,6 +3756,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             self.build.data.append(build.Data([cfile], idir, install_mode))
         return mesonlib.File.from_built_file(self.subdir, output)
 
+    @FeatureNew('shared_module', '0.51.0')
     @permittedKwargs(permitted_kwargs['include'])
     def func_include(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
@@ -3775,6 +3776,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                                    % absname)
         self.included_files.add(absname)
         if absname not in self.build_def_files:
+            # We need this check, since it might have been included in subproject
             self.build_def_files.append(absname)
         if not os.path.isfile(absname):
             raise InterpreterException('Non-existent build file {!r}'.format(absname))
@@ -3792,7 +3794,6 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         except mesonlib.MesonException as me:
             me.file = self.current_file
             raise me
-        self.included_files.clear()
         self.current_file = prev_current_file
 
     def extract_incdirs(self, kwargs):
