@@ -622,7 +622,15 @@ class DmdDCompiler(DCompiler):
         return []
 
     def get_std_shared_lib_link_args(self):
-        return ['-shared', '-defaultlib=libphobos2.so']
+        libname = 'libphobos2.so'
+        if is_windows():
+            if self.arch == 'x86_64':
+                libname = 'phobos64.lib'
+            elif self.arch == 'x86_mscoff':
+                libname = 'phobos32mscoff.lib'
+            else:
+                libname = 'phobos.lib'
+        return ['-shared', '-defaultlib=' + libname]
 
     def get_target_arch_args(self):
         # DMD32 and DMD64 on 64-bit Windows defaults to 32-bit (OMF).
