@@ -93,6 +93,7 @@ syn keyword mesonBuiltin
   \ gettext
   \ host_machine
   \ import
+  \ include
   \ include_directories
   \ install_data
   \ install_headers
