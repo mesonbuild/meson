@@ -419,6 +419,14 @@ class ConfigToolDependency(ExternalDependency):
 
         best_match = (None, None)
         for tool in tools:
+            if len(tool) == 1:
+                # In some situations the command can't be directly executed.
+                # For example Shell scripts need to be called through sh on
+                # Windows (see issue #1423).
+                potential_bin = ExternalProgram(tool[0], silent=True)
+                if not potential_bin.found():
+                    continue
+                tool = potential_bin.get_command()
             try:
                 p, out = Popen_safe(tool + ['--version'])[:2]
             except (FileNotFoundError, PermissionError):
@@ -459,7 +467,7 @@ class ConfigToolDependency(ExternalDependency):
             elif req_version:
                 found_msg.append('need {!r}'.format(req_version))
         else:
-            found_msg += [mlog.green('YES'), '({})'.format(shutil.which(self.config[0])), version]
+            found_msg += [mlog.green('YES'), '({})'.format(' '.join(self.config)), version]
 
         mlog.log(*found_msg)
 
