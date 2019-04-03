@@ -63,6 +63,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         super().__init__(source_root, subdir)
         self.visitors = visitors if visitors is not None else []
         self.visited_subdirs = {}
+        self.included_files = {}
         self.assignments = {}
         self.assign_vals = {}
         self.reverse_assignment = {}
@@ -103,6 +104,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'build_target': self.func_do_nothing,
                            'custom_target': self.func_do_nothing,
                            'run_target': self.func_do_nothing,
+                           'include': self.func_include,
                            'subdir': self.func_subdir,
                            'set_variable': self.func_do_nothing,
                            'get_variable': self.func_do_nothing,
@@ -127,6 +129,42 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         super().load_root_meson_file()
         for i in self.visitors:
             self.ast.accept(i)
+
+    def func_include(self, node, args, kwargs):
+        args = self.flatten_args(args)
+        if len(args) != 1 or not isinstance(args[0], str):
+            sys.stderr.write('Unable to evaluate include({}) in AstInterpreter --> Skipping\n'.format(args))
+            return
+
+        if os.path.isabs(args[0]):
+            absname = os.path.abspath(args[0])
+        else:
+            absname = os.path.abspath(os.path.join(self.environment.get_source_dir(), self.subdir, args[0]))
+        prev_current_file = self.current_file
+
+        symlinkless_file = os.path.realpath(absname)
+        if symlinkless_file in self.included_files:
+            sys.stderr.write('Trying to include {} which has already been visited --> Skipping\n'.format(args[0]))
+            return
+        self.included_files[symlinkless_file] = True
+
+        if not os.path.isfile(absname):
+            sys.stderr.write('Unable to find build file {} --> Skipping\n'.format(absname))
+            return
+        with open(absname, encoding='utf8') as f:
+            code = f.read()
+        assert(isinstance(code, str))
+        try:
+            codeblock = mparser.Parser(code, self.subdir).parse()
+        except mesonlib.MesonException as me:
+            me.file = self.current_file
+            raise me
+
+        self.current_file = absname
+        for i in self.visitors:
+            codeblock.accept(i)
+        self.evaluate_codeblock(codeblock)
+        self.current_file = prev_current_file
 
     def func_subdir(self, node, args, kwargs):
         args = self.flatten_args(args)
