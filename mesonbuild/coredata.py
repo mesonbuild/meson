@@ -654,32 +654,10 @@ def save(obj, build_dir):
     os.replace(tempfilename, filename)
     return filename
 
-def add_builtin_argument(p, name):
-    try:
-        builtin = builtin_options[name]
-    except KeyError:
-        raise RuntimeError('Tried to get attribute of unknown builtin option "{}"'.format(name))
-
-    kwargs = {}
-
-    c = builtin.argparse_choices()
-    b = builtin.argparse_action()
-    h = builtin.description
-    if not b:
-        h = '{} (default: {}).'.format(h.rstrip('.'), builtin.prefixed_default(name))
-    else:
-        kwargs['action'] = b
-    if c and not b:
-        kwargs['choices'] = c
-    kwargs['default'] = argparse.SUPPRESS
-    kwargs['dest'] = name
-
-    cmdline_name = builtin.argparse_name_to_arg(name)
-    p.add_argument(cmdline_name, help=h, **kwargs)
 
 def register_builtin_arguments(parser):
-    for n in builtin_options:
-        add_builtin_argument(parser, n)
+    for n, b in builtin_options.items():
+        b.add_to_argparse(n, parser)
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
 
@@ -732,14 +710,14 @@ class BuiltinOption(Generic[_U]):
             keywords['choices'] = self.choices
         return self.opt_type(name, self.description, **keywords)
 
-    def argparse_action(self) -> Optional[str]:
+    def _argparse_action(self) -> Optional[str]:
         if self.default is True:
             return 'store_false'
         elif self.default is False:
             return 'store_true'
         return None
 
-    def argparse_choices(self) -> Any:
+    def _argparse_choices(self) -> Any:
         if self.opt_type is UserBooleanOption:
             return [True, False]
         elif self.opt_type is UserFeatureOption:
@@ -761,6 +739,24 @@ class BuiltinOption(Generic[_U]):
         except KeyError:
             pass
         return self.default
+
+    def add_to_argparse(self, name: str, parser: argparse.ArgumentParser) -> None:
+        kwargs = {}
+
+        c = self._argparse_choices()
+        b = self._argparse_action()
+        h = self.description
+        if not b:
+            h = '{} (default: {}).'.format(h.rstrip('.'), self.prefixed_default(name))
+        else:
+            kwargs['action'] = b
+        if c and not b:
+            kwargs['choices'] = c
+        kwargs['default'] = argparse.SUPPRESS
+        kwargs['dest'] = name
+
+        cmdline_name = self.argparse_name_to_arg(name)
+        parser.add_argument(cmdline_name, help=h, **kwargs)
 
 
 builtin_options = {
