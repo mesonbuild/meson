@@ -131,7 +131,7 @@ class PythonDependency(ExternalDependency):
         if self.is_found:
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES ({})'.format(py_lookup_method)))
         else:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
+            mlog.log('Dependency', mlog.bold(self.name), 'found:', [mlog.red('NO')])
 
     def _find_libpy(self, python_holder, environment):
         if python_holder.is_pypy:
@@ -498,9 +498,6 @@ class PythonModule(ExtensionModule):
     def find_installation(self, interpreter, state, args, kwargs):
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
-        if disabled:
-            mlog.log('find_installation skipped: feature', mlog.bold(feature), 'disabled')
-            return ExternalProgramHolder(NonExistingExternalProgram())
 
         if len(args) > 1:
             raise InvalidArguments('find_installation takes zero or one positional argument.')
@@ -511,9 +508,12 @@ class PythonModule(ExtensionModule):
             if not isinstance(name_or_path, str):
                 raise InvalidArguments('find_installation argument must be a string.')
 
+        if disabled:
+            mlog.log('Program', name_or_path or 'python', 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(feature), ')')
+            return ExternalProgramHolder(NonExistingExternalProgram())
+
         if not name_or_path:
-            mlog.log("Using meson's python {}".format(mesonlib.python_command))
-            python = ExternalProgram('python3', mesonlib.python_command, silent=True)
+            python = ExternalProgram('python3', mesonlib.python_command)
         else:
             python = ExternalProgram.from_entry('python3', name_or_path)
 
@@ -521,14 +521,17 @@ class PythonModule(ExtensionModule):
                 pythonpath = self._get_win_pythonpath(name_or_path)
                 if pythonpath is not None:
                     name_or_path = pythonpath
-                    python = ExternalProgram(name_or_path, silent = True)
+                    python = ExternalProgram(name_or_path, silent=True)
 
             # Last ditch effort, python2 or python3 can be named python
             # on various platforms, let's not give up just yet, if an executable
             # named python is available and has a compatible version, let's use
             # it
             if not python.found() and name_or_path in ['python2', 'python3']:
-                python = ExternalProgram('python', silent = True)
+                python = ExternalProgram('python', silent=True)
+
+            mlog.log('Program', python.name, 'found:',
+                     *[mlog.green('YES'), '({})'.format(' '.join(python.command))] if python.found() else [mlog.red('NO')])
 
         if not python.found():
             if required:
