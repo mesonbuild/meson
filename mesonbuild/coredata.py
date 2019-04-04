@@ -654,18 +654,6 @@ def save(obj, build_dir):
     os.replace(tempfilename, filename)
     return filename
 
-def get_builtin_option_choices(optname):
-    if optname in builtin_options:
-        b = builtin_options[optname]
-        if b.opt_type is UserBooleanOption:
-            return [True, False]
-        elif b.opt_type is UserFeatureOption:
-            return UserFeatureOption.static_choices
-        else:
-            return b.choices
-    else:
-        raise RuntimeError('Tried to get the supported values for an unknown builtin option \'%s\'.' % optname)
-
 def get_builtin_option_default(optname, prefix=''):
     if optname in builtin_options:
         o = builtin_options[optname]
@@ -693,7 +681,7 @@ def add_builtin_argument(p, name):
 
     kwargs = {}
 
-    c = get_builtin_option_choices(name)
+    c = builtin.argparse_choices()
     b = builtin.argparse_action()
     h = builtin.description
     if not b:
@@ -769,6 +757,13 @@ class BuiltinOption(Generic[_U]):
         elif self.default is False:
             return 'store_true'
         return None
+
+    def argparse_choices(self) -> Any:
+        if self.opt_type is UserBooleanOption:
+            return [True, False]
+        elif self.opt_type is UserFeatureOption:
+            return UserFeatureOption.static_choices
+        return self.choices
 
 
 builtin_options = {
