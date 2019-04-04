@@ -460,7 +460,7 @@ class CoreData:
             self.builtins['prefix'].set_value(prefix)
             for key in builtin_dir_noprefix_options:
                 if key not in options:
-                    self.builtins[key].set_value(get_builtin_option_default(key, prefix))
+                    self.builtins[key].set_value(builtin_options[key].prefixed_default(key, prefix))
 
         unknown_options = []
         for k, v in options.items():
@@ -654,19 +654,6 @@ def save(obj, build_dir):
     os.replace(tempfilename, filename)
     return filename
 
-def get_builtin_option_default(optname, prefix=''):
-    if optname in builtin_options:
-        o = builtin_options[optname]
-        if o.opt_type in [UserComboOption, UserIntegerOption]:
-            return o.default
-        try:
-            return builtin_dir_noprefix_options[optname][prefix]
-        except KeyError:
-            pass
-        return o.default
-    else:
-        raise RuntimeError('Tried to get the default value for an unknown builtin option \'%s\'.' % optname)
-
 def get_builtin_option_cmdline_name(name):
     if name == 'warning_level':
         return '--warnlevel'
@@ -685,7 +672,7 @@ def add_builtin_argument(p, name):
     b = builtin.argparse_action()
     h = builtin.description
     if not b:
-        h = h.rstrip('.') + ' (default: %s).' % get_builtin_option_default(name)
+        h = '{} (default: {}).'.format(h.rstrip('.'), builtin.prefixed_default(name))
     else:
         kwargs['action'] = b
     if c and not b:
@@ -764,6 +751,15 @@ class BuiltinOption(Generic[_U]):
         elif self.opt_type is UserFeatureOption:
             return UserFeatureOption.static_choices
         return self.choices
+
+    def prefixed_default(self, name: str, prefix: str = '') -> Any:
+        if self.opt_type in [UserComboOption, UserIntegerOption]:
+            return self.default
+        try:
+            return builtin_dir_noprefix_options[name][prefix]
+        except KeyError:
+            pass
+        return self.default
 
 
 builtin_options = {
