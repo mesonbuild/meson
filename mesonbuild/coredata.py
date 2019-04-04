@@ -654,12 +654,6 @@ def save(obj, build_dir):
     os.replace(tempfilename, filename)
     return filename
 
-def get_builtin_option_cmdline_name(name):
-    if name == 'warning_level':
-        return '--warnlevel'
-    else:
-        return '--' + name.replace('_', '-')
-
 def add_builtin_argument(p, name):
     try:
         builtin = builtin_options[name]
@@ -680,7 +674,7 @@ def add_builtin_argument(p, name):
     kwargs['default'] = argparse.SUPPRESS
     kwargs['dest'] = name
 
-    cmdline_name = get_builtin_option_cmdline_name(name)
+    cmdline_name = builtin.argparse_name_to_arg(name)
     p.add_argument(cmdline_name, help=h, **kwargs)
 
 def register_builtin_arguments(parser):
@@ -707,7 +701,7 @@ def parse_cmd_line_options(args):
         value = getattr(args, name, None)
         if value is not None:
             if name in args.cmd_line_options:
-                cmdline_name = get_builtin_option_cmdline_name(name)
+                cmdline_name = BuiltinOption.argparse_name_to_arg(name)
                 raise MesonException(
                     'Got argument {0} as both -D{0} and {1}. Pick one.'.format(name, cmdline_name))
             args.cmd_line_options[name] = value
@@ -751,6 +745,13 @@ class BuiltinOption(Generic[_U]):
         elif self.opt_type is UserFeatureOption:
             return UserFeatureOption.static_choices
         return self.choices
+
+    @staticmethod
+    def argparse_name_to_arg(name: str) -> str:
+        if name == 'warning_level':
+            return '--warnlevel'
+        else:
+            return '--' + name.replace('_', '-')
 
     def prefixed_default(self, name: str, prefix: str = '') -> Any:
         if self.opt_type in [UserComboOption, UserIntegerOption]:
