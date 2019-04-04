@@ -616,7 +616,10 @@ class PkgConfigDependency(ExternalDependency):
         else:
             env = env.copy()
 
-        extra_paths = self.env.coredata.get_builtin_option('pkg_config_path')
+        if self.want_cross:
+            extra_paths = self.env.coredata.get_builtin_option('cross_pkg_config_path')
+        else:
+            extra_paths = self.env.coredata.get_builtin_option('pkg_config_path')
         env['PKG_CONFIG_PATH'] = ':'.join([p for p in extra_paths])
         fenv = frozenset(env.items())
         targs = tuple(args)

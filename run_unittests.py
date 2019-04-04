@@ -5169,6 +5169,11 @@ class LinuxCrossMingwTests(BasePlatformTests):
             # Must run in-process or we'll get a generic CalledProcessError
             self.run_tests(inprocess=True)
 
+    @skipIfNoPkgconfig
+    def test_cross_pkg_config_option(self):
+        testdir = os.path.join(self.unit_test_dir, '55 pkg_config_path option')
+        self.init(testdir, extra_args=['-Dcross_pkg_config_path=' + os.path.join(testdir, 'extra_path')])
+
 
 class PythonTests(BasePlatformTests):
     '''
