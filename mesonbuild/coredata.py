@@ -654,11 +654,8 @@ def save(obj, build_dir):
     os.replace(tempfilename, filename)
     return filename
 
-def is_builtin_option(optname):
-    return optname in builtin_options
-
 def get_builtin_option_choices(optname):
-    if is_builtin_option(optname):
+    if optname in builtin_options:
         b = builtin_options[optname]
         if b.opt_type is UserBooleanOption:
             return [True, False]
@@ -670,7 +667,7 @@ def get_builtin_option_choices(optname):
         raise RuntimeError('Tried to get the supported values for an unknown builtin option \'%s\'.' % optname)
 
 def get_builtin_option_description(optname):
-    if is_builtin_option(optname):
+    if optname in builtin_options:
         return builtin_options[optname].description
     else:
         raise RuntimeError('Tried to get the description for an unknown builtin option \'%s\'.' % optname)
@@ -684,7 +681,7 @@ def get_builtin_option_action(optname):
     return None
 
 def get_builtin_option_default(optname, prefix=''):
-    if is_builtin_option(optname):
+    if optname in builtin_options:
         o = builtin_options[optname]
         if o.opt_type in [UserComboOption, UserIntegerOption]:
             return o.default
