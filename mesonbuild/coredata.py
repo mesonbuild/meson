@@ -337,6 +337,8 @@ class CoreData:
         self.builtins = {}
         for key, opt in builtin_options.items():
             self.builtins[key] = opt.init_option(key)
+            if opt.separate_cross:
+                self.builtins['cross_' + key] = opt.init_option(key)
 
     def init_backend_options(self, backend_name):
         if backend_name == 'ninja':
@@ -680,15 +682,19 @@ def parse_cmd_line_options(args):
     args.cmd_line_options = create_options_dict(args.projectoptions)
 
     # Merge builtin options set with --option into the dict.
-    for name in builtin_options:
-        value = getattr(args, name, None)
-        if value is not None:
-            if name in args.cmd_line_options:
-                cmdline_name = BuiltinOption.argparse_name_to_arg(name)
-                raise MesonException(
-                    'Got argument {0} as both -D{0} and {1}. Pick one.'.format(name, cmdline_name))
-            args.cmd_line_options[name] = value
-            delattr(args, name)
+    for name, builtin in builtin_options.items():
+        names = [name]
+        if builtin.separate_cross:
+            names.append('cross_' + name)
+        for name in names:
+            value = getattr(args, name, None)
+            if value is not None:
+                if name in args.cmd_line_options:
+                    cmdline_name = BuiltinOption.argparse_name_to_arg(name)
+                    raise MesonException(
+                        'Got argument {0} as both -D{0} and {1}. Pick one.'.format(name, cmdline_name))
+                args.cmd_line_options[name] = value
+                delattr(args, name)
 
 
 _U = TypeVar('_U', bound=UserOption)
@@ -701,12 +707,13 @@ class BuiltinOption(Generic[_U]):
     """
 
     def __init__(self, opt_type: Type[_U], description: str, default: Any, yielding: Optional[bool] = None, *,
-                 choices: Any = None):
+                 choices: Any = None, separate_cross: bool = False):
         self.opt_type = opt_type
         self.description = description
         self.default = default
         self.choices = choices
         self.yielding = yielding
+        self.separate_cross = separate_cross
 
     def init_option(self, name: str) -> _U:
         """Create an instance of opt_type and return it."""
@@ -762,6 +769,9 @@ class BuiltinOption(Generic[_U]):
 
         cmdline_name = self.argparse_name_to_arg(name)
         parser.add_argument(cmdline_name, help=h, **kwargs)
+        if self.separate_cross:
+            kwargs['dest'] = 'cross_' + name
+            parser.add_argument(self.argparse_name_to_arg('cross_' + name), help=h + ' (for host in cross compiles)', **kwargs)
 
 
 builtin_options = {
@@ -794,7 +804,7 @@ builtin_options = {
     'optimization':    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['0', 'g', '1', '2', '3', 's']),
     'debug':           BuiltinOption(UserBooleanOption, 'Debug', True),
     'wrap_mode':       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback']),
-    'pkg_config_path': BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', []),
+    'pkg_config_path': BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [], separate_cross=True),
 }
 
 # Special prefix-dependent defaults for installation directories that reside in
