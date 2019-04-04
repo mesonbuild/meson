@@ -20,7 +20,7 @@ from . import coredata
 from . import mesonlib
 from . import compilers
 
-forbidden_option_names = coredata.get_builtin_options()
+forbidden_option_names = set(coredata.builtin_options.keys())
 forbidden_prefixes = [lang + '_' for lang in compilers.all_languages] + ['b_', 'backend_']
 reserved_prefixes = ['cross_']
 

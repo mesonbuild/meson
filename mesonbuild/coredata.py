@@ -508,7 +508,7 @@ class CoreData:
             if subproject:
                 if not k.startswith(subproject + ':'):
                     continue
-            elif k not in get_builtin_options():
+            elif k not in builtin_options:
                 if ':' in k:
                     continue
                 if optinterpreter.is_invalid_name(k):
@@ -654,11 +654,8 @@ def save(obj, build_dir):
     os.replace(tempfilename, filename)
     return filename
 
-def get_builtin_options():
-    return list(builtin_options.keys())
-
 def is_builtin_option(optname):
-    return optname in get_builtin_options()
+    return optname in builtin_options
 
 def get_builtin_option_choices(optname):
     if is_builtin_option(optname):
