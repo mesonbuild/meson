@@ -643,8 +643,6 @@ class Backend:
                 commands += dep.get_exe_args(compiler)
             # For 'automagic' deps: Boost and GTest. Also dependency('threads').
             # pkg-config puts the thread flags itself via `Cflags:`
-            if dep.need_threads():
-                commands += compiler.thread_flags(self.environment)
         # Fortran requires extra include directives.
         if compiler.language == 'fortran':
             for lt in target.link_targets:

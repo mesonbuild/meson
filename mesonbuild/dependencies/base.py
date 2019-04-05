@@ -153,9 +153,6 @@ class Dependency:
     def get_exe_args(self, compiler):
         return []
 
-    def need_threads(self):
-        return False
-
     def get_pkgconfig_variable(self, variable_name, kwargs):
         raise DependencyException('{!r} is not a pkgconfig dependency'.format(self.name))
 
