@@ -212,6 +212,9 @@ class MPIDependency(ExternalDependency):
                     break
 
         if not self.is_found and mesonlib.is_windows():
+            # only Intel Fortran compiler is compatible with Microsoft MPI at this time.
+            if language == 'fortran' and environment.detect_fortran_compiler(False).name_string() != 'intel':
+                return
             result = self._try_msmpi()
             if result is not None:
                 self.is_found = True
