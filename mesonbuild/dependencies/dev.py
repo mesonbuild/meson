@@ -132,10 +132,7 @@ class GMockDependency(ExternalDependency):
         if not gtest_dep.is_found:
             self.is_found = False
             return
-
-        self.compile_args = gtest_dep.compile_args
-        self.link_args = gtest_dep.link_args
-        self.sources = gtest_dep.sources
+        self.ext_deps.append(gtest_dep)
 
         # GMock may be a library or just source.
         # Work with both.
