@@ -115,6 +115,7 @@ class Dependency:
         self.raw_link_args = None
         self.sources = []
         self.methods = self._process_method_kw(kwargs)
+        self.ext_deps = []  # type: List[Dependency]
 
     def __repr__(self):
         s = '<{0} {1}: {2}>'
