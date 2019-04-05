@@ -76,18 +76,27 @@ class FortranCompiler(Compiler):
     def get_soname_args(self, *args):
         return CCompiler.get_soname_args(self, *args)
 
-    def sanity_check(self, work_dir, environment):
-        source_name = os.path.join(work_dir, 'sanitycheckf.f90')
-        binary_name = os.path.join(work_dir, 'sanitycheckf')
-        with open(source_name, 'w') as ofile:
-            ofile.write('print *, "Fortran compilation is working."; end')
+    def sanity_check(self, work_dir: Path, environment):
+        """
+        Check to be sure a minimal program can compile and execute
+          with this compiler & platform.
+        """
+        work_dir = Path(work_dir)
+        source_name = work_dir / 'sanitycheckf.f90'
+        binary_name = work_dir / 'sanitycheckf'
+        if binary_name.is_file():
+            binary_name.unlink()
+
+        source_name.write_text('print *, "Fortran compilation is working."; end')
+
         if environment.is_cross_build() and not self.is_cross:
             for_machine = MachineChoice.BUILD
         else:
             for_machine = MachineChoice.HOST
         extra_flags = environment.coredata.get_external_args(for_machine, self.language)
         extra_flags += environment.coredata.get_external_link_args(for_machine, self.language)
-        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
+        # %% build the test executable
+        pc = subprocess.Popen(self.exelist + extra_flags + [str(source_name), '-o', str(binary_name)])
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
@@ -95,12 +104,16 @@ class FortranCompiler(Compiler):
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
                 return
-            cmdlist = self.exe_wrapper + [binary_name]
+            cmdlist = self.exe_wrapper + [str(binary_name)]
         else:
-            cmdlist = [binary_name]
-        pe = subprocess.Popen(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        pe.wait()
-        if pe.returncode != 0:
+            cmdlist = [str(binary_name)]
+        # %% Run the test executable
+        try:
+            pe = subprocess.Popen(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            pe.wait()
+            if pe.returncode != 0:
+                raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
+        except OSError:
             raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
 
     def get_std_warn_args(self, level):
