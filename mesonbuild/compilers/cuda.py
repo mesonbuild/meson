@@ -145,14 +145,15 @@ class CudaCompiler(Compiler):
     def get_compiler_check_args(self):
         return super().get_compiler_check_args() + []
 
-    def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
-        if super().has_header_symbol(hname, symbol, prefix, env, extra_args, dependencies):
+    def has_header_symbol(self, hnames, symbol, prefix, env, extra_args=None, dependencies=None):
+        if super().has_header_symbol(hnames, symbol, prefix, env, extra_args, dependencies):
             return True
         if extra_args is None:
             extra_args = []
-        fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
+        h_includes = ['''#include<{}>'''.format(h) for h in hnames]
+        fargs = {'prefix': prefix, 'header_includes': '\n'.join(h_includes), 'symbol': symbol}
         t = '''{prefix}
-        #include <{header}>
+        {header_includes}
         using {symbol};
         int main () {{ return 0; }}'''
         return self.compiles(t.format(**fargs), env, extra_args, dependencies)

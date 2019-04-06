@@ -381,10 +381,11 @@ class CCompiler(Compiler):
         return self.compiles(code.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies, mode='preprocess')
 
-    def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
-        fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
+    def has_header_symbol(self, hnames, symbol, prefix, env, *, extra_args=None, dependencies=None):
+        h_includes = ['''#include<{}>'''.format(h) for h in hnames]
+        fargs = {'prefix': prefix, 'header_includes': '\n'.join(h_includes), 'symbol': symbol}
         t = '''{prefix}
-        #include <{header}>
+        {header_includes}
         int main () {{
             /* If it's not defined as a macro, try to use as a symbol */
             #ifndef {symbol}

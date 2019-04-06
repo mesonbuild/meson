@@ -12,6 +12,8 @@ foreach comp : [cc, cpp]
   assert (not comp.has_header_symbol('stdlib.h', 'FILE'), 'FILE structure is defined in stdio.h, not stdlib.h')
   assert (not comp.has_header_symbol('stdlol.h', 'printf'), 'stdlol.h shouldn\'t exist')
   assert (not comp.has_header_symbol('stdlol.h', 'int'), 'shouldn\'t be able to find "int" with invalid header')
+  assert (comp.has_header_symbol(['a.h', 'b.h'], 'test_function', args : '-I'+meson.current_source_dir()), 'double header include test failed')
+  assert (not comp.has_header_symbol(['asdfasdfasdfasdf', 'stdio.h'], 'int', args : '-I'+meson.current_source_dir()), 'Things with broken headers should not succeed')
 endforeach
 
 # This is available on Glibc, Solaris & the BSD's, so just test for _GNU_SOURCE

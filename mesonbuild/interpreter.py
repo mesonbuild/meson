@@ -1431,17 +1431,22 @@ class CompilerHolder(InterpreterObject):
     @FeatureNewKwargs('compiler.has_header_symbol', '0.50.0', ['required'])
     @permittedKwargs(header_permitted_kwargs)
     def has_header_symbol_method(self, args, kwargs):
-        if len(args) != 2:
-            raise InterpreterException('has_header_symbol method takes exactly two arguments.')
+        if len(args) < 2:
+            raise InterpreterException('has_header_symbol method takes at least 2 arguments.')
         check_stringlist(args)
-        hname = args[0]
-        symbol = args[1]
+        hname = args[:-1]
+        if isinstance(hname, str):
+            hname = [hname]
+        if not isinstance(hname, list):
+            raise InterpreterException('header name must be either list or string!')
+        hname_pretty_name = ', '.join(hname)
+        symbol = args[-1]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header_symbol must be a string.')
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
         if disabled:
-            mlog.log('Header <{0}> has symbol'.format(hname), mlog.bold(symbol, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            mlog.log('Header <{0}> has symbol'.format(hname_pretty_name), mlog.bold(symbol, True), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
@@ -1449,12 +1454,12 @@ class CompilerHolder(InterpreterObject):
                                               extra_args=extra_args,
                                               dependencies=deps)
         if required and not haz:
-            raise InterpreterException('{} symbol {} not found in header {}'.format(self.compiler.get_display_language(), symbol, hname))
+            raise InterpreterException('{} symbol {} not found in header {}'.format(self.compiler.get_display_language(), symbol, hname_pretty_name))
         elif haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        mlog.log('Header <{0}> has symbol'.format(hname), mlog.bold(symbol, True), msg, h)
+        mlog.log('Header <{0}> has symbol'.format(hname_pretty_name), mlog.bold(symbol, True), msg, h)
         return haz
 
     def notfound_library(self, libname):

@@ -63,18 +63,19 @@ class CPPCompiler(CCompiler):
         # too strict without this and always fails.
         return super().get_compiler_check_args() + ['-fpermissive']
 
-    def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
+    def has_header_symbol(self, hnames, symbol, prefix, env, *, extra_args=None, dependencies=None):
         # Check if it's a C-like symbol
-        if super().has_header_symbol(hname, symbol, prefix, env,
+        if super().has_header_symbol(hnames, symbol, prefix, env,
                                      extra_args=extra_args,
                                      dependencies=dependencies):
             return True
         # Check if it's a class or a template
         if extra_args is None:
             extra_args = []
-        fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
+        h_includes = ['''#include<{}>'''.format(h) for h in hnames]
+        fargs = {'prefix': prefix, 'header_includes': '\n'.join(h_includes), 'symbol': symbol}
         t = '''{prefix}
-        #include <{header}>
+        {header_includes}
         using {symbol};
         int main () {{ return 0; }}'''
         return self.compiles(t.format(**fargs), env, extra_args=extra_args,
