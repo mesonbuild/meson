@@ -226,6 +226,27 @@ int dummy;
             outfile.write('# Build rules for targets\n\n')
             for t in self.build.get_targets().values():
                 self.generate_target(t, outfile)
+            all_bld_targets = [tgt for tgt in self.build.get_targets().values() if isinstance(tgt, build.BuildTarget)]
+            build_tgts = dict()
+            for t in all_bld_targets:
+
+                def parseTarget(build_tgts, subdir, tgtname):
+                    if subdir in build_tgts:
+                        build_tgts[subdir].append(os.path.join(subdir, tgtname))
+                    else:
+                        build_tgts[subdir] = [os.path.join(subdir, tgtname)]
+                    if len(Path(subdir).parents) > 1:
+                        path = Path(subdir)
+                        return parseTarget(build_tgts, str(path.parent), '{}{}all'.format(path.stem, os.sep))
+                    return build_tgts
+                build_tgts = parseTarget(build_tgts, t.get_source_subdir(), t.get_filename())
+            outfile.write('# Directory level rules\n\n')
+            for d in build_tgts:
+                tgts = sorted(list(set(build_tgts[d])))
+                if d.endswith('{}all'.format(os.sep)):
+                    outfile.write('build {}: phony {}\n'.format(d, ' '.join(tgts)))
+                else:
+                    outfile.write('build {}{}all: phony {}\n'.format(d, os.sep, ' '.join(tgts)))
             outfile.write('# Test rules\n\n')
             self.generate_tests(outfile)
             outfile.write('# Install rules\n\n')
