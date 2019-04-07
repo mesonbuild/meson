@@ -34,7 +34,7 @@ def runtests(cross_file, failfast):
     commontests = [('common', gather_tests(Path('test cases', 'common')), False)]
     try:
         (passing_tests, failing_tests, skipped_tests) = \
-            run_tests(commontests, 'meson-cross-test-run', failfast, ['--cross', cross_file])
+            run_tests(commontests, 'meson-cross-test-run', failfast, ['--cross-file', cross_file])
     except StopException:
         pass
     print('\nTotal passed cross tests:', passing_tests)

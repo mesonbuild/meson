@@ -617,11 +617,19 @@ class PkgConfigDependency(ExternalDependency):
         return rc, out
 
     def _call_pkgbin(self, args, env=None):
+        # Always copy the environment since we're going to modify it
+        # with pkg-config variables
         if env is None:
-            fenv = env
-            env = os.environ
+            env = os.environ.copy()
         else:
-            fenv = frozenset(env.items())
+            env = env.copy()
+
+        if self.want_cross:
+            extra_paths = self.env.coredata.get_builtin_option('cross_pkg_config_path')
+        else:
+            extra_paths = self.env.coredata.get_builtin_option('pkg_config_path')
+        env['PKG_CONFIG_PATH'] = ':'.join([p for p in extra_paths])
+        fenv = frozenset(env.items())
         targs = tuple(args)
         cache = PkgConfigDependency.pkgbin_cache
         if (self.pkgbin, targs, fenv) not in cache:

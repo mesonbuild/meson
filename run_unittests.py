@@ -4837,9 +4837,9 @@ endian = 'little'
         testdir = os.path.join(self.unit_test_dir, '58 pkgconfig relative paths')
         pkg_dir = os.path.join(testdir, 'pkgconfig')
         self.assertTrue(os.path.exists(os.path.join(pkg_dir, 'librelativepath.pc')))
-        os.environ['PKG_CONFIG_PATH'] = pkg_dir
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
+        env.coredata.set_options({'pkg_config_path': pkg_dir}, '')
         kwargs = {'required': True, 'silent': True}
         relative_path_dep = PkgConfigDependency('librelativepath', env, kwargs)
         self.assertTrue(relative_path_dep.found())
@@ -5068,6 +5068,11 @@ endian = 'little'
                 # Assert that
                 self.assertEqual(len(line.split(lib)), 2, msg=(lib, line))
 
+    @skipIfNoPkgconfig
+    def test_pkg_config_option(self):
+        testdir = os.path.join(self.unit_test_dir, '55 pkg_config_path option')
+        self.init(testdir, extra_args=['-Dpkg_config_path=' + os.path.join(testdir, 'extra_path')])
+
 
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
@@ -5163,6 +5168,11 @@ class LinuxCrossMingwTests(BasePlatformTests):
         with self.assertRaisesRegex(MesonException, 'exe_wrapper.*PATH'):
             # Must run in-process or we'll get a generic CalledProcessError
             self.run_tests(inprocess=True)
+
+    @skipIfNoPkgconfig
+    def test_cross_pkg_config_option(self):
+        testdir = os.path.join(self.unit_test_dir, '55 pkg_config_path option')
+        self.init(testdir, extra_args=['-Dcross_pkg_config_path=' + os.path.join(testdir, 'extra_path')])
 
 
 class PythonTests(BasePlatformTests):

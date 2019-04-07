@@ -149,13 +149,6 @@ class MesonApp:
                 sys.exit(1)
         return src_dir, build_dir
 
-    def check_pkgconfig_envvar(self, env):
-        curvar = os.environ.get('PKG_CONFIG_PATH', '')
-        if curvar != env.coredata.pkgconf_envvar:
-            mlog.warning('PKG_CONFIG_PATH has changed between invocations from "%s" to "%s".' %
-                         (env.coredata.pkgconf_envvar, curvar))
-            env.coredata.pkgconf_envvar = curvar
-
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
         mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
@@ -169,7 +162,6 @@ class MesonApp:
         mlog.debug('Main binary:', sys.executable)
         mlog.debug('Python system:', platform.system())
         mlog.log(mlog.bold('The Meson build system'))
-        self.check_pkgconfig_envvar(env)
         mlog.log('Version:', coredata.version)
         mlog.log('Source dir:', mlog.bold(self.source_dir))
         mlog.log('Build dir:', mlog.bold(self.build_dir))

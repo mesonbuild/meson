@@ -26,6 +26,7 @@ from .wrap import WrapMode
 import ast
 import argparse
 import configparser
+from typing import Optional, Any, TypeVar, Generic, Type
 
 version = '0.50.999'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']
@@ -269,7 +270,6 @@ class CoreData:
         self.cross_compilers = OrderedDict()
         self.deps = OrderedDict()
         # Only to print a warning if it changes between Meson invocations.
-        self.pkgconf_envvar = os.environ.get('PKG_CONFIG_PATH', '')
         self.config_files = self.__load_config_files(options.native_file)
         self.libdir_cross_fixup()
 
@@ -335,11 +335,10 @@ class CoreData:
     def init_builtins(self):
         # Create builtin options with default values
         self.builtins = {}
-        prefix = get_builtin_option_default('prefix')
-        for key in get_builtin_options():
-            value = get_builtin_option_default(key, prefix)
-            args = [key] + builtin_options[key][1:-1] + [value]
-            self.builtins[key] = builtin_options[key][0](*args)
+        for key, opt in builtin_options.items():
+            self.builtins[key] = opt.init_option(key)
+            if opt.separate_cross:
+                self.builtins['cross_' + key] = opt.init_option(key)
 
     def init_backend_options(self, backend_name):
         if backend_name == 'ninja':
@@ -462,7 +461,7 @@ class CoreData:
             self.builtins['prefix'].set_value(prefix)
             for key in builtin_dir_noprefix_options:
                 if key not in options:
-                    self.builtins[key].set_value(get_builtin_option_default(key, prefix))
+                    self.builtins[key].set_value(builtin_options[key].prefixed_default(key, prefix))
 
         unknown_options = []
         for k, v in options.items():
@@ -495,7 +494,7 @@ class CoreData:
         from . import optinterpreter
         for k, v in default_options.items():
             if subproject:
-                if optinterpreter.is_invalid_name(k):
+                if optinterpreter.is_invalid_name(k, log=False):
                     continue
                 k = subproject + ':' + k
             env.cmd_line_options.setdefault(k, v)
@@ -506,14 +505,20 @@ class CoreData:
         # languages and setting the backend (builtin options must be set first
         # to know which backend we'll use).
         options = {}
+
+        # Some options default to environment variables if they are
+        # unset, set those now. These will either be overwritten
+        # below, or they won't.
+        options['pkg_config_path'] = os.environ.get('PKG_CONFIG_PATH', '').split(':')
+
         for k, v in env.cmd_line_options.items():
             if subproject:
                 if not k.startswith(subproject + ':'):
                     continue
-            elif k not in get_builtin_options():
+            elif k not in builtin_options:
                 if ':' in k:
                     continue
-                if optinterpreter.is_invalid_name(k):
+                if optinterpreter.is_invalid_name(k, log=False):
                     continue
             options[k] = v
 
@@ -656,80 +661,10 @@ def save(obj, build_dir):
     os.replace(tempfilename, filename)
     return filename
 
-def get_builtin_options():
-    return list(builtin_options.keys())
-
-def is_builtin_option(optname):
-    return optname in get_builtin_options()
-
-def get_builtin_option_choices(optname):
-    if is_builtin_option(optname):
-        if builtin_options[optname][0] == UserComboOption:
-            return builtin_options[optname][2]
-        elif builtin_options[optname][0] == UserBooleanOption:
-            return [True, False]
-        elif builtin_options[optname][0] == UserFeatureOption:
-            return UserFeatureOption.static_choices
-        else:
-            return None
-    else:
-        raise RuntimeError('Tried to get the supported values for an unknown builtin option \'%s\'.' % optname)
-
-def get_builtin_option_description(optname):
-    if is_builtin_option(optname):
-        return builtin_options[optname][1]
-    else:
-        raise RuntimeError('Tried to get the description for an unknown builtin option \'%s\'.' % optname)
-
-def get_builtin_option_action(optname):
-    default = builtin_options[optname][2]
-    if default is True:
-        return 'store_false'
-    elif default is False:
-        return 'store_true'
-    return None
-
-def get_builtin_option_default(optname, prefix=''):
-    if is_builtin_option(optname):
-        o = builtin_options[optname]
-        if o[0] == UserComboOption:
-            return o[3]
-        if o[0] == UserIntegerOption:
-            return o[4]
-        try:
-            return builtin_dir_noprefix_options[optname][prefix]
-        except KeyError:
-            pass
-        return o[2]
-    else:
-        raise RuntimeError('Tried to get the default value for an unknown builtin option \'%s\'.' % optname)
-
-def get_builtin_option_cmdline_name(name):
-    if name == 'warning_level':
-        return '--warnlevel'
-    else:
-        return '--' + name.replace('_', '-')
-
-def add_builtin_argument(p, name):
-    kwargs = {}
-    c = get_builtin_option_choices(name)
-    b = get_builtin_option_action(name)
-    h = get_builtin_option_description(name)
-    if not b:
-        h = h.rstrip('.') + ' (default: %s).' % get_builtin_option_default(name)
-    else:
-        kwargs['action'] = b
-    if c and not b:
-        kwargs['choices'] = c
-    kwargs['default'] = argparse.SUPPRESS
-    kwargs['dest'] = name
-
-    cmdline_name = get_builtin_option_cmdline_name(name)
-    p.add_argument(cmdline_name, help=h, **kwargs)
 
 def register_builtin_arguments(parser):
-    for n in builtin_options:
-        add_builtin_argument(parser, n)
+    for n, b in builtin_options.items():
+        b.add_to_argparse(n, parser)
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
 
@@ -747,48 +682,129 @@ def parse_cmd_line_options(args):
     args.cmd_line_options = create_options_dict(args.projectoptions)
 
     # Merge builtin options set with --option into the dict.
-    for name in builtin_options:
-        value = getattr(args, name, None)
-        if value is not None:
-            if name in args.cmd_line_options:
-                cmdline_name = get_builtin_option_cmdline_name(name)
-                raise MesonException(
-                    'Got argument {0} as both -D{0} and {1}. Pick one.'.format(name, cmdline_name))
-            args.cmd_line_options[name] = value
-            delattr(args, name)
+    for name, builtin in builtin_options.items():
+        names = [name]
+        if builtin.separate_cross:
+            names.append('cross_' + name)
+        for name in names:
+            value = getattr(args, name, None)
+            if value is not None:
+                if name in args.cmd_line_options:
+                    cmdline_name = BuiltinOption.argparse_name_to_arg(name)
+                    raise MesonException(
+                        'Got argument {0} as both -D{0} and {1}. Pick one.'.format(name, cmdline_name))
+                args.cmd_line_options[name] = value
+                delattr(args, name)
+
+
+_U = TypeVar('_U', bound=UserOption)
+
+class BuiltinOption(Generic[_U]):
+
+    """Class for a builtin option type.
+
+    Currently doesn't support UserIntegerOption, or a few other cases.
+    """
+
+    def __init__(self, opt_type: Type[_U], description: str, default: Any, yielding: Optional[bool] = None, *,
+                 choices: Any = None, separate_cross: bool = False):
+        self.opt_type = opt_type
+        self.description = description
+        self.default = default
+        self.choices = choices
+        self.yielding = yielding
+        self.separate_cross = separate_cross
+
+    def init_option(self, name: str) -> _U:
+        """Create an instance of opt_type and return it."""
+        keywords = {'yielding': self.yielding, 'value': self.default}
+        if self.choices:
+            keywords['choices'] = self.choices
+        return self.opt_type(name, self.description, **keywords)
+
+    def _argparse_action(self) -> Optional[str]:
+        if self.default is True:
+            return 'store_false'
+        elif self.default is False:
+            return 'store_true'
+        return None
+
+    def _argparse_choices(self) -> Any:
+        if self.opt_type is UserBooleanOption:
+            return [True, False]
+        elif self.opt_type is UserFeatureOption:
+            return UserFeatureOption.static_choices
+        return self.choices
+
+    @staticmethod
+    def argparse_name_to_arg(name: str) -> str:
+        if name == 'warning_level':
+            return '--warnlevel'
+        else:
+            return '--' + name.replace('_', '-')
+
+    def prefixed_default(self, name: str, prefix: str = '') -> Any:
+        if self.opt_type in [UserComboOption, UserIntegerOption]:
+            return self.default
+        try:
+            return builtin_dir_noprefix_options[name][prefix]
+        except KeyError:
+            pass
+        return self.default
+
+    def add_to_argparse(self, name: str, parser: argparse.ArgumentParser) -> None:
+        kwargs = {}
+
+        c = self._argparse_choices()
+        b = self._argparse_action()
+        h = self.description
+        if not b:
+            h = '{} (default: {}).'.format(h.rstrip('.'), self.prefixed_default(name))
+        else:
+            kwargs['action'] = b
+        if c and not b:
+            kwargs['choices'] = c
+        kwargs['default'] = argparse.SUPPRESS
+        kwargs['dest'] = name
+
+        cmdline_name = self.argparse_name_to_arg(name)
+        parser.add_argument(cmdline_name, help=h, **kwargs)
+        if self.separate_cross:
+            kwargs['dest'] = 'cross_' + name
+            parser.add_argument(self.argparse_name_to_arg('cross_' + name), help=h + ' (for host in cross compiles)', **kwargs)
+
 
 builtin_options = {
-    'buildtype':  [UserComboOption, 'Build type to use', ['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'], 'debug'],
-    'strip':      [UserBooleanOption, 'Strip targets on install', False],
-    'unity':      [UserComboOption, 'Unity build', ['on', 'off', 'subprojects'], 'off'],
-    'prefix':     [UserStringOption, 'Installation prefix', default_prefix()],
-    'libdir':     [UserStringOption, 'Library directory', default_libdir()],
-    'libexecdir': [UserStringOption, 'Library executable directory', default_libexecdir()],
-    'bindir':     [UserStringOption, 'Executable directory', 'bin'],
-    'sbindir':    [UserStringOption, 'System executable directory', 'sbin'],
-    'includedir': [UserStringOption, 'Header file directory', 'include'],
-    'datadir':    [UserStringOption, 'Data file directory', 'share'],
-    'mandir':     [UserStringOption, 'Manual page directory', 'share/man'],
-    'infodir':    [UserStringOption, 'Info page directory', 'share/info'],
-    'localedir':  [UserStringOption, 'Locale data directory', 'share/locale'],
-    'sysconfdir':      [UserStringOption, 'Sysconf data directory', 'etc'],
-    'localstatedir':   [UserStringOption, 'Localstate data directory', 'var'],
-    'sharedstatedir':  [UserStringOption, 'Architecture-independent data directory', 'com'],
-    'werror':          [UserBooleanOption, 'Treat warnings as errors', False],
-    'warning_level':   [UserComboOption, 'Compiler warning level to use', ['0', '1', '2', '3'], '1'],
-    'layout':          [UserComboOption, 'Build directory layout', ['mirror', 'flat'], 'mirror'],
-    'default_library': [UserComboOption, 'Default library type', ['shared', 'static', 'both'], 'shared'],
-    'backend':         [UserComboOption, 'Backend to use', backendlist, 'ninja'],
-    'stdsplit':        [UserBooleanOption, 'Split stdout and stderr in test logs', True],
-    'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests", True],
-    'install_umask':   [UserUmaskOption, 'Default umask to apply on permissions of installed files', '022'],
-    'auto_features':   [UserFeatureOption, "Override value of all 'auto' features", 'auto'],
-    'optimization':    [UserComboOption, 'Optimization level', ['0', 'g', '1', '2', '3', 's'], '0'],
-    'debug':           [UserBooleanOption, 'Debug', True],
-    'wrap_mode':       [UserComboOption, 'Wrap mode', ['default',
-                                                       'nofallback',
-                                                       'nodownload',
-                                                       'forcefallback'], 'default'],
+    'buildtype':  BuiltinOption(UserComboOption, 'Build type to use', 'debug',
+                                choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom']),
+    'strip':      BuiltinOption(UserBooleanOption, 'Strip targets on install', False),
+    'unity':      BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects']),
+    'prefix':     BuiltinOption(UserStringOption, 'Installation prefix', default_prefix()),
+    'libdir':     BuiltinOption(UserStringOption, 'Library directory', default_libdir()),
+    'libexecdir': BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir()),
+    'bindir':     BuiltinOption(UserStringOption, 'Executable directory', 'bin'),
+    'sbindir':    BuiltinOption(UserStringOption, 'System executable directory', 'sbin'),
+    'includedir': BuiltinOption(UserStringOption, 'Header file directory', 'include'),
+    'datadir':    BuiltinOption(UserStringOption, 'Data file directory', 'share'),
+    'mandir':     BuiltinOption(UserStringOption, 'Manual page directory', 'share/man'),
+    'infodir':    BuiltinOption(UserStringOption, 'Info page directory', 'share/info'),
+    'localedir':  BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale'),
+    'sysconfdir':      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc'),
+    'localstatedir':   BuiltinOption(UserStringOption, 'Localstate data directory', 'var'),
+    'sharedstatedir':  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com'),
+    'werror':          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False),
+    'warning_level':   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3']),
+    'layout':          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat']),
+    'default_library': BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both']),
+    'backend':         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist),
+    'stdsplit':        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True),
+    'errorlogs':       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True),
+    'install_umask':   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022'),
+    'auto_features':   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto'),
+    'optimization':    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['0', 'g', '1', '2', '3', 's']),
+    'debug':           BuiltinOption(UserBooleanOption, 'Debug', True),
+    'wrap_mode':       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback']),
+    'pkg_config_path': BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [], separate_cross=True),
 }
 
 # Special prefix-dependent defaults for installation directories that reside in
