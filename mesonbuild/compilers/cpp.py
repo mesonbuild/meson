@@ -238,9 +238,9 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
 
 class PGICPPCompiler(PGICompiler, CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
-        PGICompiler.__init__(self, CompilerType.PGI_STANDARD)
+        PGICompiler.__init__(self, compiler_type)
 
 
 class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):

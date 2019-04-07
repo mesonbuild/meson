@@ -423,9 +423,9 @@ class PathScaleFortranCompiler(FortranCompiler):
 
 
 class PGIFortranCompiler(PGICompiler, FortranCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwags):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
-        PGICompiler.__init__(self, CompilerType.PGI_STANDARD)
+        PGICompiler.__init__(self, compiler_type)
 
 
 class FlangFortranCompiler(ClangCompiler, FortranCompiler):

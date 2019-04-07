@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import configparser, os, platform, re, sys, shlex, shutil, subprocess
-import typing
+from typing import List
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker
@@ -577,6 +577,25 @@ class Environment:
         return defines
 
     @staticmethod
+    def get_pgi_compiler_defines(compiler: List[str]) -> List[str]:
+        """
+        Detect PGI compiler platform type (Apple, MinGW, Unix)
+        """
+        # Arguments to output compiler pre-processor defines to stdout
+        # pgcc, pgc++, and pgfortran all support these arguments
+        args = compiler + ['-dryrun', 'a.c']
+        p, output, error = Popen_safe(args)
+        if p.returncode != 0:
+            raise EnvironmentException('Unable to detect PGI compiler type:\n' + output + error)
+        # Parse several lines of the type:
+        # `#define ___SOME_DEF some_value`
+        # and extract `___SOME_DEF`
+        defines = []
+        for line in error.split('\n'):
+            defines += [d.strip() for d in line.split('-def') if d.lstrip().startswith('_') and d.rstrip().endswith('_')]
+        return defines
+
+    @staticmethod
     def get_gnu_version_from_defines(defines):
         dot = '.'
         major = defines.get('__GNUC__', '0')
@@ -603,6 +622,16 @@ class Environment:
         elif '__CYGWIN__' in defines:
             return CompilerType.GCC_CYGWIN
         return CompilerType.GCC_STANDARD
+
+    @staticmethod
+    def get_pgi_compiler_type(defines: List[str]):
+        # Detect PGI type (Apple, Windows, Unix)
+        # Note: at this time, there is no pgc++ for Windows
+        if '__APPLE__' in defines:
+            return CompilerType.PGI_OSX
+        elif '__WIN32__' in defines or '__WIN64__' in defines:
+            return CompilerType.PGI_WIN
+        return CompilerType.PGI_STANDARD
 
     def _get_compilers(self, lang, want_cross):
         '''
@@ -769,9 +798,12 @@ class Environment:
                     target = 'x86'
                 cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
                 return cls(compiler, version, is_cross, exe_wrap, target)
+
             if 'PGI Compilers' in out:
+                defines = self.get_pgi_compiler_defines(compiler)
+                compiler_type = self.get_pgi_compiler_type(defines)
                 cls = PGICCompiler if lang == 'c' else PGICPPCompiler
-                return cls(ccache + compiler, version, is_cross, exe_wrap)
+                return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap)
             if '(ICC)' in out:
                 if mesonlib.for_darwin(want_cross, self):
                     compiler_type = CompilerType.ICC_OSX
@@ -883,7 +915,9 @@ class Environment:
                     return PathScaleFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'PGI Compilers' in out:
-                    return PGIFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
+                    defines = self.get_pgi_compiler_defines(compiler)
+                    compiler_type = self.get_pgi_compiler_type(defines)
+                    return PGIFortranCompiler(compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
 
                 if 'flang' in out or 'clang' in out:
                     return FlangFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
