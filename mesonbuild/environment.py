@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os, platform, re, sys, shlex, shutil, subprocess
+from typing import List
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker
@@ -769,9 +770,16 @@ class Environment:
                     target = 'x86'
                 cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
                 return cls(compiler, version, is_cross, exe_wrap, target)
+
             if 'PGI Compilers' in out:
+                if mesonlib.for_darwin(want_cross, self):
+                    compiler_type = CompilerType.PGI_OSX
+                elif mesonlib.for_windows(want_cross, self):
+                    compiler_type = CompilerType.PGI_WIN
+                else:
+                    compiler_type = CompilerType.PGI_STANDARD
                 cls = PGICCompiler if lang == 'c' else PGICPPCompiler
-                return cls(ccache + compiler, version, is_cross, exe_wrap)
+                return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap)
             if '(ICC)' in out:
                 if mesonlib.for_darwin(want_cross, self):
                     compiler_type = CompilerType.ICC_OSX
@@ -883,7 +891,13 @@ class Environment:
                     return PathScaleFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'PGI Compilers' in out:
-                    return PGIFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
+                    if mesonlib.for_darwin(want_cross, self):
+                        compiler_type = CompilerType.PGI_OSX
+                    elif mesonlib.for_windows(want_cross, self):
+                        compiler_type = CompilerType.PGI_WIN
+                    else:
+                        compiler_type = CompilerType.PGI_STANDARD
+                    return PGIFortranCompiler(compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
 
                 if 'flang' in out or 'clang' in out:
                     return FlangFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
@@ -1039,7 +1053,8 @@ class Environment:
         # up to date language version at time (2016).
         if exelist is not None:
             if os.path.basename(exelist[-1]).startswith(('ldmd', 'gdmd')):
-                raise EnvironmentException('Meson doesn\'t support %s as it\'s only a DMD frontend for another compiler. Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.' % exelist[-1])
+                raise EnvironmentException('Meson does not support {} as it is only a DMD frontend for another compiler.'.format(exelist[-1])
+                                           'Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.')
         else:
             for d in self.default_d:
                 if shutil.which(d):
