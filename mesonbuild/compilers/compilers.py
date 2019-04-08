@@ -67,6 +67,8 @@ for _l in clink_langs + ('vala',):
     clink_suffixes += lang_suffixes[_l]
 clink_suffixes += ('h', 'll', 's')
 
+# Languages that should use LDFLAGS arguments when linking.
+languages_using_ldflags = ('objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda')
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
 # Environment variables that each lang uses.
@@ -976,6 +978,12 @@ class Compiler:
         """
         return self.get_language() in {'c', 'cpp', 'objc', 'objcpp'}
 
+    def use_ldflags(self) -> bool:
+        """
+        Whether the compiler (or processes it spawns) cares about LDFLAGS
+        """
+        return self.get_language() in languages_using_ldflags
+
     def get_args_from_envvars(self):
         """
         Returns a tuple of (compile_flags, link_flags) for the specified language
@@ -1004,7 +1012,10 @@ class Compiler:
             compile_flags += shlex.split(env_compile_flags)
 
         # Link flags (same for all languages)
-        env_link_flags = os.environ.get('LDFLAGS')
+        if self.use_ldflags():
+            env_link_flags = os.environ.get('LDFLAGS')
+        else:
+            env_link_flags = None
         log_var('LDFLAGS', env_link_flags)
         if env_link_flags is not None:
             link_flags += shlex.split(env_link_flags)
