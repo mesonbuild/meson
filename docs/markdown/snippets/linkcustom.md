@@ -1,6 +1,6 @@
 ## Can link against custom targets
 
-The output of `custom_target` can be used in `link_with` and
+The output of `custom_target` and `custom_target[i]` can be used in `link_with` and
 `link_whole` keyword arguments. This is useful for integrating custom
 code generator steps, but note that there are many limitations:
 
@@ -10,7 +10,8 @@ code generator steps, but note that there are many limitations:
  - The user is responsible for ensuring that the code produced by
    different toolchains are compatible.
 
- - The custom target can only have one output file.
+ - `custom_target` may only be used when it has a single output file. 
+   Use `custom_target[i]` when dealing with multiple output files.
 
  - The output file must have the correct file name extension.
 
