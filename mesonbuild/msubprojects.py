@@ -1,4 +1,5 @@
 import os, subprocess
+import argparse
 
 from . import mlog
 from .mesonlib import Popen_safe
@@ -167,6 +168,18 @@ def download(wrap, repo_dir, options):
     except WrapException as e:
         mlog.log('  ->', mlog.red(str(e)))
 
+def foreach(wrap, repo_dir, options):
+    mlog.log('Executing command in %s' % repo_dir)
+    if not os.path.isdir(repo_dir):
+        mlog.log('  -> Not downloaded yet')
+        return
+    try:
+        subprocess.check_call([options.command] + options.args, cwd=repo_dir)
+        mlog.log('')
+    except subprocess.CalledProcessError as e:
+        out = e.output.decode().strip()
+        mlog.log('  -> ', mlog.red(out))
+
 def add_common_arguments(p):
     p.add_argument('--sourcedir', default='.',
                    help='Path to source directory')
@@ -197,6 +210,15 @@ def add_arguments(parser):
     add_common_arguments(p)
     p.set_defaults(subprojects_func=download)
 
+    p = subparsers.add_parser('foreach', help='Execute a command in each subproject directory.')
+    p.add_argument('command', metavar='command ...',
+                   help='Command to execute in each subproject directory')
+    p.add_argument('args', nargs=argparse.REMAINDER,
+                   help=argparse.SUPPRESS)
+    p.add_argument('--sourcedir', default='.',
+                   help='Path to source directory')
+    p.set_defaults(subprojects_func=foreach)
+
 def run(options):
     src_dir = os.path.relpath(os.path.realpath(options.sourcedir))
     if not os.path.isfile(os.path.join(src_dir, 'meson.build')):
@@ -207,13 +229,14 @@ def run(options):
         mlog.log('Directory', mlog.bold(src_dir), 'does not seem to have subprojects.')
         return 0
     files = []
-    for name in options.subprojects:
-        f = os.path.join(subprojects_dir, name + '.wrap')
-        if not os.path.isfile(f):
-            mlog.error('Subproject', mlog.bold(name), 'not found.')
-            return 1
-        else:
-            files.append(f)
+    if hasattr(options, 'subprojects'):
+        for name in options.subprojects:
+            f = os.path.join(subprojects_dir, name + '.wrap')
+            if not os.path.isfile(f):
+                mlog.error('Subproject', mlog.bold(name), 'not found.')
+                return 1
+            else:
+                files.append(f)
     if not files:
         for f in os.listdir(subprojects_dir):
             if f.endswith('.wrap'):

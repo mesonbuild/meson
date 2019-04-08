@@ -235,11 +235,20 @@ To pull latest version of all your subprojects at once, just run the command:
 The command-line `meson subprojects checkout <branch_name>` will checkout a
 branch, or create one with `-b` argument, in every git subprojects. This is
 useful when starting local changes across multiple subprojects. It is still your
-responsability to commit and push in each repository where you made local
+responsibility to commit and push in each repository where you made local
 changes.
 
 To come back to the revision set in wrap file (i.e. master), just run
 `meson subprojects checkout` with no branch name.
+
+## Execute a command on all subprojects
+
+*Since 0.51.0*
+
+The command-line `meson subprojects foreach <command> [...]` will
+execute a command in each subproject directory. For example this can be useful
+to check the status of subprojects (e.g. with `git status` or `git diff`) before
+performing other actions on them.
 
 ## Why must all subprojects be inside a single directory?
 
