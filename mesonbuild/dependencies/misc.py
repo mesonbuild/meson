@@ -388,9 +388,8 @@ class ThreadDependency(ExternalDependency):
         super().__init__('threads', environment, None, kwargs)
         self.name = 'threads'
         self.is_found = True
-
-    def need_threads(self):
-        return True
+        self.compile_args = self.clib_compiler.thread_flags(environment)
+        self.link_args = self.clib_compiler.thread_link_flags(environment)
 
 
 class Python3Dependency(ExternalDependency):

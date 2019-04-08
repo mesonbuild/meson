@@ -433,13 +433,9 @@ class CCompiler(Compiler):
         for d in dependencies:
             # Add compile flags needed by dependencies
             args += d.get_compile_args()
-            if d.need_threads():
-                args += self.thread_flags(env)
             if mode == 'link':
                 # Add link flags needed to find dependencies
                 args += d.get_link_args()
-                if d.need_threads():
-                    args += self.thread_link_flags(env)
 
         args += self._get_basic_compiler_args(env, mode)
 

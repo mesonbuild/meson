@@ -2511,7 +2511,6 @@ rule FORTRAN_DEP_HACK%s
         if not isinstance(target, build.StaticLibrary):
             # For 'automagic' deps: Boost and GTest. Also dependency('threads').
             # pkg-config puts the thread flags itself via `Cflags:`
-            need_threads = False
 
             commands += target.link_args
             # External deps must be last because target link libraries may depend on them.
@@ -2519,14 +2518,10 @@ rule FORTRAN_DEP_HACK%s
                 # Extend without reordering or de-dup to preserve `-L -l` sets
                 # https://github.com/mesonbuild/meson/issues/1718
                 commands.extend_preserving_lflags(dep.get_link_args())
-                need_threads |= dep.need_threads()
             for d in target.get_dependencies():
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
-                        need_threads |= dep.need_threads()
                         commands.extend_preserving_lflags(dep.get_link_args())
-            if need_threads:
-                commands += linker.thread_link_flags(self.environment)
 
         # Add link args specific to this BuildTarget type that must not be overridden by dependencies
         commands += self.get_target_type_link_args_post_dependencies(target, linker)

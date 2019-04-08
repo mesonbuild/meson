@@ -115,6 +115,7 @@ class Dependency:
         self.raw_link_args = None
         self.sources = []
         self.methods = self._process_method_kw(kwargs)
+        self.ext_deps = []  # type: List[Dependency]
 
     def __repr__(self):
         s = '<{0} {1}: {2}>'
@@ -151,9 +152,6 @@ class Dependency:
 
     def get_exe_args(self, compiler):
         return []
-
-    def need_threads(self):
-        return False
 
     def get_pkgconfig_variable(self, variable_name, kwargs):
         raise DependencyException('{!r} is not a pkgconfig dependency'.format(self.name))

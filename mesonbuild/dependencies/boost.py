@@ -22,6 +22,7 @@ from .. import mesonlib
 from ..environment import detect_cpu_family
 
 from .base import (DependencyException, ExternalDependency)
+from .misc import ThreadDependency
 
 # On windows 3 directory layouts are supported:
 # * The default layout (versioned) installed:
@@ -103,6 +104,8 @@ class BoostDependency(ExternalDependency):
         self.is_multithreading = threading == "multi"
 
         self.requested_modules = self.get_requested(kwargs)
+        if 'thread' in self.requested_modules:
+            self.ext_deps.append(ThreadDependency(environment, kwargs))
 
         self.boost_root = None
         self.boost_roots = []
@@ -487,9 +490,6 @@ class BoostDependency(ExternalDependency):
 
     def get_sources(self):
         return []
-
-    def need_threads(self):
-        return 'thread' in self.requested_modules
 
 
 # Generated with boost_names.py
