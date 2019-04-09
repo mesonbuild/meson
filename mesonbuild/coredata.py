@@ -773,39 +773,41 @@ class BuiltinOption(Generic[_U]):
             kwargs['dest'] = 'cross_' + name
             parser.add_argument(self.argparse_name_to_arg('cross_' + name), help=h + ' (for host in cross compiles)', **kwargs)
 
-
-builtin_options = {
-    'buildtype':  BuiltinOption(UserComboOption, 'Build type to use', 'debug',
-                                choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom']),
-    'strip':      BuiltinOption(UserBooleanOption, 'Strip targets on install', False),
-    'unity':      BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects']),
-    'prefix':     BuiltinOption(UserStringOption, 'Installation prefix', default_prefix()),
-    'libdir':     BuiltinOption(UserStringOption, 'Library directory', default_libdir()),
-    'libexecdir': BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir()),
-    'bindir':     BuiltinOption(UserStringOption, 'Executable directory', 'bin'),
-    'sbindir':    BuiltinOption(UserStringOption, 'System executable directory', 'sbin'),
-    'includedir': BuiltinOption(UserStringOption, 'Header file directory', 'include'),
-    'datadir':    BuiltinOption(UserStringOption, 'Data file directory', 'share'),
-    'mandir':     BuiltinOption(UserStringOption, 'Manual page directory', 'share/man'),
-    'infodir':    BuiltinOption(UserStringOption, 'Info page directory', 'share/info'),
-    'localedir':  BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale'),
-    'sysconfdir':      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc'),
-    'localstatedir':   BuiltinOption(UserStringOption, 'Localstate data directory', 'var'),
-    'sharedstatedir':  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com'),
-    'werror':          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False),
-    'warning_level':   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3']),
-    'layout':          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat']),
-    'default_library': BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both']),
-    'backend':         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist),
-    'stdsplit':        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True),
-    'errorlogs':       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True),
-    'install_umask':   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022'),
-    'auto_features':   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto'),
-    'optimization':    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['0', 'g', '1', '2', '3', 's']),
-    'debug':           BuiltinOption(UserBooleanOption, 'Debug', True),
-    'wrap_mode':       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback']),
-    'pkg_config_path': BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [], separate_cross=True),
-}
+# Update `docs/markdown/Builtin-options.md` after changing the options below
+builtin_options = OrderedDict([
+    # Directories
+    ('prefix',     BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
+    ('bindir',     BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
+    ('datadir',    BuiltinOption(UserStringOption, 'Data file directory', 'share')),
+    ('includedir', BuiltinOption(UserStringOption, 'Header file directory', 'include')),
+    ('infodir',    BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
+    ('libdir',     BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
+    ('libexecdir', BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
+    ('localedir',  BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
+    ('localstatedir',   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
+    ('mandir',          BuiltinOption(UserStringOption, 'Manual page directory', 'share/man')),
+    ('sbindir',         BuiltinOption(UserStringOption, 'System executable directory', 'sbin')),
+    ('sharedstatedir',  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
+    ('sysconfdir',      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc')),
+    # Core options
+    ('auto_features',   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
+    ('backend',         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist)),
+    ('buildtype',       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
+                                choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])),
+    ('debug',           BuiltinOption(UserBooleanOption, 'Debug', True)),
+    ('default_library', BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'])),
+    ('errorlogs',       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
+    ('install_umask',   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022')),
+    ('layout',          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'])),
+    ('pkg_config_path', BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [], separate_cross=True)),
+    ('optimization',    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['0', 'g', '1', '2', '3', 's'])),
+    ('stdsplit',        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True)),
+    ('strip',           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
+    ('unity',           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
+    ('warning_level',   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3'])),
+    ('werror',          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False)),
+    ('wrap_mode',       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback'])),
+])
 
 # Special prefix-dependent defaults for installation directories that reside in
 # a path outside of the prefix in FHS and common usage.
