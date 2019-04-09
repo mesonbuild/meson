@@ -141,6 +141,9 @@ def get_backend_from_name(backend, build):
     elif backend == 'vs2017':
         from . import vs2017backend
         return vs2017backend.Vs2017Backend(build)
+    elif backend == 'vs2019':
+        from . import vs2019backend
+        return vs2019backend.Vs2019Backend(build)
     elif backend == 'xcode':
         from . import xcodebackend
         return xcodebackend.XCodeBackend(build)
