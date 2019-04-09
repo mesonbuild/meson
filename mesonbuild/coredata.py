@@ -793,7 +793,7 @@ builtin_options = OrderedDict([
     ('auto_features',   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
     ('backend',         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist)),
     ('buildtype',       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
-                                choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])),
+                                      choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])),
     ('debug',           BuiltinOption(UserBooleanOption, 'Debug', True)),
     ('default_library', BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'])),
     ('errorlogs',       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
