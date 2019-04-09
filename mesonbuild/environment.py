@@ -477,7 +477,7 @@ class Environment:
         self.first_invocation = True
 
     def is_cross_build(self):
-        return not self.machines.matches_build_machine(MachineChoice.HOST)
+        return self.coredata.cross_file is not None
 
     def dump_coredata(self):
         return coredata.save(self.coredata, self.get_build_dir())
