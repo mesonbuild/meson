@@ -456,7 +456,8 @@ class Environment:
         # List of potential compilers.
         if mesonlib.is_windows():
             self.default_c = ['cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc']
-            self.default_cpp = ['cl', 'c++', 'g++', 'clang++', 'clang-cl', 'pgc++']
+            # There is currently no pgc++ for Windows, only for  Mac and Linux.
+            self.default_cpp = ['cl', 'c++', 'g++', 'clang++', 'clang-cl']
         else:
             self.default_c = ['cc', 'gcc', 'clang', 'pgcc']
             self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++']
@@ -467,7 +468,7 @@ class Environment:
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
         self.default_d = ['ldc2', 'ldc', 'gdc', 'dmd']
-        self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77', 'ifort', 'pgfortran']
+        self.default_fortran = ['gfortran', 'flang', 'pgfortran', 'ifort', 'g95']
         self.default_java = ['javac']
         self.default_cuda = ['nvcc']
         self.default_rust = ['rustc']
@@ -1039,7 +1040,7 @@ class Environment:
         # up to date language version at time (2016).
         if exelist is not None:
             if os.path.basename(exelist[-1]).startswith(('ldmd', 'gdmd')):
-                    raise EnvironmentException('Meson doesn\'t support %s as it\'s only a DMD frontend for another compiler. Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.' % exelist[-1])
+                raise EnvironmentException('Meson doesn\'t support %s as it\'s only a DMD frontend for another compiler. Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.' % exelist[-1])
         else:
             for d in self.default_d:
                 if shutil.which(d):
