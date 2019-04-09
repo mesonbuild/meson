@@ -1024,14 +1024,14 @@ class DataTests(unittest.TestCase):
         for s1, s2 in zip(sections[:], sections[1:]):
             if s1.group(1) == "Universal options":
                 # Extract the content for this section
-                end = s2.start() if s2 != None else len(md)
+                end = s2.start() if s2 is not None else len(md)
                 content = md[s1.end():end]
                 subsections = list(re.finditer(r"^### (.+)$", content, re.MULTILINE)) + [None]
 
                 for sub1, sub2 in zip(subsections[:], subsections[1:]):
                     if sub1.group(1) == "Directories" or sub1.group(1) == "Core options":
                         # Extract the content for this subsection
-                        sub_end = sub2.start() if sub2 != None else len(content)
+                        sub_end = sub2.start() if sub2 is not None else len(content)
                         subcontent = content[sub1.end():sub_end]
                         # Find the list entries
                         arches = [m.group(1) for m in re.finditer(r"^\| (\w+) .* \|", subcontent, re.MULTILINE)]
