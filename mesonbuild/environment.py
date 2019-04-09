@@ -453,12 +453,13 @@ class Environment:
 
         # List of potential compilers.
         if mesonlib.is_windows():
-            self.default_c = ['cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc']
+            # Intel C and C++ compiler is icl on Windows, but icc and icpc elsewhere.
+            self.default_c = ['cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc', 'icl']
             # There is currently no pgc++ for Windows, only for  Mac and Linux.
-            self.default_cpp = ['cl', 'c++', 'g++', 'clang++', 'clang-cl']
+            self.default_cpp = ['cl', 'c++', 'g++', 'clang++', 'clang-cl', 'icl']
         else:
-            self.default_c = ['cc', 'gcc', 'clang', 'pgcc']
-            self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++']
+            self.default_c = ['cc', 'gcc', 'clang', 'pgcc', 'icc']
+            self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++', 'icpc']
         if mesonlib.is_windows():
             self.default_cs = ['csc', 'mcs']
         else:
