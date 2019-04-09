@@ -2266,7 +2266,7 @@ class CustomTargetIndex:
         return self.target.get_id()
 
     def get_all_link_deps(self):
-        return []
+        return self.target.get_all_link_deps()
 
     def get_link_deps_mapping(self, prefix, environment):
         return self.target.get_link_deps_mapping(prefix, environment)
