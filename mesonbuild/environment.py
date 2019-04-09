@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import configparser, os, platform, re, sys, shlex, shutil, subprocess
-import typing
+import os, platform, re, sys, shlex, shutil, subprocess
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker
 from . import mesonlib
 from .mesonlib import (
-    MesonException, EnvironmentException, MachineChoice, PerMachine, Popen_safe,
+    MesonException, EnvironmentException, MachineChoice, Popen_safe,
 )
 from . import mlog
 
@@ -38,7 +37,6 @@ from .compilers import (
     is_source,
 )
 from .compilers import (
-    Compiler,
     ArmCCompiler,
     ArmCPPCompiler,
     ArmclangCCompiler,
