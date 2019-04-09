@@ -1473,10 +1473,10 @@ int dummy;
                 if compiler.can_linker_accept_rsp():
                     command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
- rspfile_content = $ARGS  {output_args} $in $LINK_ARGS $aliasing
+ rspfile_content = $ARGS  {output_args} $in $LINK_ARGS
 '''
                 else:
-                    command_template = ' command = {executable} $ARGS {output_args} $in $LINK_ARGS $aliasing\n'
+                    command_template = ' command = {executable} $ARGS {output_args} $in $LINK_ARGS\n'
                 command = command_template.format(
                     executable=' '.join(compiler.get_linker_exelist()),
                     output_args=' '.join(compiler.get_linker_output_args('$out'))
