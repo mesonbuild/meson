@@ -196,7 +196,7 @@ class NinjaBackend(backends.Backend):
         self.all_outputs = {}
         self.introspection_data = {}
 
-    def create_target_alias(self, to_target, outfile):
+    def create_target_alias(self, to_target):
         # We need to use aliases for targets that might be used as directory
         # names to workaround a Ninja bug that breaks `ninja -t clean`.
         # This is used for 'reserved' targets such as 'test', 'install',
@@ -274,22 +274,22 @@ int dummy;
             self.generate_rules()
             self.write_rules(outfile)
             self.build_elements = []
-            self.generate_phony(outfile)
+            self.generate_phony()
             self.add_build_comment(NinjaComment('Build rules for targets'))
             for t in self.build.get_targets().values():
-                self.generate_target(t, outfile)
+                self.generate_target(t)
             self.add_build_comment(NinjaComment('Test rules'))
-            self.generate_tests(outfile)
+            self.generate_tests()
             self.add_build_comment(NinjaComment('Install rules'))
-            self.generate_install(outfile)
-            self.generate_dist(outfile)
+            self.generate_install()
+            self.generate_dist()
             if 'b_coverage' in self.environment.coredata.base_options and \
                     self.environment.coredata.base_options['b_coverage'].value:
                 self.add_build_comment(NinjaComment('Coverage rules'))
-                self.generate_coverage_rules(outfile)
+                self.generate_coverage_rules()
             self.add_build_comment(NinjaComment('Suffix'))
-            self.generate_utils(outfile)
-            self.generate_ending(outfile)
+            self.generate_utils()
+            self.generate_ending()
             self.write_builds(outfile)
             default = 'default all\n\n'
             outfile.write(default)
@@ -432,11 +432,11 @@ int dummy;
                 return True
         return False
 
-    def generate_target(self, target, outfile):
+    def generate_target(self, target):
         if isinstance(target, build.CustomTarget):
-            self.generate_custom_target(target, outfile)
+            self.generate_custom_target(target)
         if isinstance(target, build.RunTarget):
-            self.generate_run_target(target, outfile)
+            self.generate_run_target(target)
         name = target.get_id()
         if name in self.processed_targets:
             return
@@ -444,20 +444,20 @@ int dummy;
         # Initialize an empty introspection source list
         self.introspection_data[name] = {}
         # Generate rules for all dependency targets
-        self.process_target_dependencies(target, outfile)
+        self.process_target_dependencies(target)
         # If target uses a language that cannot link to C objects,
         # just generate for that language and return.
         if isinstance(target, build.Jar):
-            self.generate_jar_target(target, outfile)
+            self.generate_jar_target(target)
             return
         if self.is_rust_target(target):
-            self.generate_rust_target(target, outfile)
+            self.generate_rust_target(target)
             return
         if 'cs' in target.compilers:
-            self.generate_cs_target(target, outfile)
+            self.generate_cs_target(target)
             return
         if 'swift' in target.compilers:
-            self.generate_swift_target(target, outfile)
+            self.generate_swift_target(target)
             return
 
         # Now we handle the following languages:
@@ -475,14 +475,14 @@ int dummy;
             # Sources consumed by valac are filtered out. These only contain
             # C/C++ sources, objects, generated libs, and unknown sources now.
             target_sources, generated_sources, \
-                vala_generated_sources = self.generate_vala_compile(target, outfile)
+                vala_generated_sources = self.generate_vala_compile(target)
         else:
             target_sources = self.get_target_sources(target)
             generated_sources = self.get_target_generated_sources(target)
             vala_generated_sources = []
         self.scan_fortran_module_outputs(target)
         # Generate rules for GeneratedLists
-        self.generate_generator_list_rules(target, outfile)
+        self.generate_generator_list_rules(target)
 
         # Generate rules for building the remaining source files in this target
         outname = self.get_target_filename(target)
@@ -534,15 +534,15 @@ int dummy;
         # because we need `header_deps` to be fully generated in the above loop.
         for src in generated_source_files:
             if self.environment.is_llvm_ir(src):
-                o = self.generate_llvm_ir_compile(target, outfile, src)
+                o = self.generate_llvm_ir_compile(target, src)
             else:
-                o = self.generate_single_compile(target, outfile, src, True,
+                o = self.generate_single_compile(target, src, True,
                                                  header_deps=header_deps)
             obj_list.append(o)
 
         use_pch = self.environment.coredata.base_options.get('b_pch', False)
         if use_pch and target.has_pch():
-            pch_objects = self.generate_pch(target, outfile, header_deps=header_deps)
+            pch_objects = self.generate_pch(target, header_deps=header_deps)
         else:
             pch_objects = []
 
@@ -572,39 +572,39 @@ int dummy;
             # Passing 'vala' here signifies that we want the compile
             # arguments to be specialized for C code generated by
             # valac. For instance, no warnings should be emitted.
-            obj_list.append(self.generate_single_compile(target, outfile, src, 'vala', [], header_deps))
+            obj_list.append(self.generate_single_compile(target, src, 'vala', [], header_deps))
 
         # Generate compile targets for all the pre-existing sources for this target
         for f, src in target_sources.items():
             if not self.environment.is_header(src):
                 if self.environment.is_llvm_ir(src):
-                    obj_list.append(self.generate_llvm_ir_compile(target, outfile, src))
+                    obj_list.append(self.generate_llvm_ir_compile(target, src))
                 elif is_unity and self.get_target_source_can_unity(target, src):
                     abs_src = os.path.join(self.environment.get_build_dir(),
                                            src.rel_to_builddir(self.build_to_src))
                     unity_src.append(abs_src)
                 else:
-                    obj_list.append(self.generate_single_compile(target, outfile, src, False, [], header_deps))
+                    obj_list.append(self.generate_single_compile(target, src, False, [], header_deps))
         obj_list += self.flatten_object_list(target)
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
-                obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
+                obj_list.append(self.generate_single_compile(target, src, True, unity_deps + header_deps))
         linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
-        elem = self.generate_link(target, outfile, outname, obj_list, linker, pch_objects, stdlib_args=stdlib_args)
+        elem = self.generate_link(target, outname, obj_list, linker, pch_objects, stdlib_args=stdlib_args)
         self.generate_shlib_aliases(target, self.get_target_dir(target))
         self.add_build(elem)
 
-    def process_target_dependencies(self, target, outfile):
+    def process_target_dependencies(self, target):
         for t in target.get_dependencies():
             if t.get_id() not in self.processed_targets:
-                self.generate_target(t, outfile)
+                self.generate_target(t)
 
-    def custom_target_generator_inputs(self, target, outfile):
+    def custom_target_generator_inputs(self, target):
         for s in target.sources:
             if hasattr(s, 'held_object'):
                 s = s.held_object
             if isinstance(s, build.GeneratedList):
-                self.generate_genlist_for_target(s, target, outfile)
+                self.generate_genlist_for_target(s, target)
 
     def unwrap_dep_list(self, target):
         deps = []
@@ -617,8 +617,8 @@ int dummy;
                 deps.append(os.path.join(self.get_target_dir(i), output))
         return deps
 
-    def generate_custom_target(self, target, outfile):
-        self.custom_target_generator_inputs(target, outfile)
+    def generate_custom_target(self, target):
+        self.custom_target_generator_inputs(target)
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
         deps = self.unwrap_dep_list(target)
         deps += self.get_custom_target_depend_files(target)
@@ -682,7 +682,7 @@ int dummy;
         self.add_build(elem)
         self.processed_targets[target.get_id()] = True
 
-    def generate_run_target(self, target, outfile):
+    def generate_run_target(self, target):
         cmd = self.environment.get_build_command() + ['--internal', 'commandrunner']
         deps = self.unwrap_dep_list(target)
         arg_strings = []
@@ -743,7 +743,7 @@ int dummy;
         elem.add_item('pool', 'console')
         self.add_build(elem)
         # Alias that runs the target defined above with the name the user specified
-        self.create_target_alias(target_name, outfile)
+        self.create_target_alias(target_name)
         self.processed_targets[target.get_id()] = True
 
     def generate_coverage_command(self, elem, outputs):
@@ -756,38 +756,38 @@ int dummy;
                        self.environment.get_build_dir(),
                        self.environment.get_log_dir()])
 
-    def generate_coverage_rules(self, outfile):
+    def generate_coverage_rules(self):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, [])
         e.add_item('description', 'Generates coverage reports.')
         self.add_build(e)
         # Alias that runs the target defined above
-        self.create_target_alias('meson-coverage', outfile)
-        self.generate_coverage_legacy_rules(outfile)
+        self.create_target_alias('meson-coverage')
+        self.generate_coverage_legacy_rules()
 
-    def generate_coverage_legacy_rules(self, outfile):
+    def generate_coverage_legacy_rules(self):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage-xml', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--xml'])
         e.add_item('description', 'Generates XML coverage report.')
         self.add_build(e)
         # Alias that runs the target defined above
-        self.create_target_alias('meson-coverage-xml', outfile)
+        self.create_target_alias('meson-coverage-xml')
 
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage-text', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--text'])
         e.add_item('description', 'Generates text coverage report.')
         self.add_build(e)
         # Alias that runs the target defined above
-        self.create_target_alias('meson-coverage-text', outfile)
+        self.create_target_alias('meson-coverage-text')
 
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage-html', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--html'])
         e.add_item('description', 'Generates HTML coverage report.')
         self.add_build(e)
         # Alias that runs the target defined above
-        self.create_target_alias('meson-coverage-html', outfile)
+        self.create_target_alias('meson-coverage-html')
 
-    def generate_install(self, outfile):
+    def generate_install(self):
         self.create_install_data_files()
         elem = NinjaBuildElement(self.all_outputs, 'meson-install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
@@ -796,9 +796,9 @@ int dummy;
         elem.add_item('pool', 'console')
         self.add_build(elem)
         # Alias that runs the target defined above
-        self.create_target_alias('meson-install', outfile)
+        self.create_target_alias('meson-install')
 
-    def generate_tests(self, outfile):
+    def generate_tests(self):
         self.serialize_tests()
         cmd = self.environment.get_build_command(True) + ['test', '--no-rebuild']
         if not self.environment.coredata.get_builtin_option('stdsplit'):
@@ -811,7 +811,7 @@ int dummy;
         elem.add_item('pool', 'console')
         self.add_build(elem)
         # Alias that runs the above-defined meson-test target
-        self.create_target_alias('meson-test', outfile)
+        self.create_target_alias('meson-test')
 
         # And then benchmarks.
         cmd = self.environment.get_build_command(True) + [
@@ -823,7 +823,7 @@ int dummy;
         elem.add_item('pool', 'console')
         self.add_build(elem)
         # Alias that runs the above-defined meson-benchmark target
-        self.create_target_alias('meson-benchmark', outfile)
+        self.create_target_alias('meson-benchmark')
 
     def generate_rules(self):
         self.rules = []
@@ -874,12 +874,12 @@ int dummy;
         for b in self.build_elements:
             b.write(outfile)
 
-    def generate_phony(self, outfile):
+    def generate_phony(self):
         self.add_build_comment(NinjaComment('Phony build target, always out of date'))
         elem = NinjaBuildElement(self.all_outputs, 'PHONY', 'phony', '')
         self.add_build(elem)
 
-    def generate_jar_target(self, target, outfile):
+    def generate_jar_target(self, target):
         fname = target.get_filename()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
@@ -904,7 +904,7 @@ int dummy;
 
         compile_args = self.determine_single_java_compile_args(target, compiler)
         for src in src_list + gen_src_list:
-            plain_class_path = self.generate_single_java_compile(src, target, compiler, compile_args, outfile)
+            plain_class_path = self.generate_single_java_compile(src, target, compiler, compile_args)
             class_list.append(plain_class_path)
         class_dep_list = [os.path.join(self.get_target_private_dir(target), i) for i in class_list]
         manifest_path = os.path.join(self.get_target_private_dir(target), 'META-INF', 'MANIFEST.MF')
@@ -933,7 +933,7 @@ int dummy;
         # Create introspection information
         self.create_target_source_introspection(target, compiler, compile_args, src_list, gen_src_list)
 
-    def generate_cs_resource_tasks(self, target, outfile):
+    def generate_cs_resource_tasks(self, target):
         args = []
         deps = []
         for r in target.resources:
@@ -954,7 +954,7 @@ int dummy;
             args.append(a)
         return args, deps
 
-    def generate_cs_target(self, target, outfile):
+    def generate_cs_target(self, target):
         buildtype = self.get_option_for_target('buildtype', target)
         fname = target.get_filename()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
@@ -972,7 +972,7 @@ int dummy;
             commands.append('-target:library')
         else:
             raise MesonException('Unknown C# target type.')
-        (resource_args, resource_deps) = self.generate_cs_resource_tasks(target, outfile)
+        (resource_args, resource_deps) = self.generate_cs_resource_tasks(target)
         commands += resource_args
         deps += resource_deps
         commands += compiler.get_output_args(outname_rel)
@@ -1002,7 +1002,7 @@ int dummy;
         elem.add_item('ARGS', commands)
         self.add_build(elem)
 
-        self.generate_generator_list_rules(target, outfile)
+        self.generate_generator_list_rules(target)
         self.create_target_source_introspection(target, compiler, commands, rel_srcs, generated_rel_srcs)
 
     def determine_single_java_compile_args(self, target, compiler):
@@ -1022,7 +1022,7 @@ int dummy;
         args += ['-sourcepath', sourcepath]
         return args
 
-    def generate_single_java_compile(self, src, target, compiler, args, outfile):
+    def generate_single_java_compile(self, src, target, compiler, args):
         deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
         generated_sources = self.get_target_generated_sources(target)
         for rel_src, gensrc in generated_sources.items():
@@ -1117,7 +1117,7 @@ int dummy;
                 srctype[f] = gensrc
         return vala, vapi, (others, othersgen)
 
-    def generate_vala_compile(self, target, outfile):
+    def generate_vala_compile(self, target):
         """Vala is compiled into C. Set up all necessary build steps here."""
         (vala_src, vapi_src, other_src) = self.split_vala_sources(target)
         extra_dep_files = []
@@ -1236,7 +1236,7 @@ int dummy;
         self.create_target_source_introspection(target, valac, args, all_files, [])
         return other_src[0], other_src[1], vala_c_src
 
-    def generate_rust_target(self, target, outfile):
+    def generate_rust_target(self, target):
         rustc = target.compilers['rust']
         # Rust compiler takes only the main file as input and
         # figures out what other files are needed via import
@@ -1326,7 +1326,7 @@ int dummy;
         element.add_item('cratetype', cratetype)
         self.add_build(element)
         if isinstance(target, build.SharedLibrary):
-            self.generate_shsym(outfile, target)
+            self.generate_shsym(target)
         self.create_target_source_introspection(target, rustc, args, [main_rust_file], [])
 
     def swift_module_file_name(self, target):
@@ -1372,7 +1372,7 @@ int dummy;
                 others.append(i)
         return srcs, others
 
-    def generate_swift_target(self, target, outfile):
+    def generate_swift_target(self, target):
         module_name = self.target_swift_modulename(target)
         swiftc = target.compilers['swift']
         abssrc = []
@@ -1455,7 +1455,7 @@ int dummy;
         elem.add_item('RUNDIR', rundir)
         self.add_build(elem)
         if isinstance(target, build.StaticLibrary):
-            elem = self.generate_link(target, outfile, self.get_target_filename(target),
+            elem = self.generate_link(target, self.get_target_filename(target),
                                       rel_objects, self.build.static_linker)
             self.add_build(elem)
         elif isinstance(target, build.Executable):
@@ -1743,14 +1743,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 self.generate_compile_rule_for(langname, compiler, True)
                 self.generate_pch_rule_for(langname, compiler, True)
 
-    def generate_generator_list_rules(self, target, outfile):
+    def generate_generator_list_rules(self, target):
         # CustomTargets have already written their rules and
         # CustomTargetIndexes don't actually get generated, so write rules for
         # GeneratedLists here
         for genlist in target.get_generated_sources():
             if isinstance(genlist, (build.CustomTarget, build.CustomTargetIndex)):
                 continue
-            self.generate_genlist_for_target(genlist, target, outfile)
+            self.generate_genlist_for_target(genlist, target)
 
     def replace_paths(self, target, args, override_subdir=None):
         if override_subdir:
@@ -1766,7 +1766,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         args = [x.replace('\\', '/') for x in args]
         return args
 
-    def generate_genlist_for_target(self, genlist, target, outfile):
+    def generate_genlist_for_target(self, genlist, target):
         generator = genlist.get_generator()
         subdir = genlist.subdir
         exe = generator.get_exe()
@@ -1961,7 +1961,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_link_debugfile_args(self, linker, target, outname):
         return linker.get_link_debugfile_args(outname)
 
-    def generate_llvm_ir_compile(self, target, outfile, src):
+    def generate_llvm_ir_compile(self, target, src):
         compiler = get_compiler_for_source(target.compilers.values(), src)
         commands = CompilerArgs(compiler)
         # Compiler args for compiling this target
@@ -2114,7 +2114,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
         return commands
 
-    def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=None, order_deps=None):
+    def generate_single_compile(self, target, src, is_generated=False, header_deps=None, order_deps=None):
         """
         Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
         """
@@ -2275,7 +2275,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         dep = dst + '.' + compiler.get_depfile_suffix()
         return commands, dep, dst, []  # Gcc does not create an object file during pch generation.
 
-    def generate_pch(self, target, outfile, header_deps=None):
+    def generate_pch(self, target, header_deps=None):
         header_deps = header_deps if header_deps is not None else []
         cstr = ''
         pch_objects = []
@@ -2312,7 +2312,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.add_build(elem)
         return pch_objects
 
-    def generate_shsym(self, outfile, target):
+    def generate_shsym(self, target):
         target_name = target.get_filename()
         target_file = self.get_target_filename(target)
         targetdir = self.get_target_private_dir(target)
@@ -2455,7 +2455,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         return guessed_dependencies + absolute_libs
 
-    def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=None, stdlib_args=None):
+    def generate_link(self, target, outname, obj_list, linker, extra_args=None, stdlib_args=None):
         extra_args = extra_args if extra_args is not None else []
         stdlib_args = stdlib_args if stdlib_args is not None else []
         if isinstance(target, build.StaticLibrary):
@@ -2463,7 +2463,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             linker_base = linker.get_language() # Fixme.
         if isinstance(target, build.SharedLibrary):
-            self.generate_shsym(outfile, target)
+            self.generate_shsym(target)
         crstr = ''
         if target.is_cross:
             crstr = '_CROSS'
@@ -2616,7 +2616,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             except OSError:
                 mlog.debug("Library versioning disabled because we do not have symlink creation privileges.")
 
-    def generate_custom_target_clean(self, outfile, trees):
+    def generate_custom_target_clean(self, trees):
         e = NinjaBuildElement(self.all_outputs, 'meson-clean-ctlist', 'CUSTOM_COMMAND', 'PHONY')
         d = CleanTrees(self.environment.get_build_dir(), trees)
         d_file = os.path.join(self.environment.get_scratch_dir(), 'cleantrees.dat')
@@ -2624,13 +2624,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         e.add_item('description', 'Cleaning custom target directories.')
         self.add_build(e)
         # Alias that runs the target defined above
-        self.create_target_alias('meson-clean-ctlist', outfile)
+        self.create_target_alias('meson-clean-ctlist')
         # Write out the data file passed to the script
         with open(d_file, 'wb') as ofile:
             pickle.dump(d, ofile)
         return 'clean-ctlist'
 
-    def generate_gcov_clean(self, outfile):
+    def generate_gcov_clean(self):
         gcno_elem = NinjaBuildElement(self.all_outputs, 'meson-clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
         script_root = self.environment.get_script_dir()
         clean_script = os.path.join(script_root, 'delwithsuffix.py')
@@ -2638,7 +2638,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         gcno_elem.add_item('description', 'Deleting gcno files.')
         self.add_build(gcno_elem)
         # Alias that runs the target defined above
-        self.create_target_alias('meson-clean-gcno', outfile)
+        self.create_target_alias('meson-clean-gcno')
 
         gcda_elem = NinjaBuildElement(self.all_outputs, 'meson-clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
         script_root = self.environment.get_script_dir()
@@ -2647,7 +2647,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         gcda_elem.add_item('description', 'Deleting gcda files.')
         self.add_build(gcda_elem)
         # Alias that runs the target defined above
-        self.create_target_alias('meson-clean-gcda', outfile)
+        self.create_target_alias('meson-clean-gcda')
 
     def get_user_option_args(self):
         cmds = []
@@ -2658,7 +2658,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # affect behavior in any other way.
         return sorted(cmds)
 
-    def generate_dist(self, outfile):
+    def generate_dist(self):
         elem = NinjaBuildElement(self.all_outputs, 'meson-dist', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('DESC', 'Creating source packages')
         elem.add_item('COMMAND', self.environment.get_build_command() + [
@@ -2669,9 +2669,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem.add_item('pool', 'console')
         self.add_build(elem)
         # Alias that runs the target defined above
-        self.create_target_alias('meson-dist', outfile)
+        self.create_target_alias('meson-dist')
 
-    def generate_scanbuild(self, outfile):
+    def generate_scanbuild(self):
         cmd = self.environment.get_build_command() + \
             ['--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir] + \
             self.environment.get_build_command() + self.get_user_option_args()
@@ -2680,9 +2680,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem.add_item('pool', 'console')
         self.add_build(elem)
         # Alias that runs the target defined above
-        self.create_target_alias('meson-scan-build', outfile)
+        self.create_target_alias('meson-scan-build')
 
-    def generate_clangformat(self, outfile):
+    def generate_clangformat(self):
         import shutil
         target_name = 'clang-format'
         if shutil.which('clang-format') is None:
@@ -2698,21 +2698,21 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
         self.add_build(elem)
-        self.create_target_alias('meson-' + target_name, outfile)
+        self.create_target_alias('meson-' + target_name)
 
     # For things like scan-build and other helper tools we might have.
-    def generate_utils(self, outfile):
-        self.generate_scanbuild(outfile)
-        self.generate_clangformat(outfile)
+    def generate_utils(self):
+        self.generate_scanbuild()
+        self.generate_clangformat()
         cmd = self.environment.get_build_command() + ['--internal', 'uninstall']
         elem = NinjaBuildElement(self.all_outputs, 'meson-uninstall', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
         self.add_build(elem)
         # Alias that runs the target defined above
-        self.create_target_alias('meson-uninstall', outfile)
+        self.create_target_alias('meson-uninstall')
 
-    def generate_ending(self, outfile):
+    def generate_ending(self):
         targetlist = []
         for t in self.get_build_by_default_targets().values():
             # Add the first output of each target to the 'all' target so that
@@ -2726,7 +2726,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem.add_item('COMMAND', [self.ninja_command, '-t', 'clean'])
         elem.add_item('description', 'Cleaning.')
         # Alias that runs the above-defined meson-clean target
-        self.create_target_alias('meson-clean', outfile)
+        self.create_target_alias('meson-clean')
 
         # If we have custom targets in this project, add all their outputs to
         # the list that is passed to the `cleantrees.py` script. The script
@@ -2741,11 +2741,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 for o in t.get_outputs():
                     ctlist.append(os.path.join(self.get_target_dir(t), o))
         if ctlist:
-            elem.add_dep(self.generate_custom_target_clean(outfile, ctlist))
+            elem.add_dep(self.generate_custom_target_clean(ctlist))
 
         if 'b_coverage' in self.environment.coredata.base_options and \
            self.environment.coredata.base_options['b_coverage'].value:
-            self.generate_gcov_clean(outfile)
+            self.generate_gcov_clean()
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')
         self.add_build(elem)
