@@ -5029,6 +5029,19 @@ endian = 'little'
                 max_count = max(max_count, line.count(search_term))
         self.assertEqual(max_count, 1, 'Export dynamic incorrectly deduplicated.')
 
+    def test_identity_cross(self):
+        testdir = os.path.join(self.unit_test_dir, '58 identity cross')
+        crossfile = tempfile.NamedTemporaryFile(mode='w')
+        print(os.path.join(testdir, 'build_wrapper.py'))
+        print(os.path.join(testdir, 'host_wrapper.py'))
+        os.environ['CC'] = '"' + os.path.join(testdir, 'build_wrapper.py') + '"'
+        crossfile.write('''[binaries]
+c = ['{0}']
+'''.format(os.path.join(testdir, 'host_wrapper.py')))
+        crossfile.flush()
+        self.meson_cross_file = crossfile.name
+        # TODO should someday be explicit about build platform only here
+        self.init(testdir)
 
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
