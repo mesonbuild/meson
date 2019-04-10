@@ -60,7 +60,7 @@ sample output for a simple project.
       ------        ------------- ---------------                                                                                               -----------
       c_args        []                                                                                                                          Extra arguments passed to the C compiler
       c_link_args   []                                                                                                                          Extra arguments passed to the C linker
-      c_std         c99           [none, c89, c99, c11, gnu89, gnu99, gnu11]                                                                    C language standard to use
+      c_std         c99           [none, c89, c99, c11, c17, c18, gnu89, gnu99, gnu11, gnu17, gnu18]                                                                    C language standard to use
       cpp_args      []                                                                                                                          Extra arguments passed to the C++ compiler
       cpp_debugstl  false         [true, false]                                                                                                 STL debug mode
       cpp_link_args []                                                                                                                          Extra arguments passed to the C++ linker
