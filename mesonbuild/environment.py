@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os, platform, re, sys, shlex, shutil, subprocess
-from typing import List
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker
@@ -61,6 +60,8 @@ from .compilers import (
     IntelCCompiler,
     IntelCPPCompiler,
     IntelFortranCompiler,
+    IntelClCCompiler,
+    IntelClCPPCompiler,
     JavaCompiler,
     MonoCompiler,
     CudaCompiler,
@@ -677,6 +678,7 @@ class Environment:
                 arg = '-v'
             else:
                 arg = '--version'
+
             try:
                 p, out, err = Popen_safe(compiler + [arg])
             except OSError as e:
@@ -684,6 +686,11 @@ class Environment:
                 continue
 
             if 'ccrx' in compiler[0]:
+                out = err
+            if 'icl' in compiler[0]:
+                # https://software.intel.com/en-us/cpp-compiler-developer-guide-and-reference-alphabetical-list-of-compiler-options
+                # https://software.intel.com/en-us/fortran-compiler-developer-guide-and-reference-logo
+                # most consistent way for ICL is to just let compiler error and tell version
                 out = err
 
             full_version = out.split('\n', 1)[0]
@@ -784,12 +791,15 @@ class Environment:
                 if mesonlib.for_darwin(want_cross, self):
                     compiler_type = CompilerType.ICC_OSX
                 elif mesonlib.for_windows(want_cross, self):
-                    # TODO: fix ICC on Windows
-                    compiler_type = CompilerType.ICC_WIN
+                    raise EnvironmentException('At the time of authoring, there was no ICC for Windows')
                 else:
                     compiler_type = CompilerType.ICC_STANDARD
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
+            if out.startswith('Intel(R) C++') and mesonlib.for_windows(want_cross, self):
+                cls = IntelClCCompiler if lang == 'c' else IntelClCPPCompiler
+                target = 'x64' if 'Intel(R) 64 Compiler' in out else 'x86'
+                return cls(compiler, version, is_cross, exe_wrap, target)
             if 'ARM' in out:
                 compiler_type = CompilerType.ARM_WIN
                 cls = ArmCCompiler if lang == 'c' else ArmCPPCompiler
@@ -1053,8 +1063,8 @@ class Environment:
         # up to date language version at time (2016).
         if exelist is not None:
             if os.path.basename(exelist[-1]).startswith(('ldmd', 'gdmd')):
-                raise EnvironmentException('Meson does not support {} as it is only a DMD frontend for another compiler.'.format(exelist[-1])
-                                           'Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.')
+                raise EnvironmentException('Meson does not support {} as it is only a DMD frontend for another compiler.'
+                                           'Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.'.format(exelist[-1]))
         else:
             for d in self.default_d:
                 if shutil.which(d):
