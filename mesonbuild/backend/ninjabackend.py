@@ -359,9 +359,11 @@ int dummy;
 
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html
     def generate_compdb(self):
+        # TODO: Rather than an explicit list here, rules could be marked in the
+        # rule store as being wanted in compdb
         pch_compilers = ['%s_PCH' % i for i in self.build.compilers]
-        native_compilers = ['%s_COMPILER' % i for i in self.build.compilers]
-        cross_compilers = ['%s_CROSS_COMPILER' % i for i in self.build.cross_compilers]
+        native_compilers = ['%s_COMPILER%s' % (i, ext) for i in self.build.compilers for ext in ['', '_RSP']]
+        cross_compilers = ['%s_CROSS_COMPILER%s' % (i, ext) for i in self.build.cross_compilers for ext in ['', '_RSP']]
         ninja_compdb = [self.ninja_command, '-t', 'compdb'] + pch_compilers + native_compilers + cross_compilers
         builddir = self.environment.get_build_dir()
         try:
