@@ -207,7 +207,7 @@ class NinjaBackend(backends.Backend):
             raise AssertionError(m.format(to_target))
         from_target = to_target[len('meson-'):]
         elem = NinjaBuildElement(self.all_outputs, from_target, 'phony', to_target)
-        elem.write(outfile)
+        self.add_build(elem)
 
     def detect_vs_dep_prefix(self, tempfilename):
         '''VS writes its dependency in a locale dependent format.
@@ -273,22 +273,24 @@ int dummy;
         with self.detect_vs_dep_prefix(tempfilename) as outfile:
             self.generate_rules()
             self.write_rules(outfile)
+            self.build_elements = []
             self.generate_phony(outfile)
-            outfile.write('# Build rules for targets\n\n')
+            self.add_build_comment(NinjaComment('Build rules for targets'))
             for t in self.build.get_targets().values():
                 self.generate_target(t, outfile)
-            outfile.write('# Test rules\n\n')
+            self.add_build_comment(NinjaComment('Test rules'))
             self.generate_tests(outfile)
-            outfile.write('# Install rules\n\n')
+            self.add_build_comment(NinjaComment('Install rules'))
             self.generate_install(outfile)
             self.generate_dist(outfile)
             if 'b_coverage' in self.environment.coredata.base_options and \
                     self.environment.coredata.base_options['b_coverage'].value:
-                outfile.write('# Coverage rules\n\n')
+                self.add_build_comment(NinjaComment('Coverage rules'))
                 self.generate_coverage_rules(outfile)
-            outfile.write('# Suffix\n\n')
+            self.add_build_comment(NinjaComment('Suffix'))
             self.generate_utils(outfile)
             self.generate_ending(outfile)
+            self.write_builds(outfile)
             default = 'default all\n\n'
             outfile.write(default)
         # Only overwrite the old build file after the new one has been
@@ -590,7 +592,7 @@ int dummy;
         linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
         elem = self.generate_link(target, outfile, outname, obj_list, linker, pch_objects, stdlib_args=stdlib_args)
         self.generate_shlib_aliases(target, self.get_target_dir(target))
-        elem.write(outfile)
+        self.add_build(elem)
 
     def process_target_dependencies(self, target, outfile):
         for t in target.get_dependencies():
@@ -677,7 +679,7 @@ int dummy;
         cmd = self.replace_paths(target, cmd)
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', desc.format(target.name, cmd_type))
-        elem.write(outfile)
+        self.add_build(elem)
         self.processed_targets[target.get_id()] = True
 
     def generate_run_target(self, target, outfile):
@@ -739,7 +741,7 @@ int dummy;
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', 'Running external command %s.' % target.name)
         elem.add_item('pool', 'console')
-        elem.write(outfile)
+        self.add_build(elem)
         # Alias that runs the target defined above with the name the user specified
         self.create_target_alias(target_name, outfile)
         self.processed_targets[target.get_id()] = True
@@ -758,7 +760,7 @@ int dummy;
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, [])
         e.add_item('description', 'Generates coverage reports.')
-        e.write(outfile)
+        self.add_build(e)
         # Alias that runs the target defined above
         self.create_target_alias('meson-coverage', outfile)
         self.generate_coverage_legacy_rules(outfile)
@@ -767,21 +769,21 @@ int dummy;
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage-xml', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--xml'])
         e.add_item('description', 'Generates XML coverage report.')
-        e.write(outfile)
+        self.add_build(e)
         # Alias that runs the target defined above
         self.create_target_alias('meson-coverage-xml', outfile)
 
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage-text', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--text'])
         e.add_item('description', 'Generates text coverage report.')
-        e.write(outfile)
+        self.add_build(e)
         # Alias that runs the target defined above
         self.create_target_alias('meson-coverage-text', outfile)
 
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage-html', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--html'])
         e.add_item('description', 'Generates HTML coverage report.')
-        e.write(outfile)
+        self.add_build(e)
         # Alias that runs the target defined above
         self.create_target_alias('meson-coverage-html', outfile)
 
@@ -792,7 +794,7 @@ int dummy;
         elem.add_item('DESC', 'Installing files.')
         elem.add_item('COMMAND', self.environment.get_build_command() + ['install', '--no-rebuild'])
         elem.add_item('pool', 'console')
-        elem.write(outfile)
+        self.add_build(elem)
         # Alias that runs the target defined above
         self.create_target_alias('meson-install', outfile)
 
@@ -807,7 +809,7 @@ int dummy;
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running all tests.')
         elem.add_item('pool', 'console')
-        elem.write(outfile)
+        self.add_build(elem)
         # Alias that runs the above-defined meson-test target
         self.create_target_alias('meson-test', outfile)
 
@@ -819,7 +821,7 @@ int dummy;
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running benchmark suite.')
         elem.add_item('pool', 'console')
-        elem.write(outfile)
+        self.add_build(elem)
         # Alias that runs the above-defined meson-benchmark target
         self.create_target_alias('meson-benchmark', outfile)
 
@@ -855,17 +857,27 @@ int dummy;
     def add_rule_comment(self, comment):
         self.rules.append(comment)
 
+    def add_build_comment(self, comment):
+        self.build_elements.append(comment)
+
     def add_rule(self, rule):
         self.rules.append(rule)
+
+    def add_build(self, build):
+        self.build_elements.append(build)
 
     def write_rules(self, outfile):
         for r in self.rules:
             r.write(outfile)
 
+    def write_builds(self, outfile):
+        for b in self.build_elements:
+            b.write(outfile)
+
     def generate_phony(self, outfile):
-        outfile.write('# Phony build target, always out of date\n')
-        outfile.write('build PHONY: phony\n')
-        outfile.write('\n')
+        self.add_build_comment(NinjaComment('Phony build target, always out of date'))
+        elem = NinjaBuildElement(self.all_outputs, 'PHONY', 'phony', '')
+        self.add_build(elem)
 
     def generate_jar_target(self, target, outfile):
         fname = target.get_filename()
@@ -917,7 +929,7 @@ int dummy;
         elem = NinjaBuildElement(self.all_outputs, outname_rel, jar_rule, [])
         elem.add_dep(class_dep_list)
         elem.add_item('ARGS', commands)
-        elem.write(outfile)
+        self.add_build(elem)
         # Create introspection information
         self.create_target_source_introspection(target, compiler, compile_args, src_list, gen_src_list)
 
@@ -934,7 +946,7 @@ int dummy;
                 elem = NinjaBuildElement(self.all_outputs, ofilename, "CUSTOM_COMMAND", rel_sourcefile)
                 elem.add_item('COMMAND', ['resgen', rel_sourcefile, ofilename])
                 elem.add_item('DESC', 'Compiling resource %s.' % rel_sourcefile)
-                elem.write(outfile)
+                self.add_build(elem)
                 deps.append(ofilename)
                 a = '-resource:' + ofilename
             else:
@@ -988,7 +1000,7 @@ int dummy;
         elem = NinjaBuildElement(self.all_outputs, outputs, 'cs_COMPILER', rel_srcs + generated_rel_srcs)
         elem.add_dep(deps)
         elem.add_item('ARGS', commands)
-        elem.write(outfile)
+        self.add_build(elem)
 
         self.generate_generator_list_rules(target, outfile)
         self.create_target_source_introspection(target, compiler, commands, rel_srcs, generated_rel_srcs)
@@ -1022,7 +1034,7 @@ int dummy;
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler.get_language() + '_COMPILER', rel_src)
         element.add_dep(deps)
         element.add_item('ARGS', args)
-        element.write(outfile)
+        self.add_build(element)
         return plain_class_path
 
     def generate_java_link(self):
@@ -1220,7 +1232,7 @@ int dummy;
                                     all_files + dependency_vapis)
         element.add_item('ARGS', args)
         element.add_dep(extra_dep_files)
-        element.write(outfile)
+        self.add_build(element)
         self.create_target_source_introspection(target, valac, args, all_files, [])
         return other_src[0], other_src[1], vala_c_src
 
@@ -1312,7 +1324,7 @@ int dummy;
         element.add_item('ARGS', args)
         element.add_item('targetdep', depfile)
         element.add_item('cratetype', cratetype)
-        element.write(outfile)
+        self.add_build(element)
         if isinstance(target, build.SharedLibrary):
             self.generate_shsym(outfile, target)
         self.create_target_source_introspection(target, rustc, args, [main_rust_file], [])
@@ -1434,25 +1446,25 @@ int dummy;
         elem.add_dep(abs_headers)
         elem.add_item('ARGS', compile_args + header_imports + abs_generated + module_includes)
         elem.add_item('RUNDIR', rundir)
-        elem.write(outfile)
+        self.add_build(elem)
         elem = NinjaBuildElement(self.all_outputs, out_module_name,
                                  'swift_COMPILER',
                                  abssrc)
         elem.add_dep(in_module_files + rel_generated)
         elem.add_item('ARGS', compile_args + abs_generated + module_includes + swiftc.get_mod_gen_args())
         elem.add_item('RUNDIR', rundir)
-        elem.write(outfile)
+        self.add_build(elem)
         if isinstance(target, build.StaticLibrary):
             elem = self.generate_link(target, outfile, self.get_target_filename(target),
                                       rel_objects, self.build.static_linker)
-            elem.write(outfile)
+            self.add_build(elem)
         elif isinstance(target, build.Executable):
             elem = NinjaBuildElement(self.all_outputs, self.get_target_filename(target), 'swift_COMPILER', [])
             elem.add_dep(rel_objects)
             elem.add_dep(link_deps)
             elem.add_item('ARGS', link_args + swiftc.get_std_exe_link_args() + objects + abs_link_deps)
             elem.add_item('RUNDIR', rundir)
-            elem.write(outfile)
+            self.add_build(elem)
         else:
             raise MesonException('Swift supports only executable and static library targets.')
         # Introspection information
@@ -1815,7 +1827,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if isinstance(exe, build.BuildTarget):
                 elem.add_dep(self.get_target_filename(exe))
             elem.add_item('COMMAND', cmd)
-            elem.write(outfile)
+            self.add_build(elem)
 
     def scan_fortran_module_outputs(self, target):
         """
@@ -1981,7 +1993,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # current compiler.
         commands = commands.to_native()
         element.add_item('ARGS', commands)
-        element.write(outfile)
+        self.add_build(element)
         return rel_obj
 
     def get_source_dir_include_args(self, target, compiler):
@@ -2179,7 +2191,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
                 if srcfile == src:
                     depelem = NinjaBuildElement(self.all_outputs, modfile, 'FORTRAN_DEP_HACK' + crstr, rel_obj)
-                    depelem.write(outfile)
+                    self.add_build(depelem)
             commands += compiler.get_module_outdir_args(self.get_target_private_dir(target))
 
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
@@ -2200,7 +2212,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             element.add_orderdep(i)
         element.add_item('DEPFILE', dep_file)
         element.add_item('ARGS', commands)
-        element.write(outfile)
+        self.add_build(element)
         return rel_obj
 
     def add_header_deps(self, target, ninja_element, header_deps):
@@ -2297,7 +2309,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.add_header_deps(target, elem, header_deps)
             elem.add_item('ARGS', commands)
             elem.add_item('DEPFILE', dep)
-            elem.write(outfile)
+            self.add_build(elem)
         return pch_objects
 
     def generate_shsym(self, outfile, target):
@@ -2308,7 +2320,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = NinjaBuildElement(self.all_outputs, symname, 'SHSYM', target_file)
         if self.environment.is_cross_build():
             elem.add_item('CROSS', '--cross-host=' + self.environment.machines.host.system)
-        elem.write(outfile)
+        self.add_build(elem)
 
     def get_cross_stdlib_link_args(self, target, linker):
         if isinstance(target, build.StaticLibrary) or not target.is_cross:
@@ -2610,7 +2622,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         d_file = os.path.join(self.environment.get_scratch_dir(), 'cleantrees.dat')
         e.add_item('COMMAND', self.environment.get_build_command() + ['--internal', 'cleantrees', d_file])
         e.add_item('description', 'Cleaning custom target directories.')
-        e.write(outfile)
+        self.add_build(e)
         # Alias that runs the target defined above
         self.create_target_alias('meson-clean-ctlist', outfile)
         # Write out the data file passed to the script
@@ -2624,7 +2636,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         clean_script = os.path.join(script_root, 'delwithsuffix.py')
         gcno_elem.add_item('COMMAND', mesonlib.python_command + [clean_script, '.', 'gcno'])
         gcno_elem.add_item('description', 'Deleting gcno files.')
-        gcno_elem.write(outfile)
+        self.add_build(gcno_elem)
         # Alias that runs the target defined above
         self.create_target_alias('meson-clean-gcno', outfile)
 
@@ -2633,7 +2645,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         clean_script = os.path.join(script_root, 'delwithsuffix.py')
         gcda_elem.add_item('COMMAND', mesonlib.python_command + [clean_script, '.', 'gcda'])
         gcda_elem.add_item('description', 'Deleting gcda files.')
-        gcda_elem.write(outfile)
+        self.add_build(gcda_elem)
         # Alias that runs the target defined above
         self.create_target_alias('meson-clean-gcda', outfile)
 
@@ -2655,7 +2667,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.environment.build_dir,
         ] + self.environment.get_build_command())
         elem.add_item('pool', 'console')
-        elem.write(outfile)
+        self.add_build(elem)
         # Alias that runs the target defined above
         self.create_target_alias('meson-dist', outfile)
 
@@ -2666,7 +2678,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = NinjaBuildElement(self.all_outputs, 'meson-scan-build', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
-        elem.write(outfile)
+        self.add_build(elem)
         # Alias that runs the target defined above
         self.create_target_alias('meson-scan-build', outfile)
 
@@ -2685,7 +2697,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = NinjaBuildElement(self.all_outputs, 'meson-' + target_name, 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
-        elem.write(outfile)
+        self.add_build(elem)
         self.create_target_alias('meson-' + target_name, outfile)
 
     # For things like scan-build and other helper tools we might have.
@@ -2696,7 +2708,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = NinjaBuildElement(self.all_outputs, 'meson-uninstall', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
-        elem.write(outfile)
+        self.add_build(elem)
         # Alias that runs the target defined above
         self.create_target_alias('meson-uninstall', outfile)
 
@@ -2708,7 +2720,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
         elem = NinjaBuildElement(self.all_outputs, 'all', 'phony', targetlist)
-        elem.write(outfile)
+        self.add_build(elem)
 
         elem = NinjaBuildElement(self.all_outputs, 'meson-clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [self.ninja_command, '-t', 'clean'])
@@ -2736,19 +2748,19 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.generate_gcov_clean(outfile)
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')
-        elem.write(outfile)
+        self.add_build(elem)
 
         deps = self.get_regen_filelist()
         elem = NinjaBuildElement(self.all_outputs, 'build.ninja', 'REGENERATE_BUILD', deps)
         elem.add_item('pool', 'console')
-        elem.write(outfile)
+        self.add_build(elem)
 
         elem = NinjaBuildElement(self.all_outputs, 'reconfigure', 'REGENERATE_BUILD', 'PHONY')
         elem.add_item('pool', 'console')
-        elem.write(outfile)
+        self.add_build(elem)
 
         elem = NinjaBuildElement(self.all_outputs, deps, 'phony', '')
-        elem.write(outfile)
+        self.add_build(elem)
 
     def get_introspection_data(self, target_id, target):
         if target_id not in self.introspection_data or len(self.introspection_data[target_id]) == 0:
