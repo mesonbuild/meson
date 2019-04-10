@@ -99,14 +99,18 @@ class NinjaRule:
         self.extra = extra
         self.rspable = rspable  # if a rspfile can be used
         self.refcount = 0
+        self.rsprefcount = 0
 
     def write(self, outfile):
-        if not self.refcount:
-            return
+        def rule_iter():
+            if self.refcount:
+                yield ''
+            if self.rsprefcount:
+                yield '_RSP'
 
-        for rsp in [''] + (['_RSP'] if self.rspable else []):
+        for rsp in rule_iter():
             outfile.write('rule {}{}\n'.format(self.name, rsp))
-            if self.rspable:
+            if rsp == '_RSP':
                 outfile.write(' command = {} @$out.rsp\n'.format(' '.join(self.command)))
                 outfile.write(' rspfile = $out.rsp\n')
                 outfile.write(' rspfile_content = {}\n'.format(' '.join(self.args)))
@@ -192,7 +196,7 @@ class NinjaBuildElement:
             elems = [elems]
         self.elems.append((name, elems))
 
-    def _should_use_rspfile(self, infiles, outfiles):
+    def _should_use_rspfile(self):
         # 'phony' is a rule built-in to ninja
         if self.rulename == 'phony':
             return False
@@ -200,8 +204,19 @@ class NinjaBuildElement:
         if not self.rule.rspable:
             return False
 
-        return self.rule.length_estimate(infiles, outfiles,
+        infilenames = ' '.join([ninja_quote(i, True) for i in self.infilenames])
+        outfilenames = ' '.join([ninja_quote(i, True) for i in self.outfilenames])
+
+        return self.rule.length_estimate(infilenames,
+                                         outfilenames,
                                          self.elems) >= rsp_threshold
+
+    def count_rule_references(self):
+        if self.rulename != 'phony':
+            if self._should_use_rspfile():
+                self.rule.rsprefcount += 1
+            else:
+                self.rule.refcount += 1
 
     def write(self, outfile):
         self.check_outputs()
@@ -210,7 +225,7 @@ class NinjaBuildElement:
         implicit_outs = ' '.join([ninja_quote(i, True) for i in self.implicit_outfilenames])
         if implicit_outs:
             implicit_outs = ' | ' + implicit_outs
-        if self._should_use_rspfile(ins, outs):
+        if self._should_use_rspfile():
             rulename = self.rulename + '_RSP'
             mlog.log("Command line for building %s is long, using a response file" % self.outfilenames)
         else:
@@ -954,13 +969,14 @@ int dummy;
         self.build_elements.append(build)
 
         if build.rulename != 'phony':
-            # increment rule refcount
-            self.ruledict[build.rulename].refcount += 1
-
             # reference rule
             build.rule = self.ruledict[build.rulename]
 
     def write_rules(self, outfile):
+        for b in self.build_elements:
+            if isinstance(b, NinjaBuildElement):
+                b.count_rule_references()
+
         for r in self.rules:
             r.write(outfile)
 
