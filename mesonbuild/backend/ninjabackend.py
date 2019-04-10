@@ -85,8 +85,12 @@ class NinjaRule:
         self.depfile = depfile
         self.extra = extra
         self.rspable = rspable  # if a rspfile can be used
+        self.refcount = 0
 
     def write(self, outfile):
+        if not self.refcount:
+            return
+
         outfile.write('rule %s\n' % self.name)
         if self.rspable:
             outfile.write(' command = %s @$out.rsp\n' % ' '.join(self.command))
@@ -275,7 +279,7 @@ int dummy;
 
         with self.detect_vs_dep_prefix(tempfilename) as outfile:
             self.generate_rules()
-            self.write_rules(outfile)
+
             self.build_elements = []
             self.generate_phony()
             self.add_build_comment(NinjaComment('Build rules for targets'))
@@ -293,7 +297,10 @@ int dummy;
             self.add_build_comment(NinjaComment('Suffix'))
             self.generate_utils()
             self.generate_ending()
+
+            self.write_rules(outfile)
             self.write_builds(outfile)
+
             default = 'default all\n\n'
             outfile.write(default)
         # Only overwrite the old build file after the new one has been
@@ -830,6 +837,7 @@ int dummy;
 
     def generate_rules(self):
         self.rules = []
+        self.ruledict = {}
 
         self.add_rule_comment(NinjaComment('Rules for compiling.'))
         self.generate_compile_rules()
@@ -865,9 +873,14 @@ int dummy;
 
     def add_rule(self, rule):
         self.rules.append(rule)
+        self.ruledict[rule.name] = rule
 
     def add_build(self, build):
         self.build_elements.append(build)
+
+        # increment rule refcount
+        if build.rule != 'phony':
+            self.ruledict[build.rule].refcount += 1
 
     def write_rules(self, outfile):
         for r in self.rules:
