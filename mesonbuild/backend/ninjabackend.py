@@ -399,10 +399,14 @@ int dummy;
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html
     def generate_compdb(self):
         rules = []
+        # TODO: Rather than an explicit list here, rules could be marked in the
+        # rule store as being wanted in compdb
         for for_machine in MachineChoice:
             for lang in self.environment.coredata.compilers[for_machine]:
-                rules += [self.get_compiler_rule_name(lang, for_machine)]
-                rules += [self.get_pch_rule_name(lang, for_machine)]
+                rules += [ "%s%s" % (rule, ext) for rule in [self.get_compiler_rule_name(lang, for_machine)]
+                                                for ext in ['', '_RSP']]
+                rules += [ "%s%s" % (rule, ext) for rule in [self.get_pch_rule_name(lang, for_machine)]
+                                                for ext in ['', '_RSP']]
         compdb_options = ['-x'] if mesonlib.version_compare(self.ninja_version, '>=1.9') else []
         ninja_compdb = [self.ninja_command, '-t', 'compdb'] + compdb_options + rules
         builddir = self.environment.get_build_dir()
