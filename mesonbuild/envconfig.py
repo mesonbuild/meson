@@ -327,17 +327,13 @@ class BinaryTable(HasEnvVarFallback):
         'pkgconfig': 'PKG_CONFIG',
     }
 
-    @classmethod
-    def detect_ccache(cls):
+    @staticmethod
+    def detect_ccache():
         try:
-            has_ccache = subprocess.call(['ccache', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except OSError:
-            has_ccache = 1
-        if has_ccache == 0:
-            cmdlist = ['ccache']
-        else:
-            cmdlist = []
-        return cmdlist
+            subprocess.check_call(['ccache', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except (OSError, subprocess.CalledProcessError):
+            return []
+        return ['ccache']
 
     @classmethod
     def _warn_about_lang_pointing_to_cross(cls, compiler_exe, evar):
