@@ -2278,9 +2278,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if argcount != len(args):
                 raise InvalidArguments('Expected %d arguments, got %d.' %
                                        (argcount, len(args)))
-        for i in range(min(len(args), len(arg_types))):
-            wanted = arg_types[i]
-            actual = args[i]
+        for actual, wanted in zip(args, arg_types):
             if wanted is not None:
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
