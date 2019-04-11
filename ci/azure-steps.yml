@@ -5,8 +5,8 @@ steps:
         exit 0
      }
 
-     # remove MinGW from path, so we don't find gfortran and try to use it
-     $env:Path = ($env:Path.Split(';') | Where-Object { $_ -notlike '*mingw*' }) -join ';'
+     # remove Chocolately, MinGW, Strawberry Perl from path, so we don't find gcc/gfortran and try to use it
+     $env:Path = ($env:Path.Split(';') | Where-Object { $_ -notmatch 'mingw|Strawberry|Chocolatey' }) -join ';'
 
      # download and install prerequisites
      function DownloadFile([String] $Source, [String] $Destination) {
