@@ -285,8 +285,7 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
             raise InterpreterException("Configuration set requires 2 arguments.")
         if self.used:
             raise InterpreterException("Can not set values on configuration object that has been used.")
-        name = args[0]
-        val = args[1]
+        name, val = args
         if not isinstance(val, (int, str)):
             msg = 'Setting a configuration data value to {!r} is invalid, ' \
                   'and will fail at configure_file(). If you are using it ' \
@@ -1123,8 +1122,7 @@ class CompilerHolder(InterpreterObject):
         if len(args) != 2:
             raise InterpreterException('Has_member takes exactly two arguments.')
         check_stringlist(args)
-        typename = args[0]
-        membername = args[1]
+        typename, membername = args
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_member must be a string.')
@@ -1153,8 +1151,7 @@ class CompilerHolder(InterpreterObject):
         if len(args) < 2:
             raise InterpreterException('Has_members needs at least two arguments.')
         check_stringlist(args)
-        typename = args[0]
-        membernames = args[1:]
+        typename, *membernames = args
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_members must be a string.')
@@ -1434,8 +1431,7 @@ class CompilerHolder(InterpreterObject):
         if len(args) != 2:
             raise InterpreterException('has_header_symbol method takes exactly two arguments.')
         check_stringlist(args)
-        hname = args[0]
-        symbol = args[1]
+        hname, symbol = args
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header_symbol must be a string.')
@@ -1840,8 +1836,7 @@ class MesonMain(InterpreterObject):
     def override_find_program_method(self, args, kwargs):
         if len(args) != 2:
             raise InterpreterException('Override needs two arguments')
-        name = args[0]
-        exe = args[1]
+        name, exe = args
         if not isinstance(name, str):
             raise InterpreterException('First argument must be a string')
         if hasattr(exe, 'held_object'):
@@ -2292,8 +2287,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def run_command_impl(self, node, args, kwargs, in_builddir=False):
         if len(args) < 1:
             raise InterpreterException('Not enough arguments')
-        cmd = args[0]
-        cargs = args[1:]
+        cmd, *cargs = args
         capture = kwargs.get('capture', True)
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
@@ -2571,8 +2565,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_project(self, node, args, kwargs):
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
-        proj_name = args[0]
-        proj_langs = args[1:]
+        proj_name, *proj_langs = args
         if ':' in proj_name:
             raise InvalidArguments("Project name {!r} must not contain ':'".format(proj_name))
 
@@ -3219,8 +3212,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             if not isinstance(d, (build.BuildTarget, build.CustomTarget)):
                 raise InterpreterException('Depends items must be build targets.')
             cleaned_deps.append(d)
-        command = cleaned_args[0]
-        cmd_args = cleaned_args[1:]
+        command, *cmd_args = cleaned_args
         tg = RunTargetHolder(name, command, cmd_args, cleaned_deps, self.subdir, self.subproject)
         self.add_target(name, tg.held_object)
         return tg
@@ -3992,8 +3984,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
 
         if not args:
             raise InterpreterException('Target does not have a name.')
-        name = args[0]
-        sources = listify(args[1:])
+        name, *sources = args
         if self.environment.is_cross_build():
             if kwargs.get('native', False):
                 is_cross = False
@@ -4131,8 +4122,7 @@ This will become a hard error in the future.''', location=self.current_node)
     def func_set_variable(self, node, args, kwargs):
         if len(args) != 2:
             raise InvalidCode('Set_variable takes two arguments.')
-        varname = args[0]
-        value = args[1]
+        varname, value = args
         self.set_variable(varname, value)
 
     @noKwargs
