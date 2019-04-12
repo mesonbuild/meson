@@ -412,6 +412,7 @@ class LLVMDependencyCMake(CMakeDependency):
         defs = self.get_cmake_var('PACKAGE_DEFINITIONS')
         temp = ['-I' + x for x in inc_dirs] + defs
         self.compile_args += [x for x in temp if x not in self.compile_args]
+        self._add_sub_dependency(ThreadDependency, env, kwargs)
 
     def _main_cmake_file(self) -> str:
         # Use a custom CMakeLists.txt for LLVM
@@ -439,9 +440,6 @@ class LLVMDependencyCMake(CMakeDependency):
         if orig_name:
             return orig_name[0]
         return module
-
-    def need_threads(self) -> bool:
-        return True
 
 class LLVMDependency(ExternalDependency):
     def __init__(self, env, kwargs):
