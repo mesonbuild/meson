@@ -215,8 +215,6 @@ class MesonApp:
             else:
                 intr.backend.generate(intr)
             build.save(b, dumpfile)
-            # Post-conf scripts must be run after writing coredata or else introspection fails.
-            intr.backend.run_postconf_scripts()
             if env.first_invocation:
                 coredata.write_cmd_line_file(self.build_dir, self.options)
             else:
@@ -229,6 +227,9 @@ class MesonApp:
             else:
                 mintro.generate_introspection_file(b, intr.backend)
             mintro.write_meson_info_file(b, [], True)
+
+            # Post-conf scripts must be run after writing coredata or else introspection fails.
+            intr.backend.run_postconf_scripts()
         except Exception as e:
             mintro.write_meson_info_file(b, [e])
             if 'cdf' in locals():
