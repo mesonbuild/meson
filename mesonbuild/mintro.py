@@ -229,8 +229,7 @@ def list_buildoptions(coredata: cdata.CoreData) -> List[dict]:
     add_keys(optlist, core_options, 'core')
     add_keys(optlist, coredata.backend_options, 'backend')
     add_keys(optlist, coredata.base_options, 'base')
-    # TODO others
-    add_keys(optlist, coredata.compiler_options.build, 'compiler')
+    add_keys(optlist, coredata.compiler_options, 'compiler')
     add_keys(optlist, dir_options, 'directory')
     add_keys(optlist, coredata.user_options, 'user')
     add_keys(optlist, test_options, 'test')

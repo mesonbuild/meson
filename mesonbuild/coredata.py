@@ -19,7 +19,7 @@ from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict
 from .mesonlib import (
-    MesonException, MachineChoice, PerMachine,
+    MesonException, PerMachine,
     default_libdir, default_libexecdir, default_prefix
 )
 from .wrap import WrapMode
@@ -241,9 +241,10 @@ class CoreData:
         self.init_builtins()
         self.backend_options = {}
         self.user_options = {}
-        self.compiler_options = PerMachine({}, {}, {})
+        self.compiler_options = {}
         self.base_options = {}
         self.cross_files = self.__load_config_files(options.cross_file, 'cross')
+        self.external_preprocess_args = {} # CPPFLAGS only
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
         self.deps = OrderedDict()
@@ -416,18 +417,16 @@ class CoreData:
             mode = 'custom'
         self.builtins['buildtype'].set_value(mode)
 
-    def get_all_compiler_options(self):
-        # TODO think about cross and command-line interface. (Only .build is mentioned here.)
-        yield self.compiler_options.build
-
     def _get_all_nonbuiltin_options(self):
         yield self.backend_options
         yield self.user_options
-        yield from self.get_all_compiler_options()
+        yield self.compiler_options
         yield self.base_options
 
     def get_all_options(self):
-        return chain([self.builtins], self._get_all_nonbuiltin_options())
+        return chain(
+            iter([self.builtins]),
+            self._get_all_nonbuiltin_options())
 
     def validate_option_value(self, option_name, override_value):
         for opts in self.get_all_options():
@@ -436,11 +435,14 @@ class CoreData:
                 return opt.validate_value(override_value)
         raise MesonException('Tried to validate unknown option %s.' % option_name)
 
-    def get_external_args(self, for_machine: MachineChoice, lang):
-        return self.compiler_options[for_machine][lang + '_args'].value
+    def get_external_args(self, lang):
+        return self.compiler_options[lang + '_args'].value
 
-    def get_external_link_args(self, for_machine: MachineChoice, lang):
-        return self.compiler_options[for_machine][lang + '_link_args'].value
+    def get_external_link_args(self, lang):
+        return self.compiler_options[lang + '_link_args'].value
+
+    def get_external_preprocess_args(self, lang):
+        return self.external_preprocess_args[lang]
 
     def merge_user_options(self, options):
         for (name, value) in options.items():
@@ -451,7 +453,7 @@ class CoreData:
                 if type(oldval) != type(value):
                     self.user_options[name] = value
 
-    def set_options(self, options, subproject='', warn_unknown=True):
+    def set_options(self, options, subproject=''):
         # Set prefix first because it's needed to sanitize other options
         prefix = self.builtins['prefix'].value
         if 'prefix' in options:
@@ -475,7 +477,8 @@ class CoreData:
                         break
                 else:
                     unknown_options.append(k)
-        if unknown_options and warn_unknown:
+
+        if unknown_options:
             unknown_options = ', '.join(sorted(unknown_options))
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
             mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options))
@@ -522,43 +525,36 @@ class CoreData:
 
         self.set_options(options, subproject)
 
-    def process_new_compilers(self, lang: str, comp, cross_comp, env):
+    def process_new_compilers(self, lang: str, comp, cross_comp, cmd_line_options):
         from . import compilers
-
         self.compilers[lang] = comp
+        # Native compiler always exist so always add its options.
+        new_options = comp.get_options()
         if cross_comp is not None:
             self.cross_compilers[lang] = cross_comp
-
-        # Native compiler always exist so always add its options.
-        new_options_for_build = comp.get_and_default_options(env.properties.build)
-        if cross_comp is not None:
-            new_options_for_host = cross_comp.get_and_default_options(env.properties.host)
-        else:
-            new_options_for_host = new_options_for_build
-
-        opts_machines_list = [
-            (new_options_for_build, MachineChoice.BUILD),
-            (new_options_for_host, MachineChoice.HOST),
-        ]
+            new_options.update(cross_comp.get_options())
 
         optprefix = lang + '_'
-        for new_options, for_machine in opts_machines_list:
-            for k, o in new_options.items():
-                if not k.startswith(optprefix):
-                    raise MesonException('Internal error, %s has incorrect prefix.' % k)
-                if (env.machines.matches_build_machine(for_machine) and
-                        k in env.cmd_line_options):
-                    # TODO think about cross and command-line interface.
-                    o.set_value(env.cmd_line_options[k])
-                self.compiler_options[for_machine].setdefault(k, o)
+        for k, o in new_options.items():
+            if not k.startswith(optprefix):
+                raise MesonException('Internal error, %s has incorrect prefix.' % k)
+            if k in cmd_line_options:
+                o.set_value(cmd_line_options[k])
+            self.compiler_options.setdefault(k, o)
+
+        # Unlike compiler and linker flags, preprocessor flags are not in
+        # compiler_options because they are not visible to user.
+        preproc_flags = comp.get_preproc_flags()
+        preproc_flags = shlex.split(preproc_flags)
+        self.external_preprocess_args.setdefault(lang, preproc_flags)
 
         enabled_opts = []
         for optname in comp.base_options:
             if optname in self.base_options:
                 continue
             oobj = compilers.base_options[optname]
-            if optname in env.cmd_line_options:
-                oobj.set_value(env.cmd_line_options[optname])
+            if optname in cmd_line_options:
+                oobj.set_value(cmd_line_options[optname])
                 enabled_opts.append(optname)
             self.base_options[optname] = oobj
         self.emit_base_options_warnings(enabled_opts)

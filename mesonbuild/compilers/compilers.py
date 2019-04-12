@@ -1041,6 +1041,8 @@ class Compiler:
 
     def get_options(self):
         opts = {} # build afresh every time
+        # Take default values from env variables.
+        compile_args, link_args = self.get_args_from_envvars()
         description = 'Extra arguments passed to the {}'.format(self.get_display_language())
         opts.update({
             self.language + '_args': coredata.UserArrayOption(
@@ -1132,6 +1134,15 @@ class Compiler:
         raise EnvironmentException(
             'Language {} does not support has_multi_link_arguments.'.format(
                 self.get_display_language()))
+
+    def get_cross_extra_flags(self, environment, link):
+        extra_flags = []
+        if self.is_cross and environment:
+            props = environment.properties.host
+            extra_flags += props.get_external_args(self.language)
+            if link:
+                extra_flags += props.get_external_link_args(self.language)
+        return extra_flags
 
     def _get_compile_output(self, dirname, mode):
         # In pre-processor mode, the output is sent to stdout and discarded

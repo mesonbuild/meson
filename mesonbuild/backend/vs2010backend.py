@@ -26,9 +26,7 @@ from .. import dependencies
 from .. import mlog
 from .. import compilers
 from ..compilers import CompilerArgs
-from ..mesonlib import (
-    MesonException, MachineChoice, File, python_command, replace_if_different
-)
+from ..mesonlib import MesonException, File, python_command, replace_if_different
 from ..environment import Environment, build_filename
 
 def autodetect_vs_version(build):
@@ -882,14 +880,10 @@ class Vs2010Backend(backends.Backend):
         file_inc_dirs = dict((lang, []) for lang in target.compilers)
         # The order in which these compile args are added must match
         # generate_single_compile() and generate_basic_compiler_args()
-        if self.environment.is_cross_build() and not target.is_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
         for l, comp in target.compilers.items():
             if l in file_args:
                 file_args[l] += compilers.get_base_compile_args(self.get_base_options_for_target(target), comp)
-                file_args[l] += comp.get_option_compile_args(self.environment.coredata.compiler_options[for_machine])
+                file_args[l] += comp.get_option_compile_args(self.environment.coredata.compiler_options)
 
         # Add compile args added using add_project_arguments()
         for l, args in self.build.projects_args.get(target.subproject, {}).items():
@@ -900,12 +894,13 @@ class Vs2010Backend(backends.Backend):
         for l, args in self.build.global_args.items():
             if l in file_args:
                 file_args[l] += args
-        # Compile args added from the env or cross file: CFLAGS/CXXFLAGS, etc. We want these
-        # to override all the defaults, but not the per-target compile args.
-        for key, opt in self.environment.coredata.compiler_options[for_machine].items():
-            l, suffix = key.split('_', 1)
-            if suffix == 'args' and l in file_args:
-                file_args[l] += opt.value
+        if not target.is_cross:
+            # Compile args added from the env: CFLAGS/CXXFLAGS, etc. We want these
+            # to override all the defaults, but not the per-target compile args.
+            for key, opt in self.environment.coredata.compiler_options.items():
+                l, suffix = key.split('_', 1)
+                if suffix == 'args' and l in file_args:
+                    file_args[l] += opt.value
         for args in file_args.values():
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
@@ -1086,10 +1081,10 @@ class Vs2010Backend(backends.Backend):
             # Add link args added using add_global_link_arguments()
             # These override per-project link arguments
             extra_link_args += self.build.get_global_link_args(compiler, target.is_cross)
-            # Link args added from the env: LDFLAGS, or the cross file. We want
-            # these to override all the defaults but not the per-target link
-            # args.
-            extra_link_args += self.environment.coredata.get_external_link_args(for_machine, compiler.get_language())
+            if not target.is_cross:
+                # Link args added from the env: LDFLAGS. We want these to
+                # override all the defaults but not the per-target link args.
+                extra_link_args += self.environment.coredata.get_external_link_args(compiler.get_language())
             # Only non-static built targets need link args and link dependencies
             extra_link_args += target.link_args
             # External deps must be last because target link libraries may depend on them.
@@ -1112,7 +1107,7 @@ class Vs2010Backend(backends.Backend):
         # to be after all internal and external libraries so that unresolved
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
-        extra_link_args += compiler.get_option_link_args(self.environment.coredata.compiler_options[for_machine])
+        extra_link_args += compiler.get_option_link_args(self.environment.coredata.compiler_options)
         (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args.to_native())
 
         # Add more libraries to be linked if needed

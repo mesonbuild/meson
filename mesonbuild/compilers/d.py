@@ -14,9 +14,7 @@
 
 import os.path, subprocess
 
-from ..mesonlib import (
-    EnvironmentException, MachineChoice, version_compare, is_windows, is_osx
-)
+from ..mesonlib import EnvironmentException, version_compare, is_windows, is_osx
 
 from .compilers import (
     CompilerType,
@@ -308,17 +306,12 @@ class DCompiler(Compiler):
                 # Add link flags needed to find dependencies
                 args += d.get_link_args()
 
-        if env.is_cross_build() and not self.is_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-
         if mode == 'compile':
             # Add DFLAGS from the env
-            args += env.coredata.get_external_args(for_machine, self.language)
+            args += env.coredata.get_external_args(self.language)
         elif mode == 'link':
             # Add LDFLAGS from the env
-            args += env.coredata.get_external_link_args(for_machine, self.language)
+            args += env.coredata.get_external_link_args(self.language)
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args

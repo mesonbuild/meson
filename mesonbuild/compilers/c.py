@@ -16,7 +16,12 @@ import os.path
 import typing
 
 from .. import coredata
-from ..mesonlib import MesonException, version_compare
+from . import compilers
+from ..mesonlib import (
+    EnvironmentException, MesonException, Popen_safe, listify,
+    version_compare, for_windows, for_darwin, for_cygwin, for_haiku,
+    for_openbsd, darwin_get_object_archs, LibType
+)
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .clike import CLikeCompiler
 

@@ -1144,7 +1144,7 @@ class Environment:
         else:
             cross_comp = None
         if comp is not None:
-            self.coredata.process_new_compilers(lang, comp, cross_comp, self)
+            self.coredata.process_new_compilers(lang, comp, cross_comp, self.cmd_line_options)
         return comp, cross_comp
 
     def detect_static_linker(self, compiler):
@@ -1290,3 +1290,339 @@ class Environment:
             from .dependencies import EmptyExternalProgram
             return EmptyExternalProgram()
         return self.exe_wrapper
+
+class MesonConfigFile:
+    @classmethod
+    def parse_datafile(cls, filename):
+        config = configparser.ConfigParser()
+        try:
+            with open(filename, 'r') as f:
+                config.read_file(f, filename)
+        except FileNotFoundError:
+            raise EnvironmentException('File not found: %s.' % filename)
+        return cls.from_config_parser(config)
+
+    @classmethod
+    def from_config_parser(cls, parser: configparser.ConfigParser):
+        out = {}
+        # This is a bit hackish at the moment.
+        for s in parser.sections():
+            section = {}
+            for entry in parser[s]:
+                value = parser[s][entry]
+                # Windows paths...
+                value = value.replace('\\', '\\\\')
+                if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
+                    raise EnvironmentException('Malformed variable name %s in cross file..' % entry)
+                try:
+                    res = eval(value, {'__builtins__': None}, {'true': True, 'false': False})
+                except Exception:
+                    raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
+
+                for i in (res if isinstance(res, list) else [res]):
+                    if not isinstance(i, (str, int, bool)):
+                        raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
+
+                section[entry] = res
+
+            out[s] = section
+        return out
+
+class Properties:
+    def __init__(self):
+        self.properties = {}
+
+    def get_external_args(self, language):
+        return mesonlib.stringlistify(self.properties.get(language + '_args', []))
+
+    def get_external_link_args(self, language):
+        return mesonlib.stringlistify(self.properties.get(language + '_link_args', []))
+
+    def has_stdlib(self, language):
+        return language + '_stdlib' in self.properties
+
+    def get_stdlib(self, language):
+        return self.properties[language + '_stdlib']
+
+    def get_root(self):
+        return self.properties.get('root', None)
+
+    def get_sys_root(self):
+        return self.properties.get('sys_root', None)
+
+    # TODO consider removing so Properties is less freeform
+    def __getitem__(self, key):
+        return self.properties[key]
+
+    # TODO consider removing so Properties is less freeform
+    def __contains__(self, item):
+        return item in self.properties
+
+    # TODO consider removing, for same reasons as above
+    def get(self, key, default=None):
+        return self.properties.get(key, default)
+
+class MachineInfo:
+    def __init__(self, system, cpu_family, cpu, endian):
+        self.system = system
+        self.cpu_family = cpu_family
+        self.cpu = cpu
+        self.endian = endian
+
+    def __eq__(self, other):
+        if self.__class__ is not other.__class__:
+            return NotImplemented
+        return \
+            self.system == other.system and \
+            self.cpu_family == other.cpu_family and \
+            self.cpu == other.cpu and \
+            self.endian == other.endian
+
+    def __ne__(self, other):
+        if self.__class__ is not other.__class__:
+            return NotImplemented
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return '<MachineInfo: {} {} ({})>'.format(self.system, self.cpu_family, self.cpu)
+
+    @staticmethod
+    def detect(compilers = None):
+        """Detect the machine we're running on
+
+        If compilers are not provided, we cannot know as much. None out those
+        fields to avoid accidentally depending on partial knowledge. The
+        underlying ''detect_*'' method can be called to explicitly use the
+        partial information.
+        """
+        return MachineInfo(
+            detect_system(),
+            detect_cpu_family(compilers) if compilers is not None else None,
+            detect_cpu(compilers) if compilers is not None else None,
+            sys.byteorder)
+
+    @staticmethod
+    def from_literal(literal):
+        minimum_literal = {'cpu', 'cpu_family', 'endian', 'system'}
+        if set(literal) < minimum_literal:
+            raise EnvironmentException(
+                'Machine info is currently {}\n'.format(literal) +
+                'but is missing {}.'.format(minimum_literal - set(literal)))
+
+        cpu_family = literal['cpu_family']
+        if cpu_family not in known_cpu_families:
+            mlog.warning('Unknown CPU family %s, please report this at https://github.com/mesonbuild/meson/issues/new' % cpu_family)
+
+        endian = literal['endian']
+        if endian not in ('little', 'big'):
+            mlog.warning('Unknown endian %s' % endian)
+
+        return MachineInfo(
+            literal['system'],
+            cpu_family,
+            literal['cpu'],
+            endian)
+
+    def is_windows(self):
+        """
+        Machine is windows?
+        """
+        return self.system == 'windows'
+
+    def is_cygwin(self):
+        """
+        Machine is cygwin?
+        """
+        return self.system == 'cygwin'
+
+    def is_linux(self):
+        """
+        Machine is linux?
+        """
+        return self.system == 'linux'
+
+    def is_darwin(self):
+        """
+        Machine is Darwin (iOS/OS X)?
+        """
+        return self.system in ('darwin', 'ios')
+
+    def is_android(self):
+        """
+        Machine is Android?
+        """
+        return self.system == 'android'
+
+    def is_haiku(self):
+        """
+        Machine is Haiku?
+        """
+        return self.system == 'haiku'
+
+    def is_openbsd(self):
+        """
+        Machine is OpenBSD?
+        """
+        return self.system == 'openbsd'
+
+    # Various prefixes and suffixes for import libraries, shared libraries,
+    # static libraries, and executables.
+    # Versioning is added to these names in the backends as-needed.
+
+    def get_exe_suffix(self):
+        if self.is_windows() or self.is_cygwin():
+            return 'exe'
+        else:
+            return ''
+
+    def get_object_suffix(self):
+        if self.is_windows():
+            return 'obj'
+        else:
+            return 'o'
+
+    def libdir_layout_is_win(self):
+        return self.is_windows() \
+            or self.is_cygwin()
+
+    # TODO make this compare two `MachineInfo`s purely. How important is the
+    # `detect_cpu_family({})` distinction? It is the one impediment to that.
+    def can_run(self):
+        """Whether we can run binaries for this machine on the current machine.
+
+        Can almost always run 32-bit binaries on 64-bit natively if the host
+        and build systems are the same. We don't pass any compilers to
+        detect_cpu_family() here because we always want to know the OS
+        architecture, not what the compiler environment tells us.
+        """
+        if self.system != detect_system():
+            return False
+        true_build_cpu_family = detect_cpu_family({})
+        return \
+            (self.cpu_family == true_build_cpu_family) or \
+            ((true_build_cpu_family == 'x86_64') and (self.cpu_family == 'x86'))
+
+class PerMachineDefaultable(PerMachine):
+    """Extends `PerMachine` with the ability to default from `None`s.
+    """
+    def __init__(self):
+        super().__init__(None, None, None)
+
+    def default_missing(self):
+        """Default host to buid and target to host.
+
+        This allows just specifying nothing in the native case, just host in the
+        cross non-compiler case, and just target in the native-built
+        cross-compiler case.
+        """
+        if self.host is None:
+            self.host = self.build
+        if self.target is None:
+            self.target = self.host
+
+    def miss_defaulting(self):
+        """Unset definition duplicated from their previous to None
+
+        This is the inverse of ''default_missing''. By removing defaulted
+        machines, we can elaborate the original and then redefault them and thus
+        avoid repeating the elaboration explicitly.
+        """
+        if self.target == self.host:
+            self.target = None
+        if self.host == self.build:
+            self.host = None
+
+class MachineInfos(PerMachineDefaultable):
+    def detect_build(self, compilers = None):
+        self.build = MachineInfo.detect(compilers)
+
+    def matches_build_machine(self, machine: MachineChoice):
+        return self.build == self[machine]
+
+class BinaryTable:
+    def __init__(self, binaries = {}, fallback = True):
+        self.binaries = binaries
+        self.fallback = fallback
+        for name, command in self.binaries.items():
+            if not isinstance(command, (list, str)):
+                # TODO generalize message
+                raise mesonlib.MesonException(
+                    'Invalid type {!r} for binary {!r} in cross file'
+                    ''.format(command, name))
+
+    # Map from language identifiers to environment variables.
+    evarMap = {
+        # Compilers
+        'c': 'CC',
+        'cpp': 'CXX',
+        'cs': 'CSC',
+        'd': 'DC',
+        'fortran': 'FC',
+        'objc': 'OBJC',
+        'objcpp': 'OBJCXX',
+        'rust': 'RUSTC',
+        'vala': 'VALAC',
+
+        # Binutils
+        'strip': 'STRIP',
+        'ar': 'AR',
+        'windres': 'WINDRES',
+
+        'cmake': 'CMAKE',
+        'qmake': 'QMAKE',
+        'pkgconfig': 'PKG_CONFIG',
+    }
+
+    @classmethod
+    def detect_ccache(cls):
+        try:
+            has_ccache = subprocess.call(['ccache', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except OSError:
+            has_ccache = 1
+        if has_ccache == 0:
+            cmdlist = ['ccache']
+        else:
+            cmdlist = []
+        return cmdlist
+
+    @classmethod
+    def _warn_about_lang_pointing_to_cross(cls, compiler_exe, evar):
+        evar_str = os.environ.get(evar, 'WHO_WOULD_CALL_THEIR_COMPILER_WITH_THIS_NAME')
+        if evar_str == compiler_exe:
+            mlog.warning('''Env var %s seems to point to the cross compiler.
+This is probably wrong, it should always point to the native compiler.''' % evar)
+
+    @classmethod
+    def parse_entry(cls, entry):
+        compiler = mesonlib.stringlistify(entry)
+        # Ensure ccache exists and remove it if it doesn't
+        if compiler[0] == 'ccache':
+            compiler = compiler[1:]
+            ccache = cls.detect_ccache()
+        else:
+            ccache = []
+        # Return value has to be a list of compiler 'choices'
+        return compiler, ccache
+
+    def lookup_entry(self, name):
+        """Lookup binary
+
+        Returns command with args as list if found, Returns `None` if nothing is
+        found.
+
+        First tries looking in explicit map, then tries environment variable.
+        """
+        # Try explict map, don't fall back on env var
+        command = self.binaries.get(name)
+        if command is not None:
+            command = mesonlib.stringlistify(command)
+            # Relies on there being no "" env var
+            evar = self.evarMap.get(name, "")
+            self._warn_about_lang_pointing_to_cross(command[0], evar)
+        elif self.fallback:
+            # Relies on there being no "" env var
+            evar = self.evarMap.get(name, "")
+            command = os.environ.get(evar)
+            if command is not None:
+                command = shlex.split(command)
+        return command

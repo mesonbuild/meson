@@ -31,7 +31,7 @@ from .. import dependencies
 from .. import compilers
 from ..compilers import CompilerArgs, CCompiler, VisualStudioLikeCompiler, FortranCompiler
 from ..linkers import ArLinker
-from ..mesonlib import File, MachineChoice, MesonException, OrderedSet, LibType
+from ..mesonlib import File, MesonException, OrderedSet, LibType
 from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
 from ..build import InvalidArguments
@@ -1541,6 +1541,7 @@ int dummy;
                         or langname == 'cs':
                     continue
                 crstr = ''
+                cross_args = self.environment.properties.host.get_external_link_args(langname)
                 if is_cross:
                     crstr = '_CROSS'
                 rule = '%s%s_LINKER' % (langname, crstr)
@@ -2485,20 +2486,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if not isinstance(target, build.StaticLibrary):
             commands += self.get_link_whole_args(linker, target)
 
-        if self.environment.is_cross_build() and not target.is_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-
         if not isinstance(target, build.StaticLibrary):
             # Add link args added using add_project_link_arguments()
             commands += self.build.get_project_link_args(linker, target.subproject, target.is_cross)
             # Add link args added using add_global_link_arguments()
             # These override per-project link arguments
             commands += self.build.get_global_link_args(linker, target.is_cross)
-            # Link args added from the env: LDFLAGS. We want these to override
-            # all the defaults but not the per-target link args.
-            commands += self.environment.coredata.get_external_link_args(for_machine, linker.get_language())
+            if not target.is_cross:
+                # Link args added from the env: LDFLAGS. We want these to
+                # override all the defaults but not the per-target link args.
+                commands += self.environment.coredata.get_external_link_args(linker.get_language())
 
         # Now we will add libraries and library paths from various sources
 
@@ -2537,7 +2534,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # to be after all internal and external libraries so that unresolved
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
-        commands += linker.get_option_link_args(self.environment.coredata.compiler_options[for_machine])
+        commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
 
         dep_targets = []
         dep_targets.extend(self.guess_external_link_dependencies(linker, target, commands, internal))

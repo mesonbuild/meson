@@ -181,8 +181,7 @@ class Conf:
         self.print_options('Core options', core_options)
         self.print_options('Backend options', self.coredata.backend_options)
         self.print_options('Base options', self.coredata.base_options)
-        # TODO others
-        self.print_options('Compiler options', self.coredata.compiler_options.build)
+        self.print_options('Compiler options', self.coredata.compiler_options)
         self.print_options('Directories', dir_options)
         self.print_options('Project options', self.coredata.user_options)
         self.print_options('Testing options', test_options)
@@ -205,9 +204,6 @@ def run(options):
         save = False
         if len(options.cmd_line_options) > 0:
             c.set_options(options.cmd_line_options)
-            if not c.build.environment.is_cross_build():
-                # TODO think about cross and command-line interface.
-                c.coredata.compiler_options.host = c.coredata.compiler_options.build
             coredata.update_cmd_line_file(builddir, options)
             save = True
         elif options.clearcache:

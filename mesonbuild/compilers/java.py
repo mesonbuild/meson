@@ -23,7 +23,6 @@ class JavaCompiler(Compiler):
         self.language = 'java'
         super().__init__(exelist, version)
         self.id = 'unknown'
-        self.is_cross = False
         self.javarunner = 'java'
 
     def get_soname_args(self, *args):

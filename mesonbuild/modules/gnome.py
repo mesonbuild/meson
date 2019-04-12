@@ -29,9 +29,7 @@ from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, 
 from . import get_include_args
 from . import ExtensionModule
 from . import ModuleReturnValue
-from ..mesonlib import (
-    MachineChoice, MesonException, OrderedSet, Popen_safe, extract_as_list
-)
+from ..mesonlib import MesonException, OrderedSet, Popen_safe, extract_as_list
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs
 
@@ -533,7 +531,11 @@ class GnomeModule(ExtensionModule):
         ret = []
 
         for lang in langs:
-            link_args = state.environment.coredata.get_external_link_args(MachineChoice.HOST, lang)
+            if state.environment.is_cross_build():
+                link_args = state.environment.properties.host.get_external_link_args(lang)
+            else:
+                link_args = state.environment.coredata.get_external_link_args(lang)
+
             for link_arg in link_args:
                 if link_arg.startswith('-L'):
                     ret.append(link_arg)
@@ -718,7 +720,10 @@ class GnomeModule(ExtensionModule):
     def _get_external_args_for_langs(self, state, langs):
         ret = []
         for lang in langs:
-            ret += state.environment.coredata.get_external_args(MachineChoice.HOST, lang)
+            if state.environment.is_cross_build():
+                ret += state.environment.properties.host.get_external_args(lang)
+            else:
+                ret += state.environment.coredata.get_external_args(lang)
         return ret
 
     @staticmethod
@@ -1043,11 +1048,13 @@ This will become a hard error in the future.''')
         ldflags.update(internal_ldflags)
         ldflags.update(external_ldflags)
 
-        cflags.update(state.environment.coredata.get_external_args(MachineChoice.HOST, 'c'))
-        ldflags.update(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
         if state.environment.is_cross_build():
+            cflags.update(state.environment.properties.host.get_external_args('c'))
+            ldflags.update(state.environment.properties.host.get_external_link_args('c'))
             compiler = state.environment.coredata.cross_compilers.get('c')
         else:
+            cflags.update(state.environment.coredata.get_external_args('c'))
+            ldflags.update(state.environment.coredata.get_external_link_args('c'))
             compiler = state.environment.coredata.compilers.get('c')
 
         compiler_flags = self._get_langs_compilers_flags(state, [('c', compiler)])
