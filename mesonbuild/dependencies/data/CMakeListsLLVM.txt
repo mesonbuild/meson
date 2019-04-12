@@ -17,10 +17,33 @@ endwhile()
 if(LLVM_FOUND)
   set(PACKAGE_FOUND TRUE)
 
-  llvm_map_components_to_libnames(llvm_libs     ${LLVM_MESON_MODULES})
-  llvm_map_components_to_libnames(llvm_libs_opt ${LLVM_MESON_OPT_MODULES})
-  set(MESON_RESOLVED_LLVM_MODULES     ${llvm_libs})
-  set(MESON_RESOLVED_LLVM_MODULES_OPT ${llvm_libs_opt})
+  foreach(mod IN LISTS LLVM_MESON_MODULES)
+    # Reset variables
+    set(out_mods)
+    set(real_mods)
+
+    # Generate a lower and upper case version
+    string(TOLOWER "${mod}" mod_L)
+    string(TOUPPER "${mod}" mod_U)
+
+    # Get the mapped components
+    llvm_map_components_to_libnames(out_mods ${mod} ${mod_L} ${mod_U})
+    list(SORT              out_mods)
+    list(REMOVE_DUPLICATES out_mods)
+
+    # Make sure that the modules exist
+    foreach(i IN LISTS out_mods)
+      if(TARGET ${i})
+        list(APPEND real_mods ${i})
+      endif()
+    endforeach()
+
+    # Set the output variables
+    set(MESON_LLVM_TARGETS_${mod} ${real_mods})
+    foreach(i IN LISTS real_mods)
+      set(MESON_TARGET_TO_LLVM_${i} ${mod})
+    endforeach()
+  endforeach()
 
   # Check the following variables:
   # LLVM_PACKAGE_VERSION

@@ -20,7 +20,7 @@ import glob
 import os
 import re
 
-from .. import mesonlib
+from .. import mesonlib, mlog
 from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
@@ -405,7 +405,6 @@ class LLVMDependencyCMake(CMakeDependency):
     def __init__(self, env, kwargs):
         self.llvm_modules = stringlistify(extract_as_list(kwargs, 'modules'))
         self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
-        self.module_map = {}
         super().__init__(name='LLVM', environment=env, language='cpp', kwargs=kwargs)
 
         # Extract extra include directories and definitions
@@ -419,22 +418,27 @@ class LLVMDependencyCMake(CMakeDependency):
         return 'CMakeListsLLVM.txt'
 
     def _extra_cmake_opts(self) -> List[str]:
-        return ['-DLLVM_MESON_MODULES={}'.format(';'.join(self.llvm_modules)),
-                '-DLLVM_MESON_OPT_MODULES={}'.format(';'.join(self.llvm_opt_modules))]
+        return ['-DLLVM_MESON_MODULES={}'.format(';'.join(self.llvm_modules + self.llvm_opt_modules))]
 
     def _map_module_list(self, modules: List[Tuple[str, bool]]) -> List[Tuple[str, bool]]:
-        res_modules = self.get_cmake_var('MESON_RESOLVED_LLVM_MODULES')
-        res_opt_modules = self.get_cmake_var('MESON_RESOLVED_LLVM_MODULES_OPT')
-        modules = [(x, True) for x in res_modules]
-        modules += [(x, False) for x in res_opt_modules]
-        self.module_map = {
-            **dict(zip(res_modules, self.llvm_modules)),
-            **dict(zip(res_opt_modules, self.llvm_opt_modules))
-        }
-        return modules
+        res = []
+        for mod, required in modules:
+            cm_targets = self.get_cmake_var('MESON_LLVM_TARGETS_{}'.format(mod))
+            if not cm_targets:
+                if required:
+                    raise self._gen_exception('LLVM module {} was not found'.format(mod))
+                else:
+                    mlog.warning('Optional LLVM module', mlog.bold(mod), 'was not found')
+                    continue
+            for i in cm_targets:
+                res += [(i, required)]
+        return res
 
     def _original_module_name(self, module: str) -> str:
-        return self.module_map.get(module, module)
+        orig_name = self.get_cmake_var('MESON_TARGET_TO_LLVM_{}'.format(module))
+        if orig_name:
+            return orig_name[0]
+        return module
 
     def need_threads(self) -> bool:
         return True

@@ -1462,7 +1462,7 @@ class CMakeDependency(ExternalDependency):
         self.compile_args = compileOptions + compileDefinitions + list(map(lambda x: '-I{}'.format(x), incDirs))
         self.link_args = libraries
 
-    def get_first_cmake_var_of(self, var_list):
+    def get_first_cmake_var_of(self, var_list: List[str]) -> List[str]:
         # Return the first found CMake variable in list var_list
         for i in var_list:
             if i in self.vars:
@@ -1470,7 +1470,7 @@ class CMakeDependency(ExternalDependency):
 
         return []
 
-    def get_cmake_var(self, var):
+    def get_cmake_var(self, var: str) -> List[str]:
         # Return the value of the CMake variable var or an empty list if var does not exist
         if var in self.vars:
             return self.vars[var]
@@ -1779,6 +1779,7 @@ set(CMAKE_SIZEOF_VOID_P "{}")
 
     def log_details(self) -> str:
         modules = [self._original_module_name(x) for x in self.found_modules]
+        modules = sorted(set(modules))
         if modules:
             return 'modules: ' + ', '.join(modules)
         return ''
