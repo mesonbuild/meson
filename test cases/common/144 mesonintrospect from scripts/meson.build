@@ -10,5 +10,5 @@ else
   message(ret.stderr())
 endif
 
-meson.add_postconf_script('check_env.py')
+meson.add_postconf_script('check_introspection.py')
 meson.add_install_script('check_env.py')
