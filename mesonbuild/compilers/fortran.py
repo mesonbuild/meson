@@ -60,12 +60,8 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
         source_name.write_text('print *, "Fortran compilation is working."; end')
 
-        if environment.is_cross_build() and not self.is_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-        extra_flags = environment.coredata.get_external_args(for_machine, self.language)
-        extra_flags += environment.coredata.get_external_link_args(for_machine, self.language)
+        extra_flags = environment.coredata.get_external_args(self.language)
+        extra_flags += environment.coredata.get_external_link_args(self.language)
         # %% build the test executable
         pc = subprocess.Popen(self.exelist + extra_flags + [str(source_name), '-o', str(binary_name)])
         pc.wait()

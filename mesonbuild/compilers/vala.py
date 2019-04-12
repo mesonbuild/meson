@@ -110,11 +110,7 @@ class ValaCompiler(Compiler):
         # no extra dirs are specified.
         if not extra_dirs:
             code = 'class MesonFindLibrary : Object { }'
-            if env.is_cross_build() and not self.is_cross:
-                for_machine = MachineChoice.BUILD
-            else:
-                for_machine = MachineChoice.HOST
-            args = env.coredata.get_external_args(for_machine, self.language)
+            args = env.coredata.get_external_args(self.language)
             vapi_args = ['--pkg', libname]
             args += vapi_args
             with self.cached_compile(code, env.coredata, extra_args=args, mode='compile') as p:
