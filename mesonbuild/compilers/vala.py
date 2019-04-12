@@ -91,7 +91,7 @@ class ValaCompiler(Compiler):
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
         else:
-            extra_flags += environment.coredata.get_external_link_args(for_machine, self.language)
+            extra_flags += environment.coredata.get_external_link_args(self.language)
         with self.cached_compile(code, environment.coredata, extra_args=extra_flags, mode='compile') as p:
             if p.returncode != 0:
                 msg = 'Vala compiler {!r} can not compile programs' \

@@ -1671,7 +1671,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             quoted_depargs.append(d)
 
         command = [ninja_quote(i) for i in compiler.get_exelist()]
-        args = ['$ARGS'] + quoted_depargs + compiler.get_output_args('$out') + compiler.get_compile_only_args() + ['$in']
+        if is_cross:
+            cross_args = compiler.get_cross_extra_flags(self.environment, False)
+        else:
+            cross_args = []
+        args = ['$ARGS'] + cross_args + quoted_depargs + compiler.get_output_args('$out') + compiler.get_compile_only_args() + ['$in']
         description = 'Compiling %s object $out.' % compiler.get_display_language()
         if isinstance(compiler, VisualStudioLikeCompiler):
             deps = 'msvc'

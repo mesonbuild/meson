@@ -467,7 +467,7 @@ class Rewriter:
             **cdata.builtins,
             **cdata.backend_options,
             **cdata.base_options,
-            **cdata.compiler_options.build,
+            **cdata.compiler_options,
             **cdata.user_options
         }
 
