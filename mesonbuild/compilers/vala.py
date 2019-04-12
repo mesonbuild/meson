@@ -87,11 +87,7 @@ class ValaCompiler(Compiler):
 
     def sanity_check(self, work_dir, environment):
         code = 'class MesonSanityCheck : Object { }'
-        if environment.is_cross_build() and not self.is_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-        extra_flags = environment.coredata.get_external_args(for_machine, self.language)
+        extra_flags = environment.coredata.get_external_args(self.language)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
         else:

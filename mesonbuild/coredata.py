@@ -542,12 +542,6 @@ class CoreData:
                 o.set_value(cmd_line_options[k])
             self.compiler_options.setdefault(k, o)
 
-        # Unlike compiler and linker flags, preprocessor flags are not in
-        # compiler_options because they are not visible to user.
-        preproc_flags = comp.get_preproc_flags()
-        preproc_flags = shlex.split(preproc_flags)
-        self.external_preprocess_args.setdefault(lang, preproc_flags)
-
         enabled_opts = []
         for optname in comp.base_options:
             if optname in self.base_options:

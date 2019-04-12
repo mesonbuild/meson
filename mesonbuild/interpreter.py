@@ -36,6 +36,7 @@ import os, shutil, uuid
 import re, shlex
 import subprocess
 from collections import namedtuple
+from itertools import chain
 from pathlib import PurePath
 import functools
 
