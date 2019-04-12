@@ -40,12 +40,12 @@ FORTRAN_SUBMOD_PAT = r"\s*submodule\s*\((\w+:?\w+)\)\s*(\w+)\s*$"
 
 if mesonlib.is_windows():
     quote_func = lambda s: '"{}"'.format(s)
-    execute_wrapper = 'cmd /c'
-    rmfile_prefix = 'del /f /s /q {} &&'
+    execute_wrapper = ['cmd', '/c']
+    rmfile_prefix = ['del', '/f', '/s', '/q', '{}', '&&']
 else:
     quote_func = shlex.quote
-    execute_wrapper = ''
-    rmfile_prefix = 'rm -f {} &&'
+    execute_wrapper = []
+    rmfile_prefix = ['rm', '-f', '{}', '&&']
 
 def ninja_quote(text, is_build_line=False):
     if is_build_line:
@@ -89,11 +89,11 @@ class NinjaRule:
     def write(self, outfile):
         outfile.write('rule %s\n' % self.name)
         if self.rspable:
-            outfile.write(' command = %s @$out.rsp\n' % self.command)
+            outfile.write(' command = %s @$out.rsp\n' % ' '.join(self.command))
             outfile.write(' rspfile = $out.rsp\n')
-            outfile.write(' rspfile_content = %s\n' % self.args)
+            outfile.write(' rspfile_content = %s\n' % ' '.join(self.args))
         else:
-            outfile.write(' command = %s %s\n' % (self.command, self.args))
+            outfile.write(' command = %s\n' % ' '.join(self.command + self.args))
         if self.deps:
             outfile.write(' deps = %s\n' % self.deps)
         if self.depfile:
@@ -838,9 +838,9 @@ int dummy;
         self.add_rule_comment(NinjaComment('Other rules'))
         # Ninja errors out if you have deps = gcc but no depfile, so we must
         # have two rules for custom commands.
-        self.add_rule(NinjaRule('CUSTOM_COMMAND', '$COMMAND', '', '$DESC',
+        self.add_rule(NinjaRule('CUSTOM_COMMAND', ['$COMMAND'], [], '$DESC',
                                 extra='restat = 1'))
-        self.add_rule(NinjaRule('CUSTOM_COMMAND_DEP', '$COMMAND', '', '$DESC',
+        self.add_rule(NinjaRule('CUSTOM_COMMAND_DEP', ['$COMMAND'], [], '$DESC',
                                 deps='gcc', depfile='$DEPFILE',
                                 extra='restat = 1'))
 
@@ -850,7 +850,7 @@ int dummy;
              ninja_quote(quote_func(self.environment.get_source_dir())),
              ninja_quote(quote_func(self.environment.get_build_dir()))]
         self.add_rule(NinjaRule('REGENERATE_BUILD',
-                                ' '.join(c) + ' --backend ninja', '',
+                                c + ['--backend', 'ninja'], [],
                                 'Regenerating build files.',
                                 extra='generator = 1'))
 
@@ -1039,9 +1039,9 @@ int dummy;
 
     def generate_java_link(self):
         rule = 'java_LINKER'
-        command = 'jar $ARGS'
+        command = ['jar', '$ARGS']
         description = 'Creating JAR $out.'
-        self.add_rule(NinjaRule(rule, command, '', description))
+        self.add_rule(NinjaRule(rule, command, [], description))
 
     def determine_dep_vapis(self, target):
         """
@@ -1487,10 +1487,8 @@ int dummy;
         if static_linker is None:
             return
         rule = 'STATIC%s_LINKER' % crstr
-        command_template = '{executable} $LINK_ARGS {output_args}'
-        args = '$in'
-
         cmdlist = []
+        args = ['$in']
         # FIXME: Must normalize file names with pathlib.Path before writing
         #        them out to fix this properly on Windows. See:
         # https://github.com/mesonbuild/meson/issues/1517
@@ -1499,19 +1497,16 @@ int dummy;
             # `ar` has no options to overwrite archives. It always appends,
             # which is never what we want. Delete an existing library first if
             # it exists. https://github.com/mesonbuild/meson/issues/1355
-            cmdlist = [execute_wrapper, rmfile_prefix.format('$out')]
+            cmdlist = execute_wrapper + [c.format('$out') for c in rmfile_prefix]
         cmdlist += static_linker.get_exelist()
-        subst = {
-            'executable': ' '.join(cmdlist),
-            'output_args': ' '.join(static_linker.get_output_args('$out'))
-        }
-        command = command_template.format(**subst)
+        cmdlist += ['$LINK_ARGS']
+        cmdlist += static_linker.get_output_args('$out')
         description = 'Linking static target $out.'
         if num_pools > 0:
             pool = 'pool = link_pool'
         else:
             pool = None
-        self.add_rule(NinjaRule(rule, command, args, description,
+        self.add_rule(NinjaRule(rule, cmdlist, args, description,
                                 rspable=static_linker.can_linker_accept_rsp(),
                                 extra=pool))
 
@@ -1533,14 +1528,8 @@ int dummy;
                 if is_cross:
                     crstr = '_CROSS'
                 rule = '%s%s_LINKER' % (langname, crstr)
-                command_template = '{executable}'
-                args_template = '$ARGS {output_args} $in $LINK_ARGS'
-                subst = {
-                    'executable': ' '.join(compiler.get_linker_exelist()),
-                    'output_args': ' '.join(compiler.get_linker_output_args('$out')),
-                }
-                command = command_template.format(**subst)
-                args = args_template.format(**subst)
+                command = compiler.get_linker_exelist()
+                args = ['$ARGS'] + compiler.get_linker_output_args('$out') + ['$in', '$LINK_ARGS']
                 description = 'Linking target $out.'
                 if num_pools > 0:
                     pool = 'pool = link_pool'
@@ -1556,45 +1545,45 @@ int dummy;
              '$in',
              '$out']
         symrule = 'SHSYM'
-        symcmd = ' '.join(args) + ' $CROSS'
+        symcmd = args + ['$CROSS']
         syndesc = 'Generating symbol file $out.'
         synstat = 'restat = 1'
-        self.add_rule(NinjaRule(symrule, symcmd, '', syndesc, extra=synstat))
+        self.add_rule(NinjaRule(symrule, symcmd, [], syndesc, extra=synstat))
 
     def generate_java_compile_rule(self, compiler):
         rule = '%s_COMPILER' % compiler.get_language()
-        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
-        command = '%s $ARGS $in' % invoc
+        invoc = [ninja_quote(i) for i in compiler.get_exelist()]
+        command = invoc + ['$ARGS', '$in']
         description = 'Compiling Java object $in.'
-        self.add_rule(NinjaRule(rule, command, '', description))
+        self.add_rule(NinjaRule(rule, command, [], description))
 
     def generate_cs_compile_rule(self, compiler):
         rule = '%s_COMPILER' % compiler.get_language()
-        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
-        command = '%s' % invoc
-        args = '$ARGS $in'
+        invoc = [ninja_quote(i) for i in compiler.get_exelist()]
+        command = invoc
+        args = ['$ARGS', '$in']
         description = 'Compiling C Sharp target $out.'
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=mesonlib.is_windows()))
 
     def generate_vala_compile_rules(self, compiler):
         rule = '%s_COMPILER' % compiler.get_language()
-        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
-        command = '%s $ARGS $in' % invoc
+        invoc = [ninja_quote(i) for i in compiler.get_exelist()]
+        command = invoc + ['$ARGS', '$in']
         description = 'Compiling Vala source $in.'
-        self.add_rule(NinjaRule(rule, command, '', description, extra='restat = 1'))
+        self.add_rule(NinjaRule(rule, command, [], description, extra='restat = 1'))
 
     def generate_rust_compile_rules(self, compiler, is_cross):
         crstr = ''
         if is_cross:
             crstr = '_CROSS'
         rule = '%s%s_COMPILER' % (compiler.get_language(), crstr)
-        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
-        command = '%s $ARGS $in' % invoc
+        invoc = [ninja_quote(i) for i in compiler.get_exelist()]
+        command = invoc + ['$ARGS', '$in']
         description = 'Compiling Rust source $in.'
         depfile = '$targetdep'
         depstyle = 'gcc'
-        self.add_rule(NinjaRule(rule, command, '', description, deps=depstyle,
+        self.add_rule(NinjaRule(rule, command, [], description, deps=depstyle,
                                 depfile=depfile))
 
     def generate_swift_compile_rules(self, compiler):
@@ -1604,36 +1593,28 @@ int dummy;
             'dirchanger',
             '$RUNDIR',
         ]
-        invoc = (' '.join(full_exe) + ' ' +
-                 ' '.join(ninja_quote(i) for i in compiler.get_exelist()))
-        command = '%s $ARGS $in' % invoc
+        invoc = full_exe + [ninja_quote(i) for i in compiler.get_exelist()]
+        command = invoc + ['$ARGS', '$in']
         description = 'Compiling Swift source $in.'
-        self.add_rule(NinjaRule(rule, command, '', description))
+        self.add_rule(NinjaRule(rule, command, [], description))
 
     def generate_fortran_dep_hack(self, crstr):
         rule = 'FORTRAN_DEP_HACK%s' % (crstr)
         if mesonlib.is_windows():
-            cmd = 'cmd /C ""'
+            cmd = ['cmd', '/C']
         else:
-            cmd = 'true'
+            cmd = ['true']
         self.add_rule_comment(NinjaComment('''Workaround for these issues:
 https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
-        self.add_rule(NinjaRule(rule, cmd, '', 'Dep hack', extra='restat = 1'))
+        self.add_rule(NinjaRule(rule, cmd, [], 'Dep hack', extra='restat = 1'))
 
     def generate_llvm_ir_compile_rule(self, compiler, is_cross):
         if getattr(self, 'created_llvm_ir_rule', False):
             return
         rule = 'llvm_ir{}_COMPILER'.format('_CROSS' if is_cross else '')
-        command_template = '{executable}'
-        args_template = '$ARGS {output_args} {compile_only_args} $in'
-        subst = {
-            'executable': ' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
-            'output_args': ' '.join(compiler.get_output_args('$out')),
-            'compile_only_args': ' '.join(compiler.get_compile_only_args()),
-        }
-        command = command_template.format(**subst)
-        args = args_template.format(**subst)
+        command = [ninja_quote(i) for i in compiler.get_exelist()]
+        args = ['$ARGS'] + compiler.get_output_args('$out') + compiler.get_compile_only_args() + ['$in']
         description = 'Compiling LLVM IR object $in.'
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=compiler.can_linker_accept_rsp()))
@@ -1673,16 +1654,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 d = quote_func(d)
             quoted_depargs.append(d)
 
-        command_template = '{executable}'
-        args_template = '$ARGS {dep_args} {output_args} {compile_only_args} $in'
-        subst = {
-            'executable': ' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
-            'dep_args': ' '.join(quoted_depargs),
-            'output_args': ' '.join(compiler.get_output_args('$out')),
-            'compile_only_args': ' '.join(compiler.get_compile_only_args()),
-        }
-        command = command_template.format(**subst)
-        args = args_template.format(**subst)
+        command = [ninja_quote(i) for i in compiler.get_exelist()]
+        args = ['$ARGS'] + quoted_depargs + compiler.get_output_args('$out') + compiler.get_compile_only_args() + ['$in']
         description = 'Compiling %s object $out.' % compiler.get_display_language()
         if isinstance(compiler, VisualStudioCCompiler):
             deps = 'msvc'
@@ -1710,15 +1683,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 d = quote_func(d)
             quoted_depargs.append(d)
         if isinstance(compiler, VisualStudioCCompiler):
-            output = ''
+            output = []
         else:
-            output = ' '.join(compiler.get_output_args('$out'))
-        command = "{executable} $ARGS {dep_args} {output_args} {compile_only_args} $in".format(
-            executable=' '.join(compiler.get_exelist()),
-            dep_args=' '.join(quoted_depargs),
-            output_args=output,
-            compile_only_args=' '.join(compiler.get_compile_only_args())
-        )
+            output = compiler.get_output_args('$out')
+        command = compiler.get_exelist() + ['$ARGS'] + quoted_depargs + output + compiler.get_compile_only_args() + ['$in']
         description = 'Precompiling header $in.'
         if isinstance(compiler, VisualStudioCCompiler):
             deps = 'msvc'
@@ -1726,7 +1694,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             deps = 'gcc'
             depfile = '$DEPFILE'
-        self.add_rule(NinjaRule(rule, command, '', description, deps=deps,
+        self.add_rule(NinjaRule(rule, command, [], description, deps=deps,
                                 depfile=depfile))
 
     def generate_compile_rules(self):
