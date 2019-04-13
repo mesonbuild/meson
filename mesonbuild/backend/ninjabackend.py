@@ -31,8 +31,8 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..compilers import CompilerArgs, CCompiler, VisualStudioLikeCompiler, FortranCompiler
-from ..linkers import ArLinker
+from ..compilers import CompilerArgs, CCompiler, VisualStudioLikeCompiler, VisualStudioCsCompiler, DmdDCompiler, FortranCompiler
+from ..linkers import ArLinker, VisualStudioLinker
 from ..mesonlib import File, MachineChoice, MesonException, OrderedSet, LibType
 from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
@@ -40,8 +40,14 @@ from ..build import InvalidArguments
 
 FORTRAN_SUBMOD_PAT = r"\s*submodule\s*\((\w+:?\w+)\)\s*(\w+)\s*$"
 
+def cmd_quote(s):
+    # XXX: this needs to understand how to escape any existing double quotes(")
+    return '"{}"'.format(s)
+
+# How ninja executes command lines differs between Unix and Windows
+# (see https://ninja-build.org/manual.html#ref_rule_command)
 if mesonlib.is_windows():
-    quote_func = lambda s: '"{}"'.format(s)
+    quote_func = cmd_quote
     execute_wrapper = ['cmd', '/c']
     rmfile_prefix = ['del', '/f', '/s', '/q', '{}', '&&']
 else:
@@ -106,7 +112,8 @@ class NinjaComment:
 
 class NinjaRule:
     def __init__(self, rule, command, args, description,
-                 rspable = False, deps = None, depfile = None, extra = None):
+                 rspable = False, deps = None, depfile = None, extra = None,
+                 rspfile_quote_style = 'sh'):
 
         def strToCommandArg(c):
             if isinstance(c, NinjaCommandArg):
@@ -140,27 +147,33 @@ class NinjaRule:
         self.rspable = rspable  # if a rspfile can be used
         self.refcount = 0
         self.rsprefcount = 0
+        self.rspfile_quote_style = rspfile_quote_style  # rspfile quoting style is 'sh' or 'cl'
 
     @staticmethod
-    def _quoter(x):
+    def _quoter(x, qf = quote_func):
         if isinstance(x, NinjaCommandArg):
             if x.quoting == Quoting.none:
                 return x.s
             elif x.quoting == Quoting.notNinja:
-                return quote_func(x.s)
+                return qf(x.s)
             elif x.quoting == Quoting.notShell:
                 return ninja_quote(x.s)
             # fallthrough
-        return ninja_quote(quote_func(str(x)))
+        return ninja_quote(qf(str(x)))
 
     def write(self, outfile):
+        if self.rspfile_quote_style == 'cl':
+            rspfile_quote_func = cmd_quote
+        else:
+            rspfile_quote_func = shlex.quote
+
         for rsp in ([''] if self.refcount else [] +
                     ['_RSP'] if self.rsprefcount else []):
             outfile.write('rule %s%s\n' % (self.name, rsp))
             if rsp:
                 outfile.write(' command = %s @$out.rsp\n' % ' '.join([self._quoter(x) for x in self.command]))
                 outfile.write(' rspfile = $out.rsp\n')
-                outfile.write(' rspfile_content = %s\n' % ' '.join([self._quoter(x) for x in self.args]))
+                outfile.write(' rspfile_content = %s\n' % ' '.join([self._quoter(x, rspfile_quote_func) for x in self.args]))
             else:
                 outfile.write(' command = %s\n' % ' '.join([self._quoter(x) for x in (self.command + self.args)]))
             if self.deps:
@@ -263,7 +276,8 @@ class NinjaBuildElement:
         self.check_outputs()
         infilenames = ' '.join([ninja_quote(i, True) for i in self.infilenames])
         outfilenames = ' '.join([ninja_quote(i, True) for i in self.outfilenames])
-        if self._should_use_rspfile():
+        use_rspfile = self._should_use_rspfile()
+        if use_rspfile:
             rulename = self.rulename + '_RSP'
             mlog.warning("Command line for building %s is long, using a response file" % self.outfilenames)
         else:
@@ -282,6 +296,14 @@ class NinjaBuildElement:
         line = line.replace('\\', '/')
         outfile.write(line)
 
+        if use_rspfile:
+            if self.rule.rspfile_quote_style == 'cl':
+                qf = cmd_quote
+            else:
+                qf = shlex.quote
+        else:
+            qf = quote_func
+
         for e in self.elems:
             (name, elems) = e
             should_quote = name not in raw_names
@@ -291,9 +313,9 @@ class NinjaBuildElement:
                 if not should_quote or i == '&&': # Hackety hack hack
                     quoter = ninja_quote
                 else:
-                    quoter = lambda x: ninja_quote(quote_func(x))
+                    quoter = lambda x: ninja_quote(qf(x))
                 i = i.replace('\\', '\\\\')
-                if quote_func('') == '""':
+                if qf('') == '""':
                     i = i.replace('"', '\\"')
                 newelems.append(quoter(i))
             line += ' '.join(newelems)
@@ -1646,6 +1668,7 @@ int dummy;
             pool = None
         self.add_rule(NinjaRule(rule, cmdlist, args, description,
                                 rspable=static_linker.can_linker_accept_rsp(),
+                                rspfile_quote_style='cl' if isinstance(static_linker, VisualStudioLinker) else 'sh',
                                 extra=pool))
 
     def generate_dynamic_link_rules(self):
@@ -1675,6 +1698,8 @@ int dummy;
                     pool = None
                 self.add_rule(NinjaRule(rule, command, args, description,
                                         rspable=compiler.can_linker_accept_rsp(),
+                                        rspfile_quote_style='cl' if (compiler.get_argument_syntax() == 'msvc' or
+                                                                     isinstance(compiler, DmdDCompiler)) else 'sh',
                                         extra=pool))
 
         args = self.environment.get_build_command() + \
@@ -1700,7 +1725,8 @@ int dummy;
         args = ['$ARGS', '$in']
         description = 'Compiling C Sharp target $out.'
         self.add_rule(NinjaRule(rule, command, args, description,
-                                rspable=mesonlib.is_windows()))
+                                rspable=mesonlib.is_windows(),
+                                rspfile_quote_style='cl' if isinstance(compiler, VisualStudioCsCompiler) else 'sh'))
 
     def generate_vala_compile_rules(self, compiler):
         rule = '%s_COMPILER' % compiler.get_language()
@@ -1793,6 +1819,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             depfile = '$DEPFILE'
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=compiler.can_linker_accept_rsp(),
+                                rspfile_quote_style='cl' if (compiler.get_argument_syntax() == 'msvc' or
+                                                             isinstance(compiler, DmdDCompiler)) else 'sh',
                                 deps=deps, depfile=depfile))
 
     def generate_pch_rule_for(self, langname, compiler, is_cross):
