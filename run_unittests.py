@@ -1672,6 +1672,17 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    def test_env_ops_dont_stack(self):
+        '''
+        Test that env ops prepend/append do not stack, and that this usage issues a warning
+        '''
+        testdir = os.path.join(self.unit_test_dir, '59 test env doesn\'t stack')
+        out = self.init(testdir)
+        self.assertRegex(out, r'WARNING: Overriding.*TEST_VAR_APPEND')
+        self.assertRegex(out, r'WARNING: Overriding.*TEST_VAR_PREPEND')
+        self.assertNotRegex(out, r'WARNING: Overriding.*TEST_VAR_SET')
+        self.run_tests()
+
     def test_testsetups(self):
         if not shutil.which('valgrind'):
             raise unittest.SkipTest('Valgrind not installed.')

@@ -235,7 +235,13 @@ class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder):
             raise InterpreterException("EnvironmentVariablesHolder methods require at least"
                                        "2 arguments, first is the name of the variable and"
                                        " following one are values")
-        self.held_object.envvars.append((method, args[0], args[1:], kwargs))
+        # Warn when someone tries to use append() or prepend() on an env var
+        # which already has an operation set on it. People seem to think that
+        # multiple append/prepend operations stack, but they don't.
+        if method != self.held_object.set and self.held_object.has_name(args[0]):
+            mlog.warning('Overriding previous value of environment variable {!r} with a new one'
+                         .format(args[0]), location=self.current_node)
+        self.held_object.add_var(method, args[0], args[1:], kwargs)
 
     @stringArgs
     @permittedKwargs({'separator'})
