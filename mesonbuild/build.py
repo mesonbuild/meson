@@ -296,10 +296,19 @@ class ExtractedObjects:
 class EnvironmentVariables:
     def __init__(self):
         self.envvars = []
+        # The set of all env vars we have operations for. Only used for self.has_name()
+        self.varnames = set()
 
     def __repr__(self):
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.envvars)
+
+    def add_var(self, method, name, args, kwargs):
+        self.varnames.add(name)
+        self.envvars.append((method, name, args, kwargs))
+
+    def has_name(self, name):
+        return name in self.varnames
 
     def get_value(self, values, kwargs):
         separator = kwargs.get('separator', os.pathsep)
