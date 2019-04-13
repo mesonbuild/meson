@@ -592,7 +592,13 @@ class CoreData:
                         k in env.cmd_line_options):
                     # TODO think about cross and command-line interface.
                     o.set_value(env.cmd_line_options[k])
-                self.compiler_options[for_machine].setdefault(k, o)
+                if k in ['c_std', 'cpp_std']:
+                    # These CLI options should affect all platforms
+                    for m in iter(MachineChoice):
+                        self.compiler_options[m].setdefault(k, o)
+                else:
+                    # By default, CLI options just affect the native platform
+                    self.compiler_options[for_machine].setdefault(k, o)
 
             # Unlike compiler and linker flags, preprocessor flags are not in
             # compiler_options because they are not visible to user.
