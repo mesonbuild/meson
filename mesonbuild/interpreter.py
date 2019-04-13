@@ -703,6 +703,26 @@ class TargetHolder(InterpreterObject, ObjectHolder):
         ObjectHolder.__init__(self, target, interp.subproject)
         self.interpreter = interp
 
+
+class FileHolder(InterpreterObject, ObjectHolder):
+    def __init__(self, held_object, srcdir):
+        InterpreterObject.__init__(self)
+        ObjectHolder.__init__(self, held_object)
+        self.srcdir = srcdir
+        self.methods.update({'full_path': self.full_path_method,
+                             })
+
+    def __repr__(self):
+        r = '<{} {}: {}>'
+        h = self.held_object
+        return r.format(self.__class__.__name__, h.relative_name())
+
+    @noPosargs
+    @permittedKwargs({})
+    def full_path_method(self, args, kwargs):
+        return self.held_object.absolute_path(self.srcdir, None)
+
+
 class BuildTargetHolder(TargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
@@ -2228,7 +2248,8 @@ class Interpreter(InterpreterBase):
     @stringArgs
     @noKwargs
     def func_files(self, node, args, kwargs):
-        return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
+        srcfiles = [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
+        return [FileHolder(f, self.environment.source_dir) for f in srcfiles]
 
     @FeatureNewKwargs('declare_dependency', '0.46.0', ['link_whole'])
     @permittedKwargs(permitted_kwargs['declare_dependency'])
@@ -3910,7 +3931,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
         if not isinstance(sources, list):
             sources = [sources]
         for s in sources:
-            if isinstance(s, (mesonlib.File, GeneratedListHolder,
+            if isinstance(s, (mesonlib.File, FileHolder, GeneratedListHolder,
                               TargetHolder, CustomTargetIndexHolder)):
                 pass
             elif isinstance(s, str):
