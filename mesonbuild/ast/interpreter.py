@@ -171,6 +171,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         assert(isinstance(node, mparser.PlusAssignmentNode))
         if node.var_name not in self.assignments:
             self.assignments[node.var_name] = []
+            self.assign_vals[node.var_name] = []
         self.assignments[node.var_name] += [node.value] # Save a reference to the value node
         if hasattr(node.value, 'ast_id'):
             self.reverse_assignment[node.value.ast_id] = node

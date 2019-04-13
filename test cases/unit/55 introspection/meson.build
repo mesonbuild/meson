@@ -9,6 +9,9 @@ b2 = get_option('test_opt2')
 test_bool = b1 or b2
 test_bool = b1 and b2
 
+set_variable('list_test_plusassign', [])
+list_test_plusassign += ['bugs everywhere']
+
 if false
   dependency('somethingthatdoesnotexist', required: true)
   dependency('look_i_have_a_fallback', fallback: ['oh_no', 'the_subproject_does_not_exist'])
