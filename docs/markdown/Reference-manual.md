@@ -1066,8 +1066,9 @@ res2 = foo / bar
 ```
 
 Builds a library that is either static, shared or both depending on
-the value of `default_library` user option. You should use this
-instead of [`shared_library`](#shared_library),
+the value of `default_library` 
+user [option](https://mesonbuild.com/Builtin-options.html).
+You should use this instead of [`shared_library`](#shared_library),
 [`static_library`](#static_library) or
 [`both_libraries`](#both_libraries) most of the time. This allows you
 to toggle your entire project (including subprojects) from shared to
