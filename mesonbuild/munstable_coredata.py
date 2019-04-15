@@ -31,9 +31,12 @@ def dump_compilers(compilers):
         print('  ' + lang + ':')
         print('      Id: ' + compiler.id)
         print('      Command: ' + ' '.join(compiler.exelist))
-        print('      Full version: ' + compiler.full_version)
-        print('      Detected version: ' + compiler.version)
-        print('      Detected type: ' + repr(compiler.compiler_type))
+        if compiler.full_version:
+            print('      Full version: ' + compiler.full_version)
+        if compiler.version:
+            print('      Detected version: ' + compiler.version)
+        if hasattr(compiler, 'compiler_type'):
+            print('      Detected type: ' + repr(compiler.compiler_type))
         #pprint.pprint(compiler.__dict__)
 
 
@@ -97,7 +100,7 @@ def run(options):
             native = []
             cross = []
             for dep_key, dep in sorted(v.items()):
-                if dep_key[2]:
+                if dep_key[1]:
                     cross.append((dep_key, dep))
                 else:
                     native.append((dep_key, dep))

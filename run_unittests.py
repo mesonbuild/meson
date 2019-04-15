@@ -3642,6 +3642,12 @@ recommended as it is not supported on some platforms''')
         self.maxDiff = None
         self.assertListEqual(res_nb, expected)
 
+    def test_unstable_coredata(self):
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        self.init(testdir)
+        # just test that the command does not fail (e.g. because it throws an exception)
+        self._run([*self.meson_command, 'unstable-coredata', self.builddir])
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically
