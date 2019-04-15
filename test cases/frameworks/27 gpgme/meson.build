@@ -19,3 +19,9 @@ dependency('gpgme', method: 'config-tool')
 
 # Check we can apply a version constraint
 dependency('gpgme', version: '>=@0@'.format(gpgme_dep.version()), method: 'config-tool')
+
+# If gpgme is new enough, make sure it picks up pkg-config by default:
+
+if gpgme_ver.version_compare('>=1.13.0')
+  assert(gpgme_dep.type_name() == 'pkgconfig', 'dependency found via pkg-config')
+endif
