@@ -2097,12 +2097,12 @@ class Interpreter(InterpreterBase):
     def get_non_matching_default_options(self):
         env = self.environment
         for def_opt_name, def_opt_value in self.project_default_options.items():
-            for option_type in env.coredata.get_all_options():
-                for cur_opt_name, cur_opt_value in option_type.items():
-                    if def_opt_name == cur_opt_name:
-                        def_opt_value = env.coredata.validate_option_value(def_opt_name, def_opt_value)
-                        if def_opt_value != cur_opt_value.value:
-                            yield (def_opt_name, def_opt_value, cur_opt_value)
+            for opts in env.coredata.get_all_options():
+                cur_opt_value = opts.get(def_opt_name)
+                if cur_opt_value is not None:
+                    def_opt_value = env.coredata.validate_option_value(def_opt_name, def_opt_value)
+                    if def_opt_value != cur_opt_value.value:
+                        yield (def_opt_name, def_opt_value, cur_opt_value)
 
     def build_func_dict(self):
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
@@ -2519,13 +2519,14 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self.subprojects[dirname]
 
     def get_option_internal(self, optname):
-        for d in chain(
+        for opts in chain(
                 [self.coredata.base_options, compilers.base_options, self.coredata.builtins],
-                self.coredata.get_all_compiler_options()):
-            try:
-                return d[optname]
-            except KeyError:
-                pass
+                self.coredata.get_prefixed_options_per_machine(self.coredata.builtins_per_machine),
+                self.coredata.get_prefixed_options_per_machine(self.coredata.compiler_options),
+        ):
+            v = opts.get(optname)
+            if v is not None:
+                return v
 
         raw_optname = optname
         if self.is_subproject():

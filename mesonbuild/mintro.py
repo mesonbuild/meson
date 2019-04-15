@@ -227,10 +227,20 @@ def list_buildoptions(coredata: cdata.CoreData) -> List[dict]:
     core_options = {k: o for k, o in coredata.builtins.items() if k in core_option_names}
 
     add_keys(optlist, core_options, 'core')
+    add_keys(optlist, coredata.builtins_per_machine.host, 'core (for host machine)')
+    add_keys(
+        optlist,
+        {'build.' + k: o for k, o in coredata.builtins_per_machine.build.items()},
+        'core (for build machine)',
+    )
     add_keys(optlist, coredata.backend_options, 'backend')
     add_keys(optlist, coredata.base_options, 'base')
-    # TODO others
-    add_keys(optlist, coredata.compiler_options.build, 'compiler')
+    add_keys(optlist, coredata.compiler_options.host, 'compiler (for host machine)')
+    add_keys(
+        optlist,
+        {'build.' + k: o for k, o in coredata.compiler_options.build.items()},
+        'compiler (for build machine)',
+    )
     add_keys(optlist, dir_options, 'directory')
     add_keys(optlist, coredata.user_options, 'user')
     add_keys(optlist, test_options, 'test')

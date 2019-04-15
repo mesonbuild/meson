@@ -665,11 +665,12 @@ class PkgConfigDependency(ExternalDependency):
         else:
             env = env.copy()
 
-        if self.want_cross:
-            extra_paths = self.env.coredata.get_builtin_option('cross_pkg_config_path')
+        if not self.want_cross and self.env.is_cross_build():
+            for_machine = MachineChoice.BUILD
         else:
-            extra_paths = self.env.coredata.get_builtin_option('pkg_config_path')
+            for_machine = MachineChoice.HOST
 
+        extra_paths = self.env.coredata.builtins_per_machine[for_machine]['pkg_config_path'].value
         new_pkg_config_path = ':'.join([p for p in extra_paths])
         mlog.debug('PKG_CONFIG_PATH: ' + new_pkg_config_path)
         env['PKG_CONFIG_PATH'] = new_pkg_config_path
@@ -1137,10 +1138,7 @@ class CMakeDependency(ExternalDependency):
         if cm_path:
             cm_args.append('-DCMAKE_MODULE_PATH=' + ';'.join(cm_path))
 
-        if environment.is_cross_build() and self.want_cross:
-            pref_path = self.env.coredata.builtins['cross_cmake_prefix_path'].value
-        else:
-            pref_path = self.env.coredata.builtins['cmake_prefix_path'].value
+        pref_path = self.env.coredata.builtins_per_machine[for_machine]['cmake_prefix_path'].value
         if pref_path:
             cm_args.append('-DCMAKE_PREFIX_PATH={}'.format(';'.join(pref_path)))
 
