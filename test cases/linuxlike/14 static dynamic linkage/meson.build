@@ -15,6 +15,7 @@ test('test default', exe_default)
 test('test static', exe_static)
 test('test dynamic', exe_dynamic)
 
-test('verify static linking', find_program('verify_static.py'), args:exe_static.full_path())
-test('verify dynamic linking', find_program('verify_static.py'), args:exe_dynamic.full_path(),
-     should_fail: true)
+test('verify static linking', find_program('verify_static.py'),
+  args: ['--platform=' + host_machine.system(), exe_static.full_path()])
+test('verify dynamic linking', find_program('verify_static.py'),
+  args: ['--platform=' + host_machine.system(), exe_dynamic.full_path()], should_fail: true)
