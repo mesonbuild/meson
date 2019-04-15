@@ -735,11 +735,24 @@ class ShadercDependency(ExternalDependency):
         methods = cls._process_method_kw(kwargs)
         candidates = []
 
+        if DependencyMethods.PKGCONFIG in methods:
+            # ShaderC packages their shared and static libs together
+            # and provides different pkg-config files for each one. We
+            # smooth over this difference by handling the static
+            # keyword before handing off to the pkg-config handler.
+            shared_libs = ['shaderc']
+            static_libs = ['shaderc_combined', 'shaderc_static']
+
+            if kwargs.get('static', False):
+                c = [functools.partial(PkgConfigDependency, name, environment, kwargs)
+                     for name in static_libs + shared_libs]
+            else:
+                c = [functools.partial(PkgConfigDependency, name, environment, kwargs)
+                     for name in shared_libs + static_libs]
+            candidates.exend(c)
+
         if DependencyMethods.SYSTEM in methods:
             candidates.append(functools.partial(ShadercDependency, environment, kwargs))
-
-        if DependencyMethods.PKGCONFIG in methods:
-            candidates.append(functools.partial(PkgConfigDependency, 'shaderc', environment, kwargs))
 
         return candidates
 
