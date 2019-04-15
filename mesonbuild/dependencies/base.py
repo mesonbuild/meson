@@ -669,7 +669,10 @@ class PkgConfigDependency(ExternalDependency):
             extra_paths = self.env.coredata.get_builtin_option('cross_pkg_config_path')
         else:
             extra_paths = self.env.coredata.get_builtin_option('pkg_config_path')
-        env['PKG_CONFIG_PATH'] = ':'.join([p for p in extra_paths])
+
+        new_pkg_config_path = ':'.join([p for p in extra_paths])
+        mlog.debug('PKG_CONFIG_PATH: ' + new_pkg_config_path)
+        env['PKG_CONFIG_PATH'] = new_pkg_config_path
         fenv = frozenset(env.items())
         targs = tuple(args)
         cache = PkgConfigDependency.pkgbin_cache
