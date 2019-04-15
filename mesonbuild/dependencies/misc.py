@@ -680,6 +680,9 @@ class GpgmeDependency(ExternalDependency):
         methods = cls._process_method_kw(kwargs)
         candidates = []
 
+        if DependencyMethods.PKGCONFIG in methods:
+            candidates.append(functools.partial(PkgConfigDependency, 'gpgme', environment, kwargs))
+
         if DependencyMethods.CONFIG_TOOL in methods:
             candidates.append(functools.partial(ConfigToolDependency.factory,
                                                 'gpgme', environment, None, kwargs, ['gpgme-config'],
@@ -696,7 +699,7 @@ class GpgmeDependency(ExternalDependency):
 
     @staticmethod
     def get_methods():
-        return [DependencyMethods.CONFIG_TOOL]
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
 
 class ShadercDependency(ExternalDependency):

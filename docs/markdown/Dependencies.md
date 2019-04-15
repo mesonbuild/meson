@@ -394,7 +394,7 @@ The `language` keyword may used.
 
 *(added 0.51.0)*
 
-`method` may be `auto` or `config-tool`.
+`method` may be `auto`, `config-tool` or `pkg-config`.
 
 ## Python3
 
