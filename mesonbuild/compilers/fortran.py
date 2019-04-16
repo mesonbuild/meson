@@ -78,6 +78,7 @@ class FortranCompiler(Compiler):
         binary_name = os.path.join(work_dir, 'sanitycheckf')
         with open(source_name, 'w') as ofile:
             ofile.write('print *, "Fortran compilation is working."; end')
+        extra_flags = []
         if self.is_cross:
             extra_flags = environment.coredata.get_external_args(MachineChoice.HOST, self.language)
             extra_flags += environment.coredata.get_external_link_args(MachineChoice.HOST, self.language)
