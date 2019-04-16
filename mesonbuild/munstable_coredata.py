@@ -15,6 +15,8 @@
 
 from . import coredata as cdata
 
+from .mesonlib import MachineChoice
+
 import os.path
 import pprint
 import textwrap
@@ -96,7 +98,7 @@ def run(options):
             native = []
             cross = []
             for dep_key, dep in sorted(v.items()):
-                if dep_key[2]:
+                if dep_key[1]:
                     cross.append((dep_key, dep))
                 else:
                     native.append((dep_key, dep))
@@ -118,7 +120,7 @@ def run(options):
                 for dep_key, dep in cross:
                     print_dep(dep_key, dep)
         elif k == 'external_preprocess_args':
-            for lang, opts in v.items():
+            for lang, opts in v[MachineChoice.BUILD].items():
                 if opts:
                     print('Preprocessor args for ' + lang + ': ' + ' '.join(opts))
         else:
