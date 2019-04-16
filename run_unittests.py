@@ -2999,6 +2999,15 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(obj.builtins['warning_level'].value, '0')
         self.wipe()
 
+    def test_filter_and_filter_out(self):
+        testdir = os.path.join(self.common_test_dir, '217 filter and filter_out')
+        # Verify correct filtering
+        out = self.init(testdir)
+        # self.assertRegex(out, ".*Message: All source list contains: [\'lib1/cpplib.cpp\', \'lib2/cpplib.cpp\', \'lib3/cpplib.cpp\'].*")
+        self.assertRegex(out, ".*All .* contains:.*lib1/cpplib.cpp.*lib2/cpplib.cpp.*lib3/cpplib.cpp.*")
+        self.assertRegex(out, r".*Building lib1 with \['lib1/cpplib.cpp'\].*")
+        self.assertRegex(out, r".*Building libnot1_or_2 with \['lib3/cpplib.cpp'\].*")
+
     def test_feature_check_usage_subprojects(self):
         testdir = os.path.join(self.unit_test_dir, '41 featurenew subprojects')
         out = self.init(testdir)
