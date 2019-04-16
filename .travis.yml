@@ -39,7 +39,13 @@ matrix:
     env: RUN_TESTS_ARGS="--cross" MESON_ARGS="--unity=on"
 
 before_install:
-  - python ./skip_ci.py --base-branch-env=TRAVIS_BRANCH --is-pull-env=TRAVIS_PULL_REQUEST
+  - |
+    python ./skip_ci.py --base-branch-env=TRAVIS_BRANCH --is-pull-env=TRAVIS_PULL_REQUEST
+    if [[ $? != 0 ]]; then
+      # Skip data tests on non-Linux platforms
+      [[ "$TRAVIS_OS_NAME" != "linux" ]] && travis_terminate 0
+      ./run_unittests.py DataTests -v
+    fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt llvm; fi
     # # Run one macOS build without pkg-config available, and the other (unity=on) with pkg-config

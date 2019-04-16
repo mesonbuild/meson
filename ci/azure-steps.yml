@@ -2,7 +2,8 @@ steps:
 - powershell: |
      python ./skip_ci.py --base-branch-env=SYSTEM_PULLREQUEST_TARGETBRANCH --is-pull-env=SYSTEM_PULLREQUEST_PULLREQUESTID --base-branch-origin
      if ($LastExitCode -ne 0) {
-        exit 0
+       # NOTE: Currently, data-only unit tests are only run on Travis Linux
+       exit 0
      }
 
      # remove MinGW from path, so we don't find gfortran and try to use it

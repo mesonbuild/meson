@@ -43,8 +43,8 @@ def get_git_files(base):
     return diff.strip().split(b'\n')
 
 
-def is_documentation(filename):
-    return filename.startswith(b'docs/')
+def is_documentation_or_data(filename):
+    return filename.startswith((b'docs/', b'data/'))
 
 
 def main():
@@ -61,9 +61,8 @@ def main():
         base = get_base_branch(args.base_branch_env)
         if args.base_branch_origin:
             base = 'origin/' + base
-        if all(is_documentation(f) for f in get_git_files(base)):
-            print("Don't run CI for documentation-only changes, add '[skip ci]' to commit title.")
-            print('See http://mesonbuild.com/Contributing.html#skipping-integration-tests')
+        if all(is_documentation_or_data(f) for f in get_git_files(base)):
+            print('Changeset only contains docs and/or data changes, should only run DataTests')
             sys.exit(1)
     except Exception:
         # If this script fails we want build to proceed.
