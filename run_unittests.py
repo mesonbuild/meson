@@ -968,6 +968,9 @@ class InternalTests(unittest.TestCase):
             raise unittest.SkipTest('Test only applies to MSVC-like compilers')
         toolset_ver = cc.get_toolset_version()
         self.assertIsNotNone(toolset_ver)
+        # Visual Studio 2015 and older versions do not define VCToolsVersion
+        if int(''.join(cc.version.split('.')[0:2])) < 1910:
+            return
         self.assertIn('VCToolsVersion', os.environ)
         vctools_ver = os.environ['VCToolsVersion']
         self.assertTrue(vctools_ver.startswith(toolset_ver),
