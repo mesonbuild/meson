@@ -655,9 +655,13 @@ class PkgConfigDependency(ExternalDependency):
             env = env.copy()
 
         extra_paths = self.env.coredata.builtins_per_machine[self.for_machine]['pkg_config_path'].value
+        sysroot = self.env.properties[self.for_machine].get_sys_root()
+        if sysroot:
+            env['PKG_CONFIG_SYSROOT_DIR'] = sysroot
         new_pkg_config_path = ':'.join([p for p in extra_paths])
         mlog.debug('PKG_CONFIG_PATH: ' + new_pkg_config_path)
         env['PKG_CONFIG_PATH'] = new_pkg_config_path
+
         fenv = frozenset(env.items())
         targs = tuple(args)
         cache = PkgConfigDependency.pkgbin_cache

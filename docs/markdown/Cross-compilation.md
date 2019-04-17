@@ -120,6 +120,7 @@ has_function_printf = true
 
 c_args = ['-DCROSS=1', '-DSOMETHING=3']
 c_link_args = ['-some_link_arg']
+sys_root = '/some/path'
 ```
 
 In most cases you don't need the size and alignment settings, Meson
@@ -130,6 +131,12 @@ the issue. If you need extra compiler arguments to be used during
 cross compilation you can set them with `[langname]_args =
 [args]`. Just remember to specify the args as an array and not as a
 single string (i.e. not as `'-DCROSS=1 -DSOMETHING=3'`).
+
+*Since 0.52.0* The `sys_root` property may point to the root of the host
+system path (the system that will run the compiled binaries). This is used
+internally by meson to set the PKG_CONFIG_SYSROOT_DIR environment variable
+for pkg-config. If this is unset the host system is assumed to share a root
+with the build system.
 
 One important thing to note, if you did not define an `exe_wrapper` in
 the previous section, is that Meson will make a best-effort guess at
