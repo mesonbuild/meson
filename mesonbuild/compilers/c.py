@@ -1674,6 +1674,9 @@ class VisualStudioCCompiler(CCompiler):
             return '14.0' # (Visual Studio 2015)
         elif version < 1920:
             return '14.1' # (Visual Studio 2017)
+        elif version < 1930:
+            return '14.2' # (Visual Studio 2019)
+        mlog.warning('Could not find toolset for version {!r}'.format(self.version))
         return None
 
     def get_default_include_dirs(self):

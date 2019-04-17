@@ -958,6 +958,22 @@ class InternalTests(unittest.TestCase):
             self.assertEqual(ver_a.__cmp__(ver_b), result)
             self.assertEqual(ver_b.__cmp__(ver_a), -result)
 
+    def test_msvc_toolset_version(self):
+        '''
+        Ensure that the toolset version returns the correct value for this MSVC
+        '''
+        env = get_fake_env()
+        cc = env.detect_c_compiler(False)
+        if cc.get_argument_syntax() != 'msvc':
+            raise unittest.SkipTest('Test only applies to MSVC-like compilers')
+        toolset_ver = cc.get_toolset_version()
+        self.assertIsNotNone(toolset_ver)
+        self.assertIn('VCToolsVersion', os.environ)
+        vctools_ver = os.environ['VCToolsVersion']
+        self.assertTrue(vctools_ver.startswith(toolset_ver),
+                        msg='{!r} does not start with {!r}'.format(vctools_ver, toolset_ver))
+
+
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
 
