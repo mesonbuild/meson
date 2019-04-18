@@ -2014,7 +2014,9 @@ statement](Syntax.md#foreach-statements).
 Dictionaries are available since 0.47.0.
 
 Since 0.48.0 dictionaries can be added (e.g. `d1 = d2 + d3` and `d1 += d2`).
-Values from the second dictionary overrides values from the first.
+Values from the second dictionary overrides values from the first. Note that
+the `+=` operator does not edit the dictionary in-place; it will create a new
+object and assign it to the left-hand-side, i.e., dictionaries are immutable.
 
 ## Returned objects
 
