@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language:	Meson
 " Maintainer:	Nirbheek Chauhan <nirbheek.chauhan@gmail.com>
-" Last Change:	2016 Dec 7
+" Last Change:	2018 July 27
 " Credits:	Zvezdan Petkovic <zpetkovic@acm.org>
 "		Neil Schemenauer <nas@meson.ca>
 "		Dmitry Vasiliev
