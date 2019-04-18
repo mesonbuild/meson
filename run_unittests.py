@@ -3644,12 +3644,13 @@ class FailureTests(BasePlatformTests):
         super().setUp()
         self.srcdir = os.path.realpath(tempfile.mkdtemp())
         self.mbuild = os.path.join(self.srcdir, 'meson.build')
+        self.moptions = os.path.join(self.srcdir, 'meson_options.txt')
 
     def tearDown(self):
         super().tearDown()
         windows_proof_rmtree(self.srcdir)
 
-    def assertMesonRaises(self, contents, match, extra_args=None, langs=None, meson_version=None):
+    def assertMesonRaises(self, contents, match, extra_args=None, langs=None, meson_version=None, options=None):
         '''
         Assert that running meson configure on the specified @contents raises
         a error message matching regex @match.
@@ -3664,6 +3665,9 @@ class FailureTests(BasePlatformTests):
             for lang in langs:
                 f.write("add_languages('{}', required : false)\n".format(lang))
             f.write(contents)
+        if options is not None:
+            with open(self.moptions, 'w') as f:
+                f.write(options)
         # Force tracebacks so we can detect them properly
         os.environ['MESON_FORCE_BACKTRACE'] = '1'
         with self.assertRaisesRegex(MesonException, match, msg=contents):
@@ -3895,6 +3899,14 @@ class FailureTests(BasePlatformTests):
         self.assertMesonRaises("sub1 = subproject('not-found-subproject', required: false)\n" +
                                "sub1.get_variable('naaa')",
                                """Subproject "subprojects/not-found-subproject" disabled can't get_variable on it.""")
+
+    def test_version_checked_before_parsing_options(self):
+        '''
+        https://github.com/mesonbuild/meson/issues/5281
+        '''
+        options = "option('some-option', type: 'foo', value: '')"
+        match = 'Meson version is.*but project requires >=2000'
+        self.assertMesonRaises("", match, meson_version='>=2000', options=options)
 
 
 @unittest.skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")

@@ -2575,6 +2575,12 @@ external dependencies (including libraries) must go to "dependencies".''')
         if ':' in proj_name:
             raise InvalidArguments("Project name {!r} must not contain ':'".format(proj_name))
 
+        if 'meson_version' in kwargs:
+            cv = coredata.version
+            pv = kwargs['meson_version']
+            if not mesonlib.version_compare(cv, pv):
+                raise InterpreterException('Meson version is %s but project requires %s' % (cv, pv))
+
         if os.path.exists(self.option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(self.option_file)
@@ -2621,11 +2627,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         mesonlib.project_meson_versions[self.subproject] = ''
         if 'meson_version' in kwargs:
-            cv = coredata.version
-            pv = kwargs['meson_version']
-            mesonlib.project_meson_versions[self.subproject] = pv
-            if not mesonlib.version_compare(cv, pv):
-                raise InterpreterException('Meson version is %s but project requires %s.' % (cv, pv))
+            mesonlib.project_meson_versions[self.subproject] = kwargs['meson_version']
+
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))
         mlog.log('Project version:', mlog.bold(self.project_version))
