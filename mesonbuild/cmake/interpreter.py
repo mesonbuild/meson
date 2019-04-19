@@ -58,6 +58,33 @@ skip_targets = ['UTILITY']
 
 skip_input_extensions = ['.rule']
 
+blacklist_compiler_flags = [
+    '/W1', '/W2', '/W3', '/W4', '/Wall',
+    '/O1', '/O2', '/Ob', '/Od', '/Og', '/Oi', '/Os', '/Ot', '/Ox', '/Oy', '/Ob0',
+    '/RTC1', '/RTCc', '/RTCs', '/RTCu'
+]
+
+blacklist_link_flags = [
+    '/machine:x64', '/machine:x86', '/machine:arm', '/machine:ebc',
+    '/debug', '/debug:fastlink', '/debug:full', '/debug:none',
+    '/incremental',
+]
+
+blacklist_clang_cl_link_flags = ['/GR', '/EHsc', '/MDd', '/Zi', '/RTC1']
+
+blacklist_link_libs = [
+    'kernel32.lib',
+    'user32.lib',
+    'gdi32.lib',
+    'winspool.lib',
+    'shell32.lib',
+    'ole32.lib',
+    'oleaut32.lib',
+    'uuid.lib',
+    'comdlg32.lib',
+    'advapi32.lib'
+]
+
 class ConverterTarget:
     lang_cmake_to_meson = {val.lower(): key for key, val in language_map.items()}
 
@@ -129,6 +156,8 @@ class ConverterTarget:
                     self.override_options += ['{}_std={}'.format(i, m.group(2))]
                 elif j in ['-fPIC', '-fpic', '-fPIE', '-fpie']:
                     self.pie = True
+                elif j in blacklist_compiler_flags:
+                    pass
                 else:
                     temp += [j]
 
@@ -180,6 +209,17 @@ class ConverterTarget:
         if self.install_dir and os.path.isabs(self.install_dir):
             if os.path.commonpath([self.install_dir, install_prefix]) == install_prefix:
                 self.install_dir = os.path.relpath(self.install_dir, install_prefix)
+
+        # Remove blacklisted options and libs
+        def check_flag(flag: str) -> bool:
+            if flag.lower() in blacklist_link_flags or flag in blacklist_compiler_flags + blacklist_clang_cl_link_flags:
+                return False
+            if flag.startswith('/D'):
+                return False
+            return True
+
+        self.link_libraries = [x for x in self.link_libraries if x.lower() not in blacklist_link_libs]
+        self.link_flags = [x for x in self.link_flags if check_flag(x)]
 
     def process_object_libs(self, obj_target_list: List['ConverterTarget']):
         # Try to detect the object library(s) from the generated input sources
