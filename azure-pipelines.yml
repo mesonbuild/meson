@@ -88,6 +88,7 @@ jobs:
         gccx64ninja: {}
   variables:
     CYGWIN_ROOT: $(System.Workfolder)\cygwin
+    CYGWIN_CMAKE_LINK: http://cygwin.mirror.constant.com/x86_64/release/cmake/cmake-3.13.1-1.tar.xz
     CYGWIN_MIRROR: http://cygwin.mirror.constant.com
   steps:
     - script: |
@@ -95,20 +96,28 @@ jobs:
       displayName: Install Cygwin
     - script: |
         %CYGWIN_ROOT%\cygwinsetup.exe -qnNdO -R "%CYGWIN_ROOT%" -s "%CYGWIN_MIRROR%" -g -P ^
-        cmake,^
         gcc-fortran,^
         gcc-objc++,^
         gcc-objc,^
         git,^
         gobject-introspection,^
+        libarchive13,^
         libboost-devel,^
         libglib2.0-devel,^
         libgtk3-devel,^
+        libjsoncpp19,^
+        librhash0,^
+        libuv1,^
         ninja,^
         python35-pip,^
         vala,^
+        wget,^
         zlib-devel
       displayName: Install Dependencies
+    - script: |
+        %CYGWIN_ROOT%\bin\bash.exe -cl "wget %CYGWIN_CMAKE_LINK% -O cmake.tar.xz"
+        %CYGWIN_ROOT%\bin\bash.exe -cl "tar -xf cmake.tar.xz -C /"
+      displayName: Manually install CMake 3.13.1
     - script: |
         set BOOST_ROOT=
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
