@@ -22,6 +22,7 @@ from ..build import Build
 from ..environment import Environment
 from ..mparser import Token, BaseNode, CodeBlockNode, FunctionNode, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, StringNode, IdNode, MethodNode
 from ..backend.backends import Backend
+from ..compilers.compilers import obj_suffixes
 from ..dependencies.base import CMakeDependency, ExternalProgram
 from subprocess import Popen, PIPE, STDOUT
 from typing import List
@@ -113,7 +114,7 @@ class ConverterTarget:
     def __repr__(self) -> str:
         return '<{}: {}>'.format(self.__class__.__name__, self.name)
 
-    std_regex = re.compile(r'([-]{1,2}std=|/std:v?)(.*)')
+    std_regex = re.compile(r'([-]{1,2}std=|/std:v?|[-]{1,2}std:)(.*)')
 
     def postprocess(self, output_target_map: dict, root_src_dir: str, subdir: str, install_prefix: str) -> None:
         # Detect setting the C and C++ standard
@@ -132,6 +133,10 @@ class ConverterTarget:
                     temp += [j]
 
             self.compile_opts[i] = temp
+
+        # Make sure to force enable -fPIC for OBJECT libraries
+        if self.type.upper() == 'OBJECT_LIBRARY':
+            self.pie = True
 
         # Fix link libraries
         temp = []
@@ -178,20 +183,26 @@ class ConverterTarget:
 
     def process_object_libs(self, obj_target_list: List['ConverterTarget']):
         # Try to detect the object library(s) from the generated input sources
-        temp = [os.path.basename(x) for x in self.generated if x.endswith('.o')]
-        self.generated = [x for x in self.generated if not x.endswith('.o')]
+        temp = [os.path.basename(x) for x in self.generated]
+        temp = [x for x in temp if any([x.endswith('.' + y) for y in obj_suffixes])]
+        temp = [os.path.splitext(x)[0] for x in temp]
+        # Temp now stores the source filenames of the object files
         for i in obj_target_list:
-            out_objects = [os.path.basename(x + '.o') for x in i.sources + i.generated]
-            for j in out_objects:
+            source_files = [os.path.basename(x) for x in i.sources + i.generated]
+            for j in source_files:
                 if j in temp:
                     self.object_libs += [i]
                     break
+
+        # Filter out object files from the sources
+        self.generated = [x for x in self.generated if not any([x.endswith('.' + y) for y in obj_suffixes])]
 
     def meson_func(self) -> str:
         return target_type_map.get(self.type.upper())
 
     def log(self) -> None:
         mlog.log('Target', mlog.bold(self.name))
+        mlog.log('  -- artifacts:      ', mlog.bold(str(self.artifacts)))
         mlog.log('  -- full_name:      ', mlog.bold(self.full_name))
         mlog.log('  -- type:           ', mlog.bold(self.type))
         mlog.log('  -- install:        ', mlog.bold('true' if self.install else 'false'))
@@ -266,7 +277,9 @@ class CMakeInterpreter:
             mlog.log(mlog.bold('Running:'), ' '.join(cmake_args))
             mlog.log()
             os.makedirs(self.build_dir, exist_ok=True)
-            proc = Popen(cmake_args + [self.src_dir], stdout=PIPE, stderr=STDOUT, cwd=self.build_dir)
+            os_env = os.environ.copy()
+            os_env['LC_ALL'] = 'C'
+            proc = Popen(cmake_args + [self.src_dir], stdout=PIPE, stderr=STDOUT, cwd=self.build_dir, env=os_env)
 
             # Print CMake log in realtime
             while True:
@@ -330,6 +343,9 @@ class CMakeInterpreter:
                         self.targets += [ConverterTarget(k, self.env)]
 
         output_target_map = {x.full_name: x for x in self.targets}
+        for i in self.targets:
+            for j in i.artifacts:
+                output_target_map[os.path.basename(j)] = i
         object_libs = []
 
         # First pass: Basic target cleanup

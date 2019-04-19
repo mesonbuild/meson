@@ -23,6 +23,7 @@ from contextlib import contextmanager
 from subprocess import Popen, PIPE, TimeoutExpired
 from typing import List, Optional
 import json
+import os
 
 CMAKE_SERVER_BEGIN_STR = '[== "CMake Server" ==['
 CMAKE_SERVER_END_STR = ']== "CMake Server" ==]'
@@ -134,10 +135,15 @@ class RequestHandShake(RequestBase):
         vers = {'major': self.vers_major}
         if self.vers_minor is not None:
             vers['minor'] = self.vers_minor
+
+        # Old CMake versions (3.7) want '/' even on Windows
+        src_list = os.path.normpath(self.src_dir).split(os.sep)
+        bld_list = os.path.normpath(self.build_dir).split(os.sep)
+
         return {
             **super().to_dict(),
-            'sourceDirectory': self.src_dir,
-            'buildDirectory': self.build_dir,
+            'sourceDirectory': '/'.join(src_list),
+            'buildDirectory': '/'.join(bld_list),
             'generator': self.generator,
             'protocolVersion': vers
         }
@@ -204,19 +210,23 @@ class ReplyCMakeInputs(ReplyBase):
                 mlog.log(str(i))
 
 def _flags_to_list(raw: str) -> List[str]:
+    # Convert a raw commandline string into a list of strings
     res = []
     curr = ''
     escape = False
     in_string = False
     for i in raw:
         if escape:
+            # If the current char is not a quote, the '\' is probably important
+            if i not in ['"', "'"]:
+                curr += '\\'
             curr += i
             escape = False
         elif i == '\\':
             escape = True
-        elif i == '"' or i == "'":
+        elif i in ['"', "'"]:
             in_string = not in_string
-        elif i == ' ' or i == '\n':
+        elif i in [' ', '\n']:
             if in_string:
                 curr += i
             else:
