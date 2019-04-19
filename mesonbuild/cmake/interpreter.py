@@ -24,10 +24,10 @@ from ..mparser import Token, BaseNode, CodeBlockNode, FunctionNode, ArrayNode, A
 from ..backend.backends import Backend
 from ..dependencies.base import CMakeDependency, ExternalProgram
 from subprocess import Popen, PIPE, STDOUT
-from typing import Dict, List
+from typing import List
 import os, re
 
-CMAKE_BACKEND_GENERATOR_MAP = {
+backend_generator_map = {
     'ninja': 'Ninja',
     'xcode': 'Xcode',
     'vs2010': 'Visual Studio 10 2010',
@@ -35,7 +35,7 @@ CMAKE_BACKEND_GENERATOR_MAP = {
     'vs2017': 'Visual Studio 15 2017',
 }
 
-CMAKE_LANGUAGE_MAP = {
+language_map = {
     'c': 'C',
     'cpp': 'CXX',
     'cuda': 'CUDA',
@@ -45,7 +45,7 @@ CMAKE_LANGUAGE_MAP = {
     'swift': 'Swift',
 }
 
-CMAKE_TGT_TYPE_MAP = {
+target_type_map = {
     'STATIC_LIBRARY': 'static_library',
     'MODULE_LIBRARY': 'shared_module',
     'SHARED_LIBRARY': 'shared_library',
@@ -53,10 +53,12 @@ CMAKE_TGT_TYPE_MAP = {
     'OBJECT_LIBRARY': 'static_library',
 }
 
-CMAKE_TGT_SKIP = ['UTILITY']
+skip_targets = ['UTILITY']
+
+skip_input_extensions = ['.rule']
 
 class ConverterTarget:
-    lang_cmake_to_meson = {val.lower(): key for key, val in CMAKE_LANGUAGE_MAP.items()}
+    lang_cmake_to_meson = {val.lower(): key for key, val in language_map.items()}
 
     def __init__(self, target: CMakeTarget, env: Environment):
         self.env = env
@@ -116,7 +118,7 @@ class ConverterTarget:
     def postprocess(self, output_target_map: dict, root_src_dir: str, subdir: str, install_prefix: str) -> None:
         # Detect setting the C and C++ standard
         for i in ['c', 'cpp']:
-            if not i in self.compile_opts:
+            if i not in self.compile_opts:
                 continue
 
             temp = []
@@ -158,8 +160,12 @@ class ConverterTarget:
 
         build_dir_rel = os.path.relpath(self.build_dir, os.path.join(self.env.get_build_dir(), subdir))
         self.includes = list(set([rel_path(x) for x in set(self.includes)] + [build_dir_rel]))
-        self.sources = [rel_path(x) for x in self.sources if not x.endswith('.rule')]
-        self.generated = [rel_path(x) for x in self.generated if not x.endswith('.rule')]
+        self.sources = [rel_path(x) for x in self.sources]
+        self.generated = [rel_path(x) for x in self.generated]
+
+        # Filter out CMake rule files
+        self.sources = [x for x in self.sources if not any([x.endswith(y) for y in skip_input_extensions])]
+        self.generated = [x for x in self.generated if not any([x.endswith(y) for y in skip_input_extensions])]
 
         # Make sure '.' is always in the include directories
         if '.' not in self.includes:
@@ -182,7 +188,7 @@ class ConverterTarget:
                     break
 
     def meson_func(self) -> str:
-        return CMAKE_TGT_TYPE_MAP.get(self.type.upper())
+        return target_type_map.get(self.type.upper())
 
     def log(self) -> None:
         mlog.log('Target', mlog.bold(self.name))
@@ -235,14 +241,14 @@ class CMakeInterpreter:
         if not cmake_exe.found():
             raise CMakeException('Unable to find CMake')
 
-        generator = CMAKE_BACKEND_GENERATOR_MAP[self.backend_name]
+        generator = backend_generator_map[self.backend_name]
         cmake_args = cmake_exe.get_command()
 
         # Map meson compiler to CMake variables
         for lang, comp in self.build.compilers.items():
-            if lang not in CMAKE_LANGUAGE_MAP:
+            if lang not in language_map:
                 continue
-            cmake_lang = CMAKE_LANGUAGE_MAP[lang]
+            cmake_lang = language_map[lang]
             exelist = comp.get_exelist()
             if len(exelist) == 1:
                 cmake_args += ['-DCMAKE_{}_COMPILER={}'.format(cmake_lang, exelist[0])]
@@ -284,7 +290,7 @@ class CMakeInterpreter:
         self.configure(extra_cmake_options)
 
         with self.client.connect():
-            generator = CMAKE_BACKEND_GENERATOR_MAP[self.backend_name]
+            generator = backend_generator_map[self.backend_name]
             self.client.do_handshake(self.src_dir, self.build_dir, generator, 1)
 
             # Do a second configure to initialise the server
@@ -300,7 +306,7 @@ class CMakeInterpreter:
             cm_reply = self.client.query_checked(RequestCodeModel(), 'Querying the CMake code model')
 
         src_dir = bs_reply.src_dir
-        self.bs_files = [x.file for x in bs_reply.build_files if  not x.is_cmake and not x.is_temp]
+        self.bs_files = [x.file for x in bs_reply.build_files if not x.is_cmake and not x.is_temp]
         self.bs_files = [os.path.relpath(os.path.join(src_dir, x), self.env.get_source_dir()) for x in self.bs_files]
         self.bs_files = list(set(self.bs_files))
         self.codemodel = cm_reply
@@ -320,7 +326,7 @@ class CMakeInterpreter:
                 if not self.project_name:
                     self.project_name = j.name
                 for k in j.targets:
-                    if k.type not in CMAKE_TGT_SKIP:
+                    if k.type not in skip_targets:
                         self.targets += [ConverterTarget(k, self.env)]
 
         output_target_map = {x.full_name: x for x in self.targets}
@@ -391,8 +397,8 @@ class CMakeInterpreter:
         # Generate the root code block and the project function call
         root_cb = CodeBlockNode(token())
         root_cb.lines += [function('project', [self.project_name] + self.languages)]
-
         processed = {}
+
         def process_target(tgt: ConverterTarget):
             # First handle inter target dependencies
             link_with = []
