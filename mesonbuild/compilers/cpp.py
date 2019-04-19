@@ -252,9 +252,9 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
     def get_options(self):
         opts = CPPCompiler.get_options(self)
         opts.update({'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                   ['none', 'c++98', 'c++03', 'c++0x', 'c++11', 'c++14', 'c++1y',
-                                                    'gnu++98', 'gnu++03', 'gnu++0x', 'gnu++11', 'gnu++14', 'gnu++1y'],
-                                                   'none'),
+                                                         ['none', 'c++98', 'c++03', 'c++0x', 'c++11', 'c++14', 'c++1y',
+                                                          'gnu++98', 'gnu++03', 'gnu++0x', 'gnu++11', 'gnu++14', 'gnu++1y'],
+                                                         'none'),
                      'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
                                                                 'STL debug mode',
                                                                 False)})
