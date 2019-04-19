@@ -161,6 +161,11 @@ def platform_fix_name(fname, compiler, env):
         if not mesonlib.for_cygwin(env.is_cross_build(), env):
             return None
 
+    if fname.startswith('?!cygwin:'):
+        fname = fname[9:]
+        if mesonlib.for_cygwin(env.is_cross_build(), env):
+            return None
+
     if fname.endswith('?so'):
         if mesonlib.for_windows(env.is_cross_build(), env) and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
