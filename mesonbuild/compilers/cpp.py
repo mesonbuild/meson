@@ -115,8 +115,8 @@ class CPPCompiler(CCompiler):
             'gnu++17': 'gnu++1z'
         }
 
-        # Currently, remapping is only supported for Clang and GCC
-        assert(self.id in frozenset(['clang', 'gcc']))
+        # Currently, remapping is only supported for Clang, Elbrus and GCC
+        assert(self.id in frozenset(['clang', 'lcc', 'gcc']))
 
         if cpp_std not in CPP_FALLBACKS:
             # 'c++03' and 'c++98' don't have fallback types
