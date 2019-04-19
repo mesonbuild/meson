@@ -306,6 +306,8 @@ class CMakeInterpreter:
             elif len(exelist) == 2:
                 cmake_args += ['-DCMAKE_{}_COMPILER_LAUNCHER={}'.format(cmake_lang, exelist[0]),
                                '-DCMAKE_{}_COMPILER={}'.format(cmake_lang, exelist[1])]
+            if hasattr(comp, 'get_linker_exelist') and comp.get_id() == 'clang-cl':
+                cmake_args += ['-DCMAKE_LINKER={}'.format(comp.get_linker_exelist()[0])]
         cmake_args += ['-G', generator]
         cmake_args += ['-DCMAKE_INSTALL_PREFIX={}'.format(self.install_prefix)]
         cmake_args += extra_cmake_options
