@@ -1,8 +1,9 @@
 #pragma once
 
 #include <string>
+#include "cmmodlib_export.h"
 
-class cmModClass {
+class CMMODLIB_EXPORT cmModClass {
   private:
     std::string str;
   public:

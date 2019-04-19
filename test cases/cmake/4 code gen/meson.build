@@ -1,4 +1,4 @@
-project('cmake_code_gen', ['cpp'])
+project('cmake_code_gen', ['c', 'cpp'])
 
 # Subproject with the "code generator"
 sub_pro = subproject('cmCodeGen')

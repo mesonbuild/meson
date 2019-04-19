@@ -1,4 +1,13 @@
-project('cmake_object_lib_test', ['cpp'])
+project('cmake_object_lib_test', ['c', 'cpp'])
+
+dep_test = dependency('ZLIB', method: 'cmake', required: false)
+if not dep_test.found()
+  error('MESON_SKIP_TEST: zlib is not installed')
+endif
+
+if build_machine.system() == 'windows'
+  error('MESON_SKIP_TEST: Windows is not supported because of symbol export problems')
+endif
 
 sub_pro = subproject('cmObjLib')
 sub_sha = sub_pro.get_variable('lib_sha_dep')

@@ -1,4 +1,4 @@
-project('cmakeSubTest', ['cpp'])
+project('cmakeSubTest', ['c', 'cpp'])
 
 sub_pro = subproject('cmMod', method: 'cmake')
 sub_dep = sub_pro.get_variable('cmModLib_dep')

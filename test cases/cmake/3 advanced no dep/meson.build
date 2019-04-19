@@ -1,10 +1,5 @@
 project('cmakeSubTest_advanced', ['c', 'cpp'])
 
-dep_test = dependency('ZLIB', method: 'cmake', required: false)
-if not dep_test.found()
-  error('MESON_SKIP_TEST: zlib is not installed')
-endif
-
 # Test the "normal" subproject call
 sub_pro = subproject('cmMod')
 sub_dep = sub_pro.get_variable('cmModLib_dep')
