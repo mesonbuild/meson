@@ -34,6 +34,7 @@ backend_generator_map = {
     'vs2010': 'Visual Studio 10 2010',
     'vs2015': 'Visual Studio 15 2017',
     'vs2017': 'Visual Studio 15 2017',
+    'vs2019': 'Visual Studio 16 2019',
 }
 
 language_map = {
@@ -430,7 +431,7 @@ class CMakeInterpreter:
             if not isinstance(elements, list):
                 elements = [args]
             args.arguments += [nodeify(x) for x in elements]
-            return ArrayNode(args, 0, 0)
+            return ArrayNode(args, 0, 0, 0, 0)
 
         def function(name: str, args=[], kwargs={}) -> FunctionNode:
             args_n = ArgumentNode(token())
@@ -438,7 +439,7 @@ class CMakeInterpreter:
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args]
             args_n.kwargs = {k: nodeify(v) for k, v in kwargs.items()}
-            func_n = FunctionNode(self.subdir, 0, 0, name, args_n)
+            func_n = FunctionNode(self.subdir, 0, 0, 0, 0, name, args_n)
             return func_n
 
         def method(obj: BaseNode, name: str, args=[], kwargs={}) -> MethodNode:

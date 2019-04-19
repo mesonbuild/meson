@@ -2416,7 +2416,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
 
     @FeatureNewKwargs('subproject', '0.38.0', ['default_options'])
-    @FeatureNewKwargs('subproject', '0.50.0', ['method'])
+    @FeatureNewKwargs('subproject', '0.51.0', ['method', 'cmake_options'])
     @permittedKwargs(permitted_kwargs['subproject'])
     @stringArgs
     def func_subproject(self, nodes, args, kwargs):
@@ -2537,9 +2537,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.subprojects[dirname] = SubprojectHolder(subi, self.subproject_dir, dirname)
         # Duplicates are possible when subproject uses files from project root
         if build_def_files:
-            self.build_def_files += list(set(self.build_def_files + build_def_files))
+            self.build_def_files = list(set(self.build_def_files + build_def_files))
         else:
-            self.build_def_files += list(set(self.build_def_files + subi.build_def_files))
+            self.build_def_files = list(set(self.build_def_files + subi.build_def_files))
         self.build.merge(subi.build)
         self.build.subprojects[dirname] = subi.project_version
         return self.subprojects[dirname]
