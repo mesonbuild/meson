@@ -182,11 +182,12 @@ class IntrospectionInterpreter(AstInterpreter):
                 srcqueue += [curr.left, curr.right]
             if arg_node is None:
                 continue
-            elemetary_nodes = list(filter(lambda x: isinstance(x, (str, StringNode)), arg_node.arguments))
-            srcqueue += list(filter(lambda x: isinstance(x, (FunctionNode, ArrayNode, IdNode, ArithmeticNode)), arg_node.arguments))
+            arg_nodes = arg_node.arguments.copy()
             # Pop the first element if the function is a build target function
             if isinstance(curr, FunctionNode) and curr.func_name in build_target_functions:
-                elemetary_nodes.pop(0)
+                arg_nodes.pop(0)
+            elemetary_nodes = [x for x in arg_nodes if isinstance(x, (str, StringNode))]
+            srcqueue += [x for x in arg_nodes if isinstance(x, (FunctionNode, ArrayNode, IdNode, ArithmeticNode))]
             if elemetary_nodes:
                 source_nodes += [curr]
 

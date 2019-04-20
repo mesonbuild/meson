@@ -20,9 +20,10 @@ from .. import interpreterbase, mparser, mesonlib
 from .. import environment
 
 from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest
+from ..mparser import BaseNode, ElementaryNode, IdNode, ArgumentNode, ArrayNode, AssignmentNode, PlusAssignmentNode, TernaryNode, EmptyNode
 
 import os, sys
-from typing import List, Optional
+from typing import List, Any, Optional
 
 class DontCareObject(interpreterbase.InterpreterObject):
     pass
@@ -162,13 +163,13 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         return 0
 
     def evaluate_ternary(self, node):
-        assert(isinstance(node, mparser.TernaryNode))
+        assert(isinstance(node, TernaryNode))
         self.evaluate_statement(node.condition)
         self.evaluate_statement(node.trueblock)
         self.evaluate_statement(node.falseblock)
 
     def evaluate_plusassign(self, node):
-        assert(isinstance(node, mparser.PlusAssignmentNode))
+        assert(isinstance(node, PlusAssignmentNode))
         if node.var_name not in self.assignments:
             self.assignments[node.var_name] = []
             self.assign_vals[node.var_name] = []
@@ -184,7 +185,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         pass
 
     def reduce_arguments(self, args):
-        assert(isinstance(args, mparser.ArgumentNode))
+        assert(isinstance(args, ArgumentNode))
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
         return args.arguments, args.kwargs
@@ -215,45 +216,47 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def evaluate_if(self, node):
         for i in node.ifs:
             self.evaluate_codeblock(i.block)
-        if not isinstance(node.elseblock, mparser.EmptyNode):
+        if not isinstance(node.elseblock, EmptyNode):
             self.evaluate_codeblock(node.elseblock)
 
     def get_variable(self, varname):
         return 0
 
     def assignment(self, node):
-        assert(isinstance(node, mparser.AssignmentNode))
+        assert(isinstance(node, AssignmentNode))
         self.assignments[node.var_name] = [node.value] # Save a reference to the value node
         if hasattr(node.value, 'ast_id'):
             self.reverse_assignment[node.value.ast_id] = node
         self.assign_vals[node.var_name] = [self.evaluate_statement(node.value)] # Evaluate the value just in case
 
-    def flatten_args(self, args, include_unknown_args: bool = False):
-        # Resolve mparser.ArrayNode if needed
+    def flatten_args(self, args: Any, include_unknown_args: bool = False) -> List[str]:
+        # Resolve ArrayNode if needed
         flattend_args = []
-        temp_args = []
-        if isinstance(args, mparser.ArrayNode):
+        if isinstance(args, ArrayNode):
             args = [x for x in args.args.arguments]
-        elif isinstance(args, mparser.ArgumentNode):
+        elif isinstance(args, ArgumentNode):
             args = [x for x in args.arguments]
+        if not isinstance(args, list):
+            args = [args]
         for i in args:
-            if isinstance(i, mparser.ArrayNode):
-                temp_args += [x for x in i.args.arguments]
-            else:
-                temp_args += [i]
-        for i in temp_args:
-            if isinstance(i, mparser.ElementaryNode) and not isinstance(i, mparser.IdNode):
+            if isinstance(i, IdNode):
+                flattend_args += self.flatten_args(self.assignments.get(i.value, []), include_unknown_args)
+            elif isinstance(i, (ArrayNode, ArgumentNode)):
+                flattend_args += self.flatten_args(i, include_unknown_args)
+            elif isinstance(i, mparser.ElementaryNode):
                 flattend_args += [i.value]
-            elif isinstance(i, (str, bool, int, float)) or include_unknown_args:
+            elif isinstance(i, (str, bool, int, float)):
+                flattend_args += [i]
+            elif include_unknown_args:
                 flattend_args += [i]
         return flattend_args
 
     def flatten_kwargs(self, kwargs: object, include_unknown_args: bool = False):
         flattend_kwargs = {}
         for key, val in kwargs.items():
-            if isinstance(val, mparser.ElementaryNode):
+            if isinstance(val, ElementaryNode):
                 flattend_kwargs[key] = val.value
-            elif isinstance(val, (mparser.ArrayNode, mparser.ArgumentNode)):
+            elif isinstance(val, (ArrayNode, ArgumentNode)):
                 flattend_kwargs[key] = self.flatten_args(val, include_unknown_args)
             elif isinstance(val, (str, bool, int, float)) or include_unknown_args:
                 flattend_kwargs[key] = val
