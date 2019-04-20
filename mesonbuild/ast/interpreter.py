@@ -32,7 +32,6 @@ from ..mparser import (
     MethodNode,
     PlusAssignmentNode,
     TernaryNode,
-    StringNode,
 )
 
 import os, sys
