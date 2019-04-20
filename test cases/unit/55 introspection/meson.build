@@ -28,6 +28,20 @@ t1 = executable('test' + var1, ['t1.cpp'], link_with: [sharedlib], install: true
 t2 = executable('test@0@'.format('@0@'.format(var2)), 't2.cpp', link_with: [staticlib])
 t3 = executable(var3, 't3.cpp', link_with: [sharedlib, staticlib], dependencies: [dep1])
 
+### BEGIN: Test stolen from taisei: https://github.com/taisei-project/taisei/blob/master/meson.build#L293
+have_posix = true
+systype = (have_posix ? 'POSIX (@0@)' : '@0@').format(host_machine.system())
+systype = '@0@, @1@, @2@'.format(systype, host_machine.cpu_family(), host_machine.cpu())
+systype = '@0@ (cross-compiling)'.format(systype)
+summary = '''
+
+Summary:
+    System type:            @0@
+'''.format(systype)
+
+message(summary)
+### END: Test stolen from taisei
+
 test('test case 1', t1)
 test('test case 2', t2)
 benchmark('benchmark 1', t3)

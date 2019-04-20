@@ -244,12 +244,12 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             self.reverse_assignment[node.value.ast_id] = node
         self.assign_vals[node.var_name] = [self.evaluate_statement(node.value)] # Evaluate the value just in case
 
-    def flatten_args(self, args: Any, include_unknown_args: bool = False) -> List[str]:
-        def quick_resolve(n: BaseNode) -> Any:
+    def flatten_args(self, args: Any, include_unknown_args: bool = False, id_loop_detect: List[str] = []) -> List[str]:
+        def quick_resolve(n: BaseNode, loop_detect: List[str] = []) -> Any:
             if isinstance(n, IdNode):
-                if n.value not in self.assignments:
+                if n.value in loop_detect or n.value not in self.assignments:
                     return []
-                return quick_resolve(self.assignments[n.value][0])
+                return quick_resolve(self.assignments[n.value][0], loop_detect = loop_detect + [n.value])
             elif isinstance(n, ElementaryNode):
                 return n.value
             else:
@@ -271,11 +271,11 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             if isinstance(l, str) and isinstance(r, str):
                 args = [l + r] # String concatination detected
             else:
-                args = self.flatten_args(l) + self.flatten_args(r)
+                args = self.flatten_args(l, include_unknown_args, id_loop_detect) + self.flatten_args(r, include_unknown_args, id_loop_detect)
 
         elif isinstance(args, MethodNode):
             src = quick_resolve(args.source_object)
-            margs = self.flatten_args(args.args)
+            margs = self.flatten_args(args.args, include_unknown_args, id_loop_detect)
             try:
                 if isinstance(src, str):
                     args = [self.string_method_call(src, args.name, margs)]
@@ -298,10 +298,10 @@ class AstInterpreter(interpreterbase.InterpreterBase):
 
         # Resolve the contents of args
         for i in args:
-            if isinstance(i, IdNode):
-                flattend_args += self.flatten_args(quick_resolve(i), include_unknown_args)
+            if isinstance(i, IdNode) and i.value not in id_loop_detect:
+                flattend_args += self.flatten_args(quick_resolve(i), include_unknown_args, id_loop_detect + [i.value])
             elif isinstance(i, (ArrayNode, ArgumentNode, ArithmeticNode, MethodNode)):
-                flattend_args += self.flatten_args(i, include_unknown_args)
+                flattend_args += self.flatten_args(i, include_unknown_args, id_loop_detect)
             elif isinstance(i, mparser.ElementaryNode):
                 flattend_args += [i.value]
             elif isinstance(i, (str, bool, int, float)):
