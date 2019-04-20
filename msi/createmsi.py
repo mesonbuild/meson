@@ -84,6 +84,28 @@ class PackageGenerator:
         modules = ['mesonbuild.' + modname + '.' + x for x in modules if not x.startswith('_')]
         return modules
 
+    def get_more_modules(self):
+        # Python packagers want to minimal and only copy the things that
+        # they can see that are used. They are blind to many things.
+        return ['distutils.archive_util',
+                'distutils.cmd',
+                'distutils.config',
+                'distutils.core',
+                'distutils.debug',
+                'distutils.dep_util',
+                'distutils.dir_util',
+                'distutils.dist',
+                'distutils.errors',
+                'distutils.extension',
+                'distutils.fancy_getopt',
+                'distutils.file_util',
+                'distutils.spawn',
+                'distutils.util',
+                'distutils.version',
+                'distutils.command.build_ext',
+                'distutils.command.build',
+                ]
+
     def build_dist(self):
         for sdir in self.staging_dirs:
             if os.path.exists(sdir):
@@ -91,7 +113,7 @@ class PackageGenerator:
         main_stage, ninja_stage = self.staging_dirs
         modules = self.get_all_modules_from_dir('mesonbuild/modules')
         modules += self.get_all_modules_from_dir('mesonbuild/scripts')
-        modules += ['distutils.version']
+        modules += self.get_more_modules()
         modulestr = ','.join(modules)
         python = shutil.which('python')
         cxfreeze = os.path.join(os.path.dirname(python), "Scripts", "cxfreeze")
