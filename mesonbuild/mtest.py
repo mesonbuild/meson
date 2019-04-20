@@ -664,7 +664,6 @@ class TestHarness:
     def process_test_result(self, result):
         if result.res is TestResult.TIMEOUT:
             self.timeout_count += 1
-            self.fail_count += 1
         elif result.res is TestResult.SKIP:
             self.skip_count += 1
         elif result.res is TestResult.OK:
@@ -746,6 +745,9 @@ Timeout:            %4d
                         line = line.encode('ascii', errors='replace').decode()
                         print(line)
 
+    def total_failure_count(self):
+        return self.fail_count + self.unexpectedpass_count + self.timeout_count
+
     def doit(self):
         if self.is_run:
             raise RuntimeError('Test harness object can only be used once.')
@@ -754,7 +756,7 @@ Timeout:            %4d
         if not tests:
             return 0
         self.run_tests(tests)
-        return self.fail_count
+        return self.total_failure_count()
 
     @staticmethod
     def split_suite_string(suite):
@@ -939,7 +941,7 @@ Timeout:            %4d
         if not tests:
             return 0
         self.run_tests(tests)
-        return self.fail_count
+        return self.total_failure_count()
 
 
 def list_tests(th):
