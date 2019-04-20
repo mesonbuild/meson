@@ -147,7 +147,7 @@ class TestException(MesonException):
 @enum.unique
 class TestResult(enum.Enum):
 
-    OK = 'OK'
+    PASS = 'PASS'
     TIMEOUT = 'TIMEOUT'
     SKIP = 'SKIP'
     FAIL = 'FAIL'
@@ -193,7 +193,7 @@ class TAPParser(object):
             else:
                 yield self.Error('invalid directive "%s"' % (directive,))
 
-        yield self.Test(num, name, TestResult.OK if ok else TestResult.FAIL, explanation)
+        yield self.Test(num, name, TestResult.PASS if ok else TestResult.FAIL, explanation)
 
     def parse(self):
         found_late_test = False
@@ -310,7 +310,7 @@ class TestRun:
         elif test.should_fail:
             res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
         else:
-            res = TestResult.FAIL if bool(returncode) else TestResult.OK
+            res = TestResult.FAIL if bool(returncode) else TestResult.PASS
         return TestRun(test, res, returncode, duration, stdo, stde, cmd)
 
     def make_tap(test, returncode, duration, stdo, stde, cmd):
@@ -344,7 +344,7 @@ class TestRun:
             elif test.should_fail:
                 res = TestResult.EXPECTEDFAIL if failed else TestResult.UNEXPECTEDPASS
             else:
-                res = TestResult.FAIL if failed else TestResult.OK
+                res = TestResult.FAIL if failed else TestResult.PASS
 
         return TestRun(test, res, returncode, duration, stdo, stde, cmd)
 
@@ -666,7 +666,7 @@ class TestHarness:
             self.timeout_count += 1
         elif result.res is TestResult.SKIP:
             self.skip_count += 1
-        elif result.res is TestResult.OK:
+        elif result.res is TestResult.PASS:
             self.success_count += 1
         elif result.res is TestResult.FAIL or result.res is TestResult.ERROR:
             self.fail_count += 1
@@ -689,7 +689,7 @@ class TestHarness:
         result_str = '%s %s  %s%s%s%5.2f s %s' % \
             (num, name, padding1, result.res.value, padding2, result.duration,
              status)
-        ok_statuses = (TestResult.OK, TestResult.EXPECTEDFAIL)
+        ok_statuses = (TestResult.PASS, TestResult.EXPECTEDFAIL)
         bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT, TestResult.UNEXPECTEDPASS,
                         TestResult.ERROR)
         if not self.options.quiet or result.res not in ok_statuses:
@@ -714,7 +714,7 @@ class TestHarness:
 
     def print_summary(self):
         msg = '''
-Ok:                 %4d
+Pass:               %4d
 Expected Fail:      %4d
 Fail:               %4d
 Unexpected Pass:    %4d
