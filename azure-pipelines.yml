@@ -96,6 +96,7 @@ jobs:
     - script: |
         %CYGWIN_ROOT%\cygwinsetup.exe -qnNdO -R "%CYGWIN_ROOT%" -s "%CYGWIN_MIRROR%" -g -P ^
         cmake,^
+        gcc-fortran,^
         gcc-objc++,^
         gcc-objc,^
         git,^
@@ -177,7 +178,7 @@ jobs:
         set BOOST_ROOT=
         set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
         set PATHEXT=%PATHEXT%;.py
-        if %compiler%==clang ( set CC=clang && set CXX=clang++ )
+        if %compiler%==clang ( set CC=clang && set CXX=clang++ && set OBJC=clang && set OBJCXX=clang++ )
         %MSYS2_ROOT%\usr\bin\bash -lc "MSYSTEM= python3 run_tests.py --backend=ninja"
       env:
         CHERE_INVOKING: yes

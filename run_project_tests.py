@@ -27,6 +27,7 @@ import tempfile
 from pathlib import Path, PurePath
 from mesonbuild import build
 from mesonbuild import environment
+from mesonbuild import compilers
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
@@ -564,8 +565,8 @@ def detect_tests_to_run():
         ('vala', 'vala', backend is not Backend.ninja or not shutil.which('valac')),
         ('rust', 'rust', backend is not Backend.ninja or not shutil.which('rustc')),
         ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
-        ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or mesonlib.is_windows() or not have_objc_compiler()),
-        ('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or mesonlib.is_windows() or not have_objcpp_compiler()),
+        ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler()),
+        ('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler()),
         ('fortran', 'fortran', backend is not Backend.ninja or not shutil.which('gfortran')),
         ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         ('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('nvcc')),
@@ -768,11 +769,23 @@ def detect_system_compiler():
 
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
-        try:
-            comp = env.detect_c_compiler(env.is_cross_build())
-        except:
-            raise RuntimeError("Could not find C compiler.")
-        system_compiler = comp.get_id()
+        print()
+        for lang in sorted(compilers.all_languages):
+            try:
+                comp = env.compiler_from_language(lang, env.is_cross_build())
+                details = '%s %s' % (' '.join(comp.get_exelist()), comp.get_version_string())
+            except:
+                comp = None
+                details = 'not found'
+            print('%-7s: %s' % (lang, details))
+
+            # note C compiler for later use by platform_fix_name()
+            if lang == 'c':
+                if comp:
+                    system_compiler = comp.get_id()
+                else:
+                    raise RuntimeError("Could not find C compiler.")
+        print()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
