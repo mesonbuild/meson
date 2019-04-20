@@ -1736,7 +1736,7 @@ class ElbrusCompiler(GnuCompiler):
 
     # FIXME: use _build_wrapper to call this so that linker flags from the env
     # get applied
-    def get_library_dirs(self, env):
+    def get_library_dirs(self, env, elf_class = None):
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]

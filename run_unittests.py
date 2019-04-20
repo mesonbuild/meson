@@ -5841,7 +5841,11 @@ class NativeFileTests(BasePlatformTests):
     @skip_if_env_set('FC')
     def test_fortran_compiler(self):
         def cb(comp):
-            if comp.id == 'gcc':
+            if comp.id == 'lcc':
+                if shutil.which('lfortran'):
+                    return 'lfortran', 'lcc'
+                raise unittest.SkipTest('No alternate Fortran implementation.')
+            elif comp.id == 'gcc':
                 if shutil.which('ifort'):
                     return 'ifort', 'intel'
                 elif shutil.which('flang'):
