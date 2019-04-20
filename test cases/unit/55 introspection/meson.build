@@ -20,9 +20,12 @@ endif
 subdir('sharedlib')
 subdir('staticlib')
 
+var1 = '1'
+var2 = '2'
 var3 = 'test3'
 
-t1 = executable('test1', 't1.cpp', link_with: [sharedlib], install: true, build_by_default: get_option('test_opt2'))
+t1 = executable('test' + var1, ['t1.cpp'], link_with: [sharedlib], install: true, build_by_default: get_option('test_opt2'))
+#t2 = executable('test@0@'.format('' + '@0@'.format(var2)), 't2.cpp', link_with: [staticlib])
 t2 = executable('test2', 't2.cpp', link_with: [staticlib])
 t3 = executable(var3, 't3.cpp', link_with: [sharedlib, staticlib], dependencies: [dep1])
 

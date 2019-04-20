@@ -20,7 +20,7 @@ from .. import interpreterbase, mparser, mesonlib
 from .. import environment
 
 from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest
-from ..mparser import BaseNode, ElementaryNode, IdNode, ArgumentNode, ArrayNode, AssignmentNode, PlusAssignmentNode, TernaryNode, EmptyNode
+from ..mparser import BaseNode, ElementaryNode, IdNode, ArgumentNode, ArrayNode, ArithmeticNode, AssignmentNode, PlusAssignmentNode, TernaryNode, EmptyNode
 
 import os, sys
 from typing import List, Any, Optional
@@ -230,18 +230,43 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         self.assign_vals[node.var_name] = [self.evaluate_statement(node.value)] # Evaluate the value just in case
 
     def flatten_args(self, args: Any, include_unknown_args: bool = False) -> List[str]:
-        # Resolve ArrayNode if needed
+        def quick_resolve(n: BaseNode) -> Any:
+            if isinstance(n, IdNode):
+                if n.value not in self.assignments:
+                    return []
+                return quick_resolve(self.assignments[n.value][0])
+            elif isinstance(n, ElementaryNode):
+                return n.value
+            else:
+                return n
+
         flattend_args = []
+
         if isinstance(args, ArrayNode):
             args = [x for x in args.args.arguments]
+
         elif isinstance(args, ArgumentNode):
             args = [x for x in args.arguments]
+
+        elif isinstance(args, ArithmeticNode):
+            if args.operation != 'add':
+                return [] # Only handle string and array concats
+            l = quick_resolve(args.left)
+            r = quick_resolve(args.right)
+            if isinstance(l, str) and isinstance(r, str):
+                args = [l + r] # String concatination detected
+            else:
+                args = self.flatten_args(l) + self.flatten_args(r)
+
+        # Make sure we are always dealing with lists
         if not isinstance(args, list):
             args = [args]
+
+        # Resolve the contents of args
         for i in args:
             if isinstance(i, IdNode):
-                flattend_args += self.flatten_args(self.assignments.get(i.value, []), include_unknown_args)
-            elif isinstance(i, (ArrayNode, ArgumentNode)):
+                flattend_args += self.flatten_args(quick_resolve(i), include_unknown_args)
+            elif isinstance(i, (ArrayNode, ArgumentNode, ArithmeticNode)):
                 flattend_args += self.flatten_args(i, include_unknown_args)
             elif isinstance(i, mparser.ElementaryNode):
                 flattend_args += [i.value]
