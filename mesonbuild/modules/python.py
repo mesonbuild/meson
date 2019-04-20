@@ -42,9 +42,8 @@ mod_kwargs -= set(['name_prefix', 'name_suffix'])
 
 
 def run_command(python, command):
-    _, stdout, _ = mesonlib.Popen_safe(python.get_command() + [
-        '-c',
-        command])
+    cmd = python.get_command() + ['-c', command]
+    _, stdout, _ = mesonlib.Popen_safe(cmd)
 
     return stdout.strip()
 
@@ -265,8 +264,7 @@ class PythonDependency(ExternalDependency):
             return super().get_pkgconfig_variable(variable_name, kwargs)
 
 
-INTROSPECT_COMMAND = '''
-import sysconfig
+INTROSPECT_COMMAND = '''import sysconfig
 import json
 import sys
 

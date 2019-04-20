@@ -81,14 +81,18 @@ class CommandLineParser:
             self.commands[i] = p
 
     def add_runpython_arguments(self, parser):
+        parser.add_argument('-c', action='store_true', dest='eval_arg', default=False)
         parser.add_argument('script_file')
         parser.add_argument('script_args', nargs=argparse.REMAINDER)
 
     def run_runpython_command(self, options):
         import runpy
-        sys.argv[1:] = options.script_args
-        sys.path.insert(0, os.path.dirname(options.script_file))
-        runpy.run_path(options.script_file, run_name='__main__')
+        if options.eval_arg:
+            exec(options.script_file)
+        else:
+            sys.argv[1:] = options.script_args
+            sys.path.insert(0, os.path.dirname(options.script_file))
+            runpy.run_path(options.script_file, run_name='__main__')
         return 0
 
     def add_help_arguments(self, parser):
