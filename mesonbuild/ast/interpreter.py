@@ -20,7 +20,20 @@ from .. import interpreterbase, mparser, mesonlib
 from .. import environment
 
 from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest
-from ..mparser import BaseNode, ElementaryNode, IdNode, ArgumentNode, ArrayNode, ArithmeticNode, AssignmentNode, PlusAssignmentNode, TernaryNode, EmptyNode
+from ..mparser import (
+    ArgumentNode,
+    ArithmeticNode,
+    ArrayNode,
+    AssignmentNode,
+    BaseNode,
+    ElementaryNode,
+    EmptyNode,
+    IdNode,
+    MethodNode,
+    PlusAssignmentNode,
+    TernaryNode,
+    StringNode,
+)
 
 import os, sys
 from typing import List, Any, Optional
@@ -185,10 +198,12 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         pass
 
     def reduce_arguments(self, args):
-        assert(isinstance(args, ArgumentNode))
-        if args.incorrect_order():
-            raise InvalidArguments('All keyword arguments must be after positional arguments.')
-        return args.arguments, args.kwargs
+        if isinstance(args, ArgumentNode):
+            if args.incorrect_order():
+                raise InvalidArguments('All keyword arguments must be after positional arguments.')
+            return self.flatten_args(args.arguments), args.kwargs
+        else:
+            return self.flatten_args(args), {}
 
     def evaluate_comparison(self, node):
         self.evaluate_statement(node.left)
@@ -258,6 +273,25 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             else:
                 args = self.flatten_args(l) + self.flatten_args(r)
 
+        elif isinstance(args, MethodNode):
+            src = quick_resolve(args.source_object)
+            margs = self.flatten_args(args.args)
+            try:
+                if isinstance(src, str):
+                    args = [self.string_method_call(src, args.name, margs)]
+                elif isinstance(src, bool):
+                    args = [self.bool_method_call(src, args.name, margs)]
+                elif isinstance(src, int):
+                    args = [self.int_method_call(src, args.name, margs)]
+                elif isinstance(src, list):
+                    args = [self.array_method_call(src, args.name, margs)]
+                elif isinstance(src, dict):
+                    args = [self.dict_method_call(src, args.name, margs)]
+                else:
+                    return []
+            except Exception:
+                return []
+
         # Make sure we are always dealing with lists
         if not isinstance(args, list):
             args = [args]
@@ -266,7 +300,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         for i in args:
             if isinstance(i, IdNode):
                 flattend_args += self.flatten_args(quick_resolve(i), include_unknown_args)
-            elif isinstance(i, (ArrayNode, ArgumentNode, ArithmeticNode)):
+            elif isinstance(i, (ArrayNode, ArgumentNode, ArithmeticNode, MethodNode)):
                 flattend_args += self.flatten_args(i, include_unknown_args)
             elif isinstance(i, mparser.ElementaryNode):
                 flattend_args += [i.value]
