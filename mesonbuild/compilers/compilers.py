@@ -1297,13 +1297,19 @@ class Compiler:
             # https://sourceware.org/bugzilla/show_bug.cgi?id=16936
             # Not needed on Windows or other platforms that don't use RPATH
             # https://github.com/mesonbuild/meson/issues/1897
-            lpaths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
+            #
+            # In addition, this linker option tends to be quite long and some
+            # compilers have trouble dealing with it. That's why we will include
+            # one option per folder, like this:
+            #
+            #   -Wl,-rpath-link,/path/to/folder1 -Wl,-rpath,/path/to/folder2 ...
+            #
+            # ...instead of just one single looooong option, like this:
+            #
+            #   -Wl,-rpath-link,/path/to/folder1:/path/to/folder2:...
 
-            # clang expands '-Wl,rpath-link,' to ['-rpath-link'] instead of ['-rpath-link','']
-            # This eats the next argument, which happens to be 'ldstdc++', causing link failures.
-            # We can dodge this problem by not adding any rpath_paths if the argument is empty.
-            if lpaths.strip() != '':
-                args += ['-Wl,-rpath-link,' + lpaths]
+            args += ['-Wl,-rpath-link,' + os.path.join(build_dir, p) for p in rpath_paths]
+
         return args
 
     def thread_flags(self, env):
