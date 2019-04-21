@@ -29,16 +29,16 @@ watch for changes in this directory to know when something changed.
 
 The `meson-info` directory should contain the following files:
 
- File                            | Description
- ------------------------------- | ---------------------------------------------------------------------
- `intro-benchmarks.json`         | Lists all benchmarks
- `intro-buildoptions.json`       | Contains a full list of meson configuration options for the project
- `intro-buildsystem_files.json`  | Full list of all meson build files
- `intro-dependencies.json`       | Lists all dependencies used in the project
- `intro-installed.json`          | Contains mapping of files to their installed location
- `intro-projectinfo.json`        | Stores basic information about the project (name, version, etc.)
- `intro-targets.json`            | Full list of all build targets
- `intro-tests.json`              | Lists all tests with instructions how to run them
+| File                            | Description                                                         |
+| ----                            | -----------                                                         |
+| `intro-benchmarks.json`         | Lists all benchmarks                                                |
+| `intro-buildoptions.json`       | Contains a full list of meson configuration options for the project |
+| `intro-buildsystem_files.json`  | Full list of all meson build files                                  |
+| `intro-dependencies.json`       | Lists all dependencies used in the project                          |
+| `intro-installed.json`          | Contains mapping of files to their installed location               |
+| `intro-projectinfo.json`        | Stores basic information about the project (name, version, etc.)    |
+| `intro-targets.json`            | Full list of all build targets                                      |
+| `intro-tests.json`              | Lists all tests with instructions how to run them                   |
 
 The content of the JSON files is further specified in the remainder of this document.
 
@@ -99,15 +99,15 @@ for actual compilation.
 
 The following table shows all valid types for a target.
 
- value of `type`  | Description
- ---------------- | -------------------------------------------------------------------------------------------------
- `executable`     | This target will generate an executable file
- `static library` | Target for a static library
- `shared library` | Target for a shared library
- `shared module`  | A shared library that is meant to be used with dlopen rather than linking into something else
- `custom`         | A custom target
- `run`            | A Meson run target
- `jar`            | A Java JAR target
+| value of `type`  | Description                                  |
+| ---------------  | -----------                                  |
+| `executable`     | This target will generate an executable file |
+| `static library` | Target for a static library                  |
+| `shared library` | Target for a shared library                  |
+| `shared module`  | A shared library that is meant to be used with dlopen rather than linking into something else |
+| `custom`         | A custom target                              |
+| `run`            | A Meson run target                           |
+| `jar`            | A Java JAR target                            |
 
 ### Using `--targets` without a build directory
 
