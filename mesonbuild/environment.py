@@ -689,7 +689,7 @@ class Environment:
             version = search_version(out)
 
             guess_gcc_or_lcc = False
-            if 'Free Software Foundation' in out:
+            if 'Free Software Foundation' in out or 'xt-' in out:
                 guess_gcc_or_lcc = 'gcc'
             if 'e2k' in out and 'lcc' in out:
                 guess_gcc_or_lcc = 'lcc'
