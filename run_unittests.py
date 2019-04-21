@@ -5911,6 +5911,21 @@ class NativeFileTests(BasePlatformTests):
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
                               '-Ddef_libdir=liblib', '-Dlibdir=liblib'])
 
+    def test_compile_sys_path(self):
+        """Compiling with a native file stored in a system path works.
+
+        There was a bug which caused the paths to be stored incorrectly and
+        would result in ninja invoking meson in an infinite loop. This tests
+        for that by actually invoking ninja.
+        """
+        testcase = os.path.join(self.common_test_dir, '1 trivial')
+
+        # It really doesn't matter what's in the native file, just that it exists
+        config = self.helper_create_native_file({'binaries': {'bash': 'false'}})
+
+        self.init(testcase, extra_args=['--native-file', config])
+        self.build()
+
 
 class CrossFileTests(BasePlatformTests):
 

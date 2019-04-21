@@ -26,7 +26,7 @@ from .wrap import WrapMode
 import ast
 import argparse
 import configparser
-from typing import Optional, Any, TypeVar, Generic, Type
+from typing import Optional, Any, TypeVar, Generic, Type, List
 
 version = '0.50.999'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
@@ -212,32 +212,10 @@ class UserFeatureOption(UserComboOption):
         return self.value == 'auto'
 
 
-def load_configs(filenames, subdir):
+def load_configs(filenames: List[str]) -> configparser.ConfigParser:
     """Load configuration files from a named subdirectory."""
-    def gen():
-        for f in filenames:
-            f = os.path.expanduser(os.path.expandvars(f))
-            if os.path.exists(f):
-                yield f
-                continue
-            elif sys.platform != 'win32':
-                f = os.path.basename(f)
-                paths = [
-                    os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')),
-                ] + os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share').split(':')
-                for path in paths:
-                    path_to_try = os.path.join(path, 'meson', subdir, f)
-                    if os.path.isfile(path_to_try):
-                        yield path_to_try
-                        break
-                else:
-                    raise MesonException('Cannot find specified native file: ' + f)
-                continue
-
-            raise MesonException('Cannot find specified native file: ' + f)
-
     config = configparser.ConfigParser()
-    config.read(gen())
+    config.read(filenames)
     return config
 
 
@@ -265,23 +243,42 @@ class CoreData:
         self.user_options = {}
         self.compiler_options = PerMachine({}, {}, {})
         self.base_options = {}
-        self.cross_files = self.__load_config_files(options.cross_file)
+        self.cross_files = self.__load_config_files(options.cross_file, 'cross')
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
         self.deps = OrderedDict()
         # Only to print a warning if it changes between Meson invocations.
-        self.config_files = self.__load_config_files(options.native_file)
+        self.config_files = self.__load_config_files(options.native_file, 'native')
         self.libdir_cross_fixup()
 
     @staticmethod
-    def __load_config_files(filenames):
+    def __load_config_files(filenames: Optional[List[str]], ftype: str) -> List[str]:
         # Need to try and make the passed filenames absolute because when the
         # files are parsed later we'll have chdir()d.
         if not filenames:
             return []
-        filenames = [os.path.abspath(os.path.expanduser(os.path.expanduser(f)))
-                     for f in filenames]
-        return filenames
+
+        real = []
+        for f in filenames:
+            f = os.path.expanduser(os.path.expandvars(f))
+            if os.path.exists(f):
+                real.append(os.path.abspath(f))
+                continue
+            elif sys.platform != 'win32':
+                paths = [
+                    os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')),
+                ] + os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share').split(':')
+                for path in paths:
+                    path_to_try = os.path.join(path, 'meson', ftype, f)
+                    if os.path.isfile(path_to_try):
+                        real.append(path_to_try)
+                        break
+                else:
+                    raise MesonException('Cannot find specified {} file: {}'.format(ftype, f))
+                continue
+
+            raise MesonException('Cannot find specified {} file: {}'.format(ftype, f))
+        return real
 
     def libdir_cross_fixup(self):
         # By default set libdir to "lib" when cross compiling since
