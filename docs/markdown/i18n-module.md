@@ -48,5 +48,6 @@ for normal keywords. In addition it accepts these keywords:
   also `i18n.gettext()`)
 * `po_dir`: directory containing translations, relative to current directory
 * `type`: type of file, valid options are `'xml'` (default) and `'desktop'`
+* `args`: (*Added 0.51.0*) list of extra arguments to pass to `msgfmt`
 
 *Added 0.37.0*

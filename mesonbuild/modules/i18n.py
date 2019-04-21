@@ -64,7 +64,8 @@ class I18nModule(ExtensionModule):
         return [path.join(src_dir, d) for d in dirs]
 
     @FeatureNew('i18n.merge_file', '0.37.0')
-    @permittedKwargs(build.CustomTarget.known_kwargs | {'data_dirs', 'po_dir', 'type'})
+    @FeatureNewKwargs('i18n.merge_file', '0.51.0', ['args'])
+    @permittedKwargs(build.CustomTarget.known_kwargs | {'data_dirs', 'po_dir', 'type', 'args'})
     def merge_file(self, state, args, kwargs):
         podir = kwargs.pop('po_dir', None)
         if not podir:
@@ -85,6 +86,10 @@ class I18nModule(ExtensionModule):
         ]
         if datadirs:
             command.append(datadirs)
+
+        if 'args' in kwargs:
+            command.append('--')
+            command.append(mesonlib.stringlistify(kwargs.pop('args', [])))
 
         kwargs['command'] = command
 
