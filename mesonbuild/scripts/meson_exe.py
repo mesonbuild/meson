@@ -60,7 +60,7 @@ def run_exe(exe):
             cmd = exe.fname
     child_env = os.environ.copy()
     child_env.update(exe.env)
-    if len(exe.extra_paths) > 0:
+    if exe.extra_paths:
         child_env['PATH'] = (os.pathsep.join(exe.extra_paths + ['']) +
                              child_env['PATH'])
         if exe.exe_runner and mesonlib.substring_is_in_list('wine', exe.exe_runner.get_command()):

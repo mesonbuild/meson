@@ -36,7 +36,7 @@ class IceStormModule(ExtensionModule):
     def project(self, interpreter, state, args, kwargs):
         if not self.yosys_bin:
             self.detect_binaries(interpreter)
-        if not len(args):
+        if not args:
             raise mesonlib.MesonException('Project requires at least one argument, which is the project name.')
         proj_name = args[0]
         arg_sources = args[1:]

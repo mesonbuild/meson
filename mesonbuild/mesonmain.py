@@ -109,7 +109,7 @@ class CommandLineParser:
         # If first arg is not a known command, assume user wants to run the setup
         # command.
         known_commands = list(self.commands.keys()) + ['-h', '--help']
-        if len(args) == 0 or args[0] not in known_commands:
+        if not args or args[0] not in known_commands:
             args = ['setup'] + args
 
         # Hidden commands have their own parser instead of using the global one

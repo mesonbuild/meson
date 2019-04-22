@@ -69,7 +69,7 @@ def linux_syms(libfilename, outfilename):
     if pnm.returncode != 0:
         raise RuntimeError('nm does not work.')
     for line in output.split('\n'):
-        if len(line) == 0:
+        if not line:
             continue
         line_split = line.split()
         entry = line_split[0:2]
@@ -91,7 +91,7 @@ def osx_syms(libfilename, outfilename):
     pnm, output = Popen_safe(['nm', '-g', '-P', libfilename])[0:2]
     if pnm.returncode != 0:
         raise RuntimeError('nm does not work.')
-    result += [' '.join(x.split()[0:2]) for x in output.split('\n') if len(x) > 0 and not x.endswith('U')]
+    result += [' '.join(x.split()[0:2]) for x in output.split('\n') if x and not x.endswith('U')]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
 def gen_symbols(libfilename, outfilename, cross_host):

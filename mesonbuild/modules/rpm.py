@@ -58,7 +58,7 @@ class RPMModule(ExtensionModule):
             elif isinstance(target, TypelibTarget) and target.should_install():
                 files.add('%%{_libdir}/girepository-1.0/%s' % target.get_filename()[0])
         for header in coredata.headers:
-            if len(header.get_install_subdir()) > 0:
+            if header.get_install_subdir():
                 files_devel.add('%%{_includedir}/%s/' % header.get_install_subdir())
             else:
                 for hdr_src in header.get_sources():
@@ -66,7 +66,7 @@ class RPMModule(ExtensionModule):
         for man in coredata.man:
             for man_file in man.get_sources():
                 files.add('%%{_mandir}/man%u/%s.*' % (int(man_file.split('.')[-1]), man_file))
-        if len(files_devel) > 0:
+        if files_devel:
             devel_subpkg = True
 
         filename = os.path.join(coredata.environment.get_build_dir(),
@@ -122,7 +122,7 @@ class RPMModule(ExtensionModule):
             fn.write('\n')
             fn.write('%install\n')
             fn.write('%meson_install\n')
-            if len(to_delete) > 0:
+            if to_delete:
                 fn.write('rm -vf %s\n' % ' '.join(to_delete))
             fn.write('\n')
             fn.write('%check\n')
