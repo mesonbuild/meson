@@ -243,8 +243,10 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             self.reverse_assignment[node.value.ast_id] = node
         self.assign_vals[node.var_name] = [self.evaluate_statement(node.value)] # Evaluate the value just in case
 
-    def flatten_args(self, args: Any, include_unknown_args: bool = False, id_loop_detect: List[str] = []) -> List[str]:
-        def quick_resolve(n: BaseNode, loop_detect: List[str] = []) -> Any:
+    def flatten_args(self, args: Any, include_unknown_args: bool = False, id_loop_detect: Optional[List[str]] = None) -> List[str]:
+        def quick_resolve(n: BaseNode, loop_detect: Optional[List[str]] = None) -> Any:
+            if loop_detect is None:
+                loop_detect = []
             if isinstance(n, IdNode):
                 if n.value in loop_detect or n.value not in self.assignments:
                     return []
@@ -254,6 +256,8 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             else:
                 return n
 
+        if id_loop_detect is None:
+            id_loop_detect = []
         flattend_args = []
 
         if isinstance(args, ArrayNode):
@@ -288,7 +292,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                     args = [self.dict_method_call(src, args.name, margs)]
                 else:
                     return []
-            except Exception:
+            except mesonlib.MesonException:
                 return []
 
         # Make sure we are always dealing with lists
