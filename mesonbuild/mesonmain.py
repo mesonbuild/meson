@@ -67,7 +67,8 @@ class CommandLineParser:
         self.add_command('unstable-coredata', munstable_coredata.add_arguments, munstable_coredata.run,
                          help=argparse.SUPPRESS)
 
-    def add_command(self, name, add_arguments_func, run_func, help, aliases=[]):
+    def add_command(self, name, add_arguments_func, run_func, help, aliases=None):
+        aliases = aliases or []
         # FIXME: Cannot have hidden subparser:
         # https://bugs.python.org/issue22848
         if help == argparse.SUPPRESS:

@@ -35,7 +35,8 @@ class IntrospectionHelper:
 class IntrospectionInterpreter(AstInterpreter):
     # Interpreter to detect the options without a build directory
     # Most of the code is stolen from interperter.Interpreter
-    def __init__(self, source_root, subdir, backend, visitors=[], cross_file=None, subproject='', subproject_dir='subprojects', env=None):
+    def __init__(self, source_root, subdir, backend, visitors=None, cross_file=None, subproject='', subproject_dir='subprojects', env=None):
+        visitors = visitors if visitors is not None else []
         super().__init__(source_root, subdir, visitors=visitors)
 
         options = IntrospectionHelper(cross_file)

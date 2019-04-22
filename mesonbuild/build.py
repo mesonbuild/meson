@@ -249,12 +249,12 @@ class ExtractedObjects:
     '''
     Holds a list of sources for which the objects must be extracted
     '''
-    def __init__(self, target, srclist=[], genlist=[], objlist=[], recursive=True):
+    def __init__(self, target, srclist=None, genlist=None, objlist=None, recursive=True):
         self.target = target
         self.recursive = recursive
-        self.srclist = srclist
-        self.genlist = genlist
-        self.objlist = objlist
+        self.srclist = srclist if srclist is not None else []
+        self.genlist = genlist if genlist is not None else []
+        self.objlist = objlist if objlist is not None else []
         if self.target.is_unity:
             self.check_unity_compatible()
 
@@ -1339,8 +1339,8 @@ class Generator:
         relpath = pathlib.PurePath(trial).relative_to(parent)
         return relpath.parts[0] != '..' # For subdirs we can only go "down".
 
-    def process_files(self, name, files, state, preserve_path_from=None, extra_args=[]):
-        output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args)
+    def process_files(self, name, files, state, preserve_path_from=None, extra_args=None):
+        output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
         for f in files:
             if isinstance(f, str):
                 f = File.from_source_file(state.environment.source_dir, state.subdir, f)
@@ -1355,7 +1355,7 @@ class Generator:
 
 
 class GeneratedList:
-    def __init__(self, generator, subdir, preserve_path_from=None, extra_args=[]):
+    def __init__(self, generator, subdir, preserve_path_from=None, extra_args=None):
         if hasattr(generator, 'held_object'):
             generator = generator.held_object
         self.generator = generator
@@ -1367,7 +1367,7 @@ class GeneratedList:
         self.extra_depends = []
         self.depend_files = []
         self.preserve_path_from = preserve_path_from
-        self.extra_args = extra_args
+        self.extra_args = extra_args if extra_args is not None else []
         if isinstance(generator.exe, dependencies.ExternalProgram):
             if not generator.exe.found():
                 raise InvalidArguments('Tried to use not-found external program as generator')

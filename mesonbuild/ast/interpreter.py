@@ -22,7 +22,7 @@ from .. import environment
 from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest
 
 import os, sys
-from typing import List
+from typing import List, Optional
 
 class DontCareObject(interpreterbase.InterpreterObject):
     pass
@@ -46,9 +46,9 @@ ADD_SOURCE = 0
 REMOVE_SOURCE = 1
 
 class AstInterpreter(interpreterbase.InterpreterBase):
-    def __init__(self, source_root: str, subdir: str, visitors: List[AstVisitor] = []):
+    def __init__(self, source_root: str, subdir: str, visitors: Optional[List[AstVisitor]] = None):
         super().__init__(source_root, subdir)
-        self.visitors = visitors
+        self.visitors = visitors if visitors is not None else []
         self.visited_subdirs = {}
         self.assignments = {}
         self.assign_vals = {}
