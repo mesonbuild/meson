@@ -548,16 +548,7 @@ class Version:
             # sort a non-digit sequence before a digit sequence
             ours_is_int = isinstance(ours, int)
             if ours_is_int != isinstance(theirs, int):
-                return 1 if isinstance(ours, int) else -1
-
-            # compare as numbers
-            if ours_is_int:
-                # because leading zeros have already been removed, if one number
-                # has more digits, it is greater
-                c = cmp(ours, theirs)
-                if c != 0:
-                    return c
-                # fallthrough
+                return 1 if ours_is_int else -1
 
             # compare lexicographically
             c = cmp(ours, theirs)
