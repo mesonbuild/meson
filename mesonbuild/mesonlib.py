@@ -530,7 +530,14 @@ class Version:
         return self.__cmp__(other) == -1
 
     def __eq__(self, other):
-        return self.__cmp__(other) == 0
+        if isinstance(other, Version):
+            return self._v == other._v
+        return NotImplemented
+
+    def __ne__(self, other):
+        if isinstance(other, Version):
+            return self._v != other._v
+        return NotImplemented
 
     def __cmp__(self, other):
         def cmp(a, b):
