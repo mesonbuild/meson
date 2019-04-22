@@ -248,7 +248,7 @@ class FortranCompiler(Compiler):
         return CCompiler._get_basic_compiler_args(self, env, mode)
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
-        return CCompiler._get_compiler_check_args(self, env, extra_args, dependencies, mode='compile')
+        return CCompiler._get_compiler_check_args(self, env, extra_args, dependencies, mode=mode)
 
     def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile'):
         return CCompiler.compiles(self, code, env, extra_args=extra_args,
