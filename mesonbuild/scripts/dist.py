@@ -133,7 +133,7 @@ def create_dist_hg(dist_name, src_root, bld_root, dist_sub, dist_scripts):
     tarname = os.path.join(dist_sub, dist_name + '.tar')
     xzname = tarname + '.xz'
     subprocess.check_call(['hg', 'archive', '-R', src_root, '-S', '-t', 'tar', tarname])
-    if len(dist_scripts) > 0:
+    if dist_scripts:
         mlog.warning('dist scripts are not supported in Mercurial projects')
     with lzma.open(xzname, 'wb') as xf, open(tarname, 'rb') as tf:
         shutil.copyfileobj(tf, xf)

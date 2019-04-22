@@ -248,7 +248,7 @@ class CCompiler(Compiler):
         for d in dirs:
             files = [f for f in os.listdir(d) if f.endswith('.so') and os.path.isfile(os.path.join(d, f))]
             # if no files, accept directory and move on
-            if len(files) == 0:
+            if not files:
                 retval.append(d)
                 continue
             file_to_check = os.path.join(d, files[0])

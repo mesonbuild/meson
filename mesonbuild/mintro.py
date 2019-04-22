@@ -343,7 +343,7 @@ def list_projinfo_from_source(sourcedir: str, intr: IntrospectionInterpreter):
     return intr.project_data
 
 def print_results(options, results, indent):
-    if len(results) == 0 and not options.force_dict:
+    if not results and not options.force_dict:
         print('No command specified')
         return 1
     elif len(results) == 1 and not options.force_dict:
@@ -487,7 +487,7 @@ def write_meson_info_file(builddata: build.Build, errors: list, build_files_upda
         'build_files_updated': build_files_updated,
     }
 
-    if len(errors) > 0:
+    if errors:
         info_data['error'] = True
         info_data['error_list'] = [x if isinstance(x, str) else str(x) for x in errors]
     else:

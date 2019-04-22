@@ -209,7 +209,7 @@ class BoostDependency(ExternalDependency):
         for root in self.boost_roots:
             globtext = os.path.join(root, 'include', 'boost-*')
             incdirs = glob.glob(globtext)
-            if len(incdirs) > 0:
+            if incdirs:
                 return incdirs[0]
             incboostdir = os.path.join(root, 'include', 'boost')
             if os.path.isdir(incboostdir):
@@ -427,7 +427,7 @@ class BoostDependency(ExternalDependency):
         for entry in globber2_matches:
             fname = os.path.basename(entry)
             self.lib_modules[self.modname_from_filename(fname)] = [fname]
-        if len(globber2_matches) == 0:
+        if not globber2_matches:
             # FIXME - why are we only looking for *.lib? Mingw provides *.dll.a and *.a
             for entry in glob.glob(os.path.join(self.libdir, globber1 + '.lib')):
                 if self.static:

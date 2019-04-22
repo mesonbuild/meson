@@ -175,7 +175,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
         mkdb_cmd.append('--name-space=' + namespace)
     if modeflag:
         mkdb_cmd.append(modeflag)
-    if len(main_file) > 0:
+    if main_file:
         # Yes, this is the flag even if the file is in xml.
         mkdb_cmd.append('--main-sgml-file=' + main_file)
     # Add user-specified arguments
@@ -187,7 +187,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                   '--path=' + ':'.join((doc_src, abs_out)),
                   module,
                   ] + html_args
-    if len(main_file) > 0:
+    if main_file:
         mkhtml_cmd.append('../' + main_file)
     else:
         mkhtml_cmd.append('%s-docs.xml' % module)
@@ -212,23 +212,23 @@ def install_gtkdoc(build_root, doc_subdir, install_prefix, datadir, module):
 
 def run(args):
     options = parser.parse_args(args)
-    if len(options.htmlargs) > 0:
+    if options.htmlargs:
         htmlargs = options.htmlargs.split('@@')
     else:
         htmlargs = []
-    if len(options.scanargs) > 0:
+    if options.scanargs:
         scanargs = options.scanargs.split('@@')
     else:
         scanargs = []
-    if len(options.scanobjsargs) > 0:
+    if options.scanobjsargs:
         scanobjsargs = options.scanobjsargs.split('@@')
     else:
         scanobjsargs = []
-    if len(options.fixxrefargs) > 0:
+    if options.fixxrefargs:
         fixxrefargs = options.fixxrefargs.split('@@')
     else:
         fixxrefargs = []
-    if len(options.mkdbargs) > 0:
+    if options.mkdbargs:
         mkdbargs = options.mkdbargs.split('@@')
     else:
         mkdbargs = []

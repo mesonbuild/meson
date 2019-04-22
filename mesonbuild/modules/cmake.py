@@ -158,7 +158,7 @@ class CmakeModule(ExtensionModule):
 
     @permittedKwargs({'input', 'name', 'install_dir', 'configuration'})
     def configure_package_config_file(self, interpreter, state, args, kwargs):
-        if len(args) > 0:
+        if args:
             raise mesonlib.MesonException('configure_package_config_file takes only keyword arguments.')
 
         if 'input' not in kwargs:

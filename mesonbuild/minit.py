@@ -442,7 +442,7 @@ def add_arguments(parser):
     parser.add_argument('--version', default='0.1')
 
 def run(options):
-    if len(glob('*')) == 0:
+    if not glob('*'):
         autodetect_options(options, sample=True)
         if not options.language:
             print('Defaulting to generating a C language project.')

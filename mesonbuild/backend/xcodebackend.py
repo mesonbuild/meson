@@ -748,7 +748,7 @@ class XCodeBackend(backends.Backend):
                     gargs = self.build.global_args.get(lang, [])
                     targs = target.get_extra_args(lang)
                     args = pargs + gargs + targs
-                    if len(args) > 0:
+                    if args:
                         langargs[langnamemap[lang]] = args
                 symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
                 self.write_line('%s /* %s */ = {' % (valid, buildtype))
@@ -783,7 +783,7 @@ class XCodeBackend(backends.Backend):
                         self.write_line('GCC_PREFIX_HEADER = "$(PROJECT_DIR)/%s";' % relative_pch_path)
                 self.write_line('GCC_PREPROCESSOR_DEFINITIONS = "";')
                 self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
-                if len(headerdirs) > 0:
+                if headerdirs:
                     quotedh = ','.join(['"\\"%s\\""' % i for i in headerdirs])
                     self.write_line('HEADER_SEARCH_PATHS=(%s);' % quotedh)
                 self.write_line('INSTALL_PATH = "%s";' % install_path)

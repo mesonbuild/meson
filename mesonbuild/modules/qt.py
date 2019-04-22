@@ -129,13 +129,13 @@ class QtBaseModule(ExtensionModule):
         self._detect_tools(state.environment, method)
         err_msg = "{0} sources specified and couldn't find {1}, " \
                   "please check your qt{2} installation"
-        if len(moc_headers) + len(moc_sources) > 0 and not self.moc.found():
+        if (moc_headers or moc_sources) and not self.moc.found():
             raise MesonException(err_msg.format('MOC', 'moc-qt{}'.format(self.qt_version), self.qt_version))
-        if len(rcc_files) > 0:
+        if rcc_files:
             if not self.rcc.found():
                 raise MesonException(err_msg.format('RCC', 'rcc-qt{}'.format(self.qt_version), self.qt_version))
             # custom output name set? -> one output file, multiple otherwise
-            if len(args) > 0:
+            if args:
                 qrc_deps = []
                 for i in rcc_files:
                     qrc_deps += self.parse_qrc(state, i)
@@ -160,7 +160,7 @@ class QtBaseModule(ExtensionModule):
                                   'depend_files': qrc_deps}
                     res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
                     sources.append(res_target)
-        if len(ui_files) > 0:
+        if ui_files:
             if not self.uic.found():
                 raise MesonException(err_msg.format('UIC', 'uic-qt{}'.format(self.qt_version), self.qt_version))
             arguments = uic_extra_arguments + ['-o', '@OUTPUT@', '@INPUT@']
@@ -183,14 +183,14 @@ class QtBaseModule(ExtensionModule):
                                      'either an external dependency (returned by find_library() or '
                                      'dependency()) or an internal dependency (returned by '
                                      'declare_dependency()).'.format(type(dep).__name__))
-        if len(moc_headers) > 0:
+        if moc_headers:
             arguments = moc_extra_arguments + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
                           'arguments': arguments}
             moc_gen = build.Generator([self.moc], moc_kwargs)
             moc_output = moc_gen.process_files('Qt{} moc header'.format(self.qt_version), moc_headers, state)
             sources.append(moc_output)
-        if len(moc_sources) > 0:
+        if moc_sources:
             arguments = moc_extra_arguments + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': '@BASENAME@.moc',
                           'arguments': arguments}
