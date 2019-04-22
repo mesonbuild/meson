@@ -874,11 +874,16 @@ target_operation_map = {
 }
 
 def list_to_dict(in_list: List[str]) -> Dict[str, str]:
-    if len(in_list) % 2 != 0:
-        raise TypeError('An even ammount of arguments are required')
     result = {}
-    for i in range(0, len(in_list), 2):
-        result[in_list[i]] = in_list[i + 1]
+    it = iter(in_list)
+    try:
+        for i in it:
+            # calling next(it) is not a mistake, we're taking the next element from
+            # the iterator, avoiding te need to preprocess it into a sequence of
+            # key value pairs.
+            result[i] = next(it)
+    except StopIteration:
+        raise TypeError('in_list parameter of list_to_dict must have an even length.')
     return result
 
 def generate_target(options) -> List[dict]:
