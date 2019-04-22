@@ -158,7 +158,10 @@ class NinjaBuildElement:
         line = line.replace('\\', '/')
         outfile.write(line)
 
-        # All the entries that should remain unquoted
+        # ninja variables whose value should remain unquoted. The value of these
+        # ninja variables (or variables we use them in) is interpreted directly
+        # by ninja (e.g. the value of the depfile variable is a pathname that
+        # ninja will read from, etc.), so it must not be shell quoted.
         raw_names = {'DEPFILE', 'DESC', 'pool', 'description'}
 
         for e in self.elems:
