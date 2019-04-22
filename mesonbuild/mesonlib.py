@@ -515,8 +515,8 @@ class Version:
         sequences = re.finditer(r'(\d+|[a-zA-Z]+|[^a-zA-Z\d]+)', s)
         # non-alphanumeric separators are discarded
         sequences = [m for m in sequences if not re.match(r'[^a-zA-Z\d]+', m.group(1))]
-        # numeric sequences have leading zeroes discarded
-        sequences = [re.sub(r'^0+(\d)', r'\1', m.group(1), 1) for m in sequences]
+        # numeric sequences are converted from strings to ints
+        sequences = [int(m.group(1)) if m.group(1).isdigit() else m.group(1) for m in sequences]
 
         self._v = sequences
 
@@ -539,14 +539,15 @@ class Version:
         # compare each sequence in order
         for ours, theirs in zip(self._v, other._v):
             # sort a non-digit sequence before a digit sequence
-            if ours.isdigit() != theirs.isdigit():
-                return 1 if ours.isdigit() else -1
+            ours_is_int = isinstance(ours, int)
+            if ours_is_int != isinstance(theirs, int):
+                return 1 if isinstance(ours, int) else -1
 
             # compare as numbers
-            if ours.isdigit():
+            if ours_is_int:
                 # because leading zeros have already been removed, if one number
                 # has more digits, it is greater
-                c = cmp(len(ours), len(theirs))
+                c = cmp(ours, theirs)
                 if c != 0:
                     return c
                 # fallthrough
