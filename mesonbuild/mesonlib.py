@@ -537,22 +537,22 @@ class Version:
             return (a > b) - (a < b)
 
         # compare each sequence in order
-        for i in range(0, min(len(self._v), len(other._v))):
+        for ours, theirs in zip(self._v, other._v):
             # sort a non-digit sequence before a digit sequence
-            if self._v[i].isdigit() != other._v[i].isdigit():
-                return 1 if self._v[i].isdigit() else -1
+            if ours.isdigit() != theirs.isdigit():
+                return 1 if ours.isdigit() else -1
 
             # compare as numbers
-            if self._v[i].isdigit():
+            if ours.isdigit():
                 # because leading zeros have already been removed, if one number
                 # has more digits, it is greater
-                c = cmp(len(self._v[i]), len(other._v[i]))
+                c = cmp(len(ours), len(theirs))
                 if c != 0:
                     return c
                 # fallthrough
 
             # compare lexicographically
-            c = cmp(self._v[i], other._v[i])
+            c = cmp(ours, theirs)
             if c != 0:
                 return c
 
