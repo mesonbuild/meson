@@ -2345,8 +2345,9 @@ int main(int argc, char **argv) {
             shared_suffix = 'so'
         return (cc, stlinker, object_suffix, shared_suffix)
 
-    def pbcompile(self, compiler, source, objectfile, extra_args=[]):
+    def pbcompile(self, compiler, source, objectfile, extra_args=None):
         cmd = compiler.get_exelist()
+        extra_args = extra_args or []
         if compiler.get_argument_syntax() == 'msvc':
             cmd += ['/nologo', '/Fo' + objectfile, '/c', source] + extra_args
         else:

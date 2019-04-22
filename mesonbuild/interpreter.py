@@ -560,10 +560,10 @@ class GeneratorHolder(InterpreterObject, ObjectHolder):
 
 
 class GeneratedListHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, arg1, extra_args=[]):
+    def __init__(self, arg1, extra_args=None):
         InterpreterObject.__init__(self)
         if isinstance(arg1, GeneratorHolder):
-            ObjectHolder.__init__(self, build.GeneratedList(arg1.held_object, extra_args))
+            ObjectHolder.__init__(self, build.GeneratedList(arg1.held_object, extra_args if extra_args is not None else []))
         else:
             ObjectHolder.__init__(self, arg1)
 

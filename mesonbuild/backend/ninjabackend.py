@@ -2098,10 +2098,13 @@ rule FORTRAN_DEP_HACK%s
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
         return commands
 
-    def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
+    def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=None, order_deps=None):
         """
         Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
         """
+        header_deps = header_deps if header_deps is not None else []
+        order_deps = order_deps if order_deps is not None else []
+
         if isinstance(src, str) and src.endswith('.h'):
             raise AssertionError('BUG: sources should not contain headers {!r}'.format(src))
 
@@ -2256,7 +2259,8 @@ rule FORTRAN_DEP_HACK%s
         dep = dst + '.' + compiler.get_depfile_suffix()
         return commands, dep, dst, []  # Gcc does not create an object file during pch generation.
 
-    def generate_pch(self, target, outfile, header_deps=[]):
+    def generate_pch(self, target, outfile, header_deps=None):
+        header_deps = header_deps if header_deps is not None else []
         cstr = ''
         pch_objects = []
         if target.is_cross:
@@ -2435,7 +2439,9 @@ rule FORTRAN_DEP_HACK%s
 
         return guessed_dependencies + absolute_libs
 
-    def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[], stdlib_args=[]):
+    def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=None, stdlib_args=None):
+        extra_args = extra_args if extra_args is not None else []
+        stdlib_args = stdlib_args if stdlib_args is not None else []
         if isinstance(target, build.StaticLibrary):
             linker_base = 'STATIC'
         else:
