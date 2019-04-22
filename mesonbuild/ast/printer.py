@@ -179,7 +179,7 @@ class AstPrinter(AstVisitor):
         node.falseblock.accept(self)
 
     def visit_ArgumentNode(self, node: mparser.ArgumentNode):
-        break_args = True if (len(node.arguments) + len(node.kwargs)) > self.arg_newline_cutoff else False
+        break_args = (len(node.arguments) + len(node.kwargs)) > self.arg_newline_cutoff
         for i in node.arguments + list(node.kwargs.values()):
             if not isinstance(i, mparser.ElementaryNode):
                 break_args = True
