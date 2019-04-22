@@ -1721,6 +1721,10 @@ class ClangClCCompiler(VisualStudioCCompiler):
         super().__init__(exelist, version, is_cross, exe_wrap, target)
         self.id = 'clang-cl'
 
+    def openmp_flags(self) -> List[str]:
+        # clang-cl does not (as of 2019-04) accept /openmp as an argument
+        # See this llvm/clang bug: https://bugs.llvm.org/show_bug.cgi?id=31207
+        return ['-Xclang', '-fopenmp']
 
 class ArmCCompiler(ArmCompiler, CCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
