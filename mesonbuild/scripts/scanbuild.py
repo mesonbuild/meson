@@ -38,14 +38,17 @@ def run(args):
     shutil.rmtree(logdir, ignore_errors=True)
     tools = [
         'scan-build',  # base
-        'scan-build-5.0', 'scan-build50',  # latest stable release
-        'scan-build-4.0', 'scan-build40',  # old stable releases
+        'scan-build-8.0', 'scan-build80',
+        'scan-build-7.0', 'scan-build70',
+        'scan-build-6.0', 'scan-build60',
+        'scan-build-5.0', 'scan-build50',
+        'scan-build-4.0', 'scan-build40',
         'scan-build-3.9', 'scan-build39',
         'scan-build-3.8', 'scan-build38',
         'scan-build-3.7', 'scan-build37',
         'scan-build-3.6', 'scan-build36',
         'scan-build-3.5', 'scan-build35',
-        'scan-build-6.0', 'scan-build-devel',  # development snapshot
+        'scan-build-9.0', 'scan-build-devel',  # development snapshot
     ]
     toolname = 'scan-build'
     for tool in tools:
