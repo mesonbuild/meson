@@ -234,14 +234,14 @@ def exception(e: Exception, prefix: AnsiDecorator = red('ERROR:')) -> None:
 
 # Format a list for logging purposes as a string. It separates
 # all but the last item with commas, and the last with 'and'.
-def format_list(list_: typing.List[str]) -> str:
-    l = len(list_)
+def format_list(input_list: typing.List[str]) -> str:
+    l = len(input_list)
     if l > 2:
-        return ' and '.join([', '.join(list_[:-1]), list_[-1]])
+        return ' and '.join([', '.join(input_list[:-1]), input_list[-1]])
     elif l == 2:
-        return ' and '.join(list_)
+        return ' and '.join(input_list)
     elif l == 1:
-        return list_[0]
+        return input_list[0]
     else:
         return ''
 

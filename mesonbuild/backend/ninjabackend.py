@@ -406,9 +406,9 @@ int dummy;
             }
         }
         '''
-        id = target.get_id()
+        tid = target.get_id()
         lang = comp.get_language()
-        tgt = self.introspection_data[id]
+        tgt = self.introspection_data[tid]
         # Find an existing entry or create a new one
         id_hash = (lang, tuple(parameters))
         src_block = tgt.get(id_hash, None)

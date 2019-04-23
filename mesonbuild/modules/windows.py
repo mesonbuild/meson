@@ -59,7 +59,7 @@ class WindowsModule(ExtensionModule):
         if not rescomp.found():
             raise MesonException('Could not find Windows resource compiler')
 
-        for (arg, match, type) in [
+        for (arg, match, rc_type) in [
                 ('/?', '^.*Microsoft.*Resource Compiler.*$', ResourceCompilerType.rc),
                 ('--version', '^.*GNU windres.*$', ResourceCompilerType.windres),
         ]:
@@ -67,7 +67,7 @@ class WindowsModule(ExtensionModule):
             m = re.search(match, o, re.MULTILINE)
             if m:
                 mlog.log('Windows resource compiler: %s' % m.group())
-                self._rescomp = (rescomp, type)
+                self._rescomp = (rescomp, rc_type)
                 break
         else:
             raise MesonException('Could not determine type of Windows resource compiler')

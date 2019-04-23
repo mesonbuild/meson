@@ -173,9 +173,9 @@ class IntrospectionInterpreter(AstInterpreter):
                 arg_node = curr.args
             elif isinstance(curr, IdNode):
                 # Try to resolve the ID and append the node to the queue
-                id = curr.value
-                if id in self.assignments and self.assignments[id]:
-                    tmp_node = self.assignments[id][0]
+                var_name = curr.value
+                if var_name in self.assignments and self.assignments[var_name]:
+                    tmp_node = self.assignments[var_name][0]
                     if isinstance(tmp_node, (ArrayNode, IdNode, FunctionNode)):
                         srcqueue += [tmp_node]
             elif isinstance(curr, ArithmeticNode):

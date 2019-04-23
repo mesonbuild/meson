@@ -65,7 +65,7 @@ class DirMaker:
     def __enter__(self):
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exception_type, value, traceback):
         self.dirs.reverse()
         for d in self.dirs:
             append_to_log(self.lf, d)

@@ -41,41 +41,41 @@ class CommandLineParser:
         self.subparsers = self.parser.add_subparsers(title='Commands',
                                                      description='If no command is specified it defaults to setup command.')
         self.add_command('setup', msetup.add_arguments, msetup.run,
-                         help='Configure the project')
+                         help_msg='Configure the project')
         self.add_command('configure', mconf.add_arguments, mconf.run,
-                         help='Change project options',)
+                         help_msg='Change project options',)
         self.add_command('install', minstall.add_arguments, minstall.run,
-                         help='Install the project')
+                         help_msg='Install the project')
         self.add_command('introspect', mintro.add_arguments, mintro.run,
-                         help='Introspect project')
+                         help_msg='Introspect project')
         self.add_command('init', minit.add_arguments, minit.run,
-                         help='Create a new project')
+                         help_msg='Create a new project')
         self.add_command('test', mtest.add_arguments, mtest.run,
-                         help='Run tests')
+                         help_msg='Run tests')
         self.add_command('wrap', wraptool.add_arguments, wraptool.run,
-                         help='Wrap tools')
+                         help_msg='Wrap tools')
         self.add_command('subprojects', msubprojects.add_arguments, msubprojects.run,
-                         help='Manage subprojects')
+                         help_msg='Manage subprojects')
         self.add_command('help', self.add_help_arguments, self.run_help_command,
-                         help='Print help of a subcommand')
+                         help_msg='Print help of a subcommand')
         self.add_command('rewrite', lambda parser: rewriter.add_arguments(parser, self.formater), rewriter.run,
-                         help='Modify the project definition')
+                         help_msg='Modify the project definition')
 
         # Hidden commands
         self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,
-                         help=argparse.SUPPRESS)
+                         help_msg=argparse.SUPPRESS)
         self.add_command('unstable-coredata', munstable_coredata.add_arguments, munstable_coredata.run,
-                         help=argparse.SUPPRESS)
+                         help_msg=argparse.SUPPRESS)
 
-    def add_command(self, name, add_arguments_func, run_func, help, aliases=None):
+    def add_command(self, name, add_arguments_func, run_func, help_msg, aliases=None):
         aliases = aliases or []
         # FIXME: Cannot have hidden subparser:
         # https://bugs.python.org/issue22848
-        if help == argparse.SUPPRESS:
+        if help_msg == argparse.SUPPRESS:
             p = argparse.ArgumentParser(prog='meson ' + name, formatter_class=self.formater)
             self.hidden_commands.append(name)
         else:
-            p = self.subparsers.add_parser(name, help=help, aliases=aliases, formatter_class=self.formater)
+            p = self.subparsers.add_parser(name, help=help_msg, aliases=aliases, formatter_class=self.formater)
         add_arguments_func(p)
         p.set_defaults(run_func=run_func)
         for i in [name] + aliases:

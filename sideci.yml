@@ -3,3 +3,4 @@ linter:
     version: 3
     plugins:
       - flake8-blind-except
+      - flake8-builtins

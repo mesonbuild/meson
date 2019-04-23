@@ -51,7 +51,7 @@ def run(options):
               'change the working directory to it.')
         return 1
 
-    all = options.all
+    all_backends = options.all
 
     print('This is a dump of the internal unstable cache of meson. This is for debugging only.')
     print('Do NOT parse, this will change from version to version in incompatible ways')
@@ -64,18 +64,18 @@ def run(options):
             # use `meson configure` to view these
             pass
         elif k in ['install_guid', 'test_guid', 'regen_guid']:
-            if all or backend.startswith('vs'):
+            if all_backends or backend.startswith('vs'):
                 print(k + ': ' + v)
         elif k == 'target_guids':
-            if all or backend.startswith('vs'):
+            if all_backends or backend.startswith('vs'):
                 print(k + ':')
                 dump_guids(v)
         elif k in ['lang_guids']:
-            if all or backend.startswith('vs') or backend == 'xcode':
+            if all_backends or backend.startswith('vs') or backend == 'xcode':
                 print(k + ':')
                 dump_guids(v)
         elif k == 'meson_command':
-            if all or backend.startswith('vs'):
+            if all_backends or backend.startswith('vs'):
                 print('Meson command used in build file regeneration: ' + ' '.join(v))
         elif k == 'pkgconf_envvar':
             print('Last seen PKGCONFIG enviroment variable value: ' + v)
