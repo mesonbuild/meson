@@ -2,6 +2,12 @@
 %__meson_wrap_mode nodownload
 %__meson_auto_features enabled
 
+%_smp_mesonflags %([ -z "$MESON_BUILD_NCPUS" ] \\\
+	&& MESON_BUILD_NCPUS="`/usr/bin/getconf _NPROCESSORS_ONLN`"; \\\
+        ncpus_max=%{?_smp_ncpus_max}; \\\
+        if [ -n "$ncpus_max" ] && [ "$ncpus_max" -gt 0 ] && [ "$MESON_BUILD_NCPUS" -gt "$ncpus_max" ]; then MESON_BUILD_NCPUS="$ncpus_max"; fi; \\\
+        if [ "$MESON_BUILD_NCPUS" -gt 1 ]; then echo "--num-processes $MESON_BUILD_NCPUS"; fi)
+
 %meson \
     %set_build_flags \
     %{shrink:%{__meson} \
@@ -31,4 +37,8 @@
     %ninja_install -C %{_vpath_builddir}
 
 %meson_test \
-    %ninja_test -C %{_vpath_builddir}
+    %{shrink: %{__meson} test \
+        -C %{_vpath_builddir} \
+        %{?_smp_mesonflags} \
+        --print-errorlogs \
+    %{nil}}
