@@ -957,20 +957,18 @@ class InternalTests(unittest.TestCase):
             ver_a = Version(a)
             ver_b = Version(b)
             if op is operator.eq:
-                inverse = None
-                name = 'eq'
+                for o, name in [(op, 'eq'), (operator.ge, 'ge'), (operator.le, 'le')]:
+                    self.assertTrue(o(ver_a, ver_b), '{} {} {}'.format(ver_a, name, ver_b))
             if op is operator.lt:
-                inverse = operator.ge
-                inv_name = 'ge'
-                name = 'lt'
+                for o, name in [(op, 'lt'), (operator.le, 'le'), (operator.ne, 'ne')]:
+                    self.assertTrue(o(ver_a, ver_b), '{} {} {}'.format(ver_a, name, ver_b))
+                for o, name in [(operator.gt, 'gt'), (operator.ge, 'ge'), (operator.eq, 'eq')]:
+                    self.assertFalse(o(ver_a, ver_b), '{} {} {}'.format(ver_a, name, ver_b))
             if op is operator.gt:
-                inverse = operator.le
-                inv_name = 'le'
-                name = 'gt'
-
-            self.assertTrue(op(ver_a, ver_b), '{} {} {}'.format(ver_a, name, ver_b))
-            if inverse is not None:
-                self.assertTrue(inverse(ver_b, ver_a), '{} {} {}'.format(ver_a, inv_name, ver_b))
+                for o, name in [(op, 'gt'), (operator.ge, 'ge'), (operator.ne, 'ne')]:
+                    self.assertTrue(o(ver_a, ver_b), '{} {} {}'.format(ver_a, name, ver_b))
+                for o, name in [(operator.lt, 'lt'), (operator.le, 'le'), (operator.eq, 'eq')]:
+                    self.assertFalse(o(ver_a, ver_b), '{} {} {}'.format(ver_a, name, ver_b))
 
     def test_msvc_toolset_version(self):
         '''
