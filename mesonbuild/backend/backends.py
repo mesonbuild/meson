@@ -320,12 +320,14 @@ class Backend:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
 
-    def serialize_executable(self, tname, exe, cmd_args, workdir, env={},
+    def serialize_executable(self, tname, exe, cmd_args, workdir, env=None,
                              extra_paths=None, capture=None):
         '''
         Serialize an executable for running with a generator or a custom target
         '''
         import hashlib
+        if env is None:
+            env = {}
         if extra_paths is None:
             # The callee didn't check if we needed extra paths, so check it here
             if mesonlib.is_windows() or mesonlib.is_cygwin():

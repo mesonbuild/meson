@@ -924,9 +924,11 @@ class CMakeTraceLine:
         return s.format(self.file, self.line, self.func, self.args)
 
 class CMakeTarget:
-    def __init__(self, name, type, properies = {}):
+    def __init__(self, name, target_type, properies = None):
+        if properies is None:
+            properies = {}
         self.name = name
-        self.type = type
+        self.type = target_type
         self.properies = properies
 
     def __repr__(self):

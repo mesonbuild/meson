@@ -134,7 +134,5 @@ class AstVisitor:
         self.visit_default_func(node)
         for i in node.arguments:
             i.accept(self)
-        for i in node.commas:
-            pass
         for val in node.kwargs.values():
             val.accept(self)
