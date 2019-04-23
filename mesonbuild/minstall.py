@@ -93,7 +93,7 @@ def set_chown(path, user=None, group=None, dir_fd=None, follow_symlinks=True):
                                                  dir_fd=dir_fd,
                                                  follow_symlinks=follow_symlinks)
         shutil.chown(path, user, group)
-    except:
+    except Exception:
         raise
     finally:
         os.chown = real_os_chown

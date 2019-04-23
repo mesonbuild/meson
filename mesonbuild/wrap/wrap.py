@@ -84,7 +84,7 @@ class PackageDefinition:
         try:
             self.config = configparser.ConfigParser(interpolation=None)
             self.config.read(fname)
-        except:
+        except configparser.Error:
             raise WrapException('Failed to parse {}'.format(self.basename))
         if len(self.config.sections()) < 1:
             raise WrapException('Missing sections in {}'.format(self.basename))

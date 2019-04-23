@@ -1036,7 +1036,7 @@ class CCompiler(Compiler):
                 elf_class = 2
             else:
                 elf_class = 1
-        except:
+        except (MesonException, KeyError): # TODO evaluate if catching KeyError is wanted here
             elf_class = 0
         # Search in the specified dirs, and then in the system libraries
         for d in itertools.chain(extra_dirs, self.get_library_dirs(env, elf_class)):

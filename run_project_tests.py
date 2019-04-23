@@ -774,7 +774,7 @@ def detect_system_compiler():
             try:
                 comp = env.compiler_from_language(lang, env.is_cross_build())
                 details = '%s %s' % (' '.join(comp.get_exelist()), comp.get_version_string())
-            except:
+            except mesonlib.MesonException:
                 comp = None
                 details = 'not found'
             print('%-7s: %s' % (lang, details))

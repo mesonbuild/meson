@@ -1107,7 +1107,7 @@ class CMakeDependency(ExternalDependency):
             for l in lexer1:
                 if l.func == 'set':
                     self._cmake_set(l)
-        except:
+        except MesonException:
             return None
 
         # Extract the variables and sanity check them

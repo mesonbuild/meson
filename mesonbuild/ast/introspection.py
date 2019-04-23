@@ -122,7 +122,7 @@ class IntrospectionInterpreter(AstInterpreter):
             subi.analyze()
             subi.project_data['name'] = dirname
             self.project_data['subprojects'] += [subi.project_data]
-        except:
+        except (mesonlib.MesonException, RuntimeError):
             return
 
     def func_add_languages(self, node, args, kwargs):

@@ -123,7 +123,7 @@ class Elf(DataSizes):
             self.parse_header()
             self.parse_sections()
             self.parse_dynamic()
-        except:
+        except (struct.error, RuntimeError):
             self.bf.close()
             raise
 

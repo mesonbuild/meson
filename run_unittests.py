@@ -1244,7 +1244,7 @@ class BasePlatformTests(unittest.TestCase):
                     print('Stderr:\n')
                     print(err)
                     raise RuntimeError('Configure failed')
-            except:
+            except Exception:
                 self._print_meson_log()
                 raise
             finally:
@@ -1257,7 +1257,7 @@ class BasePlatformTests(unittest.TestCase):
                 out = self._run(self.setup_command + args + extra_args)
             except unittest.SkipTest:
                 raise unittest.SkipTest('Project requested skipping: ' + srcdir)
-            except:
+            except Exception:
                 self._print_meson_log()
                 raise
         return out
@@ -4443,7 +4443,7 @@ class LinuxlikeTests(BasePlatformTests):
                 self.assertIn(cmd_std, cmd)
             try:
                 self.build()
-            except:
+            except Exception:
                 print('{} was {!r}'.format(lang_std, v))
                 raise
             self.wipe()
