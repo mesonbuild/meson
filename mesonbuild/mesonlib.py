@@ -15,7 +15,6 @@
 """A library of random helper functionality."""
 from pathlib import Path
 from typing import List
-import functools
 import sys
 import stat
 import time
@@ -506,7 +505,6 @@ def detect_vcs(source_dir):
     return None
 
 # a helper class which implements the same version ordering as RPM
-@functools.total_ordering
 class Version:
     def __init__(self, s):
         self._s = s
@@ -527,7 +525,24 @@ class Version:
         return '<Version: {}>'.format(self._s)
 
     def __lt__(self, other):
-        return self.__cmp__(other) == -1
+        if isinstance(other, Version):
+            return self.__cmp(other, operator.lt)
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, Version):
+            return self.__cmp(other, operator.gt)
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, Version):
+            return self.__cmp(other, operator.le)
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, Version):
+            return self.__cmp(other, operator.ge)
+        return NotImplemented
 
     def __eq__(self, other):
         if isinstance(other, Version):
@@ -539,25 +554,21 @@ class Version:
             return self._v != other._v
         return NotImplemented
 
-    def __cmp__(self, other):
-        def cmp(a, b):
-            return (a > b) - (a < b)
-
+    def __cmp(self, other, comparator):
         # compare each sequence in order
         for ours, theirs in zip(self._v, other._v):
             # sort a non-digit sequence before a digit sequence
             ours_is_int = isinstance(ours, int)
-            if ours_is_int != isinstance(theirs, int):
-                return 1 if ours_is_int else -1
+            theirs_is_int = isinstance(theirs, int)
+            if ours_is_int != theirs_is_int:
+                return comparator(ours_is_int, theirs_is_int)
 
-            # compare lexicographically
-            c = cmp(ours, theirs)
-            if c != 0:
-                return c
+            if ours != theirs:
+                return comparator(ours, theirs)
 
         # if equal length, all components have matched, so equal
         # otherwise, the version with a suffix remaining is greater
-        return cmp(len(self._v), len(other._v))
+        return comparator(len(self._v), len(other._v))
 
 def _version_extract_cmpop(vstr2):
     if vstr2.startswith('>='):
