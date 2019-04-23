@@ -117,11 +117,11 @@ def list_installed(installdata):
         for t in installdata.targets:
             res[os.path.join(installdata.build_dir, t.fname)] = \
                 os.path.join(installdata.prefix, t.outdir, os.path.basename(t.fname))
-        for path, installpath, unused_prefix in installdata.data:
+        for path, installpath, _ in installdata.data:
             res[path] = os.path.join(installdata.prefix, installpath)
-        for path, installdir, unused_custom_install_mode in installdata.headers:
+        for path, installdir, _ in installdata.headers:
             res[path] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
-        for path, installpath, unused_custom_install_mode in installdata.man:
+        for path, installpath, _ in installdata.man:
             res[path] = os.path.join(installdata.prefix, installpath)
     return res
 

@@ -338,7 +338,7 @@ class Resolver:
         """
         Copy directory tree. Overwrites also read only files.
         """
-        for src_dir, dirs, files in os.walk(root_src_dir):
+        for src_dir, _, files in os.walk(root_src_dir):
             dst_dir = src_dir.replace(root_src_dir, root_dst_dir, 1)
             if not os.path.exists(dst_dir):
                 os.makedirs(dst_dir)

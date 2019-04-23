@@ -457,7 +457,7 @@ class Vs2010Backend(backends.Backend):
 
     def add_target_deps(self, root, target):
         target_dict = {target.get_id(): target}
-        for name, dep in self.get_target_deps(target_dict).items():
+        for _, dep in self.get_target_deps(target_dict).items():
             if dep.get_id() in self.handled_target_deps[target.get_id()]:
                 # This dependency was already handled manually.
                 continue

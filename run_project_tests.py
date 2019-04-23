@@ -819,7 +819,7 @@ if __name__ == '__main__':
                 print(l, '\n')
             except UnicodeError:
                 print(l.encode('ascii', errors='replace').decode(), '\n')
-    for name, dirs, skip in all_tests:
+    for name, dirs, _ in all_tests:
         dirs = (x.name for x in dirs)
         for k, g in itertools.groupby(dirs, key=lambda x: x.split()[0]):
             tests = list(g)

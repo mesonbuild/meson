@@ -2193,7 +2193,7 @@ class Interpreter(InterpreterBase):
     def check_cross_stdlibs(self):
         if self.build.environment.is_cross_build():
             props = self.build.environment.properties.host
-            for l, c in self.build.cross_compilers.items():
+            for l, _ in self.build.cross_compilers.items():
                 try:
                     di = mesonlib.stringlistify(props.get_stdlib(l))
                     if len(di) != 2:
