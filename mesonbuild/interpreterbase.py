@@ -144,7 +144,7 @@ def stringArgs(f):
     return wrapped
 
 def noArgsFlattening(f):
-    setattr(f, 'no-args-flattening', True) # noqa: B010
+    setattr(f, 'no-args-flattening', True)  # noqa: B010
     return f
 
 def disablerIfNotFound(f):
