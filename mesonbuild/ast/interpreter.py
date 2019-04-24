@@ -20,9 +20,22 @@ from .. import interpreterbase, mparser, mesonlib
 from .. import environment
 
 from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest
+from ..mparser import (
+    ArgumentNode,
+    ArithmeticNode,
+    ArrayNode,
+    AssignmentNode,
+    BaseNode,
+    ElementaryNode,
+    EmptyNode,
+    IdNode,
+    MethodNode,
+    PlusAssignmentNode,
+    TernaryNode,
+)
 
 import os, sys
-from typing import List, Optional
+from typing import List, Any, Optional
 
 class DontCareObject(interpreterbase.InterpreterObject):
     pass
@@ -162,13 +175,13 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         return 0
 
     def evaluate_ternary(self, node):
-        assert(isinstance(node, mparser.TernaryNode))
+        assert(isinstance(node, TernaryNode))
         self.evaluate_statement(node.condition)
         self.evaluate_statement(node.trueblock)
         self.evaluate_statement(node.falseblock)
 
     def evaluate_plusassign(self, node):
-        assert(isinstance(node, mparser.PlusAssignmentNode))
+        assert(isinstance(node, PlusAssignmentNode))
         if node.var_name not in self.assignments:
             self.assignments[node.var_name] = []
             self.assign_vals[node.var_name] = []
@@ -184,10 +197,12 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         pass
 
     def reduce_arguments(self, args):
-        assert(isinstance(args, mparser.ArgumentNode))
-        if args.incorrect_order():
-            raise InvalidArguments('All keyword arguments must be after positional arguments.')
-        return args.arguments, args.kwargs
+        if isinstance(args, ArgumentNode):
+            if args.incorrect_order():
+                raise InvalidArguments('All keyword arguments must be after positional arguments.')
+            return self.flatten_args(args.arguments), args.kwargs
+        else:
+            return self.flatten_args(args), {}
 
     def evaluate_comparison(self, node):
         self.evaluate_statement(node.left)
@@ -215,45 +230,95 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def evaluate_if(self, node):
         for i in node.ifs:
             self.evaluate_codeblock(i.block)
-        if not isinstance(node.elseblock, mparser.EmptyNode):
+        if not isinstance(node.elseblock, EmptyNode):
             self.evaluate_codeblock(node.elseblock)
 
     def get_variable(self, varname):
         return 0
 
     def assignment(self, node):
-        assert(isinstance(node, mparser.AssignmentNode))
+        assert(isinstance(node, AssignmentNode))
         self.assignments[node.var_name] = [node.value] # Save a reference to the value node
         if hasattr(node.value, 'ast_id'):
             self.reverse_assignment[node.value.ast_id] = node
         self.assign_vals[node.var_name] = [self.evaluate_statement(node.value)] # Evaluate the value just in case
 
-    def flatten_args(self, args, include_unknown_args: bool = False):
-        # Resolve mparser.ArrayNode if needed
-        flattend_args = []
-        temp_args = []
-        if isinstance(args, mparser.ArrayNode):
-            args = [x for x in args.args.arguments]
-        elif isinstance(args, mparser.ArgumentNode):
-            args = [x for x in args.arguments]
-        for i in args:
-            if isinstance(i, mparser.ArrayNode):
-                temp_args += [x for x in i.args.arguments]
+    def flatten_args(self, args: Any, include_unknown_args: bool = False, id_loop_detect: Optional[List[str]] = None) -> List[str]:
+        def quick_resolve(n: BaseNode, loop_detect: Optional[List[str]] = None) -> Any:
+            if loop_detect is None:
+                loop_detect = []
+            if isinstance(n, IdNode):
+                if n.value in loop_detect or n.value not in self.assignments:
+                    return []
+                return quick_resolve(self.assignments[n.value][0], loop_detect = loop_detect + [n.value])
+            elif isinstance(n, ElementaryNode):
+                return n.value
             else:
-                temp_args += [i]
-        for i in temp_args:
-            if isinstance(i, mparser.ElementaryNode) and not isinstance(i, mparser.IdNode):
+                return n
+
+        if id_loop_detect is None:
+            id_loop_detect = []
+        flattend_args = []
+
+        if isinstance(args, ArrayNode):
+            args = [x for x in args.args.arguments]
+
+        elif isinstance(args, ArgumentNode):
+            args = [x for x in args.arguments]
+
+        elif isinstance(args, ArithmeticNode):
+            if args.operation != 'add':
+                return [] # Only handle string and array concats
+            l = quick_resolve(args.left)
+            r = quick_resolve(args.right)
+            if isinstance(l, str) and isinstance(r, str):
+                args = [l + r] # String concatination detected
+            else:
+                args = self.flatten_args(l, include_unknown_args, id_loop_detect) + self.flatten_args(r, include_unknown_args, id_loop_detect)
+
+        elif isinstance(args, MethodNode):
+            src = quick_resolve(args.source_object)
+            margs = self.flatten_args(args.args, include_unknown_args, id_loop_detect)
+            try:
+                if isinstance(src, str):
+                    args = [self.string_method_call(src, args.name, margs)]
+                elif isinstance(src, bool):
+                    args = [self.bool_method_call(src, args.name, margs)]
+                elif isinstance(src, int):
+                    args = [self.int_method_call(src, args.name, margs)]
+                elif isinstance(src, list):
+                    args = [self.array_method_call(src, args.name, margs)]
+                elif isinstance(src, dict):
+                    args = [self.dict_method_call(src, args.name, margs)]
+                else:
+                    return []
+            except mesonlib.MesonException:
+                return []
+
+        # Make sure we are always dealing with lists
+        if not isinstance(args, list):
+            args = [args]
+
+        # Resolve the contents of args
+        for i in args:
+            if isinstance(i, IdNode) and i.value not in id_loop_detect:
+                flattend_args += self.flatten_args(quick_resolve(i), include_unknown_args, id_loop_detect + [i.value])
+            elif isinstance(i, (ArrayNode, ArgumentNode, ArithmeticNode, MethodNode)):
+                flattend_args += self.flatten_args(i, include_unknown_args, id_loop_detect)
+            elif isinstance(i, mparser.ElementaryNode):
                 flattend_args += [i.value]
-            elif isinstance(i, (str, bool, int, float)) or include_unknown_args:
+            elif isinstance(i, (str, bool, int, float)):
+                flattend_args += [i]
+            elif include_unknown_args:
                 flattend_args += [i]
         return flattend_args
 
     def flatten_kwargs(self, kwargs: object, include_unknown_args: bool = False):
         flattend_kwargs = {}
         for key, val in kwargs.items():
-            if isinstance(val, mparser.ElementaryNode):
+            if isinstance(val, ElementaryNode):
                 flattend_kwargs[key] = val.value
-            elif isinstance(val, (mparser.ArrayNode, mparser.ArgumentNode)):
+            elif isinstance(val, (ArrayNode, ArgumentNode)):
                 flattend_kwargs[key] = self.flatten_args(val, include_unknown_args)
             elif isinstance(val, (str, bool, int, float)) or include_unknown_args:
                 flattend_kwargs[key] = val

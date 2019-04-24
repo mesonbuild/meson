@@ -920,6 +920,24 @@ The result of this is undefined and will become a hard error in a future Meson r
             return mesonlib.version_compare(obj, cmpr)
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
+    def format_string(self, templ, args):
+        if isinstance(args, mparser.ArgumentNode):
+            args = args.arguments
+        arg_strings = []
+        for arg in args:
+            arg = self.evaluate_statement(arg)
+            if isinstance(arg, bool): # Python boolean is upper case.
+                arg = str(arg).lower()
+            arg_strings.append(str(arg))
+
+        def arg_replace(match):
+            idx = int(match.group(1))
+            if idx >= len(arg_strings):
+                raise InterpreterException('Format placeholder @{}@ out of range.'.format(idx))
+            return arg_strings[idx]
+
+        return re.sub(r'@(\d+)@', arg_replace, templ)
+
     def unknown_function_called(self, func_name):
         raise InvalidCode('Unknown function "%s".' % func_name)
 

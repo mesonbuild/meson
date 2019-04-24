@@ -20,9 +20,19 @@ endif
 subdir('sharedlib')
 subdir('staticlib')
 
-t1 = executable('test1', 't1.cpp', link_with: [sharedlib], install: true, build_by_default: get_option('test_opt2'))
-t2 = executable('test2', 't2.cpp', link_with: [staticlib])
-t3 = executable('test3', 't3.cpp', link_with: [sharedlib, staticlib], dependencies: [dep1])
+var1 = '1'
+var2 = 2.to_string()
+var3 = 'test3'
+
+t1 = executable('test' + var1, ['t1.cpp'], link_with: [sharedlib], install: true, build_by_default: get_option('test_opt2'))
+t2 = executable('test@0@'.format('@0@'.format(var2)), 't2.cpp', link_with: [staticlib])
+t3 = executable(var3, 't3.cpp', link_with: [sharedlib, staticlib], dependencies: [dep1])
+
+### BEGIN: Test inspired by taisei: https://github.com/taisei-project/taisei/blob/master/meson.build#L293
+systype = '@0@'.format(host_machine.system())
+systype = '@0@, @1@, @2@'.format(systype, host_machine.cpu_family(), host_machine.cpu())
+message(systype)
+### END: Test inspired by taisei
 
 test('test case 1', t1)
 test('test case 2', t2)

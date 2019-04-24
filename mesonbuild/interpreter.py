@@ -4076,24 +4076,6 @@ This will become a hard error in the future.''', location=self.current_node)
             if not os.path.isfile(fname):
                 raise InterpreterException('Tried to add non-existing source file %s.' % s)
 
-    def format_string(self, templ, args):
-        if isinstance(args, mparser.ArgumentNode):
-            args = args.arguments
-        arg_strings = []
-        for arg in args:
-            arg = self.evaluate_statement(arg)
-            if isinstance(arg, bool): # Python boolean is upper case.
-                arg = str(arg).lower()
-            arg_strings.append(str(arg))
-
-        def arg_replace(match):
-            idx = int(match.group(1))
-            if idx >= len(arg_strings):
-                raise InterpreterException('Format placeholder @{}@ out of range.'.format(idx))
-            return arg_strings[idx]
-
-        return re.sub(r'@(\d+)@', arg_replace, templ)
-
     # Only permit object extraction from the same subproject
     def validate_extraction(self, buildtarget):
         if not self.subdir.startswith(self.subproject_dir):
