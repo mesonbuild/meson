@@ -182,7 +182,7 @@ def detect_windows_arch(compilers):
     # 32-bit and pretend like we're running under WOW64. Else, return the
     # actual Windows architecture that we deduced above.
     for compiler in compilers.values():
-        if compiler.id == 'msvc' and compiler.target == 'x86':
+        if compiler.id == 'msvc' and (compiler.target == 'x86' or compiler.target == '80x86'):
             return 'x86'
         if compiler.id == 'clang-cl' and compiler.target == 'x86':
             return 'x86'
