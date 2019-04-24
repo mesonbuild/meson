@@ -83,7 +83,7 @@ from .compilers import (
 
 build_filename = 'meson.build'
 
-def detect_gcovr(version='3.1', log=False):
+def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
     gcovr_exe = 'gcovr'
     try:
         p, found = Popen_safe([gcovr_exe, '--version'])[0:2]
@@ -91,10 +91,10 @@ def detect_gcovr(version='3.1', log=False):
         # Doesn't exist in PATH or isn't executable
         return None, None
     found = search_version(found)
-    if p.returncode == 0:
+    if p.returncode == 0 and mesonlib.version_compare(found, '>=' + min_version):
         if log:
             mlog.log('Found gcovr-{} at {}'.format(found, shlex.quote(shutil.which(gcovr_exe))))
-        return gcovr_exe, mesonlib.version_compare(found, '>=' + version)
+        return gcovr_exe, mesonlib.version_compare(found, '>=' + new_rootdir_version)
     return None, None
 
 def find_coverage_tools():

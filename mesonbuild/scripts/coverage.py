@@ -22,35 +22,33 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
 
     (gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
 
-    # gcovr >= 3.1 interprets rootdir differently
+    # gcovr >= 4.2 requires a different syntax for out of source builds
     if gcovr_new_rootdir:
-        gcovr_rootdir = build_root
+        gcovr_base_cmd = [gcovr_exe, '-r', source_root, build_root]
     else:
-        gcovr_rootdir = source_root
+        gcovr_base_cmd = [gcovr_exe, '-r', build_root]
 
     if not outputs or 'xml' in outputs:
         if gcovr_exe:
-            subprocess.check_call([gcovr_exe,
-                                   '-x',
-                                   '-r', gcovr_rootdir,
+            subprocess.check_call(gcovr_base_cmd +
+                                  ['-x',
                                    '-e', subproject_root,
                                    '-o', os.path.join(log_dir, 'coverage.xml'),
                                    ])
             outfiles.append(('Xml', pathlib.Path(log_dir, 'coverage.xml')))
         elif outputs:
-            print('gcovr needed to generate Xml coverage report')
+            print('gcovr >= 3.3 needed to generate Xml coverage report')
             exitcode = 1
 
     if not outputs or 'text' in outputs:
         if gcovr_exe:
-            subprocess.check_call([gcovr_exe,
-                                   '-r', gcovr_rootdir,
-                                   '-e', subproject_root,
+            subprocess.check_call(gcovr_base_cmd +
+                                  ['-e', subproject_root,
                                    '-o', os.path.join(log_dir, 'coverage.txt'),
                                    ])
             outfiles.append(('Text', pathlib.Path(log_dir, 'coverage.txt')))
         elif outputs:
-            print('gcovr needed to generate text coverage report')
+            print('gcovr >= 3.3 needed to generate text coverage report')
             exitcode = 1
 
     if not outputs or 'html' in outputs:
@@ -101,21 +99,20 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
                                    '--branch-coverage',
                                    covinfo])
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
-        elif gcovr_exe and gcovr_new_rootdir:
+        elif gcovr_exe:
             htmloutdir = os.path.join(log_dir, 'coveragereport')
             if not os.path.isdir(htmloutdir):
                 os.mkdir(htmloutdir)
-            subprocess.check_call([gcovr_exe,
-                                   '--html',
+            subprocess.check_call(gcovr_base_cmd +
+                                  ['--html',
                                    '--html-details',
                                    '--print-summary',
-                                   '-r', build_root,
                                    '-e', subproject_root,
                                    '-o', os.path.join(htmloutdir, 'index.html'),
                                    ])
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
         elif outputs:
-            print('lcov/genhtml or gcovr >= 3.2 needed to generate Html coverage report')
+            print('lcov/genhtml or gcovr >= 3.3 needed to generate Html coverage report')
             exitcode = 1
 
     if not outputs and not outfiles:
