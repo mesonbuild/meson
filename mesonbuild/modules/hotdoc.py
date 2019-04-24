@@ -76,7 +76,8 @@ class HotdocTargetBuilder:
             return
 
         if isinstance(value, bool):
-            self.cmd.append(option)
+            if value:
+                self.cmd.append(option)
         elif isinstance(value, list):
             # Do not do anything on empty lists
             if value:
