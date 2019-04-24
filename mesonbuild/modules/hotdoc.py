@@ -309,6 +309,9 @@ class HotdocTargetBuilder:
 
         for path in self.include_paths.keys():
             self.cmd.extend(['--include-path', path])
+
+        if self.state.environment.coredata.get_builtin_option('werror'):
+            self.cmd.append('--fatal-warning')
         self.generate_hotdoc_config()
 
         target_cmd = self.build_command + ["--internal", "hotdoc"] + \
