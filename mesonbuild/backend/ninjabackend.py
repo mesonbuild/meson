@@ -520,7 +520,7 @@ int dummy;
         # This will be set as dependencies of all the target's sources. At the
         # same time, also deal with generated sources that need to be compiled.
         generated_source_files = []
-        for rel_src, _ in generated_sources.items():
+        for rel_src in generated_sources.keys():
             dirpart, fnamepart = os.path.split(rel_src)
             raw_src = File(True, dirpart, fnamepart)
             if self.environment.is_source(rel_src) and not self.environment.is_header(rel_src):
@@ -585,7 +585,7 @@ int dummy;
             obj_list.append(self.generate_single_compile(target, src, 'vala', [], header_deps))
 
         # Generate compile targets for all the pre-existing sources for this target
-        for _, src in target_sources.items():
+        for src in target_sources.values():
             if not self.environment.is_header(src):
                 if self.environment.is_llvm_ir(src):
                     obj_list.append(self.generate_llvm_ir_compile(target, src))
@@ -912,7 +912,7 @@ int dummy;
         # Add possible java generated files to src list
         generated_sources = self.get_target_generated_sources(target)
         gen_src_list = []
-        for rel_src, _ in generated_sources.items():
+        for rel_src in generated_sources.keys():
             dirpart, fnamepart = os.path.split(rel_src)
             raw_src = File(True, dirpart, fnamepart)
             if rel_src.endswith('.java'):
@@ -1041,7 +1041,7 @@ int dummy;
     def generate_single_java_compile(self, src, target, compiler, args):
         deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
         generated_sources = self.get_target_generated_sources(target)
-        for rel_src, _ in generated_sources.items():
+        for rel_src in generated_sources.keys():
             if rel_src.endswith('.java'):
                 deps.append(rel_src)
         rel_src = src.rel_to_builddir(self.build_to_src)
@@ -1227,7 +1227,7 @@ int dummy;
                 if len(target.install_dir) > 3 and target.install_dir[3] is True:
                     target.install_dir[3] = os.path.join(self.environment.get_datadir(), 'gir-1.0')
         # Detect gresources and add --gresources arguments for each
-        for (_, gensrc) in other_src[1].items():
+        for gensrc in other_src[1].values():
             if isinstance(gensrc, modules.GResourceTarget):
                 gres_xml, = self.get_custom_target_sources(gensrc)
                 args += ['--gresources=' + gres_xml]
@@ -2751,7 +2751,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return super().get_introspection_data(target_id, target)
 
         result = []
-        for _, i in self.introspection_data[target_id].items():
+        for i in self.introspection_data[target_id].values():
             result += [i]
         return result
 

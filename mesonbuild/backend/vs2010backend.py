@@ -306,7 +306,7 @@ class Vs2010Backend(backends.Backend):
                 target = self.build.targets[prj[0]]
                 lang = 'default'
                 if hasattr(target, 'compilers') and target.compilers:
-                    for (lang_out, _) in target.compilers.items():
+                    for lang_out in target.compilers.keys():
                         lang = lang_out
                         break
                 prj_line = prj_templ % (
@@ -380,7 +380,7 @@ class Vs2010Backend(backends.Backend):
                 for p in projlist:
                     if p[1].parent != PurePath('.'):
                         ofile.write("\t\t{%s} = {%s}\n" % (p[2], self.subdirs[p[1].parent][0]))
-                for (_, subdir) in self.subdirs.items():
+                for subdir in self.subdirs.values():
                     if subdir[1]:
                         ofile.write("\t\t{%s} = {%s}\n" % (subdir[0], subdir[1]))
                 ofile.write('\tEndGlobalSection\n')
@@ -457,7 +457,7 @@ class Vs2010Backend(backends.Backend):
 
     def add_target_deps(self, root, target):
         target_dict = {target.get_id(): target}
-        for _, dep in self.get_target_deps(target_dict).items():
+        for dep in self.get_target_deps(target_dict).values():
             if dep.get_id() in self.handled_target_deps[target.get_id()]:
                 # This dependency was already handled manually.
                 continue

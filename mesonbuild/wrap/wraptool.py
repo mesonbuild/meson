@@ -177,7 +177,7 @@ def promote(options):
 
     # check if the argument is a full path to a subproject directory or wrap file
     system_native_path_argument = argument.replace('/', os.sep)
-    for _, matches in sprojs.items():
+    for matches in sprojs.values():
         if system_native_path_argument in matches:
             do_promotion(system_native_path_argument, spdir_name)
             return

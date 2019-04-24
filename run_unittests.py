@@ -5527,7 +5527,7 @@ class RewriterTests(BasePlatformTests):
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         expected = {'name': 'myExe', 'sources': ['main.cpp']}
         self.assertEqual(len(out['target']), 2)
-        for _, val in out['target'].items():
+        for val in out['target'].values():
             self.assertDictEqual(expected, val)
 
     def test_kwargs_info(self):
