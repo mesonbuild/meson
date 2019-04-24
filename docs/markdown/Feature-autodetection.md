@@ -16,4 +16,4 @@ If you do not wish to use CCache for some reason, just specify your compiler wit
 Coverage
 --
 
-When doing a code coverage build, Meson will check the existence of binaries `gcovr`, `lcov` and `genhtml`. If the first one is found, it will create targets called *coverage-text* and *coverage-xml*. If the latter two or a new enough `gcovr` is found, it generates the target *coverage-html*. You can then generate coverage reports just by calling e.g. `ninja coverage-xml`.
+When doing a code coverage build, Meson will check for existence of the binaries `gcovr`, `lcov` and `genhtml`. If version 3.3 or higher of the first is found, targets called *coverage-text*, *coverage-xml* and *coverage-html* are generated. Alternatively, if the latter two are found, only the target *coverage-html* is generated. Coverage reports can then be produced simply by calling e.g. `ninja coverage-xml`. As a convenience, a high-level *coverage* target is also generated which will produce all 3 coverage report types, if possible.
