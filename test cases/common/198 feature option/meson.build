@@ -45,3 +45,17 @@ assert(not cp.found(), 'Should not find "cp" program')
 
 found = add_languages('cpp', required : disabled_opt)
 assert(not found, 'Should not find "cpp" language')
+
+# Feature Combo
+
+opt = get_option('3d-backend-auto:gl')
+assert(opt.auto(), 'Should be auto option')
+
+opt = get_option('3d-backend-disabled:gl')
+assert(opt.disabled(), 'Should be disabled option')
+
+opt = get_option('3d-backend-gl:gl')
+assert(opt.enabled(), 'Should be enabled option')
+
+opt = get_option('3d-backend-gl:gles')
+assert(opt.disabled(), 'Should be disabled option')

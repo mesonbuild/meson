@@ -1,3 +1,7 @@
 option('required', type : 'feature', value : 'enabled', description : 'An required feature')
 option('optional', type : 'feature', value : 'auto', description : 'An optional feature')
 option('disabled', type : 'feature', value : 'disabled', description : 'A disabled feature')
+
+option('3d-backend-auto', type : 'feature-combo', choices : ['gl', 'gles', 'vulkan'], value : 'auto')
+option('3d-backend-disabled', type : 'feature-combo', choices : ['gl', 'gles', 'vulkan'], value : 'disabled')
+option('3d-backend-gl', type : 'feature-combo', choices : ['gl', 'gles', 'vulkan'], value : 'gl')
