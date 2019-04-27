@@ -21,12 +21,12 @@ from . import mlog
 # This is the regex for the supported escape sequences of a regular string
 # literal, like 'abc\x00'
 ESCAPE_SEQUENCE_SINGLE_RE = re.compile(r'''
-    ( \\U........      # 8-digit hex escapes
-    | \\u....          # 4-digit hex escapes
-    | \\x..            # 2-digit hex escapes
-    | \\[0-7]{1,3}     # Octal escapes
-    | \\N\{[^}]+\}     # Unicode characters by name
-    | \\[\\'abfnrtv]   # Single-character escapes
+    ( \\U[A-Fa-f0-9]{8}   # 8-digit hex escapes
+    | \\u[A-Fa-f0-9]{4}   # 4-digit hex escapes
+    | \\x[A-Fa-f0-9]{2}   # 2-digit hex escapes
+    | \\[0-7]{1,3}        # Octal escapes
+    | \\N\{[^}]+\}        # Unicode characters by name
+    | \\[\\'abfnrtv]      # Single-character escapes
     )''', re.UNICODE | re.VERBOSE)
 
 class MesonUnicodeDecodeError(MesonException):
