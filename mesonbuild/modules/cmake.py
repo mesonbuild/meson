@@ -72,20 +72,12 @@ class CmakeModule(ExtensionModule):
             mlog.log('error retrieving cmake informations: returnCode={0} stdout={1} stderr={2}'.format(p.returncode, stdout, stderr))
             return False
 
-        match = re.search('\n_INCLUDED_FILE \\"([^"]+)"\n', stdout.strip())
+        match = re.search('\nCMAKE_ROOT \\"([^"]+)"\n', stdout.strip())
         if not match:
             mlog.log('unable to determine cmake root')
             return False
 
-        # compilerpath is something like '/usr/share/cmake-3.5/Modules/Platform/Linux-GNU-CXX.cmake'
-        # or 'C:/Program Files (x86)/CMake 2.8/share/cmake-2.8/Modules/Platform/Windows-MSVC-CXX.cmake' under windows
-        compilerpath = match.group(1)
-        pos = compilerpath.find('/Modules/Platform/')
-        if pos < 0:
-            mlog.log('unknown _INCLUDED_FILE path scheme')
-            return False
-
-        cmakePath = pathlib.PurePath(compilerpath[0:pos])
+        cmakePath = pathlib.PurePath(match.group(1))
         self.cmake_root = os.path.join(*cmakePath.parts)
         self.cmake_detected = True
         return True
