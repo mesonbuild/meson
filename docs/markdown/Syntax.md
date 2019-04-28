@@ -116,6 +116,9 @@ The full list of escape sequences is:
 
 As in python and C, up to three octal digits are accepted in `\ooo`.
 
+Unrecognized escape sequences are left in the string unchanged, i.e., the
+backslash is left in the string.
+
 #### String concatenation
 
 Strings can be concatenated to form a new string using the `+` symbol.

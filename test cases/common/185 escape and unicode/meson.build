@@ -22,3 +22,17 @@ foreach l : find_file_list.stdout().strip('\x00').split('\x00')
 endforeach
 
 test('second', executable('second', found_files_hex + [gen_file]))
+
+# Unrecognized and malformed escape sequences are literal
+
+malformed = [
+ [ '\c', 'c' ],
+ [ '\Uabcdefghi', 'Uabcdefghi'],
+ [ '\u123 ', 'u123 '],
+ [ '\xqr', 'xqr'],
+]
+
+foreach m : malformed
+  assert(m[0].endswith(m[1]), 'bad escape sequence had unexpected end')
+  assert(m[0].startswith('\\'), 'bad escape sequence had unexpected start')
+endforeach
