@@ -450,7 +450,9 @@ class CCompiler(Compiler):
 
     def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False, disable_cache=False):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
-        return self.compile(code, args, mode, want_output=want_output, cdata=env.coredata if not disable_cache else None)
+        if disable_cache or want_output:
+            return self.compile(code, extra_args=args, mode=mode, want_output=want_output)
+        return self.cached_compile(code, env.coredata, extra_args=args, mode=mode)
 
     def links(self, code, env, *, extra_args=None, dependencies=None, disable_cache=False):
         return self.compiles(code, env, extra_args=extra_args,
@@ -652,7 +654,10 @@ class CCompiler(Compiler):
         {delim}\n{define}'''
         args = self._get_compiler_check_args(env, extra_args, dependencies,
                                              mode='preprocess').to_native()
-        with self.compile(code.format(**fargs), args, 'preprocess', cdata=env.coredata if not disable_cache else None) as p:
+        func = lambda: self.cached_compile(code.format(**fargs), env.coredata, extra_args=args, mode='preprocess')
+        if disable_cache:
+            func = lambda: self.compile(code.format(**fargs), extra_args=args, mode='preprocess')
+        with func() as p:
             cached = p.cached
             if p.returncode != 0:
                 raise EnvironmentException('Could not get define {!r}'.format(dname))

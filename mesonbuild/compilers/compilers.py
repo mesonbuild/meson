@@ -1146,24 +1146,9 @@ class Compiler:
         return os.path.join(dirname, 'output.' + suffix)
 
     @contextlib.contextmanager
-    def compile(self, code, extra_args=None, mode='link', want_output=False, cdata: Optional[coredata.CoreData] = None):
+    def compile(self, code, extra_args=None, mode='link', want_output=False):
         if extra_args is None:
-            textra_args = None
             extra_args = []
-        else:
-            textra_args = tuple(extra_args)
-        key = (tuple(self.exelist), self.version, code, textra_args, mode)
-        if not want_output:
-            if cdata is not None and key in cdata.compiler_check_cache:
-                p = cdata.compiler_check_cache[key]
-                p.cached = True
-                mlog.debug('Using cached compile:')
-                mlog.debug('Cached command line: ', ' '.join(p.commands), '\n')
-                mlog.debug('Code:\n', code)
-                mlog.debug('Cached compiler stdout:\n', p.stdo)
-                mlog.debug('Cached compiler stderr:\n', p.stde)
-                yield p
-                return
         try:
             with tempfile.TemporaryDirectory() as tmpdirname:
                 if isinstance(code, str):
@@ -1205,22 +1190,46 @@ class Compiler:
                 p.input_name = srcname
                 if want_output:
                     p.output_name = output
-                elif cdata is not None:
-                    # Remove all attributes except the following
-                    # This way the object can be serialized
-                    tokeep = ['args', 'commands', 'input_name', 'output_name',
-                              'pid', 'returncode', 'stdo', 'stde', 'text_mode']
-                    todel = [x for x in vars(p).keys() if x not in tokeep]
-                    for i in todel:
-                        delattr(p, i)
-                    cdata.compiler_check_cache[key] = p
-                p.cached = False
+                p.cached = False  # Make sure that the cached attribute always exists
                 yield p
         except (PermissionError, OSError):
             # On Windows antivirus programs and the like hold on to files so
             # they can't be deleted. There's not much to do in this case. Also,
             # catch OSError because the directory is then no longer empty.
             pass
+
+    @contextlib.contextmanager
+    def cached_compile(self, code, cdata: coredata.CoreData, extra_args=None, mode: str = 'link'):
+        assert(isinstance(cdata, coredata.CoreData))
+
+        # Calculate the key
+        textra_args = tuple(extra_args) if extra_args is not None else None
+        key = (tuple(self.exelist), self.version, code, textra_args, mode)
+
+        # Check if not cached
+        if key not in cdata.compiler_check_cache:
+            with self.compile(code, extra_args=extra_args, mode=mode, want_output=False) as p:
+                # Remove all attributes except the following
+                # This way the object can be serialized
+                tokeep = ['args', 'commands', 'input_name', 'output_name',
+                          'pid', 'returncode', 'stdo', 'stde', 'text_mode']
+                todel = [x for x in vars(p).keys() if x not in tokeep]
+                for i in todel:
+                    delattr(p, i)
+                p.cached = False
+                cdata.compiler_check_cache[key] = p
+                yield p
+                return
+
+        # Return cached
+        p = cdata.compiler_check_cache[key]
+        p.cached = True
+        mlog.debug('Using cached compile:')
+        mlog.debug('Cached command line: ', ' '.join(p.commands), '\n')
+        mlog.debug('Code:\n', code)
+        mlog.debug('Cached compiler stdout:\n', p.stdo)
+        mlog.debug('Cached compiler stderr:\n', p.stde)
+        yield p
 
     def get_colorout_args(self, colortype):
         return []
