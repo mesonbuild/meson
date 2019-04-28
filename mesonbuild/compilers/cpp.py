@@ -19,7 +19,7 @@ from .. import coredata
 from .. import mlog
 from ..mesonlib import MesonException, version_compare
 
-from .c import CCompiler, VisualStudioCCompiler, ClangClCCompiler
+from .c import CCompiler, VisualStudioCCompiler, ClangClCCompiler, IntelClCCompiler
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -238,9 +238,9 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
 
 class PGICPPCompiler(PGICompiler, CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
+    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
-        PGICompiler.__init__(self, CompilerType.PGI_STANDARD)
+        PGICompiler.__init__(self, compiler_type)
 
 
 class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
@@ -405,6 +405,13 @@ class ClangClCPPCompiler(VisualStudioCPPCompiler, ClangClCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap, target):
         VisualStudioCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, target)
         self.id = 'clang-cl'
+
+
+class IntelClCPPCompiler(VisualStudioCPPCompiler, IntelClCCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrap, target):
+        VisualStudioCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, target)
+        self.id = 'intel'
+
 
 class ArmCPPCompiler(ArmCompiler, CPPCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrap=None, **kwargs):

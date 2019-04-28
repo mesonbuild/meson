@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import configparser, os, platform, re, sys, shlex, shutil, subprocess
-import typing
+import os, platform, re, sys, shlex, shutil, subprocess
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker
 from . import mesonlib
 from .mesonlib import (
-    MesonException, EnvironmentException, MachineChoice, PerMachine, Popen_safe,
+    MesonException, EnvironmentException, MachineChoice, Popen_safe,
 )
 from . import mlog
 
@@ -38,7 +37,6 @@ from .compilers import (
     is_source,
 )
 from .compilers import (
-    Compiler,
     ArmCCompiler,
     ArmCPPCompiler,
     ArmclangCCompiler,
@@ -62,6 +60,8 @@ from .compilers import (
     IntelCCompiler,
     IntelCPPCompiler,
     IntelFortranCompiler,
+    IntelClCCompiler,
+    IntelClCPPCompiler,
     JavaCompiler,
     MonoCompiler,
     CudaCompiler,
@@ -455,11 +455,13 @@ class Environment:
 
         # List of potential compilers.
         if mesonlib.is_windows():
-            self.default_c = ['cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc']
-            self.default_cpp = ['cl', 'c++', 'g++', 'clang++', 'clang-cl', 'pgc++']
+            # Intel C and C++ compiler is icl on Windows, but icc and icpc elsewhere.
+            self.default_c = ['cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc', 'icl']
+            # There is currently no pgc++ for Windows, only for  Mac and Linux.
+            self.default_cpp = ['cl', 'c++', 'g++', 'clang++', 'clang-cl', 'icl']
         else:
-            self.default_c = ['cc', 'gcc', 'clang', 'pgcc']
-            self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++']
+            self.default_c = ['cc', 'gcc', 'clang', 'pgcc', 'icc']
+            self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++', 'icpc']
         if mesonlib.is_windows():
             self.default_cs = ['csc', 'mcs']
         else:
@@ -467,7 +469,7 @@ class Environment:
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
         self.default_d = ['ldc2', 'ldc', 'gdc', 'dmd']
-        self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77', 'ifort', 'pgfortran']
+        self.default_fortran = ['gfortran', 'flang', 'pgfortran', 'ifort', 'g95']
         self.default_java = ['javac']
         self.default_cuda = ['nvcc']
         self.default_rust = ['rustc']
@@ -676,6 +678,7 @@ class Environment:
                 arg = '-v'
             else:
                 arg = '--version'
+
             try:
                 p, out, err = Popen_safe(compiler + [arg])
             except OSError as e:
@@ -683,6 +686,11 @@ class Environment:
                 continue
 
             if 'ccrx' in compiler[0]:
+                out = err
+            if 'icl' in compiler[0]:
+                # https://software.intel.com/en-us/cpp-compiler-developer-guide-and-reference-alphabetical-list-of-compiler-options
+                # https://software.intel.com/en-us/fortran-compiler-developer-guide-and-reference-logo
+                # most consistent way for ICL is to just let compiler error and tell version
                 out = err
 
             full_version = out.split('\n', 1)[0]
@@ -769,19 +777,29 @@ class Environment:
                     target = 'x86'
                 cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
                 return cls(compiler, version, is_cross, exe_wrap, target)
+
             if 'PGI Compilers' in out:
+                if mesonlib.for_darwin(is_cross, self):
+                    compiler_type = CompilerType.PGI_OSX
+                elif mesonlib.for_windows(is_cross, self):
+                    compiler_type = CompilerType.PGI_WIN
+                else:
+                    compiler_type = CompilerType.PGI_STANDARD
                 cls = PGICCompiler if lang == 'c' else PGICPPCompiler
-                return cls(ccache + compiler, version, is_cross, exe_wrap)
+                return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap)
             if '(ICC)' in out:
                 if mesonlib.for_darwin(want_cross, self):
                     compiler_type = CompilerType.ICC_OSX
                 elif mesonlib.for_windows(want_cross, self):
-                    # TODO: fix ICC on Windows
-                    compiler_type = CompilerType.ICC_WIN
+                    raise EnvironmentException('At the time of authoring, there was no ICC for Windows')
                 else:
                     compiler_type = CompilerType.ICC_STANDARD
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
+            if out.startswith('Intel(R) C++') and mesonlib.for_windows(want_cross, self):
+                cls = IntelClCCompiler if lang == 'c' else IntelClCPPCompiler
+                target = 'x64' if 'Intel(R) 64 Compiler' in out else 'x86'
+                return cls(compiler, version, is_cross, exe_wrap, target)
             if 'ARM' in out:
                 compiler_type = CompilerType.ARM_WIN
                 cls = ArmCCompiler if lang == 'c' else ArmCPPCompiler
@@ -846,6 +864,13 @@ class Environment:
                     popen_exceptions[' '.join(compiler + [arg])] = e
                     continue
 
+                if mesonlib.for_windows(is_cross, self):
+                    if 'ifort' in compiler[0]:
+                        # https://software.intel.com/en-us/cpp-compiler-developer-guide-and-reference-alphabetical-list-of-compiler-options
+                        # https://software.intel.com/en-us/fortran-compiler-developer-guide-and-reference-logo
+                        # most consistent way for ICL is to just let compiler error and tell version
+                        out = err
+
                 version = search_version(out)
                 full_version = out.split('\n', 1)[0]
 
@@ -876,14 +901,20 @@ class Environment:
                     version = search_version(err)
                     return SunFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
-                if 'ifort (IFORT)' in out:
+                if 'ifort (IFORT)' in out or out.startswith('Intel(R) Visual Fortran'):
                     return IntelFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'PathScale EKOPath(tm)' in err:
                     return PathScaleFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'PGI Compilers' in out:
-                    return PGIFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
+                    if mesonlib.for_darwin(is_cross, self):
+                        compiler_type = CompilerType.PGI_OSX
+                    elif mesonlib.for_windows(is_cross, self):
+                        compiler_type = CompilerType.PGI_WIN
+                    else:
+                        compiler_type = CompilerType.PGI_STANDARD
+                    return PGIFortranCompiler(compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
 
                 if 'flang' in out or 'clang' in out:
                     return FlangFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
@@ -1039,7 +1070,8 @@ class Environment:
         # up to date language version at time (2016).
         if exelist is not None:
             if os.path.basename(exelist[-1]).startswith(('ldmd', 'gdmd')):
-                    raise EnvironmentException('Meson doesn\'t support %s as it\'s only a DMD frontend for another compiler. Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.' % exelist[-1])
+                raise EnvironmentException('Meson does not support {} as it is only a DMD frontend for another compiler.'
+                                           'Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.'.format(exelist[-1]))
         else:
             for d in self.default_d:
                 if shutil.which(d):
