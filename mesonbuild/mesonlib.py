@@ -22,8 +22,12 @@ import platform, subprocess, operator, os, shutil, re
 import collections
 from enum import Enum
 from functools import lru_cache
+import typing
 
 from mesonbuild import mlog
+
+_T = typing.TypeVar('_T')
+_U = typing.TypeVar('_U')
 
 have_fcntl = False
 have_msvcrt = False
@@ -319,20 +323,22 @@ class MachineChoice(OrderedEnum):
     HOST = 1
     TARGET = 2
 
-class PerMachine:
-    def __init__(self, build, host, target):
+_T = typing.TypeVar('_T')
+
+class PerMachine(typing.Generic[_T]):
+    def __init__(self, build: typing.Optional[_T], host: typing.Optional[_T], target: typing.Optional[_T]):
         self.build = build
         self.host = host
         self.target = target
 
-    def __getitem__(self, machine: MachineChoice):
+    def __getitem__(self, machine: MachineChoice) -> typing.Optional[_T]:
         return {
             MachineChoice.BUILD:  self.build,
             MachineChoice.HOST:   self.host,
             MachineChoice.TARGET: self.target
         }[machine]
 
-    def __setitem__(self, machine: MachineChoice, val):
+    def __setitem__(self, machine: MachineChoice, val: typing.Optional[_T]) -> None:
         key = {
             MachineChoice.BUILD:  'build',
             MachineChoice.HOST:   'host',
@@ -916,14 +922,13 @@ def extract_as_list(dict_object, *keys, pop=False, **kwargs):
         result.append(listify(fetch(key, []), **kwargs))
     return result
 
-
-def typeslistify(item, types):
+def typeslistify(item: typing.Union[_T, typing.List[_T]], types: typing.Union[typing.Type[_T], typing.Tuple[typing.Type[_T]]]) -> typing.List[_T]:
     '''
     Ensure that type(@item) is one of @types or a
     list of items all of which are of type @types
     '''
     if isinstance(item, types):
-        item = [item]
+        item = typing.cast(typing.List[_T], [item])
     if not isinstance(item, list):
         raise MesonException('Item must be a list or one of {!r}'.format(types))
     for i in item:
@@ -931,7 +936,7 @@ def typeslistify(item, types):
             raise MesonException('List item must be one of {!r}'.format(types))
     return item
 
-def stringlistify(item):
+def stringlistify(item: typing.Union[str, typing.List[str]]) -> typing.List[str]:
     return typeslistify(item, str)
 
 def expand_arguments(args):
@@ -1202,7 +1207,14 @@ def detect_subprojects(spdir_name, current_dir='', result=None):
                 result[basename] = [trial]
     return result
 
-def get_error_location_string(fname, lineno):
+# This isn't strictly correct. What we really want here is something like:
+# class StringProtocol(typing_extensions.Protocol):
+#
+#      def __str__(self) -> str: ...
+#
+# This would more accurately embody what this funcitonc an handle, but we
+# don't have that yet, so instead we'll do some casting to work around it
+def get_error_location_string(fname: str, lineno: str) -> str:
     return '{}:{}:'.format(fname, lineno)
 
 def substring_is_in_list(substr, strlist):
