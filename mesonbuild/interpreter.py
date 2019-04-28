@@ -2996,6 +2996,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             self._handle_featurenew_dependencies(name)
             kwargs['required'] = required and not has_fallback
             dep = dependencies.find_external_dependency(name, self.environment, kwargs)
+
             kwargs['required'] = required
             # Only store found-deps in the cache
             # Never add fallback deps to self.coredata.deps since we

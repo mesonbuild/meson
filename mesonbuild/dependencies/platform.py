@@ -16,7 +16,7 @@
 # platform-specific (generally speaking).
 
 from .base import ExternalDependency, DependencyException
-
+from ..mesonlib import MesonException
 
 class AppleFrameworks(ExternalDependency):
     def __init__(self, env, kwargs):
@@ -31,7 +31,16 @@ class AppleFrameworks(ExternalDependency):
             raise DependencyException('No C-like compilers are available, cannot find the framework')
         self.is_found = True
         for f in self.frameworks:
-            args = self.clib_compiler.find_framework(f, env, [])
+            try:
+                args = self.clib_compiler.find_framework(f, env, [])
+            except MesonException as e:
+                if 'non-clang' in str(e):
+                    self.is_found = False
+                    self.link_args = []
+                    self.compile_args = []
+                    return
+                raise
+
             if args is not None:
                 # No compile args are needed for system frameworks
                 self.link_args += args
