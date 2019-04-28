@@ -15,3 +15,6 @@ else
 endif
 exe = executable('stringprog', 'stringprog.m', dependencies : dep)
 test('stringtest', exe)
+
+# Ensure that a non-required dep that is not found does not cause an error
+dependency('appleframeworks', modules: 'nonexisting', required: false)
