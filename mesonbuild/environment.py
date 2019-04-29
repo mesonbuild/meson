@@ -782,9 +782,9 @@ class Environment:
                 return cls(compiler, version, is_cross, exe_wrap, target)
 
             if 'PGI Compilers' in out:
-                if mesonlib.for_darwin(is_cross, self):
+                if mesonlib.for_darwin(want_cross, self):
                     compiler_type = CompilerType.PGI_OSX
-                elif mesonlib.for_windows(is_cross, self):
+                elif mesonlib.for_windows(want_cross, self):
                     compiler_type = CompilerType.PGI_WIN
                 else:
                     compiler_type = CompilerType.PGI_STANDARD
@@ -867,13 +867,6 @@ class Environment:
                     popen_exceptions[' '.join(compiler + [arg])] = e
                     continue
 
-                if mesonlib.for_windows(is_cross, self):
-                    if 'ifort' in compiler[0]:
-                        # https://software.intel.com/en-us/cpp-compiler-developer-guide-and-reference-alphabetical-list-of-compiler-options
-                        # https://software.intel.com/en-us/fortran-compiler-developer-guide-and-reference-logo
-                        # most consistent way for ICL is to just let compiler error and tell version
-                        out = err
-
                 version = search_version(out)
                 full_version = out.split('\n', 1)[0]
 
@@ -904,16 +897,16 @@ class Environment:
                     version = search_version(err)
                     return SunFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
-                if 'ifort (IFORT)' in out or out.startswith('Intel(R) Visual Fortran'):
+                if 'ifort (IFORT)' in out:
                     return IntelFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'PathScale EKOPath(tm)' in err:
                     return PathScaleFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
 
                 if 'PGI Compilers' in out:
-                    if mesonlib.for_darwin(is_cross, self):
+                    if mesonlib.for_darwin(want_cross, self):
                         compiler_type = CompilerType.PGI_OSX
-                    elif mesonlib.for_windows(is_cross, self):
+                    elif mesonlib.for_windows(want_cross, self):
                         compiler_type = CompilerType.PGI_WIN
                     else:
                         compiler_type = CompilerType.PGI_STANDARD
