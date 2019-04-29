@@ -1066,7 +1066,7 @@ You probably should put it in link_with instead.''')
 
     def link(self, target):
         for t in listify(target, unholder=True):
-            if not isinstance(t, Target) and not isinstance(t, CustomTargetIndex):
+            if not isinstance(t, (Target, CustomTargetIndex)):
                 raise InvalidArguments('{!r} is not a target.'.format(t))
             if not t.is_linkable_target():
                 raise InvalidArguments('Link target {!r} is not linkable.'.format(t))
@@ -1074,13 +1074,13 @@ You probably should put it in link_with instead.''')
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if not isinstance(t, CustomTarget) and not isinstance(t, CustomTargetIndex) and self.is_cross != t.is_cross:
+            if not isinstance(t, (CustomTarget, CustomTargetIndex)) and self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_targets.append(t)
 
     def link_whole(self, target):
         for t in listify(target, unholder=True):
-            if isinstance(t, CustomTarget) or isinstance(t, CustomTargetIndex):
+            if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 if not t.is_linkable_target():
                     raise InvalidArguments('Custom target {!r} is not linkable.'.format(t))
                 if not t.get_filename().endswith('.a'):
@@ -1091,7 +1091,7 @@ You probably should put it in link_with instead.''')
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if not isinstance(t, CustomTarget) and not isinstance(t, CustomTargetIndex) and self.is_cross != t.is_cross:
+            if not isinstance(t, (CustomTarget, CustomTargetIndex)) and self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_whole_targets.append(t)
 
@@ -1168,7 +1168,7 @@ You probably should put it in link_with instead.''')
         # Check if any of the internal libraries this target links to were
         # written in this language
         for link_target in itertools.chain(self.link_targets, self.link_whole_targets):
-            if isinstance(link_target, CustomTarget) or isinstance(link_target, CustomTargetIndex):
+            if isinstance(link_target, (CustomTarget, CustomTargetIndex)):
                 continue
             for language in link_target.compilers:
                 if language not in langs:
