@@ -968,7 +968,7 @@ def Popen_safe(args, write=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     return p, o, e
 
 def Popen_safe_legacy(args, write=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs):
-    p = subprocess.Popen(args, universal_newlines=False,
+    p = subprocess.Popen(args, universal_newlines=False, close_fds=False,
                          stdout=stdout, stderr=stderr, **kwargs)
     if write is not None:
         write = write.encode('utf-8')
