@@ -1413,20 +1413,18 @@ class CompilerType(enum.Enum):
     CCRX_WIN = 40
 
     PGI_STANDARD = 50
-    PGI_OSX = 51
-    PGI_WIN = 52
 
     @property
     def is_standard_compiler(self):
-        return self.name in ('GCC_STANDARD', 'CLANG_STANDARD', 'ICC_STANDARD', 'PGI_STANDARD')
+        return self.name in ('GCC_STANDARD', 'CLANG_STANDARD', 'ICC_STANDARD')
 
     @property
     def is_osx_compiler(self):
-        return self.name in ('GCC_OSX', 'CLANG_OSX', 'ICC_OSX', 'PGI_OSX')
+        return self.name in ('GCC_OSX', 'CLANG_OSX', 'ICC_OSX')
 
     @property
     def is_windows_compiler(self):
-        return self.name in ('GCC_MINGW', 'GCC_CYGWIN', 'CLANG_MINGW', 'ICC_WIN', 'ARM_WIN', 'CCRX_WIN', 'PGI_WIN')
+        return self.name in ('GCC_MINGW', 'GCC_CYGWIN', 'CLANG_MINGW', 'ICC_WIN', 'ARM_WIN', 'CCRX_WIN')
 
 
 def get_macos_dylib_install_name(prefix, shlib_name, suffix, soversion):
@@ -1708,7 +1706,7 @@ class GnuCompiler(GnuLikeCompiler):
 
 
 class PGICompiler:
-    def __init__(self, compiler_type):
+    def __init__(self, compiler_type=None):
         self.id = 'pgi'
         self.compiler_type = compiler_type
 
@@ -1723,11 +1721,6 @@ class PGICompiler:
 
     def get_no_warn_args(self) -> List[str]:
         return ['-silent']
-
-    def get_pic_args(self) -> List[str]:
-        if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
-            return [] # PGI -fPIC is Linux only.
-        return ['-fPIC']
 
     def openmp_flags(self) -> List[str]:
         return ['-mp']

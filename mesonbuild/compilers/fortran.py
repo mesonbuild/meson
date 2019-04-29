@@ -422,9 +422,9 @@ class PathScaleFortranCompiler(FortranCompiler):
 
 
 class PGIFortranCompiler(PGICompiler, FortranCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwags):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
-        PGICompiler.__init__(self, compiler_type)
+        PGICompiler.__init__(self, CompilerType.PGI_STANDARD)
 
     def language_stdlib_only_link_flags(self) -> List[str]:
         return ['-lpgf90rtl', '-lpgf90', '-lpgf90_rpm1', '-lpgf902',
