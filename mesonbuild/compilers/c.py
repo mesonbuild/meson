@@ -1729,12 +1729,6 @@ class ClangClCCompiler(VisualStudioCCompiler):
         self.id = 'clang-cl'
 
 
-class IntelClCCompiler(VisualStudioCCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap, target):
-        super().__init__(exelist, version, is_cross, exe_wrap, target)
-        self.id = 'intel'
-
-
 class ArmCCompiler(ArmCompiler, CCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
