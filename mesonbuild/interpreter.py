@@ -2454,7 +2454,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 with mlog.nested():
                     # Suppress the 'ERROR:' prefix because this exception is not
                     # fatal and VS CI treat any logs with "ERROR:" as fatal.
-                    mlog.exception(e, prefix=None)
+                    mlog.exception(e, prefix=mlog.yellow('Exception:'))
                 mlog.log('\nSubproject', mlog.bold(dirname), 'is buildable:', mlog.red('NO'), '(disabling)')
                 return self.disabled_subproject(dirname)
             raise e
