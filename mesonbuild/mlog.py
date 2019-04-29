@@ -220,7 +220,9 @@ def warning(*args: typing.Union[str, AnsiDecorator], **kwargs: typing.Any) -> No
 def deprecation(*args: typing.Union[str, AnsiDecorator], **kwargs: typing.Any) -> None:
     return _log_error('deprecation', *args, **kwargs, is_error=True)
 
-def exception(e: Exception, prefix: AnsiDecorator = red('ERROR:')) -> None:
+def exception(e: Exception, prefix: typing.Optional[AnsiDecorator] = None) -> None:
+    if prefix is None:
+        prefix = red('ERROR:')
     log()
     args = []  # type: typing.List[typing.Union[AnsiDecorator, str]]
     if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
