@@ -1117,7 +1117,11 @@ class Vs2010Backend(backends.Backend):
 
         # Add more libraries to be linked if needed
         for t in target.get_dependencies():
-            lobj = self.build.targets[t.get_id()]
+            if isinstance(t, build.CustomTargetIndex):
+                # We don't need the actual project here, just the library name
+                lobj = t
+            else:
+                lobj = self.build.targets[t.get_id()]
             linkname = os.path.join(down, self.get_target_filename_for_linking(lobj))
             if t in target.link_whole_targets:
                 # /WHOLEARCHIVE:foo must go into AdditionalOptions
