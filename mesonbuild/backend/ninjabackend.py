@@ -41,8 +41,17 @@ from ..build import InvalidArguments
 FORTRAN_SUBMOD_PAT = r"\s*submodule\s*\((\w+:?\w+)\)\s*(\w+)\s*$"
 
 def cmd_quote(s):
-    # XXX: this needs to understand how to escape any existing double quotes(")
-    return '"{}"'.format(s)
+    # see: https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/nf-shellapi-commandlinetoargvw#remarks
+
+    # backslash escape any existing double quotes
+    # any existing backslashes preceding a quote are doubled
+    s = re.sub(r'(\\*)"', lambda m: '\\' * (len(m.group(1)) * 2 + 1) + '"', s)
+    # any terminal backslashes likewise need doubling
+    s = re.sub(r'(\\*)$', lambda m: '\\' * (len(m.group(1)) * 2), s)
+    # and double quote
+    s = '"{}"'.format(s)
+
+    return s
 
 # How ninja executes command lines differs between Unix and Windows
 # (see https://ninja-build.org/manual.html#ref_rule_command)
@@ -315,8 +324,6 @@ class NinjaBuildElement:
                 else:
                     quoter = lambda x: ninja_quote(qf(x))
                 i = i.replace('\\', '\\\\')
-                if qf('') == '""':
-                    i = i.replace('"', '\\"')
                 newelems.append(quoter(i))
             line += ' '.join(newelems)
             line += '\n'
