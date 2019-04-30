@@ -14,12 +14,12 @@
 
 import functools
 import os.path
+import typing
 
 from .. import coredata
 from .. import mlog
 from ..mesonlib import MesonException, version_compare
 
-from .c import CCompiler, VisualStudioCCompiler, ClangClCCompiler
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -31,20 +31,27 @@ from .compilers import (
     ArmCompiler,
     ArmclangCompiler,
     CcrxCompiler,
+    Compiler,
+    VisualStudioLikeCompiler,
 )
-from .c_function_attributes import CXX_FUNC_ATTRIBUTES
+from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
+from .clike import CLikeCompiler
 
-class CPPCompiler(CCompiler):
+class CPPCompiler(CLikeCompiler, Compiler):
 
     @classmethod
     def attribute_check_func(cls, name):
-        return CXX_FUNC_ATTRIBUTES.get(name, super().attribute_check_func(name))
+        try:
+            return CXX_FUNC_ATTRIBUTES.get(name, C_FUNC_ATTRIBUTES[name])
+        except KeyError:
+            raise MesonException('Unknown function attribute "{}"'.format(name))
 
-    def __init__(self, exelist, version, is_cross, exe_wrap, **kwargs):
+    def __init__(self, exelist, version, is_cross: bool,
+                 exe_wrap: typing.Optional[str] = None, **kwargs):
         # If a child ObjCPP class has already set it, don't set it ourselves
-        if not hasattr(self, 'language'):
-            self.language = 'cpp'
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
+        self.language = 'cpp'
+        Compiler.__init__(self, exelist, version, **kwargs)
+        CLikeCompiler.__init__(self, is_cross, exe_wrap)
 
     def get_display_language(self):
         return 'C++'
@@ -322,25 +329,14 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
         return []
 
 
-class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap, target):
-        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
-        VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap, target)
-        self.base_options = ['b_pch', 'b_vscrt'] # FIXME add lto, pgo and the like
+class VisualStudioLikeCPPCompilerMixin:
 
-    def get_options(self):
-        cpp_stds = ['none', 'c++11', 'vc++11']
-        if self.id == 'clang-cl':
-            cpp_stds.extend(['c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest'])
-        else:
-            # Visual Studio 2015 and later
-            if version_compare(self.version, '>=19'):
-                cpp_stds.extend(['c++14', 'vc++14', 'c++latest', 'vc++latest'])
-            # Visual Studio 2017 and later
-            if version_compare(self.version, '>=19.11'):
-                cpp_stds.extend(['c++17', 'vc++17'])
+    """Mixin for C++ specific method overrides in MSVC-like compilers."""
 
-        opts = CPPCompiler.get_options(self)
+    def get_option_link_args(self, options):
+        return options['cpp_winlibs'].value[:]
+
+    def _get_options_impl(self, opts, cpp_stds: typing.List[str]):
         opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
                                                         'C++ exception handling type.',
                                                         ['none', 'a', 's', 'sc'],
@@ -393,18 +389,39 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
 
         return args
 
-    def get_option_link_args(self, options):
-        return options['cpp_winlibs'].value[:]
-
     def get_compiler_check_args(self):
-        # Visual Studio C++ compiler doesn't support -fpermissive,
-        # so just use the plain C args.
-        return VisualStudioCCompiler.get_compiler_check_args(self)
+        # XXX: this is a hack because so much GnuLike stuff is in the base CPPCompiler class.
+        return CLikeCompiler.get_compiler_check_args(self)
 
-class ClangClCPPCompiler(VisualStudioCPPCompiler, ClangClCCompiler):
+
+class VisualStudioCPPCompiler(VisualStudioLikeCPPCompilerMixin, VisualStudioLikeCompiler, CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap, target):
-        VisualStudioCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, target)
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        VisualStudioLikeCompiler.__init__(self, target)
+        self.base_options = ['b_pch', 'b_vscrt'] # FIXME add lto, pgo and the like
+        self.id = 'msvc'
+
+    def get_options(self):
+        cpp_stds = ['none', 'c++11', 'vc++11']
+        # Visual Studio 2015 and later
+        if version_compare(self.version, '>=19'):
+            cpp_stds.extend(['c++14', 'vc++14', 'c++latest', 'vc++latest'])
+        # Visual Studio 2017 and later
+        if version_compare(self.version, '>=19.11'):
+            cpp_stds.extend(['c++17', 'vc++17'])
+        return self._get_options_impl(super().get_options(), cpp_stds)
+
+
+class ClangClCPPCompiler(VisualStudioLikeCPPCompilerMixin, VisualStudioLikeCompiler, CPPCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrap, target):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        VisualStudioLikeCompiler.__init__(self, target)
         self.id = 'clang-cl'
+
+    def get_options(self):
+        cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest']
+        return self._get_options_impl(super().get_options(), cpp_stds)
+
 
 class ArmCPPCompiler(ArmCompiler, CPPCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrap=None, **kwargs):

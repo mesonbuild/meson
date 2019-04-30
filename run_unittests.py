@@ -1939,8 +1939,8 @@ class AllPlatformTests(BasePlatformTests):
         gnu = mesonbuild.compilers.GnuCompiler
         clang = mesonbuild.compilers.ClangCompiler
         intel = mesonbuild.compilers.IntelCompiler
-        msvc = mesonbuild.compilers.VisualStudioCCompiler
-        clangcl = mesonbuild.compilers.ClangClCCompiler
+        msvc = (mesonbuild.compilers.VisualStudioCCompiler, mesonbuild.compilers.VisualStudioCPPCompiler)
+        clangcl = (mesonbuild.compilers.ClangClCCompiler, mesonbuild.compilers.ClangClCPPCompiler)
         ar = mesonbuild.linkers.ArLinker
         lib = mesonbuild.linkers.VisualStudioLinker
         langs = [('c', 'CC'), ('cpp', 'CXX')]

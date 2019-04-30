@@ -1158,7 +1158,7 @@ class Environment:
                 linkers = [self.cuda_static_linker, self.default_static_linker]
             elif evar in os.environ:
                 linkers = [shlex.split(os.environ[evar])]
-            elif isinstance(compiler, compilers.VisualStudioCCompiler):
+            elif isinstance(compiler, compilers.VisualStudioLikeCompiler):
                 linkers = [self.vs_static_linker, self.clang_cl_static_linker]
             elif isinstance(compiler, compilers.GnuCompiler):
                 # Use gcc-ar if available; needed for LTO
