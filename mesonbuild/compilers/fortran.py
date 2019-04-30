@@ -15,7 +15,6 @@ from typing import List
 import subprocess, os
 from pathlib import Path
 
-from .c import CCompiler
 from .compilers import (
     CompilerType,
     apple_buildtype_linker_args,
@@ -28,53 +27,25 @@ from .compilers import (
     ClangCompiler,
     ElbrusCompiler,
     IntelCompiler,
-    PGICompiler
+    PGICompiler,
 )
+from .clike import CLikeCompiler
 
 from mesonbuild.mesonlib import (
     EnvironmentException, MachineChoice, is_osx, LibType
 )
 
 
-class FortranCompiler(Compiler):
-    library_dirs_cache = CCompiler.library_dirs_cache
-    program_dirs_cache = CCompiler.library_dirs_cache
-    find_library_cache = CCompiler.library_dirs_cache
+class FortranCompiler(CLikeCompiler, Compiler):
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
         self.language = 'fortran'
         Compiler.__init__(self, exelist, version, **kwargs)
-        cc = CCompiler(exelist, version, is_cross, exe_wrapper, **kwargs)
+        CLikeCompiler.__init__(self, is_cross, exe_wrapper)
         self.id = 'unknown'
-        self.is_cross = cc.is_cross
-        self.exe_wrapper = cc.exe_wrapper
 
     def get_display_language(self):
         return 'Fortran'
-
-    def needs_static_linker(self):
-        return CCompiler.needs_static_linker(self)
-
-    def get_always_args(self):
-        return CCompiler.get_always_args(self)
-
-    def get_linker_debug_crt_args(self):
-        return CCompiler.get_linker_debug_crt_args(self)
-
-    def get_no_stdinc_args(self):
-        return CCompiler.get_no_stdinc_args(self)
-
-    def get_no_stdlib_link_args(self):
-        return CCompiler.get_no_stdlib_link_args(self)
-
-    def get_warn_args(self, level):
-        return CCompiler.get_warn_args(self, level)
-
-    def get_no_warn_args(self):
-        return CCompiler.get_no_warn_args(self)
-
-    def get_soname_args(self, *args):
-        return CCompiler.get_soname_args(self, *args)
 
     def sanity_check(self, work_dir: Path, environment):
         """
@@ -133,59 +104,11 @@ class FortranCompiler(Compiler):
             return apple_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
 
-    def split_shlib_to_parts(self, fname):
-        return CCompiler.split_shlib_to_parts(self, fname)
-
-    def build_rpath_args(self, *args):
-        return CCompiler.build_rpath_args(self, *args)
-
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
 
-    def depfile_for_object(self, objfile):
-        return CCompiler.depfile_for_object(self, objfile)
-
-    def get_depfile_suffix(self):
-        return CCompiler.get_depfile_suffix(self)
-
-    def get_exelist(self):
-        return CCompiler.get_exelist(self)
-
-    def get_linker_exelist(self):
-        return CCompiler.get_linker_exelist(self)
-
     def get_preprocess_only_args(self):
-        return ['-cpp'] + CCompiler.get_preprocess_only_args(self)
-
-    def get_compile_only_args(self):
-        return CCompiler.get_compile_only_args(self)
-
-    def get_no_optimization_args(self):
-        return CCompiler.get_no_optimization_args(self)
-
-    def get_compiler_check_args(self):
-        return CCompiler.get_compiler_check_args(self)
-
-    def get_output_args(self, target):
-        return CCompiler.get_output_args(self, target)
-
-    def get_linker_output_args(self, outputname):
-        return CCompiler.get_linker_output_args(self, outputname)
-
-    def get_coverage_args(self):
-        return CCompiler.get_coverage_args(self)
-
-    def get_coverage_link_args(self):
-        return CCompiler.get_coverage_link_args(self)
-
-    def get_werror_args(self):
-        return CCompiler.get_werror_args(self)
-
-    def get_std_exe_link_args(self):
-        return CCompiler.get_std_exe_link_args(self)
-
-    def get_include_args(self, path, is_system):
-        return CCompiler.get_include_args(self, path, is_system)
+        return ['-cpp'] + super().get_preprocess_only_args()
 
     def get_module_incdir_args(self):
         return ('-I', )
@@ -214,102 +137,12 @@ class FortranCompiler(Compiler):
 
         return filename
 
-    def get_std_shared_lib_link_args(self):
-        return CCompiler.get_std_shared_lib_link_args(self)
-
-    def _get_search_dirs(self, *args, **kwargs):
-        return CCompiler._get_search_dirs(self, *args, **kwargs)
-
-    def get_compiler_dirs(self, *args, **kwargs):
-        return CCompiler.get_compiler_dirs(self, *args, **kwargs)
-
-    def get_library_dirs(self, *args, **kwargs):
-        return CCompiler.get_library_dirs(self, *args, **kwargs)
-
-    def get_pic_args(self):
-        return CCompiler.get_pic_args(self)
-
-    def name_string(self):
-        return CCompiler.name_string(self)
-
-    def get_linker_search_args(self, dirname):
-        return CCompiler.get_linker_search_args(self, dirname)
-
-    def get_default_include_dirs(self):
-        return CCompiler.get_default_include_dirs(self)
-
-    def gen_export_dynamic_link_args(self, env):
-        return CCompiler.gen_export_dynamic_link_args(self, env)
-
-    def gen_import_library_args(self, implibname):
-        return CCompiler.gen_import_library_args(self, implibname)
-
-    def _get_basic_compiler_args(self, env, mode):
-        return CCompiler._get_basic_compiler_args(self, env, mode)
-
-    def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
-        return CCompiler._get_compiler_check_args(self, env, extra_args, dependencies, mode=mode)
-
-    def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile', disable_cache=False):
-        return CCompiler.compiles(self, code, env, extra_args=extra_args,
-                                  dependencies=dependencies, mode=mode, disable_cache=disable_cache)
-
-    def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False, disable_cache=False):
-        return CCompiler._build_wrapper(self, code, env, extra_args, dependencies, mode, want_output, disable_cache=disable_cache)
-
-    def links(self, code, env, *, extra_args=None, dependencies=None, disable_cache=False):
-        return CCompiler.links(self, code, env, extra_args=extra_args,
-                               dependencies=dependencies, disable_cache=disable_cache)
-
-    def run(self, code, env, *, extra_args=None, dependencies=None):
-        return CCompiler.run(self, code, env, extra_args=extra_args, dependencies=dependencies)
-
-    def _get_patterns(self, *args, **kwargs):
-        return CCompiler._get_patterns(self, *args, **kwargs)
-
-    def get_library_naming(self, *args, **kwargs):
-        return CCompiler.get_library_naming(self, *args, **kwargs)
-
-    def find_library_real(self, *args):
-        return CCompiler.find_library_real(self, *args)
-
-    def find_library_impl(self, *args):
-        return CCompiler.find_library_impl(self, *args)
-
     def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):
         code = '''program main
             call exit(0)
         end program main'''
         return self.find_library_impl(libname, env, extra_dirs, code, libtype)
 
-    def thread_flags(self, env):
-        return CCompiler.thread_flags(self, env)
-
-    def thread_link_flags(self, env):
-        return CCompiler.thread_link_flags(self, env)
-
-    def linker_to_compiler_args(self, args):
-        return CCompiler.linker_to_compiler_args(self, args)
-
-    def has_arguments(self, args, env, code, mode):
-        return CCompiler.has_arguments(self, args, env, code, mode)
-
-    def has_multi_arguments(self, args, env):
-        return CCompiler.has_multi_arguments(self, args, env)
-
-    def has_header(self, hname, prefix, env, *, extra_args=None, dependencies=None, disable_cache=False):
-        return CCompiler.has_header(self, hname, prefix, env, extra_args=extra_args, dependencies=dependencies, disable_cache=disable_cache)
-
-    def get_define(self, dname, prefix, env, extra_args, dependencies, disable_cache=False):
-        return CCompiler.get_define(self, dname, prefix, env, extra_args, dependencies, disable_cache=disable_cache)
-
-    @classmethod
-    def _get_trials_from_pattern(cls, pattern, directory, libname):
-        return CCompiler._get_trials_from_pattern(pattern, directory, libname)
-
-    @staticmethod
-    def _get_file_from_list(env, files: List[str]) -> Path:
-        return CCompiler._get_file_from_list(env, files)
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):

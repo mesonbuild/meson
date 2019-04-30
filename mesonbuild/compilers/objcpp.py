@@ -13,16 +13,18 @@
 # limitations under the License.
 
 import os.path, subprocess
+import typing
 
 from ..mesonlib import EnvironmentException, MachineChoice
 
-from .cpp import CPPCompiler
-from .compilers import ClangCompiler, GnuCompiler
+from .clike import CLikeCompiler
+from .compilers import Compiler, ClangCompiler, GnuCompiler
 
-class ObjCPPCompiler(CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap):
+class ObjCPPCompiler(CLikeCompiler, Compiler):
+    def __init__(self, exelist, version, is_cross: bool, exe_wrap: typing.Optional[str]):
         self.language = 'objcpp'
-        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        Compiler.__init__(self, exelist, version)
+        CLikeCompiler.__init__(self, is_cross, exe_wrap)
 
     def get_display_language(self):
         return 'Objective-C++'
