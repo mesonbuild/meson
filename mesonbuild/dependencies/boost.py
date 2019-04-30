@@ -105,7 +105,7 @@ class BoostDependency(ExternalDependency):
 
         self.requested_modules = self.get_requested(kwargs)
         if 'thread' in self.requested_modules:
-            self.ext_deps.append(ThreadDependency(environment, kwargs))
+            self._add_sub_dependency(ThreadDependency, environment, kwargs)
 
         self.boost_root = None
         self.boost_roots = []
