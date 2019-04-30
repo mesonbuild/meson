@@ -111,13 +111,13 @@ class NinjaRule:
         outfile.write('\n')
 
 class NinjaBuildElement:
-    def __init__(self, all_outputs, outfilenames, rule, infilenames):
+    def __init__(self, all_outputs, outfilenames, rulename, infilenames):
         if isinstance(outfilenames, str):
             self.outfilenames = [outfilenames]
         else:
             self.outfilenames = outfilenames
-        assert(isinstance(rule, str))
-        self.rule = rule
+        assert(isinstance(rulename, str))
+        self.rulename = rulename
         if isinstance(infilenames, str):
             self.infilenames = [infilenames]
         else:
@@ -147,7 +147,7 @@ class NinjaBuildElement:
     def write(self, outfile):
         self.check_outputs()
         line = 'build %s: %s %s' % (' '.join([ninja_quote(i, True) for i in self.outfilenames]),
-                                    self.rule,
+                                    self.rulename,
                                     ' '.join([ninja_quote(i, True) for i in self.infilenames]))
         if len(self.deps) > 0:
             line += ' | ' + ' '.join([ninja_quote(x, True) for x in self.deps])
@@ -879,8 +879,8 @@ int dummy;
         self.build_elements.append(build)
 
         # increment rule refcount
-        if build.rule != 'phony':
-            self.ruledict[build.rule].refcount += 1
+        if build.rulename != 'phony':
+            self.ruledict[build.rulename].refcount += 1
 
     def write_rules(self, outfile):
         for r in self.rules:
