@@ -981,7 +981,7 @@ class InternalTests(unittest.TestCase):
         toolset_ver = cc.get_toolset_version()
         self.assertIsNotNone(toolset_ver)
         # Visual Studio 2015 and older versions do not define VCToolsVersion
-        if int(''.join(cc.version.split('.')[0:2])) < 1910:
+        if cc.id == 'msvc' and int(''.join(cc.version.split('.')[0:2])) < 1910:
             return
         self.assertIn('VCToolsVersion', os.environ)
         vctools_ver = os.environ['VCToolsVersion']
