@@ -121,14 +121,14 @@ class NinjaRule:
         outfile.write('\n')
 
 class NinjaBuildElement:
-    def __init__(self, all_outputs, outfilenames, rule, infilenames, implicit_outs=None):
+    def __init__(self, all_outputs, outfilenames, rulename, infilenames, implicit_outs=None):
         self.implicit_outfilenames = implicit_outs or []
         if isinstance(outfilenames, str):
             self.outfilenames = [outfilenames]
         else:
             self.outfilenames = outfilenames
-        assert(isinstance(rule, str))
-        self.rule = rule
+        assert(isinstance(rulename, str))
+        self.rulename = rulename
         if isinstance(infilenames, str):
             self.infilenames = [infilenames]
         else:
@@ -166,7 +166,7 @@ class NinjaBuildElement:
         implicit_outs = ' '.join([ninja_quote(i, True) for i in self.implicit_outfilenames])
         if implicit_outs:
             implicit_outs = ' | ' + implicit_outs
-        line = 'build {}{}: {} {}'.format(outs, implicit_outs, self.rule, ins)
+        line = 'build {}{}: {} {}'.format(outs, implicit_outs, self.rulename, ins)
         if len(self.deps) > 0:
             line += ' | ' + ' '.join([ninja_quote(x, True) for x in self.deps])
         if len(self.orderdeps) > 0:
@@ -901,8 +901,8 @@ int dummy;
         self.build_elements.append(build)
 
         # increment rule refcount
-        if build.rule != 'phony':
-            self.ruledict[build.rule].refcount += 1
+        if build.rulename != 'phony':
+            self.ruledict[build.rulename].refcount += 1
 
     def write_rules(self, outfile):
         for r in self.rules:
