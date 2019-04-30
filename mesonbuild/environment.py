@@ -460,12 +460,18 @@ class Environment:
         # List of potential compilers.
         if mesonlib.is_windows():
             # Intel C and C++ compiler is icl on Windows, but icc and icpc elsewhere.
-            self.default_c = ['cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc', 'icl']
+            # Search for icl before cl, since Intel "helpfully" provides a
+            # cl.exe that returns *exactly the same thing* that microsofts
+            # cl.exe does, and if icl is present, it's almost certainly what
+            # you want.
+            self.default_c = ['icl', 'cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc']
             # There is currently no pgc++ for Windows, only for  Mac and Linux.
-            self.default_cpp = ['cl', 'c++', 'g++', 'clang++', 'clang-cl', 'icl']
+            self.default_cpp = ['icl', 'cl', 'c++', 'g++', 'clang++', 'clang-cl']
+            self.default_fortran = ['ifort', 'gfortran', 'flang', 'pgfortran', 'g95']
         else:
             self.default_c = ['cc', 'gcc', 'clang', 'pgcc', 'icc']
             self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++', 'icpc']
+            self.default_fortran = ['gfortran', 'flang', 'pgfortran', 'ifort', 'g95']
         if mesonlib.is_windows():
             self.default_cs = ['csc', 'mcs']
         else:
@@ -473,7 +479,6 @@ class Environment:
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
         self.default_d = ['ldc2', 'ldc', 'gdc', 'dmd']
-        self.default_fortran = ['gfortran', 'flang', 'pgfortran', 'ifort', 'g95']
         self.default_java = ['javac']
         self.default_cuda = ['nvcc']
         self.default_rust = ['rustc']
