@@ -30,7 +30,7 @@ from .compilers import (
     CompilerType,
     GnuCompiler,
     ElbrusCompiler,
-    IntelCompiler,
+    IntelGnuLikeCompiler,
     PGICompiler,
     CcrxCompiler,
     VisualStudioLikeCompiler,
@@ -221,10 +221,10 @@ class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
                                         dependencies=dependencies)
 
 
-class IntelCCompiler(IntelCompiler, CCompiler):
+class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
-        IntelCompiler.__init__(self, compiler_type)
+        IntelGnuLikeCompiler.__init__(self, compiler_type)
         self.lang_header = 'c-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark']
         self.warn_args = {'0': [],

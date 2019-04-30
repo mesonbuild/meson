@@ -26,8 +26,8 @@ from .compilers import (
     GnuCompiler,
     ClangCompiler,
     ElbrusCompiler,
-    IntelCompiler,
-    PGICompiler,
+    IntelGnuLikeCompiler,
+    PGICompiler
 )
 from .clike import CLikeCompiler
 
@@ -213,13 +213,13 @@ class SunFortranCompiler(FortranCompiler):
         return ['-xopenmp']
 
 
-class IntelFortranCompiler(IntelCompiler, FortranCompiler):
+class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwags):
         self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp')
         FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwags)
         # FIXME: Add support for OS X and Windows in detect_fortran_compiler so
         # we are sent the type of compiler
-        IntelCompiler.__init__(self, CompilerType.ICC_STANDARD)
+        IntelGnuLikeCompiler.__init__(self, CompilerType.ICC_STANDARD)
         self.id = 'intel'
         default_warn_args = ['-warn', 'general', '-warn', 'truncated_source']
         self.warn_args = {'0': [],

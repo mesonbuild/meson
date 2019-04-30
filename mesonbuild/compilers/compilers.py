@@ -2288,7 +2288,7 @@ class ArmclangCompiler:
 
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1, 19.0.0
-class IntelCompiler(GnuLikeCompiler):
+class IntelGnuLikeCompiler(GnuLikeCompiler):
 
     def __init__(self, compiler_type):
         super().__init__(compiler_type)

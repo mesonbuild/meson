@@ -65,7 +65,7 @@ __all__ = [
     'FlangFortranCompiler',
     'GnuObjCCompiler',
     'GnuObjCPPCompiler',
-    'IntelCompiler',
+    'IntelGnuLikeCompiler',
     'IntelCCompiler',
     'IntelCPPCompiler',
     'IntelFortranCompiler',
@@ -119,7 +119,7 @@ from .compilers import (
     ClangCompiler,
     CompilerArgs,
     GnuCompiler,
-    IntelCompiler,
+    IntelGnuLikeCompiler,
     CcrxCompiler,
     VisualStudioLikeCompiler,
 )

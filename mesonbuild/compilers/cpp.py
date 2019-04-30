@@ -27,7 +27,7 @@ from .compilers import (
     ClangCompiler,
     GnuCompiler,
     ElbrusCompiler,
-    IntelCompiler,
+    IntelGnuLikeCompiler,
     PGICompiler,
     ArmCompiler,
     ArmclangCompiler,
@@ -301,10 +301,10 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
                                         dependencies=dependencies)
 
 
-class IntelCPPCompiler(IntelCompiler, CPPCompiler):
+class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
     def __init__(self, exelist, version, compiler_type, is_cross, exe_wrap, **kwargs):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap, **kwargs)
-        IntelCompiler.__init__(self, compiler_type)
+        IntelGnuLikeCompiler.__init__(self, compiler_type)
         self.lang_header = 'c++-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark',
                              '-Wpch-messages', '-Wnon-virtual-dtor']
