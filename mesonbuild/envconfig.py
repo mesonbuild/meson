@@ -134,7 +134,7 @@ class Properties(HasEnvVarFallback):
     def get_sys_root(self) -> typing.Optional[typing.Union[str, typing.List[str]]]:
         return self.properties.get('sys_root', None)
 
-    def __eq__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+    def __eq__(self, other: typing.Any) -> 'typing.Union[bool, NotImplemented]':
         if isinstance(other, type(self)):
             return self.properties == other.properties
         return NotImplemented
@@ -159,7 +159,7 @@ class MachineInfo:
         self.endian = endian
         self.is_64_bit = cpu_family in CPU_FAMILES_64_BIT  # type: bool
 
-    def __eq__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+    def __eq__(self, other: typing.Any) -> 'typing.Union[bool, NotImplemented]':
         if self.__class__ is not other.__class__:
             return NotImplemented
         return \
@@ -168,7 +168,7 @@ class MachineInfo:
             self.cpu == other.cpu and \
             self.endian == other.endian
 
-    def __ne__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+    def __ne__(self, other: typing.Any) -> 'typing.Union[bool, NotImplemented]':
         if self.__class__ is not other.__class__:
             return NotImplemented
         return not self.__eq__(other)

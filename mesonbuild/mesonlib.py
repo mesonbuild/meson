@@ -920,7 +920,8 @@ def extract_as_list(dict_object, *keys, pop=False, **kwargs):
         result.append(listify(fetch(key, []), **kwargs))
     return result
 
-def typeslistify(item: typing.Union[_T, typing.List[_T]], types: typing.Union[typing.Type[_T], typing.Tuple[typing.Type[_T]]]) -> typing.List[_T]:
+def typeslistify(item: 'typing.Union[_T, typing.List[_T]]',
+                 types: 'typing.Union[typing.Type[_T], typing.Tuple[typing.Type[_T]]]') -> typing.List[_T]:
     '''
     Ensure that type(@item) is one of @types or a
     list of items all of which are of type @types
