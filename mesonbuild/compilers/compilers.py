@@ -1788,16 +1788,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             return None
         return vs32_instruction_set_args.get(instruction_set, None)
 
-    def get_toolset_version(self):
-        if self.id == 'clang-cl':
-            # I have no idea
-            return '14.1'
-
-        # See boost/config/compiler/visualc.cpp for up to date mapping
-        try:
-            version = int(''.join(self.version.split('.')[0:2]))
-        except ValueError:
-            return None
+    def _calculate_toolset_version(self, version: int) -> Optional[str]:
         if version < 1310:
             return '7.0'
         elif version < 1400:
@@ -1820,6 +1811,18 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             return '14.2' # (Visual Studio 2019)
         mlog.warning('Could not find toolset for version {!r}'.format(self.version))
         return None
+
+    def get_toolset_version(self):
+        if self.id == 'clang-cl':
+            # I have no idea
+            return '14.1'
+
+        # See boost/config/compiler/visualc.cpp for up to date mapping
+        try:
+            version = int(''.join(self.version.split('.')[0:2]))
+        except ValueError:
+            return None
+        return self._calculate_toolset_version(version)
 
     def get_default_include_dirs(self):
         if 'INCLUDE' not in os.environ:
