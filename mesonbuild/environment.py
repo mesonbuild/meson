@@ -1055,8 +1055,9 @@ class Environment:
         # up to date language version at time (2016).
         if exelist is not None:
             if os.path.basename(exelist[-1]).startswith(('ldmd', 'gdmd')):
-                raise EnvironmentException('Meson does not support {} as it is only a DMD frontend for another compiler.'.format(exelist[-1])
-                                           'Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.')
+                raise EnvironmentException(
+                    'Meson does not support {} as it is only a DMD frontend for another compiler.'
+                    'Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.'.format(exelist[-1]))
         else:
             for d in self.default_d:
                 if shutil.which(d):
