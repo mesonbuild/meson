@@ -323,7 +323,6 @@ class NinjaBuildElement:
                     quoter = ninja_quote
                 else:
                     quoter = lambda x: ninja_quote(qf(x))
-                i = i.replace('\\', '\\\\')
                 newelems.append(quoter(i))
             line += ' '.join(newelems)
             line += '\n'
