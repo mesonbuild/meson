@@ -16,7 +16,7 @@ import os.path
 import typing
 
 from .. import coredata
-from ..mesonlib import MesonException, version_compare
+from ..mesonlib import MesonException, version_compare, mlog
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .clike import CLikeCompiler
 
@@ -31,6 +31,7 @@ from .compilers import (
     GnuCompiler,
     ElbrusCompiler,
     IntelGnuLikeCompiler,
+    IntelVisualStudioLikeCompiler,
     PGICompiler,
     CcrxCompiler,
     VisualStudioLikeCompiler,
@@ -277,6 +278,36 @@ class ClangClCCompiler(VisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin,
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         VisualStudioLikeCompiler.__init__(self, target)
         self.id = 'clang-cl'
+
+
+class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
+
+    """Intel "ICL" compiler abstraction."""
+
+    __have_warned = False
+
+    def __init__(self, exelist, version, is_cross, exe_wrap, target):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        IntelVisualStudioLikeCompiler.__init__(self, target)
+
+    def get_options(self):
+        opts = super().get_options()
+        c_stds = ['none', 'c89', 'c99', 'c11']
+        opts.update({'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
+                                                       c_stds,
+                                                       'none')})
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['c_std']
+        if std.value == 'c89':
+            if not self.__have_warned:
+                self.__have_warned = True
+                mlog.warning("ICL doesn't explicitly implement c89, setting the standard to 'none', which is close.")
+        elif std.value != 'none':
+            args.append('/Qstd:' + std.value)
+        return args
 
 
 class ArmCCompiler(ArmCompiler, CCompiler):

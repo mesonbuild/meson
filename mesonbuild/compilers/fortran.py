@@ -27,7 +27,8 @@ from .compilers import (
     ClangCompiler,
     ElbrusCompiler,
     IntelGnuLikeCompiler,
-    PGICompiler
+    PGICompiler,
+    IntelVisualStudioLikeCompiler,
 )
 from .clike import CLikeCompiler
 
@@ -66,6 +67,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
             for_machine = MachineChoice.HOST
         extra_flags = environment.coredata.get_external_args(for_machine, self.language)
         extra_flags += environment.coredata.get_external_link_args(for_machine, self.language)
+        extra_flags += self.get_always_args()
         # %% build the test executable
         pc = subprocess.Popen(self.exelist + extra_flags + [str(source_name), '-o', str(binary_name)])
         pc.wait()
@@ -238,6 +240,36 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
     def language_stdlib_only_link_flags(self):
         return ['-lifcore', '-limf']
+
+class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
+
+    file_suffixes = ['f90', 'f', 'for', 'ftn', 'fpp']
+    always_args = ['/nologo']
+
+    BUILD_ARGS = {
+        'plain': [],
+        'debug': ["/Zi", "/Od"],
+        'debugoptimized': ["/Zi", "/O1"],
+        'release': ["/O2"],
+        'minsize': ["/Os"],
+        'custom': [],
+    }
+
+    def __init__(self, exelist, version, is_cross, target: str, exe_wrapper=None):
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        IntelVisualStudioLikeCompiler.__init__(self, target)
+
+        default_warn_args = ['/warn:general', '/warn:truncated_source']
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
+                          '2': default_warn_args + ['/warn:unused'],
+                          '3': ['/warn:all']}
+
+    def get_module_outdir_args(self, path) -> List[str]:
+        return ['/module:' + path]
+
+    def get_buildtype_args(self, buildtype: str) -> List[str]:
+        return self.BUILD_ARGS[buildtype]
 
 
 class PathScaleFortranCompiler(FortranCompiler):

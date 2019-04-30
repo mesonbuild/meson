@@ -28,6 +28,7 @@ from .compilers import (
     GnuCompiler,
     ElbrusCompiler,
     IntelGnuLikeCompiler,
+    IntelVisualStudioLikeCompiler,
     PGICompiler,
     ArmCompiler,
     ArmclangCompiler,
@@ -479,6 +480,18 @@ class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, Vi
         self.id = 'clang-cl'
 
     def get_options(self):
+        cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest']
+        return self._get_options_impl(super().get_options(), cpp_stds)
+
+
+class IntelClCPPCompiler(VisualStudioLikeCPPCompilerMixin, IntelVisualStudioLikeCompiler, CPPCompiler):
+
+    def __init__(self, exelist, version, is_cross, exe_wrap, target):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        IntelVisualStudioLikeCompiler.__init__(self, target)
+
+    def get_options(self):
+        # This has only been tested with verison 19.0,
         cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest']
         return self._get_options_impl(super().get_options(), cpp_stds)
 

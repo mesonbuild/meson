@@ -2344,6 +2344,48 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         return ['-prof-use']
 
 
+class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
+
+    """Abstractions for ICL, the Intel compiler on Windows."""
+
+    def __init__(self, target: str):
+        super().__init__(target)
+        self.compiler_type = CompilerType.ICC_WIN
+        self.id = 'intel-cl'
+
+    def compile(self, code, *, extra_args=None, **kwargs):
+        # This covers a case that .get('foo', []) doesn't, that extra_args is
+        if kwargs.get('mode', 'compile') != 'link':
+            extra_args = extra_args.copy() if extra_args is not None else []
+            extra_args.extend([
+                '/Qdiag-error:10006',  # ignoring unknown option
+                '/Qdiag-error:10148',  # Option not supported
+                '/Qdiag-error:10155',  # ignoring argument required
+                '/Qdiag-error:10156',  # ignoring not argument allowed
+                '/Qdiag-error:10157',  # Ignoring argument of the wrong type
+                '/Qdiag-error:10158',  # Argument must be separate. Can be hit by trying an option like -foo-bar=foo when -foo=bar is a valid option but -foo-bar isn't
+            ])
+        return super().compile(code, extra_args, **kwargs)
+
+    def get_toolset_version(self) -> Optional[str]:
+        # Avoid circular dependencies....
+        from ..environment import search_version
+
+        # ICL provides a cl.exe that returns the version of MSVC it tries to
+        # emulate, so we'll get the version from that and pass it to the same
+        # function the real MSVC uses to calculate the toolset version.
+        _, _, err = Popen_safe(['cl.exe'])
+        v1, v2, *_ = search_version(err).split('.')
+        version = int(v1 + v2)
+        return self._calculate_toolset_version(version)
+
+    def get_linker_exelist(self):
+        return ['xilink']
+
+    def openmp_flags(self):
+        return ['/Qopenmp']
+
+
 class ArmCompiler:
     # Functionality that is common to all ARM family compilers.
     def __init__(self, compiler_type):
