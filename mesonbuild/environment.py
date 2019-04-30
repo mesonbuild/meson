@@ -60,7 +60,10 @@ from .compilers import (
     ElbrusFortranCompiler,
     IntelCCompiler,
     IntelCPPCompiler,
+    IntelClCCompiler,
+    IntelClCPPCompiler,
     IntelFortranCompiler,
+    IntelClFortranCompiler,
     JavaCompiler,
     MonoCompiler,
     CudaCompiler,
@@ -677,8 +680,12 @@ class Environment:
                 arg = '--vsn'
             elif 'ccrx' in compiler[0]:
                 arg = '-v'
+            elif 'icl' in compiler[0]:
+                # if you pass anything to icl you get stuck in a pager
+                arg = ''
             else:
                 arg = '--version'
+
             try:
                 p, out, err = Popen_safe(compiler + [arg])
             except OSError as e:
@@ -753,6 +760,11 @@ class Environment:
                     compiler_type = CompilerType.CLANG_STANDARD
                 cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
+            if 'Intel(R) C++ Intel(R)' in err:
+                version = search_version(err)
+                target = 'x86' if 'IA-32' in err else 'x86_64'
+                cls = IntelClCCompiler if lang == 'c' else IntelClCPPCompiler
+                return cls(compiler, version, is_cross, exe_wrap, target)
             if 'Microsoft' in out or 'Microsoft' in err:
                 # Latest versions of Visual Studio print version
                 # number to stderr but earlier ones print version
@@ -885,6 +897,11 @@ class Environment:
                 if 'Sun Fortran' in err:
                     version = search_version(err)
                     return SunFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
+
+                if 'Intel(R) Visual Fortran' in err:
+                    version = search_version(err)
+                    target = 'x86' if 'IA-32' in err else 'x86_64'
+                    return IntelClFortranCompiler(compiler, version, is_cross, target, exe_wrap)
 
                 if 'ifort (IFORT)' in out:
                     return IntelFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
