@@ -873,7 +873,7 @@ Timeout:            %4d
         return wrap
 
     def get_pretty_suite(self, test):
-        if len(self.suites) > 1:
+        if len(self.suites) > 1 and test.suite:
             rv = TestHarness.split_suite_string(test.suite[0])[0]
             s = "+".join(TestHarness.split_suite_string(s)[1] for s in test.suite)
             if len(s):
