@@ -981,6 +981,7 @@ class InternalTests(unittest.TestCase):
         toolset_ver = cc.get_toolset_version()
         self.assertIsNotNone(toolset_ver)
         # Visual Studio 2015 and older versions do not define VCToolsVersion
+        # TODO: ICL doesn't set this in the VSC2015 profile either
         if cc.id == 'msvc' and int(''.join(cc.version.split('.')[0:2])) < 1910:
             return
         self.assertIn('VCToolsVersion', os.environ)
@@ -2821,7 +2822,7 @@ recommended as it is not supported on some platforms''')
         testdirlib = os.path.join(testdirbase, 'lib')
         extra_args = None
         env = get_fake_env(testdirlib, self.builddir, self.prefix)
-        if env.detect_c_compiler(False).get_id() not in ['msvc', 'clang-cl']:
+        if env.detect_c_compiler(False).get_id() not in {'msvc', 'clang-cl', 'intel-cl'}:
             # static libraries are not linkable with -l with msvc because meson installs them
             # as .a files which unix_args_to_native will not know as it expects libraries to use
             # .lib as extension. For a DLL the import library is installed as .lib. Thus for msvc
