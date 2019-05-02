@@ -191,7 +191,7 @@ class MesonApp:
         # Print all default option values that don't match the current value
         for def_opt_name, def_opt_value, cur_opt_value in intr.get_non_matching_default_options():
             mlog.log('Option', mlog.bold(def_opt_name), 'is:',
-                     mlog.bold(make_lower_case(cur_opt_value.printable_value())),
+                     mlog.bold('{}'.format(make_lower_case(cur_opt_value.printable_value()))),
                      '[default: {}]'.format(make_lower_case(def_opt_value)))
         try:
             dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
