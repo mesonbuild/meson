@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
 import copy, os, re
 from collections import OrderedDict
 import itertools, pathlib
@@ -88,7 +89,7 @@ known_build_target_kwargs = (
     rust_kwargs |
     cs_kwargs)
 
-known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie'}
+known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'link_language', 'pie'}
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions'}
 known_shmod_kwargs = known_build_target_kwargs
 known_stlib_kwargs = known_build_target_kwargs | {'pic'}
@@ -425,7 +426,7 @@ a hard error in the future.''' % name)
 
         self.option_overrides = self.parse_overrides(kwargs)
 
-    def parse_overrides(self, kwargs):
+    def parse_overrides(self, kwargs) -> dict:
         result = {}
         overrides = stringlistify(kwargs.get('override_options', []))
         for o in overrides:
@@ -437,7 +438,7 @@ a hard error in the future.''' % name)
             result[k] = v
         return result
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         return False
 
 class BuildTarget(Target):
@@ -454,6 +455,7 @@ class BuildTarget(Target):
         self.objects = []
         self.external_deps = []
         self.include_dirs = []
+        self.link_language = kwargs.get('link_language')
         self.link_targets = []
         self.link_whole_targets = []
         self.link_depends = []
@@ -571,6 +573,9 @@ class BuildTarget(Target):
         else:
             compilers = self.environment.coredata.compilers
 
+        # did user override clink_langs for this target?
+        link_langs = [self.link_language] if self.link_language else clink_langs
+
         # If this library is linked against another library we need to consider
         # the languages of those libraries as well.
         if self.link_targets or self.link_whole_targets:
@@ -579,7 +584,7 @@ class BuildTarget(Target):
                 if isinstance(t, CustomTarget) or isinstance(t, CustomTargetIndex):
                     continue # We can't know anything about these.
                 for name, compiler in t.compilers.items():
-                    if name in clink_langs:
+                    if name in link_langs:
                         extra.add((name, compiler))
             for name, compiler in sorted(extra, key=lambda p: sort_clink(p[0])):
                 self.compilers[name] = compiler
@@ -588,7 +593,7 @@ class BuildTarget(Target):
             # No source files or parent targets, target consists of only object
             # files of unknown origin. Just add the first clink compiler
             # that we have and hope that it can link these objects
-            for lang in clink_langs:
+            for lang in link_langs:
                 if lang in compilers:
                     self.compilers[lang] = compilers[lang]
                     break
@@ -1149,7 +1154,7 @@ You probably should put it in link_with instead.''')
     def get_aliases(self):
         return {}
 
-    def get_langs_used_by_deps(self):
+    def get_langs_used_by_deps(self) -> List[str]:
         '''
         Sometimes you want to link to a C++ library that exports C API, which
         means the linker must link in the C++ stdlib, and we must use a C++
@@ -1159,6 +1164,11 @@ You probably should put it in link_with instead.''')
         See: https://github.com/mesonbuild/meson/issues/1653
         '''
         langs = []
+
+        # User specified link_language of target (for multi-language targets)
+        if self.link_language:
+            return [self.link_language]
+
         # Check if any of the external libraries were written in this language
         for dep in self.external_deps:
             if dep.language is None:
@@ -1173,6 +1183,7 @@ You probably should put it in link_with instead.''')
             for language in link_target.compilers:
                 if language not in langs:
                     langs.append(language)
+
         return langs
 
     def get_clink_dynamic_linker_and_stdlibs(self):

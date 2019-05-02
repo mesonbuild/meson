@@ -518,6 +518,8 @@ be passed to [shared and static libraries](#library).
   depends on such as a symbol visibility map. The purpose is to
   automatically trigger a re-link (but not a re-compile) of the target
   when this file changes.
+- `link_language` since 0.51.0 makes the linker for this target
+  be for the specified language. This is helpful for multi-language targets.
 - `link_whole` links all contents of the given static libraries
   whether they are used by not, equivalent to the
   `-Wl,--whole-archive` argument flag of GCC, available since 0.40.0.
@@ -568,7 +570,7 @@ be passed to [shared and static libraries](#library).
   the keyword argument for the default behaviour.
 - `override_options` takes an array of strings in the same format as
   `project`'s `default_options` overriding the values of these options
-  for this target only, since 0.40.0
+  for this target only, since 0.40.0.
 - `gnu_symbol_visibility` specifies how symbols should be exported, see
   e.g [the GCC Wiki](https://gcc.gnu.org/wiki/Visibility) for more
   information. This value can either be an empty string or one of

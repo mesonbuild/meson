@@ -505,6 +505,10 @@ def skippable(suite, test):
     if test.endswith('netcdf'):
         return True
 
+    # MSVC doesn't link with GFortran
+    if test.endswith('14 fortran links c'):
+        return True
+
     # No frameworks test should be skipped on linux CI, as we expect all
     # prerequisites to be installed
     if mesonlib.is_linux():
