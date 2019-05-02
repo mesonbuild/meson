@@ -153,6 +153,8 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         std = options['cpp_std']
         if std.value != 'none':
             args.append(self._find_best_cpp_std(std.value))
+        if options['cpp_eh'].value == 'none':
+            args.append('-fno-exceptions')
         return args
 
     def get_option_link_args(self, options):
@@ -185,6 +187,8 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         std = options['cpp_std']
         if std.value != 'none':
             args.append('-std=' + std.value)
+        if options['cpp_eh'].value == 'none':
+            args.append('-fno-exceptions')
         return args
 
     def get_option_link_args(self, options):
@@ -221,6 +225,8 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         std = options['cpp_std']
         if std.value != 'none':
             args.append(self._find_best_cpp_std(std.value))
+        if options['cpp_eh'].value == 'none':
+            args.append('-fno-exceptions')
         if options['cpp_debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
@@ -314,6 +320,8 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
                 'gnu++03': 'gnu++98'
             }
             args.append('-std=' + remap_cpp03.get(std.value, std.value))
+        if options['cpp_eh'].value == 'none':
+            args.append('-fno-exceptions')
         if options['cpp_debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
