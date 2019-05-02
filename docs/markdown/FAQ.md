@@ -331,3 +331,37 @@ that could fullfill these requirements:
 
 Out of these we have chosen Python because it is the best fit for our
 needs.
+
+## I have proprietary compiler toolchain X that does not work with Meson, how can I make it work?
+
+Meson needs to know several details about each compiler in order to
+compile code with it. These include things such as which compiler
+flags to use for each option and how to detect the compiler from its
+output. This information can not be input via a configuration file,
+instead it requires changes to Meson's source code that need to be
+submitted to Meson master repository. In theory you can run your own
+forked version with custom patches, but that's not good use of your
+time. Please submit the code upstream so everyone can use the
+toolchain.
+
+The steps for adding a new compiler for an existing language are
+roughly the following. For simplicity we're going to assume a C
+compiler.
+
+- Create a new class with a proper name in
+  `mesonbuild/compilers/c.py`. Look at the methods that other
+  compilers for the same language have and duplicate what they do.
+
+- If the compiler can only be used for cross compilation, make sure to
+  flag it as such (see existing compiler classes for examples).
+
+- Add detection logic to `mesonbuild/environment.py`, look for a
+  method called `detect_c_compiler`.
+
+- Run the test suite and fix issues until the tests pass.
+
+- Submit a pull request, add the result of the test suite to your MR
+  (linking an existing page is fine).
+
+- If the compiler is freely available, consider adding it to the CI
+  system.
