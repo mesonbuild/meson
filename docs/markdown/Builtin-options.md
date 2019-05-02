@@ -132,7 +132,7 @@ compiler being used:
 | c_winlibs    | see below     | free-form comma-separated list           | Standard Windows libs to link against |
 | cpp_args     |               | free-form comma-separated list           | C++ compile arguments to use |
 | cpp_link_args|               | free-form comma-separated list           | C++ link arguments to use |
-| cpp_std      | none          | none, c++98, c++03, c++11, c++14, c++17, <br/>c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z | C++ language standard to use |
+| cpp_std      | none          | none, c++98, c++03, c++11, c++14, c++17, <br/>c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, <br/> vc++14, vc++17, vc++latest | C++ language standard to use |
 | cpp_debugstl | false         | true, false                              | C++ STL debug mode |
 | cpp_eh       | sc            | none, a, s, sc                           | C++ exception handling type |
 | cpp_winlibs  | see below     | free-form comma-separated list           | Standard Windows libs to link against |
