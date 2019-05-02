@@ -247,6 +247,7 @@ class CoreData:
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
         self.deps = OrderedDict()
+        self.compiler_check_cache = OrderedDict()
         # Only to print a warning if it changes between Meson invocations.
         self.config_files = self.__load_config_files(options.native_file, 'native')
         self.libdir_cross_fixup()

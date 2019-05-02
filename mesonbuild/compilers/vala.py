@@ -96,7 +96,7 @@ class ValaCompiler(Compiler):
             extra_flags += self.get_compile_only_args()
         else:
             extra_flags += environment.coredata.get_external_link_args(for_machine, self.language)
-        with self.compile(code, extra_flags, 'compile') as p:
+        with self.cached_compile(code, environment.coredata, extra_args=extra_flags, mode='compile') as p:
             if p.returncode != 0:
                 msg = 'Vala compiler {!r} can not compile programs' \
                       ''.format(self.name_string())
@@ -121,7 +121,7 @@ class ValaCompiler(Compiler):
             args = env.coredata.get_external_args(for_machine, self.language)
             vapi_args = ['--pkg', libname]
             args += vapi_args
-            with self.compile(code, args, 'compile') as p:
+            with self.cached_compile(code, env.coredata, extra_args=args, mode='compile') as p:
                 if p.returncode == 0:
                     return vapi_args
         # Not found? Try to find the vapi file itself.

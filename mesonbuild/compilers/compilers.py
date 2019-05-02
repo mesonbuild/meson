@@ -875,8 +875,6 @@ class Compiler:
     # Libraries that are internal compiler implementations, and must not be
     # manually searched.
     internal_libs = ()
-    # Cache for the result of compiler checks which can be cached
-    compiler_check_cache = {}
 
     def __init__(self, exelist, version, **kwargs):
         if isinstance(exelist, str):
@@ -903,7 +901,7 @@ class Compiler:
         return repr_str.format(self.__class__.__name__, self.version,
                                ' '.join(self.exelist))
 
-    def can_compile(self, src):
+    def can_compile(self, src) -> bool:
         if hasattr(src, 'fname'):
             src = src.fname
         suffix = os.path.splitext(src)[1].lower()
@@ -911,40 +909,40 @@ class Compiler:
             return True
         return False
 
-    def get_id(self):
+    def get_id(self) -> str:
         return self.id
 
-    def get_version_string(self):
+    def get_version_string(self) -> str:
         details = [self.id, self.version]
         if self.full_version:
             details += ['"%s"' % (self.full_version)]
         return '(%s)' % (' '.join(details))
 
-    def get_language(self):
+    def get_language(self) -> str:
         return self.language
 
-    def get_display_language(self):
+    def get_display_language(self) -> str:
         return self.language.capitalize()
 
-    def get_default_suffix(self):
+    def get_default_suffix(self) -> str:
         return self.default_suffix
 
-    def get_define(self, dname, prefix, env, extra_args, dependencies):
+    def get_define(self, dname, prefix, env, extra_args, dependencies) -> Tuple[str, bool]:
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
-    def compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies):
+    def compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies) -> int:
         raise EnvironmentException('%s does not support compute_int ' % self.get_id())
 
     def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
         raise EnvironmentException('%s does not support compute_parameters_with_absolute_paths ' % self.get_id())
 
-    def has_members(self, typename, membernames, prefix, env, *, extra_args=None, dependencies=None):
+    def has_members(self, typename, membernames, prefix, env, *, extra_args=None, dependencies=None) -> Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
 
-    def has_type(self, typename, prefix, env, extra_args, *, dependencies=None):
+    def has_type(self, typename, prefix, env, extra_args, *, dependencies=None) -> Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_type ' % self.get_id())
 
-    def symbols_have_underscore_prefix(self, env):
+    def symbols_have_underscore_prefix(self, env) -> bool:
         raise EnvironmentException('%s does not support symbols_have_underscore_prefix ' % self.get_id())
 
     def get_exelist(self):
@@ -1087,31 +1085,31 @@ class Compiler:
     def get_option_link_args(self, options):
         return []
 
-    def check_header(self, *args, **kwargs):
+    def check_header(self, *args, **kwargs) -> Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header(self, *args, **kwargs):
+    def has_header(self, *args, **kwargs) -> Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header_symbol(self, *args, **kwargs):
+    def has_header_symbol(self, *args, **kwargs) -> Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
-    def compiles(self, *args, **kwargs):
+    def compiles(self, *args, **kwargs) -> Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support compile checks.' % self.get_display_language())
 
-    def links(self, *args, **kwargs):
+    def links(self, *args, **kwargs) -> Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support link checks.' % self.get_display_language())
 
-    def run(self, *args, **kwargs):
+    def run(self, *args, **kwargs) -> RunResult:
         raise EnvironmentException('Language %s does not support run checks.' % self.get_display_language())
 
-    def sizeof(self, *args, **kwargs):
+    def sizeof(self, *args, **kwargs) -> int:
         raise EnvironmentException('Language %s does not support sizeof checks.' % self.get_display_language())
 
-    def alignment(self, *args, **kwargs):
+    def alignment(self, *args, **kwargs) -> int:
         raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
-    def has_function(self, *args, **kwargs):
+    def has_function(self, *args, **kwargs) -> Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
 
     @classmethod
@@ -1125,12 +1123,12 @@ class Compiler:
     def get_library_dirs(self, *args, **kwargs):
         return ()
 
-    def has_multi_arguments(self, args, env):
+    def has_multi_arguments(self, args, env) -> Tuple[bool, bool]:
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
-    def has_multi_link_arguments(self, args, env):
+    def has_multi_link_arguments(self, args, env) -> Tuple[bool, bool]:
         raise EnvironmentException(
             'Language {} does not support has_multi_link_arguments.'.format(
                 self.get_display_language()))
@@ -1150,21 +1148,7 @@ class Compiler:
     @contextlib.contextmanager
     def compile(self, code, extra_args=None, mode='link', want_output=False):
         if extra_args is None:
-            textra_args = None
             extra_args = []
-        else:
-            textra_args = tuple(extra_args)
-        key = (code, textra_args, mode)
-        if not want_output:
-            if key in self.compiler_check_cache:
-                p = self.compiler_check_cache[key]
-                mlog.debug('Using cached compile:')
-                mlog.debug('Cached command line: ', ' '.join(p.commands), '\n')
-                mlog.debug('Code:\n', code)
-                mlog.debug('Cached compiler stdout:\n', p.stdo)
-                mlog.debug('Cached compiler stderr:\n', p.stde)
-                yield p
-                return
         try:
             with tempfile.TemporaryDirectory() as tmpdirname:
                 if isinstance(code, str):
@@ -1206,14 +1190,46 @@ class Compiler:
                 p.input_name = srcname
                 if want_output:
                     p.output_name = output
-                else:
-                    self.compiler_check_cache[key] = p
+                p.cached = False  # Make sure that the cached attribute always exists
                 yield p
         except (PermissionError, OSError):
             # On Windows antivirus programs and the like hold on to files so
             # they can't be deleted. There's not much to do in this case. Also,
             # catch OSError because the directory is then no longer empty.
             pass
+
+    @contextlib.contextmanager
+    def cached_compile(self, code, cdata: coredata.CoreData, extra_args=None, mode: str = 'link'):
+        assert(isinstance(cdata, coredata.CoreData))
+
+        # Calculate the key
+        textra_args = tuple(extra_args) if extra_args is not None else None
+        key = (tuple(self.exelist), self.version, code, textra_args, mode)
+
+        # Check if not cached
+        if key not in cdata.compiler_check_cache:
+            with self.compile(code, extra_args=extra_args, mode=mode, want_output=False) as p:
+                # Remove all attributes except the following
+                # This way the object can be serialized
+                tokeep = ['args', 'commands', 'input_name', 'output_name',
+                          'pid', 'returncode', 'stdo', 'stde', 'text_mode']
+                todel = [x for x in vars(p).keys() if x not in tokeep]
+                for i in todel:
+                    delattr(p, i)
+                p.cached = False
+                cdata.compiler_check_cache[key] = p
+                yield p
+                return
+
+        # Return cached
+        p = cdata.compiler_check_cache[key]
+        p.cached = True
+        mlog.debug('Using cached compile:')
+        mlog.debug('Cached command line: ', ' '.join(p.commands), '\n')
+        mlog.debug('Code:\n', code)
+        mlog.debug('Cached compiler stdout:\n', p.stdo)
+        mlog.debug('Cached compiler stderr:\n', p.stde)
+        yield p
 
     def get_colorout_args(self, colortype):
         return []

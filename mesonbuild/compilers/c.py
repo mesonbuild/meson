@@ -368,7 +368,7 @@ class CCompiler(Compiler):
         return self.compiles(code.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies)
 
-    def has_header(self, hname, prefix, env, *, extra_args=None, dependencies=None):
+    def has_header(self, hname, prefix, env, *, extra_args=None, dependencies=None, disable_cache=False):
         fargs = {'prefix': prefix, 'header': hname}
         code = '''{prefix}
         #ifdef __has_include
@@ -379,7 +379,7 @@ class CCompiler(Compiler):
          #include <{header}>
         #endif'''
         return self.compiles(code.format(**fargs), env, extra_args=extra_args,
-                             dependencies=dependencies, mode='preprocess')
+                             dependencies=dependencies, mode='preprocess', disable_cache=disable_cache)
 
     def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
@@ -444,17 +444,19 @@ class CCompiler(Compiler):
         args += extra_args
         return args
 
-    def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile'):
-        with self._build_wrapper(code, env, extra_args, dependencies, mode) as p:
-            return p.returncode == 0
+    def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile', disable_cache=False):
+        with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
+            return p.returncode == 0, p.cached
 
-    def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False):
+    def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False, disable_cache=False):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
-        return self.compile(code, args, mode, want_output=want_output)
+        if disable_cache or want_output:
+            return self.compile(code, extra_args=args, mode=mode, want_output=want_output)
+        return self.cached_compile(code, env.coredata, extra_args=args, mode=mode)
 
-    def links(self, code, env, *, extra_args=None, dependencies=None):
+    def links(self, code, env, *, extra_args=None, dependencies=None, disable_cache=False):
         return self.compiles(code, env, extra_args=extra_args,
-                             dependencies=dependencies, mode='link')
+                             dependencies=dependencies, mode='link', disable_cache=disable_cache)
 
     def run(self, code: str, env, *, extra_args=None, dependencies=None):
         if self.is_cross and self.exe_wrapper is None:
@@ -487,7 +489,7 @@ class CCompiler(Compiler):
         {prefix}
         int main() {{ static int a[1-2*!({expression})]; a[0]=0; return 0; }}'''
         return self.compiles(t.format(**fargs), env, extra_args=extra_args,
-                             dependencies=dependencies)
+                             dependencies=dependencies)[0]
 
     def cross_compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies):
         # Try user's guess first
@@ -567,7 +569,7 @@ class CCompiler(Compiler):
             {type} something;
         }}'''
         if not self.compiles(t.format(**fargs), env, extra_args=extra_args,
-                             dependencies=dependencies):
+                             dependencies=dependencies)[0]:
             return -1
         return self.cross_compute_int('sizeof(%s)' % typename, None, None, None, prefix, env, extra_args, dependencies)
 
@@ -602,7 +604,7 @@ class CCompiler(Compiler):
             {type} something;
         }}'''
         if not self.compiles(t.format(**fargs), env, extra_args=extra_args,
-                             dependencies=dependencies):
+                             dependencies=dependencies)[0]:
             return -1
         t = '''#include <stddef.h>
         {prefix}
@@ -641,7 +643,7 @@ class CCompiler(Compiler):
             raise EnvironmentException('Could not determine alignment of %s. Sorry. You might want to file a bug.' % typename)
         return align
 
-    def get_define(self, dname, prefix, env, extra_args, dependencies):
+    def get_define(self, dname, prefix, env, extra_args, dependencies, disable_cache=False):
         delim = '"MESON_GET_DEFINE_DELIMITER"'
         fargs = {'prefix': prefix, 'define': dname, 'delim': delim}
         code = '''
@@ -652,13 +654,17 @@ class CCompiler(Compiler):
         {delim}\n{define}'''
         args = self._get_compiler_check_args(env, extra_args, dependencies,
                                              mode='preprocess').to_native()
-        with self.compile(code.format(**fargs), args, 'preprocess') as p:
+        func = lambda: self.cached_compile(code.format(**fargs), env.coredata, extra_args=args, mode='preprocess')
+        if disable_cache:
+            func = lambda: self.compile(code.format(**fargs), extra_args=args, mode='preprocess')
+        with func() as p:
+            cached = p.cached
             if p.returncode != 0:
                 raise EnvironmentException('Could not get define {!r}'.format(dname))
         # Get the preprocessed value after the delimiter,
         # minus the extra newline at the end and
         # merge string literals.
-        return CCompiler.concatenate_string_literals(p.stdo.split(delim + '\n')[-1][:-1])
+        return CCompiler.concatenate_string_literals(p.stdo.split(delim + '\n')[-1][:-1]), cached
 
     def get_return_value(self, fname, rtype, prefix, env, extra_args, dependencies):
         if rtype == 'string':
@@ -762,7 +768,7 @@ class CCompiler(Compiler):
             val = env.properties.host.get(varname, None)
             if val is not None:
                 if isinstance(val, bool):
-                    return val
+                    return val, False
                 raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
 
         fargs = {'prefix': prefix, 'func': funcname}
@@ -792,13 +798,14 @@ class CCompiler(Compiler):
             head, main = self._no_prototype_templ()
         templ = head + stubs_fail + main
 
-        if self.links(templ.format(**fargs), env, extra_args=extra_args,
-                      dependencies=dependencies):
-            return True
+        res, cached = self.links(templ.format(**fargs), env, extra_args=extra_args,
+                                 dependencies=dependencies)
+        if res:
+            return True, cached
 
         # MSVC does not have compiler __builtin_-s.
         if self.get_id() == 'msvc':
-            return False
+            return False, False
 
         # Detect function as a built-in
         #
@@ -1020,7 +1027,7 @@ class CCompiler(Compiler):
                 libname in self.internal_libs):
             args = ['-l' + libname]
             largs = self.linker_to_compiler_args(self.get_allow_undefined_link_args())
-            if self.links(code, env, extra_args=(args + largs)):
+            if self.links(code, env, extra_args=(args + largs), disable_cache=True)[0]:
                 return args
             # Don't do a manual search for internal libs
             if libname in self.internal_libs:
@@ -1109,7 +1116,7 @@ class CCompiler(Compiler):
         # then we must also pass -L/usr/lib to pick up libSystem.dylib
         extra_args = [] if allow_system else ['-Z', '-L/usr/lib']
         link_args += ['-framework', name]
-        if self.links(code, env, extra_args=(extra_args + link_args)):
+        if self.links(code, env, extra_args=(extra_args + link_args), disable_cache=True)[0]:
             return link_args
 
     def find_framework_impl(self, name, env, extra_dirs, allow_system):
@@ -1176,7 +1183,7 @@ class CCompiler(Compiler):
         fatal_warnings_args = ['-Wl,--fatal-warnings']
         if self.has_fatal_warnings_link_arg is None:
             self.has_fatal_warnings_link_arg = False
-            self.has_fatal_warnings_link_arg = self.has_multi_link_arguments(fatal_warnings_args, env)
+            self.has_fatal_warnings_link_arg = self.has_multi_link_arguments(fatal_warnings_args, env)[0]
 
         if self.has_fatal_warnings_link_arg:
             args = fatal_warnings_args + args
@@ -1201,7 +1208,7 @@ class CCompiler(Compiler):
         if not (for_windows(env.is_cross_build(), env) or
                 for_cygwin(env.is_cross_build(), env)):
             if name in ['dllimport', 'dllexport']:
-                return False
+                return False, False
 
         # Clang and GCC both return warnings if the __attribute__ is undefined,
         # so set -Werror
@@ -1348,7 +1355,7 @@ class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
     # So we should explicitly fail at this case.
     def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
         if funcname == 'lchmod':
-            return False
+            return False, False
         else:
             return super().has_function(funcname, prefix, env,
                                         extra_args=extra_args,
@@ -1609,8 +1616,8 @@ class VisualStudioCCompiler(CCompiler):
             args = args + ['-Werror=unknown-argument']
         with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
-                return False
-            return not(warning_text in p.stde or warning_text in p.stdo)
+                return False, p.cached
+            return not(warning_text in p.stde or warning_text in p.stdo), p.cached
 
     def get_compile_debugfile_args(self, rel_obj, pch=False):
         pdbarr = rel_obj.split('.')[:-1]
@@ -1706,7 +1713,7 @@ class VisualStudioCCompiler(CCompiler):
     def has_func_attribute(self, name, env):
         # MSVC doesn't have __attribute__ like Clang and GCC do, so just return
         # false without compiling anything
-        return name in ['dllimport', 'dllexport']
+        return name in ['dllimport', 'dllexport'], False
 
     def get_argument_syntax(self):
         return 'msvc'
