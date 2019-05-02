@@ -145,8 +145,8 @@ c_args, cpp_args, c_link_args, and cpp_link_args only affect native builds,
 when cross compiling they will not be applied to binaries or libraries
 targeting the host system, only those being run on the build system.
 
-When using MSVC, `cpp_eh=default` will result in `/EHsc`, with the other values
-causing meson to pass `/EH[value]`, or nothing at all in the case of
-`cpp_eh=none`. When using other compilers, `cpp_eh=default` does nothing
-(allowing the default, exceptions, to work), while `cpp_eh=none` passes
-`-fno-exceptions`.
+When using MSVC, `cpp_eh=none` will result in no exception flags being passed,
+while the `cpp_eh=[value]` will result in `/EH[value]`.
+Since *0.51.0* `cpp_eh=default` will result in `/EHsc` on MSVC. When using
+gcc-style compilers, nothing is passed (allowing exceptions to work), while
+`cpp_eh=none` passes `-fno-exceptions`.
