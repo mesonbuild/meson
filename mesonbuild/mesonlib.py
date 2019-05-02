@@ -346,8 +346,10 @@ class PerMachine(typing.Generic[_T]):
         }[machine]
         setattr(self, key, val)
 
+# BBI_SOL11_4 BEGIN -- added definition for platform specific conditions
 def is_sunos() -> bool:
     return platform.system().lower() == 'sunos'
+# BBI_SOL11_4 END
 
 def is_osx() -> bool:
     return platform.system().lower() == 'darwin'
