@@ -8,50 +8,30 @@ assert(not meson.is_cross_build(),
        'MESON_SKIP_TEST cross checking not implemented.')
 
 cc = meson.get_compiler('c')
-genprog = find_program('custom_stlib.py')
+genprog = find_program('generate_stlibs.py')
 
 clib = custom_target('linkcustom',
-  output: 'libflob.a',
+  output: ['libflob_1.a', 'libflob_2.a'],
   command: [genprog,
             '-o', '@OUTPUT@',
             '--private-dir', '@PRIVATE_DIR@'] + cc.cmd_array())
 
-# custom_target tests
+clibs = [clib[0], clib[1]]
 
-exe = executable('prog', 'prog.c', link_with: clib)
+exe = executable('prog', 'prog.c', link_with: clibs)
 test('linkcustom', exe)
 
-d = declare_dependency(link_with: clib)
+d = declare_dependency(link_with: clibs)
 
 exe2 = executable('prog2', 'prog.c', dependencies: d)
 test('linkcustom2', exe2)
 
 # Link whole tests
 
-exe3 = executable('prog3', 'prog.c', link_whole: clib)
+exe3 = executable('prog3', 'prog.c', link_whole: clibs)
 test('linkwhole', exe)
 
-d2 = declare_dependency(link_whole: clib)
+d2 = declare_dependency(link_whole: clibs)
 
 exe4 = executable('prog4', 'prog.c', dependencies: d2)
 test('linkwhole2', exe2)
-
-# custom_target[i] tests
-
-exe_i = executable('prog_i', 'prog.c', link_with: clib[0])
-test('linkcustom', exe_i)
-
-d_i = declare_dependency(link_with: clib[0])
-
-exe2_i = executable('prog2_i', 'prog.c', dependencies: d_i)
-test('linkcustom2_i', exe2_i)
-
-# Link whole tests
-
-exe3_i = executable('prog3_i', 'prog.c', link_whole: clib[0])
-test('linkwhole', exe)
-
-d2_i = declare_dependency(link_whole: clib[0])
-
-exe4_i = executable('prog4_i', 'prog.c', dependencies: d2_i)
-test('linkwhole2_i', exe2_i)

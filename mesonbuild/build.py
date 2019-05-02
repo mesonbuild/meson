@@ -576,7 +576,7 @@ class BuildTarget(Target):
         if self.link_targets or self.link_whole_targets:
             extra = set()
             for t in itertools.chain(self.link_targets, self.link_whole_targets):
-                if isinstance(t, CustomTarget):
+                if isinstance(t, CustomTarget) or isinstance(t, CustomTargetIndex):
                     continue # We can't know anything about these.
                 for name, compiler in t.compilers.items():
                     if name in clink_langs:
@@ -1066,7 +1066,7 @@ You probably should put it in link_with instead.''')
 
     def link(self, target):
         for t in listify(target, unholder=True):
-            if not isinstance(t, Target):
+            if not isinstance(t, (Target, CustomTargetIndex)):
                 raise InvalidArguments('{!r} is not a target.'.format(t))
             if not t.is_linkable_target():
                 raise InvalidArguments('Link target {!r} is not linkable.'.format(t))
@@ -1074,13 +1074,13 @@ You probably should put it in link_with instead.''')
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if not isinstance(t, CustomTarget) and self.is_cross != t.is_cross:
+            if not isinstance(t, (CustomTarget, CustomTargetIndex)) and self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_targets.append(t)
 
     def link_whole(self, target):
         for t in listify(target, unholder=True):
-            if isinstance(t, CustomTarget):
+            if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 if not t.is_linkable_target():
                     raise InvalidArguments('Custom target {!r} is not linkable.'.format(t))
                 if not t.get_filename().endswith('.a'):
@@ -1091,7 +1091,7 @@ You probably should put it in link_with instead.''')
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if not isinstance(t, CustomTarget) and self.is_cross != t.is_cross:
+            if not isinstance(t, (CustomTarget, CustomTargetIndex)) and self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_whole_targets.append(t)
 
@@ -1168,7 +1168,7 @@ You probably should put it in link_with instead.''')
         # Check if any of the internal libraries this target links to were
         # written in this language
         for link_target in itertools.chain(self.link_targets, self.link_whole_targets):
-            if isinstance(link_target, CustomTarget):
+            if isinstance(link_target, (CustomTarget, CustomTargetIndex)):
                 continue
             for language in link_target.compilers:
                 if language not in langs:
@@ -2258,6 +2258,26 @@ class CustomTargetIndex:
 
     def get_subdir(self):
         return self.target.get_subdir()
+
+    def get_filename(self):
+        return self.output
+
+    def get_id(self):
+        return self.target.get_id()
+
+    def get_all_link_deps(self):
+        return self.target.get_all_link_deps()
+
+    def get_link_deps_mapping(self, prefix, environment):
+        return self.target.get_link_deps_mapping(prefix, environment)
+
+    def get_link_dep_subdirs(self):
+        return self.target.get_link_dep_subdirs()
+
+    def is_linkable_target(self):
+        suf = os.path.splitext(self.output)[-1]
+        if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so':
+            return True
 
 class ConfigureFile:
 

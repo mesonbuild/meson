@@ -249,9 +249,15 @@ class Vs2010Backend(backends.Backend):
                         all_deps[d.get_id()] = d
             elif isinstance(target, build.BuildTarget):
                 for ldep in target.link_targets:
-                    all_deps[ldep.get_id()] = ldep
+                    if isinstance(ldep, build.CustomTargetIndex):
+                        all_deps[ldep.get_id()] = ldep.target
+                    else:
+                        all_deps[ldep.get_id()] = ldep
                 for ldep in target.link_whole_targets:
-                    all_deps[ldep.get_id()] = ldep
+                    if isinstance(ldep, build.CustomTargetIndex):
+                        all_deps[ldep.get_id()] = ldep.target
+                    else:
+                        all_deps[ldep.get_id()] = ldep
                 for obj_id, objdep in self.get_obj_target_deps(target.objects):
                     all_deps[obj_id] = objdep
                 for gendep in target.get_generated_sources():
@@ -1111,7 +1117,11 @@ class Vs2010Backend(backends.Backend):
 
         # Add more libraries to be linked if needed
         for t in target.get_dependencies():
-            lobj = self.build.targets[t.get_id()]
+            if isinstance(t, build.CustomTargetIndex):
+                # We don't need the actual project here, just the library name
+                lobj = t
+            else:
+                lobj = self.build.targets[t.get_id()]
             linkname = os.path.join(down, self.get_target_filename_for_linking(lobj))
             if t in target.link_whole_targets:
                 # /WHOLEARCHIVE:foo must go into AdditionalOptions
