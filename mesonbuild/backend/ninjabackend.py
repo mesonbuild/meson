@@ -53,6 +53,16 @@ def cmd_quote(s):
 
     return s
 
+def gcc_rsp_quote(s):
+    # see: the function buildargv() in libiberty
+    #
+    # this differs from sh-quoting in that a backslash *always* escapes the
+    # following character, even inside single quotes.
+
+    s = s.replace('\\', '\\\\')
+
+    return shlex.quote(s)
+
 # How ninja executes command lines differs between Unix and Windows
 # (see https://ninja-build.org/manual.html#ref_rule_command)
 if mesonlib.is_windows():
@@ -123,7 +133,7 @@ class NinjaComment:
 class NinjaRule:
     def __init__(self, rule, command, args, description,
                  rspable = False, deps = None, depfile = None, extra = None,
-                 rspfile_quote_style = 'sh'):
+                 rspfile_quote_style = 'gcc'):
 
         def strToCommandArg(c):
             if isinstance(c, NinjaCommandArg):
@@ -157,7 +167,7 @@ class NinjaRule:
         self.rspable = rspable  # if a rspfile can be used
         self.refcount = 0
         self.rsprefcount = 0
-        self.rspfile_quote_style = rspfile_quote_style  # rspfile quoting style is 'sh' or 'cl'
+        self.rspfile_quote_style = rspfile_quote_style  # rspfile quoting style is 'gcc' or 'cl'
 
     @staticmethod
     def _quoter(x, qf = quote_func):
@@ -175,7 +185,7 @@ class NinjaRule:
         if self.rspfile_quote_style == 'cl':
             rspfile_quote_func = cmd_quote
         else:
-            rspfile_quote_func = shlex.quote
+            rspfile_quote_func = gcc_rsp_quote
 
         for rsp in ([''] if self.refcount else [] +
                     ['_RSP'] if self.rsprefcount else []):
@@ -310,7 +320,7 @@ class NinjaBuildElement:
             if self.rule.rspfile_quote_style == 'cl':
                 qf = cmd_quote
             else:
-                qf = shlex.quote
+                qf = gcc_rsp_quote
         else:
             qf = quote_func
 
@@ -1675,7 +1685,7 @@ int dummy;
             pool = None
         self.add_rule(NinjaRule(rule, cmdlist, args, description,
                                 rspable=static_linker.can_linker_accept_rsp(),
-                                rspfile_quote_style='cl' if isinstance(static_linker, VisualStudioLinker) else 'sh',
+                                rspfile_quote_style='cl' if isinstance(static_linker, VisualStudioLinker) else 'gcc',
                                 extra=pool))
 
     def generate_dynamic_link_rules(self):
@@ -1706,7 +1716,7 @@ int dummy;
                 self.add_rule(NinjaRule(rule, command, args, description,
                                         rspable=compiler.can_linker_accept_rsp(),
                                         rspfile_quote_style='cl' if (compiler.get_argument_syntax() == 'msvc' or
-                                                                     isinstance(compiler, DmdDCompiler)) else 'sh',
+                                                                     isinstance(compiler, DmdDCompiler)) else 'gcc',
                                         extra=pool))
 
         args = self.environment.get_build_command() + \
@@ -1733,7 +1743,7 @@ int dummy;
         description = 'Compiling C Sharp target $out.'
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=mesonlib.is_windows(),
-                                rspfile_quote_style='cl' if isinstance(compiler, VisualStudioCsCompiler) else 'sh'))
+                                rspfile_quote_style='cl' if isinstance(compiler, VisualStudioCsCompiler) else 'gcc'))
 
     def generate_vala_compile_rules(self, compiler):
         rule = '%s_COMPILER' % compiler.get_language()
@@ -1827,7 +1837,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=compiler.can_linker_accept_rsp(),
                                 rspfile_quote_style='cl' if (compiler.get_argument_syntax() == 'msvc' or
-                                                             isinstance(compiler, DmdDCompiler)) else 'sh',
+                                                             isinstance(compiler, DmdDCompiler)) else 'gcc',
                                 deps=deps, depfile=depfile))
 
     def generate_pch_rule_for(self, langname, compiler, is_cross):
