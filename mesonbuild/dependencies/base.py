@@ -25,6 +25,7 @@ import textwrap
 import platform
 import itertools
 import ctypes
+import typing
 from typing import Any, Dict, List, Tuple
 from enum import Enum
 from pathlib import Path, PurePath
@@ -73,6 +74,8 @@ class Dependency:
     @classmethod
     def _process_method_kw(cls, kwargs):
         method = kwargs.get('method', 'auto')
+        if isinstance(method, DependencyMethods):
+            return method
         if method not in [e.value for e in DependencyMethods]:
             raise DependencyException('method {!r} is invalid'.format(method))
         method = DependencyMethods(method)
@@ -175,6 +178,20 @@ class Dependency:
         added as well.
         """
         raise RuntimeError('Unreachable code in partial_dependency called')
+
+    def _add_sub_dependency(self, dep_type: typing.Type['Dependency'], env: Environment,
+                            kwargs: typing.Dict[str, typing.Any], *,
+                            method: DependencyMethods = DependencyMethods.AUTO) -> None:
+        """Add an internal dependency of of the given type.
+
+        This method is intended to simplify cases of adding a dependency on
+        another dependency type (such as threads). This will by default set
+        the method back to auto, but the 'method' keyword argument can be
+        used to overwrite this behavior.
+        """
+        kwargs = kwargs.copy()
+        kwargs['method'] = method
+        self.ext_deps.append(dep_type(env, kwargs))
 
 
 class InternalDependency(Dependency):

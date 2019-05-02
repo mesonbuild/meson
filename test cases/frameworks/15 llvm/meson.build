@@ -1,6 +1,6 @@
 project('llvmtest', ['c', 'cpp'], default_options : ['c_std=c99'])
 
-d = dependency('llvm', required : false)
+d = dependency('llvm', required : false, method : 'config-tool')
 if not d.found()
   d = dependency('llvm', required : false, static : true)
   if not d.found()
