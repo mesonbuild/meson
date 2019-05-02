@@ -40,6 +40,11 @@ jobs:
           arch: x64
           compiler: msvc2017
           backend: ninja
+        vc2017x64ninjarsp:
+          arch: x64
+          compiler: msvc2017
+          backend: ninja
+          MESON_RSP_THRESHOLD: 0
         vc2017x64vs:
           arch: x64
           compiler: msvc2017
@@ -143,6 +148,11 @@ jobs:
       gccx64ninja:
         MSYSTEM: MINGW64
         MSYS2_ARCH: x86_64
+        compiler: gcc
+      gccx64ninjarsp:
+        MSYSTEM: MINGW64
+        MSYS2_ARCH: x86_64
+        MESON_RSP_THRESHOLD: 0
         compiler: gcc
       clangx64ninja:
         MSYSTEM: MINGW64

@@ -64,8 +64,9 @@ else:
     execute_wrapper = []
     rmfile_prefix = ['rm', '-f', '{}', '&&']
 
-# a conservative estimate of the command-line length limit on windows
-rsp_threshold = 4096
+# use a conservative estimate of the command-line length limit on windows
+# (but allow it to be overridden for testing purposes)
+rsp_threshold = int(os.environ.get('MESON_RSP_THRESHOLD', '4096'))
 
 # ninja variables whose value should remain unquoted. The value of these ninja
 # variables (or variables we use them in) is interpreted directly by ninja
