@@ -1196,9 +1196,11 @@ You probably should put it in link_with instead.''')
         # Pick a compiler based on the language priority-order
         for l in clink_langs:
             if l in self.compilers or l in dep_langs:
-                try:
+                if l in self.compilers:
+                    linker = self.compilers[l]
+                elif l in all_compilers:
                     linker = all_compilers[l]
-                except KeyError:
+                else:
                     raise MesonException(
                         'Could not get a dynamic linker for build target {!r}. '
                         'Requires a linker for language "{}", but that is not '
