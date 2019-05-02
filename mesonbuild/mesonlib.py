@@ -720,11 +720,11 @@ def has_path_sep(name, sep='/\\'):
             return True
     return False
 
-def do_replacement(regex, line, format, confdata):
+def do_replacement(regex, line, variable_format, confdata):
     missing_variables = set()
     start_tag = '@'
     backslash_tag = '\\@'
-    if format == 'cmake':
+    if variable_format == 'cmake':
         start_tag = '${'
         backslash_tag = '\\${'
 
@@ -777,7 +777,7 @@ def do_mesondefine(line, confdata):
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
 
-def do_conf_file(src, dst, confdata, format, encoding='utf-8'):
+def do_conf_file(src, dst, confdata, variable_format, encoding='utf-8'):
     try:
         with open(src, encoding=encoding, newline='') as f:
             data = f.readlines()
@@ -785,15 +785,15 @@ def do_conf_file(src, dst, confdata, format, encoding='utf-8'):
         raise MesonException('Could not read input file %s: %s' % (src, str(e)))
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     # Also allow escaping '@' with '\@'
-    if format in ['meson', 'cmake@']:
+    if variable_format in ['meson', 'cmake@']:
         regex = re.compile(r'(?:\\\\)+(?=\\?@)|\\@|@([-a-zA-Z0-9_]+)@')
-    elif format == 'cmake':
+    elif variable_format == 'cmake':
         regex = re.compile(r'(?:\\\\)+(?=\\?\$)|\\\${|\${([-a-zA-Z0-9_]+)}')
     else:
-        raise MesonException('Format "{}" not handled'.format(format))
+        raise MesonException('Format "{}" not handled'.format(variable_format))
 
     search_token = '#mesondefine'
-    if format != 'meson':
+    if variable_format != 'meson':
         search_token = '#cmakedefine'
 
     result = []
@@ -806,7 +806,7 @@ def do_conf_file(src, dst, confdata, format, encoding='utf-8'):
             confdata_useless = False
             line = do_mesondefine(line, confdata)
         else:
-            line, missing = do_replacement(regex, line, format, confdata)
+            line, missing = do_replacement(regex, line, variable_format, confdata)
             missing_variables.update(missing)
             if missing:
                 confdata_useless = False

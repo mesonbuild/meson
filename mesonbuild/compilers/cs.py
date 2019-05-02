@@ -28,10 +28,10 @@ cs_optimization_args = {'0': [],
                         }
 
 class CsCompiler(Compiler):
-    def __init__(self, exelist, version, id, runner=None):
+    def __init__(self, exelist, version, comp_id, runner=None):
         self.language = 'cs'
         super().__init__(exelist, version)
-        self.id = id
+        self.id = comp_id
         self.is_cross = False
         self.runner = runner
 

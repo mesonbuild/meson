@@ -217,7 +217,7 @@ class BaseNode:
         fname = 'visit_{}'.format(type(self).__name__)
         if hasattr(visitor, fname):
             func = getattr(visitor, fname)
-            if hasattr(func, '__call__'):
+            if callable(func):
                 func(self)
 
 class ElementaryNode(BaseNode):

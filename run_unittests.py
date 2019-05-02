@@ -1244,7 +1244,7 @@ class BasePlatformTests(unittest.TestCase):
                     print('Stderr:\n')
                     print(err)
                     raise RuntimeError('Configure failed')
-            except:
+            except Exception:
                 self._print_meson_log()
                 raise
             finally:
@@ -1257,7 +1257,7 @@ class BasePlatformTests(unittest.TestCase):
                 out = self._run(self.setup_command + args + extra_args)
             except unittest.SkipTest:
                 raise unittest.SkipTest('Project requested skipping: ' + srcdir)
-            except:
+            except Exception:
                 self._print_meson_log()
                 raise
         return out
@@ -2681,9 +2681,9 @@ int main(int argc, char **argv) {
         if ninja is None:
             raise unittest.SkipTest('This test currently requires ninja. Fix this once "meson build" works.')
         for lang in ('c', 'cpp'):
-            for type in ('executable', 'library'):
+            for target_type in ('executable', 'library'):
                 with tempfile.TemporaryDirectory() as tmpdir:
-                    self._run(self.meson_command + ['init', '--language', lang, '--type', type],
+                    self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
                               workdir=tmpdir)
                     self._run(self.setup_command + ['--backend=ninja', 'builddir'],
                               workdir=tmpdir)
@@ -4443,7 +4443,7 @@ class LinuxlikeTests(BasePlatformTests):
                 self.assertIn(cmd_std, cmd)
             try:
                 self.build()
-            except:
+            except Exception:
                 print('{} was {!r}'.format(lang_std, v))
                 raise
             self.wipe()
@@ -5527,7 +5527,7 @@ class RewriterTests(BasePlatformTests):
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         expected = {'name': 'myExe', 'sources': ['main.cpp']}
         self.assertEqual(len(out['target']), 2)
-        for _, val in out['target'].items():
+        for val in out['target'].values():
             self.assertDictEqual(expected, val)
 
     def test_kwargs_info(self):

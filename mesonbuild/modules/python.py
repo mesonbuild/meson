@@ -477,9 +477,9 @@ class PythonModule(ExtensionModule):
         ver = {'python2': '-2', 'python3': '-3'}[name_or_path]
         cmd = ['py', ver, '-c', "import sysconfig; print(sysconfig.get_config_var('BINDIR'))"]
         _, stdout, _ = mesonlib.Popen_safe(cmd)
-        dir = stdout.strip()
-        if os.path.exists(dir):
-            return os.path.join(dir, 'python')
+        directory = stdout.strip()
+        if os.path.exists(directory):
+            return os.path.join(directory, 'python')
         else:
             return None
 

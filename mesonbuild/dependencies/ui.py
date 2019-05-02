@@ -298,8 +298,8 @@ class QtBaseDependency(ExternalDependency):
                     # the Qt + m_name there is not a symlink, it's a file
                     mod_private_dir = qt_inc_dir
                 mod_private_inc = _qt_get_private_includes(mod_private_dir, m_name, m.version)
-                for dir in mod_private_inc:
-                    self.compile_args.append('-I' + dir)
+                for directory in mod_private_inc:
+                    self.compile_args.append('-I' + directory)
             self.link_args += m.get_link_args()
 
         if 'Core' in modules:
@@ -402,8 +402,8 @@ class QtBaseDependency(ExternalDependency):
 
             if self.private_headers:
                 priv_inc = self.get_private_includes(mincdir, module)
-                for dir in priv_inc:
-                    self.compile_args.append('-I' + dir)
+                for directory in priv_inc:
+                    self.compile_args.append('-I' + directory)
             libfile = self.clib_compiler.find_library(self.qtpkgname + module + modules_lib_suffix,
                                                       self.env,
                                                       libdir)

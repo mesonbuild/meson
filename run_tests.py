@@ -136,7 +136,7 @@ def find_vcxproj_with_target(builddir, target):
         p = r'<TargetName>{}</TargetName>\s*<TargetExt>\{}</TargetExt>'.format(t, ext)
     else:
         p = r'<TargetName>{}</TargetName>'.format(t)
-    for root, dirs, files in os.walk(builddir):
+    for _, _, files in os.walk(builddir):
         for f in fnmatch.filter(files, '*.vcxproj'):
             f = os.path.join(builddir, f)
             with open(f, 'r', encoding='utf-8') as o:

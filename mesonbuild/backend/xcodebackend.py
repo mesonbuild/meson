@@ -345,7 +345,7 @@ class XCodeBackend(backends.Backend):
         self.ofile.write('/* End PBXFileReference section */\n')
 
     def generate_pbx_frameworks_buildphase(self):
-        for tname, t in self.build.targets.items():
+        for t in self.build.targets.values():
             self.ofile.write('\n/* Begin PBXFrameworksBuildPhase section */\n')
             self.write_line('%s /* %s */ = {\n' % (t.buildphasemap['Frameworks'], 'Frameworks'))
             self.indent_level += 1
@@ -587,7 +587,7 @@ class XCodeBackend(backends.Backend):
 
     def generate_pbx_sources_build_phase(self):
         self.ofile.write('\n/* Begin PBXSourcesBuildPhase section */\n')
-        for name, phase_id in self.source_phase.items():
+        for name in self.source_phase.keys():
             t = self.build.targets[name]
             self.write_line('%s /* Sources */ = {' % (t.buildphasemap[name]))
             self.indent_level += 1

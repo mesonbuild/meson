@@ -123,7 +123,7 @@ class Elf(DataSizes):
             self.parse_header()
             self.parse_sections()
             self.parse_dynamic()
-        except:
+        except (struct.error, RuntimeError):
             self.bf.close()
             raise
 
@@ -180,7 +180,7 @@ class Elf(DataSizes):
     def parse_sections(self):
         self.bf.seek(self.e_shoff)
         self.sections = []
-        for i in range(self.e_shnum):
+        for _ in range(self.e_shnum):
             self.sections.append(SectionHeader(self.bf, self.ptrsize, self.is_le))
 
     def read_str(self):
