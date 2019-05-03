@@ -120,7 +120,7 @@ def get_relative_files_list_from_dir(fromdir):
 
 def platform_fix_name(fname, compiler, env):
     # canonicalize compiler
-    if compiler == 'clang-cl':
+    if compiler in {'clang-cl', 'intel-cl'}:
         canonical_compiler = 'msvc'
     else:
         canonical_compiler = compiler

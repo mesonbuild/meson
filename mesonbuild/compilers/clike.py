@@ -776,7 +776,7 @@ class CLikeCompiler:
             return True, cached
 
         # MSVC does not have compiler __builtin_-s.
-        if self.get_id() == 'msvc':
+        if self.get_id() in {'msvc', 'intel-cl'}:
             return False, False
 
         # Detect function as a built-in
