@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import functools
 import os.path
 import typing
@@ -361,6 +362,16 @@ class VisualStudioLikeCPPCompilerMixin:
 
     """Mixin for C++ specific method overrides in MSVC-like compilers."""
 
+    VC_VERSION_MAP = {
+        'none': (True, None),
+        'vc++11': (True, 11),
+        'vc++14': (True, 14),
+        'vc++17': (True, 17),
+        'c++11': (False, 11),
+        'c++14': (False, 14),
+        'c++17': (False, 17),
+    }
+
     def get_option_link_args(self, options):
         return options['cpp_winlibs'].value[:]
 
@@ -387,34 +398,12 @@ class VisualStudioLikeCPPCompilerMixin:
         elif eh.value != 'none':
             args.append('/EH' + eh.value)
 
-        vc_version_map = {
-            'none': (True, None),
-            'vc++11': (True, 11),
-            'vc++14': (True, 14),
-            'vc++17': (True, 17),
-            'c++11': (False, 11),
-            'c++14': (False, 14),
-            'c++17': (False, 17)}
+        permissive, ver = self.VC_VERSION_MAP[options['cpp_std'].value]
 
-        permissive, ver = vc_version_map[options['cpp_std'].value]
-
-        if ver is None:
-            pass
-        elif ver == 11:
-            # Note: there is no explicit flag for supporting C++11; we attempt to do the best we can
-            # which means setting the C++ standard version to C++14, in compilers that support it
-            # (i.e., after VS2015U3)
-            # if one is using anything before that point, one cannot set the standard.
-            if self.id == 'clang-cl' or version_compare(self.version, '>=19.00.24210'):
-                mlog.warning('MSVC does not support C++11; '
-                             'attempting best effort; setting the standard to C++14')
-                args.append('/std:c++14')
-            else:
-                mlog.warning('This version of MSVC does not support cpp_std arguments')
-        else:
+        if ver is not None:
             args.append('/std:c++{}'.format(ver))
 
-        if not permissive and version_compare(self.version, '>=19.11'):
+        if not permissive:
             args.append('/permissive-')
 
         return args
@@ -424,7 +413,33 @@ class VisualStudioLikeCPPCompilerMixin:
         return CLikeCompiler.get_compiler_check_args(self)
 
 
-class VisualStudioCPPCompiler(VisualStudioLikeCPPCompilerMixin, VisualStudioLikeCompiler, CPPCompiler):
+class CPP11AsCPP14Mixin:
+
+    """Mixin class for VisualStudio and ClangCl to replace C++11 std with C++14.
+
+    This is a limitation of Clang and MSVC that ICL doesn't share.
+    """
+
+    def get_option_compile_args(self, options):
+        # Note: there is no explicit flag for supporting C++11; we attempt to do the best we can
+        # which means setting the C++ standard version to C++14, in compilers that support it
+        # (i.e., after VS2015U3)
+        # if one is using anything before that point, one cannot set the standard.
+        if options['cpp_std'].value in {'vc++11', 'c++11'}:
+            mlog.warning(self.id, 'does not support C++11;',
+                         'attempting best effort; setting the standard to C++14')
+            # Don't mutate anything we're going to change, we need to use
+            # deepcopy since we're messing with members, and we can't simply
+            # copy the members because the option proxy doesn't support it.
+            options = copy.deepcopy(options)
+            if options['cpp_std'].value == 'vc++11':
+                options['cpp_std'].value = 'vc++14'
+            else:
+                options['cpp_std'].value = 'c++14'
+        return super().get_option_compile_args(options)
+
+
+class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, VisualStudioLikeCompiler, CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap, target):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         VisualStudioLikeCompiler.__init__(self, target)
@@ -435,14 +450,29 @@ class VisualStudioCPPCompiler(VisualStudioLikeCPPCompilerMixin, VisualStudioLike
         cpp_stds = ['none', 'c++11', 'vc++11']
         # Visual Studio 2015 and later
         if version_compare(self.version, '>=19'):
-            cpp_stds.extend(['c++14', 'vc++14', 'c++latest', 'vc++latest'])
+            cpp_stds.extend(['c++14', 'c++latest', 'vc++latest'])
         # Visual Studio 2017 and later
         if version_compare(self.version, '>=19.11'):
-            cpp_stds.extend(['c++17', 'vc++17'])
+            cpp_stds.extend(['vc++14', 'c++17', 'vc++17'])
         return self._get_options_impl(super().get_options(), cpp_stds)
 
+    def get_option_compile_args(self, options):
+        if options['cpp_std'].value != 'none' and version_compare(self.version, '<19.00.24210'):
+            mlog.warning('This version of MSVC does not support cpp_std arguments')
+            options = copy.copy(options)
+            options['cpp_std'].value = 'none'
 
-class ClangClCPPCompiler(VisualStudioLikeCPPCompilerMixin, VisualStudioLikeCompiler, CPPCompiler):
+        args = super().get_option_compile_args(options)
+
+        if version_compare(self.version, '<19.11'):
+            try:
+                i = args.index('/permissive-')
+            except ValueError:
+                return args
+            del args[i]
+        return args
+
+class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, VisualStudioLikeCompiler, CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap, target):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         VisualStudioLikeCompiler.__init__(self, target)
