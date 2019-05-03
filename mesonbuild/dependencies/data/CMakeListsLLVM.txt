@@ -1,0 +1,95 @@
+cmake_minimum_required(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION} )
+
+set(PACKAGE_FOUND FALSE)
+
+while(TRUE)
+  find_package(LLVM REQUIRED CONFIG QUIET)
+
+  # ARCHS has to be set via the CMD interface
+  if(LLVM_FOUND OR "${ARCHS}" STREQUAL "")
+    break()
+  endif()
+
+  list(GET       ARCHS 0 CMAKE_LIBRARY_ARCHITECTURE)
+  list(REMOVE_AT ARCHS 0)
+endwhile()
+
+if(LLVM_FOUND)
+  set(PACKAGE_FOUND TRUE)
+
+  foreach(mod IN LISTS LLVM_MESON_MODULES)
+    # Reset variables
+    set(out_mods)
+    set(real_mods)
+
+    # Generate a lower and upper case version
+    string(TOLOWER "${mod}" mod_L)
+    string(TOUPPER "${mod}" mod_U)
+
+    # Get the mapped components
+    llvm_map_components_to_libnames(out_mods ${mod} ${mod_L} ${mod_U})
+    list(SORT              out_mods)
+    list(REMOVE_DUPLICATES out_mods)
+
+    # Make sure that the modules exist
+    foreach(i IN LISTS out_mods)
+      if(TARGET ${i})
+        list(APPEND real_mods ${i})
+      endif()
+    endforeach()
+
+    # Set the output variables
+    set(MESON_LLVM_TARGETS_${mod} ${real_mods})
+    foreach(i IN LISTS real_mods)
+      set(MESON_TARGET_TO_LLVM_${i} ${mod})
+    endforeach()
+  endforeach()
+
+  # Check the following variables:
+  # LLVM_PACKAGE_VERSION
+  # LLVM_VERSION
+  # LLVM_VERSION_STRING
+  if(NOT DEFINED PACKAGE_VERSION)
+    if(DEFINED LLVM_PACKAGE_VERSION)
+      set(PACKAGE_VERSION "${LLVM_PACKAGE_VERSION}")
+    elseif(DEFINED LLVM_VERSION)
+      set(PACKAGE_VERSION "${LLVM_VERSION}")
+    elseif(DEFINED LLVM_VERSION_STRING)
+      set(PACKAGE_VERSION "${LLVM_VERSION_STRING}")
+    endif()
+  endif()
+
+  # Check the following variables:
+  # LLVM_LIBRARIES
+  # LLVM_LIBS
+  set(libs)
+  if(DEFINED LLVM_LIBRARIES)
+    set(libs LLVM_LIBRARIES)
+  elseif(DEFINED LLVM_LIBS)
+    set(libs LLVM_LIBS)
+  endif()
+
+  # Check the following variables:
+  # LLVM_INCLUDE_DIRS
+  # LLVM_INCLUDES
+  # LLVM_INCLUDE_DIR
+  set(includes)
+  if(DEFINED LLVM_INCLUDE_DIRS)
+    set(includes LLVM_INCLUDE_DIRS)
+  elseif(DEFINED LLVM_INCLUDES)
+    set(includes LLVM_INCLUDES)
+  elseif(DEFINED LLVM_INCLUDE_DIR)
+    set(includes LLVM_INCLUDE_DIR)
+  endif()
+
+  # Check the following variables:
+  # LLVM_DEFINITIONS
+  set(definitions)
+  if(DEFINED LLVM_DEFINITIONS)
+    set(definitions LLVM_DEFINITIONS)
+  endif()
+
+  set(PACKAGE_INCLUDE_DIRS "${${includes}}")
+  set(PACKAGE_DEFINITIONS  "${${definitions}}")
+  set(PACKAGE_LIBRARIES    "${${libs}}")
+endif()

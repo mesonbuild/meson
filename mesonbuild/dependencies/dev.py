@@ -20,13 +20,15 @@ import glob
 import os
 import re
 
-from .. import mesonlib
+from .. import mesonlib, mlog
 from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
-    strip_system_libdirs, ConfigToolDependency,
+    strip_system_libdirs, ConfigToolDependency, CMakeDependency
 )
 from .misc import ThreadDependency
+
+from typing import List, Tuple
 
 
 def get_shared_library_suffix(environment, native):
@@ -192,7 +194,7 @@ class GMockDependency(ExternalDependency):
         return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
 
 
-class LLVMDependency(ConfigToolDependency):
+class LLVMDependencyConfigTool(ConfigToolDependency):
     """
     LLVM uses a special tool, llvm-config, which has arguments for getting
     c args, cxx args, and ldargs as well as version.
@@ -399,6 +401,66 @@ class LLVMDependency(ConfigToolDependency):
             return 'modules: ' + ', '.join(self.module_details)
         return ''
 
+class LLVMDependencyCMake(CMakeDependency):
+    def __init__(self, env, kwargs):
+        self.llvm_modules = stringlistify(extract_as_list(kwargs, 'modules'))
+        self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
+        super().__init__(name='LLVM', environment=env, language='cpp', kwargs=kwargs)
+
+        # Extract extra include directories and definitions
+        inc_dirs = self.get_cmake_var('PACKAGE_INCLUDE_DIRS')
+        defs = self.get_cmake_var('PACKAGE_DEFINITIONS')
+        temp = ['-I' + x for x in inc_dirs] + defs
+        self.compile_args += [x for x in temp if x not in self.compile_args]
+        self._add_sub_dependency(ThreadDependency, env, kwargs)
+
+    def _main_cmake_file(self) -> str:
+        # Use a custom CMakeLists.txt for LLVM
+        return 'CMakeListsLLVM.txt'
+
+    def _extra_cmake_opts(self) -> List[str]:
+        return ['-DLLVM_MESON_MODULES={}'.format(';'.join(self.llvm_modules + self.llvm_opt_modules))]
+
+    def _map_module_list(self, modules: List[Tuple[str, bool]]) -> List[Tuple[str, bool]]:
+        res = []
+        for mod, required in modules:
+            cm_targets = self.get_cmake_var('MESON_LLVM_TARGETS_{}'.format(mod))
+            if not cm_targets:
+                if required:
+                    raise self._gen_exception('LLVM module {} was not found'.format(mod))
+                else:
+                    mlog.warning('Optional LLVM module', mlog.bold(mod), 'was not found')
+                    continue
+            for i in cm_targets:
+                res += [(i, required)]
+        return res
+
+    def _original_module_name(self, module: str) -> str:
+        orig_name = self.get_cmake_var('MESON_TARGET_TO_LLVM_{}'.format(module))
+        if orig_name:
+            return orig_name[0]
+        return module
+
+class LLVMDependency(ExternalDependency):
+    def __init__(self, env, kwargs):
+        super().__init__('LLVM', env, 'cpp', kwargs)
+
+    @classmethod
+    def _factory(cls, env, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
+
+        if DependencyMethods.CMAKE in methods:
+            candidates.append(functools.partial(LLVMDependencyCMake, env, kwargs))
+
+        if DependencyMethods.CONFIG_TOOL in methods:
+            candidates.append(functools.partial(LLVMDependencyConfigTool, env, kwargs))
+
+        return candidates
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.CMAKE, DependencyMethods.CONFIG_TOOL]
 
 class ValgrindDependency(PkgConfigDependency):
     '''

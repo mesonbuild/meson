@@ -35,7 +35,7 @@ foreach static : [true, false]
   llvm_dep = dependency(
     'llvm',
     modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
-               'mcjit', 'nativecodegen'],
+               'mcjit', 'nativecodegen', 'amdgpu'],
     required : false,
     static : static,
   )

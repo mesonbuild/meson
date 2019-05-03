@@ -35,7 +35,7 @@ from .. import mesonlib
 from ..compilers import clib_langs
 from ..environment import BinaryTable, Environment, MachineInfo
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
-from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify
+from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list
 from ..mesonlib import Version, LibType
 
 # These must be defined in this file to avoid cyclical references.
@@ -971,6 +971,24 @@ class CMakeDependency(ExternalDependency):
     def _gen_exception(self, msg):
         return DependencyException('Dependency {} not found: {}'.format(self.name, msg))
 
+    def _main_cmake_file(self) -> str:
+        return 'CMakeLists.txt'
+
+    def _extra_cmake_opts(self) -> List[str]:
+        return []
+
+    def _map_module_list(self, modules: List[Tuple[str, bool]]) -> List[Tuple[str, bool]]:
+        # Map the input module list to something else
+        # This function will only be executed AFTER the initial CMake
+        # interpreter pass has completed. Thus variables defined in the
+        # CMakeLists.txt can be accessed here.
+        return modules
+
+    def _original_module_name(self, module: str) -> str:
+        # Reverse the module mapping done by _map_module_list for
+        # one module
+        return module
+
     def __init__(self, name: str, environment: Environment, kwargs, language=None):
         super().__init__('cmake', environment, language, kwargs)
         self.name = name
@@ -989,6 +1007,9 @@ class CMakeDependency(ExternalDependency):
 
         # Where all CMake "build dirs" are located
         self.cmake_root_dir = environment.scratch_dir
+
+        # List of successfully found modules
+        self.found_modules = []
 
         # When finding dependencies for cross-compiling, we don't care about
         # the 'native' CMake binary
@@ -1061,15 +1082,10 @@ class CMakeDependency(ExternalDependency):
         if self.cmakeinfo is None:
             raise self._gen_exception('Unable to obtain CMake system information')
 
-        modules = kwargs.get('modules', [])
-        cm_path = kwargs.get('cmake_module_path', [])
-        cm_args = kwargs.get('cmake_args', [])
-        if not isinstance(modules, list):
-            modules = [modules]
-        if not isinstance(cm_path, list):
-            cm_path = [cm_path]
-        if not isinstance(cm_args, list):
-            cm_args = [cm_args]
+        modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
+        modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
+        cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))
+        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
         if cm_path:
             cm_args += ['-DCMAKE_MODULE_PATH={}'.format(';'.join(cm_path))]
@@ -1242,7 +1258,7 @@ class CMakeDependency(ExternalDependency):
 
         return False
 
-    def _detect_dep(self, name: str, modules: List[str], args: List[str]):
+    def _detect_dep(self, name: str, modules: List[Tuple[str, bool]], args: List[str]):
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
@@ -1265,11 +1281,12 @@ class CMakeDependency(ExternalDependency):
 
             # Prepare options
             cmake_opts = ['--trace-expand', '-DNAME={}'.format(name), '-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))] + args + ['.']
+            cmake_opts += self._extra_cmake_opts()
             if len(i) > 0:
                 cmake_opts = ['-G', i] + cmake_opts
 
             # Run CMake
-            ret1, out1, err1 = self._call_cmake(cmake_opts, 'CMakeLists.txt')
+            ret1, out1, err1 = self._call_cmake(cmake_opts, self._main_cmake_file())
 
             # Current generator was successful
             if ret1 == 0:
@@ -1327,6 +1344,11 @@ class CMakeDependency(ExternalDependency):
             self.version = vers_raw[0]
             self.version.strip('"\' ')
 
+        # Post-process module list. Used in derived classes to modify the
+        # module list (append prepend a string, etc.).
+        modules = self._map_module_list(modules)
+        autodetected_module_list = False
+
         # Try guessing a CMake target if none is provided
         if len(modules) == 0:
             for i in self.targets:
@@ -1334,17 +1356,19 @@ class CMakeDependency(ExternalDependency):
                 lname = name.lower()
                 if '{}::{}'.format(lname, lname) == tg or lname == tg.replace('::', ''):
                     mlog.debug('Guessed CMake target \'{}\''.format(i))
-                    modules = [i]
+                    modules = [(i, True)]
+                    autodetected_module_list = True
                     break
 
         # Failed to guess a target --> try the old-style method
         if len(modules) == 0:
             incDirs = self.get_first_cmake_var_of(['PACKAGE_INCLUDE_DIRS'])
+            defs = self.get_first_cmake_var_of(['PACKAGE_DEFINITIONS'])
             libs = self.get_first_cmake_var_of(['PACKAGE_LIBRARIES'])
 
             # Try to use old style variables if no module is specified
             if len(libs) > 0:
-                self.compile_args = list(map(lambda x: '-I{}'.format(x), incDirs))
+                self.compile_args = list(map(lambda x: '-I{}'.format(x), incDirs)) + defs
                 self.link_args = libs
                 mlog.debug('using old-style CMake variables for dependency {}'.format(name))
                 return
@@ -1361,13 +1385,19 @@ class CMakeDependency(ExternalDependency):
         compileDefinitions = []
         compileOptions = []
         libraries = []
-        for i in modules:
+        for i, required in modules:
             if i not in self.targets:
-                raise self._gen_exception('CMake: invalid CMake target {} for {}.\n'
+                if not required:
+                    mlog.warning('CMake: Optional module', mlog.bold(self._original_module_name(i)), 'for', mlog.bold(name), 'was not found')
+                    continue
+                raise self._gen_exception('CMake: invalid module {} for {}.\n'
                                           'Try to explicitly specify one or more targets with the "modules" property.\n'
-                                          'Valid targets are:\n{}'.format(i, name, list(self.targets.keys())))
+                                          'Valid targets are:\n{}'.format(self._original_module_name(i), name, list(self.targets.keys())))
 
             targets = [i]
+            if not autodetected_module_list:
+                self.found_modules += [i]
+
             while len(targets) > 0:
                 curr = targets.pop(0)
 
@@ -1432,7 +1462,7 @@ class CMakeDependency(ExternalDependency):
         self.compile_args = compileOptions + compileDefinitions + list(map(lambda x: '-I{}'.format(x), incDirs))
         self.link_args = libraries
 
-    def get_first_cmake_var_of(self, var_list):
+    def get_first_cmake_var_of(self, var_list: List[str]) -> List[str]:
         # Return the first found CMake variable in list var_list
         for i in var_list:
             if i in self.vars:
@@ -1440,7 +1470,7 @@ class CMakeDependency(ExternalDependency):
 
         return []
 
-    def get_cmake_var(self, var):
+    def get_cmake_var(self, var: str) -> List[str]:
         # Return the value of the CMake variable var or an empty list if var does not exist
         if var in self.vars:
             return self.vars[var]
@@ -1746,6 +1776,13 @@ set(CMAKE_SIZEOF_VOID_P "{}")
 
     def log_tried(self):
         return self.type_name
+
+    def log_details(self) -> str:
+        modules = [self._original_module_name(x) for x in self.found_modules]
+        modules = sorted(set(modules))
+        if modules:
+            return 'modules: ' + ', '.join(modules)
+        return ''
 
 class DubDependency(ExternalDependency):
     class_dubbin = None

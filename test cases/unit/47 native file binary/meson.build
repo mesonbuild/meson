@@ -8,7 +8,7 @@ if case == 'find_program'
   assert(result.stdout().strip().endswith('12345'), 'Didn\'t load bash from config file')
 elif case == 'config_dep'
   add_languages('cpp')
-  dep = dependency('llvm')
+  dep = dependency('llvm', method : 'config-tool')
   assert(dep.get_configtool_variable('version').endswith('12345'), 'Didn\'t load llvm from config file')
 elif case == 'python3'
   prog = import('python3').find_python()
