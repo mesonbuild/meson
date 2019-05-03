@@ -82,7 +82,7 @@ rsp_threshold = int(os.environ.get('MESON_RSP_THRESHOLD', '4096'))
 # variables (or variables we use them in) is interpreted directly by ninja
 # (e.g. the value of the depfile variable is a pathname that ninja will read
 # from, etc.), so it must not be shell quoted.
-raw_names = {'DEPFILE', 'DESC', 'pool', 'description'}
+raw_names = {'DEPFILE_UNQUOTED', 'DESC', 'pool', 'description'}
 
 def ninja_quote(text, is_build_line=False):
     if is_build_line:
@@ -168,6 +168,9 @@ class NinjaRule:
         self.refcount = 0
         self.rsprefcount = 0
         self.rspfile_quote_style = rspfile_quote_style  # rspfile quoting style is 'gcc' or 'cl'
+
+        if self.depfile == '$DEPFILE':
+            self.depfile += '_UNQUOTED'
 
     @staticmethod
     def _quoter(x, qf = quote_func):
@@ -269,6 +272,9 @@ class NinjaBuildElement:
         if isinstance(elems, str):
             elems = [elems]
         self.elems.append((name, elems))
+
+        if name == 'DEPFILE':
+            self.elems.append((name + '_UNQUOTED', elems))
 
     def _should_use_rspfile(self):
         # 'phony' is a rule built-in to ninja
