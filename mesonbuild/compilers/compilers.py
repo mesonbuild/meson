@@ -1291,10 +1291,10 @@ class Compiler:
                     paths = paths + ':' + padding
             args.append('-Wl,-rpath,' + paths)
 
-	# BBI_SOL11_4 BEGIN -- just to prevent code of get_compiler_is_linuxlike below -- linux is like sunos and not vice versa
+        # BBI_SOL11_4 BEGIN -- just to prevent code of get_compiler_is_linuxlike below -- linux is like sunos and not vice versa
         if mesonlib.is_sunos():
             return args
-	# BBI_SOL11_4 END
+        # BBI_SOL11_4 END
 
         if get_compiler_is_linuxlike(self):
             # Rpaths to use while linking must be absolute. These are not
