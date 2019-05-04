@@ -37,7 +37,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [GNOME Software](https://gitlab.gnome.org/GNOME/gnome-software), an app store for GNOME
  - [GNOME Twitch](https://github.com/vinszent/gnome-twitch), an app for viewing Twitch streams on GNOME desktop
  - [GNOME Usage](https://gitlab.gnome.org/GNOME/gnome-usage), a GNOME application for visualizing system resources
- - [GNU FriBidi](https://github.com/fribidi/fribidi), the open source Implementation of the Unicode Bidirectional Algorithm
+ - [GNU FriBidi](https://github.com/fribidi/fribidi), the open source implementation of the Unicode Bidirectional Algorithm
  - [Graphene](https://ebassi.github.io/graphene/), a thin type library for graphics
  - [Grilo](https://git.gnome.org/browse/grilo) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins), the Grilo multimedia framework
  - [GStreamer](https://cgit.freedesktop.org/gstreamer/gstreamer/), multimedia framework (not the default yet)
