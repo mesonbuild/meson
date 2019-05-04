@@ -37,6 +37,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [GNOME Software](https://gitlab.gnome.org/GNOME/gnome-software), an app store for GNOME
  - [GNOME Twitch](https://github.com/vinszent/gnome-twitch), an app for viewing Twitch streams on GNOME desktop
  - [GNOME Usage](https://gitlab.gnome.org/GNOME/gnome-usage), a GNOME application for visualizing system resources
+ - [GNU FriBidi](https://github.com/fribidi/fribidi), the open source Implementation of the Unicode Bidirectional Algorithm
  - [Graphene](https://ebassi.github.io/graphene/), a thin type library for graphics
  - [Grilo](https://git.gnome.org/browse/grilo) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins), the Grilo multimedia framework
  - [GStreamer](https://cgit.freedesktop.org/gstreamer/gstreamer/), multimedia framework (not the default yet)
@@ -47,6 +48,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [HexChat](https://github.com/hexchat/hexchat), a cross-platform IRC client in C
  - [IGT](https://cgit.freedesktop.org/xorg/app/intel-gpu-tools/), Linux kernel graphics driver test suite
  - [iSH](https://github.com/tbodt/ish), Linux shell for iOS
+ - [Janet](https://github.com/janet-lang/janet), a functional and imperative programming language and bytecode interpreter
  - [json](https://github.com/nlohmann/json), JSON for Modern C++
  - [JsonCpp](https://github.com/open-source-parsers/jsoncpp), a C++ library for interacting with JSON
  - [Json-glib](https://gitlab.gnome.org/GNOME/json-glib), GLib-based JSON manipulation library
@@ -65,6 +67,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
 lookup based on OpenStreetMap data
  - [libspng](https://gitlab.com/randy408/libspng), a C library for reading and writing Portable Network Graphics (PNG) 
 format files
+ - [libui](https://github.com/andlabs/libui), a simple and portable (but not inflexible) GUI library in C that uses the native GUI technologies of each platform it supports
  - [Libva](https://github.com/intel/libva), an implementation for the VA (VIdeo Acceleration) API
  - [Libzim](https://github.com/openzim/libzim), the reference implementation for the ZIM file format
  - [Marker](https://github.com/fabiocolacio/Marker), a GTK-3 markdown editor
