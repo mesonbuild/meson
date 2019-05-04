@@ -3116,6 +3116,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             return self.build_target(node, args, kwargs, ExecutableHolder)
         elif target_type == 'shared_library':
             return self.build_target(node, args, kwargs, SharedLibraryHolder)
+        elif target_type == 'shared_module':
+            return self.build_target(node, args, kwargs, SharedModuleHolder)
         elif target_type == 'static_library':
             return self.build_target(node, args, kwargs, StaticLibraryHolder)
         elif target_type == 'both_libraries':
