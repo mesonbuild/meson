@@ -3421,8 +3421,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         for s in raw_sources:
             if isinstance(s, mesonlib.File):
                 sources.append(s)
-            else:
+            elif isinstance(s, str):
                 source_strings.append(s)
+            else:
+                raise InvalidArguments('Argument {!r} must be string or file.'.format(s))
         sources += self.source_strings_to_files(source_strings)
         install_dir = kwargs.get('install_dir', None)
         if not isinstance(install_dir, (str, type(None))):
