@@ -1027,8 +1027,8 @@ This will become a hard error in the future.''')
     def _get_build_args(self, kwargs, state, depends):
         args = []
         deps = extract_as_list(kwargs, 'dependencies', unholder=True)
-        cflags = OrderedSet()
-        cflags.update(mesonlib.stringlistify(kwargs.pop('c_args', [])))
+        cflags = []
+        cflags.extend(mesonlib.stringlistify(kwargs.pop('c_args', [])))
         deps_cflags, internal_ldflags, external_ldflags, gi_includes = \
             self._get_dependencies_flags(deps, state, depends, include_rpath=True)
         inc_dirs = mesonlib.extract_as_list(kwargs, 'include_directories')
@@ -1037,23 +1037,23 @@ This will become a hard error in the future.''')
                 raise MesonException(
                     'Gir include dirs should be include_directories().')
 
-        cflags.update(deps_cflags)
-        cflags.update(get_include_args(inc_dirs))
-        ldflags = OrderedSet()
-        ldflags.update(internal_ldflags)
-        ldflags.update(external_ldflags)
+        cflags.extend(deps_cflags)
+        cflags.extend(get_include_args(inc_dirs))
+        ldflags = []
+        ldflags.extend(internal_ldflags)
+        ldflags.extend(external_ldflags)
 
-        cflags.update(state.environment.coredata.get_external_args(MachineChoice.HOST, 'c'))
-        ldflags.update(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
+        cflags.extend(state.environment.coredata.get_external_args(MachineChoice.HOST, 'c'))
+        ldflags.extend(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
         if state.environment.is_cross_build():
             compiler = state.environment.coredata.cross_compilers.get('c')
         else:
             compiler = state.environment.coredata.compilers.get('c')
 
         compiler_flags = self._get_langs_compilers_flags(state, [('c', compiler)])
-        cflags.update(compiler_flags[0])
-        ldflags.update(compiler_flags[1])
-        ldflags.update(compiler_flags[2])
+        cflags.extend(compiler_flags[0])
+        ldflags.extend(compiler_flags[1])
+        ldflags.extend(compiler_flags[2])
         if compiler:
             args += ['--cc=%s' % ' '.join([shlex.quote(x) for x in compiler.get_exelist()])]
             args += ['--ld=%s' % ' '.join([shlex.quote(x) for x in compiler.get_linker_exelist()])]
