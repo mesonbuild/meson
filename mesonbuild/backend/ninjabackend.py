@@ -29,7 +29,7 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..compilers import CompilerArgs, CCompiler, VisualStudioCCompiler, FortranCompiler
+from ..compilers import CompilerArgs, CCompiler, VisualStudioLikeCompiler, FortranCompiler
 from ..linkers import ArLinker
 from ..mesonlib import File, MachineChoice, MesonException, OrderedSet, LibType
 from ..mesonlib import get_compiler_for_source, has_path_sep
@@ -221,7 +221,7 @@ class NinjaBackend(backends.Backend):
         Detect the search prefix to use.'''
         for compiler in self.build.compilers.values():
             # Have to detect the dependency format
-            if isinstance(compiler, VisualStudioCCompiler):
+            if isinstance(compiler, VisualStudioLikeCompiler):
                 break
         else:
             # None of our compilers are MSVC, we're done.
@@ -1673,7 +1673,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         command = [ninja_quote(i) for i in compiler.get_exelist()]
         args = ['$ARGS'] + quoted_depargs + compiler.get_output_args('$out') + compiler.get_compile_only_args() + ['$in']
         description = 'Compiling %s object $out.' % compiler.get_display_language()
-        if isinstance(compiler, VisualStudioCCompiler):
+        if isinstance(compiler, VisualStudioLikeCompiler):
             deps = 'msvc'
             depfile = None
         else:
@@ -1698,13 +1698,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if d != '$out' and d != '$in':
                 d = quote_func(d)
             quoted_depargs.append(d)
-        if isinstance(compiler, VisualStudioCCompiler):
+        if isinstance(compiler, VisualStudioLikeCompiler):
             output = []
         else:
             output = compiler.get_output_args('$out')
         command = compiler.get_exelist() + ['$ARGS'] + quoted_depargs + output + compiler.get_compile_only_args() + ['$in']
         description = 'Precompiling header $in.'
-        if isinstance(compiler, VisualStudioCCompiler):
+        if isinstance(compiler, VisualStudioLikeCompiler):
             deps = 'msvc'
             depfile = None
         else:
@@ -1886,7 +1886,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return compiler.get_no_stdinc_args()
 
     def get_compile_debugfile_args(self, compiler, target, objfile):
-        if not isinstance(compiler, VisualStudioCCompiler):
+        if not isinstance(compiler, VisualStudioLikeCompiler):
             return []
         # The way MSVC uses PDB files is documented exactly nowhere so
         # the following is what we have been able to decipher via
@@ -2275,7 +2275,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                       ''.format(target.get_basename())
                 raise InvalidArguments(msg)
             compiler = target.compilers[lang]
-            if isinstance(compiler, VisualStudioCCompiler):
+            if isinstance(compiler, VisualStudioLikeCompiler):
                 (commands, dep, dst, objs, src) = self.generate_msvc_pch_command(target, compiler, pch)
                 extradep = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
             elif compiler.id == 'intel':

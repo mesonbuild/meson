@@ -69,8 +69,6 @@ __all__ = [
     'IntelCCompiler',
     'IntelCPPCompiler',
     'IntelFortranCompiler',
-    'IntelClCCompiler',
-    'IntelClCPPCompiler',
     'JavaCompiler',
     'LLVMDCompiler',
     'MonoCompiler',
@@ -91,6 +89,7 @@ __all__ = [
     'SunFortranCompiler',
     'SwiftCompiler',
     'ValaCompiler',
+    'VisualStudioLikeCompiler',
     'VisualStudioCCompiler',
     'VisualStudioCPPCompiler',
 ]
@@ -122,6 +121,7 @@ from .compilers import (
     GnuCompiler,
     IntelCompiler,
     CcrxCompiler,
+    VisualStudioLikeCompiler,
 )
 from .c import (
     CCompiler,
@@ -132,7 +132,6 @@ from .c import (
     GnuCCompiler,
     ElbrusCCompiler,
     IntelCCompiler,
-    IntelClCCompiler,
     PGICCompiler,
     CcrxCCompiler,
     VisualStudioCCompiler,
@@ -146,7 +145,6 @@ from .cpp import (
     GnuCPPCompiler,
     ElbrusCPPCompiler,
     IntelCPPCompiler,
-    IntelClCPPCompiler,
     PGICPPCompiler,
     CcrxCPPCompiler,
     VisualStudioCPPCompiler,

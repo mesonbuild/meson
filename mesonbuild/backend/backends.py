@@ -23,7 +23,7 @@ import subprocess
 from ..mesonlib import MachineChoice, MesonException, OrderedSet
 from ..mesonlib import classify_unity_sources
 from ..mesonlib import File
-from ..compilers import CompilerArgs, VisualStudioCCompiler
+from ..compilers import CompilerArgs, VisualStudioLikeCompiler
 from collections import OrderedDict
 import shlex
 from functools import lru_cache
@@ -551,7 +551,7 @@ class Backend:
             return args
         extra_args = []
         # Compiler-specific escaping is needed for -D args but not for any others
-        if isinstance(compiler, VisualStudioCCompiler):
+        if isinstance(compiler, VisualStudioLikeCompiler):
             # MSVC needs escaping when a -D argument ends in \ or \"
             for arg in args:
                 if arg.startswith('-D') or arg.startswith('/D'):
