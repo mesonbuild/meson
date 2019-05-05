@@ -134,7 +134,7 @@ compiler being used:
 | cpp_link_args|               | free-form comma-separated list           | C++ link arguments to use |
 | cpp_std      | none          | none, c++98, c++03, c++11, c++14, c++17, <br/>c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, <br/> vc++14, vc++17, vc++latest | C++ language standard to use |
 | cpp_debugstl | false         | true, false                              | C++ STL debug mode |
-| cpp_eh       | sc            | none, a, s, sc                           | C++ exception handling type |
+| cpp_eh       | default       | none, default, a, s, sc                  | C++ exception handling type |
 | cpp_winlibs  | see below     | free-form comma-separated list           | Standard Windows libs to link against |
 
 The default values of `c_winlibs` and `cpp_winlibs` are in compiler-specific
@@ -144,3 +144,9 @@ shell32, ole32, oleaut32, uuid, comdlg32, advapi32.
 c_args, cpp_args, c_link_args, and cpp_link_args only affect native builds,
 when cross compiling they will not be applied to binaries or libraries
 targeting the host system, only those being run on the build system.
+
+When using MSVC, `cpp_eh=none` will result in no exception flags being passed,
+while the `cpp_eh=[value]` will result in `/EH[value]`.
+Since *0.51.0* `cpp_eh=default` will result in `/EHsc` on MSVC. When using
+gcc-style compilers, nothing is passed (allowing exceptions to work), while
+`cpp_eh=none` passes `-fno-exceptions`.

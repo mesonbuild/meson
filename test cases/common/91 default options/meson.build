@@ -8,13 +8,10 @@ project('default options', 'cpp', 'c', default_options : [
 
 assert(get_option('buildtype') == 'debugoptimized', 'Build type default value wrong.')
 
-if meson.get_compiler('cpp').get_argument_syntax() == 'msvc'
-  cpp_eh = get_option('cpp_eh')
-  assert(cpp_eh == 'none', 'MSVC eh value is "' + cpp_eh + '" instead of "none"')
-else
-  cpp_std = get_option('cpp_std')
-  assert(cpp_std == 'c++11', 'C++ std value is "' + cpp_std + '" instead of c++11.')
-endif
+cpp_eh = get_option('cpp_eh')
+assert(cpp_eh == 'none', 'EH value is "' + cpp_eh + '" instead of "none"')
+cpp_std = get_option('cpp_std')
+assert(cpp_std == 'c++11', 'C++ std value is "' + cpp_std + '" instead of c++11.')
 
 w_level = get_option('warning_level')
 assert(w_level == '3', 'warning level "' + w_level + '" instead of "3"')
