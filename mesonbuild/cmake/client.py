@@ -48,8 +48,8 @@ CMAKE_REPLY_TYPES = {
 # Base CMake server message classes
 
 class MessageBase:
-    def __init__(self, type: str, cookie: str):
-        self.type = type
+    def __init__(self, msg_type: str, cookie: str):
+        self.type = msg_type
         self.cookie = cookie
 
     def to_dict(self) -> dict:
@@ -61,8 +61,8 @@ class MessageBase:
 class RequestBase(MessageBase):
     cookie_counter = 0
 
-    def __init__(self, type: str):
-        super().__init__(type, self.gen_cookie())
+    def __init__(self, msg_type: str):
+        super().__init__(msg_type, self.gen_cookie())
 
     @staticmethod
     def gen_cookie():
@@ -404,13 +404,13 @@ class CMakeClient:
         raw_data = self.readMessageRaw()
         if 'type' not in raw_data:
             raise CMakeException('The "type" attribute is missing from the message')
-        type = raw_data['type']
-        func = self.type_map.get(type, None)
+        msg_type = raw_data['type']
+        func = self.type_map.get(msg_type, None)
         if not func:
-            raise CMakeException('Recieved unknown message type "{}"'.format(type))
-        for i in CMAKE_MESSAGE_TYPES[type]:
+            raise CMakeException('Recieved unknown message type "{}"'.format(msg_type))
+        for i in CMAKE_MESSAGE_TYPES[msg_type]:
             if i not in raw_data:
-                raise CMakeException('Key "{}" is missing from CMake server message type {}'.format(i, type))
+                raise CMakeException('Key "{}" is missing from CMake server message type {}'.format(i, msg_type))
         return func(raw_data)
 
     def writeMessage(self, msg: MessageBase) -> None:

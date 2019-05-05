@@ -414,7 +414,7 @@ class CMakeInterpreter:
         def string(value: str) -> StringNode:
             return StringNode(token(val=value))
 
-        def id(value: str) -> IdNode:
+        def id_node(value: str) -> IdNode:
             return IdNode(token(val=value))
 
         def nodeify(value):
@@ -433,7 +433,11 @@ class CMakeInterpreter:
             args.arguments += [nodeify(x) for x in elements]
             return ArrayNode(args, 0, 0, 0, 0)
 
-        def function(name: str, args=[], kwargs={}) -> FunctionNode:
+        def function(name: str, args=None, kwargs=None) -> FunctionNode:
+            if args is None:
+                args = []
+            if kwargs is None:
+                kwargs = {}
             args_n = ArgumentNode(token())
             if not isinstance(args, list):
                 args = [args]
@@ -442,7 +446,11 @@ class CMakeInterpreter:
             func_n = FunctionNode(self.subdir, 0, 0, 0, 0, name, args_n)
             return func_n
 
-        def method(obj: BaseNode, name: str, args=[], kwargs={}) -> MethodNode:
+        def method(obj: BaseNode, name: str, args=None, kwargs=None) -> MethodNode:
+            if args is None:
+                args = []
+            if kwargs is None:
+                kwargs = {}
             args_n = ArgumentNode(token())
             if not isinstance(args, list):
                 args = [args]
@@ -466,7 +474,7 @@ class CMakeInterpreter:
                 assert(isinstance(i, ConverterTarget))
                 if i.name not in processed:
                     process_target(i)
-                link_with += [id(processed[i.name]['tgt'])]
+                link_with += [id_node(processed[i.name]['tgt'])]
             for i in tgt.object_libs:
                 assert(isinstance(i, ConverterTarget))
                 if i.name not in processed:
@@ -490,11 +498,11 @@ class CMakeInterpreter:
             tgt_kwargs = {
                 'link_args': tgt.link_flags + tgt.link_libraries,
                 'link_with': link_with,
-                'include_directories': id(inc_var),
+                'include_directories': id_node(inc_var),
                 'install': tgt.install,
                 'install_dir': tgt.install_dir,
                 'override_options': tgt.override_options,
-                'objects': [method(id(x), 'extract_all_objects') for x in objec_libs],
+                'objects': [method(id_node(x), 'extract_all_objects') for x in objec_libs],
             }
 
             # Handle compiler args
@@ -510,14 +518,14 @@ class CMakeInterpreter:
             # declare_dependency kwargs
             dep_kwargs = {
                 'link_args': tgt.link_flags + tgt.link_libraries,
-                'link_with': id(tgt_var),
-                'include_directories': id(inc_var),
+                'link_with': id_node(tgt_var),
+                'include_directories': id_node(inc_var),
             }
 
             # Generate the function nodes
             inc_node = assign(inc_var, function('include_directories', tgt.includes))
             src_node = assign(src_var, function('files', tgt.sources + tgt.generated))
-            tgt_node = assign(tgt_var, function(tgt_func, [base_name, id(src_var)], tgt_kwargs))
+            tgt_node = assign(tgt_var, function(tgt_func, [base_name, id_node(src_var)], tgt_kwargs))
             dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
 
             # Add the nodes to the ast
