@@ -15,7 +15,7 @@
 import os, platform, re, sys, shlex, shutil, subprocess, typing
 
 from . import coredata
-from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker
+from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, IntelVisualStudioLinker
 from . import mesonlib
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, Popen_safe,
@@ -1172,11 +1172,14 @@ class Environment:
                     linkers = [self.vs_static_linker, self.clang_cl_static_linker, compiler.get_linker_exelist()]
                 else:
                     linkers = [self.default_static_linker, compiler.get_linker_exelist()]
+            elif isinstance(compiler, IntelClCCompiler):
+                # Intel has it's own linker that acts like microsoft's lib
+                linkers = ['xilib']
             else:
                 linkers = [self.default_static_linker]
         popen_exceptions = {}
         for linker in linkers:
-            if not set(['lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe']).isdisjoint(linker):
+            if not {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'}.isdisjoint(linker):
                 arg = '/?'
             else:
                 arg = '--version'
@@ -1185,6 +1188,8 @@ class Environment:
             except OSError as e:
                 popen_exceptions[' '.join(linker + [arg])] = e
                 continue
+            if "xilib: executing 'lib'" in err:
+                return IntelVisualStudioLinker(linker, getattr(compiler, 'machine', None))
             if '/OUT:' in out.upper() or '/OUT:' in err.upper():
                 return VisualStudioLinker(linker, getattr(compiler, 'machine', None))
             if p.returncode == 0 and ('armar' in linker or 'armar.exe' in linker):

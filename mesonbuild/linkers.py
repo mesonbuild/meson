@@ -82,6 +82,11 @@ class VisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
     """Microsoft's lib static linker."""
 
 
+class IntelVisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
+
+    """Intel's xilib static linker."""
+
+
 class ArLinker(StaticLinker):
 
     def __init__(self, exelist):
