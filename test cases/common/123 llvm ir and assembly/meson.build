@@ -41,11 +41,12 @@ foreach lang : ['c', 'cpp']
       error('MESON_SKIP_TEST: ML (masm) not found')
     endif
     # Preprocess file (ml doesn't support pre-processing)
+    # Force the intput to be C (/Tc) because ICL otherwise assumes it's an object (.obj) file
     preproc_name = lang + square_base + '.i'
     square_preproc = custom_target(lang + square_impl + 'preproc',
         input : square_impl,
         output : preproc_name,
-        command : [cl, '/EP', '/P', '/Fi' + preproc_name, '@INPUT@'] + uscore_args)
+        command : [cl, '/EP', '/P', '/Fi' + preproc_name, '/Tc', '@INPUT@'] + uscore_args)
     # Use assembled object file instead of the original .S assembly source
     square_impl = custom_target(lang + square_impl,
         input : square_preproc,
