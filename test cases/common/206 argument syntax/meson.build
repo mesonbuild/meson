@@ -5,16 +5,10 @@ project(
 
 cc = meson.get_compiler('c')
 
-if ['gcc', 'lcc', 'clang'].contains(cc.get_id())
+if ['gcc', 'lcc', 'clang', 'intel'].contains(cc.get_id())
   expected = 'gcc'
-elif ['msvc', 'clang-cl'].contains(cc.get_id())
+elif ['msvc', 'clang-cl', 'intel-cl'].contains(cc.get_id())
   expected = 'msvc'
-elif cc.get_id() == 'intel'
-  if host_machine.system() == 'windows'
-    expected = 'msvc'
-  else
-    expected = 'gcc'
-  endif
 else
   # It's possible that other compilers end up here that shouldn't
   expected = 'other'
