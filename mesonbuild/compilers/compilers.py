@@ -1146,7 +1146,7 @@ class Compiler:
         return os.path.join(dirname, 'output.' + suffix)
 
     @contextlib.contextmanager
-    def compile(self, code, extra_args=None, mode='link', want_output=False):
+    def compile(self, code, extra_args=None, *, mode='link', want_output=False):
         if extra_args is None:
             extra_args = []
         try:
@@ -1199,7 +1199,7 @@ class Compiler:
             pass
 
     @contextlib.contextmanager
-    def cached_compile(self, code, cdata: coredata.CoreData, extra_args=None, mode: str = 'link'):
+    def cached_compile(self, code, cdata: coredata.CoreData, *, extra_args=None, mode: str = 'link'):
         assert(isinstance(cdata, coredata.CoreData))
 
         # Calculate the key
