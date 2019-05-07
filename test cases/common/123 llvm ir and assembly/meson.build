@@ -46,12 +46,12 @@ foreach lang : ['c', 'cpp']
     square_preproc = custom_target(lang + square_impl + 'preproc',
         input : square_impl,
         output : preproc_name,
-        command : [cl, '/EP', '/P', '/Fi' + preproc_name, '/Tc', '@INPUT@'] + uscore_args)
+        command : [cl, '/nologo', '/EP', '/P', '/Fi' + preproc_name, '/Tc', '@INPUT@'] + uscore_args)
     # Use assembled object file instead of the original .S assembly source
     square_impl = custom_target(lang + square_impl,
         input : square_preproc,
         output : lang + square_base + '.obj',
-        command : [ml, '/safeseh', '/Fo', '@OUTPUT@', '/c', '@INPUT@'])
+        command : [ml, '/nologo', '/safeseh', '/Fo', '@OUTPUT@', '/c', '@INPUT@'])
   endif
   if supported_cpus.contains(cpu)
     e = executable('square_asm_' + lang, square_impl, 'main.' + lang,
