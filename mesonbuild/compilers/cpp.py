@@ -37,10 +37,10 @@ from .compilers import (
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .clike import CLikeCompiler
 
-def non_msvc_eh_options(eh, compiler):
+def non_msvc_eh_options(eh, args):
     if eh == 'none':
         args.append('-fno-exceptions')
-    elif eh != 'default':
+    elif eh == 's' or eh == 'c':
         mlog.warning('non-MSVC compilers do not support ' + eh + ' exception handling.' +
                      'You may want to set eh to \'default\'.')
 
