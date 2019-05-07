@@ -1,7 +1,7 @@
 project('simple fortran', 'fortran')
 
 fc = meson.get_compiler('fortran')
-if fc == 'gcc'
+if fc.get_id() == 'gcc'
   add_global_arguments('-fbounds-check', language : 'fortran')
 endif
 
