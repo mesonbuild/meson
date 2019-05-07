@@ -31,6 +31,7 @@ from .compilers import (
     IntelVisualStudioLikeCompiler,
 )
 from .clike import CLikeCompiler
+from .. import mlog
 
 from mesonbuild.mesonlib import (
     EnvironmentException, MachineChoice, is_osx, LibType
@@ -144,6 +145,25 @@ class FortranCompiler(CLikeCompiler, Compiler):
             call exit(0)
         end program main'''
         return self.find_library_impl(libname, env, extra_dirs, code, libtype)
+
+    def has_multi_arguments(self, args, env):
+        for arg in args[:]:
+            # some compilers, e.g. GCC, don't warn for unsupported warning-disable
+            # flags, so when we are testing a flag like "-Wno-forgotten-towel", also
+            # check the equivalent enable flag too "-Wforgotten-towel"
+            if arg.startswith('-Wno-'):
+                args.append('-W' + arg[5:])
+            if arg.startswith('-Wl,'):
+                mlog.warning('{} looks like a linker argument, '
+                             'but has_argument and other similar methods only '
+                             'support checking compiler arguments. Using them '
+                             'to check linker arguments are never supported, '
+                             'and results are likely to be wrong regardless of '
+                             'the compiler you are using. has_link_argument or '
+                             'other similar method can be used instead.'
+                             .format(arg))
+        code = 'program main\ncall exit(0)\nend program main'
+        return self.has_arguments(args, env, code, mode='compile')
 
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):
