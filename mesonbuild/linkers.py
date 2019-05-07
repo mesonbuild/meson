@@ -23,7 +23,7 @@ class StaticLinker:
         return mesonlib.is_windows()
 
 
-class VisualStudioLinker(StaticLinker):
+class VisualStudioLikeLinker:
     always_args = ['/NOLOGO']
 
     def __init__(self, exelist, machine):
@@ -31,7 +31,7 @@ class VisualStudioLinker(StaticLinker):
         self.machine = machine
 
     def get_exelist(self):
-        return self.exelist[:]
+        return self.exelist.copy()
 
     def get_std_link_args(self):
         return []
@@ -50,10 +50,10 @@ class VisualStudioLinker(StaticLinker):
         return []
 
     def get_always_args(self):
-        return VisualStudioLinker.always_args[:]
+        return self.always_args.copy()
 
     def get_linker_always_args(self):
-        return VisualStudioLinker.always_args[:]
+        return self.always_args.copy()
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return []
@@ -75,6 +75,11 @@ class VisualStudioLinker(StaticLinker):
     def get_link_debugfile_args(self, targetfile):
         # Static libraries do not have PDB files
         return []
+
+
+class VisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
+
+    """Microsoft's lib static linker."""
 
 
 class ArLinker(StaticLinker):
