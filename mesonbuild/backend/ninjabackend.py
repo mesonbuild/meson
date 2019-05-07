@@ -221,6 +221,10 @@ class NinjaBackend(backends.Backend):
         Detect the search prefix to use.'''
         for compiler in self.build.compilers.values():
             # Have to detect the dependency format
+
+            # IFort on windows is MSVC like, but doesn't have /showincludes
+            if isinstance(compiler, FortranCompiler):
+                continue
             if isinstance(compiler, VisualStudioLikeCompiler):
                 break
         else:
