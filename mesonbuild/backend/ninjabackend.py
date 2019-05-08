@@ -1532,11 +1532,8 @@ int dummy;
 
     def generate_dynamic_link_rules(self):
         num_pools = self.environment.coredata.backend_options['backend_max_links'].value
-        ctypes = [(self.build.compilers, False)]
-        if self.environment.is_cross_build():
-            ctypes.append((self.build.cross_compilers, True))
-        else:
-            ctypes.append((self.build.cross_compilers, True))
+        ctypes = [(self.build.compilers, False),
+                  (self.build.cross_compilers, True)]
         for (complist, is_cross) in ctypes:
             for langname, compiler in complist.items():
                 if langname == 'java' \
