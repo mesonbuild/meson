@@ -50,7 +50,7 @@ class WindowsModule(ExtensionModule):
         rescomp = ExternalProgram.from_bin_list(state.environment.binaries.host, 'windres')
 
         if not rescomp or not rescomp.found():
-            comp = self.detect_compiler(state.compilers)
+            comp = self.detect_compiler(state.environment.coredata.compilers)
             if comp.id in {'msvc', 'clang-cl', 'intel-cl'}:
                 rescomp = ExternalProgram('rc', silent=True)
             else:
