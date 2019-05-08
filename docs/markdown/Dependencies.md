@@ -64,6 +64,30 @@ pkg-config files. Meson has autodetection support for some of these,
 and they are described [later in this
 page](#dependencies-with-custom-lookup-functionality).
 
+# Arbitrary variables from dependencies that can be found multiple ways
+
+*Note* new in 0.51.0
+
+When you need to get an arbitrary variables from a dependency that can be
+found multiple ways, and you don't want to constrain the type you can use
+the generic `get_variable` method. This currently supports cmake, pkg-config,
+and config-tool based variables.
+
+```meson
+foo_dep = dependency('foo')
+var = foo.get_variable(cmake : 'CMAKE_VAR', pkgconfig : 'pkg-config-var', configtool : 'get-var', default : 'default')
+```
+
+It accepts the keywords 'cmake', 'pkgconfig', 'pkgconfig_define',
+'configtool', and 'default'. 'pkgconfig_define' works just like the
+'define_variable' argument to `get_pkgconfig_variable`. When this
+method is invoked the keyword coresponding to the underlying type
+of the underlying dependency will be used to look for a variable.
+If that variable cannot be found or if the caller does not provide
+an argument for the type of dependency, one of the following will happen:
+If 'default' was provided that value will be returned, if 'default'
+was not provided then an error will be raised.
+
 # Declaring your own
 
 You can declare your own dependency objects that can be used

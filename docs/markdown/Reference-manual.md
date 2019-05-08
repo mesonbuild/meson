@@ -2185,6 +2185,14 @@ an external dependency with the following methods:
    - includes: any include_directories
    - sources: any compiled or static sources the dependency has
 
+ - `get_variable(cmake : str, pkgconfig : str, configtool : str, default :
+   str, pkgconfig_define : [str, str]) *(Added in 0.51.0)* A generic
+   variable getter method, which repalces the get_*type*_variable methods.
+   This allows one to get the variable from a dependency without knowing
+   specifically how that dependency was found. If default is set and the
+   value cannot be found then default is returned, if it is not set then
+   an error is raised.
+
 ### `disabler` object
 
 A disabler object is an object that behaves in much the same way as
