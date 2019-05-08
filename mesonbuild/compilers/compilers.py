@@ -1293,6 +1293,7 @@ class Compiler:
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         if mesonlib.is_sunos():
             return args
 =======
@@ -1307,6 +1308,10 @@ class Compiler:
             return args
         # BBI_SOL11_4 END
 >>>>>>> Removed mixed tab/space indentation.
+=======
+        if mesonlib.is_sunos():
+            return args
+>>>>>>> removed BBI_SOL11_4 comments as requested
 
         if get_compiler_is_linuxlike(self):
             # Rpaths to use while linking must be absolute. These are not
