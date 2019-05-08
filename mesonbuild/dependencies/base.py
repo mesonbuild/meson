@@ -193,6 +193,13 @@ class Dependency:
         kwargs['method'] = method
         self.ext_deps.append(dep_type(env, kwargs))
 
+    def get_variable(self, *, cmake: typing.Optional[str] = None, pkgconfig: typing.Optional[str] = None,
+                     configtool: typing.Optional[str] = None, default: typing.Optional[str] = None,
+                     pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
+        if default is not None:
+            return default
+        raise DependencyException('No default provided for dependency {!r}, which is not pkg-config, cmake, or config-tool based.'.format(self))
+
 
 class InternalDependency(Dependency):
     def __init__(self, version, incdirs, compile_args, link_args, libraries, whole_libraries, sources, ext_deps):
@@ -517,6 +524,26 @@ class ConfigToolDependency(ExternalDependency):
 
     def log_tried(self):
         return self.type_name
+
+    def get_variable(self, *, cmake: typing.Optional[str] = None, pkgconfig: typing.Optional[str] = None,
+                     configtool: typing.Optional[str] = None, default: typing.Optional[str] = None,
+                     pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
+        if configtool:
+            # In the not required case '' (empty string) will be returned if the
+            # variable is not found. Since '' is a valid value to return we
+            # set required to True here to force and error, and use the
+            # finally clause to ensure it's restored.
+            restore = self.required
+            self.required = True
+            try:
+                return self.get_configtool_variable(configtool)
+            except DependencyException:
+                pass
+            finally:
+                self.required = restore
+        if default is not None:
+            return default
+        raise DependencyException('Could not get config-tool variable and no default provided for {!r}'.format(self))
 
 
 class PkgConfigDependency(ExternalDependency):
@@ -927,6 +954,23 @@ class PkgConfigDependency(ExternalDependency):
 
     def log_tried(self):
         return self.type_name
+
+    def get_variable(self, *, cmake: typing.Optional[str] = None, pkgconfig: typing.Optional[str] = None,
+                     configtool: typing.Optional[str] = None, default: typing.Optional[str] = None,
+                     pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
+        if pkgconfig:
+            kwargs = {}
+            if default is not None:
+                kwargs['default'] = default
+            if pkgconfig_define is not None:
+                kwargs['define_variable'] = pkgconfig_define
+            try:
+                return self.get_pkgconfig_variable(pkgconfig, kwargs)
+            except DependencyException:
+                pass
+        if default is not None:
+            return default
+        raise DependencyException('Could not get pkg-config variable and no default provided for {!r}'.format(self))
 
 class CMakeTraceLine:
     def __init__(self, file, line, func, args):
@@ -1783,6 +1827,24 @@ set(CMAKE_SIZEOF_VOID_P "{}")
         if modules:
             return 'modules: ' + ', '.join(modules)
         return ''
+
+    def get_variable(self, *, cmake: typing.Optional[str] = None, pkgconfig: typing.Optional[str] = None,
+                     configtool: typing.Optional[str] = None, default: typing.Optional[str] = None,
+                     pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
+        if cmake:
+            try:
+                v = self.vars[cmake]
+            except KeyError:
+                if default is not None:
+                    return default
+            else:
+                if len(v) == 1:
+                    return v[0]
+                elif v:
+                    return v
+        elif default is not None:
+            return default
+        raise DependencyException('Could not get cmake variable and no default provided for {!r}'.format(self))
 
 class DubDependency(ExternalDependency):
     class_dubbin = None
