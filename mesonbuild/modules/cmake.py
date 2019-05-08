@@ -52,7 +52,8 @@ class CmakeModule(ExtensionModule):
         super().__init__(interpreter)
         self.snippets.add('configure_package_config_file')
 
-    def detect_voidp_size(self, compilers, env):
+    def detect_voidp_size(self, env):
+        compilers = env.coredata.compilers
         compiler = compilers.get('c', None)
         if not compiler:
             compiler = compilers.get('cpp', None)
@@ -115,7 +116,7 @@ class CmakeModule(ExtensionModule):
 
         conf = {
             'CVF_VERSION': (version, ''),
-            'CMAKE_SIZEOF_VOID_P': (str(self.detect_voidp_size(state.compilers, state.environment)), '')
+            'CMAKE_SIZEOF_VOID_P': (str(self.detect_voidp_size(state.environment)), '')
         }
         mesonlib.do_conf_file(template_file, version_file, conf, 'meson')
 
