@@ -702,9 +702,10 @@ def check_file(fname):
     linenum = 1
     with open(fname, 'rb') as f:
         lines = f.readlines()
+    tabdetector = re.compile(br' *\t')
     for line in lines:
-        if line.startswith(b'\t'):
-            print("File %s contains a literal tab on line %d. Only spaces are permitted." % (fname, linenum))
+        if re.match(tabdetector, line):
+            print("File %s contains a tab indent on line %d. Only spaces are permitted." % (fname, linenum))
             sys.exit(1)
         if b'\r' in line:
             print("File %s contains DOS line ending on line %d. Only unix-style line endings are permitted." % (fname, linenum))
