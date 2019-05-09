@@ -158,7 +158,19 @@ library. In addition it supports the following extra methods:
 ### build_target()
 
 Creates a build target whose type can be set dynamically with the
-`target_type` keyword argument. This declaration:
+`target_type` keyword argument.
+
+`target_type` may be set to one of:
+
+- `executable`
+- `shared_library`
+- `shared_module`
+- `static_library`
+- `both_libraries`
+- `library`
+- `jar`
+
+This declaration:
 
 ```meson
 executable(<arguments and keyword arguments>)
