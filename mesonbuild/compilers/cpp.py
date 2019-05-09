@@ -254,7 +254,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         if std.value != 'none':
             args.append(self._find_best_cpp_std(std.value))
 
-        non_msvc_eh_options(options['cpp_eh'].value, arsg)
+        non_msvc_eh_options(options['cpp_eh'].value, args)
 
         if options['cpp_debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
