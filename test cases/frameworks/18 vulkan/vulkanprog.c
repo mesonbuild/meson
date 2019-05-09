@@ -4,14 +4,14 @@
 int main()
 {
     VkInstanceCreateInfo instance_create_info = {
-        	VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        	NULL,
-        	0,
-        	NULL,
-        	0,
-        	NULL,
-        	0,
-        	NULL,
+            VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+            NULL,
+            0,
+            NULL,
+            0,
+            NULL,
+            0,
+            NULL,
     };
 
     // we don't actually require instance creation to succeed since
