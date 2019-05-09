@@ -291,3 +291,16 @@ Environment variables are like global variables, except that they are
 also hidden by default. Envvars should be avoided whenever possible,
 all functionality should be exposed in better ways such as command
 line switches.
+
+## Random design points that fit nowhere else
+
+- All features should follow the 90/9/1 rule. 90% of all use cases
+  should be easy, 9% should be possible and it is totally fine to not
+  support the final 1% if it would make things too complicated.
+
+- Any build directory will have at most two toolchains: one native and
+  one cross.
+
+- Prefer specific solutions to generic frameworks. Solve the end
+  user's problems rather than providing them tools to do it
+  themselves.
