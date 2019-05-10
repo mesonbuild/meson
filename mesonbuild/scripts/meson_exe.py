@@ -46,6 +46,9 @@ def run_exe(exe):
         cmd = ['java', '-jar'] + exe.fname
     elif not exe.is_cross and run_with_mono(exe.fname[0]):
         cmd = ['mono'] + exe.fname
+    elif not exe.is_cross and run_with_dotnet(exe.fname[0]):
+        print ('exe has runner ? ' + exe.exe_runner.get_command())
+        cmd = ['dotnet'] + exe.fname
     else:
         if exe.is_cross:
             if exe.exe_runner is None:

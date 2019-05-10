@@ -1002,6 +1002,8 @@ int dummy;
             outputs = [outname_rel]
         generated_sources = self.get_target_generated_sources(target)
         generated_rel_srcs = []
+        for runtime_assembly in target.runtime_assemblies:
+            commands += compiler.get_runtime_assembly_arg(runtime_assembly)
         for rel_src in generated_sources.keys():
             dirpart, fnamepart = os.path.split(rel_src)
             if rel_src.lower().endswith('.cs'):

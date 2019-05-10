@@ -403,9 +403,14 @@ def write_json_log(jsonlogfile, test_name, result):
     jsonlogfile.write(json.dumps(jresult) + '\n')
 
 def run_with_mono(fname):
-    if fname.endswith('.exe') and not (is_windows() or is_cygwin()):
-        return True
+    # if fname.endswith('.exe') and not (is_windows() or is_cygwin()):
+    #     return True
     return False
+
+def run_with_dotnet(fname):
+    # if fname.endswith('.exe') and not (is_windows() or is_cygwin()):
+    #     return True
+    return True
 
 def load_benchmarks(build_dir):
     datafile = os.path.join(build_dir, 'meson-private', 'meson_benchmark_setup.dat')
@@ -436,6 +441,8 @@ class SingleTestRunner:
             return ['java', '-jar'] + self.test.fname
         elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
             return ['mono'] + self.test.fname
+        elif not self.test.is_cross_built and run_with_dotnet(self.test.fname[0]):
+            return ['dotnet'] + self.test.fname
         else:
             if self.test.is_cross_built:
                 if self.test.exe_runner is None:

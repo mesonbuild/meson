@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os.path, subprocess
+import os.path, subprocess, re
 
 from ..mesonlib import EnvironmentException
 from ..mesonlib import is_windows
+from ..mesonlib import (
+    EnvironmentException, Popen_safe
+)
 
 from .compilers import Compiler, mono_buildtype_args
 
@@ -50,6 +53,9 @@ class CsCompiler(Compiler):
     def get_link_args(self, fname):
         return ['-r:' + fname]
 
+    def get_runtime_assembly_arg(self, asm):
+        return []
+    
     def get_soname_args(self, *args):
         return []
 
@@ -108,6 +114,7 @@ class CsCompiler(Compiler):
         return ''
 
     def sanity_check(self, work_dir, environment):
+        config = 'sanity.runtimeconfig.json'
         src = 'sanity.cs'
         obj = 'sanity.exe'
         source_name = os.path.join(work_dir, src)
@@ -115,6 +122,21 @@ class CsCompiler(Compiler):
             ofile.write('''public class Sanity {
     static public void Main () {
     }
+}
+''')
+        config_name = os.path.join(work_dir, config)
+        with open(config_name, 'w') as ofile:
+            ofile.write('''{
+  "runtimeOptions": {
+    "tfm": "netcoreapp2.0",
+    "framework": {
+      "name": "Microsoft.NETCore.App",
+      "version": "2.0.0"
+    },
+    "configProperties": {
+      "System.GC.Server": true
+    }
+  }
 }
 ''')
         pc = subprocess.Popen(self.exelist + self.get_always_args() + [src], cwd=work_dir)
@@ -150,8 +172,30 @@ class MonoCompiler(CsCompiler):
 
 class VisualStudioCsCompiler(CsCompiler):
     def __init__(self, exelist, version):
-        super().__init__(exelist, version, 'csc')
+        super().__init__(exelist, version, 'csc', 'dotnet')
+        try:
+            p, out, err = Popen_safe([self.runner, '--list-runtimes'])
+        except OSError as e:
+            raise EnvironmentException('Runner for dotnet doesn\'t include runtime information')
+        dir_regex = '[^\[]+\[(.*?)\]'
+        dir_match = re.search(dir_regex, out)
+        if dir_match:
+            self.runtimes_path = dir_match.group(1)
+        else:
+            raise EnvironmentException('Runner for dotnet doesn\'t include runtime information')
+        version_regex = '[^ ]+[ ](\d+\.\d+\.\d+)'
+        version_match = re.search(version_regex, out)
+        if version_match:
+            self.runtime_version = version_match.group(1)
+        else:
+            raise EnvironmentException('Runner for dotnet doesn\'t include runtime information')
 
+    def get_runtime_assembly_arg(self, asm):
+        return ['-r:' + self.runtimes_path + '/' + self.runtime_version + '/' + asm + '.dll']
+        
+    def get_always_args(self):
+        return ['/nologo', '-r:' + self.runtimes_path + '/' + self.runtime_version + '/System.Private.CoreLib.dll']
+        
     def get_buildtype_args(self, buildtype):
         res = mono_buildtype_args[buildtype]
         if not is_windows():
