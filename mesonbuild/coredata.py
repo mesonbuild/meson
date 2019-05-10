@@ -241,7 +241,7 @@ class CoreData:
         self.init_builtins()
         self.backend_options = {}
         self.user_options = {}
-        self.compiler_options = PerMachine({}, {}, {})
+        self.compiler_options = PerMachine({}, {})
         self.base_options = {}
         self.cross_files = self.__load_config_files(options.cross_file, 'cross')
         self.compilers = OrderedDict()

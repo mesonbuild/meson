@@ -220,7 +220,7 @@ def clear_meson_configure_class_caches():
     mesonbuild.compilers.CCompiler.find_library_cache = {}
     mesonbuild.compilers.CCompiler.find_framework_cache = {}
     mesonbuild.dependencies.PkgConfigDependency.pkgbin_cache = {}
-    mesonbuild.dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None, None)
+    mesonbuild.dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None)
 
 def run_configure_inprocess(commandlist):
     old_stdout = sys.stdout

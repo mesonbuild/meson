@@ -16,7 +16,7 @@ import configparser, os, shlex, subprocess
 import typing
 
 from . import mesonlib
-from .mesonlib import EnvironmentException, MachineChoice, PerMachine
+from .mesonlib import EnvironmentException
 from . import mlog
 
 _T = typing.TypeVar('_T')
@@ -254,40 +254,6 @@ class MachineInfo:
 
     def libdir_layout_is_win(self) -> bool:
         return self.is_windows() or self.is_cygwin()
-
-class PerMachineDefaultable(PerMachine[typing.Optional[_T]]):
-    """Extends `PerMachine` with the ability to default from `None`s.
-    """
-    def __init__(self) -> None:
-        super().__init__(None, None, None)
-
-    def default_missing(self) -> None:
-        """Default host to buid and target to host.
-
-        This allows just specifying nothing in the native case, just host in the
-        cross non-compiler case, and just target in the native-built
-        cross-compiler case.
-        """
-        if self.host is None:
-            self.host = self.build
-        if self.target is None:
-            self.target = self.host
-
-    def miss_defaulting(self) -> None:
-        """Unset definition duplicated from their previous to None
-
-        This is the inverse of ''default_missing''. By removing defaulted
-        machines, we can elaborate the original and then redefault them and thus
-        avoid repeating the elaboration explicitly.
-        """
-        if self.target == self.host:
-            self.target = None
-        if self.host == self.build:
-            self.host = None
-
-class MachineInfos(PerMachineDefaultable[MachineInfo]):
-    def matches_build_machine(self, machine: MachineChoice) -> bool:
-        return self.build == self[machine]
 
 class BinaryTable(HasEnvVarFallback):
     def __init__(

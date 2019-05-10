@@ -19,12 +19,13 @@ from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLin
 from . import mesonlib
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, Popen_safe,
+    PerMachineDefaultable, PerThreeMachineDefaultable
 )
 from . import mlog
 
 from .envconfig import (
-    BinaryTable, Directories, MachineInfo, MachineInfos, MesonConfigFile,
-    PerMachineDefaultable, Properties, known_cpu_families,
+    BinaryTable, Directories, MachineInfo, MesonConfigFile,
+    Properties, known_cpu_families,
 )
 from . import compilers
 from .compilers import (
@@ -400,48 +401,62 @@ class Environment:
             # Just create a fresh coredata in this case
             self.create_new_coredata(options)
 
-        self.machines = MachineInfos()
-        # Will be fully initialized later using compilers later.
-        self.detect_build_machine()
+        ## locally bind some unfrozen configuration
+
+        # Stores machine infos, the only *three* machine one because we have a
+        # target machine info on for the user (Meson never cares about the
+        # target machine.)
+        machines = PerThreeMachineDefaultable()
 
         # Similar to coredata.compilers and build.compilers, but lower level in
         # that there is no meta data, only names/paths.
-        self.binaries = PerMachineDefaultable()
+        binaries = PerMachineDefaultable()
 
         # Misc other properties about each machine.
-        self.properties = PerMachineDefaultable()
-
-        # Just uses hard-coded defaults and environment variables. Might be
-        # overwritten by a native file.
-        self.binaries.build = BinaryTable()
-        self.properties.build = Properties()
+        properties = PerMachineDefaultable()
 
         # Store paths for native and cross build files. There is no target
         # machine information here because nothing is installed for the target
         # architecture, just the build and host architectures
-        self.paths = PerMachineDefaultable()
+        paths = PerMachineDefaultable()
+
+        ## Setup build machine defaults
+
+        # Will be fully initialized later using compilers later.
+        machines.build = detect_machine_info()
+
+        # Just uses hard-coded defaults and environment variables. Might be
+        # overwritten by a native file.
+        binaries.build = BinaryTable()
+        properties.build = Properties()
+
+        ## Read in native file(s) to override build machine configuration
 
         if self.coredata.config_files is not None:
             config = MesonConfigFile.from_config_parser(
                 coredata.load_configs(self.coredata.config_files))
-            self.binaries.build = BinaryTable(config.get('binaries', {}))
-            self.paths.build = Directories(**config.get('paths', {}))
+            binaries.build = BinaryTable(config.get('binaries', {}))
+            paths.build = Directories(**config.get('paths', {}))
+
+        ## Read in cross file(s) to override host machine configuration
 
         if self.coredata.cross_files:
             config = MesonConfigFile.from_config_parser(
                 coredata.load_configs(self.coredata.cross_files))
-            self.properties.host = Properties(config.get('properties', {}), False)
-            self.binaries.host = BinaryTable(config.get('binaries', {}), False)
+            properties.host = Properties(config.get('properties', {}), False)
+            binaries.host = BinaryTable(config.get('binaries', {}), False)
             if 'host_machine' in config:
-                self.machines.host = MachineInfo.from_literal(config['host_machine'])
+                machines.host = MachineInfo.from_literal(config['host_machine'])
             if 'target_machine' in config:
-                self.machines.target = MachineInfo.from_literal(config['target_machine'])
-            self.paths.host = Directories(**config.get('paths', {}))
+                machines.target = MachineInfo.from_literal(config['target_machine'])
+            paths.host = Directories(**config.get('paths', {}))
 
-        self.machines.default_missing()
-        self.binaries.default_missing()
-        self.properties.default_missing()
-        self.paths.default_missing()
+        ## "freeze" now initialized configuration, and "save" to the class.
+
+        self.machines = machines.default_missing()
+        self.binaries = binaries.default_missing()
+        self.properties = properties.default_missing()
+        self.paths = paths.default_missing()
 
         exe_wrapper = self.binaries.host.lookup_entry('exe_wrapper')
         if exe_wrapper is not None:
@@ -1205,9 +1220,6 @@ class Environment:
                 return ArLinker(linker)
         self._handle_exceptions(popen_exceptions, linkers, 'linker')
         raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linkers))
-
-    def detect_build_machine(self, compilers = None):
-        self.machines.build = detect_machine_info(compilers)
 
     def get_source_dir(self):
         return self.source_dir

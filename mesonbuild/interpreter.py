@@ -2047,12 +2047,12 @@ class Interpreter(InterpreterBase):
         if not mock:
             self.parse_project()
 
-        # Initialize machine descriptions. We can do a better job now because we
+        # Re-initialize machine descriptions. We can do a better job now because we
         # have the compilers needed to gain more knowledge, so wipe out old
         # inferrence and start over.
-        self.build.environment.machines.miss_defaulting()
-        self.build.environment.detect_build_machine(self.coredata.compilers)
-        self.build.environment.machines.default_missing()
+        machines = self.build.environment.machines.miss_defaulting()
+        machines.build = environment.detect_machine_info(self.coredata.compilers)
+        self.build.environment.machines = machines.default_missing()
         assert self.build.environment.machines.build.cpu is not None
         assert self.build.environment.machines.host.cpu is not None
         assert self.build.environment.machines.target.cpu is not None
