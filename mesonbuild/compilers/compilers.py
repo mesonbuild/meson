@@ -1291,27 +1291,8 @@ class Compiler:
                     paths = paths + ':' + padding
             args.append('-Wl,-rpath,' + paths)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
         if mesonlib.is_sunos():
             return args
-=======
-	# BBI_SOL11_4 BEGIN -- just to prevent code of get_compiler_is_linuxlike below -- linux is like sunos and not vice versa
-        if mesonlib.is_sunos():
-            return args
-	# BBI_SOL11_4 END
->>>>>>> This is the fork "sneyx1234/meson" of the current git "mesonbuild/meson" head to converge it to the solaris 11.4 platform based on the sparcv9 and i386 processor architecture.
-=======
-        # BBI_SOL11_4 BEGIN -- just to prevent code of get_compiler_is_linuxlike below -- linux is like sunos and not vice versa
-        if mesonlib.is_sunos():
-            return args
-        # BBI_SOL11_4 END
->>>>>>> Removed mixed tab/space indentation.
-=======
-        if mesonlib.is_sunos():
-            return args
->>>>>>> removed BBI_SOL11_4 comments as requested
 
         if get_compiler_is_linuxlike(self):
             # Rpaths to use while linking must be absolute. These are not
