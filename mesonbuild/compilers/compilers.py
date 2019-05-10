@@ -1462,14 +1462,14 @@ def get_compiler_uses_gnuld(c):
     # FIXME: Perhaps we should detect the linker in the environment?
     # FIXME: Assumes that *BSD use GNU ld, but they might start using lld soon
     compiler_type = getattr(c, 'compiler_type', None)
-    return compiler_type in (
+    return compiler_type in {
         CompilerType.GCC_STANDARD,
         CompilerType.GCC_MINGW,
         CompilerType.GCC_CYGWIN,
         CompilerType.CLANG_STANDARD,
         CompilerType.CLANG_MINGW,
         CompilerType.ICC_STANDARD,
-        CompilerType.ICC_WIN)
+    }
 
 def get_largefile_args(compiler):
     '''
