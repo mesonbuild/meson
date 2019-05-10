@@ -5867,6 +5867,10 @@ class NativeFileTests(BasePlatformTests):
                 raise unittest.SkipTest('No alternate Fortran implementation.')
             elif comp.id == 'gcc':
                 if shutil.which('ifort'):
+                    # There is an ICC for windows (windows build, linux host),
+                    # but we don't support that ATM so lets not worry about it.
+                    if is_windows():
+                        return 'ifort', 'intel-cl'
                     return 'ifort', 'intel'
                 elif shutil.which('flang'):
                     return 'flang', 'flang'
