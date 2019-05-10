@@ -313,36 +313,119 @@ class OrderedEnum(Enum):
             return self.value < other.value
         return NotImplemented
 
+
 class MachineChoice(OrderedEnum):
 
-    """Enum class representing one of the three possible values for binaries,
-    the build, host, and target machines.
+    """Enum class representing one of the two abstract machine names used in
+    most places: the build, and host, machines.
     """
 
     BUILD = 0
     HOST = 1
-    TARGET = 2
+
 
 class PerMachine(typing.Generic[_T]):
-    def __init__(self, build: _T, host: _T, target: _T):
+    def __init__(self, build: _T, host: _T):
         self.build = build
         self.host = host
-        self.target = target
 
     def __getitem__(self, machine: MachineChoice) -> _T:
         return {
             MachineChoice.BUILD:  self.build,
             MachineChoice.HOST:   self.host,
-            MachineChoice.TARGET: self.target
         }[machine]
 
     def __setitem__(self, machine: MachineChoice, val: _T) -> None:
         key = {
             MachineChoice.BUILD:  'build',
             MachineChoice.HOST:   'host',
-            MachineChoice.TARGET: 'target'
         }[machine]
         setattr(self, key, val)
+
+    def miss_defaulting(self) -> "PerMachineDefaultable[typing.Optional[_T]]":
+        """Unset definition duplicated from their previous to None
+
+        This is the inverse of ''default_missing''. By removing defaulted
+        machines, we can elaborate the original and then redefault them and thus
+        avoid repeating the elaboration explicitly.
+        """
+        unfreeze = PerMachineDefaultable() # type: PerMachineDefaultable[typing.Optional[_T]]
+        unfreeze.build = self.build
+        unfreeze.host = self.host
+        if unfreeze.host == unfreeze.build:
+            unfreeze.host = None
+        return unfreeze
+
+
+class PerThreeMachine(PerMachine[_T]):
+    """Like `PerMachine` but includes `target` too.
+
+    It turns out just one thing do we need track the target machine. There's no
+    need to computer the `target` field so we don't bother overriding the
+    `__getitem__`/`__setitem__` methods.
+    """
+    def __init__(self, build: _T, host: _T, target: _T):
+        super().__init__(build, host)
+        self.target = target
+
+    def miss_defaulting(self) -> "PerThreeMachineDefaultable[typing.Optional[_T]]":
+        """Unset definition duplicated from their previous to None
+
+        This is the inverse of ''default_missing''. By removing defaulted
+        machines, we can elaborate the original and then redefault them and thus
+        avoid repeating the elaboration explicitly.
+        """
+        unfreeze = PerThreeMachineDefaultable() # type: PerThreeMachineDefaultable[typing.Optional[_T]]
+        unfreeze.build = self.build
+        unfreeze.host = self.host
+        unfreeze.target = self.target
+        if unfreeze.target == unfreeze.host:
+            unfreeze.target = None
+        if unfreeze.host == unfreeze.build:
+            unfreeze.host = None
+        return unfreeze
+
+    def matches_build_machine(self, machine: MachineChoice) -> bool:
+        return self.build == self[machine]
+
+class PerMachineDefaultable(PerMachine[typing.Optional[_T]]):
+    """Extends `PerMachine` with the ability to default from `None`s.
+    """
+    def __init__(self) -> None:
+        super().__init__(None, None)
+
+    def default_missing(self) -> "PerMachine[typing.Optional[_T]]":
+        """Default host to buid
+
+        This allows just specifying nothing in the native case, and just host in the
+        cross non-compiler case.
+        """
+        freeze = PerMachine(self.build, self.host)
+        if freeze.host is None:
+            freeze.host = freeze.build
+        return freeze
+
+
+class PerThreeMachineDefaultable(PerMachineDefaultable, PerThreeMachine[typing.Optional[_T]]):
+    """Extends `PerThreeMachine` with the ability to default from `None`s.
+    """
+    def __init__(self) -> None:
+        PerThreeMachine.__init__(self, None, None, None)
+
+    def default_missing(self) -> "PerThreeMachine[typing.Optional[_T]]":
+        """Default host to buid and target to host.
+
+        This allows just specifying nothing in the native case, just host in the
+        cross non-compiler case, and just target in the native-built
+        cross-compiler case.
+        """
+        freeze = PerThreeMachine(self.build, self.host, self.target)
+        if freeze.host is None:
+            freeze.host = freeze.build
+        if freeze.target is None:
+            freeze.target = freeze.host
+        return freeze
+
 
 def is_sunos() -> bool:
     return platform.system().lower() == 'sunos'

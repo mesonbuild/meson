@@ -848,7 +848,7 @@ class InternalTests(unittest.TestCase):
                 PkgConfigDependency.check_pkgconfig = old_check
                 # Reset dependency class to ensure that in-process configure doesn't mess up
                 PkgConfigDependency.pkgbin_cache = {}
-                PkgConfigDependency.class_pkgbin = PerMachine(None, None, None)
+                PkgConfigDependency.class_pkgbin = PerMachine(None, None)
 
     def test_version_compare(self):
         comparefunc = mesonbuild.mesonlib.version_compare_many

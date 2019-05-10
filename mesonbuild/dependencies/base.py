@@ -522,7 +522,7 @@ class ConfigToolDependency(ExternalDependency):
 class PkgConfigDependency(ExternalDependency):
     # The class's copy of the pkg-config path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_pkgbin = PerMachine(None, None, None)
+    class_pkgbin = PerMachine(None, None)
     # We cache all pkg-config subprocess invocations to avoid redundant calls
     pkgbin_cache = {}
 
@@ -957,9 +957,9 @@ class CMakeTarget:
 class CMakeDependency(ExternalDependency):
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_cmakebin = PerMachine(None, None, None)
-    class_cmakevers = PerMachine(None, None, None)
-    class_cmakeinfo = PerMachine(None, None, None)
+    class_cmakebin = PerMachine(None, None)
+    class_cmakevers = PerMachine(None, None)
+    class_cmakeinfo = PerMachine(None, None)
     # We cache all pkg-config subprocess invocations to avoid redundant calls
     cmake_cache = {}
     # Version string for the minimum CMake version
