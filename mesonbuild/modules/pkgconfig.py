@@ -267,7 +267,7 @@ class PkgConfigModule(ExtensionModule):
         # These always return paths relative to prefix
         libdir = PurePath(coredata.get_builtin_option('libdir'))
         incdir = PurePath(coredata.get_builtin_option('includedir'))
-        with open(fname, 'w') as ofile:
+        with open(fname, 'w', encoding='utf-8') as ofile:
             ofile.write('prefix={}\n'.format(self._escape(prefix)))
             ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
             ofile.write('includedir={}\n'.format(self._escape('${prefix}' / incdir)))
