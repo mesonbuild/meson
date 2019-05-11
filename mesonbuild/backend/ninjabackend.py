@@ -219,7 +219,7 @@ class NinjaBackend(backends.Backend):
     def detect_vs_dep_prefix(self, tempfilename):
         '''VS writes its dependency in a locale dependent format.
         Detect the search prefix to use.'''
-        for compiler in self.build.compilers.values():
+        for compiler in self.environment.coredata.compilers.values():
             # Have to detect the dependency format
 
             # IFort on windows is MSVC like, but doesn't have /showincludes
@@ -314,9 +314,9 @@ int dummy;
 
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html
     def generate_compdb(self):
-        pch_compilers = ['%s_PCH' % i for i in self.build.compilers]
-        native_compilers = ['%s_COMPILER' % i for i in self.build.compilers]
-        cross_compilers = ['%s_CROSS_COMPILER' % i for i in self.build.cross_compilers]
+        pch_compilers = ['%s_PCH' % i for i in self.environment.coredata.compilers]
+        native_compilers = ['%s_COMPILER' % i for i in self.environment.coredata.compilers]
+        cross_compilers = ['%s_CROSS_COMPILER' % i for i in self.environment.coredata.cross_compilers]
         ninja_compdb = [self.ninja_command, '-t', 'compdb'] + pch_compilers + native_compilers + cross_compilers
         builddir = self.environment.get_build_dir()
         try:
@@ -1492,7 +1492,7 @@ int dummy;
 
     def generate_static_link_rules(self, is_cross):
         num_pools = self.environment.coredata.backend_options['backend_max_links'].value
-        if 'java' in self.build.compilers:
+        if 'java' in self.environment.coredata.compilers:
             if not is_cross:
                 self.generate_java_link()
         if is_cross:
@@ -1532,8 +1532,8 @@ int dummy;
 
     def generate_dynamic_link_rules(self):
         num_pools = self.environment.coredata.backend_options['backend_max_links'].value
-        ctypes = [(self.build.compilers, False),
-                  (self.build.cross_compilers, True)]
+        ctypes = [(self.environment.coredata.compilers, False),
+                  (self.environment.coredata.cross_compilers, True)]
         for (complist, is_cross) in ctypes:
             for langname, compiler in complist.items():
                 if langname == 'java' \
@@ -1715,13 +1715,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                 depfile=depfile))
 
     def generate_compile_rules(self):
-        for langname, compiler in self.build.compilers.items():
+        for langname, compiler in self.environment.coredata.compilers.items():
             if compiler.get_id() == 'clang':
                 self.generate_llvm_ir_compile_rule(compiler, False)
             self.generate_compile_rule_for(langname, compiler, False)
             self.generate_pch_rule_for(langname, compiler, False)
         if self.environment.is_cross_build():
-            cclist = self.build.cross_compilers
+            cclist = self.environment.coredata.cross_compilers
             for langname, compiler in cclist.items():
                 if compiler.get_id() == 'clang':
                     self.generate_llvm_ir_compile_rule(compiler, True)
@@ -1819,7 +1819,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         Find all module and submodule made available in a Fortran code file.
         """
         compiler = None
-        for lang, c in self.build.compilers.items():
+        for lang, c in self.environment.coredata.compilers.items():
             if lang == 'fortran':
                 compiler = c
                 break
