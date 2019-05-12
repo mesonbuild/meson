@@ -37,6 +37,13 @@ from .compilers import (
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .clike import CLikeCompiler
 
+def non_msvc_eh_options(eh, args):
+    if eh == 'none':
+        args.append('-fno-exceptions')
+    elif eh == 's' or eh == 'c':
+        mlog.warning('non-MSVC compilers do not support ' + eh + ' exception handling.' +
+                     'You may want to set eh to \'default\'.')
+
 class CPPCompiler(CLikeCompiler, Compiler):
 
     @classmethod
@@ -151,7 +158,7 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         opts = CPPCompiler.get_options(self)
         opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
                                                         'C++ exception handling type.',
-                                                        ['none', 'default'],
+                                                        ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
                      'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                          ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z', 'c++2a',
@@ -164,8 +171,9 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         std = options['cpp_std']
         if std.value != 'none':
             args.append(self._find_best_cpp_std(std.value))
-        if options['cpp_eh'].value == 'none':
-            args.append('-fno-exceptions')
+
+        non_msvc_eh_options(options['cpp_eh'].value, args)
+
         return args
 
     def get_option_link_args(self, options):
@@ -189,7 +197,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         opts = CPPCompiler.get_options(self)
         opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
                                                         'C++ exception handling type.',
-                                                        ['none', 'default'],
+                                                        ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
                      'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                          ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17',
@@ -202,8 +210,9 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         std = options['cpp_std']
         if std.value != 'none':
             args.append('-std=' + std.value)
-        if options['cpp_eh'].value == 'none':
-            args.append('-fno-exceptions')
+
+        non_msvc_eh_options(options['cpp_eh'].value, args)
+
         return args
 
     def get_option_link_args(self, options):
@@ -224,7 +233,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         opts = CPPCompiler.get_options(self)
         opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
                                                         'C++ exception handling type.',
-                                                        ['none', 'default'],
+                                                        ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
                      'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                          ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z', 'c++2a',
@@ -244,8 +253,9 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         std = options['cpp_std']
         if std.value != 'none':
             args.append(self._find_best_cpp_std(std.value))
-        if options['cpp_eh'].value == 'none':
-            args.append('-fno-exceptions')
+
+        non_msvc_eh_options(options['cpp_eh'].value, args)
+
         if options['cpp_debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
@@ -278,7 +288,7 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
         opts = CPPCompiler.get_options(self)
         opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
                                                         'C++ exception handling type.',
-                                                        ['none', 'default'],
+                                                        ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
                      'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                          ['none', 'c++98', 'c++03', 'c++0x', 'c++11', 'c++14', 'c++1y',
@@ -328,7 +338,7 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
             g_stds += ['gnu++14']
         opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
                                                         'C++ exception handling type.',
-                                                        ['none', 'default'],
+                                                        ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
                      'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                          ['none'] + c_stds + g_stds,
@@ -367,7 +377,7 @@ class VisualStudioLikeCPPCompilerMixin:
     def _get_options_impl(self, opts, cpp_stds: typing.List[str]):
         opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
                                                         'C++ exception handling type.',
-                                                        ['none', 'a', 's', 'sc', 'default'],
+                                                        ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
                      'cpp_std': coredata.UserComboOption('cpp_std',
                                                          'C++ language standard to use',
