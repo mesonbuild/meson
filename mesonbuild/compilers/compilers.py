@@ -1307,6 +1307,9 @@ class Compiler:
                     paths = paths + ':' + padding
             args.append('-Wl,-rpath,' + paths)
 
+        if mesonlib.is_sunos():
+            return args
+
         if get_compiler_is_linuxlike(self):
             # Rpaths to use while linking must be absolute. These are not
             # written to the binary. Needed only with GNU ld:
