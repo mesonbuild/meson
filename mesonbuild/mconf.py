@@ -14,6 +14,7 @@
 
 import os
 from . import coredata, environment, mesonlib, build, mintro, mlog
+from .ast import AstIDGenerator
 
 def add_arguments(parser):
     coredata.register_builtin_arguments(parser)
@@ -52,7 +53,7 @@ class Conf:
             # Make sure that log entries in other parts of meson don't interfere with the JSON output
             mlog.disable()
             self.source_dir = os.path.abspath(os.path.realpath(self.build_dir))
-            intr = mintro.IntrospectionInterpreter(self.source_dir, '', 'ninja')
+            intr = mintro.IntrospectionInterpreter(self.source_dir, '', 'ninja', visitors = [AstIDGenerator()])
             intr.analyze()
             # Reenable logging just in case
             mlog.enable()
