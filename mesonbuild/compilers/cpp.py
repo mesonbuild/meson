@@ -158,11 +158,10 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
 
     def get_options(self):
         opts = CPPCompiler.get_options(self)
-        opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
-                                                        'C++ exception handling type.',
+        opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
                                                         ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
-                     'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                     'cpp_std': coredata.UserComboOption('C++ language standard to use',
                                                          ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z', 'c++2a',
                                                           'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z', 'gnu++2a'],
                                                          'none')})
@@ -201,7 +200,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
                                                         'C++ exception handling type.',
                                                         ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
-                     'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                     'cpp_std': coredata.UserComboOption('C++ language standard to use',
                                                          ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17',
                                                           'gnu++98', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17'],
                                                          'none')})
@@ -233,20 +232,18 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
     def get_options(self):
         opts = CPPCompiler.get_options(self)
-        opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
-                                                        'C++ exception handling type.',
+        opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
                                                         ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
-                     'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                     'cpp_std': coredata.UserComboOption('C++ language standard to use',
                                                          ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z', 'c++2a',
                                                           'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z', 'gnu++2a'],
                                                          'none'),
-                     'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
-                                                                'STL debug mode',
+                     'cpp_debugstl': coredata.UserBooleanOption('STL debug mode',
                                                                 False)})
         if self.compiler_type.is_windows_compiler:
             opts.update({
-                'cpp_winlibs': coredata.UserArrayOption('cpp_winlibs', 'Standard Win libraries to link against',
+                'cpp_winlibs': coredata.UserArrayOption('Standard Win libraries to link against',
                                                         gnu_winlibs), })
         return opts
 
@@ -288,16 +285,14 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
     # It does not support c++/gnu++ 17 and 1z, but still does support 0x, 1y, and gnu++98.
     def get_options(self):
         opts = CPPCompiler.get_options(self)
-        opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
-                                                        'C++ exception handling type.',
+        opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
                                                         ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
-                     'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                     'cpp_std': coredata.UserComboOption('C++ language standard to use',
                                                          ['none', 'c++98', 'c++03', 'c++0x', 'c++11', 'c++14', 'c++1y',
                                                           'gnu++98', 'gnu++03', 'gnu++0x', 'gnu++11', 'gnu++14', 'gnu++1y'],
                                                          'none'),
-                     'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
-                                                                'STL debug mode',
+                     'cpp_debugstl': coredata.UserBooleanOption('STL debug mode',
                                                                 False)})
         return opts
 
@@ -338,15 +333,13 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
             c_stds += ['c++17']
         if version_compare(self.version, '>=17.0.0'):
             g_stds += ['gnu++14']
-        opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
-                                                        'C++ exception handling type.',
+        opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
                                                         ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
-                     'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                     'cpp_std': coredata.UserComboOption('C++ language standard to use',
                                                          ['none'] + c_stds + g_stds,
                                                          'none'),
-                     'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
-                                                                'STL debug mode',
+                     'cpp_debugstl': coredata.UserBooleanOption('STL debug mode',
                                                                 False)})
         return opts
 
@@ -387,16 +380,13 @@ class VisualStudioLikeCPPCompilerMixin:
         return options['cpp_winlibs'].value[:]
 
     def _get_options_impl(self, opts, cpp_stds: typing.List[str]):
-        opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
-                                                        'C++ exception handling type.',
+        opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
                                                         ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
-                     'cpp_std': coredata.UserComboOption('cpp_std',
-                                                         'C++ language standard to use',
+                     'cpp_std': coredata.UserComboOption('C++ language standard to use',
                                                          cpp_stds,
                                                          'none'),
-                     'cpp_winlibs': coredata.UserArrayOption('cpp_winlibs',
-                                                             'Windows libs to link against.',
+                     'cpp_winlibs': coredata.UserArrayOption('Windows libs to link against.',
                                                              msvc_winlibs)})
         return opts
 
@@ -513,7 +503,7 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
 
     def get_options(self):
         opts = CPPCompiler.get_options(self)
-        opts.update({'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+        opts.update({'cpp_std': coredata.UserComboOption('C++ language standard to use',
                                                          ['none', 'c++03', 'c++11'],
                                                          'none')})
         return opts

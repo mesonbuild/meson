@@ -14,6 +14,7 @@
 
 import os, re
 import functools
+import typing
 
 from . import mparser
 from . import coredata
@@ -49,7 +50,7 @@ def permitted_kwargs(permitted):
             if bad:
                 raise OptionException('Invalid kwargs for option "{}": "{}"'.format(
                     name, ' '.join(bad)))
-            return func(name, description, kwargs)
+            return func(description, kwargs)
         return _inner
     return _wraps
 
@@ -57,21 +58,20 @@ def permitted_kwargs(permitted):
 optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 @permitted_kwargs({'value', 'yield'})
-def StringParser(name, description, kwargs):
-    return coredata.UserStringOption(name,
-                                     description,
+def StringParser(description, kwargs):
+    return coredata.UserStringOption(description,
                                      kwargs.get('value', ''),
                                      kwargs.get('choices', []),
                                      kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield'})
-def BooleanParser(name, description, kwargs):
-    return coredata.UserBooleanOption(name, description,
+def BooleanParser(description, kwargs):
+    return coredata.UserBooleanOption(description,
                                       kwargs.get('value', True),
                                       kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield', 'choices'})
-def ComboParser(name, description, kwargs):
+def ComboParser(description, kwargs):
     if 'choices' not in kwargs:
         raise OptionException('Combo option missing "choices" keyword.')
     choices = kwargs['choices']
@@ -80,19 +80,17 @@ def ComboParser(name, description, kwargs):
     for i in choices:
         if not isinstance(i, str):
             raise OptionException('Combo choice elements must be strings.')
-    return coredata.UserComboOption(name,
-                                    description,
+    return coredata.UserComboOption(description,
                                     choices,
                                     kwargs.get('value', choices[0]),
                                     kwargs.get('yield', coredata.default_yielding),)
 
 
 @permitted_kwargs({'value', 'min', 'max', 'yield'})
-def IntegerParser(name, description, kwargs):
+def IntegerParser(description, kwargs):
     if 'value' not in kwargs:
         raise OptionException('Integer option must contain value argument.')
-    return coredata.UserIntegerOption(name,
-                                      description,
+    return coredata.UserIntegerOption(description,
                                       kwargs.get('min', None),
                                       kwargs.get('max', None),
                                       kwargs['value'],
@@ -102,7 +100,7 @@ def IntegerParser(name, description, kwargs):
 # reading options in project(). See func_project() in interpreter.py
 #@FeatureNew('array type option()', '0.44.0')
 @permitted_kwargs({'value', 'yield', 'choices'})
-def string_array_parser(name, description, kwargs):
+def string_array_parser(description, kwargs):
     if 'choices' in kwargs:
         choices = kwargs['choices']
         if not isinstance(choices, list):
@@ -116,16 +114,14 @@ def string_array_parser(name, description, kwargs):
         value = kwargs.get('value', [])
     if not isinstance(value, list):
         raise OptionException('Array choices must be passed as an array.')
-    return coredata.UserArrayOption(name,
-                                    description,
+    return coredata.UserArrayOption(description,
                                     value,
                                     choices=choices,
                                     yielding=kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield'})
-def FeatureParser(name, description, kwargs):
-    return coredata.UserFeatureOption(name,
-                                      description,
+def FeatureParser(description, kwargs):
+    return coredata.UserFeatureOption(description,
                                       kwargs.get('value', 'auto'),
                                       yielding=kwargs.get('yield', coredata.default_yielding))
 
@@ -135,7 +131,7 @@ option_types = {'string': StringParser,
                 'integer': IntegerParser,
                 'array': string_array_parser,
                 'feature': FeatureParser,
-                }
+                } # type: typing.Dict[str, typing.Callable[[str, typing.Dict], coredata.UserOption]]
 
 class OptionInterpreter:
     def __init__(self, subproject):

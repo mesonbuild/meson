@@ -26,17 +26,19 @@ from .wrap import WrapMode
 import ast
 import argparse
 import configparser
-from typing import Optional, Any, TypeVar, Generic, Type, List
+from typing import Optional, Any, TypeVar, Generic, Type, List, Union
 
 version = '0.50.999'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
 
 default_yielding = False
 
-class UserOption:
-    def __init__(self, name, description, choices, yielding):
+# Can't bind this near the class method it seems, sadly.
+_T = TypeVar('_T')
+
+class UserOption(Generic[_T]):
+    def __init__(self, description, choices, yielding):
         super().__init__()
-        self.name = name
         self.choices = choices
         self.description = description
         if yielding is None:
@@ -51,31 +53,31 @@ class UserOption:
     # Check that the input is a valid value and return the
     # "cleaned" or "native" version. For example the Boolean
     # option could take the string "true" and return True.
-    def validate_value(self, value):
+    def validate_value(self, value: Any) -> _T:
         raise RuntimeError('Derived option class did not override validate_value.')
 
     def set_value(self, newvalue):
         self.value = self.validate_value(newvalue)
 
-class UserStringOption(UserOption):
-    def __init__(self, name, description, value, choices=None, yielding=None):
-        super().__init__(name, description, choices, yielding)
+class UserStringOption(UserOption[str]):
+    def __init__(self, description, value, choices=None, yielding=None):
+        super().__init__(description, choices, yielding)
         self.set_value(value)
 
     def validate_value(self, value):
         if not isinstance(value, str):
-            raise MesonException('Value "%s" for string option "%s" is not a string.' % (str(value), self.name))
+            raise MesonException('Value "%s" for string option is not a string.' % str(value))
         return value
 
-class UserBooleanOption(UserOption):
-    def __init__(self, name, description, value, yielding=None):
-        super().__init__(name, description, [True, False], yielding)
+class UserBooleanOption(UserOption[bool]):
+    def __init__(self, description, value, yielding=None):
+        super().__init__(description, [True, False], yielding)
         self.set_value(value)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.value
 
-    def validate_value(self, value):
+    def validate_value(self, value) -> bool:
         if isinstance(value, bool):
             return value
         if value.lower() == 'true':
@@ -84,9 +86,9 @@ class UserBooleanOption(UserOption):
             return False
         raise MesonException('Value %s is not boolean (true or false).' % value)
 
-class UserIntegerOption(UserOption):
-    def __init__(self, name, description, min_value, max_value, value, yielding=None):
-        super().__init__(name, description, [True, False], yielding)
+class UserIntegerOption(UserOption[int]):
+    def __init__(self, description, min_value, max_value, value, yielding=None):
+        super().__init__(description, [True, False], yielding)
         self.min_value = min_value
         self.max_value = max_value
         self.set_value(value)
@@ -97,7 +99,7 @@ class UserIntegerOption(UserOption):
             c.append('<=' + str(max_value))
         self.choices = ', '.join(c)
 
-    def validate_value(self, value):
+    def validate_value(self, value) -> int:
         if isinstance(value, str):
             value = self.toint(value)
         if not isinstance(value, int):
@@ -108,15 +110,15 @@ class UserIntegerOption(UserOption):
             raise MesonException('New value %d is more than maximum value %d.' % (value, self.max_value))
         return value
 
-    def toint(self, valuestring):
+    def toint(self, valuestring) -> int:
         try:
             return int(valuestring)
         except ValueError:
             raise MesonException('Value string "%s" is not convertable to an integer.' % valuestring)
 
-class UserUmaskOption(UserIntegerOption):
-    def __init__(self, name, description, value, yielding=None):
-        super().__init__(name, description, 0, 0o777, value, yielding)
+class UserUmaskOption(UserIntegerOption, UserOption[Union[str, int]]):
+    def __init__(self, description, value, yielding=None):
+        super().__init__(description, 0, 0o777, value, yielding)
         self.choices = ['preserve', '0000-0777']
 
     def printable_value(self):
@@ -135,9 +137,9 @@ class UserUmaskOption(UserIntegerOption):
         except ValueError as e:
             raise MesonException('Invalid mode: {}'.format(e))
 
-class UserComboOption(UserOption):
-    def __init__(self, name, description, choices, value, yielding=None):
-        super().__init__(name, description, choices, yielding)
+class UserComboOption(UserOption[str]):
+    def __init__(self, description, choices: List[str], value, yielding=None):
+        super().__init__(description, choices, yielding)
         if not isinstance(self.choices, list):
             raise MesonException('Combo choices must be an array.')
         for i in self.choices:
@@ -148,17 +150,17 @@ class UserComboOption(UserOption):
     def validate_value(self, value):
         if value not in self.choices:
             optionsstring = ', '.join(['"%s"' % (item,) for item in self.choices])
-            raise MesonException('Value "%s" for combo option "%s" is not one of the choices. Possible choices are: %s.' % (value, self.name, optionsstring))
+            raise MesonException('Value "%s" for combo option is not one of the choices. Possible choices are: %s.' % (value, optionsstring))
         return value
 
-class UserArrayOption(UserOption):
-    def __init__(self, name, description, value, shlex_split=False, user_input=False, allow_dups=False, **kwargs):
-        super().__init__(name, description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
+class UserArrayOption(UserOption[List[str]]):
+    def __init__(self, description, value, shlex_split=False, user_input=False, allow_dups=False, **kwargs):
+        super().__init__(description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
         self.shlex_split = shlex_split
         self.allow_dups = allow_dups
         self.value = self.validate_value(value, user_input=user_input)
 
-    def validate_value(self, value, user_input=True):
+    def validate_value(self, value, user_input=True) -> List[str]:
         # User input is for options defined on the command line (via -D
         # options). Users can put their input in as a comma separated
         # string, but for defining options in meson_options.txt the format
@@ -182,8 +184,8 @@ class UserArrayOption(UserOption):
             raise MesonException('"{0}" should be a string array, but it is not'.format(str(newvalue)))
 
         if not self.allow_dups and len(set(newvalue)) != len(newvalue):
-            msg = 'Duplicated values in array option "%s" is deprecated. ' \
-                  'This will become a hard error in the future.' % (self.name)
+            msg = 'Duplicated values in array option is deprecated. ' \
+                  'This will become a hard error in the future.'
             mlog.deprecation(msg)
         for i in newvalue:
             if not isinstance(i, str):
@@ -199,8 +201,8 @@ class UserArrayOption(UserOption):
 class UserFeatureOption(UserComboOption):
     static_choices = ['enabled', 'disabled', 'auto']
 
-    def __init__(self, name, description, value, yielding=None):
-        super().__init__(name, description, self.static_choices, value, yielding)
+    def __init__(self, description, value, yielding=None):
+        super().__init__(description, self.static_choices, value, yielding)
 
     def is_enabled(self):
         return self.value == 'enabled'
@@ -334,22 +336,20 @@ class CoreData:
         # Create builtin options with default values
         self.builtins = {}
         for key, opt in builtin_options.items():
-            self.builtins[key] = opt.init_option(key)
+            self.builtins[key] = opt.init_option()
             if opt.separate_cross:
-                self.builtins['cross_' + key] = opt.init_option(key)
+                self.builtins['cross_' + key] = opt.init_option()
 
     def init_backend_options(self, backend_name):
         if backend_name == 'ninja':
             self.backend_options['backend_max_links'] = \
                 UserIntegerOption(
-                    'backend_max_links',
                     'Maximum number of linker processes to run or 0 for no '
                     'limit',
                     0, None, 0)
         elif backend_name.startswith('vs'):
             self.backend_options['backend_startup_project'] = \
                 UserStringOption(
-                    'backend_startup_project',
                     'Default project to execute in Visual Studio',
                     '')
 
@@ -433,7 +433,11 @@ class CoreData:
         for opts in self.get_all_options():
             if option_name in opts:
                 opt = opts[option_name]
-                return opt.validate_value(override_value)
+                try:
+                    return opt.validate_value(override_value)
+                except MesonException as e:
+                    raise type(e)(('Validation failed for option %s: ' % option_name) + str(e)) \
+                        .with_traceback(sys.exc_into()[2])
         raise MesonException('Tried to validate unknown option %s.' % option_name)
 
     def get_external_args(self, for_machine: MachineChoice, lang):
@@ -695,9 +699,9 @@ def parse_cmd_line_options(args):
                 delattr(args, name)
 
 
-_U = TypeVar('_U', bound=UserOption)
+_U = TypeVar('_U', bound=UserOption[_T])
 
-class BuiltinOption(Generic[_U]):
+class BuiltinOption(Generic[_T, _U]):
 
     """Class for a builtin option type.
 
@@ -713,12 +717,12 @@ class BuiltinOption(Generic[_U]):
         self.yielding = yielding
         self.separate_cross = separate_cross
 
-    def init_option(self, name: str) -> _U:
+    def init_option(self) -> _U:
         """Create an instance of opt_type and return it."""
         keywords = {'yielding': self.yielding, 'value': self.default}
         if self.choices:
             keywords['choices'] = self.choices
-        return self.opt_type(name, self.description, **keywords)
+        return self.opt_type(self.description, **keywords)
 
     def _argparse_action(self) -> Optional[str]:
         if self.default is True:

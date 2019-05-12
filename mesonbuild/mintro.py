@@ -26,7 +26,7 @@ from .ast import IntrospectionInterpreter, build_target_functions, AstConditionL
 from . import mlog
 from .backend import backends
 from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
-from typing import List, Optional
+from typing import Dict, List, Optional
 import os
 import pathlib
 
@@ -236,7 +236,7 @@ def list_buildoptions(coredata: cdata.CoreData) -> List[dict]:
     add_keys(optlist, test_options, 'test')
     return optlist
 
-def add_keys(optlist, options, section):
+def add_keys(optlist, options: Dict[str, cdata.UserOption], section):
     keys = list(options.keys())
     keys.sort()
     for key in keys:
