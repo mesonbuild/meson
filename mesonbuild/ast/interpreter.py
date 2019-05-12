@@ -260,6 +260,12 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             id_loop_detect = []
         flattend_args = []
 
+        if isinstance(args, BaseNode):
+            assert(hasattr(args, 'ast_id'))
+            if args.ast_id in id_loop_detect:
+                return [] # Loop detected
+            id_loop_detect += [args.ast_id]
+
         if isinstance(args, ArrayNode):
             args = [x for x in args.args.arguments]
 
@@ -301,8 +307,8 @@ class AstInterpreter(interpreterbase.InterpreterBase):
 
         # Resolve the contents of args
         for i in args:
-            if isinstance(i, IdNode) and i.value not in id_loop_detect:
-                flattend_args += self.flatten_args(quick_resolve(i), include_unknown_args, id_loop_detect + [i.value])
+            if isinstance(i, IdNode):
+                flattend_args += self.flatten_args(quick_resolve(i), include_unknown_args, id_loop_detect)
             elif isinstance(i, (ArrayNode, ArgumentNode, ArithmeticNode, MethodNode)):
                 flattend_args += self.flatten_args(i, include_unknown_args, id_loop_detect)
             elif isinstance(i, mparser.ElementaryNode):

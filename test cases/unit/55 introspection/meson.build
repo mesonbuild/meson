@@ -34,6 +34,13 @@ systype = '@0@, @1@, @2@'.format(systype, host_machine.cpu_family(), host_machin
 message(systype)
 ### END: Test inspired by taisei
 
+# Minimal code version to produce bug #5376
+# Code inspired by https://github.com/mesa3d/mesa/blob/974c4d679c23373dbed386c696e3e3bc1bfa23ae/meson.build#L1341-L1347
+osmesa_lib_name = 'OSMesa'
+osmesa_bits = '8'
+osmesa_lib_name = osmesa_lib_name + osmesa_bits
+message(osmesa_lib_name) # Infinite recursion gets triggered here when the parameter osmesa_lib_name is resolved
+
 test('test case 1', t1)
 test('test case 2', t2)
 benchmark('benchmark 1', t3)
