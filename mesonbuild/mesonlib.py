@@ -346,6 +346,9 @@ class PerMachine(typing.Generic[_T]):
         }[machine]
         setattr(self, key, val)
 
+def is_sunos() -> bool:
+    return platform.system().lower() == 'sunos'
+
 def is_osx() -> bool:
     return platform.system().lower() == 'darwin'
 
