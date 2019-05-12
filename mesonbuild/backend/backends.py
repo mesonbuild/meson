@@ -103,8 +103,7 @@ class TestSerialisation:
         self.protocol = protocol
 
 class OptionProxy:
-    def __init__(self, name, value):
-        self.name = name
+    def __init__(self, value):
         self.value = value
 
 class OptionOverrideProxy:
@@ -122,7 +121,7 @@ class OptionOverrideProxy:
 
     def _get_override(self, option_name, base_opt):
         if option_name in self.overrides:
-            return OptionProxy(base_opt.name, base_opt.validate_value(self.overrides[option_name]))
+            return OptionProxy(base_opt.validate_value(self.overrides[option_name]))
         return base_opt
 
 def get_backend_from_name(backend, build):

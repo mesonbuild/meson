@@ -60,12 +60,12 @@ def stringifyUserArguments(args):
 
 
 class FeatureOptionHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, env, option):
+    def __init__(self, env, name, option):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, option)
         if option.is_auto():
             self.held_object = env.coredata.builtins['auto_features']
-        self.name = option.name
+        self.name = name
         self.methods.update({'enabled': self.enabled_method,
                              'disabled': self.disabled_method,
                              'auto': self.auto_method,
@@ -2536,7 +2536,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                                        'options of other subprojects.')
         opt = self.get_option_internal(optname)
         if isinstance(opt, coredata.UserFeatureOption):
-            return FeatureOptionHolder(self.environment, opt)
+            return FeatureOptionHolder(self.environment, optname, opt)
         elif isinstance(opt, coredata.UserOption):
             return opt.value
         return opt
