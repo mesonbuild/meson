@@ -254,20 +254,6 @@ base_options = {'b_pch': coredata.UserBooleanOption('Use precompiled headers', T
                                                     'from_buildtype'),
                 }
 
-def sanitizer_compile_args(value):
-    if value == 'none':
-        return []
-    args = ['-fsanitize=' + value]
-    if 'address' in value: # For -fsanitize=address,undefined
-        args.append('-fno-omit-frame-pointer')
-    return args
-
-def sanitizer_link_args(value):
-    if value == 'none':
-        return []
-    args = ['-fsanitize=' + value]
-    return args
-
 def option_enabled(boptions, options, option):
     try:
         if option not in boptions:
@@ -288,7 +274,7 @@ def get_base_compile_args(options, compiler):
     except KeyError:
         pass
     try:
-        args += sanitizer_compile_args(options['b_sanitize'].value)
+        args += compiler.sanitizer_compile_args(options['b_sanitize'].value)
     except KeyError:
         pass
     try:
@@ -333,7 +319,7 @@ def get_base_link_args(options, linker, is_shared_module):
     except KeyError:
         pass
     try:
-        args += sanitizer_link_args(options['b_sanitize'].value)
+        args += linker.sanitizer_link_args(options['b_sanitize'].value)
     except KeyError:
         pass
     try:
@@ -1199,6 +1185,12 @@ class Compiler:
         return []
 
     def get_lto_link_args(self) -> List[str]:
+        return []
+
+    def sanitizer_compile_args(self, value: str) -> List[str]:
+        return []
+
+    def sanitizer_link_args(self, value: str) -> List[str]:
         return []
 
 
