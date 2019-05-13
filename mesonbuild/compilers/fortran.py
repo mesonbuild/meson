@@ -18,7 +18,6 @@ from pathlib import Path
 from .compilers import (
     CompilerType,
     apple_buildtype_linker_args,
-    gnulike_buildtype_args,
     gnulike_buildtype_linker_args,
     gnu_optimization_args,
     clike_debug_args,
@@ -88,9 +87,6 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
     def get_std_warn_args(self, level):
         return FortranCompiler.std_warn_args
-
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
 
     def get_optimization_args(self, optimization_level):
         return gnu_optimization_args[optimization_level]

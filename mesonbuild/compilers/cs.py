@@ -17,7 +17,7 @@ import os.path, subprocess
 from ..mesonlib import EnvironmentException
 from ..mesonlib import is_windows
 
-from .compilers import Compiler, MachineChoice, mono_buildtype_args
+from .compilers import Compiler, MachineChoice
 
 cs_optimization_args = {'0': [],
                         'g': [],
@@ -28,6 +28,16 @@ cs_optimization_args = {'0': [],
                         }
 
 class CsCompiler(Compiler):
+
+    BUILDTYPE_ARGS = {
+        'plain': [],
+        'debug': [],
+        'debugoptimized': ['-optimize+'],
+        'release': ['-optimize+'],
+        'minsize': [],
+        'custom': [],
+    }
+
     def __init__(self, exelist, version, for_machine: MachineChoice, comp_id, runner=None):
         self.language = 'cs'
         super().__init__(exelist, version, for_machine)
@@ -133,9 +143,6 @@ class CsCompiler(Compiler):
     def needs_static_linker(self):
         return False
 
-    def get_buildtype_args(self, buildtype):
-        return mono_buildtype_args[buildtype]
-
     def get_debug_args(self, is_debug):
         return ['-debug'] if is_debug else []
 
@@ -153,7 +160,7 @@ class VisualStudioCsCompiler(CsCompiler):
         super().__init__(exelist, version, for_machine, 'csc')
 
     def get_buildtype_args(self, buildtype):
-        res = mono_buildtype_args[buildtype]
+        res = super().get_buildtype_args(buildtype)
         if not is_windows():
             tmp = []
             for flag in res:

@@ -16,7 +16,7 @@ import subprocess, os.path
 
 from ..mesonlib import EnvironmentException, MachineChoice
 
-from .compilers import Compiler, swift_buildtype_args, clike_debug_args
+from .compilers import Compiler, clike_debug_args
 
 swift_optimization_args = {'0': [],
                            'g': [],
@@ -66,9 +66,6 @@ class SwiftCompiler(Compiler):
 
     def get_warn_args(self, level):
         return []
-
-    def get_buildtype_args(self, buildtype):
-        return swift_buildtype_args[buildtype]
 
     def get_buildtype_linker_args(self, buildtype):
         return []

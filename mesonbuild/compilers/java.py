@@ -16,9 +16,19 @@ import os.path, shutil, subprocess
 
 from ..mesonlib import EnvironmentException, MachineChoice
 
-from .compilers import Compiler, java_buildtype_args
+from .compilers import Compiler
 
 class JavaCompiler(Compiler):
+
+    BUILDTYPE_ARGS = {
+        'plain': [],
+        'debug': ['-g'],
+        'debugoptimized': ['-g'],
+        'release': [],
+        'minsize': [],
+        'custom': [],
+    }
+
     def __init__(self, exelist, version, for_machine: MachineChoice):
         self.language = 'java'
         super().__init__(exelist, version, for_machine)
@@ -78,9 +88,6 @@ class JavaCompiler(Compiler):
 
     def get_pch_name(self, header_name):
         return ''
-
-    def get_buildtype_args(self, buildtype):
-        return java_buildtype_args[buildtype]
 
     def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
         for idx, i in enumerate(parameter_list):

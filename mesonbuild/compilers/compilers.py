@@ -136,60 +136,6 @@ def is_library(fname):
     suffix = fname.split('.')[-1]
     return suffix in lib_suffixes
 
-gnulike_buildtype_args = {'plain': [],
-                          'debug': [],
-                          'debugoptimized': [],
-                          'release': [],
-                          'minsize': [],
-                          'custom': [],
-                          }
-
-armclang_buildtype_args = {'plain': [],
-                           'debug': ['-O0', '-g'],
-                           'debugoptimized': ['-O1', '-g'],
-                           'release': ['-Os'],
-                           'minsize': ['-Oz'],
-                           'custom': [],
-                           }
-
-cuda_buildtype_args = {'plain': [],
-                       'debug': [],
-                       'debugoptimized': [],
-                       'release': [],
-                       'minsize': [],
-                       }
-
-arm_buildtype_args = {'plain': [],
-                      'debug': ['-O0', '--debug'],
-                      'debugoptimized': ['-O1', '--debug'],
-                      'release': ['-O3', '-Otime'],
-                      'minsize': ['-O3', '-Ospace'],
-                      'custom': [],
-                      }
-
-ccrx_buildtype_args = {'plain': [],
-                       'debug': [],
-                       'debugoptimized': [],
-                       'release': [],
-                       'minsize': [],
-                       'custom': [],
-                       }
-
-msvc_buildtype_args = {'plain': [],
-                       'debug': ["/ZI", "/Ob0", "/Od", "/RTC1"],
-                       'debugoptimized': ["/Zi", "/Ob1"],
-                       'release': ["/Ob2", "/Gw"],
-                       'minsize': ["/Zi", "/Gw"],
-                       'custom': [],
-                       }
-
-pgi_buildtype_args = {'plain': [],
-                      'debug': [],
-                      'debugoptimized': [],
-                      'release': [],
-                      'minsize': [],
-                      'custom': [],
-                      }
 apple_buildtype_linker_args = {'plain': [],
                                'debug': [],
                                'debugoptimized': [],
@@ -239,62 +185,6 @@ msvc_buildtype_linker_args = {'plain': [],
                               'minsize': ['/INCREMENTAL:NO', '/OPT:REF'],
                               'custom': [],
                               }
-
-java_buildtype_args = {'plain': [],
-                       'debug': ['-g'],
-                       'debugoptimized': ['-g'],
-                       'release': [],
-                       'minsize': [],
-                       'custom': [],
-                       }
-
-rust_buildtype_args = {'plain': [],
-                       'debug': [],
-                       'debugoptimized': [],
-                       'release': [],
-                       'minsize': [],
-                       'custom': [],
-                       }
-
-d_gdc_buildtype_args = {'plain': [],
-                        'debug': [],
-                        'debugoptimized': ['-finline-functions'],
-                        'release': ['-frelease', '-finline-functions'],
-                        'minsize': [],
-                        'custom': [],
-                        }
-
-d_ldc_buildtype_args = {'plain': [],
-                        'debug': [],
-                        'debugoptimized': ['-enable-inlining', '-Hkeep-all-bodies'],
-                        'release': ['-release', '-enable-inlining', '-Hkeep-all-bodies'],
-                        'minsize': [],
-                        'custom': [],
-                        }
-
-d_dmd_buildtype_args = {'plain': [],
-                        'debug': [],
-                        'debugoptimized': ['-inline'],
-                        'release': ['-release', '-inline'],
-                        'minsize': [],
-                        'custom': [],
-                        }
-
-mono_buildtype_args = {'plain': [],
-                       'debug': [],
-                       'debugoptimized': ['-optimize+'],
-                       'release': ['-optimize+'],
-                       'minsize': [],
-                       'custom': [],
-                       }
-
-swift_buildtype_args = {'plain': [],
-                        'debug': [],
-                        'debugoptimized': [],
-                        'release': [],
-                        'minsize': [],
-                        'custom': [],
-                        }
 
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
                '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']
@@ -855,6 +745,15 @@ class Compiler:
     # manually searched.
     internal_libs = ()
 
+    BUILDTYPE_ARGS = {
+        'plain': [],
+        'debug': [],
+        'debugoptimized': [],
+        'release': [],
+        'minsize': [],
+        'custom': [],
+    }
+
     def __init__(self, exelist, version, for_machine: MachineChoice, **kwargs):
         if isinstance(exelist, str):
             self.exelist = [exelist]
@@ -1384,6 +1283,13 @@ class Compiler:
     def sanitizer_link_args(self, value: str) -> List[str]:
         return []
 
+    @classmethod
+    def get_buildtype_args(cls, buildtype: str) -> List[str]:
+        return cls.BUILDTYPE_ARGS[buildtype]
+
+    def get_buildtype_linker_args(self, buildtype: str) -> List[str]:
+        return []
+
 
 @enum.unique
 class CompilerType(enum.Enum):
@@ -1552,6 +1458,15 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
                  '3': ['/W4'],
                  }
 
+    BUILDTYPE_ARGS = {
+        'plain': [],
+        'debug': ["/ZI", "/Ob0", "/Od", "/RTC1"],
+        'debugoptimized': ["/Zi", "/Ob1"],
+        'release': ["/Ob2", "/Gw"],
+        'minsize': ["/Zi", "/Gw"],
+        'custom': [],
+    }
+
     def __init__(self, target: str):
         self.base_options = ['b_pch', 'b_ndebug', 'b_vscrt'] # FIXME add lto, pgo and the like
         self.target = target
@@ -1580,7 +1495,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         return ['/MDd']
 
     def get_buildtype_args(self, buildtype):
-        args = msvc_buildtype_args[buildtype]
+        args = super().get_buildtype_args(buildtype)
         if self.id == 'msvc' and version_compare(self.version, '<18.0'):
             args = [arg for arg in args if arg != '/Gw']
         return args
@@ -1895,9 +1810,6 @@ class GnuLikeCompiler(abc.ABC):
     def get_pie_link_args(self):
         return ['-pie']
 
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
-
     @abc.abstractmethod
     def get_optimization_args(self, optimization_level):
         raise NotImplementedError("get_optimization_args not implemented")
@@ -2077,9 +1989,6 @@ class PGICompiler:
     def openmp_flags(self) -> List[str]:
         return ['-mp']
 
-    def get_buildtype_args(self, buildtype: str) -> List[str]:
-        return pgi_buildtype_args[buildtype]
-
     def get_buildtype_linker_args(self, buildtype: str) -> List[str]:
         return pgi_buildtype_linker_args[buildtype]
 
@@ -2199,6 +2108,16 @@ class ClangCompiler(GnuLikeCompiler):
 
 
 class ArmclangCompiler:
+
+    BUILDTYPE_ARGS = {
+        'plain': [],
+        'debug': ['-O0', '-g'],
+        'debugoptimized': ['-O1', '-g'],
+        'release': ['-Os'],
+        'minsize': ['-Oz'],
+        'custom': [],
+    }
+
     def __init__(self, compiler_type):
         if self.is_cross:
             raise EnvironmentException('armclang supports only cross-compilation.')
@@ -2241,9 +2160,6 @@ class ArmclangCompiler:
 
     def get_colorout_args(self, colortype):
         return clang_color_args[colortype][:]
-
-    def get_buildtype_args(self, buildtype):
-        return armclang_buildtype_args[buildtype]
 
     def get_buildtype_linker_args(self, buildtype):
         return arm_buildtype_linker_args[buildtype]
@@ -2406,6 +2322,16 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
 
 class ArmCompiler:
+
+    BUILDTYPE_ARGS = {
+        'plain': [],
+        'debug': ['-O0', '--debug'],
+        'debugoptimized': ['-O1', '--debug'],
+        'release': ['-O3', '-Otime'],
+        'minsize': ['-O3', '-Ospace'],
+        'custom': [],
+    }
+
     # Functionality that is common to all ARM family compilers.
     def __init__(self, compiler_type):
         if not self.is_cross:
@@ -2426,9 +2352,6 @@ class ArmCompiler:
     def get_pic_args(self):
         # FIXME: Add /ropi, /rwpi, /fpic etc. qualifiers to --apcs
         return []
-
-    def get_buildtype_args(self, buildtype):
-        return arm_buildtype_args[buildtype]
 
     def get_buildtype_linker_args(self, buildtype):
         return arm_buildtype_linker_args[buildtype]
@@ -2490,6 +2413,7 @@ class ArmCompiler:
         return parameter_list
 
 class CcrxCompiler:
+
     def __init__(self, compiler_type):
         if not self.is_cross:
             raise EnvironmentException('ccrx supports only cross-compilation.')
@@ -2518,9 +2442,6 @@ class CcrxCompiler:
         # PIC support is not enabled by default for CCRX,
         # if users want to use it, they need to add the required arguments explicitly
         return []
-
-    def get_buildtype_args(self, buildtype):
-        return ccrx_buildtype_args[buildtype]
 
     def get_buildtype_linker_args(self, buildtype):
         return ccrx_buildtype_linker_args[buildtype]

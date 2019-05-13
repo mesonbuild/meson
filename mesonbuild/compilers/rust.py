@@ -16,7 +16,7 @@ import subprocess, os.path
 
 from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
 
-from .compilers import Compiler, rust_buildtype_args, clike_debug_args
+from .compilers import Compiler, clike_debug_args
 
 rust_optimization_args = {'0': [],
                           'g': ['-C', '--opt-level=0'],
@@ -65,9 +65,6 @@ class RustCompiler(Compiler):
 
     def get_dependency_gen_args(self, outfile):
         return ['--dep-info', outfile]
-
-    def get_buildtype_args(self, buildtype):
-        return rust_buildtype_args[buildtype]
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)

@@ -20,9 +20,6 @@ from ..mesonlib import (
 
 from .compilers import (
     CompilerType,
-    d_dmd_buildtype_args,
-    d_gdc_buildtype_args,
-    d_ldc_buildtype_args,
     get_gcc_soname_args,
     gnu_color_args,
     gnu_optimization_args,
@@ -63,6 +60,7 @@ dmd_optimization_args = {'0': [],
                          '3': ['-O'],
                          's': ['-O'],
                          }
+
 
 class DCompiler(Compiler):
     mscrt_args = {
@@ -257,10 +255,11 @@ class DCompiler(Compiler):
 
         return res
 
-    def get_buildtype_linker_args(self, buildtype):
+    def get_buildtype_args(self, buildtype):
+        args = super().get_buildtype_args(buildtype)
         if buildtype != 'plain':
-            return self.get_target_arch_args()
-        return []
+            return self.get_target_arch_args() + args
+        return args
 
     def get_std_exe_link_args(self):
         return []
@@ -488,6 +487,16 @@ class DCompiler(Compiler):
         return ['-pthread']
 
 class GnuDCompiler(DCompiler):
+
+    BUILDTYPE_ARGS = {
+        'plain': [],
+        'debug': [],
+        'debugoptimized': ['-finline-functions'],
+        'release': ['-frelease', '-finline-functions'],
+        'minsize': [],
+        'custom': [],
+    }
+
     def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
         DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
         self.id = 'gcc'
@@ -535,7 +544,7 @@ class GnuDCompiler(DCompiler):
         return []
 
     def get_buildtype_args(self, buildtype):
-        return d_gdc_buildtype_args[buildtype]
+        return Compiler.get_buildtype_args(buildtype)
 
     def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
         for idx, i in enumerate(parameter_list):
@@ -550,7 +559,18 @@ class GnuDCompiler(DCompiler):
     def get_optimization_args(self, optimization_level):
         return gnu_optimization_args[optimization_level]
 
+
 class LLVMDCompiler(DCompiler):
+
+    BUILDTYPE_ARGS = {
+        'plain': [],
+        'debug': [],
+        'debugoptimized': ['-enable-inlining', '-Hkeep-all-bodies'],
+        'release': ['-release', '-enable-inlining', '-Hkeep-all-bodies'],
+        'minsize': [],
+        'custom': [],
+    }
+
     def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
         DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
         self.id = 'llvm'
@@ -569,11 +589,6 @@ class LLVMDCompiler(DCompiler):
         else:
             return []
 
-    def get_buildtype_args(self, buildtype):
-        if buildtype != 'plain':
-            return self.get_target_arch_args() + d_ldc_buildtype_args[buildtype]
-        return d_ldc_buildtype_args[buildtype]
-
     def get_pic_args(self):
         return ['-relocation-model=pic']
 
@@ -589,6 +604,16 @@ class LLVMDCompiler(DCompiler):
 
 
 class DmdDCompiler(DCompiler):
+
+    BUILDTYPE_ARGS = {
+        'plain': [],
+        'debug': [],
+        'debugoptimized': ['-inline'],
+        'release': ['-release', '-inline'],
+        'minsize': [],
+        'custom': [],
+    }
+
     def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
         DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
         self.id = 'dmd'
@@ -598,11 +623,6 @@ class DmdDCompiler(DCompiler):
         if colortype == 'always':
             return ['-color=on']
         return []
-
-    def get_buildtype_args(self, buildtype):
-        if buildtype != 'plain':
-            return self.get_target_arch_args() + d_dmd_buildtype_args[buildtype]
-        return d_dmd_buildtype_args[buildtype]
 
     def get_std_exe_link_args(self):
         if is_windows():
