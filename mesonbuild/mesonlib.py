@@ -958,7 +958,10 @@ def expand_arguments(args):
             return None
     return expended_args
 
-def Popen_safe(args, write=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs):
+def Popen_safe(args: typing.List[str], write: typing.Optional[str] = None,
+               stdout: typing.Union[typing.BinaryIO, int] = subprocess.PIPE,
+               stderr: typing.Union[typing.BinaryIO, int] = subprocess.PIPE,
+               **kwargs: typing.Any) -> typing.Tuple[subprocess.Popen, str, str]:
     import locale
     encoding = locale.getpreferredencoding()
     if sys.version_info < (3, 6) or not sys.stdout.encoding or encoding.upper() != 'UTF-8':
@@ -968,12 +971,16 @@ def Popen_safe(args, write=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     o, e = p.communicate(write)
     return p, o, e
 
-def Popen_safe_legacy(args, write=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs):
+def Popen_safe_legacy(args: typing.List[str], write: typing.Optional[str] = None,
+                      stdout: typing.Union[typing.BinaryIO, int] = subprocess.PIPE,
+                      stderr: typing.Union[typing.BinaryIO, int] = subprocess.PIPE,
+                      **kwargs: typing.Any) -> typing.Tuple[subprocess.Popen, str, str]:
     p = subprocess.Popen(args, universal_newlines=False, close_fds=False,
                          stdout=stdout, stderr=stderr, **kwargs)
+    input_ = None  # type: typing.Optional[bytes]
     if write is not None:
-        write = write.encode('utf-8')
-    o, e = p.communicate(write)
+        input_ = write.encode('utf-8')
+    o, e = p.communicate(input_)
     if o is not None:
         if sys.stdout.encoding:
             o = o.decode(encoding=sys.stdout.encoding, errors='replace').replace('\r\n', '\n')
