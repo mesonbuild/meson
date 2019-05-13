@@ -23,7 +23,6 @@ import subprocess
 from .. import build
 from .. import mlog
 from .. import mesonlib
-from .. import compilers
 from .. import interpreter
 from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
 from . import get_include_args
@@ -604,7 +603,7 @@ class GnomeModule(ExtensionModule):
                 cflags += state.project_args[lang]
             if 'b_sanitize' in compiler.base_options:
                 sanitize = state.environment.coredata.base_options['b_sanitize'].value
-                cflags += compilers.sanitizer_compile_args(sanitize)
+                cflags += compiler.sanitizer_compile_args(sanitize)
                 sanitize = sanitize.split(',')
                 # These must be first in ldflags
                 if 'address' in sanitize:
@@ -615,7 +614,7 @@ class GnomeModule(ExtensionModule):
                     internal_ldflags += ['-lubsan']
                 # FIXME: Linking directly to lib*san is not recommended but g-ir-scanner
                 # does not understand -f LDFLAGS. https://bugzilla.gnome.org/show_bug.cgi?id=783892
-                # ldflags += compilers.sanitizer_link_args(sanitize)
+                # ldflags += compiler.sanitizer_link_args(sanitize)
 
         return cflags, internal_ldflags, external_ldflags
 

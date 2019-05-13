@@ -33,7 +33,6 @@ __all__ = [
     'is_object',
     'is_source',
     'lang_suffixes',
-    'sanitizer_compile_args',
     'sort_clink',
 
     'ArmCCompiler',
@@ -118,7 +117,6 @@ from .compilers import (
     is_object,
     is_library,
     lang_suffixes,
-    sanitizer_compile_args,
     sort_clink,
     ClangCompiler,
     CompilerArgs,
