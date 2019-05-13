@@ -365,3 +365,37 @@ compiler.
 
 - If the compiler is freely available, consider adding it to the CI
   system.
+
+## Why does building my project with MSVC output static libraries called `libfoo.a`?
+
+The naming convention for static libraries on Windows is usually `foo.lib`.
+Unfortunately, import libraries are also called `foo.lib`.
+
+This causes filename collisions with the default library type where we build
+both shared and static libraries, and also causes collisions during
+installation since all libraries are installed to the same directory by default.
+
+To resolve this, we decided to default to creating static libraries of the form
+`libfoo.a` when building with MSVC. This has the following advantages:
+
+1. Filename collisions are completely avoided.
+1. The format for MSVC static libraries is `ar`, which is the same as the GNU
+   static library format, so using this extension is semantically correct.
+1. The static library filename format is now the same on all platforms and with
+   all toolchains.
+1. Both Clang and GNU compilers can search for `libfoo.a` when specifying
+   a library as `-lfoo`. This does not work for alternative naming schemes for
+   static libraries such as `libfoo.lib`.
+1. Since `-lfoo` works out of the box, pkgconfig files will work correctly for
+   projects built with both MSVC, GCC, and Clang on Windows.
+1. MSVC does not have arguments to search for library filenames, and [it does
+   not care what the extension is](https://docs.microsoft.com/en-us/cpp/build/reference/link-input-files?view=vs-2019),
+   so specifying `libfoo.a` instead of `foo.lib` does not change the workflow,
+   and is an improvement since it's less ambiguous.
+
+If, for some reason, you really need your project to output static libraries of
+the form `foo.lib` when building with MSVC, you can set the
+[`name_prefix:`](https://mesonbuild.com/Reference-manual.html#library)
+kwarg to `''` and the [`name_suffix:`](https://mesonbuild.com/Reference-manual.html#library)
+kwarg to `'lib'`. To get the default behaviour for each, you can either not
+specify the kwarg, or pass `[]` (an empty array) to it.
