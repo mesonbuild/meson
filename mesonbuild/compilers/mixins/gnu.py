@@ -372,6 +372,19 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
     def get_lto_link_args(self) -> typing.List[str]:
         return ['-flto']
 
+    def sanitizer_compile_args(self, value: str) -> typing.List[str]:
+        if value == 'none':
+            return []
+        args = ['-fsanitize=' + value]
+        if 'address' in value:  # for -fsanitize=address,undefined
+            args.append('-fno-omit-frame-pointer')
+        return args
+
+    def sanitizer_link_args(self, value: str) -> typing.List[str]:
+        if value == 'none':
+            return []
+        return ['-fsanitize=' + value]
+
 
 class GnuCompiler(GnuLikeCompiler):
     """
