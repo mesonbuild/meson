@@ -12,85 +12,117 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import typing
+
 from .mesonlib import Popen_safe, is_windows
 from . import mesonlib
 
+if typing.TYPE_CHECKING:
+    from .coredata import OptionDictType
+    from .environment import Environment
+
+
 class StaticLinker:
-    def can_linker_accept_rsp(self):
+
+    def __init__(self, exelist: typing.List[str]):
+        self.exelist = exelist
+
+    def can_linker_accept_rsp(self) -> bool:
         """
         Determines whether the linker can accept arguments using the @rsp syntax.
         """
         return mesonlib.is_windows()
 
+    def get_exelist(self) -> typing.List[str]:
+        return self.exelist.copy()
+
+    def get_std_link_args(self) -> typing.List[str]:
+        return []
+
+    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
+        return []
+
+    def get_output_args(self, target: str) -> typing.List[str]:
+        return[]
+
+    def get_coverage_link_args(self) -> typing.List[str]:
+        return []
+
+    def build_rpath_args(self, build_dir: str, from_dir: str, rpath_paths: str,
+                         build_rpath: str, install_rpath: str) -> typing.List[str]:
+        return []
+
+    def thread_link_flags(self, env: 'Environment') -> typing.List[str]:
+        return []
+
+    def openmp_flags(self) -> typing.List[str]:
+        return []
+
+    def get_option_link_args(self, options: 'OptionDictType') -> typing.List[str]:
+        return []
+
+    @classmethod
+    def unix_args_to_native(cls, args: typing.List[str]) -> typing.List[str]:
+        return args
+
+    def get_link_debugfile_args(self, targetfile: str) -> typing.List[str]:
+        # Static libraries do not have PDB files
+        return []
+
+    def get_always_args(self) -> typing.List[str]:
+        return []
+
+    def get_linker_always_args(self) -> typing.List[str]:
+        return []
+
 
 class VisualStudioLikeLinker:
     always_args = ['/NOLOGO']
 
-    def __init__(self, exelist, machine):
-        self.exelist = exelist
+    def __init__(self, machine: str):
         self.machine = machine
 
-    def get_exelist(self):
-        return self.exelist.copy()
+    def get_always_args(self) -> typing.List[str]:
+        return self.always_args.copy()
 
-    def get_std_link_args(self):
-        return []
+    def get_linker_always_args(self) -> typing.List[str]:
+        return self.always_args.copy()
 
-    def get_buildtype_linker_args(self, buildtype):
-        return []
-
-    def get_output_args(self, target):
-        args = []
+    def get_output_args(self, target: str) -> typing.List[str]:
+        args = []  # type: typing.List[str]
         if self.machine:
             args += ['/MACHINE:' + self.machine]
         args += ['/OUT:' + target]
         return args
 
-    def get_coverage_link_args(self):
-        return []
-
-    def get_always_args(self):
-        return self.always_args.copy()
-
-    def get_linker_always_args(self):
-        return self.always_args.copy()
-
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        return []
-
-    def thread_link_flags(self, env):
-        return []
-
-    def openmp_flags(self):
-        return []
-
-    def get_option_link_args(self, options):
-        return []
-
     @classmethod
-    def unix_args_to_native(cls, args):
+    def unix_args_to_native(cls, args: typing.List[str]) -> typing.List[str]:
         from .compilers import VisualStudioCCompiler
         return VisualStudioCCompiler.unix_args_to_native(args)
-
-    def get_link_debugfile_args(self, targetfile):
-        # Static libraries do not have PDB files
-        return []
 
 
 class VisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
 
     """Microsoft's lib static linker."""
 
+    def __init__(self, exelist: typing.List[str], machine: str):
+        StaticLinker.__init__(self, exelist)
+        VisualStudioLikeLinker.__init__(self, machine)
+
 
 class IntelVisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
 
     """Intel's xilib static linker."""
 
+    def __init__(self, exelist: typing.List[str], machine: str):
+        StaticLinker.__init__(self, exelist)
+        VisualStudioLikeLinker.__init__(self, machine)
+
 
 class ArLinker(StaticLinker):
 
-    def __init__(self, exelist):
-        self.exelist = exelist
+    def __init__(self, exelist: typing.List[str]):
+        super().__init__(exelist)
         self.id = 'ar'
         pc, stdo = Popen_safe(self.exelist + ['-h'])[0:2]
         # Enable deterministic builds if they are available.
@@ -99,85 +131,38 @@ class ArLinker(StaticLinker):
         else:
             self.std_args = ['csr']
 
-    def can_linker_accept_rsp(self):
-        return mesonlib.is_windows()
-
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        return []
-
-    def get_exelist(self):
-        return self.exelist[:]
-
-    def get_std_link_args(self):
+    def get_std_link_args(self) -> typing.List[str]:
         return self.std_args
 
-    def get_output_args(self, target):
+    def get_output_args(self, target: str) -> typing.List[str]:
         return [target]
 
-    def get_buildtype_linker_args(self, buildtype):
-        return []
-
-    def get_linker_always_args(self):
-        return []
-
-    def get_coverage_link_args(self):
-        return []
-
-    def get_always_args(self):
-        return []
-
-    def thread_link_flags(self, env):
-        return []
-
-    def openmp_flags(self):
-        return []
-
-    def get_option_link_args(self, options):
-        return []
-
-    @classmethod
-    def unix_args_to_native(cls, args):
-        return args[:]
-
-    def get_link_debugfile_args(self, targetfile):
-        return []
 
 class ArmarLinker(ArLinker):
 
-    def __init__(self, exelist):
-        self.exelist = exelist
+    def __init__(self, exelist: typing.List[str]):
+        StaticLinker.__init__(self, exelist)
         self.id = 'armar'
         self.std_args = ['-csr']
 
-    def can_linker_accept_rsp(self):
+    def can_linker_accept_rsp(self) -> bool:
         # armar cann't accept arguments using the @rsp syntax
         return False
 
+
 class DLinker(StaticLinker):
-    def __init__(self, exelist, arch):
-        self.exelist = exelist
+    def __init__(self, exelist: typing.List[str], arch: str):
+        super().__init__(exelist)
         self.id = exelist[0]
         self.arch = arch
 
-    def can_linker_accept_rsp(self):
-        return mesonlib.is_windows()
-
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        return []
-
-    def get_exelist(self):
-        return self.exelist[:]
-
-    def get_std_link_args(self):
+    def get_std_link_args(self) -> typing.List[str]:
         return ['-lib']
 
-    def get_output_args(self, target):
+    def get_output_args(self, target: str) -> typing.List[str]:
         return ['-of=' + target]
 
-    def get_buildtype_linker_args(self, buildtype):
-        return []
-
-    def get_linker_always_args(self):
+    def get_linker_always_args(self) -> typing.List[str]:
         if is_windows():
             if self.arch == 'x86_64':
                 return ['-m64']
@@ -186,75 +171,18 @@ class DLinker(StaticLinker):
             return ['-m32']
         return []
 
-    def get_coverage_link_args(self):
-        return []
-
-    def get_always_args(self):
-        return []
-
-    def thread_link_flags(self, env):
-        return []
-
-    def openmp_flags(self):
-        return []
-
-    def get_option_link_args(self, options):
-        return []
-
-    @classmethod
-    def unix_args_to_native(cls, args):
-        return args[:]
-
-    def get_link_debugfile_args(self, targetfile):
-        return []
 
 class CcrxLinker(StaticLinker):
 
-    def __init__(self, exelist):
-        self.exelist = exelist
+    def __init__(self, exelist: typing.List[str]):
+        super().__init__(exelist)
         self.id = 'rlink'
-        pc, stdo = Popen_safe(self.exelist + ['-h'])[0:2]
-        self.std_args = []
 
-    def can_linker_accept_rsp(self):
+    def can_linker_accept_rsp(self) -> bool:
         return False
 
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        return []
-
-    def get_exelist(self):
-        return self.exelist[:]
-
-    def get_std_link_args(self):
-        return self.std_args
-
-    def get_output_args(self, target):
+    def get_output_args(self, target: str) -> typing.List[str]:
         return ['-output=%s' % target]
 
-    def get_buildtype_linker_args(self, buildtype):
-        return []
-
-    def get_linker_always_args(self):
+    def get_linker_always_args(self) -> typing.List[str]:
         return ['-nologo', '-form=library']
-
-    def get_coverage_link_args(self):
-        return []
-
-    def get_always_args(self):
-        return []
-
-    def thread_link_flags(self, env):
-        return []
-
-    def openmp_flags(self):
-        return []
-
-    def get_option_link_args(self, options):
-        return []
-
-    @classmethod
-    def unix_args_to_native(cls, args):
-        return args[:]
-
-    def get_link_debugfile_args(self, targetfile):
-        return []
