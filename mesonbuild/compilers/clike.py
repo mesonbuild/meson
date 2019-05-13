@@ -776,7 +776,7 @@ class CLikeCompiler:
             return True, cached
 
         # MSVC does not have compiler __builtin_-s.
-        if self.get_id() == 'msvc':
+        if self.get_id() in {'msvc', 'intel-cl'}:
             return False, False
 
         # Detect function as a built-in
@@ -849,7 +849,7 @@ class CLikeCompiler:
         '''
         args = self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
-        with self.compile(code, args, 'compile', want_output=True) as p:
+        with self.compile(code, extra_args=args, mode='compile', want_output=True) as p:
             if p.returncode != 0:
                 m = 'BUG: Unable to compile {!r} check: {}'
                 raise RuntimeError(m.format(n, p.stdo))

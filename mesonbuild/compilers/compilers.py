@@ -1146,7 +1146,7 @@ class Compiler:
         return os.path.join(dirname, 'output.' + suffix)
 
     @contextlib.contextmanager
-    def compile(self, code, extra_args=None, mode='link', want_output=False):
+    def compile(self, code, extra_args=None, *, mode='link', want_output=False):
         if extra_args is None:
             extra_args = []
         try:
@@ -1199,7 +1199,7 @@ class Compiler:
             pass
 
     @contextlib.contextmanager
-    def cached_compile(self, code, cdata: coredata.CoreData, extra_args=None, mode: str = 'link'):
+    def cached_compile(self, code, cdata: coredata.CoreData, *, extra_args=None, mode: str = 'link'):
         assert(isinstance(cdata, coredata.CoreData))
 
         # Calculate the key
@@ -1465,14 +1465,14 @@ def get_compiler_uses_gnuld(c):
     # FIXME: Perhaps we should detect the linker in the environment?
     # FIXME: Assumes that *BSD use GNU ld, but they might start using lld soon
     compiler_type = getattr(c, 'compiler_type', None)
-    return compiler_type in (
+    return compiler_type in {
         CompilerType.GCC_STANDARD,
         CompilerType.GCC_MINGW,
         CompilerType.GCC_CYGWIN,
         CompilerType.CLANG_STANDARD,
         CompilerType.CLANG_MINGW,
         CompilerType.ICC_STANDARD,
-        CompilerType.ICC_WIN)
+    }
 
 def get_largefile_args(compiler):
     '''
@@ -1791,16 +1791,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             return None
         return vs32_instruction_set_args.get(instruction_set, None)
 
-    def get_toolset_version(self):
-        if self.id == 'clang-cl':
-            # I have no idea
-            return '14.1'
-
-        # See boost/config/compiler/visualc.cpp for up to date mapping
-        try:
-            version = int(''.join(self.version.split('.')[0:2]))
-        except ValueError:
-            return None
+    def _calculate_toolset_version(self, version: int) -> Optional[str]:
         if version < 1310:
             return '7.0'
         elif version < 1400:
@@ -1823,6 +1814,18 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             return '14.2' # (Visual Studio 2019)
         mlog.warning('Could not find toolset for version {!r}'.format(self.version))
         return None
+
+    def get_toolset_version(self):
+        if self.id == 'clang-cl':
+            # I have no idea
+            return '14.1'
+
+        # See boost/config/compiler/visualc.cpp for up to date mapping
+        try:
+            version = int(''.join(self.version.split('.')[0:2]))
+        except ValueError:
+            return None
+        return self._calculate_toolset_version(version)
 
     def get_default_include_dirs(self):
         if 'INCLUDE' not in os.environ:
@@ -2288,7 +2291,7 @@ class ArmclangCompiler:
 
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1, 19.0.0
-class IntelCompiler(GnuLikeCompiler):
+class IntelGnuLikeCompiler(GnuLikeCompiler):
 
     def __init__(self, compiler_type):
         super().__init__(compiler_type)
@@ -2342,6 +2345,48 @@ class IntelCompiler(GnuLikeCompiler):
 
     def get_profile_use_args(self):
         return ['-prof-use']
+
+
+class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
+
+    """Abstractions for ICL, the Intel compiler on Windows."""
+
+    def __init__(self, target: str):
+        super().__init__(target)
+        self.compiler_type = CompilerType.ICC_WIN
+        self.id = 'intel-cl'
+
+    def compile(self, code, *, extra_args=None, **kwargs):
+        # This covers a case that .get('foo', []) doesn't, that extra_args is
+        if kwargs.get('mode', 'compile') != 'link':
+            extra_args = extra_args.copy() if extra_args is not None else []
+            extra_args.extend([
+                '/Qdiag-error:10006',  # ignoring unknown option
+                '/Qdiag-error:10148',  # Option not supported
+                '/Qdiag-error:10155',  # ignoring argument required
+                '/Qdiag-error:10156',  # ignoring not argument allowed
+                '/Qdiag-error:10157',  # Ignoring argument of the wrong type
+                '/Qdiag-error:10158',  # Argument must be separate. Can be hit by trying an option like -foo-bar=foo when -foo=bar is a valid option but -foo-bar isn't
+            ])
+        return super().compile(code, extra_args, **kwargs)
+
+    def get_toolset_version(self) -> Optional[str]:
+        # Avoid circular dependencies....
+        from ..environment import search_version
+
+        # ICL provides a cl.exe that returns the version of MSVC it tries to
+        # emulate, so we'll get the version from that and pass it to the same
+        # function the real MSVC uses to calculate the toolset version.
+        _, _, err = Popen_safe(['cl.exe'])
+        v1, v2, *_ = search_version(err).split('.')
+        version = int(v1 + v2)
+        return self._calculate_toolset_version(version)
+
+    def get_linker_exelist(self):
+        return ['xilink']
+
+    def openmp_flags(self):
+        return ['/Qopenmp']
 
 
 class ArmCompiler:

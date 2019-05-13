@@ -981,7 +981,8 @@ class InternalTests(unittest.TestCase):
         toolset_ver = cc.get_toolset_version()
         self.assertIsNotNone(toolset_ver)
         # Visual Studio 2015 and older versions do not define VCToolsVersion
-        if int(''.join(cc.version.split('.')[0:2])) < 1910:
+        # TODO: ICL doesn't set this in the VSC2015 profile either
+        if cc.id == 'msvc' and int(''.join(cc.version.split('.')[0:2])) < 1910:
             return
         self.assertIn('VCToolsVersion', os.environ)
         vctools_ver = os.environ['VCToolsVersion']
@@ -1938,7 +1939,7 @@ class AllPlatformTests(BasePlatformTests):
         '''
         gnu = mesonbuild.compilers.GnuCompiler
         clang = mesonbuild.compilers.ClangCompiler
-        intel = mesonbuild.compilers.IntelCompiler
+        intel = mesonbuild.compilers.IntelGnuLikeCompiler
         msvc = (mesonbuild.compilers.VisualStudioCCompiler, mesonbuild.compilers.VisualStudioCPPCompiler)
         clangcl = (mesonbuild.compilers.ClangClCCompiler, mesonbuild.compilers.ClangClCPPCompiler)
         ar = mesonbuild.linkers.ArLinker
@@ -2821,7 +2822,7 @@ recommended as it is not supported on some platforms''')
         testdirlib = os.path.join(testdirbase, 'lib')
         extra_args = None
         env = get_fake_env(testdirlib, self.builddir, self.prefix)
-        if env.detect_c_compiler(False).get_id() not in ['msvc', 'clang-cl']:
+        if env.detect_c_compiler(False).get_id() not in {'msvc', 'clang-cl', 'intel-cl'}:
             # static libraries are not linkable with -l with msvc because meson installs them
             # as .a files which unix_args_to_native will not know as it expects libraries to use
             # .lib as extension. For a DLL the import library is installed as .lib. Thus for msvc
@@ -3994,7 +3995,7 @@ class WindowsTests(BasePlatformTests):
 
         # resource compiler depfile generation is not yet implemented for msvc
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        depfile_works = env.detect_c_compiler(False).get_id() not in ['msvc', 'clang-cl']
+        depfile_works = env.detect_c_compiler(False).get_id() not in {'msvc', 'clang-cl', 'intel-cl'}
 
         self.init(testdir)
         self.build()
@@ -5872,6 +5873,10 @@ class NativeFileTests(BasePlatformTests):
                 raise unittest.SkipTest('No alternate Fortran implementation.')
             elif comp.id == 'gcc':
                 if shutil.which('ifort'):
+                    # There is an ICC for windows (windows build, linux host),
+                    # but we don't support that ATM so lets not worry about it.
+                    if is_windows():
+                        return 'ifort', 'intel-cl'
                     return 'ifort', 'intel'
                 elif shutil.which('flang'):
                     return 'flang', 'flang'

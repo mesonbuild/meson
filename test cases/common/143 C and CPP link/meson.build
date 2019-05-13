@@ -30,6 +30,8 @@ if cxx.get_argument_syntax() == 'msvc'
     static_linker = find_program('lib')
   elif cxx.get_id() == 'clang-cl'
     static_linker = find_program('llvm-lib')
+  elif cxx.get_id() == 'intel-cl'
+    static_linker = find_program('xilib')
   else
      error('unable to determine static linker to use with this compiler')
   endif

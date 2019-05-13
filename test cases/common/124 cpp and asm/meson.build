@@ -15,7 +15,7 @@ endif
 
 sources = ['trivial.cc']
 # If the compiler cannot compile assembly, don't use it
-if not ['msvc', 'clang-cl'].contains(meson.get_compiler('cpp').get_id())
+if not ['msvc', 'clang-cl', 'intel-cl'].contains(meson.get_compiler('cpp').get_id())
   sources += ['retval-' + cpu + '.S']
   cpp_args = ['-DUSE_ASM']
   message('Using ASM')

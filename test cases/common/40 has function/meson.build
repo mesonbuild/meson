@@ -21,7 +21,7 @@ foreach cc : compilers
   # not taken from a cache (ie. the check above)
   # On MSVC fprintf is defined as an inline function in the header, so it cannot
   # be found without the include.
-  if cc.get_id() != 'msvc'
+  if not ['msvc', 'intel-cl'].contains(cc.get_id())
     assert(cc.has_function('fprintf', args : unit_test_args),
            '"fprintf" function not found without include (on !msvc).')
   else

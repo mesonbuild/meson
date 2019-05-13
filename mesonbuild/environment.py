@@ -15,7 +15,7 @@
 import os, platform, re, sys, shlex, shutil, subprocess, typing
 
 from . import coredata
-from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker
+from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, IntelVisualStudioLinker
 from . import mesonlib
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, Popen_safe,
@@ -60,7 +60,10 @@ from .compilers import (
     ElbrusFortranCompiler,
     IntelCCompiler,
     IntelCPPCompiler,
+    IntelClCCompiler,
+    IntelClCPPCompiler,
     IntelFortranCompiler,
+    IntelClFortranCompiler,
     JavaCompiler,
     MonoCompiler,
     CudaCompiler,
@@ -457,12 +460,18 @@ class Environment:
         # List of potential compilers.
         if mesonlib.is_windows():
             # Intel C and C++ compiler is icl on Windows, but icc and icpc elsewhere.
-            self.default_c = ['cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc', 'icl']
+            # Search for icl before cl, since Intel "helpfully" provides a
+            # cl.exe that returns *exactly the same thing* that microsofts
+            # cl.exe does, and if icl is present, it's almost certainly what
+            # you want.
+            self.default_c = ['icl', 'cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc']
             # There is currently no pgc++ for Windows, only for  Mac and Linux.
-            self.default_cpp = ['cl', 'c++', 'g++', 'clang++', 'clang-cl', 'icl']
+            self.default_cpp = ['icl', 'cl', 'c++', 'g++', 'clang++', 'clang-cl']
+            self.default_fortran = ['ifort', 'gfortran', 'flang', 'pgfortran', 'g95']
         else:
             self.default_c = ['cc', 'gcc', 'clang', 'pgcc', 'icc']
             self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++', 'icpc']
+            self.default_fortran = ['gfortran', 'flang', 'pgfortran', 'ifort', 'g95']
         if mesonlib.is_windows():
             self.default_cs = ['csc', 'mcs']
         else:
@@ -470,7 +479,6 @@ class Environment:
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
         self.default_d = ['ldc2', 'ldc', 'gdc', 'dmd']
-        self.default_fortran = ['gfortran', 'flang', 'pgfortran', 'ifort', 'g95']
         self.default_java = ['javac']
         self.default_cuda = ['nvcc']
         self.default_rust = ['rustc']
@@ -677,8 +685,12 @@ class Environment:
                 arg = '--vsn'
             elif 'ccrx' in compiler[0]:
                 arg = '-v'
+            elif 'icl' in compiler[0]:
+                # if you pass anything to icl you get stuck in a pager
+                arg = ''
             else:
                 arg = '--version'
+
             try:
                 p, out, err = Popen_safe(compiler + [arg])
             except OSError as e:
@@ -753,6 +765,11 @@ class Environment:
                     compiler_type = CompilerType.CLANG_STANDARD
                 cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
+            if 'Intel(R) C++ Intel(R)' in err:
+                version = search_version(err)
+                target = 'x86' if 'IA-32' in err else 'x86_64'
+                cls = IntelClCCompiler if lang == 'c' else IntelClCPPCompiler
+                return cls(compiler, version, is_cross, exe_wrap, target)
             if 'Microsoft' in out or 'Microsoft' in err:
                 # Latest versions of Visual Studio print version
                 # number to stderr but earlier ones print version
@@ -885,6 +902,11 @@ class Environment:
                 if 'Sun Fortran' in err:
                     version = search_version(err)
                     return SunFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
+
+                if 'Intel(R) Visual Fortran' in err:
+                    version = search_version(err)
+                    target = 'x86' if 'IA-32' in err else 'x86_64'
+                    return IntelClFortranCompiler(compiler, version, is_cross, target, exe_wrap)
 
                 if 'ifort (IFORT)' in out:
                     return IntelFortranCompiler(compiler, version, is_cross, exe_wrap, full_version=full_version)
@@ -1172,11 +1194,14 @@ class Environment:
                     linkers = [self.vs_static_linker, self.clang_cl_static_linker, compiler.get_linker_exelist()]
                 else:
                     linkers = [self.default_static_linker, compiler.get_linker_exelist()]
+            elif isinstance(compiler, IntelClCCompiler):
+                # Intel has it's own linker that acts like microsoft's lib
+                linkers = ['xilib']
             else:
                 linkers = [self.default_static_linker]
         popen_exceptions = {}
         for linker in linkers:
-            if not set(['lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe']).isdisjoint(linker):
+            if not {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'}.isdisjoint(linker):
                 arg = '/?'
             else:
                 arg = '--version'
@@ -1185,6 +1210,8 @@ class Environment:
             except OSError as e:
                 popen_exceptions[' '.join(linker + [arg])] = e
                 continue
+            if "xilib: executing 'lib'" in err:
+                return IntelVisualStudioLinker(linker, getattr(compiler, 'machine', None))
             if '/OUT:' in out.upper() or '/OUT:' in err.upper():
                 return VisualStudioLinker(linker, getattr(compiler, 'machine', None))
             if p.returncode == 0 and ('armar' in linker or 'armar.exe' in linker):

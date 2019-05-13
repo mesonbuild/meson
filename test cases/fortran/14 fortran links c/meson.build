@@ -5,7 +5,7 @@ if ccid == 'msvc' or ccid == 'clang-cl'
   error('MESON_SKIP_TEST: MSVC and GCC do not interoperate like this.')
 endif
 
-c_lib = library('clib', 'clib.c')
+c_lib = library('clib', 'clib.c', vs_module_defs : 'clib.def')
 
 f_call_c = executable('f_call_c', 'f_call_c.f90',
   link_with: c_lib,

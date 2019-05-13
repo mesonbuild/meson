@@ -6,9 +6,12 @@ project('trivial test',
 #this is a comment
 sources = 'trivial.c'
 
-if meson.get_compiler('c').get_id() == 'intel'
+cc = meson.get_compiler('c')
+if cc.get_id() == 'intel'
   # Error out if the -std=xxx option is incorrect
   add_project_arguments('-diag-error', '10159', language : 'c')
+elif cc.get_id() == 'intel-cl'
+  add_project_arguments('/Qdiag-error:10159', language : 'c')
 endif
 
 if meson.is_cross_build()
