@@ -35,6 +35,9 @@ import enum
 if typing.TYPE_CHECKING:
     from . import dependencies
 
+if typing.TYPE_CHECKING:
+    OptionDictType = typing.Dict[str, 'UserOption']
+
 version = '0.50.999'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
 
