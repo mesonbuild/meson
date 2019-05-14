@@ -14,26 +14,32 @@
 
 # A tool to run tests in many different ways.
 
-import shlex
-import subprocess, sys, os, argparse
-import pickle
-from mesonbuild import build
-from mesonbuild import environment
-from mesonbuild.dependencies import ExternalProgram
-from mesonbuild.mesonlib import substring_is_in_list, MesonException
-from mesonbuild import mlog
-
 from collections import namedtuple
-import io
-import re
-import tempfile
-import time, datetime, multiprocessing, json
-import concurrent.futures as conc
-import platform
-import signal
-import random
 from copy import deepcopy
+import argparse
+import concurrent.futures as conc
+import datetime
 import enum
+import io
+import json
+import multiprocessing
+import os
+import pickle
+import platform
+import random
+import re
+import shlex
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+
+from . import build
+from . import environment
+from . import mlog
+from .dependencies import ExternalProgram
+from .mesonlib import substring_is_in_list, MesonException
 
 # GNU autotools interprets a return code of 77 from tests it executes to
 # mean that the test should be skipped.
