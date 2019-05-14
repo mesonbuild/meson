@@ -27,6 +27,7 @@ from ..compilers import CompilerArgs, VisualStudioLikeCompiler
 from collections import OrderedDict
 import shlex
 from functools import lru_cache
+import typing
 
 
 class CleanTrees:
@@ -83,8 +84,12 @@ class ExecutableSerialisation:
         self.capture = capture
 
 class TestSerialisation:
-    def __init__(self, name, project, suite, fname, is_cross_built, exe_wrapper, is_parallel,
-                 cmd_args, env, should_fail, timeout, workdir, extra_paths, protocol):
+    def __init__(self, name: str, project: str, suite: str, fname: typing.List[str],
+                 is_cross_built: bool, exe_wrapper: typing.Optional[build.Executable],
+                 is_parallel: bool, cmd_args: typing.List[str],
+                 env: build.EnvironmentVariables, should_fail: bool,
+                 timeout: typing.Optional[int], workdir: typing.Optional[str],
+                 extra_paths: typing.List[str], protocol: str):
         self.name = name
         self.project_name = project
         self.suite = suite
