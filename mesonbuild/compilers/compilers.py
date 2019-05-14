@@ -469,7 +469,7 @@ def sanitizer_compile_args(value):
 def sanitizer_link_args(value):
     if value == 'none':
         return []
-    args = ['-fsanitize=' + value]
+    args = ['-fsanitize=' + value, '-ldl', '-lrt', '-lm', '-lpthread']
     return args
 
 def option_enabled(boptions, options, option):
