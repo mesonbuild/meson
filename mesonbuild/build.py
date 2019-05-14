@@ -108,7 +108,7 @@ class Build:
     all dependencies and so on.
     """
 
-    def __init__(self, environment):
+    def __init__(self, environment: environment.Environment):
         self.project_name = 'name of master project'
         self.project_version = None
         self.environment = environment
@@ -141,7 +141,7 @@ class Build:
         self.dep_manifest_name = None
         self.dep_manifest = {}
         self.cross_stdlibs = {}
-        self.test_setups = {}
+        self.test_setups = {}                         # type: typing.Dict[str, TestSetup]
         self.test_setup_default_name = None
         self.find_overrides = {}
         self.searched_programs = set() # The list of all programs that have been searched for.
@@ -336,7 +336,7 @@ class EnvironmentVariables:
 
         return value
 
-    def get_env(self, full_env):
+    def get_env(self, full_env: typing.Dict[str, str]) -> typing.Dict[str, str]:
         env = full_env.copy()
         for method, name, values, kwargs in self.envvars:
             env[name] = method(full_env, name, values, kwargs)
@@ -2386,7 +2386,7 @@ def get_sources_string_names(sources):
             raise AssertionError('Unknown source type: {!r}'.format(s))
     return names
 
-def load(build_dir):
+def load(build_dir: str) -> Build:
     filename = os.path.join(build_dir, 'meson-private', 'build.dat')
     load_fail_msg = 'Build data file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
     nonexisting_fail_msg = 'No such build data file as "{!r}".'.format(filename)
