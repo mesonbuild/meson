@@ -1982,7 +1982,8 @@ class DubDependency(ExternalDependency):
 class ExternalProgram:
     windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
 
-    def __init__(self, name, command=None, silent=False, search_dir=None):
+    def __init__(self, name: str, command: typing.Optional[typing.List[str]] = None,
+                 silent: bool = False, search_dir: typing.Optional[str] = None):
         self.name = name
         if command is not None:
             self.command = listify(command)
@@ -2006,11 +2007,11 @@ class ExternalProgram:
             else:
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.red('NO'))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r = '<{} {!r} -> {!r}>'
         return r.format(self.__class__.__name__, self.name, self.command)
 
-    def description(self):
+    def description(self) -> str:
         '''Human friendly description of the command'''
         return ' '.join(self.command)
 
@@ -2169,7 +2170,7 @@ class ExternalProgram:
         # all executables whether in PATH or with an absolute path
         return [command]
 
-    def found(self):
+    def found(self) -> bool:
         return self.command[0] is not None
 
     def get_command(self):
