@@ -173,13 +173,13 @@ class TAPParser(object):
     _AFTER_TEST = 2
     _YAML = 3
 
-    _RE_BAILOUT = r'Bail out!\s*(.*)'
-    _RE_DIRECTIVE = r'(?:\s*\#\s*([Ss][Kk][Ii][Pp]\S*|[Tt][Oo][Dd][Oo])\b\s*(.*))?'
-    _RE_PLAN = r'1\.\.([0-9]+)' + _RE_DIRECTIVE
-    _RE_TEST = r'((?:not )?ok)\s*(?:([0-9]+)\s*)?([^#]*)' + _RE_DIRECTIVE
-    _RE_VERSION = r'TAP version ([0-9]+)'
-    _RE_YAML_START = r'(\s+)---.*'
-    _RE_YAML_END = r'\s+\.\.\.\s*'
+    _RE_BAILOUT = re.compile(r'Bail out!\s*(.*)')
+    _RE_DIRECTIVE = re.compile(r'(?:\s*\#\s*([Ss][Kk][Ii][Pp]\S*|[Tt][Oo][Dd][Oo])\b\s*(.*))?')
+    _RE_PLAN = re.compile(r'1\.\.([0-9]+)' + _RE_DIRECTIVE.pattern)
+    _RE_TEST = re.compile(r'((?:not )?ok)\s*(?:([0-9]+)\s*)?([^#]*)' + _RE_DIRECTIVE.pattern)
+    _RE_VERSION = re.compile(r'TAP version ([0-9]+)')
+    _RE_YAML_START = re.compile(r'(\s+)---.*')
+    _RE_YAML_END = re.compile(r'\s+\.\.\.\s*')
 
     def __init__(self, io):
         self.io = io
@@ -221,7 +221,7 @@ class TAPParser(object):
             # YAML blocks are only accepted after a test
             if state == self._AFTER_TEST:
                 if version >= 13:
-                    m = re.match(self._RE_YAML_START, line)
+                    m = self._RE_YAML_START.match(line)
                     if m:
                         state = self._YAML
                         yaml_lineno = lineno
@@ -230,7 +230,7 @@ class TAPParser(object):
                 state = self._MAIN
 
             elif state == self._YAML:
-                if re.match(self._RE_YAML_END, line):
+                if self._RE_YAML_END.match(line):
                     state = self._MAIN
                     continue
                 if line.startswith(yaml_indent):
@@ -242,7 +242,7 @@ class TAPParser(object):
             if line.startswith('#'):
                 continue
 
-            m = re.match(self._RE_TEST, line)
+            m = self._RE_TEST.match(line)
             if m:
                 if plan and plan.late and not found_late_test:
                     yield self.Error('unexpected test after late plan')
@@ -256,7 +256,7 @@ class TAPParser(object):
                 state = self._AFTER_TEST
                 continue
 
-            m = re.match(self._RE_PLAN, line)
+            m = self._RE_PLAN.match(line)
             if m:
                 if plan:
                     yield self.Error('more than one plan found')
@@ -275,13 +275,13 @@ class TAPParser(object):
                     yield plan
                 continue
 
-            m = re.match(self._RE_BAILOUT, line)
+            m = self._RE_BAILOUT.match(line)
             if m:
                 yield self.Bailout(m.group(1))
                 bailed_out = True
                 continue
 
-            m = re.match(self._RE_VERSION, line)
+            m = self._RE_VERSION.match(line)
             if m:
                 # The TAP version is only accepted as the first line
                 if lineno != 1:
