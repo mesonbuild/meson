@@ -3765,10 +3765,7 @@ different subdirectory.
                                            'is_default can be set to true only once' % self.build.test_setup_default_name)
             self.build.test_setup_default_name = setup_name
         env = self.unpack_env_kwarg(kwargs)
-        self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper=exe_wrapper,
-                                                             gdb=gdb,
-                                                             timeout_multiplier=timeout_multiplier,
-                                                             env=env)
+        self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, gdb, timeout_multiplier, env)
 
     def get_argdict_on_crossness(self, native_dict, cross_dict, kwargs):
         for_native = kwargs.get('native', not self.environment.is_cross_build())

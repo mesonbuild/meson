@@ -19,6 +19,7 @@ import itertools, pathlib
 import hashlib
 import pickle
 from functools import lru_cache
+import typing
 
 from . import environment
 from . import dependencies
@@ -2359,7 +2360,8 @@ class RunScript(dict):
         self['args'] = args
 
 class TestSetup:
-    def __init__(self, *, exe_wrapper=None, gdb=None, timeout_multiplier=None, env=None):
+    def __init__(self, exe_wrapper: typing.Optional[typing.List[str]], gdb: bool,
+                 timeout_multiplier: int, env: EnvironmentVariables):
         self.exe_wrapper = exe_wrapper
         self.gdb = gdb
         self.timeout_multiplier = timeout_multiplier
