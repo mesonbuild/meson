@@ -1219,7 +1219,7 @@ def detect_subprojects(spdir_name, current_dir='', result=None):
 def get_error_location_string(fname: str, lineno: str) -> str:
     return '{}:{}:'.format(fname, lineno)
 
-def substring_is_in_list(substr, strlist):
+def substring_is_in_list(substr: str, strlist: typing.List[str]) -> bool:
     for s in strlist:
         if substr in s:
             return True
