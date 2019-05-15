@@ -170,10 +170,22 @@ class CLikeCompiler:
             stdo = p.stdo
         return stdo
 
-    @staticmethod
-    def _split_fetch_real_dirs(pathstr, sep=':'):
-        paths = []
-        for p in pathstr.split(sep):
+    def _split_fetch_real_dirs(self, pathstr):
+        # We need to use the path separator used by the compiler for printing
+        # lists of paths ("gcc --print-search-dirs"). By default
+        # we assume it uses the platform native separator.
+        pathsep = os.pathsep
+
+        # clang uses ':' instead of ';' on Windows https://reviews.llvm.org/D61121
+        # so we need to repair things like 'C:\foo:C:\bar'
+        if pathsep == ';':
+            pathstr = re.sub(r':([^/\\])', r';\1', pathstr)
+
+        # pathlib treats empty paths as '.', so filter those out
+        paths = [p for p in pathstr.split(pathsep) if p]
+
+        result = []
+        for p in paths:
             # GCC returns paths like this:
             # /usr/lib/gcc/x86_64-linux-gnu/8/../../../../x86_64-linux-gnu/lib
             # It would make sense to normalize them to get rid of the .. parts
@@ -185,15 +197,15 @@ class CLikeCompiler:
             pobj = Path(p)
             unresolved = pobj.as_posix()
             if pobj.exists():
-                if unresolved not in paths:
-                    paths.append(unresolved)
+                if unresolved not in result:
+                    result.append(unresolved)
                 try:
                     resolved = Path(p).resolve().as_posix()
-                    if resolved not in paths:
-                        paths.append(resolved)
+                    if resolved not in result:
+                        result.append(resolved)
                 except FileNotFoundError:
                     pass
-        return tuple(paths)
+        return tuple(result)
 
     def get_compiler_dirs(self, env, name):
         '''
