@@ -39,6 +39,7 @@ from collections import namedtuple
 from itertools import chain
 from pathlib import PurePath
 import functools
+import typing
 
 import importlib
 
@@ -856,8 +857,10 @@ class RunTargetHolder(InterpreterObject, ObjectHolder):
         return r.format(self.__class__.__name__, h.get_id(), h.command)
 
 class Test(InterpreterObject):
-    def __init__(self, name, project, suite, exe, depends, is_parallel,
-                 cmd_args, env, should_fail, timeout, workdir, protocol):
+    def __init__(self, name: str, project: str, suite: typing.List[str], exe: build.Executable,
+                 depends: typing.List[typing.Union[build.CustomTarget, build.BuildTarget]],
+                 is_parallel: bool, cmd_args: typing.List[str], env: build.EnvironmentVariables,
+                 should_fail: bool, timeout: int, workdir: typing.Optional[str], protocol: str):
         InterpreterObject.__init__(self)
         self.name = name
         self.suite = suite
@@ -3254,7 +3257,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     def func_test(self, node, args, kwargs):
         self.add_test(node, args, kwargs, True)
 
-    def unpack_env_kwarg(self, kwargs):
+    def unpack_env_kwarg(self, kwargs) -> build.EnvironmentVariables:
         envlist = kwargs.get('env', EnvironmentVariablesHolder())
         if isinstance(envlist, EnvironmentVariablesHolder):
             env = envlist.held_object
@@ -3762,10 +3765,7 @@ different subdirectory.
                                            'is_default can be set to true only once' % self.build.test_setup_default_name)
             self.build.test_setup_default_name = setup_name
         env = self.unpack_env_kwarg(kwargs)
-        self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper=exe_wrapper,
-                                                             gdb=gdb,
-                                                             timeout_multiplier=timeout_multiplier,
-                                                             env=env)
+        self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, gdb, timeout_multiplier, env)
 
     def get_argdict_on_crossness(self, native_dict, cross_dict, kwargs):
         for_native = kwargs.get('native', not self.environment.is_cross_build())
