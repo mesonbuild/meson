@@ -1587,6 +1587,14 @@ class AllPlatformTests(BasePlatformTests):
                     self.assertEqual(value, expected[args][name])
             self.wipe()
 
+    def test_clike_get_library_dirs(self):
+        env = get_fake_env()
+        cc = env.detect_c_compiler(False)
+        for d in cc.get_library_dirs(env):
+            self.assertTrue(os.path.exists(d))
+            self.assertTrue(os.path.isdir(d))
+            self.assertTrue(os.path.isabs(d))
+
     def test_static_library_overwrite(self):
         '''
         Tests that static libraries are never appended to, always overwritten.
