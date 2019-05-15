@@ -359,7 +359,14 @@ class CoreData:
         self.cross_files = self.__load_config_files(options.cross_file, 'cross')
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
-        self.deps = OrderedDict()
+
+        build_cache = DependencyCache(self.builtins, False)
+        if self.cross_files:
+            host_cache = DependencyCache(self.builtins, True)
+        else:
+            host_cache = build_cache
+        self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]
+
         self.compiler_check_cache = OrderedDict()
         # Only to print a warning if it changes between Meson invocations.
         self.config_files = self.__load_config_files(options.native_file, 'native')

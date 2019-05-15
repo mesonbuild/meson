@@ -97,13 +97,11 @@ def run(options):
             print('Cached cross compilers:')
             dump_compilers(v)
         elif k == 'deps':
-            native = []
-            cross = []
-            for dep_key, dep in sorted(v.items()):
-                if dep_key[1]:
-                    cross.append((dep_key, dep))
-                else:
-                    native.append((dep_key, dep))
+            native = list(sorted(v.build.items()))
+            if v.host is not v.build:
+                cross = list(sorted(v.host.items()))
+            else:
+                cross = []
 
             def print_dep(dep_key, dep):
                 print('  ' + dep_key[0] + ": ")
@@ -115,12 +113,14 @@ def run(options):
 
             if native:
                 print('Cached native dependencies:')
-                for dep_key, dep in native:
-                    print_dep(dep_key, dep)
+                for dep_key, deps in native:
+                    for dep in deps:
+                        print_dep(dep_key, dep)
             if cross:
                 print('Cached dependencies:')
-                for dep_key, dep in cross:
-                    print_dep(dep_key, dep)
+                for dep_key, deps in cross:
+                    for dep in deps:
+                        print_dep(dep_key, dep)
         else:
             print(k + ':')
             print(textwrap.indent(pprint.pformat(v), '  '))
