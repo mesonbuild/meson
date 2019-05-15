@@ -535,7 +535,7 @@ class Environment:
         self.coredata.meson_command = mesonlib.meson_command
         self.first_invocation = True
 
-    def is_cross_build(self):
+    def is_cross_build(self) -> bool:
         return not self.machines.matches_build_machine(MachineChoice.HOST)
 
     def dump_coredata(self):

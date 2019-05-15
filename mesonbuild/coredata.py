@@ -27,6 +27,11 @@ import ast
 import argparse
 import configparser
 from typing import Optional, Any, TypeVar, Generic, Type, List, Union
+import typing
+import enum
+
+if typing.TYPE_CHECKING:
+    from . import dependencies
 
 version = '0.50.999'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
@@ -220,6 +225,112 @@ def load_configs(filenames: List[str]) -> configparser.ConfigParser:
     config.read(filenames)
     return config
 
+
+if typing.TYPE_CHECKING:
+    CacheKeyType = typing.Tuple[typing.Tuple[typing.Any, ...], ...]
+    SubCacheKeyType = typing.Tuple[typing.Any, ...]
+
+
+class DependencyCacheType(enum.Enum):
+
+    OTHER = 0
+    PKG_CONFIG = 1
+
+    @classmethod
+    def from_type(cls, dep: 'dependencies.Dependency') -> 'DependencyCacheType':
+        from . import dependencies
+        # As more types gain search overrides they'll need to be added here
+        if isinstance(dep, dependencies.PkgConfigDependency):
+            return cls.PKG_CONFIG
+        return cls.OTHER
+
+
+class DependencySubCache:
+
+    def __init__(self, type_: DependencyCacheType):
+        self.types = [type_]
+        self.__cache = {}  # type: typing.Dict[SubCacheKeyType, dependencies.Dependency]
+
+    def __getitem__(self, key: 'SubCacheKeyType') -> 'dependencies.Dependency':
+        return self.__cache[key]
+
+    def __setitem__(self, key: 'SubCacheKeyType', value: 'dependencies.Dependency') -> None:
+        self.__cache[key] = value
+
+    def __contains__(self, key: 'SubCacheKeyType') -> bool:
+        return key in self.__cache
+
+    def values(self) -> typing.Iterable['dependencies.Dependency']:
+        return self.__cache.values()
+
+
+class DependencyCache:
+
+    """Class that stores a cache of dependencies.
+
+    This class is meant to encapsulate the fact that we need multiple keys to
+    successfully lookup by providing a simple get/put interface.
+    """
+
+    def __init__(self, builtins: typing.Dict[str, UserOption[typing.Any]], cross: bool):
+        self.__cache = OrderedDict()  # type: typing.MutableMapping[CacheKeyType, DependencySubCache]
+        self.__builtins = builtins
+        self.__is_cross = cross
+
+    def __calculate_subkey(self, type_: DependencyCacheType) -> typing.Tuple[typing.Any, ...]:
+        if type_ is DependencyCacheType.PKG_CONFIG:
+            if self.__is_cross:
+                return tuple(self.__builtins['cross_pkg_config_path'].value)
+            return tuple(self.__builtins['pkg_config_path'].value)
+        assert type_ is DependencyCacheType.OTHER, 'Someone forgot to update subkey calculations for a new type'
+        return tuple()
+
+    def __iter__(self) -> typing.Iterator['CacheKeyType']:
+        return self.keys()
+
+    def put(self, key: 'CacheKeyType', dep: 'dependencies.Dependency') -> None:
+        t = DependencyCacheType.from_type(dep)
+        if key not in self.__cache:
+            self.__cache[key] = DependencySubCache(t)
+        subkey = self.__calculate_subkey(t)
+        self.__cache[key][subkey] = dep
+
+    def get(self, key: 'CacheKeyType') -> typing.Optional['dependencies.Dependency']:
+        """Get a value from the cache.
+
+        If there is no cache entry then None will be returned.
+        """
+        try:
+            val = self.__cache[key]
+        except KeyError:
+            return None
+
+        for t in val.types:
+            subkey = self.__calculate_subkey(t)
+            try:
+                return val[subkey]
+            except KeyError:
+                pass
+        return None
+
+    def values(self) -> typing.Iterator['dependencies.Dependency']:
+        for c in self.__cache.values():
+            yield from c.values()
+
+    def keys(self) -> typing.Iterator['CacheKeyType']:
+        return iter(self.__cache.keys())
+
+    def items(self) -> typing.Iterator[typing.Tuple['CacheKeyType', typing.List['dependencies.Dependency']]]:
+        for k, v in self.__cache.items():
+            vs = []
+            for t in v.types:
+                subkey = self.__calculate_subkey(t)
+                if subkey in v:
+                    vs.append(v[subkey])
+            yield k, vs
+
+    def clear(self) -> None:
+        self.__cache.clear()
 
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
