@@ -510,8 +510,11 @@ class CoreData:
 
         # Some options default to environment variables if they are
         # unset, set those now. These will either be overwritten
-        # below, or they won't.
-        options['pkg_config_path'] = os.environ.get('PKG_CONFIG_PATH', '').split(':')
+        # below, or they won't. These should only be set on the first run.
+        if env.first_invocation:
+            p_env = os.environ.get('PKG_CONFIG_PATH')
+            if p_env:
+                options['pkg_config_path'] = p_env.split(':')
 
         for k, v in env.cmd_line_options.items():
             if subproject:
