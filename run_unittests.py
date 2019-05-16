@@ -2743,9 +2743,14 @@ int main(int argc, char **argv) {
                 f.write(cross_content)
             name = os.path.basename(f.name)
 
-            with mock.patch('mesonbuild.coredata.os.path.expanduser', lambda x: x.replace('~', d)):
-                self.init(testdir, ['--cross-file=' + name], inprocess=True)
-                self.wipe()
+            # If XDG_DATA_HOME is set in the environment running the
+            # tests this test will fail, os mock the environment, pop
+            # it, then test
+            with mock.patch.dict(os.environ):
+                os.environ.pop('XDG_DATA_HOME', None)
+                with mock.patch('mesonbuild.coredata.os.path.expanduser', lambda x: x.replace('~', d)):
+                    self.init(testdir, ['--cross-file=' + name], inprocess=True)
+                    self.wipe()
 
     def test_compiler_run_command(self):
         '''
