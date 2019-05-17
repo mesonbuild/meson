@@ -7,7 +7,7 @@ This module provides tools related to the D programming language.
 To use this module, just do: **`dlang = import('dlang')`**.
 You can, of course, replace the name `dlang` with anything else.
 
-The module only exposes one fucntion, `generate_dub_file`, used to
+The module only exposes one function, `generate_dub_file`, used to
 automatically generate Dub configuration files.
 
 ### generate_dub_file()
