@@ -160,7 +160,16 @@ class I18nModule(ExtensionModule):
             updatepoargs.append(extra_args)
         updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs[0], updatepoargs[1:], [], state.subdir, state.subproject)
 
-        targets = [pottarget, gmotarget, updatepotarget]
+        updatempoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'update_mini_po', pkg_arg]
+        if lang_arg:
+            updatempoargs.append(lang_arg)
+        if datadirs:
+            updatempoargs.append(datadirs)
+        if extra_args:
+            updatempoargs.append(extra_args)
+        updatempotarget = build.RunTarget(packagename + '-update-mini-po', updatempoargs[0], updatempoargs[1:], [], state.subdir, state.subproject)
+
+        targets = [pottarget, gmotarget, updatepotarget, updatempotarget]
 
         install = kwargs.get('install', True)
         if install:

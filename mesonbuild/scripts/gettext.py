@@ -62,19 +62,36 @@ def run_potgen(src_sub, pkgname, datadirs, args):
 
 def gen_gmo(src_sub, bld_sub, langs):
     for l in langs:
-        subprocess.check_call(['msgfmt', os.path.join(src_sub, l + '.po'),
-                               '-o', os.path.join(bld_sub, l + '.gmo')])
+        gmofile = os.path.join(bld_sub, l + '.gmo')
+        pofile = os.path.join(src_sub, l + '.mini.po')
+        if not os.path.exists(pofile):
+            pofile = os.path.join(src_sub, l + '.po')
+            if not os.path.exists(pofile):
+                return 1
+        subprocess.check_call(['msgfmt', pofile, '-o', gmofile])
     return 0
 
 def update_po(src_sub, pkgname, langs):
     potfile = os.path.join(src_sub, pkgname + '.pot')
     for l in langs:
         pofile = os.path.join(src_sub, l + '.po')
-        if os.path.exists(pofile):
+        mpofile = os.path.join(src_sub, l + '.mini.po')
+        if os.path.exists(mpofile):
+            if os.path.exists(pofile):
+                subprocess.check_call(['msgmerge', '-q', '-o', pofile, mpofile, potfile])
+        elif os.path.exists(pofile):
             subprocess.check_call(['msgmerge', '-q', '-o', pofile, pofile, potfile])
         else:
             subprocess.check_call(['msginit', '--input', potfile, '--output-file', pofile, '--locale', l, '--no-translator'])
     return 0
+
+def update_mini_po(src_sub, pkgname, langs):
+    potfile = os.path.join(src_sub, pkgname + '.pot')
+    for l in langs:
+        pofile = os.path.join(src_sub, l + '.po')
+        mpofile = os.path.join(src_sub, l + '.mini.po')
+        if os.path.exists(pofile):
+            subprocess.check_call(['msgmerge', '--for-msgfmt', '--sort-output', pofile, potfile, '-o', mpofile])
 
 def do_install(src_sub, bld_sub, dest, pkgname, langs):
     for l in langs:
@@ -111,6 +128,10 @@ def run(args):
         if run_potgen(src_sub, options.pkgname, options.datadirs, extra_args) != 0:
             return 1
         return update_po(src_sub, options.pkgname, langs)
+    elif subcmd == 'update_mini_po':
+        if run_potgen(src_sub, options.pkgname, options.datadirs, extra_args) != 0:
+            return 1
+        return update_mini_po(src_sub, options.pkgname, langs)
     elif subcmd == 'install':
         destdir = os.environ.get('DESTDIR', '')
         dest = destdir_join(destdir, os.path.join(os.environ['MESON_INSTALL_PREFIX'],
