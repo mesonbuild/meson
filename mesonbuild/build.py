@@ -1280,6 +1280,7 @@ class Generator:
         self.exe = exe
         self.depfile = None
         self.capture = False
+        self.depends = []
         self.process_kwargs(kwargs)
 
     def __repr__(self):
@@ -1328,6 +1329,12 @@ class Generator:
             if not isinstance(capture, bool):
                 raise InvalidArguments('Capture must be boolean.')
             self.capture = capture
+        if 'depends' in kwargs:
+            depends = listify(kwargs['depends'], unholder=True)
+            for d in depends:
+                if not isinstance(d, BuildTarget):
+                    raise InvalidArguments('Depends entries must be build targets.')
+                self.depends.append(d)
 
     def get_base_outnames(self, inname):
         plainname = os.path.basename(inname)

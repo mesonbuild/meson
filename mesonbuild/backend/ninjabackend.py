@@ -1803,6 +1803,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 cmd = cmdlist
 
             elem = NinjaBuildElement(self.all_outputs, outfiles, rulename, infilename)
+            elem.add_dep([self.get_target_filename(x) for x in generator.depends])
             if generator.depfile is not None:
                 elem.add_item('DEPFILE', depfile)
             if len(extra_dependencies) > 0:
