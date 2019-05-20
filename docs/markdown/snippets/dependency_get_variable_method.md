@@ -11,7 +11,7 @@ dependency you have.
 ```meson
 dep = dependency('could_be_cmake_or_pkgconfig')
 # cmake returns 'YES', pkg-config returns 'ON'
-if ['YES', 'ON'].contains(dep.get_variable(pkg-config : 'var-name', cmake : 'COP_VAR_NAME', default : 'NO'))
+if ['YES', 'ON'].contains(dep.get_variable(pkg-config : 'var-name', cmake : 'COP_VAR_NAME', default_value : 'NO'))
   error('Cannot build your project when dep is built with var-name support')
 endif
 ```
