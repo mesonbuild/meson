@@ -299,7 +299,7 @@ def get_test_list(testdata):
             fname = t.fname
         to['cmd'] = fname + t.cmd_args
         if isinstance(t.env, build.EnvironmentVariables):
-            to['env'] = t.env.get_env(os.environ)
+            to['env'] = t.env.get_env({})
         else:
             to['env'] = t.env
         to['name'] = t.name
