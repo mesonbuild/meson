@@ -282,7 +282,7 @@ def list_deps_from_source(intr: IntrospectionInterpreter):
 
 def list_deps(coredata: cdata.CoreData):
     result = []
-    for d in coredata.deps.values():
+    for d in coredata.deps.host.values():
         if d.found():
             result += [{'name': d.name,
                         'compile_args': d.get_compile_args(),

@@ -2859,14 +2859,13 @@ external dependencies (including libraries) must go to "dependencies".''')
         # FIXME: Not all dependencies support such a distinction right now,
         # and we repeat this check inside dependencies that do. We need to
         # consolidate this somehow.
-        is_cross = self.environment.is_cross_build()
-        if 'native' in kwargs and is_cross:
-            want_cross = not kwargs['native']
+        if self.environment.is_cross_build() and kwargs.get('native', False):
+            for_machine = MachineChoice.BUILD
         else:
-            want_cross = is_cross
+            for_machine = MachineChoice.HOST
 
-        identifier = dependencies.get_dep_identifier(name, kwargs, want_cross)
-        cached_dep = self.coredata.deps.get(identifier)
+        identifier = dependencies.get_dep_identifier(name, kwargs)
+        cached_dep = self.coredata.deps[for_machine].get(identifier)
         if cached_dep:
             if not cached_dep.found():
                 mlog.log('Dependency', mlog.bold(name),
@@ -3018,7 +3017,11 @@ external dependencies (including libraries) must go to "dependencies".''')
             # cannot cache them. They must always be evaluated else
             # we won't actually read all the build files.
             if dep.found():
-                self.coredata.deps[identifier] = dep
+                if self.environment.is_cross_build() and kwargs.get('native', False):
+                    for_machine = MachineChoice.BUILD
+                else:
+                    for_machine = MachineChoice.HOST
+                self.coredata.deps[for_machine].put(identifier, dep)
                 return DependencyHolder(dep, self.subproject)
 
         if has_fallback:

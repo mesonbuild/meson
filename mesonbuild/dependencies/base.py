@@ -2358,8 +2358,8 @@ class ExtraFrameworkDependency(ExternalDependency):
         return 'framework'
 
 
-def get_dep_identifier(name, kwargs, want_cross: bool) -> Tuple:
-    identifier = (name, want_cross)
+def get_dep_identifier(name, kwargs) -> Tuple:
+    identifier = (name, )
     for key, value in kwargs.items():
         # 'version' is irrelevant for caching; the caller must check version matches
         # 'native' is handled above with `want_cross`
