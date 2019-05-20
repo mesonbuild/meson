@@ -476,7 +476,7 @@ class InternalDependencyHolder(InterpreterObject, ObjectHolder):
 
     @FeatureNew('dep.get_variable', '0.51.0')
     @noPosargs
-    @permittedKwargs({'cmake', 'pkgconfig', 'configtool', 'default', 'pkgconfig_define'})
+    @permittedKwargs({'cmake', 'pkgconfig', 'configtool', 'default_variable', 'pkgconfig_define'})
     def variable_method(self, args, kwargs):
         return self.held_object.get_variable(**kwargs)
 

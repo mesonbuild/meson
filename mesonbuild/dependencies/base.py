@@ -194,10 +194,10 @@ class Dependency:
         self.ext_deps.append(dep_type(env, kwargs))
 
     def get_variable(self, *, cmake: typing.Optional[str] = None, pkgconfig: typing.Optional[str] = None,
-                     configtool: typing.Optional[str] = None, default: typing.Optional[str] = None,
+                     configtool: typing.Optional[str] = None, default_value: typing.Optional[str] = None,
                      pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
-        if default is not None:
-            return default
+        if default_value is not None:
+            return default_value
         raise DependencyException('No default provided for dependency {!r}, which is not pkg-config, cmake, or config-tool based.'.format(self))
 
 
@@ -526,7 +526,7 @@ class ConfigToolDependency(ExternalDependency):
         return self.type_name
 
     def get_variable(self, *, cmake: typing.Optional[str] = None, pkgconfig: typing.Optional[str] = None,
-                     configtool: typing.Optional[str] = None, default: typing.Optional[str] = None,
+                     configtool: typing.Optional[str] = None, default_value: typing.Optional[str] = None,
                      pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
         if configtool:
             # In the not required case '' (empty string) will be returned if the
@@ -541,8 +541,8 @@ class ConfigToolDependency(ExternalDependency):
                 pass
             finally:
                 self.required = restore
-        if default is not None:
-            return default
+        if default_value is not None:
+            return default_value
         raise DependencyException('Could not get config-tool variable and no default provided for {!r}'.format(self))
 
 
@@ -956,20 +956,20 @@ class PkgConfigDependency(ExternalDependency):
         return self.type_name
 
     def get_variable(self, *, cmake: typing.Optional[str] = None, pkgconfig: typing.Optional[str] = None,
-                     configtool: typing.Optional[str] = None, default: typing.Optional[str] = None,
+                     configtool: typing.Optional[str] = None, default_value: typing.Optional[str] = None,
                      pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
         if pkgconfig:
             kwargs = {}
-            if default is not None:
-                kwargs['default'] = default
+            if default_value is not None:
+                kwargs['default'] = default_value
             if pkgconfig_define is not None:
                 kwargs['define_variable'] = pkgconfig_define
             try:
                 return self.get_pkgconfig_variable(pkgconfig, kwargs)
             except DependencyException:
                 pass
-        if default is not None:
-            return default
+        if default_value is not None:
+            return default_value
         raise DependencyException('Could not get pkg-config variable and no default provided for {!r}'.format(self))
 
 class CMakeTraceLine:
@@ -1829,21 +1829,20 @@ set(CMAKE_SIZEOF_VOID_P "{}")
         return ''
 
     def get_variable(self, *, cmake: typing.Optional[str] = None, pkgconfig: typing.Optional[str] = None,
-                     configtool: typing.Optional[str] = None, default: typing.Optional[str] = None,
+                     configtool: typing.Optional[str] = None, default_value: typing.Optional[str] = None,
                      pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
         if cmake:
             try:
                 v = self.vars[cmake]
             except KeyError:
-                if default is not None:
-                    return default
+                pass
             else:
                 if len(v) == 1:
                     return v[0]
                 elif v:
                     return v
-        elif default is not None:
-            return default
+        if default_value is not None:
+            return default_value
         raise DependencyException('Could not get cmake variable and no default provided for {!r}'.format(self))
 
 class DubDependency(ExternalDependency):
