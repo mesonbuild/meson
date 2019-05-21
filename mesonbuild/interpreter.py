@@ -384,6 +384,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
                              'name': self.name_method,
                              'get_pkgconfig_variable': self.pkgconfig_method,
                              'get_configtool_variable': self.configtool_method,
+                             'get_variable': self.variable_method,
                              'partial_dependency': self.partial_dependency_method,
                              })
 
@@ -440,13 +441,21 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
         pdep = self.held_object.get_partial_dependency(**kwargs)
         return DependencyHolder(pdep, self.subproject)
 
+    @FeatureNew('dep.get_variable', '0.51.0')
+    @noPosargs
+    @permittedKwargs({'cmake', 'pkgconfig', 'configtool', 'default', 'pkgconfig_define'})
+    def variable_method(self, args, kwargs):
+        return self.held_object.get_variable(**kwargs)
+
+
 class InternalDependencyHolder(InterpreterObject, ObjectHolder):
     def __init__(self, dep, pv):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, dep, pv)
         self.methods.update({'found': self.found_method,
-                             'version': self.version_method,
+                             'get_variable': self.variable_method,
                              'partial_dependency': self.partial_dependency_method,
+                             'version': self.version_method,
                              })
 
     @noPosargs
@@ -465,6 +474,13 @@ class InternalDependencyHolder(InterpreterObject, ObjectHolder):
     def partial_dependency_method(self, args, kwargs):
         pdep = self.held_object.get_partial_dependency(**kwargs)
         return DependencyHolder(pdep, self.subproject)
+
+    @FeatureNew('dep.get_variable', '0.51.0')
+    @noPosargs
+    @permittedKwargs({'cmake', 'pkgconfig', 'configtool', 'default_variable', 'pkgconfig_define'})
+    def variable_method(self, args, kwargs):
+        return self.held_object.get_variable(**kwargs)
+
 
 class ExternalProgramHolder(InterpreterObject, ObjectHolder):
     def __init__(self, ep):
