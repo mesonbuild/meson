@@ -1415,7 +1415,7 @@ GType
         c_file_kwargs['vtail'] = '''    { 0, NULL, NULL }
   };
   if (g_once_init_enter (&gtype_id)) {
-    GType new_type = g_@type@_register_static ("@EnumName@", values);
+    GType new_type = g_@type@_register_static (g_intern_static_string ("@EnumName@"), values);
     g_once_init_leave (&gtype_id, new_type);
   }
   return (GType) gtype_id;
