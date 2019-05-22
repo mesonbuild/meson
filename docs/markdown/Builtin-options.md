@@ -70,6 +70,7 @@ They have no effect when the host and build machines are the same.
 | layout {mirror,flat}                 | mirror        | Build directory layout                                         | no                 |
 | optimization {0, g, 1, 2, 3, s}      | 0             | Optimization level                                             | no                 |
 | pkg_config_path                      | []            | Additional paths for pkg-config to search before builtin paths | yes                |
+| cmake_prefix_path                    | []            | Additional prefixes for cmake to search before builtin paths   | yes                |
 | stdsplit                             | true          | Split stdout and stderr in test logs                           | no                 |
 | strip                                | false         | Strip targets on install                                       | no                 |
 | unity {on, off, subprojects}         | off           | Unity build                                                    | no                 |

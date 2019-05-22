@@ -1129,11 +1129,19 @@ class CMakeDependency(ExternalDependency):
         modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
         modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
         cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))
-        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
+        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
         if cm_path:
-            cm_args += ['-DCMAKE_MODULE_PATH={}'.format(';'.join(cm_path))]
-        if not self._preliminary_find_check(name, cm_path, environment.machines[for_machine]):
+            cm_args.append('-DCMAKE_MODULE_PATH=' + ';'.join(cm_path))
+
+        if environment.is_cross_build() and self.want_cross:
+            pref_path = self.env.coredata.builtins['cross_cmake_prefix_path'].value
+        else:
+            pref_path = self.env.coredata.builtins['cmake_prefix_path'].value
+        if pref_path:
+            cm_args.append('-DCMAKE_PREFIX_PATH={}'.format(';'.join(pref_path)))
+
+        if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[for_machine]):
             return
         self._detect_dep(name, modules, cm_args)
 
@@ -1229,7 +1237,7 @@ class CMakeDependency(ExternalDependency):
         except OSError:
             return False
 
-    def _preliminary_find_check(self, name: str, module_path: List[str], machine: MachineInfo) -> bool:
+    def _preliminary_find_check(self, name: str, module_path: List[str], prefix_path: List[str], machine: MachineInfo) -> bool:
         lname = str(name).lower()
 
         # Checks <path>, <path>/cmake, <path>/CMake
@@ -1272,6 +1280,12 @@ class CMakeDependency(ExternalDependency):
         for i in module_path + [os.path.join(self.cmakeinfo['cmake_root'], 'Modules')]:
             if find_module(i):
                 return True
+
+        # Check the user provided prefix paths
+        for i in prefix_path:
+            if search_lib_dirs(i):
+                return True
+
 
         # Check the system paths
         for i in self.cmakeinfo['module_paths']:
