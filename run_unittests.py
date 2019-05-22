@@ -163,6 +163,20 @@ def skipIfNoPkgconfigDep(depname):
         return wrapped
     return wrapper
 
+def skip_if_no_cmake(f):
+    '''
+    Skip this test if no cmake is found, unless we're on CI.
+    This allows users to run our test suite without having
+    cmake installed on, f.ex., macOS, while ensuring that our CI does not
+    silently skip the test because of misconfiguration.
+    '''
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        if not is_ci() and shutil.which('cmake') is None:
+            raise unittest.SkipTest('cmake not found')
+        return f(*args, **kwargs)
+    return wrapped
+
 def skip_if_not_language(lang):
     def wrapper(func):
         @functools.wraps(func)
@@ -3661,6 +3675,11 @@ recommended as it is not supported on some platforms''')
         self.init(testdir)
         # just test that the command does not fail (e.g. because it throws an exception)
         self._run([*self.meson_command, 'unstable-coredata', self.builddir])
+
+    @skip_if_no_cmake
+    def test_cmake_prefix_path(self):
+        testdir = os.path.join(self.unit_test_dir, '60 cmake_prefix_path')
+        self.init(testdir, extra_args=['-Dcmake_prefix_path=' + os.path.join(testdir, 'prefix')])
 
 class FailureTests(BasePlatformTests):
     '''

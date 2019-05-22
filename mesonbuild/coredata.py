@@ -235,6 +235,7 @@ class DependencyCacheType(enum.Enum):
 
     OTHER = 0
     PKG_CONFIG = 1
+    CMAKE = 2
 
     @classmethod
     def from_type(cls, dep: 'dependencies.Dependency') -> 'DependencyCacheType':
@@ -242,6 +243,8 @@ class DependencyCacheType(enum.Enum):
         # As more types gain search overrides they'll need to be added here
         if isinstance(dep, dependencies.PkgConfigDependency):
             return cls.PKG_CONFIG
+        if isinstance(dep, dependencies.CMakeDependency):
+            return cls.CMAKE
         return cls.OTHER
 
 
@@ -282,6 +285,10 @@ class DependencyCache:
             if self.__is_cross:
                 return tuple(self.__builtins['cross_pkg_config_path'].value)
             return tuple(self.__builtins['pkg_config_path'].value)
+        elif type_ is DependencyCacheType.CMAKE:
+            if self.__is_cross:
+                return tuple(self.__builtins['cross_cmake_prefix_path'].value)
+            return tuple(self.__builtins['cmake_prefix_path'].value)
         assert type_ is DependencyCacheType.OTHER, 'Someone forgot to update subkey calculations for a new type'
         return tuple()
 
@@ -923,6 +930,7 @@ builtin_options = OrderedDict([
     ('install_umask',   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022')),
     ('layout',          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'])),
     ('pkg_config_path', BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [], separate_cross=True)),
+    ('cmake_prefix_path', BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [], separate_cross=True)),
     ('optimization',    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['0', 'g', '1', '2', '3', 's'])),
     ('stdsplit',        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True)),
     ('strip',           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
