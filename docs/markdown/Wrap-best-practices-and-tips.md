@@ -47,19 +47,12 @@ also faster during development due to Meson's relinking
 optimization. However building both library types on all builds is
 slow and wasteful.
 
-Your project should provide a toggle specifying which type of library
-it should build. As an example if you have a Meson option called
-`shared_lib` then you could do this:
+Your project should use the `library` method that can be toggled
+between shared and static with the `defaul_library` builtin option.
+
 
 ```meson
-if get_option('shared_lib')
-  libtype = 'shared_library'
-else
-  libtype = 'static_library'
-endif
-
-mylib = build_target('foo', 'foo.c',
-  target_type : libtype)
+mylib = library('foo', 'foo.c')
 ```
 
 ## Declare generated headers explicitly
