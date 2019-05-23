@@ -2120,6 +2120,7 @@ class Interpreter(InterpreterBase):
                            'gettext': self.func_gettext,
                            'get_option': self.func_get_option,
                            'get_variable': self.func_get_variable,
+                           'feature': self.func_feature,
                            'files': self.func_files,
                            'find_library': self.func_find_library,
                            'find_program': self.func_find_program,
@@ -4177,3 +4178,25 @@ This will become a hard error in the future.''', location=self.current_node)
             raise InvalidCode('Is_variable takes two arguments.')
         varname = args[0]
         return varname in self.variables
+
+    @FeatureNew('feature()', '0.51.0')
+    @permittedKwargs({'name'})
+    def func_feature(self, node, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('feature takes exactly one optional positional argument')
+
+        value = args[0]
+        name = 'internal'
+
+        if isinstance(value, bool):
+            value = 'enabled' if value else 'disabled'
+        elif isinstance(value, FeatureOptionHolder):
+            name = value.held_object.name
+            value = value.held_object.value
+
+        if value not in {'enabled', 'disabled', 'auto'}:
+            raise InterpreterException('Argument to feature must be one of: \'enabled\', \'disabled\', \'auto\', a boolean, or a feature object')
+
+        name = kwargs.get('name', name)
+        feature = coredata.UserFeatureOption(name, 'internal feature object', value)
+        return FeatureOptionHolder(self.environment, feature)
