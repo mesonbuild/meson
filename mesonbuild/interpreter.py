@@ -2046,6 +2046,7 @@ class Interpreter(InterpreterBase):
         # be different for dependencies provided by wrap files.
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
         self.subproject_dir = subproject_dir
+        self.subproject_dir_nested = ''
         self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         if not mock:
             self.load_root_meson_file()
@@ -2447,7 +2448,13 @@ external dependencies (including libraries) must go to "dependencies".''')
                                            self.subproject_dir, dirname))
             return subproject
 
-        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
+        if self.subproject and len(self.subproject) > 0:
+            self.subproject_dir_nested = os.path.join(self.subdir, self.subproject_dir)
+
+        if len(self.subproject_dir_nested) > 0:
+            subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir_nested)
+        else:
+            subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
         r = wrap.Resolver(subproject_dir_abs, self.coredata.get_builtin_option('wrap_mode'))
         try:
             resolved = r.resolve(dirname)
@@ -2465,7 +2472,10 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return self.disabled_subproject(dirname)
             raise e
 
-        subdir = os.path.join(self.subproject_dir, resolved)
+        if len(self.subproject_dir_nested) > 0:
+            subdir = os.path.join(self.subproject_dir_nested, resolved)
+        else:
+            subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
         mlog.log()
