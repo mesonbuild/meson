@@ -32,7 +32,7 @@ from .. import compilers
 from ..compilers import Compiler, CompilerArgs, CCompiler, VisualStudioLikeCompiler, FortranCompiler
 from ..linkers import ArLinker
 from ..mesonlib import (
-    File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine
+    File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine, ProgressBar
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
@@ -294,7 +294,7 @@ int dummy;
             self.build_elements = []
             self.generate_phony()
             self.add_build_comment(NinjaComment('Build rules for targets'))
-            for t in self.build.get_targets().values():
+            for t in ProgressBar(self.build.get_targets().values(), desc='Generating targets'):
                 self.generate_target(t)
             self.add_build_comment(NinjaComment('Test rules'))
             self.generate_tests()
@@ -903,7 +903,7 @@ int dummy;
             r.write(outfile)
 
     def write_builds(self, outfile):
-        for b in self.build_elements:
+        for b in ProgressBar(self.build_elements, desc='Writing build.ninja'):
             b.write(outfile)
 
     def generate_phony(self):

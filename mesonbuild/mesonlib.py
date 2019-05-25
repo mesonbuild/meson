@@ -1306,3 +1306,58 @@ class LibType(Enum):
     STATIC = 1
     PREFER_SHARED = 2
     PREFER_STATIC = 3
+
+
+class ProgressBarFallback:
+    '''Fallback progress bar implementation when tqdm is not found'''
+    def __init__(self, iterable=None, total=None, bar_type=None, desc=None):
+        if iterable is not None:
+            self.iterable = iter(iterable)
+            return
+        self.total = total
+        self.done = 0
+        self.printed_dots = 0
+        if self.total and bar_type == 'download':
+            print('Download size:', self.total)
+        if desc:
+            print('{}: '.format(desc), end='')
+
+    # Pretend to be an iterator when called as one and don't print any
+    # progress
+    def __iter__(self):
+        return self.iterable
+
+    def __next__(self):
+        return next(self.iterable)
+
+    def print_dot(self):
+        print('.', end='')
+        sys.stdout.flush()
+        self.printed_dots += 1
+
+    def update(self, progress):
+        self.done += progress
+        if not self.total:
+            # Just print one dot per call if we don't have a total length
+            self.print_dot()
+            return
+        ratio = int(self.done / self.total * 10)
+        while self.printed_dots < ratio:
+            self.print_dot()
+
+    def close(self):
+        print('')
+
+try:
+    from tqdm import tqdm
+
+    class ProgressBar(tqdm):
+        def __init__(self, *args, bar_type=None, **kwargs):
+            if bar_type == 'download':
+                kwargs.update({'unit': 'bytes', 'leave': True})
+            else:
+                kwargs.update({'leave': False})
+            kwargs['ncols'] = 100
+            super().__init__(*args, **kwargs)
+except ImportError:
+    ProgressBar = ProgressBarFallback
