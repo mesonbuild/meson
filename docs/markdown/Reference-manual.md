@@ -2288,9 +2288,13 @@ opaque object representing it.
 - `found()` *(added 0.48.0)* which returns whether the subproject was
   successfully setup
 
-- `get_variable(name)` fetches the specified variable from inside the
+- `get_variable(name, fallback)` fetches the specified variable from inside the
   subproject. This is useful to, for instance, get a [declared
   dependency](#declare_dependency) from the [subproject](Subprojects.md).
+
+  If the variable does not exist, the variable `fallback` is returned.
+  If a fallback is not specified, then attempting to read a non-existing
+  variable will cause a fatal error.
 
 ### `run result` object
 

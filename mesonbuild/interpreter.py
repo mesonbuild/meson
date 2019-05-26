@@ -917,18 +917,25 @@ class SubprojectHolder(InterpreterObject, ObjectHolder):
         return self.held_object is not None
 
     @permittedKwargs({})
+    @noArgsFlattening
     def get_variable_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Get_variable takes one argument.')
+        if len(args) < 1 or len(args) > 2:
+            raise InterpreterException('Get_variable takes one or two arguments.')
         if not self.found():
             raise InterpreterException('Subproject "%s/%s" disabled can\'t get_variable on it.' % (
                 self.subproject_dir, self.name))
         varname = args[0]
         if not isinstance(varname, str):
-            raise InterpreterException('Get_variable takes a string argument.')
-        if varname not in self.held_object.variables:
-            raise InvalidArguments('Requested variable "{0}" not found.'.format(varname))
-        return self.held_object.variables[varname]
+            raise InterpreterException('Get_variable first argument must be a string.')
+        try:
+            return self.held_object.variables[varname]
+        except KeyError:
+            pass
+
+        if len(args) == 2:
+            return args[1]
+
+        raise InvalidArguments('Requested variable "{0}" not found.'.format(varname))
 
 header_permitted_kwargs = set([
     'required',
