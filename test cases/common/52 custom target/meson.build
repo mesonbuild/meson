@@ -19,4 +19,14 @@ install : true,
 install_dir : 'subdir'
 )
 
+has_not_changed = false
+if is_disabler(mytarget)
+    has_not_changed = true
+else
+    has_not_changed = true
+endif
+assert(has_not_changed, 'Custom target has changed.')
+
+assert(not is_disabler(mytarget), 'Custom target is a disabler.')
+
 subdir('depfile')

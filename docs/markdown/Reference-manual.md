@@ -1061,6 +1061,14 @@ share/
   file1
 ```
 
+### is_disabler()
+
+``` meson
+    bool is_disabler(var)
+```
+
+Returns true if a variable is a disabler and false otherwise. Added in 0.52.0.
+
 ### is_variable()
 
 ``` meson
