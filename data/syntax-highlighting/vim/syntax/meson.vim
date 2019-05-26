@@ -98,6 +98,7 @@ syn keyword mesonBuiltin
   \ install_headers
   \ install_man
   \ install_subdir
+  \ is_disabler
   \ is_variable
   \ jar
   \ join_paths

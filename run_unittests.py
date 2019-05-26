@@ -105,6 +105,15 @@ def is_ci():
         return True
     return False
 
+def is_pull():
+    # Travis
+    if os.environ.get('TRAVIS_PULL_REQUEST', 'false') != 'false':
+        return True
+    # Azure
+    if 'SYSTEM_PULLREQUEST_ISFORK' in os.environ:
+        return True
+    return False
+
 def _git_init(project_dir):
     subprocess.check_call(['git', 'init'], cwd=project_dir, stdout=subprocess.DEVNULL)
     subprocess.check_call(['git', 'config',
@@ -1144,6 +1153,7 @@ class DataTests(unittest.TestCase):
             defined = set([a.strip() for a in res.group().split('\\')][1:])
             self.assertEqual(defined, set(chain(interp.funcs.keys(), interp.builtin.keys())))
 
+    @unittest.skipIf(is_pull(), 'Skipping because this is a pull request')
     def test_json_grammar_syntax_highlighting(self):
         '''
         Ensure that syntax highlighting JSON grammar written by TingPing was

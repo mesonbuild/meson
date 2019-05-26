@@ -767,7 +767,7 @@ The result of this is undefined and will become a hard error in a future Meson r
     def function_call(self, node):
         func_name = node.func_name
         (posargs, kwargs) = self.reduce_arguments(node.args)
-        if is_disabled(posargs, kwargs):
+        if is_disabled(posargs, kwargs) and func_name != 'set_variable' and func_name != 'is_disabler':
             return Disabler()
         if func_name in self.funcs:
             func = self.funcs[func_name]

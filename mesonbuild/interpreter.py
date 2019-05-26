@@ -2147,6 +2147,7 @@ class Interpreter(InterpreterBase):
                            'install_headers': self.func_install_headers,
                            'install_man': self.func_install_man,
                            'install_subdir': self.func_install_subdir,
+                           'is_disabler': self.func_is_disabler,
                            'is_variable': self.func_is_variable,
                            'jar': self.func_jar,
                            'join_paths': self.func_join_paths,
@@ -4278,3 +4279,11 @@ This will become a hard error in the future.''', location=self.current_node)
         if not isinstance(native, bool):
             raise InvalidArguments('Argument to "native" must be a boolean.')
         return MachineChoice.BUILD if native else MachineChoice.HOST
+
+    @FeatureNew('is_disabler', '0.52.0')
+    @noKwargs
+    def func_is_disabler(self, node, args, kwargs):
+        if len(args) != 1:
+            raise InvalidCode('Is_disabler takes one argument.')
+        varname = args[0]
+        return isinstance(varname, Disabler)

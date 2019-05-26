@@ -22,3 +22,13 @@ endif
 exe = executable('trivialprog', sources : sources)
 
 test('runtest', exe) # This is a comment
+
+has_not_changed = false
+if is_disabler(exe)
+    has_not_changed = true
+else
+    has_not_changed = true
+endif
+assert(has_not_changed, 'Executable has changed.')
+
+assert(not is_disabler(exe), 'Executable is a disabler.')

@@ -24,10 +24,32 @@ gen = custom_target(
   command : [prog_python, '@INPUT@', '--header', '@OUTPUT1@', '--code', '@OUTPUT0@'],
 )
 
+has_not_changed = false
+if is_disabler(gen)
+    has_not_changed = true
+else
+    has_not_changed = true
+endif
+
+assert(has_not_changed, 'Custom target has changed.')
+
+assert(not is_disabler(gen), 'Custom target is a disabler.')
+
 lib = static_library(
   'libfoo',
   ['lib.c', gen[1]],
 )
+
+has_not_changed = false
+if is_disabler(lib)
+    has_not_changed = true
+else
+    has_not_changed = true
+endif
+
+assert(has_not_changed, 'Static library has changed.')
+
+assert(not is_disabler(lib), 'Static library is a disabler.')
 
 custom_target(
   'foo',
