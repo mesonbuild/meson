@@ -301,7 +301,7 @@ def parse_test_args(testdir):
         pass
     return args
 
-# Build directory name must be the same so CCache works over
+# Build directory name must be the same so Ccache works over
 # consecutive invocations.
 def create_deterministic_builddir(src_dir):
     import hashlib
