@@ -223,6 +223,7 @@ Added the function `is_disabler(var)`. Returns true if a variable is a disabler
 and false otherwise.
 
 
+<<<<<<< HEAD
 ## gtkdoc-check support
 
 `gnome.gtkdoc()` now has a `check` keyword argument. If `true` runs it will run
@@ -246,3 +247,6 @@ determine which kinds of archives to create:
 meson dist --formats=xztar,zip
 ```
 
+## Added `found()` method to custom target and build target
+
+This is useful for checking if a custom target or build target is a disabler.

@@ -1,6 +1,7 @@
 project('data install test', 'c',
   default_options : ['install_umask=preserve'])
 install_data(sources : 'datafile.dat', install_dir : 'share/progname')
+install_data(sources : disabler(), install_dir : 'share/progname')
 # Some file in /etc that is only read-write by root; add a sticky bit for testing
 install_data(sources : 'etcfile.dat', install_dir : '/etc', install_mode : 'rw------T')
 # Some script that needs to be executable by the group
@@ -12,6 +13,8 @@ install_data(files('fileobject_datafile.dat'),
   install_mode : [false, false, 0])
 
 install_data(files('somefile.txt'))
+install_data(files(disabler()))
+install_data(disabler())
 
 subdir('vanishing')
 

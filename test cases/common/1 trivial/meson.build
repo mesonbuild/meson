@@ -32,3 +32,11 @@ endif
 assert(has_not_changed, 'Executable has changed.')
 
 assert(not is_disabler(exe), 'Executable is a disabler.')
+
+if exe.found()
+  exe_found = true
+else
+  exe_found = false
+endif
+
+assert(exe_found, 'Executable was not found.')

@@ -12,3 +12,11 @@ endif
 assert(has_not_changed, 'Static library has changed.')
 
 assert(not is_disabler(lib), 'Static library is a disabler.')
+
+if lib.found()
+  lib_found = true
+else
+  lib_found = false
+endif
+
+assert(lib_found, 'Static library was not found.')

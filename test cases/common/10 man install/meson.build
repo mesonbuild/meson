@@ -11,3 +11,4 @@ b1 = configure_file(input : 'baz.1.in',
   configuration : cdata)
 
 install_man(b1)
+install_man(disabler())

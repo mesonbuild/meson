@@ -29,6 +29,14 @@ assert(has_not_changed, 'Custom target has changed.')
 
 assert(not is_disabler(mytarget), 'Custom target is a disabler.')
 
+if mytarget.found()
+  mytarget_found = true
+else
+  mytarget_found = false
+endif
+
+assert(mytarget_found, 'Custom target was not found.')
+
 mytarget_disabler = custom_target('bindat',
 output : 'data.dat',
 input : 'data_source.txt',

@@ -753,7 +753,8 @@ class TargetHolder(InterpreterObject, ObjectHolder):
 class BuildTargetHolder(TargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
-        self.methods.update({'extract_objects': self.extract_objects_method,
+        self.methods.update({'found': self.found_method,
+                             'extract_objects': self.extract_objects_method,
                              'extract_all_objects': self.extract_all_objects_method,
                              'get_id': self.get_id_method,
                              'outdir': self.outdir_method,
@@ -768,6 +769,12 @@ class BuildTargetHolder(TargetHolder):
 
     def is_cross(self):
         return not self.held_object.environment.machines.matches_build_machine(self.held_object.for_machine)
+
+    @FeatureNew('found', '0.52.0')
+    @noPosargs
+    @permittedKwargs({})
+    def found_method(self, args, kwargs):
+        return True
 
     @noPosargs
     @permittedKwargs({})
@@ -866,13 +873,20 @@ class CustomTargetIndexHolder(InterpreterObject, ObjectHolder):
 class CustomTargetHolder(TargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
-        self.methods.update({'full_path': self.full_path_method,
+        self.methods.update({'found': self.found_method,
+                             'full_path': self.full_path_method,
                              })
 
     def __repr__(self):
         r = '<{} {}: {}>'
         h = self.held_object
         return r.format(self.__class__.__name__, h.get_id(), h.command)
+
+    @FeatureNew('found', '0.52.0')
+    @noPosargs
+    @permittedKwargs({})
+    def found_method(self, args, kwargs):
+        return True
 
     @noPosargs
     @permittedKwargs({})
