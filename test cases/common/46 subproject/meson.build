@@ -21,3 +21,8 @@ e = executable('user', 'user.c', include_directories : inc, link_with : lib, ins
 test('subdirtest', e)
 
 meson.install_dependency_manifest('share/sublib/sublib.depmf')
+
+unknown_var = sub.get_variable('does-not-exist', [])
+if unknown_var != []
+  error ('unexpetced fallback value for subproject.get_variable()')
+endif
