@@ -1405,11 +1405,6 @@ arguments:
  - `version` keyword argument that works just like the one in
    `dependency`. It specifies what version the subproject should be,
    as an example `>=1.0.1`
- - `method` *(added 0.51.0)* Specifies the configuration method of the
-   subproject. Possible values are `meson`, `cmake` and `auto`. With
-   `auto` meson will always prefer a `meson.build` in the subproject
-    over other methods. The default value of `method` is `auto`.
- - `cmake_options` *(added 0.51.0)* List of additional CMake options
  - `required` *(added 0.48.0)* By default, `required` is `true` and
    Meson will abort if the subproject could not be setup. You can set
    this to `false` and then use the `.found()` method on the [returned

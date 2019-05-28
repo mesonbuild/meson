@@ -17,8 +17,11 @@ build without (in the best case) any changes to its Meson setup. It
 becomes a transparent part of the project.
 
 It should be noted that this is only guaranteed to work for subprojects
-that are built with Meson. Using CMake based subprojects is not guaranteed
-to work for all projects.
+that are built with Meson. The reason is the simple fact that there is
+no possible way to do this reliably with mixed build systems. Because of
+this, only meson subprojects are described here.
+[CMake based subprojects](CMake-module.md#CMake-subprojects) are also
+supported but not guaranteed to work.
 
 ## A subproject example
 
@@ -159,41 +162,6 @@ Subprojects can use other subprojects, but all subprojects must reside
 in the top level `subprojects` directory. Recursive use of subprojects
 is not allowed, though, so you can't have subproject `a` that uses
 subproject `b` and have `b` also use `a`.
-
-## CMake subprojects
-
-Meson is also able to use CMake subprojects directly. Using CMake
-subprojects is almost identical to using the "normal" meson subprojects:
-
-```meson
-sub_proj = subproject('libsimple_cmake', method : 'cmake')
-```
-
-The `method` key is optional if the subproject only has a `CMakeList.txt`.
-Without specifying a method meson will always first try to find and use a
-`meson.build` in the subproject.
-
-Project specific CMake options can be added with the `cmake_options` key.
-
-The returned `sub_proj` supports the same options as a "normal" subproject.
-Meson automatically detects build targets, which can be retrieved with
-`get_variable`. Meson also generates a dependency object for each target.
-
-These variable names are generated based on the CMake target name.
-
-```cmake
-add_library(cm_exe SHARED ${SOURCES})
-```
-
-For `cm_exe`, meson will then define the following variables:
-
-- `cm_exe` The raw library target (similar to `cm_exe = library('cm_exe', ...)` in meson)
-- `cm_exe_dep` The dependency object for the target (similar to `declare_dependency()` in meson)
-- `cm_exe_inc` A meson include directory object, containing all include irectories of the target.
-
-It should be noted that not all projects are guaranteed to work. The
-safest approach would still be to create a `meson.build` for the
-subprojects in question.
 
 ## Obtaining subprojects
 
