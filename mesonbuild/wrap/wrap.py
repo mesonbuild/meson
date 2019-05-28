@@ -111,7 +111,7 @@ class Resolver:
         self.subdir_root = subdir_root
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
 
-    def resolve(self, packagename):
+    def resolve(self, packagename: str, method: str):
         self.packagename = packagename
         self.directory = packagename
         # We always have to load the wrap file, if it exists, because it could
@@ -125,8 +125,13 @@ class Resolver:
         meson_file = os.path.join(self.dirname, 'meson.build')
         cmake_file = os.path.join(self.dirname, 'CMakeLists.txt')
 
+        if method not in ['meson', 'cmake']:
+            raise WrapException('Only the methods "meson" and "cmake" are supported')
+
         # The directory is there and has meson.build? Great, use it.
-        if os.path.exists(meson_file) or os.path.exists(cmake_file):
+        if method == 'meson' and os.path.exists(meson_file):
+            return self.directory
+        if method == 'cmake' and os.path.exists(cmake_file):
             return self.directory
 
         # Check if the subproject is a git submodule
@@ -154,9 +159,11 @@ class Resolver:
                 else:
                     raise WrapException('Unknown wrap type {!r}'.format(self.wrap.type))
 
-        # A meson.build file is required in the directory
-        if not os.path.exists(meson_file):
+        # A meson.build or CMakeLists.txt file is required in the directory
+        if method == 'meson' and not os.path.exists(meson_file):
             raise WrapException('Subproject exists but has no meson.build file')
+        if method == 'cmake' and not os.path.exists(cmake_file):
+            raise WrapException('Subproject exists but has no CMakeLists.txt file')
 
         return self.directory
 

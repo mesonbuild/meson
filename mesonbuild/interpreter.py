@@ -2247,7 +2247,7 @@ class Interpreter(InterpreterBase):
                         raise InterpreterException('Stdlib definition for %s should have exactly two elements.'
                                                    % l)
                     projname, depname = di
-                    subproj = self.do_subproject(projname, {})
+                    subproj = self.do_subproject(projname, 'meson', {})
                     self.build.cross_stdlibs[l] = subproj.get_variable_method([depname], {})
                 except KeyError:
                     pass
@@ -2416,20 +2416,19 @@ external dependencies (including libraries) must go to "dependencies".''')
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
 
     @FeatureNewKwargs('subproject', '0.38.0', ['default_options'])
-    @FeatureNewKwargs('subproject', '0.51.0', ['method', 'cmake_options'])
     @permittedKwargs(permitted_kwargs['subproject'])
     @stringArgs
     def func_subproject(self, nodes, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Subproject takes exactly one argument')
         dirname = args[0]
-        return self.do_subproject(dirname, kwargs)
+        return self.do_subproject(dirname, 'meson', kwargs)
 
     def disabled_subproject(self, dirname):
         self.subprojects[dirname] = SubprojectHolder(None, self.subproject_dir, dirname)
         return self.subprojects[dirname]
 
-    def do_subproject(self, dirname, kwargs):
+    def do_subproject(self, dirname: str, method: str, kwargs):
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Subproject', mlog.bold(dirname), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
@@ -2437,7 +2436,6 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
         default_options = coredata.create_options_dict(default_options)
-        method = kwargs.get('method', 'auto')
         if dirname == '':
             raise InterpreterException('Subproject dir name must not be empty.')
         if dirname[0] == '.':
@@ -2463,7 +2461,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
         r = wrap.Resolver(subproject_dir_abs, self.coredata.get_builtin_option('wrap_mode'))
         try:
-            resolved = r.resolve(dirname)
+            resolved = r.resolve(dirname, method)
         except wrap.WrapException as e:
             subprojdir = os.path.join(self.subproject_dir, r.directory)
             if isinstance(e, wrap.WrapNotFoundException):
@@ -2483,21 +2481,14 @@ external dependencies (including libraries) must go to "dependencies".''')
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
 
-        # Determine the method to use when 'auto' is given
-        if method == 'auto':
-            if os.path.exists(os.path.join(subdir_abs, environment.build_filename)):
-                method = 'meson'
-            elif os.path.exists(os.path.join(subdir_abs, 'CMakeLists.txt')):
-                method = 'cmake'
-
         mlog.log()
         with mlog.nested():
             mlog.log('Executing subproject', mlog.bold(dirname), 'method', mlog.bold(method), '\n')
         try:
             if method == 'meson':
-                return self.do_subproject_meson(dirname, subdir, default_options, required, kwargs)
+                return self._do_subproject_meson(dirname, subdir, default_options, required, kwargs)
             elif method == 'cmake':
-                return self.do_subproject_cmake(dirname, subdir, subdir_abs, default_options, required, kwargs)
+                return self._do_subproject_cmake(dirname, subdir, subdir_abs, default_options, required, kwargs)
             else:
                 raise InterpreterException('The method {} is invalid for the subproject {}'.format(method, dirname))
         # Invalid code is always an error
@@ -2513,7 +2504,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return self.disabled_subproject(dirname)
             raise e
 
-    def do_subproject_meson(self, dirname, subdir, default_options, required, kwargs, ast=None, build_def_files=None):
+    def _do_subproject_meson(self, dirname, subdir, default_options, required, kwargs, ast=None, build_def_files=None):
         with mlog.nested():
             new_build = self.build.copy()
             subi = Interpreter(new_build, self.backend, dirname, subdir, self.subproject_dir,
@@ -2544,7 +2535,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.subprojects[dirname] = subi.project_version
         return self.subprojects[dirname]
 
-    def do_subproject_cmake(self, dirname, subdir, subdir_abs, default_options, required, kwargs):
+    def _do_subproject_cmake(self, dirname, subdir, subdir_abs, default_options, required, kwargs):
         with mlog.nested():
             new_build = self.build.copy()
             prefix = self.coredata.builtins['prefix'].value
@@ -2572,7 +2563,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.debug('=== END meson.build ===')
                 mlog.debug()
 
-            result = self.do_subproject_meson(dirname, subdir, default_options, required, kwargs, ast, cm_int.bs_files)
+            result = self._do_subproject_meson(dirname, subdir, default_options, required, kwargs, ast, cm_int.bs_files)
+            result.cm_interpreter = cm_int
 
         mlog.log()
         return result
@@ -3164,7 +3156,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             'default_options': kwargs.get('default_options', []),
             'required': kwargs.get('required', True),
         }
-        self.do_subproject(dirname, sp_kwargs)
+        self.do_subproject(dirname, 'meson', sp_kwargs)
         return self.get_subproject_dep(display_name, dirname, varname, kwargs)
 
     @FeatureNewKwargs('executable', '0.42.0', ['implib'])

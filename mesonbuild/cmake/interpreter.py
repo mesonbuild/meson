@@ -25,7 +25,7 @@ from ..backend.backends import Backend
 from ..compilers.compilers import obj_suffixes
 from ..dependencies.base import CMakeDependency, ExternalProgram
 from subprocess import Popen, PIPE, STDOUT
-from typing import List
+from typing import List, Dict, Optional
 import os, re
 
 backend_generator_map = {
@@ -284,6 +284,9 @@ class CMakeInterpreter:
         self.languages = []
         self.targets = []
 
+        # Generated meson data
+        self.generated_targets = {}
+
     def configure(self, extra_cmake_options: List[str]) -> None:
         # Find CMake
         cmake_exe, cmake_vers, _ = CMakeDependency.find_cmake_binary(self.env)
@@ -297,7 +300,7 @@ class CMakeInterpreter:
         cmake_args = cmake_exe.get_command()
 
         # Map meson compiler to CMake variables
-        for lang, comp in self.build.compilers.items():
+        for lang, comp in self.env.coredata.compilers.items():
             if lang not in language_map:
                 continue
             cmake_lang = language_map[lang]
@@ -530,11 +533,20 @@ class CMakeInterpreter:
 
             # Add the nodes to the ast
             root_cb.lines += [inc_node, src_node, tgt_node, dep_node]
-            processed[tgt.name] = {'inc': inc_var, 'src': src_var, 'dep': dep_var, 'tgt': tgt_var}
+            processed[tgt.name] = {'inc': inc_var, 'src': src_var, 'dep': dep_var, 'tgt': tgt_var, 'func': tgt_func}
 
         # Now generate the target function calls
         for i in self.targets:
             if i.name not in processed:
                 process_target(i)
 
+        self.generated_targets = processed
         return root_cb
+
+    def target_info(self, target: str) -> Optional[Dict[str, str]]:
+        if target in self.generated_targets:
+            return self.generated_targets[target]
+        return None
+
+    def target_list(self) -> List[str]:
+        return list(self.generated_targets.keys())
