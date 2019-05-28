@@ -770,9 +770,9 @@ def default_prefix():
 
 def get_library_dirs() -> List[str]:
     if is_windows():
-        return ['C:/mingw/lib'] # Fixme
+        return ['C:/mingw/lib'] # TODO: get programatically
     if is_osx():
-        return ['/usr/lib'] # Fix me as well.
+        return ['/usr/lib'] # TODO: get programatically
     # The following is probably Debian/Ubuntu specific.
     # /usr/local/lib is first because it contains stuff
     # installed by the sysadmin and is probably more up-to-date
@@ -788,6 +788,8 @@ def get_library_dirs() -> List[str]:
         plat = 'i386'
     elif machine.startswith('arm'):
         plat = 'arm'
+    else:
+        plat = ''
 
     unixdirs += [str(x) for x in (Path('/usr/lib/') / plat).iterdir() if x.is_dir()]
     if os.path.exists('/usr/lib64'):
