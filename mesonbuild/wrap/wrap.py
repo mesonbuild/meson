@@ -18,8 +18,9 @@ import urllib.request, os, hashlib, shutil, tempfile, stat
 import subprocess
 import sys
 import configparser
+
 from . import WrapMode
-from ..mesonlib import MesonException
+from ..mesonlib import ProgressBar, MesonException
 
 try:
     import ssl
@@ -278,24 +279,17 @@ class Resolver:
                     tmpfile.write(block)
                 hashvalue = h.hexdigest()
                 return hashvalue, tmpfile.name
-            print('Download size:', dlsize)
-            print('Downloading: ', end='')
             sys.stdout.flush()
-            printed_dots = 0
-            downloaded = 0
+            progress_bar = ProgressBar(bar_type='download', total=dlsize,
+                                       desc='Downloading')
             while True:
                 block = resp.read(blocksize)
                 if block == b'':
                     break
-                downloaded += len(block)
                 h.update(block)
                 tmpfile.write(block)
-                ratio = int(downloaded / dlsize * 10)
-                while printed_dots < ratio:
-                    print('.', end='')
-                    sys.stdout.flush()
-                    printed_dots += 1
-            print('')
+                progress_bar.update(len(block))
+            progress_bar.close()
             hashvalue = h.hexdigest()
         return hashvalue, tmpfile.name
 
