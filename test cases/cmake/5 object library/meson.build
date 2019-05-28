@@ -9,9 +9,11 @@ if build_machine.system() == 'windows'
   error('MESON_SKIP_TEST: Windows is not supported because of symbol export problems')
 endif
 
-sub_pro = subproject('cmObjLib')
-sub_sha = sub_pro.get_variable('lib_sha_dep')
-sub_sta = sub_pro.get_variable('lib_sta_dep')
+cm = import('cmake')
+
+sub_pro = cm.subproject('cmObjLib')
+sub_sha = sub_pro.dependency('lib_sha')
+sub_sta = sub_pro.dependency('lib_sta')
 
 # Required for the static library
 zlib_dep = dependency('zlib')

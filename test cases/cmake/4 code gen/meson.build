@@ -1,8 +1,10 @@
 project('cmake_code_gen', ['c', 'cpp'])
 
+cm = import('cmake')
+
 # Subproject with the "code generator"
-sub_pro = subproject('cmCodeGen')
-sub_exe = sub_pro.get_variable('genA')
+sub_pro = cm.subproject('cmCodeGen')
+sub_exe = sub_pro.target('genA')
 
 # Generate the source
 generated = custom_target(
