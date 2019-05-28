@@ -1666,7 +1666,7 @@ class CMakeDependency(ExternalDependency):
             else:
                 self.targets[i].properies[propName] = propVal
 
-    def _cmake_set_target_properties(self, tline: CMakeTraceLine):
+    def _cmake_set_target_properties(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/set_target_properties.html
         args = list(tline.args)
 

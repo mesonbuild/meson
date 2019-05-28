@@ -3681,6 +3681,11 @@ recommended as it is not supported on some platforms''')
         testdir = os.path.join(self.unit_test_dir, '60 cmake_prefix_path')
         self.init(testdir, extra_args=['-Dcmake_prefix_path=' + os.path.join(testdir, 'prefix')])
 
+    @skip_if_no_cmake
+    def test_cmake_parser(self):
+        testdir = os.path.join(self.unit_test_dir, '61 cmake parser')
+        self.init(testdir, extra_args=['-Dcmake_prefix_path=' + os.path.join(testdir, 'prefix')])
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically
