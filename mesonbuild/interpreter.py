@@ -3761,15 +3761,25 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     def func_include(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         mesonlib.check_direntry_issues(args)
+        if os.path.isabs(args[0]):
+            absname = os.path.abspath(args[0])
+        else:
+            absname = os.path.abspath(os.path.join(self.environment.get_source_dir(), self.subdir, args[0]))
+        if not os.path.basename(absname).endswith('.meson'):
+            print(os.path.basename(absname))
+            raise InvalidArguments('Name of the included file must follow "*.meson" pattern.')
+        if os.path.basename(absname) == environment.build_filename:
+            raise InvalidArguments('Tried to include "%s" - use subdir() instead.' % environment.build_filename)
+        if not self.environment.get_source_dir() in absname:
+            raise InvalidArguments('Tried to include file "%s", which is located outside of source directory.' % args[0])
+        if (not self.subdir.startswith(self.subproject_dir) and
+                os.path.join(self.environment.get_source_dir(), self.subproject_dir) in absname):
+            raise InvalidArguments('Must not go into subprojects dir with include(), use subproject() instead.')
         for i in mesonlib.extract_as_list(kwargs, 'if_found'):
             if not hasattr(i, 'found_method'):
                 raise InterpreterException('Object used in if_found does not have a found method.')
             if not i.found_method([], {}):
                 return
-        if os.path.isabs(args[0]):
-            absname = os.path.abspath(args[0])
-        else:
-            absname = os.path.abspath(os.path.join(self.environment.get_source_dir(), self.subdir, args[0]))
         prev_current_file = self.current_file
         if absname in self.included_files:
             raise InvalidArguments('Tried to include file "%s", which has already been included.'
