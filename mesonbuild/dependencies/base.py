@@ -1691,29 +1691,46 @@ class CMakeDependency(ExternalDependency):
         args = list(tline.args)
 
         targets = []
-        while len(args) > 0:
+        while args:
             curr = args.pop(0)
             if curr == 'PROPERTIES':
                 break
 
             targets.append(curr)
 
-        if (len(args) % 2) != 0:
-            raise self._gen_exception('CMake: set_target_properties() uneven number of property arguments\n{}'.format(tline))
+        # Now we need to try to reconsitute the original quoted format of the
+        # arguments, as a property value could have spaces in it. Unlike
+        # set_property() this is not context free. There are two approaches I
+        # can think of, both have drawbacks:
+        #
+        #   1. Assume that the property will be capitalized, this is convention
+        #      but cmake doesn't require it.
+        #   2. Maintain a copy of the list here: https://cmake.org/cmake/help/latest/manual/cmake-properties.7.html#target-properties
+        #
+        # Neither of these is awesome for obvious reasons. I'm going to try
+        # option 1 first and fall back to 2, as 1 requires less code and less
+        # synchroniztion for cmake changes.
 
-        while len(args) > 0:
-            propName = args.pop(0)
-            propVal = args.pop(0).split(';')
-            propVal = list(filter(lambda x: len(x) > 0, propVal))
+        arglist = []  # type: typing.List[typing.Tuple[str, typing.List[str]]]
+        name = args.pop(0)
+        values = []
+        for a in args:
+            if a.isupper():
+                if values:
+                    arglist.append((name, ' '.join(values).split(';')))
+                name = a
+                values = []
+            else:
+                values.append(a)
+        if values:
+            arglist.append((name, ' '.join(values).split(';')))
 
-            if len(propVal) == 0:
-                continue
-
+        for name, value in arglist:
             for i in targets:
                 if i not in self.targets:
                     raise self._gen_exception('CMake: set_target_properties() TARGET {} not found\n{}'.format(i, tline))
 
-                self.targets[i].properies[propName] = propVal
+                self.targets[i].properies[name] = value
 
     def _lex_trace(self, trace):
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
