@@ -1639,7 +1639,7 @@ class CMakeDependency(ExternalDependency):
 
         self.targets[tline.args[0]] = CMakeTarget(tline.args[0], 'CUSTOM', {})
 
-    def _cmake_set_property(self, tline: CMakeTraceLine):
+    def _cmake_set_property(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/set_property.html
         args = list(tline.args)
 
@@ -1649,8 +1649,10 @@ class CMakeDependency(ExternalDependency):
 
         append = False
         targets = []
-        while len(args) > 0:
+        while args:
             curr = args.pop(0)
+            # XXX: APPEND_STRING is specifically *not* supposed to create a
+            # list, is treating them as aliases really okay?
             if curr == 'APPEND' or curr == 'APPEND_STRING':
                 append = True
                 continue
@@ -1660,31 +1662,29 @@ class CMakeDependency(ExternalDependency):
 
             targets.append(curr)
 
+        if not args:
+            raise self._gen_exception('CMake: set_property() faild to parse argument list\n{}'.format(tline))
+
         if len(args) == 1:
             # Tries to set property to nothing so nothing has to be done
             return
 
-        if len(args) < 2:
-            raise self._gen_exception('CMake: set_property() faild to parse argument list\n{}'.format(tline))
-
-        propName = args[0]
-        propVal = list(itertools.chain(*map(lambda x: x.split(';'), args[1:])))
-        propVal = list(filter(lambda x: len(x) > 0, propVal))
-
-        if len(propVal) == 0:
+        identifier = args.pop(0)
+        value = ' '.join(args).split(';')
+        if not value:
             return
 
         for i in targets:
             if i not in self.targets:
                 raise self._gen_exception('CMake: set_property() TARGET {} not found\n{}'.format(i, tline))
 
-            if propName not in self.targets[i].properies:
-                self.targets[i].properies[propName] = []
+            if identifier not in self.targets[i].properies:
+                self.targets[i].properies[identifier] = []
 
             if append:
-                self.targets[i].properies[propName] += propVal
+                self.targets[i].properies[identifier] += value
             else:
-                self.targets[i].properies[propName] = propVal
+                self.targets[i].properies[identifier] = value
 
     def _cmake_set_target_properties(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/set_target_properties.html
