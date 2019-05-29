@@ -1546,13 +1546,27 @@ class CMakeDependency(ExternalDependency):
             return True
         return False
 
-    def _cmake_set(self, tline: CMakeTraceLine):
+    def _cmake_set(self, tline: CMakeTraceLine) -> None:
+        """Handler for the CMake set() function in all variaties.
+
+        comes in three flavors:
+        set(<var> <value> [PARENT_SCOPE])
+        set(<var> <value> CACHE <type> <docstring> [FORCE])
+        set(ENV{<var>} <value>)
+
+        We don't support the ENV variant, and any uses of it will be ignored
+        silently. the other two variates are supported, with some caveats:
+        - we don't properly handle scoping, so calls to set() inside a
+          function without PARENT_SCOPE set could incorrectly shadow the
+          outer scope.
+        - We don't honor the type of CACHE arguments
+        """
         # DOC: https://cmake.org/cmake/help/latest/command/set.html
 
         # 1st remove PARENT_SCOPE and CACHE from args
         args = []
         for i in tline.args:
-            if i == 'PARENT_SCOPE' or len(i) == 0:
+            if not i or i == 'PARENT_SCOPE':
                 continue
 
             # Discard everything after the CACHE keyword
@@ -1564,13 +1578,19 @@ class CMakeDependency(ExternalDependency):
         if len(args) < 1:
             raise self._gen_exception('CMake: set() requires at least one argument\n{}'.format(tline))
 
-        if len(args) == 1:
+        # Now that we've removed extra arguments all that should be left is the
+        # variable identifier and the value, join the value back together to
+        # ensure spaces in the value are correctly handled. This assumes that
+        # variable names don't have spaces. Please don't do that...
+        identifier = args.pop(0)
+        value = ' '.join(args)
+
+        if not value:
             # Same as unset
-            if args[0] in self.vars:
-                del self.vars[args[0]]
+            if identifier in self.vars:
+                del self.vars[identifier]
         else:
-            values = list(itertools.chain(*map(lambda x: x.split(';'), args[1:])))
-            self.vars[args[0]] = values
+            self.vars[identifier] = value.split(';')
 
     def _cmake_unset(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/unset.html
