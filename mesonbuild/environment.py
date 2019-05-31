@@ -1245,6 +1245,8 @@ class Environment:
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('Usage'): # AIX
                 return ArLinker(linker)
+            if p.returncode == 1 and err.startswith('ar: bad option: --'): # Solaris
+                return ArLinker(linker)
         self._handle_exceptions(popen_exceptions, linkers, 'linker')
         raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linkers))
 
