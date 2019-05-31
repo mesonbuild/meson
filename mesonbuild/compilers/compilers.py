@@ -1979,6 +1979,8 @@ class GnuLikeCompiler(abc.ABC):
         elif self.compiler_type.is_windows_compiler:
             # For PE/COFF this is impossible
             return []
+        elif mesonlib.is_sunos():
+            return []
         else:
             # GNU ld and LLVM lld
             return ['-Wl,--allow-shlib-undefined']
