@@ -2012,6 +2012,27 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return incs
 
     @lru_cache(maxsize=None)
+    def generate_inc_dir(self, compiler, d, basedir, is_system):
+        # Avoid superfluous '/.' at the end of paths when d is '.'
+        if d not in ('', '.'):
+            expdir = os.path.join(basedir, d)
+        else:
+            expdir = basedir
+        srctreedir = os.path.join(self.build_to_src, expdir)
+        sargs = compiler.get_include_args(srctreedir, is_system)
+        # There may be include dirs where a build directory has not been
+        # created for some source dir. For example if someone does this:
+        #
+        # inc = include_directories('foo/bar/baz')
+        #
+        # But never subdir()s into the actual dir.
+        if os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
+            bargs = compiler.get_include_args(expdir, is_system)
+        else:
+            bargs = []
+        return (sargs, bargs)
+
+    @lru_cache(maxsize=None)
     def _generate_single_compile(self, target, compiler, is_generated=False):
         base_proxy = self.get_base_options_for_target(target)
         # Create an empty commands list, and start adding arguments from
@@ -2051,26 +2072,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # -Ipath will add to begin of array. And without reverse
             # flags will be added in reversed order.
             for d in reversed(i.get_incdirs()):
-                # Avoid superfluous '/.' at the end of paths when d is '.'
-                if d not in ('', '.'):
-                    expdir = os.path.join(basedir, d)
-                else:
-                    expdir = basedir
-                srctreedir = os.path.join(self.build_to_src, expdir)
                 # Add source subdir first so that the build subdir overrides it
-                sargs = compiler.get_include_args(srctreedir, i.is_system)
-                commands += sargs
-                # There may be include dirs where a build directory has not been
-                # created for some source dir. For example if someone does this:
-                #
-                # inc = include_directories('foo/bar/baz')
-                #
-                # But never subdir()s into the actual dir.
-                if os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
-                    bargs = compiler.get_include_args(expdir, i.is_system)
-                else:
-                    bargs = []
-                commands += bargs
+                (compile_obj, includeargs) = self.generate_inc_dir(compiler, d, basedir, i.is_system)
+                commands += compile_obj
+                commands += includeargs
             for d in i.get_extra_build_dirs():
                 commands += compiler.get_include_args(d, i.is_system)
         # Add per-target compile args, f.ex, `c_args : ['-DFOO']`. We set these
