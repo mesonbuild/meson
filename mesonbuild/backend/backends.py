@@ -873,14 +873,22 @@ class Backend:
                 result[dep.get_id()] = dep
         return result
 
+    @lru_cache(maxsize=None)
+    def get_custom_target_provided_by_generated_source(self, generated_source):
+        libs = []
+        for f in generated_source.get_outputs():
+            if self.environment.is_library(f):
+                libs.append(os.path.join(self.get_target_dir(generated_source), f))
+        return libs
+
+    @lru_cache(maxsize=None)
     def get_custom_target_provided_libraries(self, target):
         libs = []
         for t in target.get_generated_sources():
             if not isinstance(t, build.CustomTarget):
                 continue
-            for f in t.get_outputs():
-                if self.environment.is_library(f):
-                    libs.append(os.path.join(self.get_target_dir(t), f))
+            l = self.get_custom_target_provided_by_generated_source(t)
+            libs = libs + l
         return libs
 
     def is_unity(self, target):
