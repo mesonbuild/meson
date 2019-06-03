@@ -116,7 +116,7 @@ def update_svn(wrap, repo_dir, options):
         mlog.log('  -> Not used.')
         return
     revno = wrap.get('revision')
-    p, out = Popen_safe(['svn', 'info', '--show-item', 'revision', repo_dir])
+    p, out, _ = Popen_safe(['svn', 'info', '--show-item', 'revision', repo_dir])
     current_revno = out
     if current_revno == revno:
         return
