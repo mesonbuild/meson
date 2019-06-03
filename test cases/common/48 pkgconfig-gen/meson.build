@@ -44,7 +44,7 @@ pkgg.generate(
   name : 'libfoo',
   version : libver,
   description : 'A foo library.',
-  variables : ['foo=bar', 'datadir=${prefix}/data']
+  variables : ['foo=bar', 'datadir=${prefix}/data', 'bar=']
 )
 
 pkgg.generate(

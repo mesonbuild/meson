@@ -411,7 +411,7 @@ class PkgConfigModule(ExtensionModule):
                     raise mesonlib.MesonException('Invalid variable "{}". Variables must be in \'name=value\' format'.format(var))
 
                 name, value = l[0].strip(), l[1].strip()
-                if not name or not value:
+                if not name:
                     raise mesonlib.MesonException('Invalid variable "{}". Variables must be in \'name=value\' format'.format(var))
 
                 # Variable names must not contain whitespaces
