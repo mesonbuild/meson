@@ -38,7 +38,7 @@ executable(exe1, ['sources'], dependencies: [cm_lib])
 
 The `subproject` method is almost identical to the normal meson
 `subproject` function. The only difference is that a CMake project
-instead of a meson prokect is configured.
+instead of a meson project is configured.
 
 Also, project specific CMake options can be added with the `cmake_options` key.
 
@@ -81,13 +81,13 @@ subprojects in question.
 
 ### `subproject` object
 
-This is object is returned by the `subproject` function described above
+This object is returned by the `subproject` function described above
 and supports the following methods:
 
  - `dependency(target)` returns a dependency object for any CMake target.
- - `include_directories(target)` returns a meson include_directories
-   for the specified target. Using this function is not neccessary if the
-   dependency object is used.
+ - `include_directories(target)` returns a meson `include_directories()`
+   object for the specified target. Using this function is not neccessary
+   if the dependency object is used.
  - `target(target)` returns the raw build target.
  - `target_type(target)` returns the type of the target as a string
  - `target_list()` returns a list of all target *names*.
