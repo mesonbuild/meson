@@ -447,7 +447,7 @@ class Rewriter:
         # First, remove the old values
         kwargs_cmd = {
             'function': 'project',
-            'id': "",
+            'id': "/",
             'operation': 'remove_regex',
             'kwargs': {
                 'default_options': ['{}=.*'.format(x) for x in cmd['options'].keys()]
@@ -502,7 +502,7 @@ class Rewriter:
         if cmd['function'] == 'project':
             if cmd['id'] != '/':
                 mlog.error('The ID for the function type project must be "/"', *self.on_error())
-                self.handle_error()
+                return self.handle_error()
             node = self.interpreter.project_node
             arg_node = node.args
         elif cmd['function'] == 'target':
