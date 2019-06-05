@@ -22,8 +22,9 @@ class Vs2017Backend(Vs2010Backend):
     def __init__(self, build):
         super().__init__(build)
         self.name = 'vs2017'
-        self.platform_toolset = 'v141'
         self.vs_version = '2017'
+        if self.platform_toolset is None:
+            self.platform_toolset = 'v141'
         # WindowsSDKVersion should be set by command prompt.
         sdk_version = os.environ.get('WindowsSDKVersion', None)
         if sdk_version:

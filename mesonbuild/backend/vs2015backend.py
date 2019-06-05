@@ -19,5 +19,6 @@ class Vs2015Backend(Vs2010Backend):
     def __init__(self, build):
         super().__init__(build)
         self.name = 'vs2015'
-        self.platform_toolset = 'v140'
         self.vs_version = '2015'
+        if self.platform_toolset is None:
+            self.platform_toolset = 'v140'
