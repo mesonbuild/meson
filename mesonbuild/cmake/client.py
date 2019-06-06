@@ -498,6 +498,15 @@ class CMakeClient:
         try:
             self.proc.wait(timeout=2)
         except TimeoutExpired:
-            self.proc.terminate()
+            # Terminate CMake if there is a timeout
+            # terminate() may throw a platform specific exception if the process has already
+            # terminated. This may be the case if there is a race condition (CMake exited after
+            # the timeout but before the terminate() call). Additionally, this behavior can
+            # also be triggered on cygwin if CMake crashes.
+            # See https://github.com/mesonbuild/meson/pull/4969#issuecomment-499413233
+            try:
+                self.proc.terminate()
+            except Exception:
+                pass
 
         self.proc = None
