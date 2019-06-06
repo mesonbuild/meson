@@ -155,6 +155,11 @@ steps:
      python --version
 
      echo ""
+     echo "Locating cl, rc:"
+     where.exe cl
+     where.exe rc
+
+     echo ""
      echo "=== Start running tests ==="
      # Starting from VS2019 Powershell(?) will fail the test run
      # if it prints anything to stderr. Python's test runner

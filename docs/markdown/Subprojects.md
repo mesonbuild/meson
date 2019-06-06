@@ -14,17 +14,19 @@ Meson tries to solve this problem by making it extremely easy to
 provide both at the same time. The way this is done is that Meson
 allows you to take any other Meson project and make it a part of your
 build without (in the best case) any changes to its Meson setup. It
-becomes a transparent part of the project. 
+becomes a transparent part of the project.
 
-It should be noted that this only works for subprojects that are built
-with Meson. It can not be used with any other build system. The reason
-is the simple fact that there is no possible way to do this reliably
-with mixed build systems.
+It should be noted that this is only guaranteed to work for subprojects
+that are built with Meson. The reason is the simple fact that there is
+no possible way to do this reliably with mixed build systems. Because of
+this, only meson subprojects are described here.
+[CMake based subprojects](CMake-module.md#CMake-subprojects) are also
+supported but not guaranteed to work.
 
 ## A subproject example
 
-Usually dependencies consist of some header files plus a library to link against. 
-To declare this internal dependency use `declare_dependency` function.  
+Usually dependencies consist of some header files plus a library to link against.
+To declare this internal dependency use `declare_dependency` function.
 
 As an example, suppose we have a simple project that provides a shared
 library. Its `meson.build` would look like this.
@@ -33,22 +35,22 @@ library. Its `meson.build` would look like this.
 project('libsimple', 'c')
 
 inc = include_directories('include')
-libsimple = shared_library('simple', 
-  'simple.c', 
-  include_directories : inc, 
+libsimple = shared_library('simple',
+  'simple.c',
+  include_directories : inc,
   install : true)
 
-libsimple_dep = declare_dependency(include_directories : inc, 
+libsimple_dep = declare_dependency(include_directories : inc,
   link_with : libsimple)
 ```
 
 ### Naming convention for dependency variables
 
-Ideally the dependency variable name should be of `<project_name>_dep` form. 
+Ideally the dependency variable name should be of `<project_name>_dep` form.
 This way one can just use it without even looking inside build definitions of that subproject.
 
-In cases where there are multiple dependencies need to be declared, the default one 
-should be named as `<project_name>_dep` (e.g. `gtest_dep`), and others can have 
+In cases where there are multiple dependencies need to be declared, the default one
+should be named as `<project_name>_dep` (e.g. `gtest_dep`), and others can have
 `<project_name>_<other>_<name>_dep` form (e.g. `gtest_main_dep` - gtest with main function).
 
 There may be exceptions to these rules where common sense should be applied.
@@ -65,16 +67,16 @@ as a subproject, use the `is_subproject` function.
 
 ## Using a subproject
 
-All subprojects must be inside `subprojects` directory.  
-The `subprojects` directory must be at the top level of your project.  
-Subproject declaration must be in your top level `meson.build`.  
+All subprojects must be inside `subprojects` directory.
+The `subprojects` directory must be at the top level of your project.
+Subproject declaration must be in your top level `meson.build`.
 
 ### A simple example
 
 Let's use `libsimple` as a subproject.
 
-At the top level of your project create `subprojects` directory. 
-Then copy `libsimple` into `subprojects` directory. 
+At the top level of your project create `subprojects` directory.
+Then copy `libsimple` into `subprojects` directory.
 
 Your project's `meson.build` should look like this.
 
@@ -84,9 +86,9 @@ project('my_project', 'cpp')
 libsimple_proj = subproject('libsimple')
 libsimple_dep = libsimple_proj.get_variable('libsimple_dep')
 
-executable('my_project', 
-  'my_project.cpp', 
-  dependencies : libsimple_dep, 
+executable('my_project',
+  'my_project.cpp',
+  dependencies : libsimple_dep,
   install : true)
 ```
 
@@ -102,7 +104,7 @@ embed any sources. Some distros have a rule forbidding embedded
 dependencies so your project must be buildable without them or
 otherwise the packager will hate you.
 
-Here's how you would use system libraries and fall back to embedding sources 
+Here's how you would use system libraries and fall back to embedding sources
 if the dependency is not available.
 
 ```meson
@@ -115,9 +117,9 @@ if not libsimple_dep.found()
   libsimple_dep = libsimple_proj.get_variable('libsimple_dep')
 endif
 
-executable('my_project', 
-  'my_project.cpp', 
-  dependencies : libsimple_dep, 
+executable('my_project',
+  'my_project.cpp',
+  dependencies : libsimple_dep,
   install : true)
 ```
 
@@ -141,14 +143,14 @@ project('my_project', 'cpp')
 
 libsimple_dep = dependency('libsimple', fallback : ['libsimple', 'libsimple_dep'])
 
-executable('my_project', 
-  'my_project.cpp', 
-  dependencies : libsimple_dep, 
+executable('my_project',
+  'my_project.cpp',
+  dependencies : libsimple_dep,
   install : true)
 ```
 
 With this setup when libsimple is provided by the system, we use it. When
-that is not the case we use the embedded version (the one from subprojects). 
+that is not the case we use the embedded version (the one from subprojects).
 
 Note that `libsimple_dep` can point to an external or an internal dependency but
 you don't have to worry about their differences. Meson will take care

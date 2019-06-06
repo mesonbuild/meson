@@ -163,7 +163,7 @@ def download(wrap, repo_dir, options):
         return
     try:
         r = Resolver(os.path.dirname(repo_dir))
-        r.resolve(wrap.name)
+        r.resolve(wrap.name, 'meson')
         mlog.log('  -> done')
     except WrapException as e:
         mlog.log('  ->', mlog.red(str(e)))

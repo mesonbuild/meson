@@ -1,0 +1,6 @@
+usr/?lib/libcmModLib?so
+?cygwin:usr/lib/libcmModLib?implib
+?!cygwin:usr/bin/libcmModLib?implib
+?msvc:usr/bin/cmModLib.pdb
+?msvc:usr/bin/testEXE.pdb
+usr/bin/testEXE?exe

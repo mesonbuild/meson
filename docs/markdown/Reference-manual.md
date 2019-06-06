@@ -1082,7 +1082,7 @@ res2 = foo / bar
 ```
 
 Builds a library that is either static, shared or both depending on
-the value of `default_library` 
+the value of `default_library`
 user [option](https://mesonbuild.com/Builtin-options.html).
 You should use this instead of [`shared_library`](#shared_library),
 [`static_library`](#static_library) or
@@ -2175,7 +2175,7 @@ an external dependency with the following methods:
    dep3 will add `['-Werror=foo', '-Werror=bar']` to the compiler args
    of any target it is added to, but libfoo will not be added to the
    link_args.
-   
+
    *Note*: A bug present until 0.50.1 results in the above behavior
    not working correctly.
 

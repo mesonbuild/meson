@@ -1,0 +1,4 @@
+usr/?lib/libcmModLib?so
+?cygwin:usr/lib/libcmModLib?implib
+?!cygwin:usr/bin/libcmModLib?implib
+usr/bin/testEXE?exe

@@ -18,8 +18,8 @@ import shutil
 from . import ExtensionModule, ModuleReturnValue
 
 from .. import build, dependencies, mesonlib, mlog
-from ..interpreterbase import permittedKwargs
-from ..interpreter import ConfigurationDataHolder
+from ..interpreterbase import permittedKwargs, FeatureNew, stringArgs, InterpreterObject, ObjectHolder
+from ..interpreter import ConfigurationDataHolder, InterpreterException, SubprojectHolder
 
 
 COMPATIBILITIES = ['AnyNewerVersion', 'SameMajorVersion', 'SameMinorVersion', 'ExactVersion']
@@ -43,6 +43,62 @@ unset(_realOrig)
 unset(_realCurr)
 '''
 
+class CMakeSubprojectHolder(InterpreterObject, ObjectHolder):
+    def __init__(self, subp, pv):
+        assert(isinstance(subp, SubprojectHolder))
+        assert(hasattr(subp, 'cm_interpreter'))
+        InterpreterObject.__init__(self)
+        ObjectHolder.__init__(self, subp, pv)
+        self.methods.update({'get_variable': self.get_variable,
+                             'dependency': self.dependency,
+                             'include_directories': self.include_directories,
+                             'target': self.target,
+                             'target_type': self.target_type,
+                             'target_list': self.target_list,
+                             })
+
+    def _args_to_info(self, args):
+        if len(args) != 1:
+            raise InterpreterException('Exactly one argument is required.')
+
+        tgt = args[0]
+        res = self.held_object.cm_interpreter.target_info(tgt)
+        if res is None:
+            raise InterpreterException('The CMake target {} does not exist'.format(tgt))
+
+        # Make sure that all keys are present (if not this is a bug)
+        assert(all([x in res for x in ['inc', 'src', 'dep', 'tgt', 'func']]))
+        return res
+
+    @permittedKwargs({})
+    def get_variable(self, args, kwargs):
+        return self.held_object.get_variable_method(args, kwargs)
+
+    @permittedKwargs({})
+    def dependency(self, args, kwargs):
+        info = self._args_to_info(args)
+        return self.get_variable([info['dep']], kwargs)
+
+    @permittedKwargs({})
+    def include_directories(self, args, kwargs):
+        info = self._args_to_info(args)
+        return self.get_variable([info['inc']], kwargs)
+
+    @permittedKwargs({})
+    def target(self, args, kwargs):
+        info = self._args_to_info(args)
+        return self.get_variable([info['tgt']], kwargs)
+
+    @permittedKwargs({})
+    def target_type(self, args, kwargs):
+        info = self._args_to_info(args)
+        return info['func']
+
+    @permittedKwargs({})
+    def target_list(self, args, kwargs):
+        if len(args) > 0:
+            raise InterpreterException('target_list does not take any parameters.')
+        return self.held_object.cm_interpreter.target_list()
 
 class CmakeModule(ExtensionModule):
     cmake_detected = False
@@ -51,6 +107,7 @@ class CmakeModule(ExtensionModule):
     def __init__(self, interpreter):
         super().__init__(interpreter)
         self.snippets.add('configure_package_config_file')
+        self.snippets.add('subproject')
 
     def detect_voidp_size(self, env):
         compilers = env.coredata.compilers
@@ -209,6 +266,15 @@ class CmakeModule(ExtensionModule):
         interpreter.build.data.append(res)
 
         return res
+
+    @FeatureNew('subproject', '0.51.0')
+    @permittedKwargs({'cmake_options'})
+    @stringArgs
+    def subproject(self, interpreter, state, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Subproject takes exactly one argument')
+        dirname = args[0]
+        return CMakeSubprojectHolder(interpreter.do_subproject(dirname, 'cmake', kwargs), dirname)
 
 def initialize(*args, **kwargs):
     return CmakeModule(*args, **kwargs)

@@ -31,6 +31,7 @@ from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabl
 from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
 from .interpreterbase import ObjectHolder
 from .modules import ModuleReturnValue
+from .cmake import CMakeInterpreter
 
 import os, shutil, uuid
 import re, shlex
@@ -2037,7 +2038,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
 class Interpreter(InterpreterBase):
 
     def __init__(self, build, backend=None, subproject='', subdir='', subproject_dir='subprojects',
-                 modules = None, default_project_options=None, mock=False):
+                 modules = None, default_project_options=None, mock=False, ast=None):
         super().__init__(build.environment.get_source_dir(), subdir)
         self.an_unpicklable_object = mesonlib.an_unpicklable_object
         self.build = build
@@ -2054,8 +2055,11 @@ class Interpreter(InterpreterBase):
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
         self.subproject_dir = subproject_dir
         self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
-        if not mock:
+        if not mock and ast is None:
             self.load_root_meson_file()
+            self.sanity_check_ast()
+        elif ast is not None:
+            self.ast = ast
             self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(build, self)})
         self.generators = []
@@ -2243,7 +2247,7 @@ class Interpreter(InterpreterBase):
                         raise InterpreterException('Stdlib definition for %s should have exactly two elements.'
                                                    % l)
                     projname, depname = di
-                    subproj = self.do_subproject(projname, {})
+                    subproj = self.do_subproject(projname, 'meson', {})
                     self.build.cross_stdlibs[l] = subproj.get_variable_method([depname], {})
                 except KeyError:
                     pass
@@ -2418,13 +2422,13 @@ external dependencies (including libraries) must go to "dependencies".''')
         if len(args) != 1:
             raise InterpreterException('Subproject takes exactly one argument')
         dirname = args[0]
-        return self.do_subproject(dirname, kwargs)
+        return self.do_subproject(dirname, 'meson', kwargs)
 
     def disabled_subproject(self, dirname):
         self.subprojects[dirname] = SubprojectHolder(None, self.subproject_dir, dirname)
         return self.subprojects[dirname]
 
-    def do_subproject(self, dirname, kwargs):
+    def do_subproject(self, dirname: str, method: str, kwargs):
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Subproject', mlog.bold(dirname), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
@@ -2457,7 +2461,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
         r = wrap.Resolver(subproject_dir_abs, self.coredata.get_builtin_option('wrap_mode'))
         try:
-            resolved = r.resolve(dirname)
+            resolved = r.resolve(dirname, method)
         except wrap.WrapException as e:
             subprojdir = os.path.join(self.subproject_dir, r.directory)
             if isinstance(e, wrap.WrapNotFoundException):
@@ -2473,22 +2477,20 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise e
 
         subdir = os.path.join(self.subproject_dir, resolved)
+        subdir_abs = os.path.join(subproject_dir_abs, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
+
         mlog.log()
         with mlog.nested():
-            mlog.log('Executing subproject', mlog.bold(dirname), '\n')
+            mlog.log('Executing subproject', mlog.bold(dirname), 'method', mlog.bold(method), '\n')
         try:
-            with mlog.nested():
-                new_build = self.build.copy()
-                subi = Interpreter(new_build, self.backend, dirname, subdir, self.subproject_dir,
-                                   self.modules, default_options)
-                subi.subprojects = self.subprojects
-
-                subi.subproject_stack = self.subproject_stack + [dirname]
-                current_active = self.active_projectname
-                subi.run()
-                mlog.log('Subproject', mlog.bold(dirname), 'finished.')
+            if method == 'meson':
+                return self._do_subproject_meson(dirname, subdir, default_options, required, kwargs)
+            elif method == 'cmake':
+                return self._do_subproject_cmake(dirname, subdir, subdir_abs, default_options, required, kwargs)
+            else:
+                raise InterpreterException('The method {} is invalid for the subproject {}'.format(method, dirname))
         # Invalid code is always an error
         except InvalidCode:
             raise
@@ -2502,6 +2504,18 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return self.disabled_subproject(dirname)
             raise e
 
+    def _do_subproject_meson(self, dirname, subdir, default_options, required, kwargs, ast=None, build_def_files=None):
+        with mlog.nested():
+            new_build = self.build.copy()
+            subi = Interpreter(new_build, self.backend, dirname, subdir, self.subproject_dir,
+                               self.modules, default_options, ast=ast)
+            subi.subprojects = self.subprojects
+
+            subi.subproject_stack = self.subproject_stack + [dirname]
+            current_active = self.active_projectname
+            subi.run()
+            mlog.log('Subproject', mlog.bold(dirname), 'finished.')
+
         mlog.log()
 
         if 'version' in kwargs:
@@ -2513,10 +2527,47 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.subprojects.update(subi.subprojects)
         self.subprojects[dirname] = SubprojectHolder(subi, self.subproject_dir, dirname)
         # Duplicates are possible when subproject uses files from project root
-        self.build_def_files = list(set(self.build_def_files + subi.build_def_files))
+        if build_def_files:
+            self.build_def_files = list(set(self.build_def_files + build_def_files))
+        else:
+            self.build_def_files = list(set(self.build_def_files + subi.build_def_files))
         self.build.merge(subi.build)
         self.build.subprojects[dirname] = subi.project_version
         return self.subprojects[dirname]
+
+    def _do_subproject_cmake(self, dirname, subdir, subdir_abs, default_options, required, kwargs):
+        with mlog.nested():
+            new_build = self.build.copy()
+            prefix = self.coredata.builtins['prefix'].value
+            cmake_options = mesonlib.stringlistify(kwargs.get('cmake_options', []))
+            cm_int = CMakeInterpreter(new_build, subdir, subdir_abs, prefix, new_build.environment, self.backend)
+            cm_int.initialise(cmake_options)
+            cm_int.analyse()
+
+            # Generate a meson ast and execute it with the normal do_subproject_meson
+            ast = cm_int.pretend_to_be_meson()
+
+            mlog.log()
+            with mlog.nested():
+                mlog.log('Processing generated meson AST')
+                mlog.log()
+
+                # Debug print the generated meson file
+                mlog.debug('=== BEGIN meson.build ===')
+                from .ast import AstIndentationGenerator, AstPrinter
+                printer = AstPrinter()
+                ast.accept(AstIndentationGenerator())
+                ast.accept(printer)
+                printer.post_process()
+                mlog.debug(printer.result)
+                mlog.debug('=== END meson.build ===')
+                mlog.debug()
+
+            result = self._do_subproject_meson(dirname, subdir, default_options, required, kwargs, ast, cm_int.bs_files)
+            result.cm_interpreter = cm_int
+
+        mlog.log()
+        return result
 
     def get_option_internal(self, optname):
         for opts in chain(
@@ -3105,7 +3156,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             'default_options': kwargs.get('default_options', []),
             'required': kwargs.get('required', True),
         }
-        self.do_subproject(dirname, sp_kwargs)
+        self.do_subproject(dirname, 'meson', sp_kwargs)
         return self.get_subproject_dep(display_name, dirname, varname, kwargs)
 
     @FeatureNewKwargs('executable', '0.42.0', ['implib'])
