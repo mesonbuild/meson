@@ -1088,7 +1088,10 @@ class DataTests(unittest.TestCase):
                         found_entries |= arches
             break
 
-        self.assertEqual(found_entries, set(mesonbuild.coredata.builtin_options.keys()))
+        self.assertEqual(found_entries, set([
+            *mesonbuild.coredata.builtin_options.keys(),
+            *mesonbuild.coredata.builtin_options_per_machine.keys()
+        ]))
 
     def test_cpu_families_documented(self):
         with open("docs/markdown/Reference-tables.md") as f:
@@ -5193,8 +5196,15 @@ endian = 'little'
     @skipIfNoPkgconfig
     def test_pkg_config_option(self):
         testdir = os.path.join(self.unit_test_dir, '55 pkg_config_path option')
-        self.init(testdir, extra_args=['-Dpkg_config_path=' + os.path.join(testdir, 'extra_path')])
+        self.init(testdir, extra_args=['-Dpkg_config_path=' + os.path.join(testdir, 'host_extra_path')])
 
+    def test_std_remains(self):
+        # C_std defined in project options must be in effect also when native compiling.
+        testdir = os.path.join(self.unit_test_dir, '50 std remains')
+        self.init(testdir)
+        compdb = self.get_compdb()
+        self.assertRegex(compdb[0]['command'], '-std=c99')
+        self.build()
 
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
@@ -5247,6 +5257,14 @@ class LinuxCrossArmTests(BasePlatformTests):
                 return
         self.assertTrue(False, 'Option libdir not in introspect data.')
 
+    def test_std_remains(self):
+        # C_std defined in project options must be in effect also when cross compiling.
+        testdir = os.path.join(self.unit_test_dir, '50 std remains')
+        self.init(testdir)
+        compdb = self.get_compdb()
+        self.assertRegex(compdb[0]['command'], '-std=c99')
+        self.build()
+
 
 def should_run_cross_mingw_tests():
     return shutil.which('x86_64-w64-mingw32-gcc') and not (is_windows() or is_cygwin())
@@ -5294,7 +5312,10 @@ class LinuxCrossMingwTests(BasePlatformTests):
     @skipIfNoPkgconfig
     def test_cross_pkg_config_option(self):
         testdir = os.path.join(self.unit_test_dir, '55 pkg_config_path option')
-        self.init(testdir, extra_args=['-Dcross_pkg_config_path=' + os.path.join(testdir, 'extra_path')])
+        self.init(testdir, extra_args=[
+            '-Dbuild.pkg_config_path=' + os.path.join(testdir, 'build_extra_path'),
+            '-Dpkg_config_path=' + os.path.join(testdir, 'host_extra_path'),
+        ])
 
 
 class PythonTests(BasePlatformTests):
