@@ -809,28 +809,32 @@ class Vs2010Backend(backends.Backend):
         # Incremental linking increases code size
         if '/INCREMENTAL:NO' in buildtype_link_args:
             ET.SubElement(type_config, 'LinkIncremental').text = 'false'
+
+        # Build information
+        compiles = ET.SubElement(root, 'ItemDefinitionGroup')
+        clconf = ET.SubElement(compiles, 'ClCompile')
         # CRT type; debug or release
         if vscrt_type.value == 'from_buildtype':
             if self.buildtype == 'debug' or self.buildtype == 'debugoptimized':
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
-                ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
+                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
             else:
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
-                ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreaded'
+                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreaded'
         elif vscrt_type.value == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
-            ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
+            ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
         elif vscrt_type.value == 'mt':
             # FIXME, wrong
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
-            ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreaded'
+            ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreaded'
         elif vscrt_type.value == 'mtd':
             # FIXME, wrong
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
-            ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebug'
+            ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebug'
         else:
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
-            ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDLL'
+            ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
         # Debug format
         if '/ZI' in buildtype_args:
             ET.SubElement(type_config, 'DebugInformationFormat').text = 'EditAndContinue'
@@ -865,9 +869,6 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(direlem, 'TargetName').text = tfilename[0]
         ET.SubElement(direlem, 'TargetExt').text = tfilename[1]
 
-        # Build information
-        compiles = ET.SubElement(root, 'ItemDefinitionGroup')
-        clconf = ET.SubElement(compiles, 'ClCompile')
         # Arguments, include dirs, defines for all files in the current target
         target_args = []
         target_defines = []
