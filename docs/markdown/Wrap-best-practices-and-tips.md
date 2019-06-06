@@ -48,7 +48,7 @@ optimization. However building both library types on all builds is
 slow and wasteful.
 
 Your project should use the `library` method that can be toggled
-between shared and static with the `defaul_library` builtin option.
+between shared and static with the `default_library` builtin option.
 
 
 ```meson

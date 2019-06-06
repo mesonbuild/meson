@@ -38,6 +38,7 @@ from .compilers import (
     is_object,
     is_source,
 )
+from functools import lru_cache
 from .compilers import (
     ArmCCompiler,
     ArmCPPCompiler,
@@ -572,6 +573,7 @@ class Environment:
     def is_object(self, fname):
         return is_object(fname)
 
+    @lru_cache(maxsize=None)
     def is_library(self, fname):
         return is_library(fname)
 

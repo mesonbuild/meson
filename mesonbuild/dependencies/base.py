@@ -665,11 +665,15 @@ class PkgConfigDependency(ExternalDependency):
         else:
             env = env.copy()
 
-        if self.want_cross:
-            extra_paths = self.env.coredata.get_builtin_option('cross_pkg_config_path')
+        if not self.want_cross and self.env.is_cross_build():
+            for_machine = MachineChoice.BUILD
         else:
-            extra_paths = self.env.coredata.get_builtin_option('pkg_config_path')
-        env['PKG_CONFIG_PATH'] = ':'.join([p for p in extra_paths])
+            for_machine = MachineChoice.HOST
+
+        extra_paths = self.env.coredata.builtins_per_machine[for_machine]['pkg_config_path'].value
+        new_pkg_config_path = ':'.join([p for p in extra_paths])
+        mlog.debug('PKG_CONFIG_PATH: ' + new_pkg_config_path)
+        env['PKG_CONFIG_PATH'] = new_pkg_config_path
         fenv = frozenset(env.items())
         targs = tuple(args)
         cache = PkgConfigDependency.pkgbin_cache
@@ -1129,11 +1133,16 @@ class CMakeDependency(ExternalDependency):
         modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
         modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
         cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))
-        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
+        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
         if cm_path:
-            cm_args += ['-DCMAKE_MODULE_PATH={}'.format(';'.join(cm_path))]
-        if not self._preliminary_find_check(name, cm_path, environment.machines[for_machine]):
+            cm_args.append('-DCMAKE_MODULE_PATH=' + ';'.join(cm_path))
+
+        pref_path = self.env.coredata.builtins_per_machine[for_machine]['cmake_prefix_path'].value
+        if pref_path:
+            cm_args.append('-DCMAKE_PREFIX_PATH={}'.format(';'.join(pref_path)))
+
+        if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[for_machine]):
             return
         self._detect_dep(name, modules, cm_args)
 
@@ -1229,7 +1238,7 @@ class CMakeDependency(ExternalDependency):
         except OSError:
             return False
 
-    def _preliminary_find_check(self, name: str, module_path: List[str], machine: MachineInfo) -> bool:
+    def _preliminary_find_check(self, name: str, module_path: List[str], prefix_path: List[str], machine: MachineInfo) -> bool:
         lname = str(name).lower()
 
         # Checks <path>, <path>/cmake, <path>/CMake
@@ -1272,6 +1281,12 @@ class CMakeDependency(ExternalDependency):
         for i in module_path + [os.path.join(self.cmakeinfo['cmake_root'], 'Modules')]:
             if find_module(i):
                 return True
+
+        # Check the user provided prefix paths
+        for i in prefix_path:
+            if search_lib_dirs(i):
+                return True
+
 
         # Check the system paths
         for i in self.cmakeinfo['module_paths']:
@@ -1532,13 +1547,27 @@ class CMakeDependency(ExternalDependency):
             return True
         return False
 
-    def _cmake_set(self, tline: CMakeTraceLine):
+    def _cmake_set(self, tline: CMakeTraceLine) -> None:
+        """Handler for the CMake set() function in all variaties.
+
+        comes in three flavors:
+        set(<var> <value> [PARENT_SCOPE])
+        set(<var> <value> CACHE <type> <docstring> [FORCE])
+        set(ENV{<var>} <value>)
+
+        We don't support the ENV variant, and any uses of it will be ignored
+        silently. the other two variates are supported, with some caveats:
+        - we don't properly handle scoping, so calls to set() inside a
+          function without PARENT_SCOPE set could incorrectly shadow the
+          outer scope.
+        - We don't honor the type of CACHE arguments
+        """
         # DOC: https://cmake.org/cmake/help/latest/command/set.html
 
         # 1st remove PARENT_SCOPE and CACHE from args
         args = []
         for i in tline.args:
-            if i == 'PARENT_SCOPE' or len(i) == 0:
+            if not i or i == 'PARENT_SCOPE':
                 continue
 
             # Discard everything after the CACHE keyword
@@ -1550,13 +1579,19 @@ class CMakeDependency(ExternalDependency):
         if len(args) < 1:
             raise self._gen_exception('CMake: set() requires at least one argument\n{}'.format(tline))
 
-        if len(args) == 1:
+        # Now that we've removed extra arguments all that should be left is the
+        # variable identifier and the value, join the value back together to
+        # ensure spaces in the value are correctly handled. This assumes that
+        # variable names don't have spaces. Please don't do that...
+        identifier = args.pop(0)
+        value = ' '.join(args)
+
+        if not value:
             # Same as unset
-            if args[0] in self.vars:
-                del self.vars[args[0]]
+            if identifier in self.vars:
+                del self.vars[identifier]
         else:
-            values = list(itertools.chain(*map(lambda x: x.split(';'), args[1:])))
-            self.vars[args[0]] = values
+            self.vars[identifier] = value.split(';')
 
     def _cmake_unset(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/unset.html
@@ -1605,7 +1640,7 @@ class CMakeDependency(ExternalDependency):
 
         self.targets[tline.args[0]] = CMakeTarget(tline.args[0], 'CUSTOM', {})
 
-    def _cmake_set_property(self, tline: CMakeTraceLine):
+    def _cmake_set_property(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/set_property.html
         args = list(tline.args)
 
@@ -1615,8 +1650,10 @@ class CMakeDependency(ExternalDependency):
 
         append = False
         targets = []
-        while len(args) > 0:
+        while args:
             curr = args.pop(0)
+            # XXX: APPEND_STRING is specifically *not* supposed to create a
+            # list, is treating them as aliases really okay?
             if curr == 'APPEND' or curr == 'APPEND_STRING':
                 append = True
                 continue
@@ -1626,60 +1663,75 @@ class CMakeDependency(ExternalDependency):
 
             targets.append(curr)
 
+        if not args:
+            raise self._gen_exception('CMake: set_property() faild to parse argument list\n{}'.format(tline))
+
         if len(args) == 1:
             # Tries to set property to nothing so nothing has to be done
             return
 
-        if len(args) < 2:
-            raise self._gen_exception('CMake: set_property() faild to parse argument list\n{}'.format(tline))
-
-        propName = args[0]
-        propVal = list(itertools.chain(*map(lambda x: x.split(';'), args[1:])))
-        propVal = list(filter(lambda x: len(x) > 0, propVal))
-
-        if len(propVal) == 0:
+        identifier = args.pop(0)
+        value = ' '.join(args).split(';')
+        if not value:
             return
 
         for i in targets:
             if i not in self.targets:
                 raise self._gen_exception('CMake: set_property() TARGET {} not found\n{}'.format(i, tline))
 
-            if propName not in self.targets[i].properies:
-                self.targets[i].properies[propName] = []
+            if identifier not in self.targets[i].properies:
+                self.targets[i].properies[identifier] = []
 
             if append:
-                self.targets[i].properies[propName] += propVal
+                self.targets[i].properies[identifier] += value
             else:
-                self.targets[i].properies[propName] = propVal
+                self.targets[i].properies[identifier] = value
 
-    def _cmake_set_target_properties(self, tline: CMakeTraceLine):
+    def _cmake_set_target_properties(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/set_target_properties.html
         args = list(tline.args)
 
         targets = []
-        while len(args) > 0:
+        while args:
             curr = args.pop(0)
             if curr == 'PROPERTIES':
                 break
 
             targets.append(curr)
 
-        if (len(args) % 2) != 0:
-            raise self._gen_exception('CMake: set_target_properties() uneven number of property arguments\n{}'.format(tline))
+        # Now we need to try to reconsitute the original quoted format of the
+        # arguments, as a property value could have spaces in it. Unlike
+        # set_property() this is not context free. There are two approaches I
+        # can think of, both have drawbacks:
+        #
+        #   1. Assume that the property will be capitalized, this is convention
+        #      but cmake doesn't require it.
+        #   2. Maintain a copy of the list here: https://cmake.org/cmake/help/latest/manual/cmake-properties.7.html#target-properties
+        #
+        # Neither of these is awesome for obvious reasons. I'm going to try
+        # option 1 first and fall back to 2, as 1 requires less code and less
+        # synchroniztion for cmake changes.
 
-        while len(args) > 0:
-            propName = args.pop(0)
-            propVal = args.pop(0).split(';')
-            propVal = list(filter(lambda x: len(x) > 0, propVal))
+        arglist = []  # type: typing.List[typing.Tuple[str, typing.List[str]]]
+        name = args.pop(0)
+        values = []
+        for a in args:
+            if a.isupper():
+                if values:
+                    arglist.append((name, ' '.join(values).split(';')))
+                name = a
+                values = []
+            else:
+                values.append(a)
+        if values:
+            arglist.append((name, ' '.join(values).split(';')))
 
-            if len(propVal) == 0:
-                continue
-
+        for name, value in arglist:
             for i in targets:
                 if i not in self.targets:
                     raise self._gen_exception('CMake: set_target_properties() TARGET {} not found\n{}'.format(i, tline))
 
-                self.targets[i].properies[propName] = propVal
+                self.targets[i].properies[name] = value
 
     def _lex_trace(self, trace):
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'

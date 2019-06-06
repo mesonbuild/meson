@@ -163,6 +163,20 @@ def skipIfNoPkgconfigDep(depname):
         return wrapped
     return wrapper
 
+def skip_if_no_cmake(f):
+    '''
+    Skip this test if no cmake is found, unless we're on CI.
+    This allows users to run our test suite without having
+    cmake installed on, f.ex., macOS, while ensuring that our CI does not
+    silently skip the test because of misconfiguration.
+    '''
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        if not is_ci() and shutil.which('cmake') is None:
+            raise unittest.SkipTest('cmake not found')
+        return f(*args, **kwargs)
+    return wrapped
+
 def skip_if_not_language(lang):
     def wrapper(func):
         @functools.wraps(func)
@@ -1074,7 +1088,10 @@ class DataTests(unittest.TestCase):
                         found_entries |= arches
             break
 
-        self.assertEqual(found_entries, set(mesonbuild.coredata.builtin_options.keys()))
+        self.assertEqual(found_entries, set([
+            *mesonbuild.coredata.builtin_options.keys(),
+            *mesonbuild.coredata.builtin_options_per_machine.keys()
+        ]))
 
     def test_cpu_families_documented(self):
         with open("docs/markdown/Reference-tables.md") as f:
@@ -3662,6 +3679,16 @@ recommended as it is not supported on some platforms''')
         # just test that the command does not fail (e.g. because it throws an exception)
         self._run([*self.meson_command, 'unstable-coredata', self.builddir])
 
+    @skip_if_no_cmake
+    def test_cmake_prefix_path(self):
+        testdir = os.path.join(self.unit_test_dir, '60 cmake_prefix_path')
+        self.init(testdir, extra_args=['-Dcmake_prefix_path=' + os.path.join(testdir, 'prefix')])
+
+    @skip_if_no_cmake
+    def test_cmake_parser(self):
+        testdir = os.path.join(self.unit_test_dir, '61 cmake parser')
+        self.init(testdir, extra_args=['-Dcmake_prefix_path=' + os.path.join(testdir, 'prefix')])
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically
@@ -5169,8 +5196,15 @@ endian = 'little'
     @skipIfNoPkgconfig
     def test_pkg_config_option(self):
         testdir = os.path.join(self.unit_test_dir, '55 pkg_config_path option')
-        self.init(testdir, extra_args=['-Dpkg_config_path=' + os.path.join(testdir, 'extra_path')])
+        self.init(testdir, extra_args=['-Dpkg_config_path=' + os.path.join(testdir, 'host_extra_path')])
 
+    def test_std_remains(self):
+        # C_std defined in project options must be in effect also when native compiling.
+        testdir = os.path.join(self.unit_test_dir, '50 std remains')
+        self.init(testdir)
+        compdb = self.get_compdb()
+        self.assertRegex(compdb[0]['command'], '-std=c99')
+        self.build()
 
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
@@ -5223,6 +5257,14 @@ class LinuxCrossArmTests(BasePlatformTests):
                 return
         self.assertTrue(False, 'Option libdir not in introspect data.')
 
+    def test_std_remains(self):
+        # C_std defined in project options must be in effect also when cross compiling.
+        testdir = os.path.join(self.unit_test_dir, '50 std remains')
+        self.init(testdir)
+        compdb = self.get_compdb()
+        self.assertRegex(compdb[0]['command'], '-std=c99')
+        self.build()
+
 
 def should_run_cross_mingw_tests():
     return shutil.which('x86_64-w64-mingw32-gcc') and not (is_windows() or is_cygwin())
@@ -5270,7 +5312,10 @@ class LinuxCrossMingwTests(BasePlatformTests):
     @skipIfNoPkgconfig
     def test_cross_pkg_config_option(self):
         testdir = os.path.join(self.unit_test_dir, '55 pkg_config_path option')
-        self.init(testdir, extra_args=['-Dcross_pkg_config_path=' + os.path.join(testdir, 'extra_path')])
+        self.init(testdir, extra_args=[
+            '-Dbuild.pkg_config_path=' + os.path.join(testdir, 'build_extra_path'),
+            '-Dpkg_config_path=' + os.path.join(testdir, 'host_extra_path'),
+        ])
 
 
 class PythonTests(BasePlatformTests):

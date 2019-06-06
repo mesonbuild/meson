@@ -323,6 +323,12 @@ class MachineChoice(OrderedEnum):
     BUILD = 0
     HOST = 1
 
+    def get_lower_case_name(self):
+        return PerMachine('build', 'host')[self]
+
+    def get_prefix(self):
+        return PerMachine('build.', '')[self]
+
 
 class PerMachine(typing.Generic[_T]):
     def __init__(self, build: _T, host: _T):
@@ -336,11 +342,7 @@ class PerMachine(typing.Generic[_T]):
         }[machine]
 
     def __setitem__(self, machine: MachineChoice, val: _T) -> None:
-        key = {
-            MachineChoice.BUILD:  'build',
-            MachineChoice.HOST:   'host',
-        }[machine]
-        setattr(self, key, val)
+        setattr(self, machine.get_lower_case_name(), val)
 
     def miss_defaulting(self) -> "PerMachineDefaultable[typing.Optional[_T]]":
         """Unset definition duplicated from their previous to None
@@ -770,9 +772,9 @@ def default_prefix():
 
 def get_library_dirs() -> List[str]:
     if is_windows():
-        return ['C:/mingw/lib'] # Fixme
+        return ['C:/mingw/lib'] # TODO: get programatically
     if is_osx():
-        return ['/usr/lib'] # Fix me as well.
+        return ['/usr/lib'] # TODO: get programatically
     # The following is probably Debian/Ubuntu specific.
     # /usr/local/lib is first because it contains stuff
     # installed by the sysadmin and is probably more up-to-date
@@ -788,6 +790,8 @@ def get_library_dirs() -> List[str]:
         plat = 'i386'
     elif machine.startswith('arm'):
         plat = 'arm'
+    else:
+        plat = ''
 
     unixdirs += [str(x) for x in (Path('/usr/lib/') / plat).iterdir() if x.is_dir()]
     if os.path.exists('/usr/lib64'):
