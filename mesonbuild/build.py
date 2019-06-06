@@ -1473,8 +1473,9 @@ class Executable(BuildTarget):
         # If using export_dynamic, set the import library name
         if self.export_dynamic:
             implib_basename = self.name + '.exe'
-            if not isinstance(kwargs.get('implib', False), bool):
-                implib_basename = kwargs['implib']
+            implib_arg = kwargs.get('implib', False)
+            if not isinstance(implib_arg, bool):
+                implib_basename = implib_arg
             if for_windows(is_cross, environment) or for_cygwin(is_cross, environment):
                 self.vs_import_filename = '{0}.lib'.format(implib_basename)
                 self.gcc_import_filename = 'lib{0}.a'.format(implib_basename)
@@ -1482,6 +1483,8 @@ class Executable(BuildTarget):
                     self.import_filename = self.vs_import_filename
                 else:
                     self.import_filename = self.gcc_import_filename
+            elif implib_arg:
+                self.import_filename = implib_basename
 
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
