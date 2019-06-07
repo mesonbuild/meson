@@ -22,7 +22,7 @@ from ..build import Build
 from ..environment import Environment
 from ..mparser import Token, BaseNode, CodeBlockNode, FunctionNode, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, StringNode, IdNode, MethodNode
 from ..backend.backends import Backend
-from ..compilers.compilers import obj_suffixes
+from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes
 from ..dependencies.base import CMakeDependency, ExternalProgram
 from subprocess import Popen, PIPE, STDOUT
 from typing import List, Dict, Optional
@@ -56,8 +56,6 @@ target_type_map = {
 }
 
 skip_targets = ['UTILITY']
-
-skip_input_extensions = ['.rule']
 
 blacklist_compiler_flags = [
     '/W1', '/W2', '/W3', '/W4', '/Wall',
@@ -184,23 +182,37 @@ class ConverterTarget:
         self.link_libraries = temp
 
         # Make paths relative
-        def rel_path(x: str) -> str:
+        def rel_path(x: str, is_header: bool) -> Optional[str]:
             if not os.path.isabs(x):
                 x = os.path.normpath(os.path.join(self.src_dir, x))
+            if not os.path.exists(x) and not any([x.endswith(y) for y in obj_suffixes]):
+                mlog.warning('CMake: path', mlog.bold(x), 'does not exist. Ignoring. This can lead to build errors')
+                return None
+            if os.path.isabs(x) and os.path.commonpath([x, self.env.get_build_dir()]) == self.env.get_build_dir():
+                if is_header:
+                    return os.path.relpath(x, os.path.join(self.env.get_build_dir(), subdir))
+                else:
+                    return os.path.relpath(x, root_src_dir)
             if os.path.isabs(x) and os.path.commonpath([x, root_src_dir]) == root_src_dir:
                 return os.path.relpath(x, root_src_dir)
-            if os.path.isabs(x) and os.path.commonpath([x, self.env.get_build_dir()]) == self.env.get_build_dir():
-                return os.path.relpath(x, os.path.join(self.env.get_build_dir(), subdir))
             return x
 
         build_dir_rel = os.path.relpath(self.build_dir, os.path.join(self.env.get_build_dir(), subdir))
-        self.includes = list(set([rel_path(x) for x in set(self.includes)] + [build_dir_rel]))
-        self.sources = [rel_path(x) for x in self.sources]
-        self.generated = [rel_path(x) for x in self.generated]
+        self.includes = list(set([rel_path(x, True) for x in set(self.includes)] + [build_dir_rel]))
+        self.sources = [rel_path(x, False) for x in self.sources]
+        self.generated = [rel_path(x, False) for x in self.generated]
 
-        # Filter out CMake rule files
-        self.sources = [x for x in self.sources if not any([x.endswith(y) for y in skip_input_extensions])]
-        self.generated = [x for x in self.generated if not any([x.endswith(y) for y in skip_input_extensions])]
+        self.includes = [x for x in self.includes if x is not None]
+        self.sources = [x for x in self.sources if x is not None]
+        self.generated = [x for x in self.generated if x is not None]
+
+        # Filter out files that are not supported by the language
+        supported = list(header_suffixes) + list(obj_suffixes)
+        for i in self.languages:
+            supported += list(lang_suffixes[i])
+        supported = ['.{}'.format(x) for x in supported]
+        self.sources = [x for x in self.sources if any([x.endswith(y) for y in supported])]
+        self.generated = [x for x in self.generated if any([x.endswith(y) for y in supported])]
 
         # Make sure '.' is always in the include directories
         if '.' not in self.includes:
