@@ -23,8 +23,6 @@ import shlex
 import shutil
 import textwrap
 import platform
-import itertools
-import ctypes
 import typing
 from typing import Any, Dict, List, Tuple
 from enum import Enum
@@ -34,6 +32,7 @@ from .. import mlog
 from .. import mesonlib
 from ..compilers import clib_langs
 from ..environment import BinaryTable, Environment, MachineInfo
+from ..cmake import CMakeExecutor, CMakeException
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list
 from ..mesonlib import Version, LibType
@@ -990,11 +989,7 @@ class CMakeTarget:
 class CMakeDependency(ExternalDependency):
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_cmakebin = PerMachine(None, None)
-    class_cmakevers = PerMachine(None, None)
     class_cmakeinfo = PerMachine(None, None)
-    # We cache all pkg-config subprocess invocations to avoid redundant calls
-    cmake_cache = {}
     # Version string for the minimum CMake version
     class_cmake_version = '>=3.4'
     # CMake generators to try (empty for no generator)
@@ -1029,7 +1024,6 @@ class CMakeDependency(ExternalDependency):
         # Store a copy of the CMake path on the object itself so it is
         # stored in the pickled coredata and recovered.
         self.cmakebin = None
-        self.cmakevers = None
         self.cmakeinfo = None
 
         # Dict of CMake variables: '<var_name>': ['list', 'of', 'values']
@@ -1044,10 +1038,10 @@ class CMakeDependency(ExternalDependency):
         # List of successfully found modules
         self.found_modules = []
 
-        self.cmakebin, self.cmakevers, for_machine = self.find_cmake_binary(environment, self.for_machine, self.silent)
-        if self.cmakebin is False:
+        self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, self.for_machine, silent=self.silent)
+        if not self.cmakebin.found():
             self.cmakebin = None
-            msg = 'No CMake binary for machine %s not found. Giving up.' % for_machine
+            msg = 'No CMake binary for machine %s not found. Giving up.' % self.for_machine
             if self.required:
                 raise DependencyException(msg)
             mlog.debug(msg)
@@ -1074,57 +1068,6 @@ class CMakeDependency(ExternalDependency):
         if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[self.for_machine]):
             return
         self._detect_dep(name, modules, cm_args)
-
-    @classmethod
-    def find_cmake_binary(cls, environment: Environment, for_machine: MachineChoice, silent: bool = False) -> Tuple[str, str, MachineChoice]:
-        # Create an iterator of options
-        def search():
-            # Lookup in cross or machine file.
-            potential_cmakepath = environment.binaries[for_machine].lookup_entry('cmake')
-            if potential_cmakepath is not None:
-                mlog.debug('CMake binary for %s specified from cross file, native file, or env var as %s.', for_machine, potential_cmakepath)
-                yield ExternalProgram.from_entry('cmake', potential_cmakepath)
-                # We never fallback if the user-specified option is no good, so
-                # stop returning options.
-                return
-            mlog.debug('CMake binary missing from cross or native file, or env var undefined.')
-            # Fallback on hard-coded defaults.
-            # TODO prefix this for the cross case instead of ignoring thing.
-            if environment.machines.matches_build_machine(for_machine):
-                for potential_cmakepath in environment.default_cmake:
-                    mlog.debug('Trying a default CMake fallback at', potential_cmakepath)
-                    yield ExternalProgram(potential_cmakepath, silent=True)
-
-        # Only search for CMake the first time and store the result in the class
-        # definition
-        if CMakeDependency.class_cmakebin[for_machine] is False:
-            mlog.debug('CMake binary for %s is cached as not found' % for_machine)
-        elif CMakeDependency.class_cmakebin[for_machine] is not None:
-            mlog.debug('CMake binary for %s is cached.' % for_machine)
-        else:
-            assert CMakeDependency.class_cmakebin[for_machine] is None
-            mlog.debug('CMake binary for %s is not cached' % for_machine)
-            for potential_cmakebin in search():
-                mlog.debug('Trying CMake binary {} for machine {} at {}'
-                           .format(potential_cmakebin.name, for_machine, potential_cmakebin.command))
-                version_if_ok = cls.check_cmake(potential_cmakebin)
-                if not version_if_ok:
-                    continue
-                if not silent:
-                    mlog.log('Found CMake:', mlog.bold(potential_cmakebin.get_path()),
-                             '(%s)' % version_if_ok)
-                CMakeDependency.class_cmakebin[for_machine] = potential_cmakebin
-                CMakeDependency.class_cmakevers[for_machine] = version_if_ok
-                break
-            else:
-                if not silent:
-                    mlog.log('Found CMake:', mlog.red('NO'))
-                # Set to False instead of None to signify that we've already
-                # searched for it and not found it
-                CMakeDependency.class_cmakebin[for_machine] = False
-                CMakeDependency.class_cmakevers[for_machine] = None
-
-        return CMakeDependency.class_cmakebin[for_machine], CMakeDependency.class_cmakevers[for_machine], for_machine
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
@@ -1305,7 +1248,7 @@ class CMakeDependency(ExternalDependency):
         # parameters to stderr as they are executed. Since CMake 3.4.0
         # variables ("${VAR}") are also replaced in the trace output.
         mlog.debug('\nDetermining dependency {!r} with CMake executable '
-                   '{!r}'.format(name, self.cmakebin.get_path()))
+                   '{!r}'.format(name, self.cmakebin.executable_path()))
 
         # Try different CMake generators since specifying no generator may fail
         # in cygwin for some reason
@@ -1741,41 +1684,6 @@ class CMakeDependency(ExternalDependency):
 
             yield CMakeTraceLine(file, line, func, args)
 
-    def _reset_cmake_cache(self, build_dir):
-        with open('{}/CMakeCache.txt'.format(build_dir), 'w') as fp:
-            fp.write('CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1\n')
-
-    def _setup_compiler(self, build_dir):
-        comp_dir = '{}/CMakeFiles/{}'.format(build_dir, self.cmakevers)
-        os.makedirs(comp_dir, exist_ok=True)
-
-        c_comp = '{}/CMakeCCompiler.cmake'.format(comp_dir)
-        cxx_comp = '{}/CMakeCXXCompiler.cmake'.format(comp_dir)
-
-        if not os.path.exists(c_comp):
-            with open(c_comp, 'w') as fp:
-                fp.write('''# Fake CMake file to skip the boring and slow stuff
-set(CMAKE_C_COMPILER "{}") # Just give CMake a valid full path to any file
-set(CMAKE_C_COMPILER_ID "GNU") # Pretend we have found GCC
-set(CMAKE_COMPILER_IS_GNUCC 1)
-set(CMAKE_C_COMPILER_LOADED 1)
-set(CMAKE_C_COMPILER_WORKS TRUE)
-set(CMAKE_C_ABI_COMPILED TRUE)
-set(CMAKE_SIZEOF_VOID_P "{}")
-'''.format(os.path.realpath(__file__), ctypes.sizeof(ctypes.c_voidp)))
-
-        if not os.path.exists(cxx_comp):
-            with open(cxx_comp, 'w') as fp:
-                fp.write('''# Fake CMake file to skip the boring and slow stuff
-set(CMAKE_CXX_COMPILER "{}") # Just give CMake a valid full path to any file
-set(CMAKE_CXX_COMPILER_ID "GNU") # Pretend we have found GCC
-set(CMAKE_COMPILER_IS_GNUCXX 1)
-set(CMAKE_CXX_COMPILER_LOADED 1)
-set(CMAKE_CXX_COMPILER_WORKS TRUE)
-set(CMAKE_CXX_ABI_COMPILED TRUE)
-set(CMAKE_SIZEOF_VOID_P "{}")
-'''.format(os.path.realpath(__file__), ctypes.sizeof(ctypes.c_voidp)))
-
     def _setup_cmake_dir(self, cmake_file: str) -> str:
         # Setup the CMake build environment and return the "build" directory
         build_dir = '{}/cmake_{}'.format(self.cmake_root_dir, self.name)
@@ -1789,67 +1697,15 @@ set(CMAKE_SIZEOF_VOID_P "{}")
             os.remove(cmake_lists)
         shutil.copyfile(src_cmake, cmake_lists)
 
-        self._setup_compiler(build_dir)
-        self._reset_cmake_cache(build_dir)
         return build_dir
 
-    def _call_cmake_real(self, args, cmake_file: str, env):
-        build_dir = self._setup_cmake_dir(cmake_file)
-        cmd = self.cmakebin.get_command() + args
-        p, out, err = Popen_safe(cmd, env=env, cwd=build_dir)
-        rc = p.returncode
-        call = ' '.join(cmd)
-        mlog.debug("Called `{}` in {} -> {}".format(call, build_dir, rc))
-
-        return rc, out, err
-
     def _call_cmake(self, args, cmake_file: str, env=None):
-        if env is None:
-            fenv = env
-            env = os.environ
-        else:
-            fenv = frozenset(env.items())
-        targs = tuple(args)
-
-        # First check if cached, if not call the real cmake function
-        cache = CMakeDependency.cmake_cache
-        if (self.cmakebin, targs, cmake_file, fenv) not in cache:
-            cache[(self.cmakebin, targs, cmake_file, fenv)] = self._call_cmake_real(args, cmake_file, env)
-        return cache[(self.cmakebin, targs, cmake_file, fenv)]
+        build_dir = self._setup_cmake_dir(cmake_file)
+        return self.cmakebin.call_with_fake_build(args, build_dir, env=env)
 
     @staticmethod
     def get_methods():
         return [DependencyMethods.CMAKE]
-
-    @staticmethod
-    def check_cmake(cmakebin):
-        if not cmakebin.found():
-            mlog.log('Did not find CMake {!r}'.format(cmakebin.name))
-            return None
-        try:
-            p, out = Popen_safe(cmakebin.get_command() + ['--version'])[0:2]
-            if p.returncode != 0:
-                mlog.warning('Found CMake {!r} but couldn\'t run it'
-                             ''.format(' '.join(cmakebin.get_command())))
-                return None
-        except FileNotFoundError:
-            mlog.warning('We thought we found CMake {!r} but now it\'s not there. How odd!'
-                         ''.format(' '.join(cmakebin.get_command())))
-            return None
-        except PermissionError:
-            msg = 'Found CMake {!r} but didn\'t have permissions to run it.'.format(' '.join(cmakebin.get_command()))
-            if not mesonlib.is_windows():
-                msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
-            mlog.warning(msg)
-            return None
-        cmvers = re.sub(r'\s*cmake version\s*', '', out.split('\n')[0]).strip()
-        if not version_compare(cmvers, CMakeDependency.class_cmake_version):
-            mlog.warning(
-                'The version of CMake', mlog.bold(cmakebin.get_path()),
-                'is', mlog.bold(cmvers), 'but version', mlog.bold(CMakeDependency.class_cmake_version),
-                'is required')
-            return None
-        return cmvers
 
     def log_tried(self):
         return self.type_name

@@ -16,8 +16,8 @@
 # or an interpreter-based tool.
 
 from .common import CMakeException
+from .executor import CMakeExecutor
 from ..environment import Environment
-from ..dependencies.base import CMakeDependency, ExternalProgram
 from ..mesonlib import MachineChoice
 from .. import mlog
 from contextlib import contextmanager
@@ -475,14 +475,11 @@ class CMakeClient:
         if self.proc is not None:
             raise CMakeException('The CMake server was already started')
         for_machine = MachineChoice.HOST # TODO make parameter
-        cmake_exe, cmake_vers, _ = CMakeDependency.find_cmake_binary(self.env, for_machine)
-        if cmake_exe is None or cmake_exe is False:
-            raise CMakeException('Unable to find CMake')
-        assert(isinstance(cmake_exe, ExternalProgram))
+        cmake_exe = CMakeExecutor(self.env, '>=3.7', for_machine)
         if not cmake_exe.found():
             raise CMakeException('Unable to find CMake')
 
-        mlog.debug('Starting CMake server with CMake', mlog.bold(' '.join(cmake_exe.get_command())), 'version', mlog.cyan(cmake_vers))
+        mlog.debug('Starting CMake server with CMake', mlog.bold(' '.join(cmake_exe.get_command())), 'version', mlog.cyan(cmake_exe.version()))
         self.proc = Popen(cmake_exe.get_command() + ['-E', 'server', '--experimental', '--debug'], stdin=PIPE, stdout=PIPE)
 
     def shutdown(self) -> None:

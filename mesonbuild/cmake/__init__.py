@@ -17,10 +17,12 @@
 
 __all__ = [
     'CMakeClient',
+    'CMakeExecutor',
     'CMakeException',
     'CMakeInterpreter',
 ]
 
 from .common import CMakeException
 from .client import CMakeClient
+from .executor import CMakeExecutor
 from .interpreter import CMakeInterpreter
