@@ -292,7 +292,7 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
     def get_options(self):
         opts = super().get_options()
         c_stds = ['none', 'c89', 'c99', 'c11']
-        opts.update({'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
+        opts.update({'c_std': coredata.UserComboOption('C language standard to use',
                                                        c_stds,
                                                        'none')})
         return opts

@@ -52,30 +52,36 @@ on Linux platforms.
 
 ### Core options
 
-Options that have a separate cross option will be prefixed with
-cross\_, for example, "cross_pkg_config_path" controls the paths
-pkg-config will search for host dependencies in a cross compile.
-They have no effect when the host and build machines are the same.
+Options that are labled "per machine" in the table are set per machine.
+Prefixing the option with `build.` just affects the build machine configuration,
+while unprefixed just affects the host machine configuration, respectively.
+Using the option as-is with no prefix affects all machines. For example:
 
+ - `build.pkg_config_path` controls the paths pkg-config will search for just
+   `native: true` dependencies (build machine).
 
-| Option                               | Default value | Description                                                    | Has Separate cross |
-| ------                               | ------------- | -----------                                                    | ------------------ |
-| auto_features {enabled, disabled, auto} | auto       | Override value of all 'auto' features                          | no                 |
-| backend {ninja, vs,<br>vs2010, vs2015, vs2017, xcode} | ninja | Backend to use                                        | no                 |
-| buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug |  Build type to use                    | no                 |
-| debug                                | true          | Debug                                                          | no                 |
-| default_library {shared, static, both} | shared      | Default library type                                           | no                 |
-| errorlogs                            | true          | Whether to print the logs from failing tests.                  | no                 |
-| install_umask {preserve, 0000-0777}  | 022           | Default umask to apply on permissions of installed files       | no                 |
-| layout {mirror,flat}                 | mirror        | Build directory layout                                         | no                 |
-| optimization {0, g, 1, 2, 3, s}      | 0             | Optimization level                                             | no                 |
-| pkg_config_path {OS separated path}  | ''            | Additional paths for pkg-config to search before builtin paths | yes                |
-| stdsplit                             | true          | Split stdout and stderr in test logs                           | no                 |
-| strip                                | false         | Strip targets on install                                       | no                 |
-| unity {on, off, subprojects}         | off           | Unity build                                                    | no                 |
-| warning_level {0, 1, 2, 3}           | 1             | Set the warning level. From 0 = none to 3 = highest            | no                 |
-| werror                               | false         | Treat warnings as errors                                       | no                 |
-| wrap_mode {default, nofallback,<br>nodownload, forcefallback} | default | Wrap mode to use                            | no                 |
+ - `pkg_config_path` controls the paths pkg-config will search for just
+   `native: false` dependencies (host machine).
+
+| Option                               | Default value | Description                                                    | Is per machine |
+| ------                               | ------------- | -----------                                                    | -------------- |
+| auto_features {enabled, disabled, auto} | auto       | Override value of all 'auto' features                          | no             |
+| backend {ninja, vs,<br>vs2010, vs2015, vs2017, xcode} | ninja | Backend to use                                        | no             |
+| buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug |  Build type to use                    | no             |
+| debug                                | true          | Debug                                                          | no             |
+| default_library {shared, static, both} | shared      | Default library type                                           | no             |
+| errorlogs                            | true          | Whether to print the logs from failing tests.                  | no             |
+| install_umask {preserve, 0000-0777}  | 022           | Default umask to apply on permissions of installed files       | no             |
+| layout {mirror,flat}                 | mirror        | Build directory layout                                         | no             |
+| optimization {0, g, 1, 2, 3, s}      | 0             | Optimization level                                             | no             |
+| pkg_config_path {OS separated path}  | ''            | Additional paths for pkg-config to search before builtin paths | yes            |
+| cmake_prefix_path                    | []            | Additional prefixes for cmake to search before builtin paths   | yes            |
+| stdsplit                             | true          | Split stdout and stderr in test logs                           | no             |
+| strip                                | false         | Strip targets on install                                       | no             |
+| unity {on, off, subprojects}         | off           | Unity build                                                    | no             |
+| warning_level {0, 1, 2, 3}           | 1             | Set the warning level. From 0 = none to 3 = highest            | no             |
+| werror                               | false         | Treat warnings as errors                                       | no             |
+| wrap_mode {default, nofallback,<br>nodownload, forcefallback} | default | Wrap mode to use                            | no             |
 
 ## Base options
 

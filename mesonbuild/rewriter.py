@@ -447,7 +447,7 @@ class Rewriter:
         # First, remove the old values
         kwargs_cmd = {
             'function': 'project',
-            'id': "",
+            'id': "/",
             'operation': 'remove_regex',
             'kwargs': {
                 'default_options': ['{}=.*'.format(x) for x in cmd['options'].keys()]
@@ -465,10 +465,13 @@ class Rewriter:
         cdata = self.interpreter.coredata
         options = {
             **cdata.builtins,
+            **cdata.builtins_per_machine.host,
+            **{'build.' + k: o for k, o in cdata.builtins_per_machine.build.items()},
             **cdata.backend_options,
             **cdata.base_options,
-            **cdata.compiler_options.build,
-            **cdata.user_options
+            **cdata.compiler_options.host,
+            **{'build.' + k: o for k, o in cdata.compiler_options.build.items()},
+            **cdata.user_options,
         }
 
         for key, val in sorted(cmd['options'].items()):
@@ -502,7 +505,7 @@ class Rewriter:
         if cmd['function'] == 'project':
             if cmd['id'] != '/':
                 mlog.error('The ID for the function type project must be "/"', *self.on_error())
-                self.handle_error()
+                return self.handle_error()
             node = self.interpreter.project_node
             arg_node = node.args
         elif cmd['function'] == 'target':
