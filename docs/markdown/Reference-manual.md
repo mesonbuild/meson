@@ -109,7 +109,8 @@ the following:
   If `true`, the setup will be used whenever `meson test` is run
   without the `--setup` option. Since 0.49.0
 
-To use the test setup, run `meson test --setup=*name*` inside the build dir.
+To use the test setup, run `meson test --setup=*name*` inside the
+build dir.
 
 Note that all these options are also available while running the
 `meson test` script for running tests instead of `ninja test` or
@@ -147,8 +148,8 @@ object files will be reused to build both shared and static libraries,
 unless `b_staticpic` user option or `pic` argument are set to false in
 which case sources will be compiled twice.
 
-The returned [buildtarget](#build-target-object) always represents the shared
-library. In addition it supports the following extra methods:
+The returned [buildtarget](#build-target-object) always represents the
+shared library. In addition it supports the following extra methods:
 
 - `get_shared_lib()` returns the shared library build target
 - `get_static_lib()` returns the static library build target
@@ -197,9 +198,9 @@ Creates an empty configuration object. You should add your
 configuration with [its method calls](#configuration-data-object) and
 finally use it in a call to `configure_file`.
 
-Since *0.49.0* takes an optional dictionary as first argument. If provided, each
-key/value pair is added into the `configuration_data` as if `set()` method was
-called for each of them.
+Since *0.49.0* takes an optional dictionary as first argument. If
+provided, each key/value pair is added into the `configuration_data`
+as if `set()` method was called for each of them.
 
 ### configure_file()
 
@@ -214,8 +215,9 @@ When a [`configuration_data()`](#configuration_data) object is passed
 to the `configuration:` keyword argument, it takes a template file as
 the `input:` (optional) and produces the `output:` (required) by
 substituting values from the configuration data as detailed in [the
-configuration file documentation](Configuration.md). Since *0.49.0* a dictionary
-can be passed instead of a [`configuration_data()`](#configuration_data) object.
+configuration file documentation](Configuration.md). Since *0.49.0* a
+dictionary can be passed instead of a
+[`configuration_data()`](#configuration_data) object.
 
 When a list of strings is passed to the `command:` keyword argument,
 it takes any source or configured file as the `input:` and assumes
@@ -387,10 +389,12 @@ keyword arguments.
 ```
 
 Finds an external dependency (usually a library installed on your
-system) with the given name with `pkg-config` and [with CMake](Dependencies.md#CMake)
-if `pkg-config` fails. Additionally, frameworks (OSX only) and
-[library-specific fallback detection logic](Dependencies.md#dependencies-with-custom-lookup-functionality)
-are also supported. This function supports the following keyword arguments:
+system) with the given name with `pkg-config` and [with
+CMake](Dependencies.md#CMake) if `pkg-config` fails. Additionally,
+frameworks (OSX only) and [library-specific fallback detection
+logic](Dependencies.md#dependencies-with-custom-lookup-functionality)
+are also supported. This function supports the following keyword
+arguments:
 
 - `default_options` *(added 0.37.0)* an array of default option values
   that override those set in the subproject's `meson_options.txt`
@@ -439,14 +443,15 @@ dependencies such as Qt5 or Boost. )
   [disabler object](#disabler-object) instead of a not-found dependency.
   *Since 0.49.0*
 
-If dependency_name is `''`, the dependency is always not found.  So with
-`required: false`, this always returns a dependency object for which the
-`found()` method returns `false`, and which can be passed like any other
-dependency to the `dependencies:` keyword argument of a `build_target`.  This
-can be used to implement a dependency which is sometimes not required e.g. in
-some branches of a conditional, or with a `fallback:` kwarg, can be used to
-declare an optional dependency that only looks in the specified subproject,
-and only if that's allowed by `--wrap-mode`.
+If dependency_name is `''`, the dependency is always not found.  So
+with `required: false`, this always returns a dependency object for
+which the `found()` method returns `false`, and which can be passed
+like any other dependency to the `dependencies:` keyword argument of a
+`build_target`.  This can be used to implement a dependency which is
+sometimes not required e.g. in some branches of a conditional, or with
+a `fallback:` kwarg, can be used to declare an optional dependency
+that only looks in the specified subproject, and only if that's
+allowed by `--wrap-mode`.
 
 The returned object also has methods that are documented in the
 [object methods section](#dependency-object) below.
@@ -469,8 +474,8 @@ Print the argument string and halts the build process.
     environment_object environment()
 ```
 
-Returns an empty [environment variable object](#environment-object). Added in
-0.35.0.
+Returns an empty [environment variable
+object](#environment-object). Added in 0.35.0.
 
 ### executable()
 
@@ -2188,12 +2193,13 @@ an external dependency with the following methods:
    - sources: any compiled or static sources the dependency has
 
  - `get_variable(cmake : str, pkgconfig : str, configtool : str,
-   default_value : str, pkgconfig_define : [str, str]) *(Added in 0.51.0)* A
-   generic variable getter method, which repalces the get_*type*_variable
-   methods. This allows one to get the variable from a dependency without
-   knowing specifically how that dependency was found. If default_value is set and
-   the value cannot be gotten from the object then default_value is returned,
-   if it is not set then an error is raised.
+   default_value : str, pkgconfig_define : [str, str]) *(Added in
+   0.51.0)* A generic variable getter method, which repalces the
+   get_*type*_variable methods. This allows one to get the variable
+   from a dependency without knowing specifically how that dependency
+   was found. If default_value is set and the value cannot be gotten
+   from the object then default_value is returned, if it is not set
+   then an error is raised.
 
 ### `disabler` object
 
@@ -2232,8 +2238,8 @@ tests and other functions. It has the following methods.
   separator for the host operating system will be used, i.e. ';' for
   Windows and ':' for UNIX/POSIX systems.
 
-- `prepend(varname, value1, value2, ...)` is the same as `append` except that it
-  writes to the beginning of the variable
+- `prepend(varname, value1, value2, ...)` is the same as `append`
+  except that it writes to the beginning of the variable
 
 - `set(varname, value1, value2)` sets the environment variable
   specified in the first argument to the values in the second argument
@@ -2288,9 +2294,10 @@ opaque object representing it.
 - `found()` *(added 0.48.0)* which returns whether the subproject was
   successfully setup
 
-- `get_variable(name, fallback)` fetches the specified variable from inside the
-  subproject. This is useful to, for instance, get a [declared
-  dependency](#declare_dependency) from the [subproject](Subprojects.md).
+- `get_variable(name, fallback)` fetches the specified variable from
+  inside the subproject. This is useful to, for instance, get a
+  [declared dependency](#declare_dependency) from the
+  [subproject](Subprojects.md).
 
   If the variable does not exist, the variable `fallback` is returned.
   If a fallback is not specified, then attempting to read a non-existing

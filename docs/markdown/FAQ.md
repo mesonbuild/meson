@@ -99,7 +99,8 @@ for i in *.c; do
 done
 ```
 
-Then you need to run this script in your Meson file, convert the output into a string array and use the result in a target.
+Then you need to run this script in your Meson file, convert the
+output into a string array and use the result in a target.
 
 ```meson
 c = run_command('grabber.sh')
@@ -368,15 +369,17 @@ compiler.
 
 ## Why does building my project with MSVC output static libraries called `libfoo.a`?
 
-The naming convention for static libraries on Windows is usually `foo.lib`.
-Unfortunately, import libraries are also called `foo.lib`.
+The naming convention for static libraries on Windows is usually
+`foo.lib`.  Unfortunately, import libraries are also called `foo.lib`.
 
-This causes filename collisions with the default library type where we build
-both shared and static libraries, and also causes collisions during
-installation since all libraries are installed to the same directory by default.
+This causes filename collisions with the default library type where we
+build both shared and static libraries, and also causes collisions
+during installation since all libraries are installed to the same
+directory by default.
 
-To resolve this, we decided to default to creating static libraries of the form
-`libfoo.a` when building with MSVC. This has the following advantages:
+To resolve this, we decided to default to creating static libraries of
+the form `libfoo.a` when building with MSVC. This has the following
+advantages:
 
 1. Filename collisions are completely avoided.
 1. The format for MSVC static libraries is `ar`, which is the same as the GNU
