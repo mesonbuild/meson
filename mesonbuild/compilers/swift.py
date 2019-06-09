@@ -27,12 +27,12 @@ swift_optimization_args = {'0': [],
                            }
 
 class SwiftCompiler(Compiler):
-    def __init__(self, exelist, version):
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross):
         self.language = 'swift'
-        super().__init__(exelist, version)
+        super().__init__(exelist, version, for_machine)
         self.version = version
         self.id = 'llvm'
-        self.is_cross = False
+        self.is_cross = is_cross
 
     def get_linker_exelist(self):
         return self.exelist[:]
@@ -102,15 +102,11 @@ class SwiftCompiler(Compiler):
         src = 'swifttest.swift'
         source_name = os.path.join(work_dir, src)
         output_name = os.path.join(work_dir, 'swifttest')
-        if environment.is_cross_build() and not self.is_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-        extra_flags = environment.coredata.get_external_args(for_machine, self.language)
+        extra_flags = environment.coredata.get_external_args(self.for_machine, self.language)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
         else:
-            extra_flags += environment.coredata.get_external_link_args(for_machine, self.language)
+            extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
         with open(source_name, 'w') as ofile:
             ofile.write('''print("Swift compilation is working.")
 ''')

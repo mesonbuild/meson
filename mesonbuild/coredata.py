@@ -365,13 +365,11 @@ class CoreData:
         self.compiler_options = PerMachine({}, {})
         self.base_options = {} # : Dict[str, UserOption]
         self.cross_files = self.__load_config_files(options.cross_file, 'cross')
-        self.compilers = OrderedDict()
-        self.cross_compilers = OrderedDict()
+        self.compilers = PerMachine(OrderedDict(), OrderedDict())
 
         build_cache = DependencyCache(self.builtins_per_machine, MachineChoice.BUILD)
         host_cache = DependencyCache(self.builtins_per_machine, MachineChoice.BUILD)
         self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]
-
         self.compiler_check_cache = OrderedDict()
         # Only to print a warning if it changes between Meson invocations.
         self.config_files = self.__load_config_files(options.native_file, 'native')
@@ -681,35 +679,20 @@ class CoreData:
 
         self.set_options(options, subproject)
 
-    def process_new_compilers(self, lang: str, comp, cross_comp, env):
+    def process_new_compiler(self, lang: str, comp, env):
         from . import compilers
 
-        self.compilers[lang] = comp
-        if cross_comp is not None:
-            self.cross_compilers[lang] = cross_comp
-
-        # Native compiler always exist so always add its options.
-        new_options_for_build = comp.get_and_default_options(env.properties.build)
-        if cross_comp is not None:
-            new_options_for_host = cross_comp.get_and_default_options(env.properties.host)
-        else:
-            new_options_for_host = comp.get_and_default_options(env.properties.host)
-
-        opts_machines_list = [
-            (new_options_for_build, MachineChoice.BUILD),
-            (new_options_for_host, MachineChoice.HOST),
-        ]
+        self.compilers[comp.for_machine][lang] = comp
 
         optprefix = lang + '_'
-        for new_options, for_machine in opts_machines_list:
-            for k, o in new_options.items():
-                if not k.startswith(optprefix):
-                    raise MesonException('Internal error, %s has incorrect prefix.' % k)
-                # prefixed compiler options affect just this machine
-                opt_prefix = for_machine.get_prefix()
-                if opt_prefix + k in env.cmd_line_options:
-                    o.set_value(env.cmd_line_options[opt_prefix + k])
-                self.compiler_options[for_machine].setdefault(k, o)
+        for k, o in comp.get_and_default_options(env.properties[comp.for_machine]).items():
+            if not k.startswith(optprefix):
+                raise MesonException('Internal error, %s has incorrect prefix.' % k)
+            # prefixed compiler options affect just this machine
+            opt_prefix = comp.for_machine.get_prefix()
+            if opt_prefix + k in env.cmd_line_options:
+                o.set_value(env.cmd_line_options[opt_prefix + k])
+            self.compiler_options[comp.for_machine].setdefault(k, o)
 
         enabled_opts = []
         for optname in comp.base_options:

@@ -239,10 +239,13 @@ class InternalDependency(Dependency):
             final_link_args, final_libraries, final_whole_libraries,
             final_sources, final_deps)
 
+class HasNativeKwarg:
+    def __init__(self, kwargs):
+        self.for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
 
-class ExternalDependency(Dependency):
+class ExternalDependency(Dependency, HasNativeKwarg):
     def __init__(self, type_name, environment, language, kwargs):
-        super().__init__(type_name, kwargs)
+        Dependency.__init__(self, type_name, kwargs)
         self.env = environment
         self.name = type_name # default
         self.is_found = False
@@ -255,18 +258,12 @@ class ExternalDependency(Dependency):
         self.static = kwargs.get('static', False)
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')
-        # Is this dependency for cross-compilation?
-        if 'native' in kwargs and self.env.is_cross_build():
-            self.want_cross = not kwargs['native']
-        else:
-            self.want_cross = self.env.is_cross_build()
+        # Is this dependency to be run on the build platform?
+        HasNativeKwarg.__init__(self, kwargs)
         self.clib_compiler = None
         # Set the compiler that will be used by this dependency
         # This is only used for configuration checks
-        if self.want_cross:
-            compilers = self.env.coredata.cross_compilers
-        else:
-            compilers = self.env.coredata.compilers
+        compilers = self.env.coredata.compilers[self.for_machine]
         # Set the compiler for this dependency if a language is specified,
         # else try to pick something that looks usable.
         if self.language:
@@ -372,7 +369,6 @@ class ConfigToolDependency(ExternalDependency):
     def __init__(self, name, environment, language, kwargs):
         super().__init__('config-tool', environment, language, kwargs)
         self.name = name
-        self.native = kwargs.get('native', False)
         self.tools = listify(kwargs.get('tools', self.tools))
 
         req_version = kwargs.get('version', None)
@@ -426,12 +422,11 @@ class ConfigToolDependency(ExternalDependency):
         if not isinstance(versions, list) and versions is not None:
             versions = listify(versions)
 
-        for_machine = MachineChoice.BUILD if self.native else MachineChoice.HOST
-        tool = self.env.binaries[for_machine].lookup_entry(self.tool_name)
+        tool = self.env.binaries[self.for_machine].lookup_entry(self.tool_name)
         if tool is not None:
             tools = [tool]
         else:
-            if self.env.is_cross_build() and not self.native:
+            if not self.env.machines.matches_build_machine(self.for_machine):
                 mlog.deprecation('No entry for {0} specified in your cross file. '
                                  'Falling back to searching PATH. This may find a '
                                  'native version of {0}! This will become a hard '
@@ -561,18 +556,13 @@ class PkgConfigDependency(ExternalDependency):
         # stored in the pickled coredata and recovered.
         self.pkgbin = None
 
-        if not self.want_cross and environment.is_cross_build():
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-
         # Create an iterator of options
         def search():
             # Lookup in cross or machine file.
-            potential_pkgpath = environment.binaries[for_machine].lookup_entry('pkgconfig')
+            potential_pkgpath = environment.binaries[self.for_machine].lookup_entry('pkgconfig')
             if potential_pkgpath is not None:
                 mlog.debug('Pkg-config binary for {} specified from cross file, native file, '
-                           'or env var as {}'.format(for_machine, potential_pkgpath))
+                           'or env var as {}'.format(self.for_machine, potential_pkgpath))
                 yield ExternalProgram.from_entry('pkgconfig', potential_pkgpath)
                 # We never fallback if the user-specified option is no good, so
                 # stop returning options.
@@ -580,42 +570,42 @@ class PkgConfigDependency(ExternalDependency):
             mlog.debug('Pkg-config binary missing from cross or native file, or env var undefined.')
             # Fallback on hard-coded defaults.
             # TODO prefix this for the cross case instead of ignoring thing.
-            if environment.machines.matches_build_machine(for_machine):
+            if environment.machines.matches_build_machine(self.for_machine):
                 for potential_pkgpath in environment.default_pkgconfig:
                     mlog.debug('Trying a default pkg-config fallback at', potential_pkgpath)
                     yield ExternalProgram(potential_pkgpath, silent=True)
 
         # Only search for pkg-config for each machine the first time and store
         # the result in the class definition
-        if PkgConfigDependency.class_pkgbin[for_machine] is False:
-            mlog.debug('Pkg-config binary for %s is cached as not found.' % for_machine)
-        elif PkgConfigDependency.class_pkgbin[for_machine] is not None:
-            mlog.debug('Pkg-config binary for %s is cached.' % for_machine)
+        if PkgConfigDependency.class_pkgbin[self.for_machine] is False:
+            mlog.debug('Pkg-config binary for %s is cached as not found.' % self.for_machine)
+        elif PkgConfigDependency.class_pkgbin[self.for_machine] is not None:
+            mlog.debug('Pkg-config binary for %s is cached.' % self.for_machine)
         else:
-            assert PkgConfigDependency.class_pkgbin[for_machine] is None
-            mlog.debug('Pkg-config binary for %s is not cached.' % for_machine)
+            assert PkgConfigDependency.class_pkgbin[self.for_machine] is None
+            mlog.debug('Pkg-config binary for %s is not cached.' % self.for_machine)
             for potential_pkgbin in search():
                 mlog.debug('Trying pkg-config binary {} for machine {} at {}'
-                           .format(potential_pkgbin.name, for_machine, potential_pkgbin.command))
+                           .format(potential_pkgbin.name, self.for_machine, potential_pkgbin.command))
                 version_if_ok = self.check_pkgconfig(potential_pkgbin)
                 if not version_if_ok:
                     continue
                 if not self.silent:
                     mlog.log('Found pkg-config:', mlog.bold(potential_pkgbin.get_path()),
                              '(%s)' % version_if_ok)
-                PkgConfigDependency.class_pkgbin[for_machine] = potential_pkgbin
+                PkgConfigDependency.class_pkgbin[self.for_machine] = potential_pkgbin
                 break
             else:
                 if not self.silent:
                     mlog.log('Found Pkg-config:', mlog.red('NO'))
                 # Set to False instead of None to signify that we've already
                 # searched for it and not found it
-                PkgConfigDependency.class_pkgbin[for_machine] = False
+                PkgConfigDependency.class_pkgbin[self.for_machine] = False
 
-        self.pkgbin = PkgConfigDependency.class_pkgbin[for_machine]
+        self.pkgbin = PkgConfigDependency.class_pkgbin[self.for_machine]
         if self.pkgbin is False:
             self.pkgbin = None
-            msg = 'Pkg-config binary for machine %s not found. Giving up.' % for_machine
+            msg = 'Pkg-config binary for machine %s not found. Giving up.' % self.for_machine
             if self.required:
                 raise DependencyException(msg)
             else:
@@ -665,12 +655,7 @@ class PkgConfigDependency(ExternalDependency):
         else:
             env = env.copy()
 
-        if not self.want_cross and self.env.is_cross_build():
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-
-        extra_paths = self.env.coredata.builtins_per_machine[for_machine]['pkg_config_path'].value
+        extra_paths = self.env.coredata.builtins_per_machine[self.for_machine]['pkg_config_path'].value
         new_pkg_config_path = ':'.join([p for p in extra_paths])
         mlog.debug('PKG_CONFIG_PATH: ' + new_pkg_config_path)
         env['PKG_CONFIG_PATH'] = new_pkg_config_path
@@ -1059,7 +1044,7 @@ class CMakeDependency(ExternalDependency):
         # List of successfully found modules
         self.found_modules = []
 
-        self.cmakebin, self.cmakevers, for_machine = self.find_cmake_binary(environment, self.want_cross, self.silent)
+        self.cmakebin, self.cmakevers, for_machine = self.find_cmake_binary(environment, self.for_machine, self.silent)
         if self.cmakebin is False:
             self.cmakebin = None
             msg = 'No CMake binary for machine %s not found. Giving up.' % for_machine
@@ -1068,9 +1053,9 @@ class CMakeDependency(ExternalDependency):
             mlog.debug(msg)
             return
 
-        if CMakeDependency.class_cmakeinfo[for_machine] is None:
-            CMakeDependency.class_cmakeinfo[for_machine] = self._get_cmake_info()
-        self.cmakeinfo = CMakeDependency.class_cmakeinfo[for_machine]
+        if CMakeDependency.class_cmakeinfo[self.for_machine] is None:
+            CMakeDependency.class_cmakeinfo[self.for_machine] = self._get_cmake_info()
+        self.cmakeinfo = CMakeDependency.class_cmakeinfo[self.for_machine]
         if self.cmakeinfo is None:
             raise self._gen_exception('Unable to obtain CMake system information')
 
@@ -1082,24 +1067,16 @@ class CMakeDependency(ExternalDependency):
         if cm_path:
             cm_args.append('-DCMAKE_MODULE_PATH=' + ';'.join(cm_path))
 
-        pref_path = self.env.coredata.builtins_per_machine[for_machine]['cmake_prefix_path'].value
+        pref_path = self.env.coredata.builtins_per_machine[self.for_machine]['cmake_prefix_path'].value
         if pref_path:
             cm_args.append('-DCMAKE_PREFIX_PATH={}'.format(';'.join(pref_path)))
 
-        if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[for_machine]):
+        if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[self.for_machine]):
             return
         self._detect_dep(name, modules, cm_args)
 
-    @staticmethod
-    def find_cmake_binary(environment: Environment, want_cross: bool = False, silent: bool = False) -> Tuple[str, str, MachineChoice]:
-        # When finding dependencies for cross-compiling, we don't care about
-        # the 'native' CMake binary
-        # TODO: Test if this works as expected
-        if environment.is_cross_build() and not want_cross:
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-
+    @classmethod
+    def find_cmake_binary(cls, environment: Environment, for_machine: MachineChoice, silent: bool = False) -> Tuple[str, str, MachineChoice]:
         # Create an iterator of options
         def search():
             # Lookup in cross or machine file.
@@ -1130,7 +1107,7 @@ class CMakeDependency(ExternalDependency):
             for potential_cmakebin in search():
                 mlog.debug('Trying CMake binary {} for machine {} at {}'
                            .format(potential_cmakebin.name, for_machine, potential_cmakebin.command))
-                version_if_ok = CMakeDependency.check_cmake(potential_cmakebin)
+                version_if_ok = cls.check_cmake(potential_cmakebin)
                 if not version_if_ok:
                     continue
                 if not silent:
@@ -2098,6 +2075,8 @@ class DubDependency(ExternalDependency):
 
 class ExternalProgram:
     windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
+    # An 'ExternalProgram' always runs on the build machine
+    for_machine = MachineChoice.BUILD
 
     def __init__(self, name: str, command: typing.Optional[typing.List[str]] = None,
                  silent: bool = False, search_dir: typing.Optional[str] = None):
@@ -2479,7 +2458,7 @@ def get_dep_identifier(name, kwargs) -> Tuple:
     identifier = (name, )
     for key, value in kwargs.items():
         # 'version' is irrelevant for caching; the caller must check version matches
-        # 'native' is handled above with `want_cross`
+        # 'native' is handled above with `for_machine`
         # 'required' is irrelevant for caching; the caller handles it separately
         # 'fallback' subprojects cannot be cached -- they must be initialized
         # 'default_options' is only used in fallback case
@@ -2520,12 +2499,9 @@ def find_external_dependency(name, env, kwargs):
     # display the dependency name with correct casing
     display_name = display_name_map.get(lname, lname)
 
-    # if this isn't a cross-build, it's uninteresting if native: is used or not
-    if not env.is_cross_build():
-        type_text = 'Dependency'
-    else:
-        type_text = 'Native' if kwargs.get('native', False) else 'Cross'
-        type_text += ' dependency'
+    for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
+
+    type_text = PerMachine('Build-time', 'Run-time')[for_machine] + ' dependency'
 
     # build a list of dependency methods to try
     candidates = _build_external_dependency_list(name, env, kwargs)
@@ -2648,12 +2624,12 @@ def _build_external_dependency_list(name, env: Environment, kwargs: Dict[str, An
     return candidates
 
 
-def strip_system_libdirs(environment, link_args):
+def strip_system_libdirs(environment, for_machine: MachineChoice, link_args):
     """Remove -L<system path> arguments.
 
     leaving these in will break builds where a user has a version of a library
     in the system path, and a different version not in the system path if they
     want to link against the non-system path version.
     """
-    exclude = {'-L{}'.format(p) for p in environment.get_compiler_system_dirs()}
+    exclude = {'-L{}'.format(p) for p in environment.get_compiler_system_dirs(for_machine)}
     return [l for l in link_args if l not in exclude]

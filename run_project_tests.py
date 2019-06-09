@@ -31,7 +31,7 @@ from mesonbuild import compilers
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
-from mesonbuild.mesonlib import stringlistify, Popen_safe
+from mesonbuild.mesonlib import MachineChoice, stringlistify, Popen_safe
 from mesonbuild.coredata import backendlist
 import argparse
 import xml.etree.ElementTree as ET
@@ -126,14 +126,14 @@ def platform_fix_name(fname, compiler, env):
         canonical_compiler = compiler
 
     if '?lib' in fname:
-        if mesonlib.for_windows(env.is_cross_build(), env) and canonical_compiler == 'msvc':
+        if env.machines.host.is_windows() and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/\1.', fname)
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
-        elif mesonlib.for_windows(env.is_cross_build(), env):
+        elif env.machines.host.is_windows():
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/lib\1.', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'lib\1.dll', fname)
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
-        elif mesonlib.for_cygwin(env.is_cross_build(), env):
+        elif env.machines.host.is_cygwin():
             fname = re.sub(r'lib/\?lib(.*)\.so$', r'bin/cyg\1.dll', fname)
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/cyg\1.', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'cyg\1.dll', fname)
@@ -143,7 +143,7 @@ def platform_fix_name(fname, compiler, env):
 
     if fname.endswith('?exe'):
         fname = fname[:-4]
-        if mesonlib.for_windows(env.is_cross_build(), env) or mesonlib.for_cygwin(env.is_cross_build(), env):
+        if env.machines.host.is_windows() or env.machines.host.is_cygwin():
             return fname + '.exe'
 
     if fname.startswith('?msvc:'):
@@ -158,40 +158,40 @@ def platform_fix_name(fname, compiler, env):
 
     if fname.startswith('?cygwin:'):
         fname = fname[8:]
-        if not mesonlib.for_cygwin(env.is_cross_build(), env):
+        if not env.machines.host.is_cygwin():
             return None
 
     if fname.startswith('?!cygwin:'):
         fname = fname[9:]
-        if mesonlib.for_cygwin(env.is_cross_build(), env):
+        if env.machines.host.is_cygwin():
             return None
 
     if fname.endswith('?so'):
-        if mesonlib.for_windows(env.is_cross_build(), env) and canonical_compiler == 'msvc':
+        if env.machines.host.is_windows() and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/(?:lib|)([^/]*?)\?so$', r'/\1.dll', fname)
             return fname
-        elif mesonlib.for_windows(env.is_cross_build(), env):
+        elif env.machines.host.is_windows():
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
             return fname
-        elif mesonlib.for_cygwin(env.is_cross_build(), env):
+        elif env.machines.host.is_cygwin():
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/lib([^/]*?)\?so$', r'/cyg\1.dll', fname)
             fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
             return fname
-        elif mesonlib.for_darwin(env.is_cross_build(), env):
+        elif env.machines.host.is_darwin():
             return fname[:-3] + '.dylib'
         else:
             return fname[:-3] + '.so'
 
     if fname.endswith('?implib') or fname.endswith('?implibempty'):
-        if mesonlib.for_windows(env.is_cross_build(), env) and canonical_compiler == 'msvc':
+        if env.machines.host.is_windows() and canonical_compiler == 'msvc':
             # only MSVC doesn't generate empty implibs
             if fname.endswith('?implibempty') and compiler == 'msvc':
                 return None
             return re.sub(r'/(?:lib|)([^/]*?)\?implib(?:empty|)$', r'/\1.lib', fname)
-        elif mesonlib.for_windows(env.is_cross_build(), env) or mesonlib.for_cygwin(env.is_cross_build(), env):
+        elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
             return re.sub(r'\?implib(?:empty|)$', r'.dll.a', fname)
         else:
             return None
@@ -465,12 +465,12 @@ def have_objc_compiler():
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
-            objc_comp = env.detect_objc_compiler(False)
+            objc_comp = env.detect_objc_compiler(MachineChoice.HOST)
         except mesonlib.MesonException:
             return False
         if not objc_comp:
             return False
-        env.coredata.process_new_compilers('objc', objc_comp, None, env)
+        env.coredata.process_new_compiler('objc', objc_comp, env)
         try:
             objc_comp.sanity_check(env.get_scratch_dir(), env)
         except mesonlib.MesonException:
@@ -481,12 +481,12 @@ def have_objcpp_compiler():
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
-            objcpp_comp = env.detect_objcpp_compiler(False)
+            objcpp_comp = env.detect_objcpp_compiler(MachineChoice.HOST)
         except mesonlib.MesonException:
             return False
         if not objcpp_comp:
             return False
-        env.coredata.process_new_compilers('objcpp', objcpp_comp, None, env)
+        env.coredata.process_new_compiler('objcpp', objcpp_comp, env)
         try:
             objcpp_comp.sanity_check(env.get_scratch_dir(), env)
         except mesonlib.MesonException:
@@ -793,7 +793,7 @@ def detect_system_compiler():
         print()
         for lang in sorted(compilers.all_languages):
             try:
-                comp = env.compiler_from_language(lang, env.is_cross_build())
+                comp = env.compiler_from_language(lang, MachineChoice.HOST)
                 details = '%s %s' % (' '.join(comp.get_exelist()), comp.get_version_string())
             except mesonlib.MesonException:
                 comp = None

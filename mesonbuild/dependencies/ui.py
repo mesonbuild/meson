@@ -23,8 +23,7 @@ from collections import OrderedDict
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
-    MesonException, Popen_safe, extract_as_list, for_windows,
-    version_compare_many
+    MesonException, Popen_safe, extract_as_list, version_compare_many
 )
 from ..environment import detect_cpu
 
@@ -38,13 +37,13 @@ class GLDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('gl', environment, None, kwargs)
 
-        if mesonlib.for_darwin(self.want_cross, self.env):
+        if self.env.machines[self.for_machine].is_darwin():
             self.is_found = True
             # FIXME: Use AppleFrameworks dependency
             self.link_args = ['-framework', 'OpenGL']
             # FIXME: Detect version using self.clib_compiler
             return
-        if mesonlib.for_windows(self.want_cross, self.env):
+        if self.env.machines[self.for_machine].is_windows():
             self.is_found = True
             # FIXME: Use self.clib_compiler.find_library()
             self.link_args = ['-lopengl32']
@@ -310,7 +309,7 @@ class QtBaseDependency(ExternalDependency):
                                        language=self.language)
             modules['Core'] = core
 
-        if for_windows(self.env.is_cross_build(), self.env) and self.qtmain:
+        if self.env.machines[self.for_machine].is_windows() and self.qtmain:
             # Check if we link with debug binaries
             debug_lib_name = self.qtpkgname + 'Core' + self._get_modules_lib_suffix(True)
             is_debug = False
@@ -414,7 +413,7 @@ class QtBaseDependency(ExternalDependency):
                 break
             self.link_args.append(libfile)
 
-        if for_windows(self.env.is_cross_build(), self.env) and self.qtmain:
+        if self.env.machines[self.for_machine].is_windows() and self.qtmain:
             if not self._link_with_qtmain(is_debug, libdir):
                 self.is_found = False
 
@@ -422,7 +421,7 @@ class QtBaseDependency(ExternalDependency):
 
     def _get_modules_lib_suffix(self, is_debug):
         suffix = ''
-        if for_windows(self.env.is_cross_build(), self.env):
+        if self.env.machines[self.for_machine].is_windows():
             if is_debug:
                 suffix += 'd'
             if self.qtver == '4':

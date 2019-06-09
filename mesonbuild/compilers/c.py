@@ -16,7 +16,7 @@ import os.path
 import typing
 
 from .. import coredata
-from ..mesonlib import MesonException, version_compare, mlog
+from ..mesonlib import MachineChoice, MesonException, mlog, version_compare
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .clike import CLikeCompiler
 
@@ -47,11 +47,11 @@ class CCompiler(CLikeCompiler, Compiler):
         except KeyError:
             raise MesonException('Unknown function attribute "{}"'.format(name))
 
-    def __init__(self, exelist, version, is_cross: bool,
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool,
                  exe_wrapper: typing.Optional[str] = None, **kwargs):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
         self.language = 'c'
-        Compiler.__init__(self, exelist, version, **kwargs)
+        Compiler.__init__(self, exelist, version, for_machine, **kwargs)
         CLikeCompiler.__init__(self, is_cross, exe_wrapper)
 
     def get_no_stdinc_args(self):
@@ -76,8 +76,8 @@ class CCompiler(CLikeCompiler, Compiler):
 
 
 class ClangCCompiler(ClangCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
         ClangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
@@ -119,8 +119,8 @@ class ClangCCompiler(ClangCompiler, CCompiler):
 
 
 class ArmclangCCompiler(ArmclangCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
         ArmclangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
@@ -148,8 +148,8 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
 
 
 class GnuCCompiler(GnuCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
         GnuCompiler.__init__(self, compiler_type, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
@@ -191,14 +191,14 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
 
 class PGICCompiler(PGICompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
         PGICompiler.__init__(self, compiler_type)
 
 
 class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        GnuCCompiler.__init__(self, exelist, version, compiler_type, is_cross, exe_wrapper, defines, **kwargs)
+    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        GnuCCompiler.__init__(self, exelist, version, compiler_type, for_machine, is_cross, exe_wrapper, defines, **kwargs)
         ElbrusCompiler.__init__(self, compiler_type, defines)
 
     # It does support some various ISO standards and c/gnu 90, 9x, 1x in addition to those which GNU CC supports.
@@ -223,8 +223,8 @@ class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
 
 
 class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
         IntelGnuLikeCompiler.__init__(self, compiler_type)
         self.lang_header = 'c-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark']
@@ -267,14 +267,14 @@ class VisualStudioLikeCCompilerMixin:
 
 class VisualStudioCCompiler(VisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
 
-    def __init__(self, exelist, version, is_cross, exe_wrap, target: str):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target: str):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap)
         VisualStudioLikeCompiler.__init__(self, target)
         self.id = 'msvc'
 
 class ClangClCCompiler(VisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap, target):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap)
         VisualStudioLikeCompiler.__init__(self, target)
         self.id = 'clang-cl'
 
@@ -285,8 +285,8 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
 
     __have_warned = False
 
-    def __init__(self, exelist, version, is_cross, exe_wrap, target):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap)
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
     def get_options(self):
@@ -310,8 +310,8 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
 
 
 class ArmCCompiler(ArmCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
         ArmCompiler.__init__(self, compiler_type)
 
     def get_options(self):
@@ -329,8 +329,8 @@ class ArmCCompiler(ArmCompiler, CCompiler):
         return args
 
 class CcrxCCompiler(CcrxCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
         CcrxCompiler.__init__(self, compiler_type)
 
     # Override CCompiler.get_always_args

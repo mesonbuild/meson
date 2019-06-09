@@ -24,20 +24,21 @@ from .. import mesonlib, mlog
 from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
-    strip_system_libdirs, ConfigToolDependency, CMakeDependency
+    strip_system_libdirs, ConfigToolDependency, CMakeDependency, HasNativeKwarg
 )
 from .misc import ThreadDependency
 
 from typing import List, Tuple
 
 
-def get_shared_library_suffix(environment, native):
+def get_shared_library_suffix(environment, for_machine: MachineChoice):
     """This is only gauranteed to work for languages that compile to machine
     code, not for languages like C# that use a bytecode and always end in .dll
     """
-    if mesonlib.for_windows(native, environment):
+    m = environment.machines[for_machine]
+    if m.is_windows():
         return '.dll'
-    elif mesonlib.for_darwin(native, environment):
+    elif m.is_darwin():
         return '.dylib'
     return '.so'
 
@@ -203,6 +204,10 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
     __cpp_blacklist = {'-DNDEBUG'}
 
     def __init__(self, environment, kwargs):
+        # Already called by `super().__init__`, but need `self.for_machine`
+        # before `super().__init__` is called.
+        HasNativeKwarg.__init__(self, kwargs)
+
         # Ordered list of llvm-config binaries to try. Start with base, then try
         # newest back to oldest (3.5 is arbitrary), and finally the devel version.
         # Please note that llvm-config-6.0 is a development snapshot and it should
@@ -227,8 +232,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         # of bits in the isa that llvm targets, for example, on x86_64
         # and aarch64 the name will be llvm-config-64, on x86 and arm
         # it will be llvm-config-32.
-        m = MachineChoice.BUILD if environment.is_cross_build() and kwargs.get('native', True) else MachineChoice.HOST
-        if environment.machines[m].is_64_bit:
+        if environment.machines[self.for_machine].is_64_bit:
             self.tools.append('llvm-config-64')
         else:
             self.tools.append('llvm-config-32')
@@ -256,7 +260,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             self._set_new_link_args(environment)
         else:
             self._set_old_link_args()
-        self.link_args = strip_system_libdirs(environment, self.link_args)
+        self.link_args = strip_system_libdirs(environment, self.for_machine, self.link_args)
         self.link_args = self.__fix_bogus_link_args(self.link_args)
         self._add_sub_dependency(ThreadDependency, environment, kwargs)
 
@@ -271,7 +275,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
               "-L IBPATH:...", if we're using an msvc like compilers convert
               that to "/LIBPATH", otherwise to "-L ..."
         """
-        cpp = self.env.coredata.compilers['cpp']
+        cpp = self.env.coredata.compilers[self.for_machine]['cpp']
 
         new_args = []
         for arg in args:
@@ -316,7 +320,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             try:
                 self.__check_libfiles(True)
             except DependencyException:
-                lib_ext = get_shared_library_suffix(environment, self.native)
+                lib_ext = get_shared_library_suffix(environment, self.for_machine)
                 libdir = self.get_config_value(['--libdir'], 'link_args')[0]
                 # Sort for reproducability
                 matches = sorted(glob.iglob(os.path.join(libdir, 'libLLVM*{}'.format(lib_ext))))

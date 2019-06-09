@@ -14,14 +14,14 @@
 
 import os.path, shutil, subprocess
 
-from ..mesonlib import EnvironmentException
+from ..mesonlib import EnvironmentException, MachineChoice
 
 from .compilers import Compiler, java_buildtype_args
 
 class JavaCompiler(Compiler):
-    def __init__(self, exelist, version):
+    def __init__(self, exelist, version, for_machine: MachineChoice):
         self.language = 'java'
-        super().__init__(exelist, version)
+        super().__init__(exelist, version, for_machine)
         self.id = 'unknown'
         self.is_cross = False
         self.javarunner = 'java'

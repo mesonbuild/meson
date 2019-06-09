@@ -17,7 +17,7 @@ import os.path, subprocess
 from ..mesonlib import EnvironmentException
 from ..mesonlib import is_windows
 
-from .compilers import Compiler, mono_buildtype_args
+from .compilers import Compiler, MachineChoice, mono_buildtype_args
 
 cs_optimization_args = {'0': [],
                         'g': [],
@@ -28,9 +28,9 @@ cs_optimization_args = {'0': [],
                         }
 
 class CsCompiler(Compiler):
-    def __init__(self, exelist, version, comp_id, runner=None):
+    def __init__(self, exelist, version, for_machine: MachineChoice, comp_id, runner=None):
         self.language = 'cs'
-        super().__init__(exelist, version)
+        super().__init__(exelist, version, for_machine)
         self.id = comp_id
         self.is_cross = False
         self.runner = runner
@@ -143,14 +143,14 @@ class CsCompiler(Compiler):
         return cs_optimization_args[optimization_level]
 
 class MonoCompiler(CsCompiler):
-    def __init__(self, exelist, version):
-        super().__init__(exelist, version, 'mono',
+    def __init__(self, exelist, version, for_machine: MachineChoice):
+        super().__init__(exelist, version, for_machine, 'mono',
                          'mono')
 
 
 class VisualStudioCsCompiler(CsCompiler):
-    def __init__(self, exelist, version):
-        super().__init__(exelist, version, 'csc')
+    def __init__(self, exelist, version, for_machine: MachineChoice):
+        super().__init__(exelist, version, for_machine, 'csc')
 
     def get_buildtype_args(self, buildtype):
         res = mono_buildtype_args[buildtype]
