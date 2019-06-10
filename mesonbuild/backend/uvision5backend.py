@@ -13,12 +13,9 @@
 # limitations under the License.
 
 import os
-import sys
 import xml.etree.ElementTree as etree
 
 from . import backends
-from .. import build
-from .. import mesonlib
 from ..mesonlib import File, MachineChoice, MesonException, EnvironmentException
 from .. import compilers
 from .. import mlog
@@ -70,7 +67,6 @@ class UVision5Backend(backends.Backend):
     @classmethod
     def get_source_file_type(cls, src):
         ext = src.split('.')[1]
-        src_split = src.split('.')
         if ext in ('c'):
             return SRC_FILE_TYPE
         if ext in ('s'):
@@ -90,7 +86,7 @@ class UVision5Backend(backends.Backend):
             optim = KEIL_OPTIM_SETTING_O3
         elif (option.lower() in ('-otime', '-ospace')):
             optim_time = (KEIL_OPTIM_SETTING_OTIME if (option.lower() == '-otime') else
-                            KEIL_OPTIM_SETTING_OSPACE)
+                          KEIL_OPTIM_SETTING_OSPACE)
         return optim, optim_time
 
     def extract_sct_file_path_from_link_args(self, link_args):
@@ -117,7 +113,7 @@ class UVision5Backend(backends.Backend):
         proj_ele.append(schema_ele)
 
         header_ele = self.build_xml_node('Header',
-                '### uVision Project, (C) Keil Software')
+                                         '### uVision Project, (C) Keil Software')
         proj_ele.append(header_ele)
 
         tars_ele = self.build_xml_node('Targets')
@@ -152,11 +148,11 @@ class UVision5Backend(backends.Backend):
               - does not have any dependencies on any custom_targets or libraries
             """
             if ((target.get_typename() == 'executable') and target.is_cross and
-                (target.name == self.build.project_name)):
+                    (target.name == self.build.project_name)):
 
                 if any([target.generated, target.objects, target.external_deps, target.link_targets]):
                     raise MesonException('Could not process Executable target - %s, the target has other dependencies.'
-                                            % target.name)
+                                         % target.name)
 
                 # Populate all global variables with info from target object
                 self.output_axf_name = target.filename
@@ -165,10 +161,10 @@ class UVision5Backend(backends.Backend):
                 source_list = []
                 for i in target.sources:
                     if isinstance(i, File):
-                        name = i.fname
-                        path = i.absolute_path(self.source_dir, self.build_dir)
-                        type = self.get_source_file_type(name)
-                        source_list.append((name, path, type))
+                        file_name = i.fname
+                        file_path = i.absolute_path(self.source_dir, self.build_dir)
+                        file_type = self.get_source_file_type(file_name)
+                        source_list.append((file_name, file_path, file_type))
                 self.src_list = source_list
 
                 # One compiler for all types of source files
@@ -188,7 +184,7 @@ class UVision5Backend(backends.Backend):
                 # Add per-target compile args, f.ex, `c_args : ['-DFOO']`. We set these
                 # near the end since these are supposed to override everything else.
                 args_list += self.escape_extra_args(compiler,
-                                                target.get_extra_args(compiler.get_language()))
+                                                    target.get_extra_args(compiler.get_language()))
 
                 for i in args_list:
                     if (i[:2] == '-O'):
@@ -198,7 +194,7 @@ class UVision5Backend(backends.Backend):
                     elif (i[:2] == '-D'):
                         c_args += i[2:]
                         c_args += ", "
-                self.c_args = c_args[:len(c_args)-2]
+                self.c_args = c_args[:len(c_args) - 2]
 
                 # Include directories
                 #
@@ -233,17 +229,17 @@ class UVision5Backend(backends.Backend):
                 # Linker arguments
                 # Add buildtype linker args: optimization level, etc.
                 link_args = compiler.get_buildtype_linker_args(
-                                            self.get_option_for_target('buildtype', target))
+                    self.get_option_for_target('buildtype', target))
                 # Add link args added using add_project_link_arguments()
                 link_args += self.build.get_project_link_args(
-                                            compiler, target.subproject, target.is_cross)
+                    compiler, target.subproject, target.is_cross)
                 # Add link args added using add_global_link_arguments()
                 # These override per-project link arguments
                 link_args += self.build.get_global_link_args(compiler, target.is_cross)
                 # Link args added from the env: LDFLAGS. We want these to override
                 # all the defaults but not the per-target link args.
                 link_args += self.environment.coredata.get_external_link_args(
-                                            MachineChoice.HOST, compiler.get_language())
+                    MachineChoice.HOST, compiler.get_language())
                 link_args += target.link_args
                 self.linker_args = ' '.join(link_args)
 
@@ -256,9 +252,9 @@ class UVision5Backend(backends.Backend):
         mlog.warning('No executable target has been found. Creating uvision5 project with no targets.')
         return None
 
-    def build_xml_node(self, node_name, text=None, xml_attrib={}):
+    def build_xml_node(self, node_name, text=None, xml_attrib=None):
         """Builds an XML node with the given node_name and text"""
-        ele = etree.Element(node_name, attrib=xml_attrib)
+        ele = etree.Element(node_name, attrib=xml_attrib or {})
         if text:
             ele.text = text
         return ele
@@ -310,7 +306,7 @@ class UVision5Backend(backends.Backend):
         ocr5_ele = self.build_ocm_ele('OCR_RVCT5', '0x1', '0x0', '0x0')
         onchipmem_ele.append(ocr5_ele)
         ocr6_ele = self.build_ocm_ele('OCR_RVCT6', '0x0', '0x0', '0x0')
-        onchipmem_ele.append(ocm6_ele)
+        onchipmem_ele.append(ocr6_ele)
         ocr7_ele = self.build_ocm_ele('OCR_RVCT7', '0x0', '0x0', '0x0')
         onchipmem_ele.append(ocr7_ele)
         ocr8_ele = self.build_ocm_ele('OCR_RVCT8', '0x0', '0x0', '0x0')
@@ -368,7 +364,7 @@ class UVision5Backend(backends.Backend):
         adslsym_ele = self.build_xml_node('AdsLsym', '1')
         armadsmisc_ele.append(adslsym_ele)
         adslszi_ele = self.build_xml_node('AdsLszi', '1')
-        armadsmisc_ele.append(adsanop_ele)
+        armadsmisc_ele.append(adslszi_ele)
         adsltoi_ele = self.build_xml_node('AdsLtoi', '1')
         armadsmisc_ele.append(adsltoi_ele)
         adslsun_ele = self.build_xml_node('AdsLsun', '1')
@@ -542,9 +538,9 @@ class UVision5Backend(backends.Backend):
         devid_ele = self.build_xml_node('DeviceId', '0')
         tarcomopt_ele.append(devid_ele)
         if self.cpu_type == 'cortex-m0+':
-            regfile_ele = self.build_xml_node('RegisterFile', '$$Device:ARMCM0P$Device\ARM\ARMCM0plus\Include\ARMCM0plus.h')
+            regfile_ele = self.build_xml_node('RegisterFile', '$$Device:ARMCM0P$Device\\ARM\\ARMCM0plus\\Include\\ARMCM0plus.h')
         else:
-            regfile_ele = self.build_xml_node('RegisterFile', '$$Device:ARMCM4_FP$Device\ARM\ARMCM4\Include\ARMCM4_FP.h')
+            regfile_ele = self.build_xml_node('RegisterFile', '$$Device:ARMCM4_FP$Device\\ARM\\ARMCM4\\Include\\ARMCM4_FP.h')
         tarcomopt_ele.append(regfile_ele)
         memenv_ele = self.build_xml_node('MemoryEnv')
         tarcomopt_ele.append(memenv_ele)
@@ -583,7 +579,7 @@ class UVision5Backend(backends.Backend):
 
         tarcomopt_ele.append(self.build_target_stat_ele())
 
-        outdir_ele = self.build_xml_node('OutputDirectory', '.\Objects\\')
+        outdir_ele = self.build_xml_node('OutputDirectory', '.\\Objects\\')
         tarcomopt_ele.append(outdir_ele)
         outname_ele = self.build_xml_node('OutputName', self.output_axf_name)
         tarcomopt_ele.append(outname_ele)
@@ -597,7 +593,7 @@ class UVision5Backend(backends.Backend):
         tarcomopt_ele.append(debuginfo_ele)
         browseinfo_ele = self.build_xml_node('BrowseInformation', '1')
         tarcomopt_ele.append(browseinfo_ele)
-        listing_path_ele = self.build_xml_node('ListingPath', '.\Listings\\')
+        listing_path_ele = self.build_xml_node('ListingPath', '.\\Listings\\')
         tarcomopt_ele.append(listing_path_ele)
         hexformatsel_ele = self.build_xml_node('HexFormatSelection', '1')
         tarcomopt_ele.append(hexformatsel_ele)
@@ -656,7 +652,6 @@ class UVision5Backend(backends.Backend):
         commonprop_ele.append(comprimg_ele)
 
         return commonprop_ele
-
 
     def build_dll_opt_ele(self):
         """Build DLL option element"""
@@ -766,9 +761,9 @@ class UVision5Backend(backends.Backend):
         rwpi_ele = self.build_xml_node('Rwpi', '0')
         cads_ele.append(rwpi_ele)
         wlevel_ele = self.build_xml_node('wLevel', '2')
-        cads_ele.append(ropi_ele)
+        cads_ele.append(wlevel_ele)
         uthumb_ele = self.build_xml_node('uThumb', '0')
-        cads_ele.append(rwpi_ele)
+        cads_ele.append(uthumb_ele)
         usurpinc_ele = self.build_xml_node('uSurpInc', '1')
         cads_ele.append(usurpinc_ele)
         uc99_ele = self.build_xml_node('uC99', self.use_c99)
@@ -983,14 +978,14 @@ class UVision5Backend(backends.Backend):
 
     def indent_xml(self, elem, level = 0):
         """Indents the XML as a prerequisite for pretty-printing"""
-        i = "\n" + level*"  "
+        i = "\n" + level * "  "
         if len(elem):
             if not elem.text or not elem.text.strip():
                 elem.text = i + "  "
             if not elem.tail or not elem.tail.strip():
                 elem.tail = i
             for elem in elem:
-                self.indent_xml(elem, level+1)
+                self.indent_xml(elem, level + 1)
             if not elem.tail or not elem.tail.strip():
                 elem.tail = i
         else:
