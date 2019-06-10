@@ -1714,6 +1714,108 @@ Note that while cross-compiling, it simply returns the values defined
 in the cross-info file. If `target_machine` values are not defined in
 the cross-info file, `host_machine` values are returned instead.
 
+### `string` object
+
+All [strings](Syntax.md#strings) have the following methods. Strings
+are immutable, all operations return their results as a new string.
+
+- `contains(string)` returns true if string contains the string
+  specified as the argument
+
+- `endswith(string)` returns true if string ends with the string
+  specified as the argument
+
+- `format()` formats text, see the [Syntax
+  manual](Syntax.md#string-formatting) for usage info
+
+- `join(list_of_strings)` is the opposite of split, for example
+  `'.'.join(['a', 'b', 'c']` yields `'a.b.c'`
+
+- `split(split_character)` splits the string at the specified
+  character (or whitespace if not set) and returns the parts in an
+  array
+
+- `startswith(string)` returns true if string starts with the string
+  specified as the argument
+
+- `strip()` removes whitespace at the beginning and end of the string
+  *(added 0.43.0)* optionally can take one positional string argument,
+  and all characters in that string will be stripped
+
+- `to_int` returns the string converted to an integer (error if string
+  is not a number)
+
+- `to_lower()` creates a lower case version of the string
+
+- `to_upper()` creates an upper case version of the string
+
+- `underscorify()` creates a string where every non-alphabetical
+  non-number character is replaced with `_`
+
+- `version_compare(comparison_string)` does semantic version
+  comparison, if `x = '1.2.3'` then `x.version_compare('>1.0.0')`
+  returns `true`
+
+### `Number` object
+
+[Numbers](Syntax.md#numbers) support these methods:
+
+ - `is_even()` returns true if the number is even
+ - `is_odd()` returns true if the number is odd
+
+### `boolean` object
+
+A [boolean](Syntax.md#booleans) object has two simple methods:
+
+- `to_int()` as above, but returns either `1` or `0`
+
+- `to_string()` returns the string `'true'` if the boolean is true or
+  `'false'` otherwise. You can also pass it two strings as positional
+  arguments to specify what to return for true/false. For instance,
+  `bool.to_string('yes', 'no')` will return `yes` if the boolean is
+  true and `no` if it is false.
+
+### `array` object
+
+The following methods are defined for all [arrays](Syntax.md#arrays):
+
+- `contains(item)`, returns `true` if the array contains the object
+  given as argument, `false` otherwise
+
+- `get(index, fallback)`, returns the object at the given index,
+  negative indices count from the back of the array, indexing out of
+  bounds returns the `fallback` value *(added 0.38.0)* or, if it is
+  not specified, causes a fatal error
+
+- `length()`, the size of the array
+
+You can also iterate over arrays with the [`foreach`
+statement](Syntax.md#foreach-statements).
+
+### `dictionary` object
+
+The following methods are defined for all [dictionaries](Syntax.md#dictionaries):
+
+- `has_key(key)` returns `true` if the dictionary contains the key
+  given as argument, `false` otherwise
+
+- `get(key, fallback)`, returns the value for the key given as first
+  argument if it is present in the dictionary, or the optional
+  fallback value given as the second argument. If a single argument
+  was given and the key was not found, causes a fatal error
+
+You can also iterate over dictionaries with the [`foreach`
+statement](Syntax.md#foreach-statements).
+
+Dictionaries are available since 0.47.0.
+
+Since 0.48.0 dictionaries can be added (e.g. `d1 = d2 + d3` and `d1 += d2`).
+Values from the second dictionary overrides values from the first.
+
+## Returned objects
+
+These are objects returned by the [functions listed above](#functions).
+
 ### `compiler` object
 
 This object is returned by
@@ -1938,108 +2040,6 @@ MSVC to expand the default library search path.
 However, with GCC, these variables will be ignored when
 cross-compiling. In that case you need to use a specs file. See:
 <http://www.mingw.org/wiki/SpecsFileHOWTO>
-
-### `string` object
-
-All [strings](Syntax.md#strings) have the following methods. Strings
-are immutable, all operations return their results as a new string.
-
-- `contains(string)` returns true if string contains the string
-  specified as the argument
-
-- `endswith(string)` returns true if string ends with the string
-  specified as the argument
-
-- `format()` formats text, see the [Syntax
-  manual](Syntax.md#string-formatting) for usage info
-
-- `join(list_of_strings)` is the opposite of split, for example
-  `'.'.join(['a', 'b', 'c']` yields `'a.b.c'`
-
-- `split(split_character)` splits the string at the specified
-  character (or whitespace if not set) and returns the parts in an
-  array
-
-- `startswith(string)` returns true if string starts with the string
-  specified as the argument
-
-- `strip()` removes whitespace at the beginning and end of the string
-  *(added 0.43.0)* optionally can take one positional string argument,
-  and all characters in that string will be stripped
-
-- `to_int` returns the string converted to an integer (error if string
-  is not a number)
-
-- `to_lower()` creates a lower case version of the string
-
-- `to_upper()` creates an upper case version of the string
-
-- `underscorify()` creates a string where every non-alphabetical
-  non-number character is replaced with `_`
-
-- `version_compare(comparison_string)` does semantic version
-  comparison, if `x = '1.2.3'` then `x.version_compare('>1.0.0')`
-  returns `true`
-
-### `Number` object
-
-[Numbers](Syntax.md#numbers) support these methods:
-
- - `is_even()` returns true if the number is even
- - `is_odd()` returns true if the number is odd
-
-### `boolean` object
-
-A [boolean](Syntax.md#booleans) object has two simple methods:
-
-- `to_int()` as above, but returns either `1` or `0`
-
-- `to_string()` returns the string `'true'` if the boolean is true or
-  `'false'` otherwise. You can also pass it two strings as positional
-  arguments to specify what to return for true/false. For instance,
-  `bool.to_string('yes', 'no')` will return `yes` if the boolean is
-  true and `no` if it is false.
-
-### `array` object
-
-The following methods are defined for all [arrays](Syntax.md#arrays):
-
-- `contains(item)`, returns `true` if the array contains the object
-  given as argument, `false` otherwise
-
-- `get(index, fallback)`, returns the object at the given index,
-  negative indices count from the back of the array, indexing out of
-  bounds returns the `fallback` value *(added 0.38.0)* or, if it is
-  not specified, causes a fatal error
-
-- `length()`, the size of the array
-
-You can also iterate over arrays with the [`foreach`
-statement](Syntax.md#foreach-statements).
-
-### `dictionary` object
-
-The following methods are defined for all [dictionaries](Syntax.md#dictionaries):
-
-- `has_key(key)` returns `true` if the dictionary contains the key
-  given as argument, `false` otherwise
-
-- `get(key, fallback)`, returns the value for the key given as first
-  argument if it is present in the dictionary, or the optional
-  fallback value given as the second argument. If a single argument
-  was given and the key was not found, causes a fatal error
-
-You can also iterate over dictionaries with the [`foreach`
-statement](Syntax.md#foreach-statements).
-
-Dictionaries are available since 0.47.0.
-
-Since 0.48.0 dictionaries can be added (e.g. `d1 = d2 + d3` and `d1 += d2`).
-Values from the second dictionary overrides values from the first.
-
-## Returned objects
-
-These are objects returned by the [functions listed above](#functions).
 
 ### `build target` object
 
