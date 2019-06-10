@@ -147,6 +147,9 @@ def get_backend_from_name(backend, build):
     elif backend == 'xcode':
         from . import xcodebackend
         return xcodebackend.XCodeBackend(build)
+    elif backend == 'uvision5':
+        from . import uvision5backend
+        return uvision5backend.UVision5Backend(build)
     return None
 
 # This class contains the basic functionality that is needed by all backends.

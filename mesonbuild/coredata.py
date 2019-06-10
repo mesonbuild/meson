@@ -29,7 +29,7 @@ import configparser
 from typing import Optional, Any, TypeVar, Generic, Type, List
 
 version = '0.50.999'
-backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
+backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode', 'uvision5']
 
 default_yielding = False
 
