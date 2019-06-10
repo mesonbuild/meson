@@ -1,48 +1,40 @@
 #ifndef MYTHING
-#error "Global argument not set"
+  #error "Global argument not set"
 #endif
 
 #ifdef MYCPPTHING
-#error "Wrong global argument set"
+  #error "Wrong global argument set"
 #endif
 
 #ifndef MYCANDCPPTHING
-#error "Global argument not set"
+  #error "Global argument not set"
 #endif
 
-#ifdef GLOBAL_NATIVE
-  #ifndef ARG_NATIVE
-    #error "Global is native but arg_native is not set."
+#if !defined(GLOBAL_HOST) && !defined(GLOBAL_BUILD)
+  #error "Neither global_host nor glogal_build is set."
+#endif
+
+#if defined(GLOBAL_HOST) && defined(GLOBAL_BUILD)
+  #error "Both global build and global host set."
+#endif
+
+#ifdef GLOBAL_BUILD
+  #ifndef ARG_BUILD
+    #error "Global is build but arg_build is not set."
   #endif
 
-  #ifdef GLOBAL_CROSS
-    #error "Both global native and global cross set."
-  #endif
-#else
-  #ifndef GLOBAL_CROSS
-    #error "Neither global_cross nor glogal_native is set."
-  #endif
-
-  #ifndef ARG_CROSS
-    #error "Global is cross but arg_cross is not set."
-  #endif
-
-  #ifdef ARG_NATIVE
-    #error "Global is cross but arg_native is set."
+  #ifdef ARG_HOST
+    #error "Global is build but arg host is set."
   #endif
 #endif
 
-#ifdef GLOBAL_CROSS
-  #ifndef ARG_CROSS
-    #error "Global is cross but arg_cross is not set."
-  #endif
-#else
-  #ifdef ARG_CROSS
-    #error "Global is cross but arg_native is set."
+#ifdef GLOBAL_HOST
+  #ifndef ARG_HOST
+    #error "Global is host but arg_host is not set."
   #endif
 
-  #ifdef ARG_CROSS
-    #error "Global is native but arg cross is set."
+  #ifdef ARG_BUILD
+    #error "Global is host but arg_build is set."
   #endif
 #endif
 

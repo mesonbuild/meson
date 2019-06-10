@@ -1,22 +1,23 @@
 project('global arg test', 'cpp', 'c')
 
-add_global_arguments('-DMYTHING', language : 'c')
-add_global_arguments('-DMYCPPTHING', language : 'cpp')
+add_global_arguments('-DMYTHING', language : 'c', native : true)
+add_global_arguments('-DMYTHING', language : 'c', native : false)
+add_global_arguments('-DMYCPPTHING', language : 'cpp', native : true)
+add_global_arguments('-DMYCPPTHING', language : 'cpp', native : false)
 
-add_global_arguments('-DGLOBAL_NATIVE', language : 'c', native : true)
-add_global_arguments('-DGLOBAL_CROSS', language : 'c', native : false)
+add_global_arguments('-DGLOBAL_BUILD', language : 'c', native : true)
+add_global_arguments('-DGLOBAL_HOST', language : 'c', native : false)
 
-if meson.is_cross_build()
-  c_args = ['-DARG_CROSS']
-else
-  c_args = ['-DARG_NATIVE']
-endif
+build_c_args = ['-DARG_BUILD']
+c_args = ['-DARG_HOST']
 
-add_global_arguments('-DMYCANDCPPTHING', language: ['c', 'cpp'])
+add_global_arguments('-DMYCANDCPPTHING', language: ['c', 'cpp'], native: true)
+add_global_arguments('-DMYCANDCPPTHING', language: ['c', 'cpp'], native: false)
 
-exe1 = executable('prog', 'prog.c', c_args : c_args)
-exe2 = executable('prog2', 'prog.cc')
+exe1 = executable('prog1', 'prog.c', c_args : build_c_args, native : true)
+exe2 = executable('prog2', 'prog.c', c_args : c_args, native : false)
+exe3 = executable('prog3', 'prog.cc')
 
 test('prog1', exe1)
 test('prog2', exe2)
-
+test('prog3', exe3)
