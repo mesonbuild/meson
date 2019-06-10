@@ -1837,10 +1837,8 @@ class MesonMain(InterpreterObject):
         if len(args) != 1:
             raise InterpreterException('get_compiler_method must have one and only one argument.')
         cname = args[0]
-        native = kwargs.get('native', False)
-        if not isinstance(native, bool):
-            raise InterpreterException('Type of "native" must be a boolean.')
-        clist = self.interpreter.coredata.compilers[MachineChoice.BUILD if native else MachineChoice.HOST]
+        for_machine = Interpreter.machine_from_native_kwarg(kwargs)
+        clist = self.interpreter.coredata.compilers[for_machine]
         if cname in clist:
             return CompilerHolder(clist[cname], self.build.environment, self.interpreter.subproject)
         raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
@@ -2879,13 +2877,14 @@ external dependencies (including libraries) must go to "dependencies".''')
                                        % name)
         self.build.find_overrides[name] = exe
 
-    def find_program_impl(self, args, native=False, required=True, silent=True):
+    # TODO update modules to always pass `for_machine`. It is bad-form to assume
+    # the host machine.
+    def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST, required=True, silent=True):
         if not isinstance(args, list):
             args = [args]
 
         progobj = self.program_from_overrides(args, silent=silent)
         if progobj is None:
-            for_machine = MachineChoice.BUILD if native else MachineChoice.HOST
             progobj = self.program_from_file_for(for_machine, args, silent=silent)
         if progobj is None:
             progobj = self.program_from_system(args, silent=silent)
@@ -2914,10 +2913,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         if not isinstance(required, bool):
             raise InvalidArguments('"required" argument must be a boolean.')
-        use_native = kwargs.get('native', False)
-        if not isinstance(use_native, bool):
-            raise InvalidArguments('Argument to "native" must be a boolean.')
-        return self.find_program_impl(args, native=use_native, required=required, silent=False)
+        for_machine = self.machine_from_native_kwarg(kwargs)
+        return self.find_program_impl(args, for_machine, required=required, silent=False)
 
     def func_find_library(self, node, args, kwargs):
         raise InvalidCode('find_library() is removed, use meson.get_compiler(\'name\').find_library() instead.\n'
@@ -2928,7 +2925,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def _find_cached_dep(self, name, kwargs):
         # Check if we want this as a build-time / build machine or runt-time /
         # host machine dep.
-        for_machine = Interpreter.machine_from_native_kwarg(kwargs)
+        for_machine = self.machine_from_native_kwarg(kwargs)
 
         identifier = dependencies.get_dep_identifier(name, kwargs)
         cached_dep = self.coredata.deps[for_machine].get(identifier)
@@ -3083,7 +3080,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             # cannot cache them. They must always be evaluated else
             # we won't actually read all the build files.
             if dep.found():
-                for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
+                for_machine = self.machine_from_native_kwarg(kwargs)
                 self.coredata.deps[for_machine].put(identifier, dep)
                 return DependencyHolder(dep, self.subproject)
 
@@ -4077,7 +4074,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
         if not args:
             raise InterpreterException('Target does not have a name.')
         name, *sources = args
-        for_machine = Interpreter.machine_from_native_kwarg(kwargs)
+        for_machine = self.machine_from_native_kwarg(kwargs)
         if 'sources' in kwargs:
             sources += listify(kwargs['sources'])
         sources = self.source_strings_to_files(sources)
@@ -4221,5 +4218,8 @@ This will become a hard error in the future.''', location=self.current_node)
         return varname in self.variables
 
     @staticmethod
-    def machine_from_native_kwarg(kwargs):
-        return MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
+    def machine_from_native_kwarg(kwargs: typing.Dict[str, typing.Any]) -> MachineChoice:
+        native = kwargs.get('native', False)
+        if not isinstance(native, bool):
+            raise InvalidArguments('Argument to "native" must be a boolean.')
+        return MachineChoice.BUILD if native else MachineChoice.HOST
