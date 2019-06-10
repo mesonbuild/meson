@@ -3829,47 +3829,29 @@ different subdirectory.
         env = self.unpack_env_kwarg(kwargs)
         self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, gdb, timeout_multiplier, env)
 
-    # TODO make cross agnostic, just taking into account for_machine
-    # TODO PerMachine[T], Iterator[T]
-    def get_argdict_on_crossness(self, dicts_per_machine: PerMachine, kwargs) -> Iterator:
-        for_native = kwargs.get('native', not self.environment.is_cross_build())
-        if not isinstance(for_native, bool):
-            raise InterpreterException('Keyword native must be a boolean.')
-        if self.environment.is_cross_build():
-            if for_native:
-                return iter([dicts_per_machine[MachineChoice.BUILD]])
-            else:
-                return iter([dicts_per_machine[MachineChoice.HOST]])
-        else:
-            if for_native:
-                return iter([dicts_per_machine[MachineChoice.BUILD],
-                             dicts_per_machine[MachineChoice.HOST]])
-            else:
-                return iter([])
-
     @permittedKwargs(permitted_kwargs['add_global_arguments'])
     @stringArgs
     def func_add_global_arguments(self, node, args, kwargs):
-        for argdict in self.get_argdict_on_crossness(self.build.global_args, kwargs):
-            self.add_global_arguments(node, argdict, args, kwargs)
+        for_machine = self.machine_from_native_kwarg(kwargs)
+        self.add_global_arguments(node, self.build.global_args[for_machine], args, kwargs)
 
     @permittedKwargs(permitted_kwargs['add_global_link_arguments'])
     @stringArgs
     def func_add_global_link_arguments(self, node, args, kwargs):
-        for argdict in self.get_argdict_on_crossness(self.build.global_link_args, kwargs):
-            self.add_global_arguments(node, argdict, args, kwargs)
+        for_machine = self.machine_from_native_kwarg(kwargs)
+        self.add_global_arguments(node, self.build.global_link_args[for_machine], args, kwargs)
 
     @permittedKwargs(permitted_kwargs['add_project_arguments'])
     @stringArgs
     def func_add_project_arguments(self, node, args, kwargs):
-        for argdict in self.get_argdict_on_crossness(self.build.projects_args, kwargs):
-            self.add_project_arguments(node, argdict, args, kwargs)
+        for_machine = self.machine_from_native_kwarg(kwargs)
+        self.add_project_arguments(node, self.build.projects_args[for_machine], args, kwargs)
 
     @permittedKwargs(permitted_kwargs['add_project_link_arguments'])
     @stringArgs
     def func_add_project_link_arguments(self, node, args, kwargs):
-        for argdict in self.get_argdict_on_crossness(self.build.projects_link_args, kwargs):
-            self.add_project_arguments(node, argdict, args, kwargs)
+        for_machine = self.machine_from_native_kwarg(kwargs)
+        self.add_project_arguments(node, self.build.projects_link_args[for_machine], args, kwargs)
 
     def add_global_arguments(self, node, argsdict, args, kwargs):
         if self.is_subproject():
