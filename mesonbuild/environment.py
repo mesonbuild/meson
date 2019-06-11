@@ -952,7 +952,7 @@ class Environment:
                 compiler_type = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
                 return GnuObjCCompiler(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, defines)
-            if out.startswith('Apple LLVM'):
+            if out.startswith('Apple LLVM') or out.startswith('Apple clang'):
                 return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_OSX, for_machine, is_cross, exe_wrap)
             if 'windows' in out:
                 return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_MINGW, for_machine, is_cross, exe_wrap)
@@ -982,7 +982,7 @@ class Environment:
                 compiler_type = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
                 return GnuObjCPPCompiler(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, defines)
-            if out.startswith('Apple LLVM'):
+            if out.startswith('Apple LLVM') or out.startswith('Apple clang'):
                 return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_OSX, for_machine, is_cross, exe_wrap)
             if 'windows' in out:
                 return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_MINGW, for_machine, is_cross, exe_wrap)
