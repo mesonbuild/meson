@@ -51,6 +51,8 @@ Keyword arguments are the following:
 - `disabler`: if `true` and no python installation can be found, return a
   [disabler object](Reference-manual.md#disabler-object) instead of a not-found object.
   *Since 0.49.0*
+- `modules`: a list of module names that this python installation must have.
+  *Since 0.51.0*
 
 **Returns**: a [python installation][`python_installation` object]
 

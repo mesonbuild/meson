@@ -15,6 +15,7 @@
 import os
 import json
 import shutil
+import typing
 
 from pathlib import Path
 from .. import mesonlib
@@ -491,11 +492,15 @@ class PythonModule(ExtensionModule):
         return True
 
     @FeatureNewKwargs('python.find_installation', '0.49.0', ['disabler'])
+    @FeatureNewKwargs('python.find_installation', '0.51.0', ['modules'])
     @disablerIfNotFound
-    @permittedKwargs(['required'])
+    @permittedKwargs({'required', 'modules'})
     def find_installation(self, interpreter, state, args, kwargs):
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
+        want_modules = mesonlib.extract_as_list(kwargs, 'modules')  # type: typing.List[str]
+        found_modules = []    # type: typing.List[str]
+        missing_modules = []  # type: typing.List[str]
 
         if len(args) > 1:
             raise InvalidArguments('find_installation takes zero or one positional argument.')
@@ -511,7 +516,7 @@ class PythonModule(ExtensionModule):
             return ExternalProgramHolder(NonExistingExternalProgram())
 
         if not name_or_path:
-            python = ExternalProgram('python3', mesonlib.python_command)
+            python = ExternalProgram('python3', mesonlib.python_command, silent=True)
         else:
             python = ExternalProgram.from_entry('python3', name_or_path)
 
@@ -528,12 +533,37 @@ class PythonModule(ExtensionModule):
             if not python.found() and name_or_path in ['python2', 'python3']:
                 python = ExternalProgram('python', silent=True)
 
-            mlog.log('Program', python.name, 'found:',
-                     *[mlog.green('YES'), '({})'.format(' '.join(python.command))] if python.found() else [mlog.red('NO')])
+        if python.found() and want_modules:
+            for mod in want_modules:
+                p, out, err = mesonlib.Popen_safe(
+                    python.command +
+                    ['-c', 'import {0}'.format(mod)])
+                if p.returncode != 0:
+                    missing_modules.append(mod)
+                else:
+                    found_modules.append(mod)
+
+        msg = ['Program', python.name]
+        if want_modules:
+            msg.append('({})'.format(', '.join(want_modules)))
+        msg.append('found:')
+        if python.found() and not missing_modules:
+            msg.extend([mlog.green('YES'), '({})'.format(' '.join(python.command))])
+        else:
+            msg.append(mlog.red('NO'))
+        if found_modules:
+            msg.append('modules:')
+            msg.append(', '.join(found_modules))
+
+        mlog.log(*msg)
 
         if not python.found():
             if required:
                 raise mesonlib.MesonException('{} not found'.format(name_or_path or 'python'))
+            res = ExternalProgramHolder(NonExistingExternalProgram())
+        elif missing_modules:
+            if required:
+                raise mesonlib.MesonException('{} is missing modules: {}'.format(name_or_path or 'python', ', '.join(missing_modules)))
             res = ExternalProgramHolder(NonExistingExternalProgram())
         else:
             # Sanity check, we expect to have something that at least quacks in tune
