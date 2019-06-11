@@ -196,8 +196,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
 
     def get_options(self):
         opts = CPPCompiler.get_options(self)
-        opts.update({'cpp_eh': coredata.UserComboOption('cpp_eh',
-                                                        'C++ exception handling type.',
+        opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
                                                         ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
                      'cpp_std': coredata.UserComboOption('C++ language standard to use',
