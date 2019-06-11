@@ -2184,7 +2184,7 @@ class ClangCompiler(GnuLikeCompiler):
 
 class ArmclangCompiler:
     def __init__(self, compiler_type):
-        if self.is_cross:
+        if not self.is_cross:
             raise EnvironmentException('armclang supports only cross-compilation.')
         # Check whether 'armlink.exe' is available in path
         self.linker_exe = 'armlink.exe'
