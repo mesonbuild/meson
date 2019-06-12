@@ -870,9 +870,11 @@ class CLikeCompiler:
                     # Check if the underscore form of the symbol is somewhere
                     # in the output file.
                     if b'_' + symbol_name in line:
+                        mlog.debug("Symbols have underscore prefix: YES")
                         return True
                     # Else, check if the non-underscored form is present
                     elif symbol_name in line:
+                        mlog.debug("Symbols have underscore prefix: NO")
                         return False
         raise RuntimeError('BUG: {!r} check failed unexpectedly'.format(n))
 
