@@ -167,36 +167,45 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
 
     def get_options(self):
         opts = CPPCompiler.get_options(self)
-        opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
-                                                        ['none', 'default', 'a', 's', 'sc'],
-                                                        'default'),
-                     'cpp_rtti': coredata.UserBooleanOption('Enable RTTI', True),
-                     'cpp_std': coredata.UserComboOption('C++ language standard to use',
-                                                         ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z', 'c++2a',
-                                                          'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z', 'gnu++2a'],
-                                                         'none')})
+        opts.update({
+            'eh': coredata.UserComboOption(
+                'C++ exception handling type.',
+                ['none', 'default', 'a', 's', 'sc'],
+                'default',
+            ),
+            'rtti': coredata.UserBooleanOption('Enable RTTI', True),
+            'std': coredata.UserComboOption(
+                'C++ language standard to use',
+                ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z', 'c++2a',
+                 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z', 'gnu++2a'],
+                'none',
+            ),
+        })
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
-                'cpp_winlibs': coredata.UserArrayOption('Standard Win libraries to link against',
-                                                        gnu_winlibs), })
+                'winlibs': coredata.UserArrayOption(
+                    'Standard Win libraries to link against',
+                    gnu_winlibs,
+                ),
+            })
         return opts
 
     def get_option_compile_args(self, options):
         args = []
-        std = options['cpp_std']
+        std = options['std']
         if std.value != 'none':
             args.append(self._find_best_cpp_std(std.value))
 
-        non_msvc_eh_options(options['cpp_eh'].value, args)
+        non_msvc_eh_options(options['eh'].value, args)
 
-        if not options['cpp_rtti'].value:
+        if not options['rtti'].value:
             args.append('-fno-rtti')
 
         return args
 
     def get_option_link_args(self, options):
         if self.info.is_windows() or self.info.is_cygwin():
-            return options['cpp_winlibs'].value[:]
+            return options['winlibs'].value[:]
         return []
 
     def language_stdlib_only_link_flags(self):
@@ -220,7 +229,7 @@ class EmscriptenCPPCompiler(EmscriptenMixin, LinkerEnvVarsMixin, ClangCPPCompile
 
     def get_option_compile_args(self, options):
         args = []
-        std = options['cpp_std']
+        std = options['std']
         if std.value != 'none':
             args.append(self._find_best_cpp_std(std.value))
         return args
@@ -239,22 +248,30 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
 
     def get_options(self):
         opts = CPPCompiler.get_options(self)
-        opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
-                                                        ['none', 'default', 'a', 's', 'sc'],
-                                                        'default'),
-                     'cpp_std': coredata.UserComboOption('C++ language standard to use',
-                                                         ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17',
-                                                          'gnu++98', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17'],
-                                                         'none')})
+        opts.update({
+            'eh': coredata.UserComboOption(
+                'C++ exception handling type.',
+                ['none', 'default', 'a', 's', 'sc'],
+                'default',
+            ),
+            'std': coredata.UserComboOption(
+                'C++ language standard to use',
+                [
+                    'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17',
+                    'gnu++98', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17',
+                ],
+                'none',
+            ),
+        })
         return opts
 
     def get_option_compile_args(self, options):
         args = []
-        std = options['cpp_std']
+        std = options['std']
         if std.value != 'none':
             args.append('-std=' + std.value)
 
-        non_msvc_eh_options(options['cpp_eh'].value, args)
+        non_msvc_eh_options(options['eh'].value, args)
 
         return args
 
@@ -275,40 +292,51 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
     def get_options(self):
         opts = CPPCompiler.get_options(self)
-        opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
-                                                        ['none', 'default', 'a', 's', 'sc'],
-                                                        'default'),
-                     'cpp_rtti': coredata.UserBooleanOption('Enable RTTI', True),
-                     'cpp_std': coredata.UserComboOption('C++ language standard to use',
-                                                         ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z', 'c++2a',
-                                                          'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z', 'gnu++2a'],
-                                                         'none'),
-                     'cpp_debugstl': coredata.UserBooleanOption('STL debug mode',
-                                                                False)})
+        opts.update({
+            'eh': coredata.UserComboOption(
+                'C++ exception handling type.',
+                ['none', 'default', 'a', 's', 'sc'],
+                'default',
+            ),
+            'rtti': coredata.UserBooleanOption('Enable RTTI', True),
+            'std': coredata.UserComboOption(
+                'C++ language standard to use',
+                ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z', 'c++2a',
+                'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z', 'gnu++2a'],
+                'none',
+            ),
+            'debugstl': coredata.UserBooleanOption(
+                'STL debug mode',
+                False,
+            )
+        })
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
-                'cpp_winlibs': coredata.UserArrayOption('Standard Win libraries to link against',
-                                                        gnu_winlibs), })
+                'winlibs': coredata.UserArrayOption(
+                    'Standard Win libraries to link against',
+                    gnu_winlibs,
+                ),
+            })
         return opts
 
     def get_option_compile_args(self, options):
         args = []
-        std = options['cpp_std']
+        std = options['std']
         if std.value != 'none':
             args.append(self._find_best_cpp_std(std.value))
 
-        non_msvc_eh_options(options['cpp_eh'].value, args)
+        non_msvc_eh_options(options['eh'].value, args)
 
-        if not options['cpp_rtti'].value:
+        if not options['rtti'].value:
             args.append('-fno-rtti')
 
-        if options['cpp_debugstl'].value:
+        if options['debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
 
     def get_option_link_args(self, options):
         if self.info.is_windows() or self.info.is_cygwin():
-            return options['cpp_winlibs'].value[:]
+            return options['winlibs'].value[:]
         return []
 
     def get_pch_use_args(self, pch_dir, header):
@@ -337,15 +365,25 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
     # It does not support c++/gnu++ 17 and 1z, but still does support 0x, 1y, and gnu++98.
     def get_options(self):
         opts = CPPCompiler.get_options(self)
-        opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
-                                                        ['none', 'default', 'a', 's', 'sc'],
-                                                        'default'),
-                     'cpp_std': coredata.UserComboOption('C++ language standard to use',
-                                                         ['none', 'c++98', 'c++03', 'c++0x', 'c++11', 'c++14', 'c++1y',
-                                                          'gnu++98', 'gnu++03', 'gnu++0x', 'gnu++11', 'gnu++14', 'gnu++1y'],
-                                                         'none'),
-                     'cpp_debugstl': coredata.UserBooleanOption('STL debug mode',
-                                                                False)})
+        opts.update({
+            'eh': coredata.UserComboOption(
+                'C++ exception handling type.',
+                ['none', 'default', 'a', 's', 'sc'],
+                'default',
+            ),
+            'std': coredata.UserComboOption(
+                'C++ language standard to use',
+                [
+                    'none', 'c++98', 'c++03', 'c++0x', 'c++11', 'c++14', 'c++1y',
+                    'gnu++98', 'gnu++03', 'gnu++0x', 'gnu++11', 'gnu++14', 'gnu++1y',
+                ],
+                'none',
+            ),
+            'debugstl': coredata.UserBooleanOption(
+                'STL debug mode',
+                False,
+            ),
+        })
         return opts
 
     # Elbrus C++ compiler does not have lchmod, but there is only linker warning, not compiler error.
@@ -361,13 +399,13 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
     # Elbrus C++ compiler does not support RTTI, so don't check for it.
     def get_option_compile_args(self, options):
         args = []
-        std = options['cpp_std']
+        std = options['std']
         if std.value != 'none':
             args.append(self._find_best_cpp_std(std.value))
 
-        non_msvc_eh_options(options['cpp_eh'].value, args)
+        non_msvc_eh_options(options['eh'].value, args)
 
-        if options['cpp_debugstl'].value:
+        if options['debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
 
@@ -400,31 +438,36 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
             c_stds += ['c++17']
         if version_compare(self.version, '>=17.0.0'):
             g_stds += ['gnu++14']
-        opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
-                                                        ['none', 'default', 'a', 's', 'sc'],
-                                                        'default'),
-                     'cpp_rtti': coredata.UserBooleanOption('Enable RTTI', True),
-                     'cpp_std': coredata.UserComboOption('C++ language standard to use',
-                                                         ['none'] + c_stds + g_stds,
-                                                         'none'),
-                     'cpp_debugstl': coredata.UserBooleanOption('STL debug mode',
-                                                                False)})
+        opts.update({
+            'eh': coredata.UserComboOption(
+                'C++ exception handling type.',
+                ['none', 'default', 'a', 's', 'sc'],
+                'default',
+            ),
+            'rtti': coredata.UserBooleanOption('Enable RTTI', True),
+            'std': coredata.UserComboOption(
+                'C++ language standard to use',
+                ['none'] + c_stds + g_stds,
+                'none',
+            ),
+            'debugstl': coredata.UserBooleanOption('STL debug mode', False),
+        })
         return opts
 
     def get_option_compile_args(self, options):
         args = []
-        std = options['cpp_std']
+        std = options['std']
         if std.value != 'none':
             remap_cpp03 = {
                 'c++03': 'c++98',
                 'gnu++03': 'gnu++98'
             }
             args.append('-std=' + remap_cpp03.get(std.value, std.value))
-        if options['cpp_eh'].value == 'none':
+        if options['eh'].value == 'none':
             args.append('-fno-exceptions')
-        if not options['cpp_rtti'].value:
+        if not options['rtti'].value:
             args.append('-fno-rtti')
-        if options['cpp_debugstl'].value:
+        if options['debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
 
@@ -449,24 +492,32 @@ class VisualStudioLikeCPPCompilerMixin:
     }
 
     def get_option_link_args(self, options):
-        return options['cpp_winlibs'].value[:]
+        return options['winlibs'].value[:]
 
     def _get_options_impl(self, opts, cpp_stds: T.List[str]):
-        opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
-                                                        ['none', 'default', 'a', 's', 'sc'],
-                                                        'default'),
-                     'cpp_rtti': coredata.UserBooleanOption('Enable RTTI', True),
-                     'cpp_std': coredata.UserComboOption('C++ language standard to use',
-                                                         cpp_stds,
-                                                         'none'),
-                     'cpp_winlibs': coredata.UserArrayOption('Windows libs to link against.',
-                                                             msvc_winlibs)})
+        opts.update({
+            'eh': coredata.UserComboOption(
+                'C++ exception handling type.',
+                ['none', 'default', 'a', 's', 'sc'],
+                'default',
+            ),
+            'rtti': coredata.UserBooleanOption('Enable RTTI', True),
+            'std': coredata.UserComboOption(
+                'C++ language standard to use',
+                cpp_stds,
+                'none',
+            ),
+            'winlibs': coredata.UserArrayOption(
+                'Windows libs to link against.',
+                msvc_winlibs,
+            ),
+        })
         return opts
 
     def get_option_compile_args(self, options):
         args = []
 
-        eh = options['cpp_eh']
+        eh = options['eh']
         if eh.value == 'default':
             args.append('/EHsc')
         elif eh.value == 'none':
@@ -474,10 +525,10 @@ class VisualStudioLikeCPPCompilerMixin:
         else:
             args.append('/EH' + eh.value)
 
-        if not options['cpp_rtti'].value:
+        if not options['rtti'].value:
             args.append('/GR-')
 
-        permissive, ver = self.VC_VERSION_MAP[options['cpp_std'].value]
+        permissive, ver = self.VC_VERSION_MAP[options['std'].value]
 
         if ver is not None:
             args.append('/std:c++{}'.format(ver))
@@ -504,17 +555,17 @@ class CPP11AsCPP14Mixin:
         # which means setting the C++ standard version to C++14, in compilers that support it
         # (i.e., after VS2015U3)
         # if one is using anything before that point, one cannot set the standard.
-        if options['cpp_std'].value in {'vc++11', 'c++11'}:
+        if options['std'].value in {'vc++11', 'c++11'}:
             mlog.warning(self.id, 'does not support C++11;',
                          'attempting best effort; setting the standard to C++14', once=True)
             # Don't mutate anything we're going to change, we need to use
             # deepcopy since we're messing with members, and we can't simply
             # copy the members because the option proxy doesn't support it.
             options = copy.deepcopy(options)
-            if options['cpp_std'].value == 'vc++11':
-                options['cpp_std'].value = 'vc++14'
+            if options['std'].value == 'vc++11':
+                options['std'].value = 'vc++14'
             else:
-                options['cpp_std'].value = 'c++14'
+                options['std'].value = 'c++14'
         return super().get_option_compile_args(options)
 
 
@@ -537,10 +588,10 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
         return self._get_options_impl(super().get_options(), cpp_stds)
 
     def get_option_compile_args(self, options):
-        if options['cpp_std'].value != 'none' and version_compare(self.version, '<19.00.24210'):
+        if options['std'].value != 'none' and version_compare(self.version, '<19.00.24210'):
             mlog.warning('This version of MSVC does not support cpp_std arguments')
             options = copy.copy(options)
-            options['cpp_std'].value = 'none'
+            options['std'].value = 'none'
 
         args = super().get_option_compile_args(options)
 
@@ -588,14 +639,18 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
 
     def get_options(self):
         opts = CPPCompiler.get_options(self)
-        opts.update({'cpp_std': coredata.UserComboOption('C++ language standard to use',
-                                                         ['none', 'c++03', 'c++11'],
-                                                         'none')})
+        opts.update({
+            'std': coredata.UserComboOption(
+                'C++ language standard to use',
+                ['none', 'c++03', 'c++11'],
+                'none',
+            ),
+        })
         return opts
 
     def get_option_compile_args(self, options):
         args = []
-        std = options['cpp_std']
+        std = options['std']
         if std.value == 'c++11':
             args.append('--cpp11')
         elif std.value == 'c++03':

@@ -469,8 +469,8 @@ class Rewriter:
             **{'build.' + k: o for k, o in cdata.builtins_per_machine.build.items()},
             **cdata.backend_options,
             **cdata.base_options,
-            **cdata.compiler_options.host,
-            **{'build.' + k: o for k, o in cdata.compiler_options.build.items()},
+            **(dict(cdata.flatten_lang_iterator(cdata.compiler_options.host.items()))),
+            **{'build.' + k: o for k, o in cdata.flatten_lang_iterator(cdata.compiler_options.build.items())},
             **cdata.user_options,
         }
 

@@ -836,7 +836,7 @@ class InternalTests(unittest.TestCase):
             env = get_fake_env()
             compiler = env.detect_c_compiler(MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
-            env.coredata.compiler_options.host['c_link_args'] = FakeCompilerOptions()
+            env.coredata.compiler_options.host['c']['link_args'] = FakeCompilerOptions()
             p1 = Path(tmpdir) / '1'
             p2 = Path(tmpdir) / '2'
             p1.mkdir()
@@ -3719,11 +3719,11 @@ recommended as it is not supported on some platforms''')
         # c_args value should be parsed with split_args
         self.init(testdir, extra_args=['-Dc_args=-Dfoo -Dbar "-Dthird=one two"'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.compiler_options.host['c_args'].value, ['-Dfoo', '-Dbar', '-Dthird=one two'])
+        self.assertEqual(obj.compiler_options.host['c']['args'].value, ['-Dfoo', '-Dbar', '-Dthird=one two'])
 
         self.setconf('-Dc_args="foo bar" one two')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.compiler_options.host['c_args'].value, ['foo bar', 'one', 'two'])
+        self.assertEqual(obj.compiler_options.host['c']['args'].value, ['foo bar', 'one', 'two'])
         self.wipe()
 
         self.init(testdir, extra_args=['-Dset_percent_opt=myoption%'])
@@ -3741,7 +3741,7 @@ recommended as it is not supported on some platforms''')
             self.assertEqual(obj.builtins['bindir'].value, 'bar')
             self.assertEqual(obj.builtins['buildtype'].value, 'release')
             self.assertEqual(obj.base_options['b_sanitize'].value, 'thread')
-            self.assertEqual(obj.compiler_options.host['c_args'].value, ['-Dbar'])
+            self.assertEqual(obj.compiler_options.host['c']['args'].value, ['-Dbar'])
             self.setconf(['--bindir=bar', '--bindir=foo',
                           '-Dbuildtype=release', '-Dbuildtype=plain',
                           '-Db_sanitize=thread', '-Db_sanitize=address',
@@ -3750,7 +3750,7 @@ recommended as it is not supported on some platforms''')
             self.assertEqual(obj.builtins['bindir'].value, 'foo')
             self.assertEqual(obj.builtins['buildtype'].value, 'plain')
             self.assertEqual(obj.base_options['b_sanitize'].value, 'address')
-            self.assertEqual(obj.compiler_options.host['c_args'].value, ['-Dfoo'])
+            self.assertEqual(obj.compiler_options.host['c']['args'].value, ['-Dfoo'])
             self.wipe()
         except KeyError:
             # Ignore KeyError, it happens on CI for compilers that does not
@@ -5589,8 +5589,6 @@ class LinuxlikeTests(BasePlatformTests):
             self.assertEqual(Oargs, [Oflag, '-O0'])
 
     def _test_stds_impl(self, testdir, compiler, p: str):
-        lang_std = p + '_std'
-
         has_cpp17 = (compiler.get_id() not in {'clang', 'gcc'} or
                      compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=5.0.0', '>=9.1') or
                      compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=5.0.0'))
@@ -5603,7 +5601,8 @@ class LinuxlikeTests(BasePlatformTests):
         # Check that all the listed -std=xxx options for this compiler work just fine when used
         # https://en.wikipedia.org/wiki/Xcode#Latest_versions
         # https://www.gnu.org/software/gcc/projects/cxx-status.html
-        for v in compiler.get_options()[lang_std].choices:
+        for v in compiler.get_options()['std'].choices:
+            lang_std = p + '_std'
             # we do it like this to handle gnu++17,c++17 and gnu17,c17 cleanly
             # thus, C++ first
             if '++17' in v and not has_cpp17:
