@@ -214,9 +214,9 @@ class MachineInfo:
 
     def is_darwin(self) -> bool:
         """
-        Machine is Darwin (iOS/OS X)?
+        Machine is Darwin (iOS/tvOS/OS X)?
         """
-        return self.system in {'darwin', 'ios'}
+        return self.system in {'darwin', 'ios', 'tvos'}
 
     def is_android(self) -> bool:
         """

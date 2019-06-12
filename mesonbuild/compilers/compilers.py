@@ -402,7 +402,7 @@ base_options = {'b_pch': coredata.UserBooleanOption('Use precompiled headers', T
                                                           True),
                 'b_pie': coredata.UserBooleanOption('Build executables as position independent',
                                                     False),
-                'b_bitcode': coredata.UserBooleanOption('Generate and embed bitcode (only macOS and iOS)',
+                'b_bitcode': coredata.UserBooleanOption('Generate and embed bitcode (only macOS/iOS/tvOS)',
                                                         False),
                 'b_vscrt': coredata.UserComboOption('VS run-time library type to use.',
                                                     ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype'],
@@ -2166,8 +2166,8 @@ class ClangCompiler(GnuLikeCompiler):
         if extra_args is None:
             extra_args = []
         # Starting with XCode 8, we need to pass this to force linker
-        # visibility to obey OS X and iOS minimum version targets with
-        # -mmacosx-version-min, -miphoneos-version-min, etc.
+        # visibility to obey OS X/iOS/tvOS minimum version targets with
+        # -mmacosx-version-min, -miphoneos-version-min, -mtvos-version-min etc.
         # https://github.com/Homebrew/homebrew-core/issues/3727
         if self.compiler_type.is_osx_compiler and version_compare(self.version, '>=8.0'):
             extra_args.append('-Wl,-no_weak_imports')

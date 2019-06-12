@@ -1783,7 +1783,7 @@ class SharedLibrary(BuildTarget):
                 # We replicate what Autotools does here and take the first
                 # number of the version by default.
                 self.soversion = self.ltversion.split('.')[0]
-            # macOS and iOS dylib compatibility_version and current_version
+            # macOS, iOS and tvOS dylib compatibility_version and current_version
             if 'darwin_versions' in kwargs:
                 self.darwin_versions = self._validate_darwin_versions(kwargs['darwin_versions'])
             elif self.soversion:
