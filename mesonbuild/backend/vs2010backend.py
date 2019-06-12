@@ -892,8 +892,10 @@ class Vs2010Backend(backends.Backend):
         # generate_single_compile() and generate_basic_compiler_args()
         for l, comp in target.compilers.items():
             if l in file_args:
-                file_args[l] += compilers.get_base_compile_args(self.get_base_options_for_target(target), comp)
-                file_args[l] += comp.get_option_compile_args(self.environment.coredata.compiler_options[target.for_machine])
+                file_args[l] += compilers.get_base_compile_args(
+                        self.get_base_options_for_target(target), comp)
+                file_args[l] += comp.get_option_compile_args(
+                        self.environment.coredata.compiler_options[target.for_machine][comp.language])
 
         # Add compile args added using add_project_arguments()
         for l, args in self.build.projects_args[target.for_machine].get(target.subproject, {}).items():
@@ -906,10 +908,11 @@ class Vs2010Backend(backends.Backend):
                 file_args[l] += args
         # Compile args added from the env or cross file: CFLAGS/CXXFLAGS, etc. We want these
         # to override all the defaults, but not the per-target compile args.
-        for key, opt in self.environment.coredata.compiler_options[target.for_machine].items():
-            l, suffix = key.split('_', 1)
-            if suffix == 'args' and l in file_args:
-                file_args[l] += opt.value
+        for l in file_args.keys():
+            opts = self.environment.coredata.compiler_options[target.for_machine][l]
+            k = 'args'
+            if k in opts:
+                file_args[l] += opts[k].value
         for args in file_args.values():
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
@@ -1116,7 +1119,8 @@ class Vs2010Backend(backends.Backend):
         # to be after all internal and external libraries so that unresolved
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
-        extra_link_args += compiler.get_option_link_args(self.environment.coredata.compiler_options[compiler.for_machine])
+        extra_link_args += compiler.get_option_link_args(
+                self.environment.coredata.compiler_options[compiler.for_machine][comp.language])
         (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args.to_native())
 
         # Add more libraries to be linked if needed

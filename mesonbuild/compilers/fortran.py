@@ -184,14 +184,18 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
             fortran_stds += ['f2008']
         if version_compare(self.version, '>=8.0.0'):
             fortran_stds += ['f2018']
-        opts.update({'fortran_std': coredata.UserComboOption('Fortran language standard to use',
-                                                             ['none'] + fortran_stds,
-                                                             'none')})
+        opts.update({
+            'std': coredata.UserComboOption(
+                'Fortran language standard to use',
+                ['none'] + fortran_stds,
+                'none',
+            ),
+        })
         return opts
 
     def get_option_compile_args(self, options) -> T.List[str]:
         args = []
-        std = options['fortran_std']
+        std = options['std']
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
@@ -290,14 +294,18 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
     def get_options(self):
         opts = FortranCompiler.get_options(self)
         fortran_stds = ['legacy', 'f95', 'f2003', 'f2008', 'f2018']
-        opts.update({'fortran_std': coredata.UserComboOption('Fortran language standard to use',
-                                                             ['none'] + fortran_stds,
-                                                             'none')})
+        opts.update({
+            'std': coredata.UserComboOption(
+                'Fortran language standard to use',
+                ['none'] + fortran_stds,
+                'none',
+            ),
+        })
         return opts
 
     def get_option_compile_args(self, options) -> T.List[str]:
         args = []
-        std = options['fortran_std']
+        std = options['std']
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
         if std.value != 'none':
             args.append('-stand=' + stds[std.value])
@@ -340,14 +348,18 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
     def get_options(self):
         opts = FortranCompiler.get_options(self)
         fortran_stds = ['legacy', 'f95', 'f2003', 'f2008', 'f2018']
-        opts.update({'fortran_std': coredata.UserComboOption('Fortran language standard to use',
-                                                             ['none'] + fortran_stds,
-                                                             'none')})
+        opts.update({
+            'std': coredata.UserComboOption(
+                'Fortran language standard to use',
+                ['none'] + fortran_stds,
+                'none',
+            ),
+        })
         return opts
 
     def get_option_compile_args(self, options) -> T.List[str]:
         args = []
-        std = options['fortran_std']
+        std = options['std']
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
         if std.value != 'none':
             args.append('/stand:' + stds[std.value])

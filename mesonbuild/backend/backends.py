@@ -166,18 +166,21 @@ class Backend:
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
     def get_base_options_for_target(self, target):
-        return OptionOverrideProxy(target.option_overrides,
+        return OptionOverrideProxy(target.option_overrides_base,
                                    self.environment.coredata.builtins,
                                    self.environment.coredata.base_options)
 
     def get_compiler_options_for_target(self, target):
-        return OptionOverrideProxy(
-            target.option_overrides,
-            self.environment.coredata.compiler_options[target.for_machine])
+        comp_reg = self.environment.coredata.compiler_options[target.for_machine]
+        comp_override = target.option_overrides_compiler
+        return {
+            lang: OptionOverrideProxy(comp_override[lang], comp_reg[lang])
+            for lang in set(comp_reg.keys()) | set(comp_override.keys())
+        }
 
     def get_option_for_target(self, option_name, target):
-        if option_name in target.option_overrides:
-            override = target.option_overrides[option_name]
+        if option_name in target.option_overrides_base:
+            override = target.option_overrides_base[option_name]
             return self.environment.coredata.validate_option_value(option_name, override)
         return self.environment.coredata.get_builtin_option(option_name)
 
@@ -581,7 +584,7 @@ class Backend:
         # starting from hard-coded defaults followed by build options and so on.
         commands = CompilerArgs(compiler)
 
-        copt_proxy = self.get_compiler_options_for_target(target)
+        copt_proxy = self.get_compiler_options_for_target(target)[compiler.language]
         # First, the trivial ones that are impossible to override.
         #
         # Add -nostdinc/-nostdinc++ if needed; can't be overridden

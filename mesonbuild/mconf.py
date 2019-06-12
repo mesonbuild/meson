@@ -97,9 +97,9 @@ class Conf:
             else:
                 print('{0:{width[0]}} {1:{width[1]}} {3}'.format(*line, width=col_widths))
 
-    def split_options_per_subproject(self, options):
+    def split_options_per_subproject(self, options_iter):
         result = {}
-        for k, o in options.items():
+        for k, o in options_iter:
             subproject = ''
             if ':' in k:
                 subproject, optname = k.split(':')
@@ -211,10 +211,15 @@ class Conf:
                 return 'build.' + k
             return k[:idx + 1] + 'build.' + k[idx + 1:]
 
-        core_options = self.split_options_per_subproject(core_options)
-        host_compiler_options = self.split_options_per_subproject(self.coredata.compiler_options.host)
-        build_compiler_options = self.split_options_per_subproject({insert_build_prefix(k): o for k, o in self.coredata.compiler_options.build.items()})
-        project_options = self.split_options_per_subproject(self.coredata.user_options)
+        core_options = self.split_options_per_subproject(core_options.items())
+        host_compiler_options = self.split_options_per_subproject(
+            self.coredata.flatten_lang_iterator(
+                self.coredata.compiler_options.host.items()))
+        build_compiler_options = self.split_options_per_subproject(
+            self.coredata.flatten_lang_iterator(
+                (insert_build_prefix(k), o)
+                for k, o in self.coredata.compiler_options.build.items()))
+        project_options = self.split_options_per_subproject(self.coredata.user_options.items())
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
 
         self.add_section('Main project options')

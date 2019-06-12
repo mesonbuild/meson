@@ -773,7 +773,7 @@ class Environment:
         elif isinstance(comp_class.LINKER_PREFIX, list):
             check_args = comp_class.LINKER_PREFIX + ['/logo'] + comp_class.LINKER_PREFIX + ['--version']
 
-        check_args += self.coredata.compiler_options[for_machine][comp_class.language + '_args'].value
+        check_args += self.coredata.compiler_options[for_machine][comp_class.language]['args'].value
 
         override = []  # type: T.List[str]
         value = self.lookup_binary_entry(for_machine, comp_class.language + '_ld')
@@ -835,7 +835,7 @@ class Environment:
         """
         self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
         extra_args = T.cast(T.List[str], extra_args or [])
-        extra_args += self.coredata.compiler_options[for_machine][comp_class.language + '_args'].value
+        extra_args += self.coredata.compiler_options[for_machine][comp_class.language]['args'].value
 
         if isinstance(comp_class.LINKER_PREFIX, str):
             check_args = [comp_class.LINKER_PREFIX + '--version'] + extra_args

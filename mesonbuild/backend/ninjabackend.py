@@ -2560,7 +2560,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # to be after all internal and external libraries so that unresolved
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
-        commands += linker.get_option_link_args(self.environment.coredata.compiler_options[target.for_machine])
+        if hasattr(linker, 'get_language'):
+            # The static linker doesn't know what language it is building, so we
+            # don't know what option. Fortunately, it doesn't care to see the
+            # language-specific options either.
+            #
+            # We shouldn't check whether we are making a static library, because
+            # in the LTO case we do use a real compiler here.
+            commands += linker.get_option_link_args(self.environment.coredata.compiler_options[target.for_machine][linker.get_language()])
 
         dep_targets = []
         dep_targets.extend(self.guess_external_link_dependencies(linker, target, commands, internal))

@@ -1260,10 +1260,10 @@ def get_global_options(lang: str,
     """Retreive options that apply to all compilers for a given language."""
     description = 'Extra arguments passed to the {}'.format(lang)
     opts = {
-        lang + '_args': coredata.UserArrayOption(
+        'args': coredata.UserArrayOption(
             description + ' compiler',
             [], split_args=True, user_input=True, allow_dups=True),
-        lang + '_link_args': coredata.UserArrayOption(
+        'link_args': coredata.UserArrayOption(
             description + ' linker',
             [], split_args=True, user_input=True, allow_dups=True),
     }
@@ -1276,12 +1276,13 @@ def get_global_options(lang: str,
         comp.INVOKES_LINKER)
 
     for k, o in opts.items():
-        if k in properties:
+        user_k = lang + '_' + k
+        if user_k in properties:
             # Get from configuration files.
-            o.set_value(properties[k])
-        elif k == lang + '_args':
+            o.set_value(properties[user_k])
+        elif k == 'args':
             o.set_value(compile_args)
-        elif k == lang + '_link_args':
+        elif k == 'link_args':
             o.set_value(link_args)
 
     return opts
