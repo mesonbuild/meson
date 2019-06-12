@@ -860,7 +860,7 @@ class CLikeCompiler:
         '''
         args = self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
-        with self.compile(code, extra_args=args, mode='compile', want_output=True) as p:
+        with self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True) as p:
             if p.returncode != 0:
                 m = 'BUG: Unable to compile {!r} check: {}'
                 raise RuntimeError(m.format(n, p.stdo))
