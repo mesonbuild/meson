@@ -749,7 +749,7 @@ class ShadercDependency(ExternalDependency):
             else:
                 c = [functools.partial(PkgConfigDependency, name, environment, kwargs)
                      for name in shared_libs + static_libs]
-            candidates.exend(c)
+            candidates.extend(c)
 
         if DependencyMethods.SYSTEM in methods:
             candidates.append(functools.partial(ShadercDependency, environment, kwargs))
