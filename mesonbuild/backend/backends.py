@@ -607,9 +607,10 @@ class Backend:
         # file. We want these to override all the defaults, but not the
         # per-target compile args.
         commands += self.environment.coredata.get_external_args(target.for_machine, compiler.get_language())
-        # Always set -fPIC for shared libraries
+        # Always set -fPIC for shared libraries unless partially linked
         if isinstance(target, build.SharedLibrary):
-            commands += compiler.get_pic_args()
+            if self.get_option_for_target('sharedlib_linkmodel', target) != 'partial':
+                commands += compiler.get_pic_args()
         # Set -fPIC for static libraries by default unless explicitly disabled
         if isinstance(target, build.StaticLibrary) and target.pic:
             commands += compiler.get_pic_args()
