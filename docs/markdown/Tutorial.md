@@ -18,9 +18,8 @@ following command:
 sudo apt install libgtk-3-dev
 ```
 
-It is possible to build the GUI application On other platforms such as
-Windows and macOS but it requires for you to install the dependency
-libraries using a dependendy provider of your choice.
+It is possible to build the GUI application on other platforms, such
+as Windows and macOS, but you need to install the needed dependencies.
 
 The humble beginning
 -----
