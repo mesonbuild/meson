@@ -50,7 +50,7 @@ class PackageGenerator:
         self.staging_dirs = ['dist', 'dist2']
         if self.bytesize == 64:
             self.progfile_dir = 'ProgramFiles64Folder'
-            redist_glob = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Redist\\MSVC\\*\\MergeModules\\Microsoft_VC141_CRT_x64.msm'
+            redist_glob = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\*\\MergeModules\\Microsoft_VC142_CRT_x64.msm'
         else:
             self.progfile_dir = 'ProgramFilesFolder'
             redist_glob = 'C:\\Program Files\\Microsoft Visual Studio\\2017\\Community\\VC\\Redist\\MSVC\\*\\MergeModules\\Microsoft_VC141_CRT_x86.msm'
