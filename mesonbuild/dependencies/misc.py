@@ -388,8 +388,14 @@ class ThreadDependency(ExternalDependency):
         super().__init__('threads', environment, None, kwargs)
         self.name = 'threads'
         self.is_found = True
-        self.compile_args = self.clib_compiler.thread_flags(environment)
-        self.link_args = self.clib_compiler.thread_link_flags(environment)
+        # Happens if you are using a language with threads
+        # concept without C, such as plain Cuda.
+        if self.clib_compiler is None:
+            self.compile_args = []
+            self.link_args = []
+        else:
+            self.compile_args = self.clib_compiler.thread_flags(environment)
+            self.link_args = self.clib_compiler.thread_link_flags(environment)
 
 
 class Python3Dependency(ExternalDependency):
