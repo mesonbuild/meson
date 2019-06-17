@@ -2238,6 +2238,9 @@ class ArmclangCompiler:
     def get_std_shared_lib_link_args(self):
         return []
 
+    def get_std_partial_lib_link_args(self):
+        return ['--partial']
+
     def get_pch_suffix(self):
         return 'gch'
 
@@ -2386,7 +2389,6 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
 
 class ArmCompiler:
-    # Functionality that is common to all ARM family compilers.
     def __init__(self, compiler_type):
         if not self.is_cross:
             raise EnvironmentException('armcc supports only cross-compilation.')
@@ -2424,6 +2426,9 @@ class ArmCompiler:
     # Override CCompiler.get_std_shared_lib_link_args
     def get_std_shared_lib_link_args(self):
         return []
+
+    def get_std_partial_lib_link_args(self):
+        return ['--partial']
 
     def get_pch_use_args(self, pch_dir, header):
         # FIXME: Add required arguments
