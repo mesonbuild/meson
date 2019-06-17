@@ -82,6 +82,7 @@ Using the option as-is with no prefix affects all machines. For example:
 | warning_level {0, 1, 2, 3}           | 1             | Set the warning level. From 0 = none to 3 = highest            | no             |
 | werror                               | false         | Treat warnings as errors                                       | no             |
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback} | default | Wrap mode to use                            | no             |
+| sharedlib_linkmodel {standard, partial} | standard   | Shared library link model. standard linking or partial linking | no             |
 
 ## Base options
 
