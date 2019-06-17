@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List, Tuple
 import itertools
 import os
 import subprocess
@@ -434,12 +435,12 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     return TestResult(validate_install(testdir, install_dir, compiler, builddata.environment),
                       BuildStep.validate, stdo, stde, mesonlog, gen_time, build_time, test_time)
 
-def gather_tests(testdir: Path):
-    tests = [t.name for t in testdir.glob('*')]
-    tests = [t for t in tests if not t.startswith('.')] # Filter non-tests files (dot files, etc)
-    testlist = [(int(t.split()[0]), t) for t in tests]
-    testlist.sort()
-    tests = [testdir / t[1] for t in testlist]
+def gather_tests(testdir: Path) -> List[Path]:
+    test_names = [t.name for t in testdir.glob('*') if t.is_dir()]
+    test_names = [t for t in test_names if not t.startswith('.')] # Filter non-tests files (dot files, etc)
+    test_nums = [(int(t.split()[0]), t) for t in test_names]
+    test_nums.sort()
+    tests = [testdir / t[1] for t in test_nums]
     return tests
 
 def have_d_compiler():
@@ -559,7 +560,18 @@ def skip_csharp(backend):
         return not stdo.startswith(b'2.')
     return True
 
-def detect_tests_to_run():
+def detect_tests_to_run(only: List[str]) -> List[Tuple[str, List[Path], bool]]:
+    """
+    Parameters
+    ----------
+    only: list of str, optional
+        specify names of tests to run
+
+    Returns
+    -------
+    gathered_tests: list of tuple of str, list of pathlib.Path, bool
+        tests to run
+    """
     # Name, subdirectory, skip condition.
     all_tests = [
         ('cmake', 'cmake', not shutil.which('cmake') or (os.environ.get('compiler') == 'msvc2015' and under_ci)),
@@ -590,6 +602,11 @@ def detect_tests_to_run():
         ('frameworks', 'frameworks', False),
         ('nasm', 'nasm', False),
     ]
+
+    if only:
+        names = [t[0] for t in all_tests]
+        ind = [names.index(o) for o in only]
+        all_tests = [all_tests[i] for i in ind]
     gathered_tests = [(name, gather_tests(Path('test cases', subdir)), skip) for name, subdir, skip in all_tests]
     return gathered_tests
 
@@ -816,6 +833,7 @@ if __name__ == '__main__':
                         choices=backendlist)
     parser.add_argument('--failfast', action='store_true',
                         help='Stop running if test case fails')
+    parser.add_argument('--only', help='name of test(s) to run', nargs='+')
     options = parser.parse_args()
     setup_commands(options.backend)
 
@@ -826,7 +844,7 @@ if __name__ == '__main__':
     check_format()
     check_meson_commands_work()
     try:
-        all_tests = detect_tests_to_run()
+        all_tests = detect_tests_to_run(options.only)
         (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args)
     except StopException:
         pass
@@ -841,8 +859,8 @@ if __name__ == '__main__':
             except UnicodeError:
                 print(l.encode('ascii', errors='replace').decode(), '\n')
     for name, dirs, _ in all_tests:
-        dirs = (x.name for x in dirs)
-        for k, g in itertools.groupby(dirs, key=lambda x: x.split()[0]):
+        dir_names = (x.name for x in dirs)
+        for k, g in itertools.groupby(dir_names, key=lambda x: x.split()[0]):
             tests = list(g)
             if len(tests) != 1:
                 print('WARNING: The %s suite contains duplicate "%s" tests: "%s"' % (name, k, '", "'.join(tests)))
