@@ -138,7 +138,7 @@ are never run in parallel.
 ### both_libraries()
 
 ``` meson
-    buildtarget both_libraries(library_name, list_of_sources, ...)
+    buildtarget = both_libraries(library_name, list_of_sources, ...)
 ```
 
 Builds both a static and shared library with the given
