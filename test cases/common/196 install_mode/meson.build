@@ -1,6 +1,10 @@
 project('install_mode test', 'c',
   default_options : ['install_umask=027', 'libdir=libtest'])
 
+if build_machine.system() == 'windows'
+  error('MESON_SKIP_TEST: install_mode test requires a Unix-like OS')
+endif
+
 # confirm no regressions in install_data
 install_data('runscript.sh',
   install_dir : get_option('bindir'),
