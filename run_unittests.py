@@ -4093,18 +4093,21 @@ class DarwinTests(BasePlatformTests):
         when it is false.  This can't be an ordinary test case because we need
         to inspect the compiler database.
         '''
-        testdir = os.path.join(self.common_test_dir, '4 shared')
-        # Try with bitcode enabled
-        out = self.init(testdir, extra_args='-Db_bitcode=true')
+        testdir = os.path.join(self.platform_test_dir, '7 bitcode')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = env.detect_c_compiler(MachineChoice.HOST)
         if cc.id != 'clang':
             raise unittest.SkipTest('Not using Clang on OSX')
+        # Try with bitcode enabled
+        out = self.init(testdir, extra_args='-Db_bitcode=true')
         # Warning was printed
         self.assertRegex(out, 'WARNING:.*b_bitcode')
         # Compiler options were added
-        compdb = self.get_compdb()
-        self.assertIn('-fembed-bitcode', compdb[0]['command'])
+        for compdb in self.get_compdb():
+            if 'module' in compdb['file']:
+                self.assertNotIn('-fembed-bitcode', compdb['command'])
+            else:
+                self.assertIn('-fembed-bitcode', compdb['command'])
         build_ninja = os.path.join(self.builddir, 'build.ninja')
         # Linker options were added
         with open(build_ninja, 'r', encoding='utf-8') as f:
@@ -4115,8 +4118,8 @@ class DarwinTests(BasePlatformTests):
         self.setconf('-Db_bitcode=false')
         # Regenerate build
         self.build()
-        compdb = self.get_compdb()
-        self.assertNotIn('-fembed-bitcode', compdb[0]['command'])
+        for compdb in self.get_compdb():
+            self.assertNotIn('-fembed-bitcode', compdb['command'])
         build_ninja = os.path.join(self.builddir, 'build.ninja')
         with open(build_ninja, 'r', encoding='utf-8') as f:
             contents = f.read()

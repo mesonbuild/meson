@@ -75,4 +75,3 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
