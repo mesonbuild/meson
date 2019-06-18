@@ -17,10 +17,16 @@
 
 __all__ = [
     'CMakeClient',
+    'CMakeExecutor',
     'CMakeException',
     'CMakeInterpreter',
+    'CMakeTarget',
+    'CMakeTraceLine',
+    'CMakeTraceParser',
 ]
 
 from .common import CMakeException
 from .client import CMakeClient
+from .executor import CMakeExecutor
 from .interpreter import CMakeInterpreter
+from .traceparser import CMakeTarget, CMakeTraceLine, CMakeTraceParser

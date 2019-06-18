@@ -418,8 +418,8 @@ class LLVMDependencyCMake(CMakeDependency):
         super().__init__(name='LLVM', environment=env, language='cpp', kwargs=kwargs)
 
         # Extract extra include directories and definitions
-        inc_dirs = self.get_cmake_var('PACKAGE_INCLUDE_DIRS')
-        defs = self.get_cmake_var('PACKAGE_DEFINITIONS')
+        inc_dirs = self.traceparser.get_cmake_var('PACKAGE_INCLUDE_DIRS')
+        defs = self.traceparser.get_cmake_var('PACKAGE_DEFINITIONS')
         temp = ['-I' + x for x in inc_dirs] + defs
         self.compile_args += [x for x in temp if x not in self.compile_args]
         self._add_sub_dependency(ThreadDependency, env, kwargs)
@@ -434,7 +434,7 @@ class LLVMDependencyCMake(CMakeDependency):
     def _map_module_list(self, modules: List[Tuple[str, bool]]) -> List[Tuple[str, bool]]:
         res = []
         for mod, required in modules:
-            cm_targets = self.get_cmake_var('MESON_LLVM_TARGETS_{}'.format(mod))
+            cm_targets = self.traceparser.get_cmake_var('MESON_LLVM_TARGETS_{}'.format(mod))
             if not cm_targets:
                 if required:
                     raise self._gen_exception('LLVM module {} was not found'.format(mod))
@@ -446,7 +446,7 @@ class LLVMDependencyCMake(CMakeDependency):
         return res
 
     def _original_module_name(self, module: str) -> str:
-        orig_name = self.get_cmake_var('MESON_TARGET_TO_LLVM_{}'.format(module))
+        orig_name = self.traceparser.get_cmake_var('MESON_TARGET_TO_LLVM_{}'.format(module))
         if orig_name:
             return orig_name[0]
         return module

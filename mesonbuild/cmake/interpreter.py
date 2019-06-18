@@ -17,17 +17,19 @@
 
 from .common import CMakeException
 from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel, CMakeTarget
+from .executor import CMakeExecutor
 from .. import mlog
-from ..build import Build
 from ..environment import Environment
 from ..mesonlib import MachineChoice
 from ..mparser import Token, BaseNode, CodeBlockNode, FunctionNode, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, StringNode, IdNode, MethodNode
-from ..backend.backends import Backend
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes
-from ..dependencies.base import CMakeDependency, ExternalProgram
 from subprocess import Popen, PIPE, STDOUT
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, TYPE_CHECKING
 import os, re
+
+if TYPE_CHECKING:
+    from ..build import Build
+    from ..backend.backends import Backend
 
 backend_generator_map = {
     'ninja': 'Ninja',
@@ -276,7 +278,7 @@ class ConverterTarget:
             mlog.log('    -', key, '=', mlog.bold(str(val)))
 
 class CMakeInterpreter:
-    def __init__(self, build: Build, subdir: str, src_dir: str, install_prefix: str, env: Environment, backend: Backend):
+    def __init__(self, build: 'Build', subdir: str, src_dir: str, install_prefix: str, env: Environment, backend: 'Backend'):
         assert(hasattr(backend, 'name'))
         self.build = build
         self.subdir = subdir
@@ -303,10 +305,7 @@ class CMakeInterpreter:
     def configure(self, extra_cmake_options: List[str]) -> None:
         for_machine = MachineChoice.HOST # TODO make parameter
         # Find CMake
-        cmake_exe, cmake_vers, _ = CMakeDependency.find_cmake_binary(self.env, for_machine)
-        if cmake_exe is None or cmake_exe is False:
-            raise CMakeException('Unable to find CMake')
-        assert(isinstance(cmake_exe, ExternalProgram))
+        cmake_exe = CMakeExecutor(self.env, '>=3.7', for_machine)
         if not cmake_exe.found():
             raise CMakeException('Unable to find CMake')
 
@@ -333,7 +332,7 @@ class CMakeInterpreter:
         # Run CMake
         mlog.log()
         with mlog.nested():
-            mlog.log('Configuring the build directory with', mlog.bold('CMake'), 'version', mlog.cyan(cmake_vers))
+            mlog.log('Configuring the build directory with', mlog.bold('CMake'), 'version', mlog.cyan(cmake_exe.version()))
             mlog.log(mlog.bold('Running:'), ' '.join(cmake_args))
             mlog.log()
             os.makedirs(self.build_dir, exist_ok=True)

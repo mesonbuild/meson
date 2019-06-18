@@ -23,8 +23,6 @@ import shlex
 import shutil
 import textwrap
 import platform
-import itertools
-import ctypes
 import typing
 from typing import Any, Dict, List, Tuple
 from enum import Enum
@@ -34,6 +32,7 @@ from .. import mlog
 from .. import mesonlib
 from ..compilers import clib_langs
 from ..environment import BinaryTable, Environment, MachineInfo
+from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list
 from ..mesonlib import Version, LibType
@@ -961,40 +960,10 @@ class PkgConfigDependency(ExternalDependency):
             return default_value
         raise DependencyException('Could not get pkg-config variable and no default provided for {!r}'.format(self))
 
-class CMakeTraceLine:
-    def __init__(self, file, line, func, args):
-        self.file = file
-        self.line = line
-        self.func = func.lower()
-        self.args = args
-
-    def __repr__(self):
-        s = 'CMake TRACE: {0}:{1} {2}({3})'
-        return s.format(self.file, self.line, self.func, self.args)
-
-class CMakeTarget:
-    def __init__(self, name, target_type, properies=None):
-        if properies is None:
-            properies = {}
-        self.name = name
-        self.type = target_type
-        self.properies = properies
-
-    def __repr__(self):
-        s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- properies: {{\n{}     }}'
-        propSTR = ''
-        for i in self.properies:
-            propSTR += "      '{}': {}\n".format(i, self.properies[i])
-        return s.format(self.name, self.type, propSTR)
-
 class CMakeDependency(ExternalDependency):
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_cmakebin = PerMachine(None, None)
-    class_cmakevers = PerMachine(None, None)
     class_cmakeinfo = PerMachine(None, None)
-    # We cache all pkg-config subprocess invocations to avoid redundant calls
-    cmake_cache = {}
     # Version string for the minimum CMake version
     class_cmake_version = '>=3.4'
     # CMake generators to try (empty for no generator)
@@ -1029,14 +998,8 @@ class CMakeDependency(ExternalDependency):
         # Store a copy of the CMake path on the object itself so it is
         # stored in the pickled coredata and recovered.
         self.cmakebin = None
-        self.cmakevers = None
         self.cmakeinfo = None
-
-        # Dict of CMake variables: '<var_name>': ['list', 'of', 'values']
-        self.vars = {}
-
-        # Dict of CMakeTarget
-        self.targets = {}
+        self.traceparser = CMakeTraceParser()
 
         # Where all CMake "build dirs" are located
         self.cmake_root_dir = environment.scratch_dir
@@ -1044,10 +1007,10 @@ class CMakeDependency(ExternalDependency):
         # List of successfully found modules
         self.found_modules = []
 
-        self.cmakebin, self.cmakevers, for_machine = self.find_cmake_binary(environment, self.for_machine, self.silent)
-        if self.cmakebin is False:
+        self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, self.for_machine, silent=self.silent)
+        if not self.cmakebin.found():
             self.cmakebin = None
-            msg = 'No CMake binary for machine %s not found. Giving up.' % for_machine
+            msg = 'No CMake binary for machine %s not found. Giving up.' % self.for_machine
             if self.required:
                 raise DependencyException(msg)
             mlog.debug(msg)
@@ -1074,57 +1037,6 @@ class CMakeDependency(ExternalDependency):
         if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[self.for_machine]):
             return
         self._detect_dep(name, modules, cm_args)
-
-    @classmethod
-    def find_cmake_binary(cls, environment: Environment, for_machine: MachineChoice, silent: bool = False) -> Tuple[str, str, MachineChoice]:
-        # Create an iterator of options
-        def search():
-            # Lookup in cross or machine file.
-            potential_cmakepath = environment.binaries[for_machine].lookup_entry('cmake')
-            if potential_cmakepath is not None:
-                mlog.debug('CMake binary for %s specified from cross file, native file, or env var as %s.', for_machine, potential_cmakepath)
-                yield ExternalProgram.from_entry('cmake', potential_cmakepath)
-                # We never fallback if the user-specified option is no good, so
-                # stop returning options.
-                return
-            mlog.debug('CMake binary missing from cross or native file, or env var undefined.')
-            # Fallback on hard-coded defaults.
-            # TODO prefix this for the cross case instead of ignoring thing.
-            if environment.machines.matches_build_machine(for_machine):
-                for potential_cmakepath in environment.default_cmake:
-                    mlog.debug('Trying a default CMake fallback at', potential_cmakepath)
-                    yield ExternalProgram(potential_cmakepath, silent=True)
-
-        # Only search for CMake the first time and store the result in the class
-        # definition
-        if CMakeDependency.class_cmakebin[for_machine] is False:
-            mlog.debug('CMake binary for %s is cached as not found' % for_machine)
-        elif CMakeDependency.class_cmakebin[for_machine] is not None:
-            mlog.debug('CMake binary for %s is cached.' % for_machine)
-        else:
-            assert CMakeDependency.class_cmakebin[for_machine] is None
-            mlog.debug('CMake binary for %s is not cached' % for_machine)
-            for potential_cmakebin in search():
-                mlog.debug('Trying CMake binary {} for machine {} at {}'
-                           .format(potential_cmakebin.name, for_machine, potential_cmakebin.command))
-                version_if_ok = cls.check_cmake(potential_cmakebin)
-                if not version_if_ok:
-                    continue
-                if not silent:
-                    mlog.log('Found CMake:', mlog.bold(potential_cmakebin.get_path()),
-                             '(%s)' % version_if_ok)
-                CMakeDependency.class_cmakebin[for_machine] = potential_cmakebin
-                CMakeDependency.class_cmakevers[for_machine] = version_if_ok
-                break
-            else:
-                if not silent:
-                    mlog.log('Found CMake:', mlog.red('NO'))
-                # Set to False instead of None to signify that we've already
-                # searched for it and not found it
-                CMakeDependency.class_cmakebin[for_machine] = False
-                CMakeDependency.class_cmakevers[for_machine] = None
-
-        return CMakeDependency.class_cmakebin[for_machine], CMakeDependency.class_cmakevers[for_machine], for_machine
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
@@ -1167,20 +1079,15 @@ class CMakeDependency(ExternalDependency):
             return None
 
         try:
-            # First parse the trace
-            lexer1 = self._lex_trace(err1)
-
-            # Primary pass -- parse all invocations of set
-            for l in lexer1:
-                if l.func == 'set':
-                    self._cmake_set(l)
+            temp_parser = CMakeTraceParser()
+            temp_parser.parse(err1)
         except MesonException:
             return None
 
         # Extract the variables and sanity check them
-        module_paths = sorted(set(self.get_cmake_var('MESON_PATHS_LIST')))
+        module_paths = sorted(set(temp_parser.get_cmake_var('MESON_PATHS_LIST')))
         module_paths = list(filter(lambda x: os.path.isdir(x), module_paths))
-        archs = self.get_cmake_var('MESON_ARCH_LIST')
+        archs = temp_parser.get_cmake_var('MESON_ARCH_LIST')
 
         common_paths = ['lib', 'lib32', 'lib64', 'libx32', 'share']
         for i in archs:
@@ -1188,7 +1095,7 @@ class CMakeDependency(ExternalDependency):
 
         res = {
             'module_paths': module_paths,
-            'cmake_root': self.get_cmake_var('MESON_CMAKE_ROOT')[0],
+            'cmake_root': temp_parser.get_cmake_var('MESON_CMAKE_ROOT')[0],
             'archs': archs,
             'common_paths': common_paths
         }
@@ -1198,8 +1105,6 @@ class CMakeDependency(ExternalDependency):
         mlog.debug('  -- CMake architectures:    {}'.format(res['archs']))
         mlog.debug('  -- CMake lib search paths: {}'.format(res['common_paths']))
 
-        # Reset variables
-        self.vars = {}
         return res
 
     @staticmethod
@@ -1267,7 +1172,6 @@ class CMakeDependency(ExternalDependency):
             if search_lib_dirs(i):
                 return True
 
-
         # Check the system paths
         for i in self.cmakeinfo['module_paths']:
             if find_module(i):
@@ -1305,7 +1209,7 @@ class CMakeDependency(ExternalDependency):
         # parameters to stderr as they are executed. Since CMake 3.4.0
         # variables ("${VAR}") are also replaced in the trace output.
         mlog.debug('\nDetermining dependency {!r} with CMake executable '
-                   '{!r}'.format(name, self.cmakebin.get_path()))
+                   '{!r}'.format(name, self.cmakebin.executable_path()))
 
         # Try different CMake generators since specifying no generator may fail
         # in cygwin for some reason
@@ -1340,28 +1244,9 @@ class CMakeDependency(ExternalDependency):
             return
 
         try:
-            # First parse the trace
-            lexer1 = self._lex_trace(err1)
-
-            # All supported functions
-            functions = {
-                'set': self._cmake_set,
-                'unset': self._cmake_unset,
-                'add_executable': self._cmake_add_executable,
-                'add_library': self._cmake_add_library,
-                'add_custom_target': self._cmake_add_custom_target,
-                'set_property': self._cmake_set_property,
-                'set_target_properties': self._cmake_set_target_properties
-            }
-
-            # Primary pass -- parse everything
-            for l in lexer1:
-                # "Execute" the CMake function if supported
-                fn = functions.get(l.func, None)
-                if(fn):
-                    fn(l)
-
-        except DependencyException as e:
+            self.traceparser.parse(err1)
+        except CMakeException as e:
+            e = self._gen_exception(str(e))
             if self.required:
                 raise
             else:
@@ -1372,12 +1257,12 @@ class CMakeDependency(ExternalDependency):
                 return
 
         # Whether the package is found or not is always stored in PACKAGE_FOUND
-        self.is_found = self._var_to_bool('PACKAGE_FOUND')
+        self.is_found = self.traceparser.var_to_bool('PACKAGE_FOUND')
         if not self.is_found:
             return
 
         # Try to detect the version
-        vers_raw = self.get_first_cmake_var_of(['PACKAGE_VERSION'])
+        vers_raw = self.traceparser.get_cmake_var('PACKAGE_VERSION')
 
         if len(vers_raw) > 0:
             self.version = vers_raw[0]
@@ -1390,7 +1275,7 @@ class CMakeDependency(ExternalDependency):
 
         # Try guessing a CMake target if none is provided
         if len(modules) == 0:
-            for i in self.targets:
+            for i in self.traceparser.targets:
                 tg = i.lower()
                 lname = name.lower()
                 if '{}::{}'.format(lname, lname) == tg or lname == tg.replace('::', ''):
@@ -1401,9 +1286,9 @@ class CMakeDependency(ExternalDependency):
 
         # Failed to guess a target --> try the old-style method
         if len(modules) == 0:
-            incDirs = self.get_first_cmake_var_of(['PACKAGE_INCLUDE_DIRS'])
-            defs = self.get_first_cmake_var_of(['PACKAGE_DEFINITIONS'])
-            libs = self.get_first_cmake_var_of(['PACKAGE_LIBRARIES'])
+            incDirs = self.traceparser.get_cmake_var('PACKAGE_INCLUDE_DIRS')
+            defs = self.traceparser.get_cmake_var('PACKAGE_DEFINITIONS')
+            libs = self.traceparser.get_cmake_var('PACKAGE_LIBRARIES')
 
             # Try to use old style variables if no module is specified
             if len(libs) > 0:
@@ -1416,7 +1301,7 @@ class CMakeDependency(ExternalDependency):
             self.is_found = False
             raise self._gen_exception('CMake: failed to guess a CMake target for {}.\n'
                                       'Try to explicitly specify one or more targets with the "modules" property.\n'
-                                      'Valid targets are:\n{}'.format(name, list(self.targets.keys())))
+                                      'Valid targets are:\n{}'.format(name, list(self.traceparser.targets.keys())))
 
         # Set dependencies with CMake targets
         processed_targets = []
@@ -1425,13 +1310,13 @@ class CMakeDependency(ExternalDependency):
         compileOptions = []
         libraries = []
         for i, required in modules:
-            if i not in self.targets:
+            if i not in self.traceparser.targets:
                 if not required:
                     mlog.warning('CMake: Optional module', mlog.bold(self._original_module_name(i)), 'for', mlog.bold(name), 'was not found')
                     continue
                 raise self._gen_exception('CMake: invalid module {} for {}.\n'
                                           'Try to explicitly specify one or more targets with the "modules" property.\n'
-                                          'Valid targets are:\n{}'.format(self._original_module_name(i), name, list(self.targets.keys())))
+                                          'Valid targets are:\n{}'.format(self._original_module_name(i), name, list(self.traceparser.targets.keys())))
 
             targets = [i]
             if not autodetected_module_list:
@@ -1444,7 +1329,7 @@ class CMakeDependency(ExternalDependency):
                 if curr in processed_targets:
                     continue
 
-                tgt = self.targets[curr]
+                tgt = self.traceparser.targets[curr]
                 cfgs = []
                 cfg = ''
                 otherDeps = []
@@ -1482,7 +1367,7 @@ class CMakeDependency(ExternalDependency):
                     otherDeps += tgt.properies['IMPORTED_LINK_DEPENDENT_LIBRARIES']
 
                 for j in otherDeps:
-                    if j in self.targets:
+                    if j in self.traceparser.targets:
                         targets += [j]
 
                 processed_targets += [curr]
@@ -1501,281 +1386,6 @@ class CMakeDependency(ExternalDependency):
         self.compile_args = compileOptions + compileDefinitions + list(map(lambda x: '-I{}'.format(x), incDirs))
         self.link_args = libraries
 
-    def get_first_cmake_var_of(self, var_list: List[str]) -> List[str]:
-        # Return the first found CMake variable in list var_list
-        for i in var_list:
-            if i in self.vars:
-                return self.vars[i]
-
-        return []
-
-    def get_cmake_var(self, var: str) -> List[str]:
-        # Return the value of the CMake variable var or an empty list if var does not exist
-        if var in self.vars:
-            return self.vars[var]
-
-        return []
-
-    def _var_to_bool(self, var):
-        if var not in self.vars:
-            return False
-
-        if len(self.vars[var]) < 1:
-            return False
-
-        if self.vars[var][0].upper() in ['1', 'ON', 'TRUE']:
-            return True
-        return False
-
-    def _cmake_set(self, tline: CMakeTraceLine) -> None:
-        """Handler for the CMake set() function in all variaties.
-
-        comes in three flavors:
-        set(<var> <value> [PARENT_SCOPE])
-        set(<var> <value> CACHE <type> <docstring> [FORCE])
-        set(ENV{<var>} <value>)
-
-        We don't support the ENV variant, and any uses of it will be ignored
-        silently. the other two variates are supported, with some caveats:
-        - we don't properly handle scoping, so calls to set() inside a
-          function without PARENT_SCOPE set could incorrectly shadow the
-          outer scope.
-        - We don't honor the type of CACHE arguments
-        """
-        # DOC: https://cmake.org/cmake/help/latest/command/set.html
-
-        # 1st remove PARENT_SCOPE and CACHE from args
-        args = []
-        for i in tline.args:
-            if not i or i == 'PARENT_SCOPE':
-                continue
-
-            # Discard everything after the CACHE keyword
-            if i == 'CACHE':
-                break
-
-            args.append(i)
-
-        if len(args) < 1:
-            raise self._gen_exception('CMake: set() requires at least one argument\n{}'.format(tline))
-
-        # Now that we've removed extra arguments all that should be left is the
-        # variable identifier and the value, join the value back together to
-        # ensure spaces in the value are correctly handled. This assumes that
-        # variable names don't have spaces. Please don't do that...
-        identifier = args.pop(0)
-        value = ' '.join(args)
-
-        if not value:
-            # Same as unset
-            if identifier in self.vars:
-                del self.vars[identifier]
-        else:
-            self.vars[identifier] = value.split(';')
-
-    def _cmake_unset(self, tline: CMakeTraceLine):
-        # DOC: https://cmake.org/cmake/help/latest/command/unset.html
-        if len(tline.args) < 1:
-            raise self._gen_exception('CMake: unset() requires at least one argument\n{}'.format(tline))
-
-        if tline.args[0] in self.vars:
-            del self.vars[tline.args[0]]
-
-    def _cmake_add_executable(self, tline: CMakeTraceLine):
-        # DOC: https://cmake.org/cmake/help/latest/command/add_executable.html
-        args = list(tline.args) # Make a working copy
-
-        # Make sure the exe is imported
-        if 'IMPORTED' not in args:
-            raise self._gen_exception('CMake: add_executable() non imported executables are not supported\n{}'.format(tline))
-
-        args.remove('IMPORTED')
-
-        if len(args) < 1:
-            raise self._gen_exception('CMake: add_executable() requires at least 1 argument\n{}'.format(tline))
-
-        self.targets[args[0]] = CMakeTarget(args[0], 'EXECUTABLE', {})
-
-    def _cmake_add_library(self, tline: CMakeTraceLine):
-        # DOC: https://cmake.org/cmake/help/latest/command/add_library.html
-        args = list(tline.args) # Make a working copy
-
-        # Make sure the lib is imported
-        if 'IMPORTED' not in args:
-            raise self._gen_exception('CMake: add_library() non imported libraries are not supported\n{}'.format(tline))
-
-        args.remove('IMPORTED')
-
-        # No only look at the first two arguments (target_name and target_type) and ignore the rest
-        if len(args) < 2:
-            raise self._gen_exception('CMake: add_library() requires at least 2 arguments\n{}'.format(tline))
-
-        self.targets[args[0]] = CMakeTarget(args[0], args[1], {})
-
-    def _cmake_add_custom_target(self, tline: CMakeTraceLine):
-        # DOC: https://cmake.org/cmake/help/latest/command/add_custom_target.html
-        # We only the first parameter (the target name) is interesting
-        if len(tline.args) < 1:
-            raise self._gen_exception('CMake: add_custom_target() requires at least one argument\n{}'.format(tline))
-
-        self.targets[tline.args[0]] = CMakeTarget(tline.args[0], 'CUSTOM', {})
-
-    def _cmake_set_property(self, tline: CMakeTraceLine) -> None:
-        # DOC: https://cmake.org/cmake/help/latest/command/set_property.html
-        args = list(tline.args)
-
-        # We only care for TARGET properties
-        if args.pop(0) != 'TARGET':
-            return
-
-        append = False
-        targets = []
-        while args:
-            curr = args.pop(0)
-            # XXX: APPEND_STRING is specifically *not* supposed to create a
-            # list, is treating them as aliases really okay?
-            if curr == 'APPEND' or curr == 'APPEND_STRING':
-                append = True
-                continue
-
-            if curr == 'PROPERTY':
-                break
-
-            targets.append(curr)
-
-        if not args:
-            raise self._gen_exception('CMake: set_property() faild to parse argument list\n{}'.format(tline))
-
-        if len(args) == 1:
-            # Tries to set property to nothing so nothing has to be done
-            return
-
-        identifier = args.pop(0)
-        value = ' '.join(args).split(';')
-        if not value:
-            return
-
-        for i in targets:
-            if i not in self.targets:
-                raise self._gen_exception('CMake: set_property() TARGET {} not found\n{}'.format(i, tline))
-
-            if identifier not in self.targets[i].properies:
-                self.targets[i].properies[identifier] = []
-
-            if append:
-                self.targets[i].properies[identifier] += value
-            else:
-                self.targets[i].properies[identifier] = value
-
-    def _cmake_set_target_properties(self, tline: CMakeTraceLine) -> None:
-        # DOC: https://cmake.org/cmake/help/latest/command/set_target_properties.html
-        args = list(tline.args)
-
-        targets = []
-        while args:
-            curr = args.pop(0)
-            if curr == 'PROPERTIES':
-                break
-
-            targets.append(curr)
-
-        # Now we need to try to reconsitute the original quoted format of the
-        # arguments, as a property value could have spaces in it. Unlike
-        # set_property() this is not context free. There are two approaches I
-        # can think of, both have drawbacks:
-        #
-        #   1. Assume that the property will be capitalized, this is convention
-        #      but cmake doesn't require it.
-        #   2. Maintain a copy of the list here: https://cmake.org/cmake/help/latest/manual/cmake-properties.7.html#target-properties
-        #
-        # Neither of these is awesome for obvious reasons. I'm going to try
-        # option 1 first and fall back to 2, as 1 requires less code and less
-        # synchroniztion for cmake changes.
-
-        arglist = []  # type: typing.List[typing.Tuple[str, typing.List[str]]]
-        name = args.pop(0)
-        values = []
-        for a in args:
-            if a.isupper():
-                if values:
-                    arglist.append((name, ' '.join(values).split(';')))
-                name = a
-                values = []
-            else:
-                values.append(a)
-        if values:
-            arglist.append((name, ' '.join(values).split(';')))
-
-        for name, value in arglist:
-            for i in targets:
-                if i not in self.targets:
-                    raise self._gen_exception('CMake: set_target_properties() TARGET {} not found\n{}'.format(i, tline))
-
-                self.targets[i].properies[name] = value
-
-    def _lex_trace(self, trace):
-        # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
-        reg_tline = re.compile(r'\s*(.*\.(cmake|txt))\(([0-9]+)\):\s*(\w+)\(([\s\S]*?) ?\)\s*\n', re.MULTILINE)
-        reg_other = re.compile(r'[^\n]*\n')
-        reg_genexp = re.compile(r'\$<.*>')
-        loc = 0
-        while loc < len(trace):
-            mo_file_line = reg_tline.match(trace, loc)
-            if not mo_file_line:
-                skip_match = reg_other.match(trace, loc)
-                if not skip_match:
-                    print(trace[loc:])
-                    raise self._gen_exception('Failed to parse CMake trace')
-
-                loc = skip_match.end()
-                continue
-
-            loc = mo_file_line.end()
-
-            file = mo_file_line.group(1)
-            line = mo_file_line.group(3)
-            func = mo_file_line.group(4)
-            args = mo_file_line.group(5).split(' ')
-            args = list(map(lambda x: x.strip(), args))
-            args = list(map(lambda x: reg_genexp.sub('', x), args)) # Remove generator expressions
-
-            yield CMakeTraceLine(file, line, func, args)
-
-    def _reset_cmake_cache(self, build_dir):
-        with open('{}/CMakeCache.txt'.format(build_dir), 'w') as fp:
-            fp.write('CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1\n')
-
-    def _setup_compiler(self, build_dir):
-        comp_dir = '{}/CMakeFiles/{}'.format(build_dir, self.cmakevers)
-        os.makedirs(comp_dir, exist_ok=True)
-
-        c_comp = '{}/CMakeCCompiler.cmake'.format(comp_dir)
-        cxx_comp = '{}/CMakeCXXCompiler.cmake'.format(comp_dir)
-
-        if not os.path.exists(c_comp):
-            with open(c_comp, 'w') as fp:
-                fp.write('''# Fake CMake file to skip the boring and slow stuff
-set(CMAKE_C_COMPILER "{}") # Just give CMake a valid full path to any file
-set(CMAKE_C_COMPILER_ID "GNU") # Pretend we have found GCC
-set(CMAKE_COMPILER_IS_GNUCC 1)
-set(CMAKE_C_COMPILER_LOADED 1)
-set(CMAKE_C_COMPILER_WORKS TRUE)
-set(CMAKE_C_ABI_COMPILED TRUE)
-set(CMAKE_SIZEOF_VOID_P "{}")
-'''.format(os.path.realpath(__file__), ctypes.sizeof(ctypes.c_voidp)))
-
-        if not os.path.exists(cxx_comp):
-            with open(cxx_comp, 'w') as fp:
-                fp.write('''# Fake CMake file to skip the boring and slow stuff
-set(CMAKE_CXX_COMPILER "{}") # Just give CMake a valid full path to any file
-set(CMAKE_CXX_COMPILER_ID "GNU") # Pretend we have found GCC
-set(CMAKE_COMPILER_IS_GNUCXX 1)
-set(CMAKE_CXX_COMPILER_LOADED 1)
-set(CMAKE_CXX_COMPILER_WORKS TRUE)
-set(CMAKE_CXX_ABI_COMPILED TRUE)
-set(CMAKE_SIZEOF_VOID_P "{}")
-'''.format(os.path.realpath(__file__), ctypes.sizeof(ctypes.c_voidp)))
-
     def _setup_cmake_dir(self, cmake_file: str) -> str:
         # Setup the CMake build environment and return the "build" directory
         build_dir = '{}/cmake_{}'.format(self.cmake_root_dir, self.name)
@@ -1789,67 +1399,15 @@ set(CMAKE_SIZEOF_VOID_P "{}")
             os.remove(cmake_lists)
         shutil.copyfile(src_cmake, cmake_lists)
 
-        self._setup_compiler(build_dir)
-        self._reset_cmake_cache(build_dir)
         return build_dir
 
-    def _call_cmake_real(self, args, cmake_file: str, env):
-        build_dir = self._setup_cmake_dir(cmake_file)
-        cmd = self.cmakebin.get_command() + args
-        p, out, err = Popen_safe(cmd, env=env, cwd=build_dir)
-        rc = p.returncode
-        call = ' '.join(cmd)
-        mlog.debug("Called `{}` in {} -> {}".format(call, build_dir, rc))
-
-        return rc, out, err
-
     def _call_cmake(self, args, cmake_file: str, env=None):
-        if env is None:
-            fenv = env
-            env = os.environ
-        else:
-            fenv = frozenset(env.items())
-        targs = tuple(args)
-
-        # First check if cached, if not call the real cmake function
-        cache = CMakeDependency.cmake_cache
-        if (self.cmakebin, targs, cmake_file, fenv) not in cache:
-            cache[(self.cmakebin, targs, cmake_file, fenv)] = self._call_cmake_real(args, cmake_file, env)
-        return cache[(self.cmakebin, targs, cmake_file, fenv)]
+        build_dir = self._setup_cmake_dir(cmake_file)
+        return self.cmakebin.call_with_fake_build(args, build_dir, env=env)
 
     @staticmethod
     def get_methods():
         return [DependencyMethods.CMAKE]
-
-    @staticmethod
-    def check_cmake(cmakebin):
-        if not cmakebin.found():
-            mlog.log('Did not find CMake {!r}'.format(cmakebin.name))
-            return None
-        try:
-            p, out = Popen_safe(cmakebin.get_command() + ['--version'])[0:2]
-            if p.returncode != 0:
-                mlog.warning('Found CMake {!r} but couldn\'t run it'
-                             ''.format(' '.join(cmakebin.get_command())))
-                return None
-        except FileNotFoundError:
-            mlog.warning('We thought we found CMake {!r} but now it\'s not there. How odd!'
-                         ''.format(' '.join(cmakebin.get_command())))
-            return None
-        except PermissionError:
-            msg = 'Found CMake {!r} but didn\'t have permissions to run it.'.format(' '.join(cmakebin.get_command()))
-            if not mesonlib.is_windows():
-                msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
-            mlog.warning(msg)
-            return None
-        cmvers = re.sub(r'\s*cmake version\s*', '', out.split('\n')[0]).strip()
-        if not version_compare(cmvers, CMakeDependency.class_cmake_version):
-            mlog.warning(
-                'The version of CMake', mlog.bold(cmakebin.get_path()),
-                'is', mlog.bold(cmvers), 'but version', mlog.bold(CMakeDependency.class_cmake_version),
-                'is required')
-            return None
-        return cmvers
 
     def log_tried(self):
         return self.type_name
@@ -1866,7 +1424,7 @@ set(CMAKE_SIZEOF_VOID_P "{}")
                      pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
         if cmake:
             try:
-                v = self.vars[cmake]
+                v = self.traceparser.vars[cmake]
             except KeyError:
                 pass
             else:
