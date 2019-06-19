@@ -396,6 +396,8 @@ class CLikeCompiler:
         elif mode == 'link':
             # Add LDFLAGS from the env
             args += env.coredata.get_external_link_args(self.for_machine, self.language)
+
+        args += self.get_compiler_args_for_mode(mode)
         return args
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):

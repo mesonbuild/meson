@@ -1139,6 +1139,15 @@ class Compiler:
             suffix = 'obj'
         return os.path.join(dirname, 'output.' + suffix)
 
+    def get_compiler_args_for_mode(self, mode):
+        args = []
+        args += self.get_always_args()
+        if mode == 'compile':
+            args += self.get_compile_only_args()
+        if mode == 'preprocess':
+            args += self.get_preprocess_only_args()
+        return args
+
     @contextlib.contextmanager
     def compile(self, code, extra_args=None, *, mode='link', want_output=False):
         if extra_args is None:
@@ -1156,15 +1165,11 @@ class Compiler:
                 # Construct the compiler command-line
                 commands = CompilerArgs(self)
                 commands.append(srcname)
-                commands += self.get_always_args()
-                if mode == 'compile':
-                    commands += self.get_compile_only_args()
                 # Preprocess mode outputs to stdout, so no output args
-                if mode == 'preprocess':
-                    commands += self.get_preprocess_only_args()
-                else:
+                if mode != 'preprocess':
                     output = self._get_compile_output(tmpdirname, mode)
                     commands += self.get_output_args(output)
+                commands.extend(self.get_compiler_args_for_mode(mode))
                 # extra_args must be last because it could contain '/link' to
                 # pass args to VisualStudio's linker. In that case everything
                 # in the command line after '/link' is given to the linker.
