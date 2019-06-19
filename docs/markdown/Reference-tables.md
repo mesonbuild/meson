@@ -13,6 +13,7 @@ These are return values of the `get_id` (Compiler family) and
 | clang     | The Clang compiler               | gcc             |
 | clang-cl  | The Clang compiler (MSVC compatible driver) | msvc |
 | dmd       | D lang reference compiler        |                 |
+| emscripten| Emscripten WASM compiler         |                 |
 | flang     | Flang Fortran compiler           |                 |
 | g95       | The G95 Fortran compiler         |                 |
 | gcc       | The GNU Compiler Collection      | gcc             |
@@ -66,6 +67,8 @@ set in the cross file.
 | s390x               | IBM zSystem s390x     |
 | sparc               | 32 bit SPARC          |
 | sparc64             | SPARC v9 processor    |
+| wasm32              | 32 bit Webassembly    |
+| wasm64              | 64 bit Webassembly    |
 | x86                 | 32 bit x86 processor  |
 | x86_64              | 64 bit x86 processor  |
 
@@ -86,6 +89,7 @@ These are provided by the `.system()` method call.
 | cygwin              | The Cygwin environment for Windows |
 | darwin              | Either OSX or iOS |
 | dragonfly           | DragonFly BSD |
+| emscripten          | Emscripten's Javascript environment |
 | freebsd             | FreeBSD and its derivatives |
 | gnu                 | GNU Hurd |
 | haiku               | |
