@@ -131,7 +131,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         }
 
         # Currently, remapping is only supported for Clang, Elbrus and GCC
-        assert(self.id in frozenset(['clang', 'lcc', 'gcc']))
+        assert(self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten']))
 
         if cpp_std not in CPP_FALLBACKS:
             # 'c++03' and 'c++98' don't have fallback types
@@ -181,6 +181,39 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
 
     def language_stdlib_only_link_flags(self):
         return ['-lstdc++']
+
+
+class EmscriptenCPPCompiler(ClangCPPCompiler):
+    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
+        if not is_cross:
+            raise MesonException('Emscripten compiler can only be used for cross compilation.')
+        ClangCPPCompiler.__init__(self, exelist, version, compiler_type, for_machine, is_cross, exe_wrapper, **kwargs)
+        self.id = 'emscripten'
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['cpp_std']
+        if std.value != 'none':
+            args.append(self._find_best_cpp_std(std.value))
+        return args
+
+    def get_option_link_args(self, options):
+        return []
+
+    def get_linker_always_args(self):
+        return []
+
+    def get_asneeded_args(self):
+        return []
+
+    def get_lundef_args(self):
+        return []
+
+    def build_rpath_args(self, *args, **kwargs):
+        return []
+
+    def get_soname_args(self, *args, **kwargs):
+        raise MesonException('Emscripten does not support shared libraries.')
 
 
 class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):

@@ -60,6 +60,8 @@ from .compilers import (
     ElbrusCCompiler,
     ElbrusCPPCompiler,
     ElbrusFortranCompiler,
+    EmscriptenCCompiler,
+    EmscriptenCPPCompiler,
     IntelCCompiler,
     IntelCPPCompiler,
     IntelClCCompiler,
@@ -715,6 +717,11 @@ class Environment:
                     version = self.get_gnu_version_from_defines(defines)
                     cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, defines, full_version=full_version)
+
+            if 'Emscripten' in out:
+                cls = EmscriptenCCompiler if lang == 'c' else EmscriptenCPPCompiler
+                compiler_type = CompilerType.CLANG_EMSCRIPTEN
+                return cls(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, full_version=full_version)
 
             if 'armclang' in out:
                 # The compiler version is not present in the first line of output,

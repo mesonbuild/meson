@@ -465,6 +465,13 @@ class Installer:
                     pdb_outname = os.path.splitext(outname)[0] + '.pdb'
                     self.do_copyfile(pdb_filename, pdb_outname)
                     set_mode(pdb_outname, install_mode, d.install_umask)
+                if fname.endswith('.js'):
+                    # Emscripten outputs js files and optionally a wasm file.
+                    # If one was generated, install it as well.
+                    wasm_source = os.path.splitext(fname)[0] + '.wasm'
+                    if os.path.exists(wasm_source):
+                        wasm_output = os.path.splitext(outname)[0] + '.wasm'
+                        self.do_copyfile(wasm_source, wasm_output)
             elif os.path.isdir(fname):
                 fname = os.path.join(d.build_dir, fname.rstrip('/'))
                 outname = os.path.join(outdir, os.path.basename(fname))

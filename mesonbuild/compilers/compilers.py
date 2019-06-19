@@ -1204,6 +1204,7 @@ class CompilerType(enum.Enum):
     CLANG_STANDARD = 10
     CLANG_OSX = 11
     CLANG_MINGW = 12
+    CLANG_EMSCRIPTEN = 13
     # Possibly clang-cl?
 
     ICC_STANDARD = 20

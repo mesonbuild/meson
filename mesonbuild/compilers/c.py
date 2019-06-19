@@ -119,6 +119,31 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         return basic
 
 
+class EmscriptenCCompiler(ClangCCompiler):
+    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
+        if not is_cross:
+            raise MesonException('Emscripten compiler can only be used for cross compilation.')
+        ClangCCompiler.__init__(self, exelist, version, compiler_type, for_machine, is_cross, exe_wrapper, **kwargs)
+        self.id = 'emscripten'
+
+    def get_option_link_args(self, options):
+        return []
+
+    def get_linker_always_args(self):
+        return []
+
+    def get_asneeded_args(self):
+        return []
+
+    def get_lundef_args(self):
+        return []
+
+    def build_rpath_args(self, *args, **kwargs):
+        return []
+
+    def get_soname_args(self, *args, **kwargs):
+        raise MesonException('Emscripten does not support shared libraries.')
+
 class ArmclangCCompiler(ArmclangCompiler, CCompiler):
     def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
         CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
