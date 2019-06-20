@@ -2037,6 +2037,9 @@ class GnuCompiler(GnuLikeCompiler):
     def openmp_flags(self) -> List[str]:
         return ['-fopenmp']
 
+    def get_std_partial_lib_link_args(self):
+        return ['-Wl,-r', '-nostdlib']
+
 
 class PGICompiler:
     def __init__(self, compiler_type):

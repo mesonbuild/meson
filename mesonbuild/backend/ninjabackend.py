@@ -2326,15 +2326,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if isinstance(target, build.SharedModule):
                 options = self.environment.coredata.base_options
                 commands += linker.get_std_shared_module_link_args(options)
-            elif is_linkmodel_partial:
-                if hasattr(linker, 'get_std_partial_lib_link_args'):
-                    commands += linker.get_std_partial_lib_link_args()
-                else:
-                    mlog.warning('The sharedlib_linkmodel option is set to partial, '
-                                 'but %s does not have support for '
-                                 'shared library partial linking' % linker.get_id())
             else:
-                commands += linker.get_std_shared_lib_link_args()
+                if is_linkmodel_partial:
+                    if hasattr(linker, 'get_std_partial_lib_link_args'):
+                        commands += linker.get_std_partial_lib_link_args()
+                    else:
+                        mlog.warning('The sharedlib_linkmodel option is set to partial, '
+                                     'but %s does not have support for '
+                                     'shared library partial linking' % linker.get_id())
+                else:
+                    commands += linker.get_std_shared_lib_link_args()
             if not is_linkmodel_partial:
                 # All shared libraries are PIC
                 commands += linker.get_pic_args()
