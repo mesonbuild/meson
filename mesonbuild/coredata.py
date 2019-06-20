@@ -346,7 +346,7 @@ _V = TypeVar('_V')
 
 class CoreData:
 
-    def __init__(self, options):
+    def __init__(self, options: argparse.Namespace, scratch_dir: str):
         self.lang_guids = {
             'default': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
             'c': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
@@ -364,7 +364,7 @@ class CoreData:
         self.user_options = {} # : Dict[str, UserOption]
         self.compiler_options = PerMachine({}, {})
         self.base_options = {} # : Dict[str, UserOption]
-        self.cross_files = self.__load_config_files(options.cross_file, 'cross')
+        self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())
 
         build_cache = DependencyCache(self.builtins_per_machine, MachineChoice.BUILD)
@@ -372,21 +372,42 @@ class CoreData:
         self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]
         self.compiler_check_cache = OrderedDict()
         # Only to print a warning if it changes between Meson invocations.
-        self.config_files = self.__load_config_files(options.native_file, 'native')
+        self.config_files = self.__load_config_files(options, scratch_dir, 'native')
         self.libdir_cross_fixup()
 
     @staticmethod
-    def __load_config_files(filenames: Optional[List[str]], ftype: str) -> List[str]:
+    def __load_config_files(options: argparse.Namespace, scratch_dir: str, ftype: str) -> List[str]:
         # Need to try and make the passed filenames absolute because when the
         # files are parsed later we'll have chdir()d.
+        if ftype == 'cross':
+            filenames = options.cross_file
+        else:
+            filenames = options.native_file
+
         if not filenames:
             return []
 
         real = []
-        for f in filenames:
+        for i, f in enumerate(filenames):
             f = os.path.expanduser(os.path.expandvars(f))
             if os.path.exists(f):
-                real.append(os.path.abspath(f))
+                if os.path.isfile(f):
+                    real.append(os.path.abspath(f))
+                elif os.path.isdir(f):
+                    raise MesonException('Cross and native files must not be directories')
+                else:
+                    # in this case we've been passed some kind of pipe, copy
+                    # the contents of that file into the meson private (scratch)
+                    # directory so that it can be re-read when wiping/reconfiguring
+                    copy = os.path.join(scratch_dir, '{}.{}.ini'.format(uuid.uuid4(), ftype))
+                    with open(f, 'r') as rf:
+                        with open(copy, 'w') as wf:
+                            wf.write(rf.read())
+                    real.append(copy)
+
+                    # Also replace the command line argument, as the pipe
+                    # probably wont exist on reconfigure
+                    filenames[i] = copy
                 continue
             elif sys.platform != 'win32':
                 paths = [
