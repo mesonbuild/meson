@@ -1,4 +1,4 @@
-submodule (a1:a2) a3
+submodule (a1:a2) a3  ! testing inline comment
 
 contains
 
