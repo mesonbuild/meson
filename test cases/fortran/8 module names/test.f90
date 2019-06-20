@@ -1,5 +1,5 @@
 use mymod1
-use MyMod2
+use MyMod2  ! test inline comment
 
 implicit none
 
