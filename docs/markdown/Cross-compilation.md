@@ -150,6 +150,19 @@ binaries are not actually compatible. In such cases you may use the
 needs_exe_wrapper = true
 ```
 
+If necessary, you can override the file suffixes used for the various
+target types. This is particularly useful for
+[Emscripten](https://emscripten.org/), whose compiler chooses the
+output format based on the file extension.
+
+```ini
+[properties]
+exe_suffix = 'js'
+static_library_suffix = 'la'
+shared_library_suffix = 'js'
+shared_module_suffix = 'js'
+```
+
 The next bit is the definition of host and target machines. Every
 cross build definition must have one or both of them. If it had
 neither, the build would not be a cross build but a native build. You
