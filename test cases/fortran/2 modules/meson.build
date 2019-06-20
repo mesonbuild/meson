@@ -1,4 +1,7 @@
 project('modules', 'fortran')
 
-e = executable('modprog', 'stuff.f90', 'prog.f90')
+commented = library('commented', 'comment_mod.f90')
+
+e = executable('modprog', 'mymod.f90', 'prog.f90',
+  link_with: commented)
 test('moduletest', e)

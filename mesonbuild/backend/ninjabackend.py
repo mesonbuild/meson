@@ -38,7 +38,10 @@ from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
 from ..build import InvalidArguments
 
-FORTRAN_SUBMOD_PAT = r"\s*submodule\s*\((\w+:?\w+)\)\s*(\w+)\s*$"
+FORTRAN_INCLUDE_PAT = r"#?include\s*['\"](\w+\.\w+)['\"]"
+FORTRAN_MODULE_PAT = r"\s*\bmodule\b\s+(?!procedure)(\w+)"
+FORTRAN_SUBMOD_PAT = r"\s*submodule\s*\((\w+:?\w+)\)\s*(\w+)"
+FORTRAN_USE_PAT = r"\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)"
 
 if mesonlib.is_windows():
     quote_func = lambda s: '"{}"'.format(s)
@@ -1820,7 +1823,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.fortran_deps[target.get_basename()] = {}
             return
 
-        modre = re.compile(r"\s*\bmodule\b\s+(\w+)\s*$", re.IGNORECASE)
+        modre = re.compile(FORTRAN_MODULE_PAT, re.IGNORECASE)
         submodre = re.compile(FORTRAN_SUBMOD_PAT, re.IGNORECASE)
         module_files = {}
         submodule_files = {}
@@ -1860,7 +1863,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         self.fortran_deps[target.get_basename()] = {**module_files, **submodule_files}
 
-    def get_fortran_deps(self, compiler: FortranCompiler, src: str, target) -> List[str]:
+    def get_fortran_deps(self, compiler: FortranCompiler, src: Path, target) -> List[str]:
         """
         Find all module and submodule needed by a Fortran target
         """
@@ -2750,7 +2753,7 @@ def load(build_dir):
     return obj
 
 
-def _scan_fortran_file_deps(src: str, srcdir: Path, dirname: Path, tdeps, compiler) -> List[str]:
+def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compiler) -> List[str]:
     """
     scan a Fortran file for dependencies. Needs to be distinct from target
     to allow for recursion induced by `include` statements.er
@@ -2767,8 +2770,8 @@ def _scan_fortran_file_deps(src: str, srcdir: Path, dirname: Path, tdeps, compil
     * `submodre` is for Fortran >= 2008 `submodule`
     """
 
-    incre = re.compile(r"#?include\s*['\"](\w+\.\w+)['\"]\s*$", re.IGNORECASE)
-    usere = re.compile(r"\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)", re.IGNORECASE)
+    incre = re.compile(FORTRAN_INCLUDE_PAT, re.IGNORECASE)
+    usere = re.compile(FORTRAN_USE_PAT, re.IGNORECASE)
     submodre = re.compile(FORTRAN_SUBMOD_PAT, re.IGNORECASE)
 
     mod_files = []
@@ -2816,7 +2819,7 @@ def _scan_fortran_file_deps(src: str, srcdir: Path, dirname: Path, tdeps, compil
                     parents = submodmatch.group(1).lower().split(':')
                     assert len(parents) in (1, 2), (
                         'submodule ancestry must be specified as'
-                        ' ancestor:parent but Meson found {}'.parents)
+                        ' ancestor:parent but Meson found {}'.format(parents))
 
                     ancestor_child = '_'.join(parents)
                     if ancestor_child not in tdeps:
