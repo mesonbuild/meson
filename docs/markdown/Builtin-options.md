@@ -46,9 +46,12 @@ Installation options are all relative to the prefix, except:
 `prefix` defaults to `C:/` on Windows, and `/usr/local/` otherwise. You should always
 override this value.
 
-`libdir` is automatically detected based on your platform, but the
-implementation is [currently buggy](https://github.com/mesonbuild/meson/issues/2038)
-on Linux platforms.
+`libdir` is automatically detected based on your platform, it should be
+correct when doing "native" (build machine == host machine) compilation. For
+cross compiles meson will try to guess the correct libdir, but it may not be
+accurate, especially on Linux where different distributions have different
+defaults. Using a [cross file](Cross-compilation.md#defining-the-environment),
+particularly the paths section may be necessary.
 
 ### Core options
 
