@@ -1,4 +1,4 @@
-module line! inline comment
+module line ! inline comment
 implicit none
 
 real :: length
