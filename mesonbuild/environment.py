@@ -403,6 +403,7 @@ class Environment:
                     raise e
         else:
             # Just create a fresh coredata in this case
+            self.scratch_dir = ''
             self.create_new_coredata(options)
 
         ## locally bind some unfrozen configuration
@@ -514,7 +515,7 @@ class Environment:
         # WARNING: Don't use any values from coredata in __init__. It gets
         # re-initialized with project options by the interpreter during
         # build file parsing.
-        self.coredata = coredata.CoreData(options)
+        self.coredata = coredata.CoreData(options, self.scratch_dir)
         # Used by the regenchecker script, which runs meson
         self.coredata.meson_command = mesonlib.meson_command
         self.first_invocation = True
