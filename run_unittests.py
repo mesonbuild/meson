@@ -6089,6 +6089,45 @@ class CrossFileTests(BasePlatformTests):
                               '-Ddef_sharedstatedir=sharedstatebar',
                               '-Ddef_sysconfdir=sysconfbar'])
 
+    @unittest.skipIf(is_windows(), 'Windows does not like weird executable suffixes')
+    def test_cross_file_suffixes(self):
+        # Generate a cross-file with the host compiler as a pseudo-cross-compiler.
+        cc = get_fake_env().detect_c_compiler(MachineChoice.HOST)
+        crossfile_path = os.path.join(self.builddir, 'crossfile')
+        crossfile_template = textwrap.dedent("""
+            [binaries]
+            c = '%s'
+
+            [properties]
+            exe_suffix = 'exe_test'
+            static_library_suffix = 'a_test'
+            shared_library_suffix = 'so_test'
+            shared_module_suffix = 'sm_test'
+
+            [host_machine]
+            system = 'imaginary'
+            cpu_family = 'whatever'
+            cpu = 'whocares'
+            endian = 'little'
+        """)
+
+        with open(crossfile_path, 'w') as fh:
+            fh.write(crossfile_template % ' '.join(cc.get_exelist()))
+
+        testcase = os.path.join(self.unit_test_dir, '62 cross file name suffixes')
+        self.init(testcase, default_args=False,
+                  extra_args=['--cross-file', crossfile_path])
+
+        def exists_in_meson_private(filename):
+            return os.path.exists(os.path.join(self.builddir, 'meson-private',
+                                               filename))
+
+        self.assertTrue(exists_in_meson_private('sanitycheckc_cross.exe_test'))
+        self.assertTrue(exists_in_meson_private('sanitycheckc.exe'))
+
+        self.assertFalse(exists_in_meson_private('sanitycheckc_cross.exe'))
+        self.assertFalse(exists_in_meson_private('sanitycheckc.exe_test'))
+
 class TAPParserTests(unittest.TestCase):
     def assert_test(self, events, **kwargs):
         if 'explanation' not in kwargs:
