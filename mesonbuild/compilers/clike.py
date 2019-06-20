@@ -308,8 +308,14 @@ class CLikeCompiler:
                 mode = 'compile'
         extra_flags = self._get_basic_compiler_args(environment, mode)
 
-        # Is a valid executable output for all toolchains and platforms
-        binname += '.exe'
+        # Use explicit cross executable suffix if available, otherwise punt to .exe
+        # as a valid executable output for almost all toolchains and platforms.
+        # Emscripten is the pathological exception, compiling totally different
+        # results depending on the output file suffix with no override flag.
+        if self.is_cross:
+            binname += '.' + environment.properties[self.for_machine].get('exe_suffix', 'exe')
+        else:
+            binname += '.exe'
         # Write binary check source
         binary_name = os.path.join(work_dir, binname)
         with open(source_name, 'w') as ofile:
