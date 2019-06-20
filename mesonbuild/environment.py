@@ -776,7 +776,7 @@ class Environment:
                 else:
                     m = 'Failed to detect MSVC compiler version: stderr was\n{!r}'
                     raise EnvironmentException(m.format(err))
-                match = re.search(' for (.*)$', lookat.split('\n')[0])
+                match = re.search('.*(x86|x64|ARM|ARM64).*', lookat.split('\n')[0])
                 if match:
                     target = match.group(1)
                 else:
