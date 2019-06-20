@@ -1,7 +1,11 @@
-PROGRAM prog
+use circle, only: pi
+use line, only: length
+implicit none
 
-use Circle
-IMPLICIT NONE
+print *,'pi=',pi
 
-END PROGRAM prog
+length = pi
+print *, length
+
+end program
 
