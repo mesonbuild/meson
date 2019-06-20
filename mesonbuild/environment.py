@@ -854,7 +854,7 @@ class Environment:
             return cls(ccache + compiler, version, for_machine, exe_wrap)
         raise EnvironmentException('Could not find suitable CUDA compiler: "' + ' '.join(compilers) + '"')
 
-    def detect_fortran_compiler(self, for_machine):
+    def detect_fortran_compiler(self, for_machine: MachineChoice):
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers('fortran', for_machine)
         is_cross = not self.machines.matches_build_machine(for_machine)
@@ -901,7 +901,7 @@ class Environment:
                 if 'Intel(R) Visual Fortran' in err:
                     version = search_version(err)
                     target = 'x86' if 'IA-32' in err else 'x86_64'
-                    return IntelClFortranCompiler(compiler, version, is_cross, target, exe_wrap)
+                    return IntelClFortranCompiler(compiler, version, for_machine, is_cross, target, exe_wrap)
 
                 if 'ifort (IFORT)' in out:
                     return IntelFortranCompiler(compiler, version, for_machine, is_cross, exe_wrap, full_version=full_version)

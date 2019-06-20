@@ -600,6 +600,12 @@ def detect_tests_to_run(only: List[str]) -> List[Tuple[str, List[Path], bool]]:
     gathered_tests: list of tuple of str, list of pathlib.Path, bool
         tests to run
     """
+
+    ninja_fortran_compiler = shutil.which('gfortran') or shutil.which('flang') or shutil.which('pgfortran') or (not mesonlib.is_windows() and shutil.which('ifort'))
+    ninja_fortran = backend is Backend.ninja and ninja_fortran_compiler
+    vs_fortran = mesonlib.is_windows() and backend is Backend.vs and shutil.which('ifort')
+    skip_fortran = not(ninja_fortran or vs_fortran)
+
     # Name, subdirectory, skip condition.
     all_tests = [
         ('cmake', 'cmake', not shutil.which('cmake') or (os.environ.get('compiler') == 'msvc2015' and under_ci)),
@@ -621,7 +627,7 @@ def detect_tests_to_run(only: List[str]) -> List[Tuple[str, List[Path], bool]]:
         ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
         ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler()),
         ('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler()),
-        ('fortran', 'fortran', backend is not Backend.ninja or not shutil.which('gfortran')),
+        ('fortran', 'fortran', skip_fortran),
         ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         ('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('nvcc')),
         ('python3', 'python3', backend is not Backend.ninja),
