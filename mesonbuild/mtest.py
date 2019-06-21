@@ -641,10 +641,21 @@ class TestHarness:
         self.suites = list(ss)
 
     def __del__(self) -> None:
+        self.close_logfiles()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.close_logfiles()
+
+    def close_logfiles(self) -> None:
         if self.logfile:
             self.logfile.close()
+            self.logfile = None
         if self.jsonlogfile:
             self.jsonlogfile.close()
+            self.jsonlogfile = None
 
     def merge_suite_options(self, options: argparse.Namespace, test: 'TestSerialisation') -> typing.Dict[str, str]:
         if ':' in options.setup:
@@ -1012,20 +1023,20 @@ def run(options: argparse.Namespace) -> int:
         if not rebuild_all(options.wd):
             return 1
 
-    try:
-        th = TestHarness(options)
-        if options.list:
-            return list_tests(th)
-        if not options.args:
-            return th.doit()
-        return th.run_special()
-    except TestException as e:
-        print('Meson test encountered an error:\n')
-        if os.environ.get('MESON_FORCE_BACKTRACE'):
-            raise e
-        else:
-            print(e)
-        return 1
+    with TestHarness(options) as th:
+        try:
+            if options.list:
+                return list_tests(th)
+            if not options.args:
+                return th.doit()
+            return th.run_special()
+        except TestException as e:
+            print('Meson test encountered an error:\n')
+            if os.environ.get('MESON_FORCE_BACKTRACE'):
+                raise e
+            else:
+                print(e)
+            return 1
 
 def run_with_args(args: typing.List[str]) -> int:
     parser = argparse.ArgumentParser(prog='meson test')
