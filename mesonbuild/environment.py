@@ -792,7 +792,7 @@ class Environment:
                 else:
                     compiler_type = CompilerType.PGI_STANDARD
                 cls = PGICCompiler if lang == 'c' else PGICPPCompiler
-                return cls(ccache + compiler, version, compiler_type, for_machine, is_cross, compiler_type, exe_wrap)
+                return cls(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap)
             if '(ICC)' in out:
                 if self.machines[for_machine].is_darwin():
                     compiler_type = CompilerType.ICC_OSX
