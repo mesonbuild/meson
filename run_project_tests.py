@@ -779,6 +779,8 @@ def check_format():
     for (root, _, files) in os.walk('.'):
         if '.dub' in root: # external deps are here
             continue
+        if 'meson-logs' in root or 'meson-private' in root:
+            continue
         for fname in files:
             if os.path.splitext(fname)[1].lower() in check_suffixes:
                 bn = os.path.basename(fname)
