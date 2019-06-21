@@ -1,2 +1,4 @@
 usr/bin/program?exe
+?msvc:usr/bin/program.pdb
 usr/bin/program2?exe
+?msvc:usr/bin/program2.pdb
