@@ -652,7 +652,8 @@ def _run_tests(all_tests, log_name_base, failfast, extra_args):
     #
     # Remove this once the following issue has been resolved:
     # https://github.com/mesonbuild/meson/pull/2082
-    num_workers *= 2
+    if not mesonlib.is_windows():  # twice as fast on Windows by *not* multiplying by 2.
+        num_workers *= 2
     executor = ProcessPoolExecutor(max_workers=num_workers)
 
     for name, test_cases, skipped in all_tests:
