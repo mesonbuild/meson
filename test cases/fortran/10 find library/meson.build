@@ -1,9 +1,13 @@
 project('find fortran library', 'fortran')
 
-fortranc = meson.get_compiler('fortran')
+fc = meson.get_compiler('fortran')
 
 sources = ['main.f90', 'gzip.f90']
-zlib = fortranc.find_library('z')
+zlib = fc.find_library('z', required: false)
+
+if not zlib.found()
+  error('MESON_SKIP_TEST: Z library not available.')
+endif
 
 exe = executable('zlibtest', sources, dependencies : zlib)
 test('testzlib', exe)
