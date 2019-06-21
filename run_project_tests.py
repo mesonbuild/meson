@@ -559,6 +559,34 @@ def skip_csharp(backend):
         return not stdo.startswith(b'2.')
     return True
 
+# In Azure some setups have a broken rustc that will error out
+# on all compilation attempts.
+
+def has_broken_rustc() -> bool:
+    dirname = 'brokenrusttest'
+    if os.path.exists(dirname):
+        mesonlib.windows_proof_rmtree(dirname)
+    os.mkdir(dirname)
+    open(dirname + '/sanity.rs', 'w').write('''fn main() {
+}
+''')
+    pc = subprocess.run(['rustc', '-o', 'sanity.exe', 'sanity.rs'],
+                        cwd=dirname,
+                        stdout = subprocess.DEVNULL,
+                        stderr = subprocess.DEVNULL)
+    mesonlib.windows_proof_rmtree(dirname)
+    return pc.returncode != 0
+
+def should_skip_rust() -> bool:
+    if not shutil.which('rustc'):
+        return True
+    if backend is not Backend.ninja:
+        return True
+    if mesonlib.is_windows():
+        if has_broken_rustc():
+            return True
+    return False
+
 def detect_tests_to_run():
     # Name, subdirectory, skip condition.
     all_tests = [
@@ -577,7 +605,7 @@ def detect_tests_to_run():
         ('java', 'java', backend is not Backend.ninja or mesonlib.is_osx() or not have_java()),
         ('C#', 'csharp', skip_csharp(backend)),
         ('vala', 'vala', backend is not Backend.ninja or not shutil.which('valac')),
-        ('rust', 'rust', backend is not Backend.ninja or not shutil.which('rustc')),
+        ('rust', 'rust', should_skip_rust()),
         ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
         ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler()),
         ('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler()),
