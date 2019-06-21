@@ -94,6 +94,14 @@ C_FUNC_ATTRIBUTES = {
         int foo_def(void) __attribute__((visibility("default")));
         int foo_hid(void) __attribute__((visibility("hidden")));
         int foo_int(void) __attribute__((visibility("internal")));''',
+    'visibility:default':
+        'int foo(void) __attribute__((visibility("default")));',
+    'visibility:hidden':
+        'int foo(void) __attribute__((visibility("hidden")));',
+    'visibility:internal':
+        'int foo(void) __attribute__((visibility("internal")));',
+    'visibility:protected':
+        'int foo(void) __attribute__((visibility("protected")));',
     'warning':
         'int foo(void) __attribute__((warning("")));',
     'warn_unused_result':

@@ -182,11 +182,21 @@ which are supported by GCC, Clang, and other compilers.
 | returns_nonnull      |
 | unused               |
 | used                 |
-| visibility           |
+| visibility*          |
+| visibility:default†  |
+| visibility:hidden†   |
+| visibility:internal† |
+| visibility:protected†|
 | warning              |
 | warn_unused_result   |
 | weak                 |
 | weakreaf             |
+
+\* *Changed in 0.52.0* the "visibility" target no longer includes
+"protected", which is not present in Apple's clang.
+
+† *New in 0.52.0* These split visibility attributes are preferred to the plain
+"visibility" as they provide narrower checks.
 
 ### MSVC __declspec
 
