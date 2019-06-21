@@ -171,7 +171,7 @@ class NinjaBuildElement:
         # ninja variables (or variables we use them in) is interpreted directly
         # by ninja (e.g. the value of the depfile variable is a pathname that
         # ninja will read from, etc.), so it must not be shell quoted.
-        raw_names = {'DEPFILE', 'DESC', 'pool', 'description'}
+        raw_names = {'DEPFILE', 'DESC', 'pool', 'description', 'targetdep'}
 
         for e in self.elems:
             (name, elems) = e
