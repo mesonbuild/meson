@@ -66,6 +66,10 @@ class CoarrayDependency(ExternalDependency):
             self.is_found = True
             self.link_args = ['-coarray=shared']
             self.compile_args = self.link_args
+        elif cid == 'intel-cl':
+            """ Coarrays are built into Intel compilers, no external library needed """
+            self.is_found = True
+            self.compile_args = ['/Qcoarray:shared']
         elif cid == 'nagfor':
             """ NAG doesn't require any special arguments for Coarray """
             self.is_found = True
