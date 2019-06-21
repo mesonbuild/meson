@@ -47,10 +47,18 @@ class RustCompiler(Compiler):
             ofile.write('''fn main() {
 }
 ''')
-        pc = subprocess.Popen(self.exelist + ['-o', output_name, source_name], cwd=work_dir)
-        pc.wait()
+        pc = subprocess.Popen(self.exelist + ['-o', output_name, source_name],
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              cwd=work_dir)
+        stdo, stde = pc.communicate()
+        stdo = stdo.decode('utf-8', errors='replace')
+        stde = stde.decode('utf-8', errors='replace')
         if pc.returncode != 0:
-            raise EnvironmentException('Rust compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('Rust compiler %s can not compile programs.\n%s\n%s' % (
+                self.name_string(),
+                stdo,
+                stde))
         if self.is_cross:
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
