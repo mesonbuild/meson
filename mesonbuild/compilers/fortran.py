@@ -69,8 +69,9 @@ class FortranCompiler(CLikeCompiler, Compiler):
         # cwd=work_dir is necessary on Windows especially for Intel compilers to avoid error: cannot write on sanitycheckf.obj
         # this is a defect with how Windows handles files and ifort's object file-writing behavior vis concurrent ProcessPoolExecutor.
         # This simple workaround solves the issue.
+        # FIXME: cwd=str(work_dir) is for Python 3.5 on Windows, when 3.5 is deprcated, this can become cwd=work_dir
         returncode = subprocess.run(self.exelist + extra_flags + [str(source_name), '-o', str(binary_name)],
-                                    cwd=work_dir).returncode
+                                    cwd=str(work_dir)).returncode
         if returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
         if self.is_cross:
