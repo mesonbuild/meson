@@ -139,9 +139,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
         return filename
 
     def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):
-        code = '''program main
-            call exit(0)
-        end program main'''
+        code = '''stop; end program'''
         return self.find_library_impl(libname, env, extra_dirs, code, libtype)
 
     def has_multi_arguments(self, args, env):
@@ -160,7 +158,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
                              'the compiler you are using. has_link_argument or '
                              'other similar method can be used instead.'
                              .format(arg))
-        code = 'program main\ncall exit(0)\nend program main'
+        code = 'stop; end program'
         return self.has_arguments(args, env, code, mode='compile')
 
 
