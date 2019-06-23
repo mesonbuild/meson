@@ -38,10 +38,10 @@ from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
 from ..build import InvalidArguments
 
-FORTRAN_INCLUDE_PAT = r"#?include\s*['\"](\w+\.\w+)['\"]"
-FORTRAN_MODULE_PAT = r"\s*\bmodule\b\s+(?!procedure)(\w+)"
-FORTRAN_SUBMOD_PAT = r"\s*submodule\s*\((\w+:?\w+)\)\s*(\w+)"
-FORTRAN_USE_PAT = r"\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)"
+FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
+FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
+FORTRAN_SUBMOD_PAT = r"^\s*\bsubmodule\b\s*\((\w+:?\w+)\)\s*(\w+)"
+FORTRAN_USE_PAT = r"^\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)"
 
 if mesonlib.is_windows():
     quote_func = lambda s: '"{}"'.format(s)
