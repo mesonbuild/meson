@@ -19,6 +19,9 @@ import os.path
 import platform
 import cProfile as profile
 import argparse
+import tempfile
+import shutil
+import glob
 
 from . import environment, interpreter, mesonlib
 from . import build
@@ -60,38 +63,36 @@ class MesonApp:
                                                                options.sourcedir,
                                                                options.reconfigure,
                                                                options.wipe)
-
         if options.wipe:
             # Make a copy of the cmd line file to make sure we can always
             # restore that file if anything bad happens. For example if
             # configuration fails we need to be able to wipe again.
-            filename = coredata.get_cmd_line_file(self.build_dir)
-            try:
-                with open(filename, 'r') as f:
-                    content = f.read()
-            except FileNotFoundError:
-                raise MesonException(
-                    'Cannot find cmd_line.txt. This is probably because this '
-                    'build directory was configured with a meson version < 0.49.0.')
+            restore = []
+            with tempfile.TemporaryDirectory() as d:
+                for filename in [coredata.get_cmd_line_file(self.build_dir)] + glob.glob(os.path.join(self.build_dir, environment.Environment.private_dir, '*.ini')):
+                    try:
+                        restore.append((shutil.copy(filename, d), filename))
+                    except FileNotFoundError:
+                        raise MesonException(
+                            'Cannot find cmd_line.txt. This is probably because this '
+                            'build directory was configured with a meson version < 0.49.0.')
 
-            coredata.read_cmd_line_file(self.build_dir, options)
+                coredata.read_cmd_line_file(self.build_dir, options)
 
-            try:
-                # Don't delete the whole tree, just all of the files and
-                # folders in the tree. Otherwise calling wipe form the builddir
-                # will cause a crash
-                for l in os.listdir(self.build_dir):
-                    l = os.path.join(self.build_dir, l)
-                    if os.path.isdir(l):
-                        mesonlib.windows_proof_rmtree(l)
-                    else:
-                        mesonlib.windows_proof_rm(l)
-            finally:
-                # Restore the file
-                path = os.path.dirname(filename)
-                os.makedirs(path, exist_ok=True)
-                with open(filename, 'w') as f:
-                    f.write(content)
+                try:
+                    # Don't delete the whole tree, just all of the files and
+                    # folders in the tree. Otherwise calling wipe form the builddir
+                    # will cause a crash
+                    for l in os.listdir(self.build_dir):
+                        l = os.path.join(self.build_dir, l)
+                        if os.path.isdir(l):
+                            mesonlib.windows_proof_rmtree(l)
+                        else:
+                            mesonlib.windows_proof_rm(l)
+                finally:
+                    for b, f in restore:
+                        os.makedirs(os.path.dirname(f), exist_ok=True)
+                        shutil.move(b, f)
 
         self.options = options
 

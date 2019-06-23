@@ -29,6 +29,7 @@ import pickle
 import functools
 import io
 import operator
+import threading
 from itertools import chain
 from unittest import mock
 from configparser import ConfigParser
@@ -5742,9 +5743,9 @@ class NativeFileTests(BasePlatformTests):
                     f.write("{}='{}'\n".format(k, v))
         return filename
 
-    def helper_create_binary_wrapper(self, binary, **kwargs):
+    def helper_create_binary_wrapper(self, binary, dir_=None, **kwargs):
         """Creates a wrapper around a binary that overrides specific values."""
-        filename = os.path.join(self.builddir, 'binary_wrapper{}.py'.format(self.current_wrapper))
+        filename = os.path.join(dir_ or self.builddir, 'binary_wrapper{}.py'.format(self.current_wrapper))
         self.current_wrapper += 1
         if is_haiku():
             chbang = '#!/bin/env python3'
@@ -5817,6 +5818,28 @@ class NativeFileTests(BasePlatformTests):
         self.init(self.testcase, extra_args=[
             '--native-file', config, '--native-file', config2,
             '-Dcase=find_program'])
+
+    @unittest.skipIf(os.name != 'posix', 'Uses fifos, which are not available on non Unix OSes.')
+    def test_native_file_is_pipe(self):
+        fifo = os.path.join(self.builddir, 'native.file')
+        os.mkfifo(fifo)
+        with tempfile.TemporaryDirectory() as d:
+            wrapper = self.helper_create_binary_wrapper('bash', d, version='12345')
+
+            def filler():
+                with open(fifo, 'w') as f:
+                    f.write('[binaries]\n')
+                    f.write("bash = '{}'\n".format(wrapper))
+
+            thread = threading.Thread(target=filler)
+            thread.start()
+
+            self.init(self.testcase, extra_args=['--native-file', fifo, '-Dcase=find_program'])
+
+            thread.join()
+            os.unlink(fifo)
+
+            self.init(self.testcase, extra_args=['--wipe'])
 
     def test_multiple_native_files(self):
         wrapper = self.helper_create_binary_wrapper('bash', version='12345')
