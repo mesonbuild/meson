@@ -1,4 +1,5 @@
-project('Fortran calling C', 'fortran', 'c')
+project('Fortran calling C', 'fortran', 'c',
+  meson_version: '>= 0.51.0')
 
 ccid = meson.get_compiler('c').get_id()
 if ccid == 'msvc' or ccid == 'clang-cl'
