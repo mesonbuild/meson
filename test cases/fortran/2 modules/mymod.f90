@@ -1,3 +1,5 @@
+! module circle  to be sure module regex doesn't allow commented modules
+
 module circle
 implicit none
 
