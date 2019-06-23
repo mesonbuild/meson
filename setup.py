@@ -17,9 +17,8 @@
 import sys
 
 if sys.version_info < (3, 5, 0):
-    print('Tried to install with an unsupported version of Python. '
-          'Meson requires Python 3.5.0 or greater')
-    sys.exit(1)
+    raise SystemExit('ERROR: Tried to install Meson with an unsupported Python version: \n{}'
+                     '\nMeson requires Python 3.5.0 or greater'.format(sys.version))
 
 from mesonbuild.coredata import version
 from setuptools import setup
@@ -46,29 +45,7 @@ if sys.platform != 'win32':
 if __name__ == '__main__':
     setup(name='meson',
           version=version,
-          description='A high performance build system',
-          author='Jussi Pakkanen',
-          author_email='jpakkane@gmail.com',
-          url='http://mesonbuild.com',
-          license=' Apache License, Version 2.0',
-          python_requires='>=3.5',
           packages=packages,
           package_data=package_data,
           entry_points=entries,
-          data_files=data_files,
-          classifiers=['Development Status :: 5 - Production/Stable',
-                       'Environment :: Console',
-                       'Intended Audience :: Developers',
-                       'License :: OSI Approved :: Apache Software License',
-                       'Natural Language :: English',
-                       'Operating System :: MacOS :: MacOS X',
-                       'Operating System :: Microsoft :: Windows',
-                       'Operating System :: POSIX :: BSD',
-                       'Operating System :: POSIX :: Linux',
-                       'Programming Language :: Python :: 3 :: Only',
-                       'Topic :: Software Development :: Build Tools',
-                       ],
-          long_description='''Meson is a cross-platform build system designed to be both as
-    fast and as user friendly as possible. It supports many languages and compilers, including
-    GCC, Clang and Visual Studio. Its build definitions are written in a simple non-turing
-    complete DSL.''')
+          data_files=data_files,)
