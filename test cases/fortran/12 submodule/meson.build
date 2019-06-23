@@ -1,4 +1,5 @@
-project('submodule single level', 'fortran')
+project('submodule single level', 'fortran',
+  meson_version: '>= 0.50.0')
 
 hier2 = executable('single', 'parent.f90', 'child.f90')
 test('single-level hierarchy', hier2)
