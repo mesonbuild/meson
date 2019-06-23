@@ -1196,7 +1196,7 @@ class BasePlatformTests(unittest.TestCase):
     def new_builddir(self):
         # In case the directory is inside a symlinked directory, find the real
         # path otherwise we might not find the srcdir from inside the builddir.
-        newdir = os.path.realpath(tempfile.mkdtemp())
+        newdir = os.path.realpath(tempfile.mkdtemp(dir=os.getcwd()))
         self.change_builddir(newdir)
 
     def _print_meson_log(self):
