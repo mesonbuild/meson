@@ -1184,19 +1184,20 @@ class BasePlatformTests(unittest.TestCase):
         self.builddirs = []
         self.new_builddir()
 
-    def change_builddir(self, newdir):
-        self.builddir = newdir
-        self.privatedir = os.path.join(self.builddir, 'meson-private')
-        self.logdir = os.path.join(self.builddir, 'meson-logs')
-        self.installdir = os.path.join(self.builddir, 'install')
-        self.distdir = os.path.join(self.builddir, 'meson-dist')
-        self.mtest_command = self.meson_command + ['test', '-C', self.builddir]
+    def change_builddir(self, newdir: Path):
+        self.builddir = str(newdir)
+        self.privatedir = str(newdir / 'meson-private')
+        self.logdir = str(newdir / 'meson-logs')
+        self.installdir = str(newdir / 'install')
+        self.distdir = str(newdir / 'meson-dist')
+        self.mtest_command = self.meson_command + ['test', '-C', str(newdir)]
         self.builddirs.append(self.builddir)
 
     def new_builddir(self):
-        # In case the directory is inside a symlinked directory, find the real
-        # path otherwise we might not find the srcdir from inside the builddir.
-        newdir = os.path.realpath(tempfile.mkdtemp(dir=os.getcwd()))
+        # In case the directory is inside a symlinked directory, .resolve()
+        # otherwise we might not find the srcdir from inside the builddir.
+        # FIXME: remove str() when Python 3.5 is deprecated
+        newdir = Path(tempfile.mkdtemp(dir=str(Path.cwd()))).resolve()
         self.change_builddir(newdir)
 
     def _print_meson_log(self):
@@ -4901,8 +4902,8 @@ endian = 'little'
         shutil.copytree(testdir, newdir)
         testdir = newdir
         # New builddir
-        builddir = os.path.join(testdir, 'subdir/_build')
-        os.makedirs(builddir, exist_ok=True)
+        builddir = Path(testdir) / 'subdir/_build'
+        builddir.mkdir(parents=True, exist_ok=True)
         self.change_builddir(builddir)
         self.init(testdir)
         self.build()
@@ -5968,8 +5969,6 @@ class NativeFileTests(BasePlatformTests):
                 raise unittest.SkipTest('No alternate Fortran implementation.')
             elif comp.id == 'gcc':
                 if shutil.which('ifort'):
-                    # There is an ICC for windows (windows build, linux host),
-                    # but we don't support that ATM so lets not worry about it.
                     if is_windows():
                         return 'ifort', 'intel-cl'
                     return 'ifort', 'intel'
