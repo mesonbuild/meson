@@ -1117,6 +1117,9 @@ class Compiler:
     def get_library_dirs(self, *args, **kwargs):
         return ()
 
+    def get_program_dirs(self, *args, **kwargs):
+        return ()
+
     def has_multi_arguments(self, args, env) -> Tuple[bool, bool]:
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
