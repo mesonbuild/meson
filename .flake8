@@ -21,13 +21,13 @@ ignore =
     # E402: module level import not at top of file
     E402,
     # E731: do not assign a lambda expression, use a def (too many false positives)
-    E731
+    E731,
     # E741: ambiguous variable name 'l'
-    E741
+    E741,
     # E722: do not use bare except'
-    E722
+    E722,
     # W504: line break after binary operator
-    W504
+    W504,
     # A003: builtin class attribute
     A003
 max-line-length = 120
