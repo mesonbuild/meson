@@ -40,7 +40,7 @@ from collections import namedtuple
 from itertools import chain
 from pathlib import PurePath
 import functools
-import typing
+from typing import Sequence, List, Union, Optional, Iterator, Dict, Any
 
 import importlib
 
@@ -874,10 +874,10 @@ class RunTargetHolder(InterpreterObject, ObjectHolder):
         return r.format(self.__class__.__name__, h.get_id(), h.command)
 
 class Test(InterpreterObject):
-    def __init__(self, name: str, project: str, suite: typing.List[str], exe: build.Executable,
-                 depends: typing.List[typing.Union[build.CustomTarget, build.BuildTarget]],
-                 is_parallel: bool, cmd_args: typing.List[str], env: build.EnvironmentVariables,
-                 should_fail: bool, timeout: int, workdir: typing.Optional[str], protocol: str):
+    def __init__(self, name: str, project: str, suite: List[str], exe: build.Executable,
+                 depends: List[Union[build.CustomTarget, build.BuildTarget]],
+                 is_parallel: bool, cmd_args: List[str], env: build.EnvironmentVariables,
+                 should_fail: bool, timeout: int, workdir: Optional[str], protocol: str):
         InterpreterObject.__init__(self)
         self.name = name
         self.suite = suite
@@ -2773,7 +2773,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.validate_arguments(args, 0, [])
         raise Exception()
 
-    def add_languages(self, args, required):
+    def add_languages(self, args: Sequence[str], required: bool) -> bool:
         success = self.add_languages_for(args, required, MachineChoice.BUILD)
         success &= self.add_languages_for(args, required, MachineChoice.HOST)
         return success
@@ -3831,7 +3831,7 @@ different subdirectory.
 
     # TODO make cross agnostic, just taking into account for_machine
     # TODO PerMachine[T], Iterator[T]
-    def get_argdict_on_crossness(self, dicts_per_machine: PerMachine, kwargs) -> typing.Iterator:
+    def get_argdict_on_crossness(self, dicts_per_machine: PerMachine, kwargs) -> Iterator:
         for_native = kwargs.get('native', not self.environment.is_cross_build())
         if not isinstance(for_native, bool):
             raise InterpreterException('Keyword native must be a boolean.')
@@ -4218,7 +4218,7 @@ This will become a hard error in the future.''', location=self.current_node)
         return varname in self.variables
 
     @staticmethod
-    def machine_from_native_kwarg(kwargs: typing.Dict[str, typing.Any]) -> MachineChoice:
+    def machine_from_native_kwarg(kwargs: Dict[str, Any]) -> MachineChoice:
         native = kwargs.get('native', False)
         if not isinstance(native, bool):
             raise InvalidArguments('Argument to "native" must be a boolean.')

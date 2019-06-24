@@ -65,10 +65,14 @@ class FortranCompiler(CLikeCompiler, Compiler):
         extra_flags = environment.coredata.get_external_args(self.for_machine, self.language)
         extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
         extra_flags += self.get_always_args()
-        # %% build the test executable
-        pc = subprocess.Popen(self.exelist + extra_flags + [str(source_name), '-o', str(binary_name)])
-        pc.wait()
-        if pc.returncode != 0:
+        # %% build the test executable "sanitycheckf"
+        # cwd=work_dir is necessary on Windows especially for Intel compilers to avoid error: cannot write on sanitycheckf.obj
+        # this is a defect with how Windows handles files and ifort's object file-writing behavior vis concurrent ProcessPoolExecutor.
+        # This simple workaround solves the issue.
+        # FIXME: cwd=str(work_dir) is for Python 3.5 on Windows, when 3.5 is deprcated, this can become cwd=work_dir
+        returncode = subprocess.run(self.exelist + extra_flags + [str(source_name), '-o', str(binary_name)],
+                                    cwd=str(work_dir)).returncode
+        if returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
         if self.is_cross:
             if self.exe_wrapper is None:
@@ -79,9 +83,8 @@ class FortranCompiler(CLikeCompiler, Compiler):
             cmdlist = [str(binary_name)]
         # %% Run the test executable
         try:
-            pe = subprocess.Popen(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            pe.wait()
-            if pe.returncode != 0:
+            returncode = subprocess.run(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+            if returncode != 0:
                 raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
         except OSError:
             raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
@@ -137,9 +140,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
         return filename
 
     def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):
-        code = '''program main
-            call exit(0)
-        end program main'''
+        code = '''stop; end program'''
         return self.find_library_impl(libname, env, extra_dirs, code, libtype)
 
     def has_multi_arguments(self, args, env):
@@ -158,7 +159,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
                              'the compiler you are using. has_link_argument or '
                              'other similar method can be used instead.'
                              .format(arg))
-        code = 'program main\ncall exit(0)\nend program main'
+        code = 'stop; end program'
         return self.has_arguments(args, env, code, mode='compile')
 
 
@@ -271,8 +272,8 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
         'custom': [],
     }
 
-    def __init__(self, exelist, version, is_cross, target: str, exe_wrapper=None):
-        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+    def __init__(self, exelist, for_machine: MachineChoice, version, is_cross, target: str, exe_wrapper=None):
+        FortranCompiler.__init__(self, exelist, for_machine, version, is_cross, exe_wrapper)
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
         default_warn_args = ['/warn:general', '/warn:truncated_source']

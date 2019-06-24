@@ -2164,7 +2164,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # outdir argument instead.
             # https://github.com/mesonbuild/meson/issues/1348
             if not is_generated:
-                abs_src = os.path.join(build_dir, rel_src)
+                abs_src = Path(build_dir) / rel_src
                 extra_deps += self.get_fortran_deps(compiler, abs_src, target)
             # Dependency hack. Remove once multiple outputs in Ninja is fixed:
             # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
@@ -2802,7 +2802,7 @@ def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compi
                     # a common occurrence, which would lead to lots of
                     # distracting noise.
                     continue
-                srcfile = srcdir / tdeps[usename].fname
+                srcfile = srcdir / tdeps[usename].fname  # type: Path
                 if not srcfile.is_file():
                     if srcfile.name != src.name:  # generated source file
                         pass
@@ -2824,7 +2824,7 @@ def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compi
                     ancestor_child = '_'.join(parents)
                     if ancestor_child not in tdeps:
                         raise MesonException("submodule {} relies on ancestor module {} that was not found.".format(submodmatch.group(2).lower(), ancestor_child.split('_')[0]))
-                    submodsrcfile = srcdir / tdeps[ancestor_child].fname
+                    submodsrcfile = srcdir / tdeps[ancestor_child].fname  # type: Path
                     if not submodsrcfile.is_file():
                         if submodsrcfile.name != src.name:  # generated source file
                             pass
