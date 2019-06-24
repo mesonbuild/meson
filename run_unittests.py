@@ -5819,7 +5819,8 @@ class NativeFileTests(BasePlatformTests):
             '--native-file', config, '--native-file', config2,
             '-Dcase=find_program'])
 
-    @unittest.skipIf(os.name != 'posix', 'Uses fifos, which are not available on non Unix OSes.')
+    # This test hangs on cygwin.
+    @unittest.skipIf(os.name != 'posix' or is_cygwin(), 'Uses fifos, which are not available on non Unix OSes.')
     def test_native_file_is_pipe(self):
         fifo = os.path.join(self.builddir, 'native.file')
         os.mkfifo(fifo)
