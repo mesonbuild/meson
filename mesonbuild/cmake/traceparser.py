@@ -16,6 +16,7 @@
 # or an interpreter-based tool.
 
 from .common import CMakeException
+from .. import mlog
 
 from typing import List, Tuple
 import re
@@ -47,12 +48,17 @@ class CMakeTarget:
         return s.format(self.name, self.type, propSTR)
 
 class CMakeTraceParser:
-    def __init__(self):
+    def __init__(self, permissive: bool = False):
         # Dict of CMake variables: '<var_name>': ['list', 'of', 'values']
         self.vars = {}
 
         # Dict of CMakeTarget
         self.targets = {}
+
+        # List of targes that were added with add_custom_command to generate files
+        self.custom_targets = []
+
+        self.permissive = permissive  # type: bool
 
     def parse(self, trace: str) -> None:
         # First parse the trace
@@ -64,6 +70,7 @@ class CMakeTraceParser:
             'unset': self._cmake_unset,
             'add_executable': self._cmake_add_executable,
             'add_library': self._cmake_add_library,
+            'add_custom_command': self._cmake_add_custom_command,
             'add_custom_target': self._cmake_add_custom_target,
             'set_property': self._cmake_set_property,
             'set_target_properties': self._cmake_set_target_properties
@@ -102,6 +109,14 @@ class CMakeTraceParser:
             return True
         return False
 
+    def _gen_exception(self, function: str, error: str, tline: CMakeTraceLine) -> None:
+        # Generate an exception if the parser is not in permissive mode
+
+        if self.permissive:
+            mlog.debug('CMake trace warning: {}() {}\n{}'.format(function, error, tline))
+            return None
+        raise CMakeException('CMake: {}() {}\n{}'.format(function, error, tline))
+
     def _cmake_set(self, tline: CMakeTraceLine) -> None:
         """Handler for the CMake set() function in all variaties.
 
@@ -132,7 +147,7 @@ class CMakeTraceParser:
             args.append(i)
 
         if len(args) < 1:
-            raise CMakeException('CMake: set() requires at least one argument\n{}'.format(tline))
+            return self._gen_exception('set', 'requires at least one argument', tline)
 
         # Now that we've removed extra arguments all that should be left is the
         # variable identifier and the value, join the value back together to
@@ -151,7 +166,7 @@ class CMakeTraceParser:
     def _cmake_unset(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/unset.html
         if len(tline.args) < 1:
-            raise CMakeException('CMake: unset() requires at least one argument\n{}'.format(tline))
+            return self._gen_exception('unset', 'requires at least one argument', tline)
 
         if tline.args[0] in self.vars:
             del self.vars[tline.args[0]]
@@ -162,12 +177,12 @@ class CMakeTraceParser:
 
         # Make sure the exe is imported
         if 'IMPORTED' not in args:
-            raise CMakeException('CMake: add_executable() non imported executables are not supported\n{}'.format(tline))
+            return self._gen_exception('add_executable', 'non imported executables are not supported', tline)
 
         args.remove('IMPORTED')
 
         if len(args) < 1:
-            raise CMakeException('CMake: add_executable() requires at least 1 argument\n{}'.format(tline))
+            return self._gen_exception('add_executable', 'requires at least 1 argument', tline)
 
         self.targets[args[0]] = CMakeTarget(args[0], 'EXECUTABLE', {})
 
@@ -177,13 +192,13 @@ class CMakeTraceParser:
 
         # Make sure the lib is imported
         if 'IMPORTED' not in args:
-            raise CMakeException('CMake: add_library() non imported libraries are not supported\n{}'.format(tline))
+            return self._gen_exception('add_library', 'non imported libraries are not supported', tline)
 
         args.remove('IMPORTED')
 
         # No only look at the first two arguments (target_name and target_type) and ignore the rest
         if len(args) < 2:
-            raise CMakeException('CMake: add_library() requires at least 2 arguments\n{}'.format(tline))
+            return self._gen_exception('add_library', 'requires at least 2 arguments', tline)
 
         self.targets[args[0]] = CMakeTarget(args[0], args[1], {})
 
@@ -191,7 +206,7 @@ class CMakeTraceParser:
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_target.html
         # We only the first parameter (the target name) is interesting
         if len(tline.args) < 1:
-            raise CMakeException('CMake: add_custom_target() requires at least one argument\n{}'.format(tline))
+            return self._gen_exception('add_custom_target', 'requires at least one argument', tline)
 
         self.targets[tline.args[0]] = CMakeTarget(tline.args[0], 'CUSTOM', {})
 
@@ -219,7 +234,7 @@ class CMakeTraceParser:
             targets.append(curr)
 
         if not args:
-            raise CMakeException('CMake: set_property() faild to parse argument list\n{}'.format(tline))
+            return self._gen_exception('set_property', 'faild to parse argument list', tline)
 
         if len(args) == 1:
             # Tries to set property to nothing so nothing has to be done
@@ -232,7 +247,7 @@ class CMakeTraceParser:
 
         for i in targets:
             if i not in self.targets:
-                raise CMakeException('CMake: set_property() TARGET {} not found\n{}'.format(i, tline))
+                return self._gen_exception('set_property', 'TARGET {} not found'.format(i), tline)
 
             if identifier not in self.targets[i].properies:
                 self.targets[i].properies[identifier] = []
@@ -284,7 +299,7 @@ class CMakeTraceParser:
         for name, value in arglist:
             for i in targets:
                 if i not in self.targets:
-                    raise CMakeException('CMake: set_target_properties() TARGET {} not found\n{}'.format(i, tline))
+                    return self._gen_exception('set_target_properties', 'TARGET {} not found'.format(i), tline)
 
                 self.targets[i].properies[name] = value
 
