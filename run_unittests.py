@@ -996,8 +996,12 @@ class InternalTests(unittest.TestCase):
         # TODO: ICL doesn't set this in the VSC2015 profile either
         if cc.id == 'msvc' and int(''.join(cc.version.split('.')[0:2])) < 1910:
             return
-        self.assertIn('VCToolsVersion', os.environ)
-        vctools_ver = os.environ['VCToolsVersion']
+        if 'VCToolsVersion' in os.environ:
+            vctools_ver = os.environ['VCToolsVersion']
+        else:
+            self.assertIn('VCINSTALLDIR', os.environ)
+            # See https://devblogs.microsoft.com/cppblog/finding-the-visual-c-compiler-tools-in-visual-studio-2017/
+            vctools_ver = (Path(os.environ['VCINSTALLDIR']) / 'Auxiliary' / 'Build' / 'Microsoft.VCToolsVersion.default.txt').read_text()
         self.assertTrue(vctools_ver.startswith(toolset_ver),
                         msg='{!r} does not start with {!r}'.format(vctools_ver, toolset_ver))
 
