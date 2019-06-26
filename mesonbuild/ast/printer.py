@@ -118,6 +118,7 @@ class AstPrinter(AstVisitor):
             self.newline()
 
     def visit_IndexNode(self, node: mparser.IndexNode):
+        node.iobject.accept(self)
         self.append('[', node)
         node.index.accept(self)
         self.append(']', node)
@@ -181,7 +182,7 @@ class AstPrinter(AstVisitor):
     def visit_ArgumentNode(self, node: mparser.ArgumentNode):
         break_args = (len(node.arguments) + len(node.kwargs)) > self.arg_newline_cutoff
         for i in node.arguments + list(node.kwargs.values()):
-            if not isinstance(i, mparser.ElementaryNode):
+            if not isinstance(i, (mparser.ElementaryNode, mparser.IndexNode)):
                 break_args = True
         if break_args:
             self.newline()
