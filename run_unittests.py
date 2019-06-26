@@ -4000,12 +4000,15 @@ class WindowsTests(BasePlatformTests):
         # Finding a script with an extension inside a directory works
         prog = ExternalProgram(os.path.join(testdir, 'test-script-ext.py'))
         self.assertTrue(prog.found(), msg='test-script-ext.py not found')
-        # Finding a script in PATH w/o extension works and adds the interpreter
+        # Finding a script in PATH
         os.environ['PATH'] += os.pathsep + testdir
-        prog = ExternalProgram('test-script-ext')
-        self.assertTrue(prog.found(), msg='test-script-ext not found in PATH')
-        self.assertPathEqual(prog.get_command()[0], python_command[0])
-        self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
+        # Finding a script in PATH w/o extension works and adds the interpreter
+        # (check only if `.PY` is in PATHEXT)
+        if '.PY' in [ext.upper() for ext in os.environ['PATHEXT'].split(';')]:
+            prog = ExternalProgram('test-script-ext')
+            self.assertTrue(prog.found(), msg='test-script-ext not found in PATH')
+            self.assertPathEqual(prog.get_command()[0], python_command[0])
+            self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
         # Finding a script in PATH with extension works and adds the interpreter
         prog = ExternalProgram('test-script-ext.py')
         self.assertTrue(prog.found(), msg='test-script-ext.py not found in PATH')
