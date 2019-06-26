@@ -574,7 +574,7 @@ class Version:
         # otherwise, the version with a suffix remaining is greater
         return comparator(len(self._v), len(other._v))
 
-def _version_extract_cmpop(vstr2):
+def _version_extract_cmpop(vstr2: str) -> tuple:
     if vstr2.startswith('>='):
         cmpop = operator.ge
         vstr2 = vstr2[2:]
@@ -601,7 +601,7 @@ def _version_extract_cmpop(vstr2):
 
     return (cmpop, vstr2)
 
-def version_compare(vstr1, vstr2):
+def version_compare(vstr1: str, vstr2: str) -> bool:
     (cmpop, vstr2) = _version_extract_cmpop(vstr2)
     return cmpop(Version(vstr1), Version(vstr2))
 
@@ -619,7 +619,7 @@ def version_compare_many(vstr1, conditions):
 
 # determine if the minimum version satisfying the condition |condition| exceeds
 # the minimum version for a feature |minimum|
-def version_compare_condition_with_min(condition, minimum):
+def version_compare_condition_with_min(condition, minimum) -> bool:
     if condition.startswith('>='):
         cmpop = operator.le
         condition = condition[2:]

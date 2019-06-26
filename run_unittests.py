@@ -4545,19 +4545,43 @@ class LinuxlikeTests(BasePlatformTests):
 
     def _test_stds_impl(self, testdir, compiler, p):
         lang_std = p + '_std'
-        # Check that all the listed -std=xxx options for this compiler work
-        # just fine when used
+        clangLT5 = (compiler.get_id() == 'clang' and
+                    (version_compare(compiler.version, '<5.0.0') or
+                     (compiler.compiler_type == mesonbuild.compilers.CompilerType.CLANG_OSX and version_compare(compiler.version, '<9.1'))))
+        clangLT6 = (compiler.get_id() == 'clang' and
+                    (version_compare(compiler.version, '<6.0.0') or
+                     (compiler.compiler_type == mesonbuild.compilers.CompilerType.CLANG_OSX and version_compare(compiler.version, '<10.0'))))
+        clangLT8 = (compiler.get_id() == 'clang' and
+                    (version_compare(compiler.version, '<8.0.0') or
+                     (compiler.compiler_type == mesonbuild.compilers.CompilerType.CLANG_OSX and version_compare(compiler.version, '<11.0'))))
+        # Check that all the listed -std=xxx options for this compiler work just fine when used
+        # https://en.wikipedia.org/wiki/Xcode#Latest_versions
+        # https://www.gnu.org/software/gcc/projects/cxx-status.html
         for v in compiler.get_options()[lang_std].choices:
-            if (compiler.get_id() == 'clang' and '17' in v and
-                (version_compare(compiler.version, '<5.0.0') or
-                 (compiler.compiler_type == mesonbuild.compilers.CompilerType.CLANG_OSX and version_compare(compiler.version, '<9.1')))):
-                continue
-            if (compiler.get_id() == 'clang' and '2a' in v and
-                (version_compare(compiler.version, '<6.0.0') or
-                 (compiler.compiler_type == mesonbuild.compilers.CompilerType.CLANG_OSX and version_compare(compiler.version, '<9.1')))):
-                continue
-            if (compiler.get_id() == 'gcc' and '2a' in v and version_compare(compiler.version, '<8.0.0')):
-                continue
+            # we do it like this to handle gnu++17,c++17 and gnu17,c17 cleanly
+            # thus, C++ first
+            if '++17' in v:
+                if clangLT5:
+                    continue
+                if compiler.get_id() == 'gcc' and version_compare(compiler.version, '<5.0.0'):
+                    continue
+            elif '++2a' in v:
+                # https://en.cppreference.com/w/cpp/compiler_support
+                if clangLT6:
+                    continue
+                if compiler.get_id() == 'gcc' and version_compare(compiler.version, '<8.0.0'):
+                    continue
+            # now C
+            elif '17' in v:
+                if clangLT6:
+                    continue
+                if compiler.get_id() == 'gcc' and version_compare(compiler.version, '<8.0.0'):
+                    continue
+            elif '18' in v:
+                if clangLT8:
+                    continue
+                if compiler.get_id() == 'gcc' and version_compare(compiler.version, '<8.0.0'):
+                    continue
             std_opt = '{}={}'.format(lang_std, v)
             self.init(testdir, extra_args=['-D' + std_opt])
             cmd = self.get_compdb()[0]['command']

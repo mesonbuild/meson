@@ -89,13 +89,16 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         opts = CCompiler.get_options(self)
         c_stds = ['c89', 'c99', 'c11']
         g_stds = ['gnu89', 'gnu99', 'gnu11']
-        if self.compiler_type is CompilerType.CLANG_OSX:
-            v = '>=10.0.0'
-        else:
-            v = '>=7.0.0'
+        # https://releases.llvm.org/6.0.0/tools/clang/docs/ReleaseNotes.html
+        # https://en.wikipedia.org/wiki/Xcode#Latest_versions
+        v = '>=10.0.0' if self.compiler_type is CompilerType.CLANG_OSX else '>=6.0.0'
         if version_compare(self.version, v):
             c_stds += ['c17']
             g_stds += ['gnu17']
+        v = '>=11.0.0' if self.compiler_type is CompilerType.CLANG_OSX else '>=8.0.0'
+        if version_compare(self.version, v):
+            c_stds += ['c18']
+            g_stds += ['gnu18']
         opts.update({'c_std': coredata.UserComboOption('C language standard to use',
                                                        ['none'] + c_stds + g_stds,
                                                        'none')})
