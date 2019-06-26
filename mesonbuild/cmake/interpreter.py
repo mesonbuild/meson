@@ -18,6 +18,7 @@
 from .common import CMakeException
 from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel, CMakeTarget
 from .executor import CMakeExecutor
+from .traceparser import CMakeTraceParser
 from .. import mlog
 from ..environment import Environment
 from ..mesonlib import MachineChoice
@@ -25,6 +26,7 @@ from ..mparser import Token, BaseNode, CodeBlockNode, FunctionNode, ArrayNode, A
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes
 from subprocess import Popen, PIPE, STDOUT
 from typing import List, Dict, Optional, TYPE_CHECKING
+from threading  import Thread
 import os, re
 
 if TYPE_CHECKING:
@@ -293,11 +295,13 @@ class CMakeInterpreter:
         # Raw CMake results
         self.bs_files = []
         self.codemodel = None
+        self.raw_trace = None
 
         # Analysed data
         self.project_name = ''
         self.languages = []
         self.targets = []
+        self.trace = CMakeTraceParser()
 
         # Generated meson data
         self.generated_targets = {}
@@ -327,6 +331,7 @@ class CMakeInterpreter:
                 cmake_args += ['-DCMAKE_LINKER={}'.format(comp.get_linker_exelist()[0])]
         cmake_args += ['-G', generator]
         cmake_args += ['-DCMAKE_INSTALL_PREFIX={}'.format(self.install_prefix)]
+        cmake_args += ['--trace', '--trace-expand']
         cmake_args += extra_cmake_options
 
         # Run CMake
@@ -338,17 +343,25 @@ class CMakeInterpreter:
             os.makedirs(self.build_dir, exist_ok=True)
             os_env = os.environ.copy()
             os_env['LC_ALL'] = 'C'
-            proc = Popen(cmake_args + [self.src_dir], stdout=PIPE, stderr=STDOUT, cwd=self.build_dir, env=os_env)
+            proc = Popen(cmake_args + [self.src_dir], stdout=PIPE, stderr=PIPE, cwd=self.build_dir, env=os_env)
 
-            # Print CMake log in realtime
-            while True:
-                line = proc.stdout.readline()
-                if not line:
-                    break
-                mlog.log(line.decode('utf-8').strip('\n'))
+            def print_stdout():
+                while True:
+                    line = proc.stdout.readline()
+                    if not line:
+                        break
+                    mlog.log(line.decode('utf-8').strip('\n'))
+                proc.stdout.close()
 
-            # Wait for CMake to finish
-            proc.communicate()
+            t = Thread(target=print_stdout)
+            t.start()
+
+            self.raw_trace = proc.stderr.read()
+            self.raw_trace = self.raw_trace.decode('utf-8')
+            proc.stderr.close()
+            proc.wait()
+
+            t.join()
 
         mlog.log()
         h = mlog.green('SUCCEEDED') if proc.returncode == 0 else mlog.red('FAILED')
@@ -391,6 +404,10 @@ class CMakeInterpreter:
         self.project_name = ''
         self.languages = []
         self.targets = []
+        self.trace = CMakeTraceParser(permissive=True)
+
+        # Parse the trace
+        self.trace.parse(self.raw_trace)
 
         # Find all targets
         for i in self.codemodel.configs:
