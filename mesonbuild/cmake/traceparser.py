@@ -18,8 +18,9 @@
 from .common import CMakeException
 from .. import mlog
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import re
+import os
 
 class CMakeTraceLine:
     def __init__(self, file, line, func, args):
@@ -47,6 +48,13 @@ class CMakeTarget:
             propSTR += "      '{}': {}\n".format(i, self.properies[i])
         return s.format(self.name, self.type, propSTR)
 
+class CMakeGeneratorTarget:
+    def __init__(self):
+        self.outputs = []        # type: List[str]
+        self.command = []        # type: List[List[str]]
+        self.working_dir = None  # type: Optional[str]
+        self.depends = []        # type: List[str]
+
 class CMakeTraceParser:
     def __init__(self, permissive: bool = False):
         # Dict of CMake variables: '<var_name>': ['list', 'of', 'values']
@@ -56,7 +64,7 @@ class CMakeTraceParser:
         self.targets = {}
 
         # List of targes that were added with add_custom_command to generate files
-        self.custom_targets = []
+        self.custom_targets = []  # type: List[CMakeGeneratorTarget]
 
         self.permissive = permissive  # type: bool
 
@@ -202,6 +210,65 @@ class CMakeTraceParser:
 
         self.targets[args[0]] = CMakeTarget(args[0], args[1], {})
 
+    def _cmake_add_custom_command(self, tline: CMakeTraceLine):
+        # DOC: https://cmake.org/cmake/help/latest/command/add_custom_command.html
+        args = list(tline.args) # Make a working copy
+
+        if not args:
+            return self._gen_exception('add_custom_command', 'requires at least 1 argument', tline)
+
+        # Skip the second function signature
+        if args[0] == 'TARGET':
+            return self._gen_exception('add_custom_command', 'TARGET syntax is currently not supported', tline)
+
+        magic_keys = ['OUTPUT', 'COMMAND', 'MAIN_DEPENDENCY', 'DEPENDS', 'BYPRODUCTS',
+                      'IMPLICIT_DEPENDS', 'WORKING_DIRECTORY', 'COMMENT', 'DEPFILE',
+                      'JOB_POOL', 'VERBATIM', 'APPEND', 'USES_TERMINAL', 'COMMAND_EXPAND_LISTS']
+
+        target = CMakeGeneratorTarget()
+
+        def handle_output(key: str, target: CMakeGeneratorTarget) -> None:
+            target.outputs += [key]
+
+        def handle_command(key: str, target: CMakeGeneratorTarget) -> None:
+            target.command[-1] += [key]
+
+        def handle_depends(key: str, target: CMakeGeneratorTarget) -> None:
+            target.depends += [key]
+
+        def handle_working_dir(key: str, target: CMakeGeneratorTarget) -> None:
+            if target.working_dir is None:
+                target.working_dir = key
+            else:
+                target.working_dir += ' '
+                target.working_dir += key
+
+        fn = None
+
+        for i in args:
+            if i in magic_keys:
+                if i == 'OUTPUT':
+                    fn = handle_output
+                elif i == 'DEPENDS':
+                    fn = handle_depends
+                elif i == 'WORKING_DIRECTORY':
+                    fn = handle_working_dir
+                elif i == 'COMMAND':
+                    fn = handle_command
+                    target.command += [[]]
+                else:
+                    fn = None
+                continue
+
+            if fn is not None:
+                fn(i, target)
+
+        target.outputs = self._guess_files(target.outputs)
+        target.depends = self._guess_files(target.depends)
+        target.command = [self._guess_files(x) for x in target.command]
+
+        self.custom_targets += [target]
+
     def _cmake_add_custom_target(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_target.html
         # We only the first parameter (the target name) is interesting
@@ -330,3 +397,35 @@ class CMakeTraceParser:
             args = list(map(lambda x: reg_genexp.sub('', x), args)) # Remove generator expressions
 
             yield CMakeTraceLine(file, line, func, args)
+
+    def _guess_files(self, broken_list: List[str]) -> List[str]:
+        #Try joining file paths that contain spaces
+
+        reg_start = re.compile(r'^/.*/[^./]+$')
+        reg_end = re.compile(r'^.*\.[a-zA-Z]+$')
+
+        fixed_list = []  # type: List[str]
+        curr_str = None  # type: Optional[str]
+
+        for i in broken_list:
+            if curr_str is None:
+                curr_str = i
+            elif os.path.isfile(curr_str):
+                # Abort concatination if curr_str is an existing file
+                fixed_list += [curr_str]
+                curr_str = i
+            elif not reg_start.match(curr_str):
+                # Abort concatination if curr_str no longer matches the regex
+                fixed_list += [curr_str]
+                curr_str = i
+            elif reg_end.match(i):
+                # File detected
+                curr_str = '{} {}'.format(curr_str, i)
+                fixed_list += [curr_str]
+                curr_str = None
+            else:
+                curr_str = '{} {}'.format(curr_str, i)
+
+        if curr_str:
+            fixed_list += [curr_str]
+        return fixed_list
