@@ -47,12 +47,12 @@ def run_exe(exe):
     elif not exe.is_cross and run_with_mono(exe.fname[0]):
         cmd = ['mono'] + exe.fname
     else:
-        if exe.is_cross:
+        if exe.is_cross and exe.needs_exe_wrapper:
             if exe.exe_runner is None:
-                raise AssertionError('BUG: Can\'t run cross-compiled exe {!r}'
+                raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} '
                                      'with no wrapper'.format(exe.name))
             elif not exe.exe_runner.found():
-                raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found'
+                raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
                                      'wrapper {!r}'.format(exe.name, exe.exe_runner.get_path()))
             else:
                 cmd = exe.exe_runner.get_command() + exe.fname
