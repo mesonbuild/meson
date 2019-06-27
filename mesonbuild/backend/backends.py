@@ -70,7 +70,7 @@ class TargetInstallData:
 
 class ExecutableSerialisation:
     def __init__(self, name, fname, cmd_args, env, is_cross, exe_wrapper,
-                 workdir, extra_paths, capture):
+                 workdir, extra_paths, capture, needs_exe_wrapper: bool):
         self.name = name
         self.fname = fname
         self.cmd_args = cmd_args
@@ -79,6 +79,7 @@ class ExecutableSerialisation:
         if exe_wrapper is not None:
             assert(isinstance(exe_wrapper, dependencies.ExternalProgram))
         self.exe_runner = exe_wrapper
+        self.needs_exe_wrapper = needs_exe_wrapper
         self.workdir = workdir
         self.extra_paths = extra_paths
         self.capture = capture
@@ -371,7 +372,8 @@ class Backend:
                 exe_wrapper = None
             es = ExecutableSerialisation(basename, exe_cmd, cmd_args, env,
                                          is_cross_built, exe_wrapper, workdir,
-                                         extra_paths, capture)
+                                         extra_paths, capture,
+                                         self.environment.need_exe_wrapper())
             pickle.dump(es, f)
         return exe_data
 
