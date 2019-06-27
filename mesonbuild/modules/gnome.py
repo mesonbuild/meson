@@ -1045,10 +1045,7 @@ This will become a hard error in the future.''')
 
         cflags.extend(state.environment.coredata.get_external_args(MachineChoice.HOST, 'c'))
         ldflags.extend(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
-        if state.environment.is_cross_build():
-            compiler = state.environment.coredata.cross_compilers.get('c')
-        else:
-            compiler = state.environment.coredata.compilers.host.get('c')
+        compiler = state.environment.coredata.compilers[MachineChoice.HOST]['c']
 
         compiler_flags = self._get_langs_compilers_flags(state, [('c', compiler)])
         cflags.extend(compiler_flags[0])
