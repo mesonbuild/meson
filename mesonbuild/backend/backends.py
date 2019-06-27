@@ -811,11 +811,6 @@ class Backend:
                         true. You might want to set `native: true` instead to build it for
                         the build machine.'''.format(exe.name))
                     raise MesonException(s)
-                else:
-                    mlog.warning('''
-                        Target {} is used as a generator, but is built for the host
-                        machine. This means most cross builds will fail. You might want to
-                        set `native: true` instead to build it for the build machine.'''.format(exe.name))
             exe_arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
         else:
             exe_arr = exe.get_command()
