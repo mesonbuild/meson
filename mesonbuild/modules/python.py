@@ -577,7 +577,7 @@ class PythonModule(ExtensionModule):
             else:
                 res = ExternalProgramHolder(NonExistingExternalProgram())
                 if required:
-                    raise mesonlib.MesonException('{} is not a valid python'.format(python))
+                    raise mesonlib.MesonException('{} is not a valid python or it is missing setuptools'.format(python))
 
         return res
 
