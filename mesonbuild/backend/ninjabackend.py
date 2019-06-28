@@ -648,22 +648,8 @@ int dummy;
         desc = 'Generating {0} with a {1} command.'
         if target.build_always_stale:
             deps.append('PHONY')
-        if target.depfile is None:
-            rulename = 'CUSTOM_COMMAND'
-        else:
-            rulename = 'CUSTOM_COMMAND_DEP'
-        elem = NinjaBuildElement(self.all_outputs, ofilenames, rulename, srcs)
-        elem.add_dep(deps)
-        for d in target.extra_depends:
-            # Add a dependency on all the outputs of this target
-            for output in d.get_outputs():
-                elem.add_dep(os.path.join(self.get_target_dir(d), output))
         serialize = False
         extra_paths = []
-        # If the target requires capturing stdout, then use the serialized
-        # executable wrapper to capture that output and save it to a file.
-        if target.capture:
-            serialize = True
         # If the command line requires a newline, also use the wrapper, as
         # ninja does not support them in its build rule syntax.
         if any('\n' in c for c in cmd):
@@ -678,6 +664,10 @@ int dummy;
             extra_paths = self.determine_windows_extra_paths(target.command[0], extra_bdeps)
             if extra_paths:
                 serialize = True
+        # If the target requires capturing stdout, then use the serialized
+        # executable wrapper to capture that output and save it to a file.
+        if target.capture and mesonlib.is_windows():
+            serialize = True
         if serialize:
             exe_data = self.serialize_executable(target.name, target.command[0], cmd[1:],
                                                  # All targets are built from the build dir
@@ -688,6 +678,17 @@ int dummy;
             cmd_type = 'meson_exe.py custom'
         else:
             cmd_type = 'custom'
+        rulename = 'CUSTOM_COMMAND'
+        if target.capture and not serialize:
+            rulename += '_CAPTURE'
+        if target.depfile is not None:
+            rulename += '_DEP'
+        elem = NinjaBuildElement(self.all_outputs, ofilenames, rulename, srcs)
+        elem.add_dep(deps)
+        for d in target.extra_depends:
+            # Add a dependency on all the outputs of this target
+            for output in d.get_outputs():
+                elem.add_dep(os.path.join(self.get_target_dir(d), output))
         if target.depfile is not None:
             depfile = target.get_dep_outname(elem.infilenames)
             rel_dfile = os.path.join(self.get_target_dir(target), depfile)
@@ -862,6 +863,14 @@ int dummy;
         self.add_rule(NinjaRule('CUSTOM_COMMAND_DEP', ['$COMMAND'], [], '$DESC',
                                 deps='gcc', depfile='$DEPFILE',
                                 extra='restat = 1'))
+        if not mesonlib.is_windows():
+            self.add_rule(NinjaRule('CUSTOM_COMMAND_CAPTURE',
+                                    execute_wrapper + ['$COMMAND', '>', '$out'], [], '$DESC',
+                                    extra='restat = 1'))
+            self.add_rule(NinjaRule('CUSTOM_COMMAND_CAPTURE_DEP',
+                                    execute_wrapper + ['$COMMAND', '>', '$out'], [], '$DESC',
+                                    deps='gcc', depfile='$DEPFILE',
+                                    extra='restat = 1'))
 
         c = [ninja_quote(quote_func(x)) for x in self.environment.get_build_command()] + \
             ['--internal',
