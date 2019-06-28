@@ -1771,11 +1771,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             base_args = generator.get_arglist(infilename)
             outfiles = genlist.get_outputs_for(curfile)
             outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
+            rulename = 'CUSTOM_COMMAND'
+            serialize = False
+            if generator.capture:
+                if mesonlib.is_windows():
+                    serialize = True
+                else:
+                    rulename += '_CAPTURE'
             if generator.depfile is None:
-                rulename = 'CUSTOM_COMMAND'
                 args = base_args
             else:
-                rulename = 'CUSTOM_COMMAND_DEP'
+                rulename += '_DEP'
                 depfilename = generator.get_dep_outname(infilename)
                 depfile = os.path.join(self.get_target_private_dir(target), depfilename)
                 args = [x.replace('@DEPFILE@', depfile) for x in base_args]
@@ -1787,19 +1793,21 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 outfilelist = outfilelist[len(generator.outputs):]
             args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
-            if generator.capture:
+            if serialize:
                 exe_data = self.serialize_executable(
                     'generator ' + cmdlist[0],
                     cmdlist[0],
                     cmdlist[1:],
                     self.environment.get_build_dir(),
-                    capture=outfiles[0]
+                    capture=outfiles[0] if generator.capture else None
                 )
                 cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
-                abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-                os.makedirs(abs_pdir, exist_ok=True)
             else:
                 cmd = cmdlist
+
+            if generator.capture:
+                abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+                os.makedirs(abs_pdir, exist_ok=True)
 
             elem = NinjaBuildElement(self.all_outputs, outfiles, rulename, infilename)
             elem.add_dep([self.get_target_filename(x) for x in generator.depends])
