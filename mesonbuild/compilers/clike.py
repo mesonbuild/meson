@@ -639,7 +639,7 @@ class CLikeCompiler:
                                              mode='preprocess').to_native()
         func = lambda: self.cached_compile(code.format(**fargs), env.coredata, extra_args=args, mode='preprocess')
         if disable_cache:
-            func = lambda: self.compile(code.format(**fargs), extra_args=args, mode='preprocess', temp_dir=env.get_temp_dir)
+            func = lambda: self.compile(code.format(**fargs), extra_args=args, mode='preprocess', temp_dir=env.temp_dir)
         with func() as p:
             cached = p.cached
             if p.returncode != 0:
