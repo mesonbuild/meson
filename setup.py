@@ -36,7 +36,10 @@ packages = ['mesonbuild',
             'mesonbuild.modules',
             'mesonbuild.scripts',
             'mesonbuild.wrap']
-package_data = {'mesonbuild.dependencies': ['data/CMakeLists.txt', 'data/CMakeListsLLVM.txt', 'data/CMakePathInfo.txt']}
+package_data = {
+    'mesonbuild.dependencies': ['data/CMakeLists.txt', 'data/CMakeListsLLVM.txt', 'data/CMakePathInfo.txt'],
+    'mesonbuild.cmake': ['data/run_ctgt.py'],
+}
 data_files = []
 if sys.platform != 'win32':
     # Only useful on UNIX-like systems
