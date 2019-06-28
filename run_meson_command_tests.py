@@ -142,6 +142,8 @@ class CommandTests(unittest.TestCase):
             s = p.as_posix()
             if 'mesonbuild' not in s:
                 continue
+            if '/data/' in s:
+                continue
             have.add(s[s.rfind('mesonbuild'):])
         self.assertEqual(have, expect)
         # Run `meson`
