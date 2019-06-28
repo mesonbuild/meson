@@ -11,7 +11,7 @@ add_executable(mycpy cp.cpp)
 
 add_custom_command(
   OUTPUT  "${CMAKE_CURRENT_BINARY_DIR}/genTest.cpp" "${CMAKE_CURRENT_BINARY_DIR}/genTest.hpp"
-  COMMAND gen genTest
+  COMMAND gen ARGS genTest
 )
 
 add_custom_command(
