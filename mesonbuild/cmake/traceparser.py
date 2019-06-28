@@ -403,7 +403,7 @@ class CMakeTraceParser:
     def _guess_files(self, broken_list: List[str]) -> List[str]:
         #Try joining file paths that contain spaces
 
-        reg_start = re.compile(r'^/.*/[^./]+$')
+        reg_start = re.compile(r'^([A-Za-z]:)?/.*/[^./]+$')
         reg_end = re.compile(r'^.*\.[a-zA-Z]+$')
 
         fixed_list = []  # type: List[str]
