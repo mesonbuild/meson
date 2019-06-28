@@ -377,7 +377,7 @@ class Environment:
     def __init__(self, source_dir, build_dir, options):
         self.source_dir = source_dir
         self.build_dir = build_dir
-
+        self.temp_dir = None
         # Do not try to create build directories when build_dir is none.
         # This reduced mode is used by the --buildoptions introspector
         if build_dir is not None:
