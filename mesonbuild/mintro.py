@@ -123,6 +123,8 @@ def list_installed(installdata):
             res[path] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
         for path, installpath, _ in installdata.man:
             res[path] = os.path.join(installdata.prefix, installpath)
+        for path, installpath, _, _ in installdata.install_subdirs:
+            res[path] = os.path.join(installdata.prefix, installpath)
     return res
 
 def list_targets_from_source(intr: IntrospectionInterpreter):

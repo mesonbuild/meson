@@ -1695,6 +1695,34 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathListEqual(intro[0]['install_filename'], ['/usr/lib/libstat.a'])
         self.assertPathListEqual(intro[1]['install_filename'], ['/usr/bin/prog' + exe_suffix])
 
+    def test_install_subdir_introspection(self):
+        '''
+        Test that the Meson introspection API also contains subdir install information
+        https://github.com/mesonbuild/meson/issues/5556
+        '''
+        testdir = os.path.join(self.common_test_dir, '63 install subdir')
+        self.init(testdir)
+        intro = self.introspect('--installed')
+        expected = {
+            'sub2': 'share/sub2',
+            'subdir/sub1': 'share/sub1',
+            'subdir/sub_elided': 'share',
+            'sub1': 'share/sub1',
+            'sub/sub1': 'share/sub1',
+            'sub_elided': 'share',
+            'nested_elided/sub': 'share',
+        }
+
+        self.assertEqual(len(intro), len(expected))
+
+        # Convert expected to PurePath
+        expected_converted = {PurePath(os.path.join(testdir, key)): PurePath(os.path.join(self.prefix, val)) for key, val in expected.items()}
+        intro_converted = {PurePath(key): PurePath(val) for key, val in intro.items()}
+
+        for src, dst in expected_converted.items():
+            self.assertIn(src, intro_converted)
+            self.assertEqual(dst, intro_converted[src])
+
     def test_install_introspection_multiple_outputs(self):
         '''
         Tests that the Meson introspection API exposes multiple install filenames correctly without crashing
