@@ -115,3 +115,24 @@ command in the build tree:
 ```console
 $ meson install --no-rebuild --only-changed
 ```
+
+## Finer control over install locations
+
+Sometimes it is necessary to only install a subsection of output files
+or install them in different directories. This can be done by
+specifying `install_dir` as an array rather than a single string. The
+array must have as many items as there are outputs and each entry
+specifies how the corresponding output file should be installed. For
+example:
+
+```meson
+custom_target(...
+    output: ['file1', 'file2', 'file3'],
+    install_dir: ['path1', false, 'path3'],
+    ...
+)
+```
+
+In this case `file1` would be installed to `/prefix/path1/file1`,
+`file2` would not be installed at all and `file3` would be installed
+to `/prefix/path3/file3'.
