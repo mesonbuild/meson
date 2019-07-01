@@ -144,11 +144,15 @@ def create_dist_hg(dist_name, src_root, bld_root, dist_sub, dist_scripts):
     return (xzname, )
 
 
-def check_dist(packagename, meson_command):
+def check_dist(packagename, meson_command, privdir):
     print('Testing distribution package %s' % packagename)
-    unpackdir = tempfile.mkdtemp()
-    builddir = tempfile.mkdtemp()
-    installdir = tempfile.mkdtemp()
+    unpackdir = os.path.join(privdir, 'dist-unpack')
+    builddir = os.path.join(privdir, 'dist-build')
+    installdir = os.path.join(privdir, 'dist-install')
+    for p in (unpackdir, builddir, installdir):
+        if os.path.exists(p):
+            shutil.rmtree(p)
+        os.mkdir(p)
     ninja_bin = detect_ninja()
     try:
         tf = tarfile.open(packagename)
@@ -200,7 +204,7 @@ def run(args):
         return 1
     error_count = 0
     for name in names:
-        rc = check_dist(name, meson_command) # Check only one.
+        rc = check_dist(name, meson_command, priv_dir) # Check only one.
         if rc == 0:
             create_hash(name)
         error_count += rc
