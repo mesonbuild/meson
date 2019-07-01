@@ -460,11 +460,11 @@ class LLVMDependency(ExternalDependency):
         methods = cls._process_method_kw(kwargs)
         candidates = []
 
-        if DependencyMethods.CMAKE in methods:
-            candidates.append(functools.partial(LLVMDependencyCMake, env, kwargs))
-
         if DependencyMethods.CONFIG_TOOL in methods:
             candidates.append(functools.partial(LLVMDependencyConfigTool, env, kwargs))
+
+        if DependencyMethods.CMAKE in methods:
+            candidates.append(functools.partial(LLVMDependencyCMake, env, kwargs))
 
         return candidates
 
