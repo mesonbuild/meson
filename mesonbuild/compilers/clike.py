@@ -396,7 +396,10 @@ class CLikeCompiler:
 
         if mode == 'link':
             # Add LDFLAGS from the env
-            args += env.coredata.get_external_link_args(self.for_machine, self.language)
+            sys_ld_args = env.coredata.get_external_link_args(self.for_machine, self.language)
+            # CFLAGS and CXXFLAGS go to both linking and compiling, but we want them
+            # to only appear on the command line once. Remove dupes.
+            args += [x for x in sys_ld_args if x not in sys_args]
 
         args += self.get_compiler_args_for_mode(mode)
         return args
