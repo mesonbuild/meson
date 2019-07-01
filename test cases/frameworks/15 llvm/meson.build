@@ -31,25 +31,29 @@ if not dep_tinfo.found()
   dep_tinfo = cpp.find_library('tinfo', required: false)
 endif
 
-foreach static : [true, false]
-  llvm_dep = dependency(
-    'llvm',
-    modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
-               'mcjit', 'nativecodegen', 'amdgpu'],
-    required : false,
-    static : static,
-  )
-  if llvm_dep.found()
-    name = static ? 'static' : 'dynamic'
-    executable(
-      'sum-@0@'.format(name),
-      'sum.c',
-      dependencies : [
-        llvm_dep, dep_tinfo,
-        # zlib will be statically linked on windows
-        dependency('zlib', required : host_machine.system() != 'windows'),
-        meson.get_compiler('c').find_library('dl', required : false),
-      ]
+foreach method : ['config-tool', 'cmake']
+  foreach static : [true, false]
+    message('Trying method @0@ for @1@ link'.format(method, static ? 'static' : 'dynamic'))
+    llvm_dep = dependency(
+      'llvm',
+      modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
+                'mcjit', 'nativecodegen', 'amdgpu'],
+      required : false,
+      static : static,
+      method : method,
     )
-  endif
+    if llvm_dep.found()
+      name = static ? 'static' : 'dynamic'
+      executable(
+        'sum-@0@-@1@'.format(name, method),
+        'sum.c',
+        dependencies : [
+          llvm_dep, dep_tinfo,
+          # zlib will be statically linked on windows
+          dependency('zlib', required : host_machine.system() != 'windows'),
+          meson.get_compiler('c').find_library('dl', required : false),
+        ]
+      )
+    endif
+  endforeach
 endforeach
