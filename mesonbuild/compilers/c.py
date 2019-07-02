@@ -20,14 +20,13 @@ from ..mesonlib import MachineChoice, MesonException, mlog, version_compare
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
-from .mixins.arm import ArmCompiler
+from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import VisualStudioLikeCompiler
 from .mixins.gnu import GnuCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
-    ArmclangCompiler,
     ClangCompiler,
     Compiler,
     CompilerType,
