@@ -21,15 +21,14 @@ from .compilers import (
     Compiler,
     ClangCompiler,
     ElbrusCompiler,
-    IntelGnuLikeCompiler,
     PGICompiler,
-    IntelVisualStudioLikeCompiler,
 )
 from .mixins.clike import CLikeCompiler
 from .mixins.gnu import (
     GnuCompiler, apple_buildtype_linker_args, gnulike_buildtype_args,
     gnulike_buildtype_linker_args, gnu_optimization_args,
 )
+from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .. import mlog
 
 from mesonbuild.mesonlib import (

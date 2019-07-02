@@ -120,8 +120,6 @@ from .compilers import (
     sort_clink,
     ClangCompiler,
     CompilerArgs,
-    IntelGnuLikeCompiler,
-    IntelVisualStudioLikeCompiler,
 )
 from .c import (
     CCompiler,
@@ -189,3 +187,4 @@ from .swift import SwiftCompiler
 from .vala import ValaCompiler
 from .mixins.visualstudio import VisualStudioLikeCompiler
 from .mixins.gnu import GnuCompiler, get_macos_dylib_install_name
+from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
