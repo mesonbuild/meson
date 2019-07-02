@@ -23,13 +23,11 @@ from .compilers import (
     d_dmd_buildtype_args,
     d_gdc_buildtype_args,
     d_ldc_buildtype_args,
-    get_gcc_soname_args,
-    gnu_color_args,
-    gnu_optimization_args,
     clike_debug_args,
     Compiler,
     CompilerArgs,
 )
+from .mixins.gnu import get_gcc_soname_args, gnu_color_args, gnu_optimization_args
 
 d_feature_args = {'gcc':  {'unittest': '-funittest',
                            'debug': '-fdebug',

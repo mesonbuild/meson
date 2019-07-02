@@ -17,13 +17,8 @@ from pathlib import Path
 
 from .compilers import (
     CompilerType,
-    apple_buildtype_linker_args,
-    gnulike_buildtype_args,
-    gnulike_buildtype_linker_args,
-    gnu_optimization_args,
     clike_debug_args,
     Compiler,
-    GnuCompiler,
     ClangCompiler,
     ElbrusCompiler,
     IntelGnuLikeCompiler,
@@ -31,6 +26,10 @@ from .compilers import (
     IntelVisualStudioLikeCompiler,
 )
 from .mixins.clike import CLikeCompiler
+from .mixins.gnu import (
+    GnuCompiler, apple_buildtype_linker_args, gnulike_buildtype_args,
+    gnulike_buildtype_linker_args, gnu_optimization_args,
+)
 from .. import mlog
 
 from mesonbuild.mesonlib import (

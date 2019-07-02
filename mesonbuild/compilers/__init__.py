@@ -107,7 +107,6 @@ from .compilers import (
     clink_langs,
     c_suffixes,
     cpp_suffixes,
-    get_macos_dylib_install_name,
     get_base_compile_args,
     get_base_link_args,
     is_header,
@@ -121,7 +120,6 @@ from .compilers import (
     sort_clink,
     ClangCompiler,
     CompilerArgs,
-    GnuCompiler,
     IntelGnuLikeCompiler,
     IntelVisualStudioLikeCompiler,
 )
@@ -190,3 +188,4 @@ from .rust import RustCompiler
 from .swift import SwiftCompiler
 from .vala import ValaCompiler
 from .mixins.visualstudio import VisualStudioLikeCompiler
+from .mixins.gnu import GnuCompiler, get_macos_dylib_install_name

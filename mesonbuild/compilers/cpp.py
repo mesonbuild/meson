@@ -25,7 +25,6 @@ from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
     ClangCompiler,
-    GnuCompiler,
     ElbrusCompiler,
     IntelGnuLikeCompiler,
     IntelVisualStudioLikeCompiler,
@@ -38,6 +37,7 @@ from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
 from .mixins.arm import ArmCompiler
 from .mixins.visualstudio import VisualStudioLikeCompiler
+from .mixins.gnu import GnuCompiler
 
 
 def non_msvc_eh_options(eh, args):

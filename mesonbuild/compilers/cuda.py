@@ -17,7 +17,8 @@ import re, os.path
 from .. import mlog
 from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
-                        cuda_debug_args, CompilerType, get_gcc_soname_args)
+                        cuda_debug_args, CompilerType)
+from .mixins.gnu import get_gcc_soname_args
 
 class CudaCompiler(Compiler):
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None):
