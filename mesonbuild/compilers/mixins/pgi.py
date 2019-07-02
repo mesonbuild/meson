@@ -19,26 +19,31 @@ import os
 
 from ..compilers import clike_debug_args, clike_optimization_args
 
-pgi_buildtype_args = {'plain': [],
-                      'debug': [],
-                      'debugoptimized': [],
-                      'release': [],
-                      'minsize': [],
-                      'custom': [],
-                      }
+if typing.TYPE_CHECKING:
+    from ..compilers import CompilerType
+
+pgi_buildtype_args = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
+    'custom': [],
+}  # type: typing.Dict[str, typing.List[str]]
 
 
-pgi_buildtype_linker_args = {'plain': [],
-                             'debug': [],
-                             'debugoptimized': [],
-                             'release': [],
-                             'minsize': [],
-                             'custom': [],
-                             }
+pgi_buildtype_linker_args = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
+    'custom': [],
+}  # type: typing.Dict[str, typing.List[str]]
 
 
 class PGICompiler:
-    def __init__(self, compiler_type):
+    def __init__(self, compiler_type: 'CompilerType'):
         self.id = 'pgi'
         self.compiler_type = compiler_type
 
@@ -68,22 +73,23 @@ class PGICompiler:
     def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
         return pgi_buildtype_linker_args[buildtype]
 
-    def get_optimization_args(self, optimization_level: str):
+    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
         return clike_optimization_args[optimization_level]
 
-    def get_debug_args(self, is_debug: bool):
+    def get_debug_args(self, is_debug: bool) -> typing.List[str]:
         return clike_debug_args[is_debug]
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: typing.List[str], build_dir: str):
+    def compute_parameters_with_absolute_paths(self, parameter_list: typing.List[str], build_dir: str) -> typing.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '-L':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+        return parameter_list
 
-    def get_allow_undefined_link_args(self):
+    def get_allow_undefined_link_args(self) -> typing.List[str]:
         return []
 
-    def get_dependency_gen_args(self, outtarget, outfile):
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> typing.List[str]:
         return []
 
-    def get_always_args(self):
+    def get_always_args(self) -> typing.List[str]:
         return []
