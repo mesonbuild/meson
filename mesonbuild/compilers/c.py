@@ -20,10 +20,10 @@ from ..mesonlib import MachineChoice, MesonException, mlog, version_compare
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
+from .mixins.arm import ArmCompiler
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
-    ArmCompiler,
     ArmclangCompiler,
     ClangCompiler,
     Compiler,
