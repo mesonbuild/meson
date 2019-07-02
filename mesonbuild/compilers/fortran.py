@@ -19,7 +19,6 @@ from .compilers import (
     CompilerType,
     clike_debug_args,
     Compiler,
-    PGICompiler,
 )
 from .mixins.clike import CLikeCompiler
 from .mixins.gnu import (
@@ -29,6 +28,7 @@ from .mixins.gnu import (
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
+from .mixins.pgi import PGICompiler
 from .. import mlog
 
 from mesonbuild.mesonlib import (

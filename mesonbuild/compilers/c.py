@@ -26,12 +26,12 @@ from .mixins.gnu import GnuCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
+from .mixins.pgi import PGICompiler
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
     Compiler,
     CompilerType,
-    PGICompiler,
 )
 
 

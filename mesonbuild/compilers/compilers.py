@@ -142,23 +142,6 @@ cuda_buildtype_args = {'plain': [],
                        'release': [],
                        'minsize': [],
                        }
-pgi_buildtype_args = {'plain': [],
-                      'debug': [],
-                      'debugoptimized': [],
-                      'release': [],
-                      'minsize': [],
-                      'custom': [],
-                      }
-
-
-pgi_buildtype_linker_args = {'plain': [],
-                             'debug': [],
-                             'debugoptimized': [],
-                             'release': [],
-                             'minsize': [],
-                             'custom': [],
-                             }
-
 java_buildtype_args = {'plain': [],
                        'debug': ['-g'],
                        'debugoptimized': ['-g'],
@@ -1289,55 +1272,3 @@ def get_largefile_args(compiler):
         # transitionary features and must be enabled by programs that use
         # those features explicitly.
     return []
-
-
-class PGICompiler:
-    def __init__(self, compiler_type):
-        self.id = 'pgi'
-        self.compiler_type = compiler_type
-
-        default_warn_args = ['-Minform=inform']
-        self.warn_args = {'0': [],
-                          '1': default_warn_args,
-                          '2': default_warn_args,
-                          '3': default_warn_args}
-
-    def get_module_incdir_args(self) -> Tuple[str]:
-        return ('-module', )
-
-    def get_no_warn_args(self) -> List[str]:
-        return ['-silent']
-
-    def get_pic_args(self) -> List[str]:
-        if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
-            return [] # PGI -fPIC is Linux only.
-        return ['-fPIC']
-
-    def openmp_flags(self) -> List[str]:
-        return ['-mp']
-
-    def get_buildtype_args(self, buildtype: str) -> List[str]:
-        return pgi_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype: str) -> List[str]:
-        return pgi_buildtype_linker_args[buildtype]
-
-    def get_optimization_args(self, optimization_level: str):
-        return clike_optimization_args[optimization_level]
-
-    def get_debug_args(self, is_debug: bool):
-        return clike_debug_args[is_debug]
-
-    def compute_parameters_with_absolute_paths(self, parameter_list: List[str], build_dir: str):
-        for idx, i in enumerate(parameter_list):
-            if i[:2] == '-I' or i[:2] == '-L':
-                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
-
-    def get_allow_undefined_link_args(self):
-        return []
-
-    def get_dependency_gen_args(self, outtarget, outfile):
-        return []
-
-    def get_always_args(self):
-        return []
