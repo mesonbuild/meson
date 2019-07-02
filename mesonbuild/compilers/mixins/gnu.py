@@ -1,5 +1,5 @@
 # Copyright 2019 The meson development team
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -18,77 +18,91 @@ import abc
 import functools
 import os
 import pathlib
+import re
 import subprocess
 import typing
 
 from ... import mesonlib
 from ... import mlog
 
+if typing.TYPE_CHECKING:
+    from ..compilers import CompilerType
+    from ...coredata import UserOption  # noqa: F401
+    from ...environment import Environment
+
 # XXX: prevent circular references.
 # FIXME: this really is a posix interface not a c-like interface
-clike_debug_args = {False: [],
-                    True: ['-g']}
+clike_debug_args = {
+    False: [],
+    True: ['-g'],
+}  # type: typing.Dict[bool, typing.List[str]]
 
-gnulike_buildtype_args = {'plain': [],
-                          'debug': [],
-                          'debugoptimized': [],
-                          'release': [],
-                          'minsize': [],
-                          'custom': [],
-                          }
+gnulike_buildtype_args = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
+    'custom': [],
+}  # type: typing.Dict[str, typing.List[str]]
 
-apple_buildtype_linker_args = {'plain': [],
-                               'debug': [],
-                               'debugoptimized': [],
-                               'release': [],
-                               'minsize': [],
-                               'custom': [],
-                               }
+apple_buildtype_linker_args = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
+    'custom': [],
+}  # type: typing.Dict[str, typing.List[str]]
 
-gnulike_buildtype_linker_args = {'plain': [],
-                                 'debug': [],
-                                 'debugoptimized': [],
-                                 'release': ['-Wl,-O1'],
-                                 'minsize': [],
-                                 'custom': [],
-                                 }
+gnulike_buildtype_linker_args = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': [],
+    'release': ['-Wl,-O1'],
+    'minsize': [],
+    'custom': [],
+}  # type: typing.Dict[str, typing.List[str]]
 
-gnu_optimization_args = {'0': [],
-                         'g': ['-Og'],
-                         '1': ['-O1'],
-                         '2': ['-O2'],
-                         '3': ['-O3'],
-                         's': ['-Os'],
-                         }
+gnu_optimization_args = {
+    '0': [],
+    'g': ['-Og'],
+    '1': ['-O1'],
+    '2': ['-O2'],
+    '3': ['-O3'],
+    's': ['-Os'],
+}  # type: typing.Dict[str, typing.List[str]]
 
-gnulike_instruction_set_args = {'mmx': ['-mmmx'],
-                                'sse': ['-msse'],
-                                'sse2': ['-msse2'],
-                                'sse3': ['-msse3'],
-                                'ssse3': ['-mssse3'],
-                                'sse41': ['-msse4.1'],
-                                'sse42': ['-msse4.2'],
-                                'avx': ['-mavx'],
-                                'avx2': ['-mavx2'],
-                                'avx2': ['-mavx2'],
-                                'neon': ['-mfpu=neon'],
-                                }
+gnulike_instruction_set_args = {
+    'mmx': ['-mmmx'],
+    'sse': ['-msse'],
+    'sse2': ['-msse2'],
+    'sse3': ['-msse3'],
+    'ssse3': ['-mssse3'],
+    'sse41': ['-msse4.1'],
+    'sse42': ['-msse4.2'],
+    'avx': ['-mavx'],
+    'avx2': ['-mavx2'],
+    'neon': ['-mfpu=neon'],
+}  # type: typing.Dict[str, typing.List[str]]
 
-gnu_symbol_visibility_args = {'': [],
-                              'default': ['-fvisibility=default'],
-                              'internal': ['-fvisibility=internal'],
-                              'hidden': ['-fvisibility=hidden'],
-                              'protected': ['-fvisibility=protected'],
-                              'inlineshidden': ['-fvisibility=hidden', '-fvisibility-inlines-hidden'],
-                              }
+gnu_symbol_visibility_args = {
+    '': [],
+    'default': ['-fvisibility=default'],
+    'internal': ['-fvisibility=internal'],
+    'hidden': ['-fvisibility=hidden'],
+    'protected': ['-fvisibility=protected'],
+    'inlineshidden': ['-fvisibility=hidden', '-fvisibility-inlines-hidden'],
+}  # type: typing.Dict[str, typing.List[str]]
 
-gnu_color_args = {'auto': ['-fdiagnostics-color=auto'],
-                  'always': ['-fdiagnostics-color=always'],
-                  'never': ['-fdiagnostics-color=never'],
-                  }
+gnu_color_args = {
+    'auto': ['-fdiagnostics-color=auto'],
+    'always': ['-fdiagnostics-color=always'],
+    'never': ['-fdiagnostics-color=never'],
+}  # type: typing.Dict[str, typing.List[str]]
 
 
-def get_macos_dylib_install_name(prefix, shlib_name, suffix, soversion):
+def get_macos_dylib_install_name(prefix: str, shlib_name: str, suffix: str, soversion: str) -> str:
     install_name = prefix + shlib_name
     if soversion is not None:
         install_name += '.' + soversion
@@ -96,7 +110,9 @@ def get_macos_dylib_install_name(prefix, shlib_name, suffix, soversion):
     return '@rpath/' + install_name
 
 
-def get_gcc_soname_args(compiler_type, prefix, shlib_name, suffix, soversion, darwin_versions, is_shared_module):
+def get_gcc_soname_args(compiler_type: 'CompilerType', prefix: str,
+                        shlib_name: str, suffix: str, soversion: str, darwin_versions:
+                        typing.Tuple[str, str], is_shared_module: bool) -> typing.List[str]:
     if compiler_type.is_standard_compiler:
         sostr = '' if soversion is None else '.' + soversion
         return ['-Wl,-soname,%s%s.%s%s' % (prefix, shlib_name, suffix, sostr)]
@@ -117,7 +133,7 @@ def get_gcc_soname_args(compiler_type, prefix, shlib_name, suffix, soversion, da
 
 # TODO: The result from calling compiler should be cached. So that calling this
 # function multiple times don't add latency.
-def gnulike_default_include_dirs(compiler, lang):
+def gnulike_default_include_dirs(compiler: typing.List[str], lang: str) -> typing.List[str]:
     if lang == 'cpp':
         lang = 'c++'
     env = os.environ.copy()
@@ -159,7 +175,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
     and ICC. Certain functionality between them is different and requires
     that the actual concrete subclass define their own implementation.
     """
-    def __init__(self, compiler_type):
+    def __init__(self, compiler_type: 'CompilerType'):
         self.compiler_type = compiler_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_ndebug', 'b_staticpic', 'b_pie']
@@ -172,7 +188,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
 
-    def get_asneeded_args(self):
+    def get_asneeded_args(self) -> str:
         # GNU ld cannot be installed on macOS
         # https://github.com/Homebrew/homebrew-core/issues/17794#issuecomment-328174395
         # Hence, we don't need to differentiate between OS and ld
@@ -182,72 +198,74 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         else:
             return '-Wl,--as-needed'
 
-    def get_pic_args(self):
+    def get_pic_args(self) -> typing.List[str]:
         if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
-    def get_pie_args(self):
+    def get_pie_args(self) -> typing.List[str]:
         return ['-fPIE']
 
-    def get_pie_link_args(self):
+    def get_pie_link_args(self) -> typing.List[str]:
         return ['-pie']
 
-    def get_buildtype_args(self, buildtype):
+    def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
         return gnulike_buildtype_args[buildtype]
 
     @abc.abstractmethod
-    def get_optimization_args(self, optimization_level):
+    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
         raise NotImplementedError("get_optimization_args not implemented")
 
-    def get_debug_args(self, is_debug):
+    def get_debug_args(self, is_debug: bool) -> typing.List[str]:
         return clike_debug_args[is_debug]
 
-    def get_buildtype_linker_args(self, buildtype):
+    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
         if self.compiler_type.is_osx_compiler:
             return apple_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
 
     @abc.abstractmethod
-    def get_pch_suffix(self):
+    def get_pch_suffix(self) -> str:
         raise NotImplementedError("get_pch_suffix not implemented")
 
-    def split_shlib_to_parts(self, fname):
+    def split_shlib_to_parts(self, fname: str) -> typing.Tuple[str, str]:
         return os.path.dirname(fname), fname
 
-    def get_soname_args(self, *args):
+    # We're doing argument proxying here, I don't think there's anyway to
+    # accurately model this without copying the real signature
+    def get_soname_args(self, *args: typing.Any) -> typing.List[str]:
         return get_gcc_soname_args(self.compiler_type, *args)
 
-    def get_std_shared_lib_link_args(self):
+    def get_std_shared_lib_link_args(self) -> typing.List[str]:
         return ['-shared']
 
-    def get_std_shared_module_link_args(self, options):
+    def get_std_shared_module_link_args(self, options: typing.Dict[str, 'UserOption[typing.Any]']) -> typing.List[str]:
         if self.compiler_type.is_osx_compiler:
             return ['-bundle', '-Wl,-undefined,dynamic_lookup']
         return ['-shared']
 
-    def get_link_whole_for(self, args):
+    def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
         if self.compiler_type.is_osx_compiler:
-            result = []
+            result = []  # type: typing.List[str]
             for a in args:
                 result += ['-Wl,-force_load', a]
             return result
         return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
 
-    def get_instruction_set_args(self, instruction_set):
+    def get_instruction_set_args(self, instruction_set: str) -> typing.Optional[typing.List[str]]:
         return gnulike_instruction_set_args.get(instruction_set, None)
 
-    def get_default_include_dirs(self):
+    def get_default_include_dirs(self) -> typing.List[str]:
         return gnulike_default_include_dirs(self.exelist, self.language)
 
     @abc.abstractmethod
-    def openmp_flags(self):
+    def openmp_flags(self) -> typing.List[str]:
         raise NotImplementedError("openmp_flags not implemented")
 
-    def gnu_symbol_visibility_args(self, vistype):
+    def gnu_symbol_visibility_args(self, vistype: str) -> typing.List[str]:
         return gnu_symbol_visibility_args[vistype]
 
-    def gen_vs_module_defs_args(self, defsfile):
+    def gen_vs_module_defs_args(self, defsfile: str) -> typing.List[str]:
         if not isinstance(defsfile, str):
             raise RuntimeError('Module definitions file should be str')
         # On Windows targets, .def files may be specified on the linker command
@@ -257,16 +275,16 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         # For other targets, discard the .def file.
         return []
 
-    def get_argument_syntax(self):
+    def get_argument_syntax(self) -> str:
         return 'gcc'
 
-    def get_profile_generate_args(self):
+    def get_profile_generate_args(self) -> typing.List[str]:
         return ['-fprofile-generate']
 
-    def get_profile_use_args(self):
+    def get_profile_use_args(self) -> typing.List[str]:
         return ['-fprofile-use', '-fprofile-correction']
 
-    def get_allow_undefined_link_args(self):
+    def get_allow_undefined_link_args(self) -> typing.List[str]:
         if self.compiler_type.is_osx_compiler:
             # Apple ld
             return ['-Wl,-undefined,dynamic_lookup']
@@ -279,12 +297,12 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
             # GNU ld and LLVM lld
             return ['-Wl,--allow-shlib-undefined']
 
-    def get_gui_app_args(self, value):
+    def get_gui_app_args(self, value: bool) -> typing.List[str]:
         if self.compiler_type.is_windows_compiler:
             return ['-mwindows' if value else '-mconsole']
         return []
 
-    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+    def compute_parameters_with_absolute_paths(self, parameter_list: typing.List[str], build_dir: str) -> typing.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '-L':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
@@ -292,7 +310,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         return parameter_list
 
     @functools.lru_cache()
-    def _get_search_dirs(self, env):
+    def _get_search_dirs(self, env: 'Environment') -> str:
         extra_args = ['--print-search-dirs']
         stdo = None
         with self._build_wrapper('', env, extra_args=extra_args,
@@ -301,7 +319,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
             stdo = p.stdo
         return stdo
 
-    def _split_fetch_real_dirs(self, pathstr):
+    def _split_fetch_real_dirs(self, pathstr: str) -> typing.Tuple[str, ...]:
         # We need to use the path separator used by the compiler for printing
         # lists of paths ("gcc --print-search-dirs"). By default
         # we assume it uses the platform native separator.
@@ -338,7 +356,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
                     pass
         return tuple(result)
 
-    def get_compiler_dirs(self, env, name):
+    def get_compiler_dirs(self, env: 'Environment', name: str) -> typing.Tuple[str, ...]:
         '''
         Get dirs from the compiler, either `libraries:` or `programs:`
         '''
@@ -354,7 +372,7 @@ class GnuCompiler(GnuLikeCompiler):
     GnuCompiler represents an actual GCC in its many incarnations.
     Compilers imitating GCC (Clang/Intel) should use the GnuLikeCompiler ABC.
     """
-    def __init__(self, compiler_type, defines: dict):
+    def __init__(self, compiler_type: 'CompilerType', defines: typing.Dict[str, str]):
         super().__init__(compiler_type)
         self.id = 'gcc'
         self.defines = defines or {}
@@ -365,7 +383,7 @@ class GnuCompiler(GnuLikeCompiler):
             return gnu_color_args[colortype][:]
         return []
 
-    def get_warn_args(self, level: str) -> list:
+    def get_warn_args(self, level: str) -> typing.List[str]:
         args = super().get_warn_args(level)
         if mesonlib.version_compare(self.version, '<4.8.0') and '-Wpedantic' in args:
             # -Wpedantic was added in 4.8.0
@@ -376,11 +394,12 @@ class GnuCompiler(GnuLikeCompiler):
     def has_builtin_define(self, define: str) -> bool:
         return define in self.defines
 
-    def get_builtin_define(self, define):
+    def get_builtin_define(self, define: str) -> typing.Optional[str]:
         if define in self.defines:
             return self.defines[define]
+        return None
 
-    def get_optimization_args(self, optimization_level: str):
+    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
         return gnu_optimization_args[optimization_level]
 
     def get_pch_suffix(self) -> str:
