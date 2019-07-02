@@ -15,10 +15,11 @@
 """Representations specific to the arm family of compilers."""
 
 import os
+import re
 import typing
 
-from ...mesonlib import EnvironmentException
-from ..compilers import clike_debug_args
+from ... import mesonlib
+from ..compilers import clike_debug_args, clang_color_args
 
 if typing.TYPE_CHECKING:
     from ..compilers import CompilerType
@@ -51,27 +52,30 @@ arm_optimization_args = {
     's': [],
 }  # type: typing.Dict[str, typing.List[str]]
 
-armclang_buildtype_args = {'plain': [],
-                           'debug': ['-O0', '-g'],
-                           'debugoptimized': ['-O1', '-g'],
-                           'release': ['-Os'],
-                           'minsize': ['-Oz'],
-                           'custom': [],
-                           }
-armclang_optimization_args = {'0': ['-O0'],
-                              'g': ['-g'],
-                              '1': ['-O1'],
-                              '2': ['-O2'],
-                              '3': ['-O3'],
-                              's': ['-Os']
-                              }
+armclang_buildtype_args = {
+    'plain': [],
+    'debug': ['-O0', '-g'],
+    'debugoptimized': ['-O1', '-g'],
+    'release': ['-Os'],
+    'minsize': ['-Oz'],
+    'custom': [],
+}  # type: typing.Dict[str, typing.List[str]]
+
+armclang_optimization_args = {
+    '0': ['-O0'],
+    'g': ['-g'],
+    '1': ['-O1'],
+    '2': ['-O2'],
+    '3': ['-O3'],
+    's': ['-Os']
+}  # type: typing.Dict[str, typing.List[str]]
 
 
 class ArmCompiler:
     # Functionality that is common to all ARM family compilers.
     def __init__(self, compiler_type: 'CompilerType'):
         if not self.is_cross:
-            raise EnvironmentException('armcc supports only cross-compilation.')
+            raise mesonlib.EnvironmentException('armcc supports only cross-compilation.')
         self.id = 'arm'
         self.compiler_type = compiler_type
         default_warn_args = []  # type: typing.List[str]
@@ -153,31 +157,32 @@ class ArmCompiler:
 
 
 class ArmclangCompiler:
-    def __init__(self, compiler_type):
+    def __init__(self, compiler_type: 'CompilerType'):
         if not self.is_cross:
-            raise EnvironmentException('armclang supports only cross-compilation.')
+            raise mesonlib.EnvironmentException('armclang supports only cross-compilation.')
         # Check whether 'armlink.exe' is available in path
         self.linker_exe = 'armlink.exe'
         args = '--vsn'
         try:
-            p, stdo, stderr = Popen_safe(self.linker_exe, args)
+            p, stdo, stderr = mesonlib.Popen_safe(self.linker_exe, args)
         except OSError as e:
             err_msg = 'Unknown linker\nRunning "{0}" gave \n"{1}"'.format(' '.join([self.linker_exe] + [args]), e)
-            raise EnvironmentException(err_msg)
+            raise mesonlib.EnvironmentException(err_msg)
         # Verify the armlink version
         ver_str = re.search('.*Component.*', stdo)
         if ver_str:
             ver_str = ver_str.group(0)
         else:
-            EnvironmentException('armlink version string not found')
+            mesonlib.EnvironmentException('armlink version string not found')
+        assert ver_str  # makes mypy happy
         # Using the regular expression from environment.search_version,
         # which is used for searching compiler version
         version_regex = r'(?<!(\d|\.))(\d{1,2}(\.\d+)+(-[a-zA-Z0-9]+)?)'
         linker_ver = re.search(version_regex, ver_str)
         if linker_ver:
             linker_ver = linker_ver.group(0)
-        if not version_compare(self.version, '==' + linker_ver):
-            raise EnvironmentException('armlink version does not match with compiler version')
+        if not mesonlib.version_compare(self.version, '==' + linker_ver):
+            raise mesonlib.EnvironmentException('armlink version does not match with compiler version')
         self.id = 'armclang'
         self.compiler_type = compiler_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
@@ -185,60 +190,61 @@ class ArmclangCompiler:
         # Assembly
         self.can_compile_suffixes.update('s')
 
-    def can_linker_accept_rsp(self):
+    def can_linker_accept_rsp(self) -> bool:
         return False
 
-    def get_pic_args(self):
+    def get_pic_args(self) -> typing.List[str]:
         # PIC support is not enabled by default for ARM,
         # if users want to use it, they need to add the required arguments explicitly
         return []
 
-    def get_colorout_args(self, colortype):
+    def get_colorout_args(self, colortype: str) -> typing.List[str]:
         return clang_color_args[colortype][:]
 
-    def get_buildtype_args(self, buildtype):
+    def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
         return armclang_buildtype_args[buildtype]
 
-    def get_buildtype_linker_args(self, buildtype):
+    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
         return arm_buildtype_linker_args[buildtype]
 
     # Override CCompiler.get_std_shared_lib_link_args
-    def get_std_shared_lib_link_args(self):
+    def get_std_shared_lib_link_args(self) -> typing.List[str]:
         return []
 
-    def get_pch_suffix(self):
+    def get_pch_suffix(self) -> str:
         return 'gch'
 
-    def get_pch_use_args(self, pch_dir, header):
+    def get_pch_use_args(self, pch_dir: str, header: str) -> typing.List[str]:
         # Workaround for Clang bug http://llvm.org/bugs/show_bug.cgi?id=15136
         # This flag is internal to Clang (or at least not documented on the man page)
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
     # Override CCompiler.get_dependency_gen_args
-    def get_dependency_gen_args(self, outtarget, outfile):
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> typing.List[str]:
         return []
 
     # Override CCompiler.build_rpath_args
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+    def build_rpath_args(self, build_dir: str, from_dir: str, rpath_paths: str,
+                         build_rpath: str, install_rpath: str) -> typing.List[str]:
         return []
 
-    def get_linker_exelist(self):
+    def get_linker_exelist(self) -> typing.List[str]:
         return [self.linker_exe]
 
-    def get_optimization_args(self, optimization_level):
+    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
         return armclang_optimization_args[optimization_level]
 
-    def get_debug_args(self, is_debug):
+    def get_debug_args(self, is_debug: bool) -> typing.List[str]:
         return clike_debug_args[is_debug]
 
-    def gen_export_dynamic_link_args(self, env):
+    def gen_export_dynamic_link_args(self, env: 'Environment') -> typing.List[str]:
         """
         The args for export dynamic
         """
         return ['--export_dynamic']
 
-    def gen_import_library_args(self, implibname):
+    def gen_import_library_args(self, implibname: str) -> typing.List[str]:
         """
         The args of the outputted import library
 
@@ -246,7 +252,7 @@ class ArmclangCompiler:
         """
         return ['--symdefs=' + implibname]
 
-    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+    def compute_parameters_with_absolute_paths(self, parameter_list: typing.List[str], build_dir: str) -> typing.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '-L':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
