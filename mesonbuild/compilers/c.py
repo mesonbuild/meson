@@ -21,6 +21,7 @@ from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
 from .mixins.arm import ArmCompiler
+from .mixins.visualstudio import VisualStudioLikeCompiler
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -33,7 +34,6 @@ from .compilers import (
     IntelGnuLikeCompiler,
     IntelVisualStudioLikeCompiler,
     PGICompiler,
-    VisualStudioLikeCompiler,
 )
 
 
