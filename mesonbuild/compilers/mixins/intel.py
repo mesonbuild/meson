@@ -25,20 +25,27 @@ from ... import mesonlib
 from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
 
+if typing.TYPE_CHECKING:
+    import subprocess  # noqa: F401
+
+    from ..compilers import CompilerType
+
 # XXX: avoid circular dependencies
-clike_optimization_args = {'0': [],
-                           'g': [],
-                           '1': ['-O1'],
-                           '2': ['-O2'],
-                           '3': ['-O3'],
-                           's': ['-Os'],
-                           }
+# TODO: this belongs in a posix compiler class
+clike_optimization_args = {
+    '0': [],
+    'g': [],
+    '1': ['-O1'],
+    '2': ['-O2'],
+    '3': ['-O3'],
+    's': ['-Os'],
+}  # type: typing.Dict[str, typing.List[str]]
 
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1, 19.0.0
 class IntelGnuLikeCompiler(GnuLikeCompiler):
 
-    def __init__(self, compiler_type):
+    def __init__(self, compiler_type: 'CompilerType'):
         super().__init__(compiler_type)
         # As of 19.0.0 ICC doesn't have sanitizer, color, or lto support.
         #
@@ -50,17 +57,17 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         self.id = 'intel'
         self.lang_header = 'none'
 
-    def get_optimization_args(self, optimization_level):
+    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
         return clike_optimization_args[optimization_level]
 
     def get_pch_suffix(self) -> str:
         return 'pchi'
 
-    def get_pch_use_args(self, pch_dir, header):
+    def get_pch_use_args(self, pch_dir: str, header: str) -> typing.List[str]:
         return ['-pch', '-pch_dir', os.path.join(pch_dir), '-x',
                 self.lang_header, '-include', header, '-x', 'none']
 
-    def get_pch_name(self, header_name):
+    def get_pch_name(self, header_name: str) -> str:
         return os.path.basename(header_name) + '.' + self.get_pch_suffix()
 
     def openmp_flags(self) -> typing.List[str]:
@@ -69,7 +76,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         else:
             return ['-openmp']
 
-    def compiles(self, *args, **kwargs):
+    def compiles(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         # This covers a case that .get('foo', []) doesn't, that extra_args is
         # defined and is None
         extra_args = kwargs.get('extra_args') or []
@@ -85,10 +92,10 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         ]
         return super().compiles(*args, **kwargs)
 
-    def get_profile_generate_args(self):
+    def get_profile_generate_args(self) -> typing.List[str]:
         return ['-prof-gen=threadsafe']
 
-    def get_profile_use_args(self):
+    def get_profile_use_args(self) -> typing.List[str]:
         return ['-prof-use']
 
 
@@ -101,7 +108,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         self.compiler_type = CompilerType.ICC_WIN
         self.id = 'intel-cl'
 
-    def compile(self, code, *, extra_args=None, **kwargs):
+    def compile(self, code, *, extra_args: typing.Optional[typing.List[str]] = None, **kwargs) -> typing.Iterator['subprocess.Popen']:
         # This covers a case that .get('foo', []) doesn't, that extra_args is
         if kwargs.get('mode', 'compile') != 'link':
             extra_args = extra_args.copy() if extra_args is not None else []
@@ -127,8 +134,8 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         version = int(v1 + v2)
         return self._calculate_toolset_version(version)
 
-    def get_linker_exelist(self):
+    def get_linker_exelist(self) -> typing.List[str]:
         return ['xilink']
 
-    def openmp_flags(self):
+    def openmp_flags(self) -> typing.List[str]:
         return ['/Qopenmp']
