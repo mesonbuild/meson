@@ -18,7 +18,7 @@ import typing
 from .. import coredata
 from ..mesonlib import MachineChoice, MesonException, mlog, version_compare
 from .c_function_attributes import C_FUNC_ATTRIBUTES
-from .clike import CLikeCompiler
+from .mixins.clike import CLikeCompiler
 
 from .compilers import (
     gnu_winlibs,

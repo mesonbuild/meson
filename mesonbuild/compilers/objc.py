@@ -17,7 +17,7 @@ import typing
 
 from ..mesonlib import EnvironmentException, MachineChoice
 
-from .clike import CLikeCompiler
+from .mixins.clike import CLikeCompiler
 from .compilers import Compiler, ClangCompiler, GnuCompiler
 
 class ObjCCompiler(CLikeCompiler, Compiler):

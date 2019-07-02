@@ -30,7 +30,7 @@ from .compilers import (
     PGICompiler,
     IntelVisualStudioLikeCompiler,
 )
-from .clike import CLikeCompiler
+from .mixins.clike import CLikeCompiler
 from .. import mlog
 
 from mesonbuild.mesonlib import (
