@@ -32,12 +32,13 @@ from .compilers import (
     PGICompiler,
     ArmCompiler,
     ArmclangCompiler,
-    CcrxCompiler,
     Compiler,
     VisualStudioLikeCompiler,
 )
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
+from .mixins.ccrx import CcrxCompiler
+
 
 def non_msvc_eh_options(eh, args):
     if eh == 'none':

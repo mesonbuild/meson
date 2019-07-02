@@ -88,7 +88,6 @@ __all__ = [
     'PGIFortranCompiler',
     'RustCompiler',
     'CcrxCCompiler',
-    'CcrxCompiler',
     'CcrxCPPCompiler',
     'SunFortranCompiler',
     'SwiftCompiler',
@@ -124,7 +123,6 @@ from .compilers import (
     CompilerArgs,
     GnuCompiler,
     IntelGnuLikeCompiler,
-    CcrxCompiler,
     VisualStudioLikeCompiler,
     IntelVisualStudioLikeCompiler,
 )
