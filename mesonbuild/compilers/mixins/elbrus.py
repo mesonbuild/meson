@@ -15,15 +15,20 @@
 """Abstractions for the Elbrus family of compilers."""
 
 import os
+import typing
 
 from .gnu import GnuCompiler
 from ...mesonlib import Popen_safe
+
+if typing.TYPE_CHECKING:
+    from ..compilers import CompilerType
+    from ...environment import Environment
 
 
 class ElbrusCompiler(GnuCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
     # PCH, LTO, sanitizers and color output as of version 1.21.x.
-    def __init__(self, compiler_type, defines):
+    def __init__(self, compiler_type: 'CompilerType', defines: typing.Dict[str, str]):
         GnuCompiler.__init__(self, compiler_type, defines)
         self.id = 'lcc'
         self.base_options = ['b_pgo', 'b_coverage',
@@ -32,28 +37,24 @@ class ElbrusCompiler(GnuCompiler):
 
     # FIXME: use _build_wrapper to call this so that linker flags from the env
     # get applied
-    def get_library_dirs(self, env, elf_class = None):
+    def get_library_dirs(self, env: 'Environment', elf_class: typing.Optional[int] = None) -> typing.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
-        paths = ()
         for line in stdo.split('\n'):
             if line.startswith('libraries:'):
                 # lcc does not include '=' in --print-search-dirs output.
                 libstr = line.split(' ', 1)[1]
-                paths = (os.path.realpath(p) for p in libstr.split(':'))
-                break
-        return paths
+                return [os.path.realpath(p) for p in libstr.split(':')]
+        return []
 
-    def get_program_dirs(self, env):
+    def get_program_dirs(self, env: 'Environment') -> typing.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
-        paths = ()
         for line in stdo.split('\n'):
             if line.startswith('programs:'):
                 # lcc does not include '=' in --print-search-dirs output.
                 libstr = line.split(' ', 1)[1]
-                paths = (os.path.realpath(p) for p in libstr.split(':'))
-                break
-        return paths
+                return [os.path.realpath(p) for p in libstr.split(':')]
+        return []
