@@ -27,7 +27,6 @@ from ..mesonlib import (
 from ..envconfig import (
     Properties,
 )
-from .mixins.gnu import GnuCompiler
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
@@ -1342,42 +1341,3 @@ class PGICompiler:
 
     def get_always_args(self):
         return []
-
-
-class ElbrusCompiler(GnuCompiler):
-    # Elbrus compiler is nearly like GCC, but does not support
-    # PCH, LTO, sanitizers and color output as of version 1.21.x.
-    def __init__(self, compiler_type, defines):
-        GnuCompiler.__init__(self, compiler_type, defines)
-        self.id = 'lcc'
-        self.base_options = ['b_pgo', 'b_coverage',
-                             'b_ndebug', 'b_staticpic',
-                             'b_lundef', 'b_asneeded']
-
-    # FIXME: use _build_wrapper to call this so that linker flags from the env
-    # get applied
-    def get_library_dirs(self, env, elf_class = None):
-        os_env = os.environ.copy()
-        os_env['LC_ALL'] = 'C'
-        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
-        paths = ()
-        for line in stdo.split('\n'):
-            if line.startswith('libraries:'):
-                # lcc does not include '=' in --print-search-dirs output.
-                libstr = line.split(' ', 1)[1]
-                paths = (os.path.realpath(p) for p in libstr.split(':'))
-                break
-        return paths
-
-    def get_program_dirs(self, env):
-        os_env = os.environ.copy()
-        os_env['LC_ALL'] = 'C'
-        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
-        paths = ()
-        for line in stdo.split('\n'):
-            if line.startswith('programs:'):
-                # lcc does not include '=' in --print-search-dirs output.
-                libstr = line.split(' ', 1)[1]
-                paths = (os.path.realpath(p) for p in libstr.split(':'))
-                break
-        return paths
