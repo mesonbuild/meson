@@ -15,19 +15,26 @@
 """Abstractions for the LLVM/Clang compiler family."""
 
 import os
+import typing
 
 from .gnu import GnuLikeCompiler
 from ..compilers import clike_optimization_args
 from ... import mesonlib
 
-clang_color_args = {'auto': ['-Xclang', '-fcolor-diagnostics'],
-                    'always': ['-Xclang', '-fcolor-diagnostics'],
-                    'never': ['-Xclang', '-fno-color-diagnostics'],
-                    }
+if typing.TYPE_CHECKING:
+    from ..compilers import CompilerType
+    from ...environment import Environment
+    from ...dependencies import Dependency  # noqa: F401
+
+clang_color_args = {
+    'auto': ['-Xclang', '-fcolor-diagnostics'],
+    'always': ['-Xclang', '-fcolor-diagnostics'],
+    'never': ['-Xclang', '-fno-color-diagnostics'],
+}  # type: typing.Dict[str, typing.List[str]]
 
 
 class ClangCompiler(GnuLikeCompiler):
-    def __init__(self, compiler_type):
+    def __init__(self, compiler_type: 'CompilerType'):
         super().__init__(compiler_type)
         self.id = 'clang'
         self.base_options.append('b_colorout')
@@ -36,22 +43,22 @@ class ClangCompiler(GnuLikeCompiler):
         # All Clang backends can also do LLVM IR
         self.can_compile_suffixes.add('ll')
 
-    def get_colorout_args(self, colortype):
+    def get_colorout_args(self, colortype: str) -> typing.List[str]:
         return clang_color_args[colortype][:]
 
-    def get_optimization_args(self, optimization_level):
+    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
         return clike_optimization_args[optimization_level]
 
-    def get_pch_suffix(self):
+    def get_pch_suffix(self) -> str:
         return 'pch'
 
-    def get_pch_use_args(self, pch_dir, header):
+    def get_pch_use_args(self, pch_dir: str, header: str) -> typing.List[str]:
         # Workaround for Clang bug http://llvm.org/bugs/show_bug.cgi?id=15136
         # This flag is internal to Clang (or at least not documented on the man page)
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
-    def has_multi_arguments(self, args, env):
+    def has_multi_arguments(self, args: typing.List[str], env: 'Environment') -> typing.List[str]:
         myargs = ['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument']
         if mesonlib.version_compare(self.version, '>=3.6.0'):
             myargs.append('-Werror=ignored-optimization-argument')
@@ -59,7 +66,9 @@ class ClangCompiler(GnuLikeCompiler):
             myargs + args,
             env)
 
-    def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
+    def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
+                     extra_args: typing.Optional[typing.List[str]] = None,
+                     dependencies: typing.Optional[typing.List['Dependency']] = None) -> bool:
         if extra_args is None:
             extra_args = []
         # Starting with XCode 8, we need to pass this to force linker
@@ -71,7 +80,7 @@ class ClangCompiler(GnuLikeCompiler):
         return super().has_function(funcname, prefix, env, extra_args=extra_args,
                                     dependencies=dependencies)
 
-    def openmp_flags(self):
+    def openmp_flags(self) -> typing.List[str]:
         if mesonlib.version_compare(self.version, '>=3.8.0'):
             return ['-fopenmp']
         elif mesonlib.version_compare(self.version, '>=3.7.0'):
