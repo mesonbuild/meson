@@ -29,10 +29,10 @@ import subprocess
 import typing
 from pathlib import Path
 
-from .. import mesonlib
-from ..mesonlib import LibType
-from .. import mlog
-from . import compilers
+from ... import mesonlib
+from ...mesonlib import LibType
+from ... import mlog
+from .. import compilers
 
 class CLikeCompiler:
 

@@ -37,7 +37,7 @@ from .compilers import (
     VisualStudioLikeCompiler,
 )
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
-from .clike import CLikeCompiler
+from .mixins.clike import CLikeCompiler
 
 def non_msvc_eh_options(eh, args):
     if eh == 'none':
