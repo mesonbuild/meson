@@ -27,13 +27,12 @@ from .compilers import (
     ClangCompiler,
     ElbrusCompiler,
     PGICompiler,
-    ArmclangCompiler,
     Compiler,
 )
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
-from .mixins.arm import ArmCompiler
+from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import VisualStudioLikeCompiler
 from .mixins.gnu import GnuCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
