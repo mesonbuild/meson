@@ -434,8 +434,8 @@ class CLikeCompiler:
     def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False, disable_cache=False):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
         if disable_cache or want_output:
-            return self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.temp_dir)
-        return self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.temp_dir)
+            return self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir)
+        return self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.scratch_dir)
 
     def links(self, code, env, *, extra_args=None, dependencies=None, disable_cache=False):
         return self.compiles(code, env, extra_args=extra_args,
@@ -639,7 +639,7 @@ class CLikeCompiler:
                                              mode='preprocess').to_native()
         func = lambda: self.cached_compile(code.format(**fargs), env.coredata, extra_args=args, mode='preprocess')
         if disable_cache:
-            func = lambda: self.compile(code.format(**fargs), extra_args=args, mode='preprocess', temp_dir=env.temp_dir)
+            func = lambda: self.compile(code.format(**fargs), extra_args=args, mode='preprocess', temp_dir=env.scratch_dir)
         with func() as p:
             cached = p.cached
             if p.returncode != 0:
@@ -860,7 +860,7 @@ class CLikeCompiler:
         '''
         args = self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
-        with self.compile(code, extra_args=args, mode='compile', want_output=True, temp_dir=env.temp_dir) as p:
+        with self.compile(code, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir) as p:
             if p.returncode != 0:
                 m = 'BUG: Unable to compile {!r} check: {}'
                 raise RuntimeError(m.format(n, p.stdo))
