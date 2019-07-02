@@ -372,22 +372,16 @@ class Environment:
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
     info_dir = 'meson-info'
-    temp_dir = 'meson-temp'
 
     def __init__(self, source_dir, build_dir, options):
         self.source_dir = source_dir
         self.build_dir = build_dir
-<<<<<<< HEAD
-=======
-        self.temp_dir = None
->>>>>>> default to %TMP% if there's not build directory
         # Do not try to create build directories when build_dir is none.
         # This reduced mode is used by the --buildoptions introspector
         if build_dir is not None:
             self.scratch_dir = os.path.join(build_dir, Environment.private_dir)
             self.log_dir = os.path.join(build_dir, Environment.log_dir)
             self.info_dir = os.path.join(build_dir, Environment.info_dir)
-            self.temp_dir = os.path.join(build_dir, Environment.temp_dir)
             os.makedirs(self.scratch_dir, exist_ok=True)
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
