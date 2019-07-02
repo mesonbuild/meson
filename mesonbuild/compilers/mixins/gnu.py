@@ -319,7 +319,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
             stdo = p.stdo
         return stdo
 
-    def _split_fetch_real_dirs(self, pathstr: str) -> typing.Tuple[str, ...]:
+    def _split_fetch_real_dirs(self, pathstr: str) -> typing.List[str]:
         # We need to use the path separator used by the compiler for printing
         # lists of paths ("gcc --print-search-dirs"). By default
         # we assume it uses the platform native separator.
@@ -354,9 +354,9 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
                         result.append(resolved)
                 except FileNotFoundError:
                     pass
-        return tuple(result)
+        return result
 
-    def get_compiler_dirs(self, env: 'Environment', name: str) -> typing.Tuple[str, ...]:
+    def get_compiler_dirs(self, env: 'Environment', name: str) -> typing.List[str]:
         '''
         Get dirs from the compiler, either `libraries:` or `programs:`
         '''
@@ -364,7 +364,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         for line in stdo.split('\n'):
             if line.startswith(name + ':'):
                 return self._split_fetch_real_dirs(line.split('=', 1)[1])
-        return ()
+        return []
 
 
 class GnuCompiler(GnuLikeCompiler):

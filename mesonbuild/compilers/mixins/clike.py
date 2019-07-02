@@ -35,6 +35,10 @@ from ... import mlog
 from .. import compilers
 from .visualstudio import VisualStudioLikeCompiler
 
+if typing.TYPE_CHECKING:
+    from ...environment import Environment
+
+
 class CLikeCompiler:
 
     """Shared bits for the C and CPP Compilers."""
@@ -161,11 +165,11 @@ class CLikeCompiler:
     def get_std_shared_lib_link_args(self):
         return ['-shared']
 
-    def get_compiler_dirs(self, env, name):
+    def get_compiler_dirs(self, env: 'Environment', name: str) -> typing.List[str]:
         '''
         Get dirs from the compiler, either `libraries:` or `programs:`
         '''
-        return ()
+        return []
 
     @functools.lru_cache()
     def get_library_dirs(self, env, elf_class = None):

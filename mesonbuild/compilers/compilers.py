@@ -937,7 +937,7 @@ class Compiler:
         return ()
 
     def get_program_dirs(self, *args, **kwargs):
-        return ()
+        return []
 
     def has_multi_arguments(self, args, env) -> Tuple[bool, bool]:
         raise EnvironmentException(
