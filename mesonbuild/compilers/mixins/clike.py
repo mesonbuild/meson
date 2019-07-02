@@ -33,6 +33,7 @@ from ... import mesonlib
 from ...mesonlib import LibType
 from ... import mlog
 from .. import compilers
+from .visualstudio import VisualStudioLikeCompiler
 
 class CLikeCompiler:
 
@@ -872,7 +873,7 @@ class CLikeCompiler:
         # people depend on it. Also, some people use prebuilt `foo.so` instead
         # of `libfoo.so` for unknown reasons, and may also want to create
         # `foo.so` by setting name_prefix to ''
-        if strict and not isinstance(self, compilers.VisualStudioLikeCompiler): # lib prefix is not usually used with msvc
+        if strict and not isinstance(self, VisualStudioLikeCompiler): # lib prefix is not usually used with msvc
             prefixes = ['lib']
         else:
             prefixes = ['lib', '']
@@ -882,7 +883,7 @@ class CLikeCompiler:
         elif env.machines[self.for_machine].is_windows():
             # FIXME: .lib files can be import or static so we should read the
             # file, figure out which one it is, and reject the wrong kind.
-            if isinstance(self, compilers.VisualStudioLikeCompiler):
+            if isinstance(self, VisualStudioLikeCompiler):
                 shlibext = ['lib']
             else:
                 shlibext = ['dll.a', 'lib', 'dll']

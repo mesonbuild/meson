@@ -123,7 +123,6 @@ from .compilers import (
     CompilerArgs,
     GnuCompiler,
     IntelGnuLikeCompiler,
-    VisualStudioLikeCompiler,
     IntelVisualStudioLikeCompiler,
 )
 from .c import (
@@ -190,3 +189,4 @@ from .objcpp import (
 from .rust import RustCompiler
 from .swift import SwiftCompiler
 from .vala import ValaCompiler
+from .mixins.visualstudio import VisualStudioLikeCompiler
