@@ -24,7 +24,6 @@ from ..mesonlib import MesonException, MachineChoice, version_compare
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
-    ElbrusCompiler,
     PGICompiler,
     Compiler,
 )
@@ -36,6 +35,7 @@ from .mixins.visualstudio import VisualStudioLikeCompiler
 from .mixins.gnu import GnuCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
+from .mixins.elbrus import ElbrusCompiler
 
 
 def non_msvc_eh_options(eh, args):
