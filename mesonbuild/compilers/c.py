@@ -19,7 +19,7 @@ from .. import coredata
 from ..mesonlib import MachineChoice, MesonException, mlog, version_compare
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
-
+from .mixins.ccrx import CcrxCompiler
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -33,7 +33,6 @@ from .compilers import (
     IntelGnuLikeCompiler,
     IntelVisualStudioLikeCompiler,
     PGICompiler,
-    CcrxCompiler,
     VisualStudioLikeCompiler,
 )
 
