@@ -550,6 +550,7 @@ class CLikeCompiler:
         {prefix}
         int main(int argc, char **argv) {{
             {type} something;
+            return 0;
         }}'''
         if not self.compiles(t.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies)[0]:
