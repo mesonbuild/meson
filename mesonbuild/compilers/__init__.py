@@ -118,7 +118,6 @@ from .compilers import (
     lang_suffixes,
     sanitizer_compile_args,
     sort_clink,
-    ClangCompiler,
     CompilerArgs,
 )
 from .c import (
@@ -188,3 +187,4 @@ from .vala import ValaCompiler
 from .mixins.visualstudio import VisualStudioLikeCompiler
 from .mixins.gnu import GnuCompiler, get_macos_dylib_install_name
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
+from .mixins.clang import ClangCompiler

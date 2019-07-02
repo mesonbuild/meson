@@ -27,7 +27,7 @@ from ..mesonlib import (
 from ..envconfig import (
     Properties,
 )
-from .mixins.gnu import GnuCompiler, GnuLikeCompiler
+from .mixins.gnu import GnuCompiler
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
@@ -222,11 +222,6 @@ gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
 msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
                 'winspool.lib', 'shell32.lib', 'ole32.lib', 'oleaut32.lib',
                 'uuid.lib', 'comdlg32.lib', 'advapi32.lib']
-
-clang_color_args = {'auto': ['-Xclang', '-fcolor-diagnostics'],
-                    'always': ['-Xclang', '-fcolor-diagnostics'],
-                    'never': ['-Xclang', '-fno-color-diagnostics'],
-                    }
 
 clike_optimization_args = {'0': [],
                            'g': [],
@@ -1386,58 +1381,3 @@ class ElbrusCompiler(GnuCompiler):
                 paths = (os.path.realpath(p) for p in libstr.split(':'))
                 break
         return paths
-
-
-class ClangCompiler(GnuLikeCompiler):
-    def __init__(self, compiler_type):
-        super().__init__(compiler_type)
-        self.id = 'clang'
-        self.base_options.append('b_colorout')
-        if self.compiler_type.is_osx_compiler:
-            self.base_options.append('b_bitcode')
-        # All Clang backends can also do LLVM IR
-        self.can_compile_suffixes.add('ll')
-
-    def get_colorout_args(self, colortype):
-        return clang_color_args[colortype][:]
-
-    def get_optimization_args(self, optimization_level):
-        return clike_optimization_args[optimization_level]
-
-    def get_pch_suffix(self):
-        return 'pch'
-
-    def get_pch_use_args(self, pch_dir, header):
-        # Workaround for Clang bug http://llvm.org/bugs/show_bug.cgi?id=15136
-        # This flag is internal to Clang (or at least not documented on the man page)
-        # so it might change semantics at any time.
-        return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
-
-    def has_multi_arguments(self, args, env):
-        myargs = ['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument']
-        if mesonlib.version_compare(self.version, '>=3.6.0'):
-            myargs.append('-Werror=ignored-optimization-argument')
-        return super().has_multi_arguments(
-            myargs + args,
-            env)
-
-    def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
-        if extra_args is None:
-            extra_args = []
-        # Starting with XCode 8, we need to pass this to force linker
-        # visibility to obey OS X/iOS/tvOS minimum version targets with
-        # -mmacosx-version-min, -miphoneos-version-min, -mtvos-version-min etc.
-        # https://github.com/Homebrew/homebrew-core/issues/3727
-        if self.compiler_type.is_osx_compiler and version_compare(self.version, '>=8.0'):
-            extra_args.append('-Wl,-no_weak_imports')
-        return super().has_function(funcname, prefix, env, extra_args=extra_args,
-                                    dependencies=dependencies)
-
-    def openmp_flags(self):
-        if version_compare(self.version, '>=3.8.0'):
-            return ['-fopenmp']
-        elif version_compare(self.version, '>=3.7.0'):
-            return ['-fopenmp=libomp']
-        else:
-            # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
-            return []

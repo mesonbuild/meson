@@ -19,7 +19,8 @@ import re
 import typing
 
 from ... import mesonlib
-from ..compilers import clike_debug_args, clang_color_args
+from ..compilers import clike_debug_args
+from .clang import clang_color_args
 
 if typing.TYPE_CHECKING:
     from ..compilers import CompilerType

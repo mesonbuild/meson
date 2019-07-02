@@ -24,10 +24,10 @@ from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import VisualStudioLikeCompiler
 from .mixins.gnu import GnuCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
+from .mixins.clang import ClangCompiler
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
-    ClangCompiler,
     Compiler,
     CompilerType,
     ElbrusCompiler,
