@@ -23,6 +23,7 @@ from .mixins.ccrx import CcrxCompiler
 from .mixins.arm import ArmCompiler
 from .mixins.visualstudio import VisualStudioLikeCompiler
 from .mixins.gnu import GnuCompiler
+from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -31,8 +32,6 @@ from .compilers import (
     Compiler,
     CompilerType,
     ElbrusCompiler,
-    IntelGnuLikeCompiler,
-    IntelVisualStudioLikeCompiler,
     PGICompiler,
 )
 
