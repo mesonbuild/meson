@@ -18,8 +18,9 @@ import typing
 from ..mesonlib import EnvironmentException, MachineChoice
 
 from .mixins.clike import CLikeCompiler
-from .compilers import Compiler, ClangCompiler
+from .compilers import Compiler
 from .mixins.gnu import GnuCompiler
+from .mixins.clang import ClangCompiler
 
 class ObjCPPCompiler(CLikeCompiler, Compiler):
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool, exe_wrap: typing.Optional[str]):
