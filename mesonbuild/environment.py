@@ -385,7 +385,6 @@ class Environment:
             os.makedirs(self.scratch_dir, exist_ok=True)
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
-            os.makedirs(self.temp_dir, exist_ok=True)
             try:
                 self.coredata = coredata.load(self.get_build_dir())
                 self.first_invocation = False
