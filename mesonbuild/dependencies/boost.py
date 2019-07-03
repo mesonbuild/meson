@@ -149,6 +149,9 @@ class BoostDependency(ExternalDependency):
         if self.check_invalid_modules():
             return
 
+        # 4. final check whether or not we find all requested and valid modules
+        self.check_find_requested_modules()
+
     def check_invalid_modules(self):
         invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in self.lib_modules and 'boost_' + c not in BOOST_LIBS]
 
@@ -274,6 +277,7 @@ class BoostDependency(ExternalDependency):
             else:
                 self.detect_lib_modules_nix()
 
+    def check_find_requested_modules(self):
         # 3. Check if we can find the modules
         for m in self.requested_modules:
             if 'boost_' + m not in self.lib_modules:
