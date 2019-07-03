@@ -2205,6 +2205,10 @@ class RunTarget(Target):
     def type_suffix(self):
         return "@run"
 
+class AliasTarget(RunTarget):
+    def __init__(self, name, dependencies, subdir, subproject):
+        super().__init__(name, '', [], dependencies, subdir, subproject)
+
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
 

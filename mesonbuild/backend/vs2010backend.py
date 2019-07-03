@@ -516,7 +516,12 @@ class Vs2010Backend(backends.Backend):
 
     def gen_run_target_vcxproj(self, target, ofname, guid):
         root = self.create_basic_crap(target, guid)
-        cmd_raw = [target.command] + target.args
+        if not target.command:
+            # FIXME: This is an alias target that doesn't run any command, there
+            # is probably a better way than running a this dummy command.
+            cmd_raw = python_command + ['-c', 'exit']
+        else:
+            cmd_raw = [target.command] + target.args
         cmd = python_command + \
             [os.path.join(self.environment.get_script_dir(), 'commandrunner.py'),
              self.environment.get_build_dir(),
