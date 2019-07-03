@@ -160,61 +160,10 @@ class CLikeCompiler:
     def get_std_shared_lib_link_args(self):
         return ['-shared']
 
-    @functools.lru_cache()
-    def _get_search_dirs(self, env):
-        extra_args = ['--print-search-dirs']
-        stdo = None
-        with self._build_wrapper('', env, extra_args=extra_args,
-                                 dependencies=None, mode='compile',
-                                 want_output=True) as p:
-            stdo = p.stdo
-        return stdo
-
-    def _split_fetch_real_dirs(self, pathstr):
-        # We need to use the path separator used by the compiler for printing
-        # lists of paths ("gcc --print-search-dirs"). By default
-        # we assume it uses the platform native separator.
-        pathsep = os.pathsep
-
-        # clang uses ':' instead of ';' on Windows https://reviews.llvm.org/D61121
-        # so we need to repair things like 'C:\foo:C:\bar'
-        if pathsep == ';':
-            pathstr = re.sub(r':([^/\\])', r';\1', pathstr)
-
-        # pathlib treats empty paths as '.', so filter those out
-        paths = [p for p in pathstr.split(pathsep) if p]
-
-        result = []
-        for p in paths:
-            # GCC returns paths like this:
-            # /usr/lib/gcc/x86_64-linux-gnu/8/../../../../x86_64-linux-gnu/lib
-            # It would make sense to normalize them to get rid of the .. parts
-            # Sadly when you are on a merged /usr fs it also kills these:
-            # /lib/x86_64-linux-gnu
-            # since /lib is a symlink to /usr/lib. This would mean
-            # paths under /lib would be considered not a "system path",
-            # which is wrong and breaks things. Store everything, just to be sure.
-            pobj = Path(p)
-            unresolved = pobj.as_posix()
-            if pobj.exists():
-                if unresolved not in result:
-                    result.append(unresolved)
-                try:
-                    resolved = Path(p).resolve().as_posix()
-                    if resolved not in result:
-                        result.append(resolved)
-                except FileNotFoundError:
-                    pass
-        return tuple(result)
-
     def get_compiler_dirs(self, env, name):
         '''
         Get dirs from the compiler, either `libraries:` or `programs:`
         '''
-        stdo = self._get_search_dirs(env)
-        for line in stdo.split('\n'):
-            if line.startswith(name + ':'):
-                return self._split_fetch_real_dirs(line.split('=', 1)[1])
         return ()
 
     @functools.lru_cache()
