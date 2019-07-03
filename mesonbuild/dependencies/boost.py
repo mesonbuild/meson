@@ -146,8 +146,7 @@ class BoostDependency(ExternalDependency):
             mlog.debug('Boost library directory is', mlog.bold(self.libdir))
 
         # 3. check if requested modules are valid, that is, either found or in the list of known boost libraries
-        if self.check_invalid_modules():
-            return
+        self.check_invalid_modules()
 
         # 4. final check whether or not we find all requested and valid modules
         self.check_find_requested_modules()
