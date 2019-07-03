@@ -431,7 +431,12 @@ class CLikeCompiler:
         largs += la
 
         cargs += self.get_compiler_check_args()
-        # extra_args must override all other arguments, so we add them last
+
+        # on MSVC compiler and linker flags must be separated by the "/link" argument
+        # at this point, the '/link' argument may already be part of extra_args, otherwise, it is added here
+        if self.linker_to_compiler_args([]) == ['/link'] and not ('/link' in extra_args):
+            extra_args += ['/link']
+
         args = cargs + extra_args + largs
         return args
 
