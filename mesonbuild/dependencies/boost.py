@@ -134,9 +134,6 @@ class BoostDependency(ExternalDependency):
             else:
                 self.incdir = self.detect_nix_incdir()
 
-        if self.check_invalid_modules():
-            return
-
         mlog.debug('Boost library root dir is', mlog.bold(self.boost_root))
         mlog.debug('Boost include directory is', mlog.bold(self.incdir))
 
@@ -148,8 +145,12 @@ class BoostDependency(ExternalDependency):
             self.detect_lib_modules()
             mlog.debug('Boost library directory is', mlog.bold(self.libdir))
 
+        # 3. check if requested modules are valid, that is, either found or in the list of known boost libraries
+        if self.check_invalid_modules():
+            return
+
     def check_invalid_modules(self):
-        invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in BOOST_LIBS]
+        invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in self.lib_modules and 'boost_' + c not in BOOST_LIBS]
 
         # previous versions of meson allowed include dirs as modules
         remove = []
@@ -491,7 +492,6 @@ class BoostDependency(ExternalDependency):
     def get_sources(self):
         return []
 
-
 # Generated with boost_names.py
 BOOST_LIBS = [
     'boost_atomic',
@@ -547,10 +547,6 @@ BOOST_LIBS = [
     'boost_math_c99l',
     'boost_mpi',
     'boost_program_options',
-    'boost_python',
-    'boost_python3',
-    'boost_numpy',
-    'boost_numpy3',
     'boost_random',
     'boost_regex',
     'boost_serialization',
