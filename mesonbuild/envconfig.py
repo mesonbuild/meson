@@ -340,6 +340,10 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             command = os.environ.get(evar)
             if command is not None:
                 command = shlex.split(command)
+
+        # Do not return empty string entries
+        if command is not None and len(command) == 0:
+            return None
         return command
 
 class Directories:
