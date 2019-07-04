@@ -52,7 +52,7 @@ Like `add_global_arguments` but the arguments are passed to the linker.
 ### add_languages()
 
 ``` meson
-  add_languages(*langs*)
+  bool add_languages(*langs*)
 ```
 
 Add support for new programming languages. Equivalent to having them
@@ -63,6 +63,9 @@ languages that are only used on some platforms like this:
 project('foobar', 'c')
 if compiling_for_osx
   add_languages('objc')
+endif
+if add_languages('cpp')
+  executable('cpp-app', 'main.cpp')
 endif
 ```
 
