@@ -16,9 +16,9 @@
 
 import sys
 
-if sys.version_info < (3, 5, 0):
+if sys.version_info < (3, 5, 2):
     raise SystemExit('ERROR: Tried to install Meson with an unsupported Python version: \n{}'
-                     '\nMeson requires Python 3.5.0 or greater'.format(sys.version))
+                     '\nMeson requires Python 3.5.2 or greater'.format(sys.version))
 
 from mesonbuild.coredata import version
 from setuptools import setup
