@@ -40,10 +40,13 @@ def _windows_ansi() -> bool:
     # original behavior
     return bool(kernel.SetConsoleMode(stdout, mode.value | 0x4) or os.environ.get('ANSICON'))
 
-if platform.system().lower() == 'windows':
-    colorize_console = os.isatty(sys.stdout.fileno()) and _windows_ansi()  # type: bool
-else:
-    colorize_console = os.isatty(sys.stdout.fileno()) and os.environ.get('TERM') != 'dumb'
+try:
+    if platform.system().lower() == 'windows':
+        colorize_console = os.isatty(sys.stdout.fileno()) and _windows_ansi()  # type: bool
+    else:
+        colorize_console = os.isatty(sys.stdout.fileno()) and os.environ.get('TERM') != 'dumb'
+except Exception:
+    colorize_console = False
 log_dir = None               # type: Optional[str]
 log_file = None              # type: Optional[TextIO]
 log_fname = 'meson-log.txt'  # type: str
