@@ -23,7 +23,7 @@ from . import get_include_args
 from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreter import CustomTargetHolder
-from ..interpreterbase import permittedKwargs, FeatureNewKwargs
+from ..interpreterbase import permittedKwargs, FeatureNewKwargs, flatten
 from ..dependencies import ExternalProgram
 
 class ResourceCompilerType(enum.Enum):
@@ -78,7 +78,7 @@ class WindowsModule(ExtensionModule):
     @FeatureNewKwargs('windows.compile_resources', '0.47.0', ['depend_files', 'depends'])
     @permittedKwargs({'args', 'include_directories', 'depend_files', 'depends'})
     def compile_resources(self, state, args, kwargs):
-        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        extra_args = mesonlib.stringlistify(flatten(kwargs.get('args', [])))
         wrc_depend_files = extract_as_list(kwargs, 'depend_files', pop = True)
         wrc_depends = extract_as_list(kwargs, 'depends', pop = True)
         for d in wrc_depends:
