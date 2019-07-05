@@ -766,19 +766,14 @@ def _run_tests(all_tests, log_name_base, failfast, extra_args):
     ET.ElementTree(element=junit_root).write(xmlname, xml_declaration=True, encoding='UTF-8')
     return passing_tests, failing_tests, skipped_tests
 
-def check_file(fname):
-    linenum = 1
-    with open(fname, 'rb') as f:
-        lines = f.readlines()
+def check_file(file: Path):
+    lines = file.read_bytes().split(b'\n')
     tabdetector = re.compile(br' *\t')
-    for line in lines:
+    for i, line in enumerate(lines):
         if re.match(tabdetector, line):
-            print("File %s contains a tab indent on line %d. Only spaces are permitted." % (fname, linenum))
-            sys.exit(1)
-        if b'\r' in line:
-            print("File %s contains DOS line ending on line %d. Only unix-style line endings are permitted." % (fname, linenum))
-            sys.exit(1)
-        linenum += 1
+            raise SystemExit("File {} contains a tab indent on line {:d}. Only spaces are permitted.".format(file, i + 1))
+        if line.endswith(b'\r'):
+            raise SystemExit("File {} contains DOS line ending on line {:d}. Only unix-style line endings are permitted.".format(file, i + 1))
 
 def check_format():
     check_suffixes = {'.c',
@@ -800,20 +795,21 @@ def check_format():
                       '.build',
                       '.md',
                       }
-    for (root, _, files) in os.walk('.'):
+    for (root, _, filenames) in os.walk('.'):
         if '.dub' in root: # external deps are here
             continue
         if '.pytest_cache' in root:
             continue
         if 'meson-logs' in root or 'meson-private' in root:
             continue
-        for fname in files:
-            if os.path.splitext(fname)[1].lower() in check_suffixes:
-                bn = os.path.basename(fname)
-                if bn == 'sitemap.txt' or bn == 'meson-test-run.txt':
+        if '.eggs' in root or '_cache' in root:  # e.g. .mypy_cache
+            continue
+        for fname in filenames:
+            file = Path(fname)
+            if file.suffix.lower() in check_suffixes:
+                if file.name in ('sitemap.txt', 'meson-test-run.txt'):
                     continue
-                fullname = os.path.join(root, fname)
-                check_file(fullname)
+                check_file(root / file)
 
 def check_meson_commands_work():
     global backend, compile_commands, test_commands, install_commands
@@ -905,4 +901,4 @@ if __name__ == '__main__':
             tests = list(g)
             if len(tests) != 1:
                 print('WARNING: The %s suite contains duplicate "%s" tests: "%s"' % (name, k, '", "'.join(tests)))
-    sys.exit(failing_tests)
+    raise SystemExit(failing_tests)
