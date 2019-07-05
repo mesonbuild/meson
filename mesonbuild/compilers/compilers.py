@@ -1152,11 +1152,11 @@ class Compiler:
         return args
 
     @contextlib.contextmanager
-    def compile(self, code, extra_args=None, *, mode='link', want_output=False):
+    def compile(self, code, extra_args=None, *, mode='link', want_output=False, temp_dir=None):
         if extra_args is None:
             extra_args = []
         try:
-            with tempfile.TemporaryDirectory() as tmpdirname:
+            with tempfile.TemporaryDirectory(dir=temp_dir) as tmpdirname:
                 if isinstance(code, str):
                     srcname = os.path.join(tmpdirname,
                                            'testfile.' + self.default_suffix)
@@ -1201,7 +1201,7 @@ class Compiler:
             pass
 
     @contextlib.contextmanager
-    def cached_compile(self, code, cdata: coredata.CoreData, *, extra_args=None, mode: str = 'link'):
+    def cached_compile(self, code, cdata: coredata.CoreData, *, extra_args=None, mode: str = 'link', temp_dir=None):
         assert(isinstance(cdata, coredata.CoreData))
 
         # Calculate the key
@@ -1210,7 +1210,7 @@ class Compiler:
 
         # Check if not cached
         if key not in cdata.compiler_check_cache:
-            with self.compile(code, extra_args=extra_args, mode=mode, want_output=False) as p:
+            with self.compile(code, extra_args=extra_args, mode=mode, want_output=False, temp_dir=temp_dir) as p:
                 # Remove all attributes except the following
                 # This way the object can be serialized
                 tokeep = ['args', 'commands', 'input_name', 'output_name',
