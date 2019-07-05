@@ -909,7 +909,7 @@ class Environment:
                     return PathScaleFortranCompiler(compiler, version, for_machine, is_cross, exe_wrap, full_version=full_version)
 
                 if 'PGI Compilers' in out:
-                    if self.machine[for_machine].is_darwin():
+                    if self.machines[for_machine].is_darwin():
                         compiler_type = CompilerType.PGI_OSX
                     elif self.machines[for_machine].is_windows():
                         compiler_type = CompilerType.PGI_WIN
