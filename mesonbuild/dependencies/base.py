@@ -1357,7 +1357,11 @@ class CMakeDependency(ExternalDependency):
                 if 'RELEASE' in cfgs:
                     cfg = 'RELEASE'
 
-                if 'IMPORTED_LOCATION_{}'.format(cfg) in tgt.properies:
+                if 'IMPORTED_IMPLIB_{}'.format(cfg) in tgt.properies:
+                    libraries += tgt.properies['IMPORTED_IMPLIB_{}'.format(cfg)]
+                elif 'IMPORTED_IMPLIB' in tgt.properies:
+                    libraries += tgt.properies['IMPORTED_IMPLIB']
+                elif 'IMPORTED_LOCATION_{}'.format(cfg) in tgt.properies:
                     libraries += tgt.properies['IMPORTED_LOCATION_{}'.format(cfg)]
                 elif 'IMPORTED_LOCATION' in tgt.properies:
                     libraries += tgt.properies['IMPORTED_LOCATION']
