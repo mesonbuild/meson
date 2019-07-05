@@ -3055,9 +3055,10 @@ recommended as it is not supported on some platforms''')
         self.wipe()
 
         # c_args value should be parsed with shlex
-        self.init(testdir, extra_args=['-Dc_args=foo bar "one two"'])
+        self.init(testdir, extra_args=['-Dc_args=-Dfoo -Dbar "-Dthird=one two"'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.compiler_options.host['c_args'].value, ['foo', 'bar', 'one two'])
+        self.assertEqual(obj.compiler_options.host['c_args'].value, ['-Dfoo', '-Dbar', '-Dthird=one two'])
+
         self.setconf('-Dc_args="foo bar" one two')
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.compiler_options.host['c_args'].value, ['foo bar', 'one', 'two'])
@@ -3068,21 +3069,21 @@ recommended as it is not supported on some platforms''')
             self.init(testdir, extra_args=['--bindir=foo', '--bindir=bar',
                                            '-Dbuildtype=plain', '-Dbuildtype=release',
                                            '-Db_sanitize=address', '-Db_sanitize=thread',
-                                           '-Dc_args=foo', '-Dc_args=bar'])
+                                           '-Dc_args=-Dfoo', '-Dc_args=-Dbar'])
             obj = mesonbuild.coredata.load(self.builddir)
             self.assertEqual(obj.builtins['bindir'].value, 'bar')
             self.assertEqual(obj.builtins['buildtype'].value, 'release')
             self.assertEqual(obj.base_options['b_sanitize'].value, 'thread')
-            self.assertEqual(obj.compiler_options.host['c_args'].value, ['bar'])
+            self.assertEqual(obj.compiler_options.host['c_args'].value, ['-Dbar'])
             self.setconf(['--bindir=bar', '--bindir=foo',
                           '-Dbuildtype=release', '-Dbuildtype=plain',
                           '-Db_sanitize=thread', '-Db_sanitize=address',
-                          '-Dc_args=bar', '-Dc_args=foo'])
+                          '-Dc_args=-Dbar', '-Dc_args=-Dfoo'])
             obj = mesonbuild.coredata.load(self.builddir)
             self.assertEqual(obj.builtins['bindir'].value, 'foo')
             self.assertEqual(obj.builtins['buildtype'].value, 'plain')
             self.assertEqual(obj.base_options['b_sanitize'].value, 'address')
-            self.assertEqual(obj.compiler_options.host['c_args'].value, ['foo'])
+            self.assertEqual(obj.compiler_options.host['c_args'].value, ['-Dfoo'])
             self.wipe()
         except KeyError:
             # Ignore KeyError, it happens on CI for compilers that does not

@@ -384,18 +384,22 @@ class CLikeCompiler:
         # Select a CRT if needed since we're linking
         if mode == 'link':
             args += self.get_linker_debug_crt_args()
-        if mode in {'compile', 'preprocess'}:
-            # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
-            sys_args = env.coredata.get_external_args(self.for_machine, self.language)
-            # Apparently it is a thing to inject linker flags both
-            # via CFLAGS _and_ LDFLAGS, even though the former are
-            # also used during linking. These flags can break
-            # argument checks. Thanks, Autotools.
-            cleaned_sys_args = self.remove_linkerlike_args(sys_args)
-            args += cleaned_sys_args
-        elif mode == 'link':
+
+        # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
+        sys_args = env.coredata.get_external_args(self.for_machine, self.language)
+        # Apparently it is a thing to inject linker flags both
+        # via CFLAGS _and_ LDFLAGS, even though the former are
+        # also used during linking. These flags can break
+        # argument checks. Thanks, Autotools.
+        cleaned_sys_args = self.remove_linkerlike_args(sys_args)
+        args += cleaned_sys_args
+
+        if mode == 'link':
             # Add LDFLAGS from the env
-            args += env.coredata.get_external_link_args(self.for_machine, self.language)
+            sys_ld_args = env.coredata.get_external_link_args(self.for_machine, self.language)
+            # CFLAGS and CXXFLAGS go to both linking and compiling, but we want them
+            # to only appear on the command line once. Remove dupes.
+            args += [x for x in sys_ld_args if x not in sys_args]
 
         args += self.get_compiler_args_for_mode(mode)
         return args
@@ -431,11 +435,11 @@ class CLikeCompiler:
         with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
             return p.returncode == 0, p.cached
 
-    def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False, disable_cache=False):
+    def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False, disable_cache=False, temp_dir=None):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
         if disable_cache or want_output:
-            return self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir)
-        return self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.scratch_dir)
+            return self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=temp_dir)
+        return self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=temp_dir)
 
     def links(self, code, env, *, extra_args=None, dependencies=None, disable_cache=False):
         return self.compiles(code, env, extra_args=extra_args,
@@ -861,7 +865,7 @@ class CLikeCompiler:
         '''
         args = self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
-        with self.compile(code, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir) as p:
+        with self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir) as p:
             if p.returncode != 0:
                 m = 'BUG: Unable to compile {!r} check: {}'
                 raise RuntimeError(m.format(n, p.stdo))
