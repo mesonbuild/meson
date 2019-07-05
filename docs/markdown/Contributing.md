@@ -200,7 +200,7 @@ following:
   to avoid wasted effort
 
 Meson uses Flake8 for style guide enforcement. The Flake8 options for
-the project are contained in setup.cfg.
+the project are contained in .flake8.
 
 To run Flake8 on your local clone of Meson:
 
