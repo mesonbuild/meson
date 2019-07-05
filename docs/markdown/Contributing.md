@@ -304,3 +304,9 @@ line switches.
 - Prefer specific solutions to generic frameworks. Solve the end
   user's problems rather than providing them tools to do it
   themselves.
+
+- Never use features of the Unix shell (or Windows shell for that
+  matter). Doing things like forwaring output with `>` or invoking
+  multiple commands with `&&` are not permitted. Whenever these sorts
+  of requirements show up, write an internal Python script with the
+  desired functionality and use that instead.
