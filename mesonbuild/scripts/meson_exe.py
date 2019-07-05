@@ -78,6 +78,11 @@ def run_exe(exe):
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
+
+    if p.returncode == 3221225781:
+        # magic errorcode on Windows indicating a common problem that is otherwise hard to diagnose
+        raise FileNotFoundError('Missing DLLs on calling {!r}'.format(exe.name))
+
     if exe.capture and p.returncode == 0:
         with open(exe.capture, 'wb') as output:
             output.write(stdout)
