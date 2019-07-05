@@ -64,7 +64,7 @@ project('foobar', 'c')
 if compiling_for_osx
   add_languages('objc')
 endif
-if add_languages('cpp')
+if add_languages('cpp', required : false)
   executable('cpp-app', 'main.cpp')
 endif
 ```
