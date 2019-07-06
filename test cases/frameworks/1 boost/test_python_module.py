@@ -3,15 +3,20 @@ sys.path.append(sys.argv[1])
 
 # import compiled python module depending on version of python we are running with
 if sys.version_info[0] == 2:
-    import python2_module as pm
+    import python2_module
 
 if sys.version_info[0] == 3:
-    import python3_module as pm
+    import python3_module
 
 
 def run():
     msg = 'howdy'
-    w = pm.World()
+    if sys.version_info[0] == 2:
+        w = python2_module.World()
+
+    if sys.version_info[0] == 3:
+        w = python3_module.World()
+
     w.set(msg)
 
     assert(msg == w.greet())
