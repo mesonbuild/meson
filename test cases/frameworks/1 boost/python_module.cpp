@@ -1,6 +1,14 @@
 #define PY_SSIZE_T_CLEAN
+#ifdef _DEBUG
+#undef _DEBUG
 #include <Python.h>
 #include <boost/python.hpp>
+#define _DEBUG
+#else
+#include <Python.h>
+#include <boost/python.hpp>
+#endif
+
 
 struct World
 {
