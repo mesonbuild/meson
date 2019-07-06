@@ -40,6 +40,10 @@ if(python2dep.found())
     # if we have an older version of boost, we need to use the old module names
     bpython2dep = dependency('boost', modules : ['python'])
   endif
+
+  if not (bpython2dep.found())
+    bpython2dep = disabler()
+  endif
 else
   python2dep = disabler()
   bpython2dep = disabler()
@@ -50,7 +54,11 @@ if(python3dep.found())
     py3version_string = ''.join(python3dep.version().split('.'))
     bpython3dep = dependency('boost', modules : ['python' + py3version_string])
   else
-    bpython3dep = dependency('boost', modules : ['python3'])
+    bpython3dep = dependency('boost', modules : ['python3'], required: false)
+  endif
+
+  if not (bpython3dep.found())
+    bpython3dep = disabler()
   endif
 else
   python3dep = disabler()
@@ -74,9 +82,12 @@ test('Boost nomod', nomodexe)
 test('Boost extralib test', extralibexe)
 
 # explicitly use the correct python interpreter so that we don't have to provide two different python scripts that have different shebang lines
-python2interpreter = find_program('python2', required: false)
+pymod = import('python')
+python2 = pymod.find_installation('python2', required: false, disabler: true)
+python2interpreter = find_program(python2.path(), required: false, disabler: true)
 test('Boost Python2', python2interpreter, args: ['./test_python_module.py', meson.current_build_dir()], workdir: meson.current_source_dir(), depends: python2module)
-python3interpreter = find_program('python3', required: false)
+python3 = pymod.find_installation('python3', required: false, disabler: true)
+python3interpreter = find_program(python3.path(), required: false, disabler: true)
 test('Boost Python3', python3interpreter, args: ['./test_python_module.py', meson.current_build_dir()], workdir: meson.current_source_dir(), depends: python2module)
 
 subdir('partial_dep')
