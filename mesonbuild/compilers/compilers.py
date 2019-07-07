@@ -16,6 +16,7 @@ import abc, contextlib, enum, os.path, re, tempfile, shlex
 import functools
 import subprocess
 from typing import List, Optional, Tuple
+from pathlib import Path
 
 from ..linkers import StaticLinker
 from .. import coredata
