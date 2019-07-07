@@ -433,6 +433,7 @@ class CoreData:
             self.builtins['libdir'].value = 'lib'
 
     def sanitize_prefix(self, prefix):
+        prefix = os.path.expanduser(prefix)
         if not os.path.isabs(prefix):
             raise MesonException('prefix value {!r} must be an absolute path'
                                  ''.format(prefix))
