@@ -39,10 +39,10 @@ if(python2dep.found())
     # on the installed version of python (and hope that they match the version boost
     # was compiled against)
     py2version_string = ''.join(python2dep.version().split('.'))
-    bpython2dep = dependency('boost', modules : ['python' + py2version_string], required: false)
+    bpython2dep = dependency('boost', modules : ['python' + py2version_string], required: host_machine.system() == 'linux')
   else
     # if we have an older version of boost, we need to use the old module names
-    bpython2dep = dependency('boost', modules : ['python'], required: false)
+    bpython2dep = dependency('boost', modules : ['python'], required: host_machine.system() == 'linux')
   endif
 
   if not (bpython2dep.found())
@@ -56,9 +56,9 @@ endif
 if(python3dep.found())
   if(dep.version().version_compare('>=1.67'))
     py3version_string = ''.join(python3dep.version().split('.'))
-    bpython3dep = dependency('boost', modules : ['python' + py3version_string], required: false)
+    bpython3dep = dependency('boost', modules : ['python' + py3version_string], required: host_machine.system() == 'linux')
   else
-    bpython3dep = dependency('boost', modules : ['python3'], required: false)
+    bpython3dep = dependency('boost', modules : ['python3'], required: host_machine.system() == 'linux')
   endif
 
   if not (bpython3dep.found())
