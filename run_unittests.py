@@ -1221,7 +1221,7 @@ class BasePlatformTests(unittest.TestCase):
         os.environ.update(self.orig_env)
         super().tearDown()
 
-    def _run(self, command, workdir=None):
+    def _run(self, command, *, workdir=None):
         '''
         Run a command while printing the stdout and stderr to stdout,
         and also return a copy of it
@@ -1239,7 +1239,7 @@ class BasePlatformTests(unittest.TestCase):
             raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
         return p.stdout
 
-    def init(self, srcdir, extra_args=None, default_args=True, inprocess=False):
+    def init(self, srcdir, *, extra_args=None, default_args=True, inprocess=False):
         self.assertPathExists(srcdir)
         if extra_args is None:
             extra_args = []
@@ -1282,7 +1282,7 @@ class BasePlatformTests(unittest.TestCase):
                 raise
         return out
 
-    def build(self, target=None, extra_args=None):
+    def build(self, target=None, *, extra_args=None):
         if extra_args is None:
             extra_args = []
         # Add arguments for building the target (if specified),
@@ -1294,7 +1294,7 @@ class BasePlatformTests(unittest.TestCase):
         dir_args = get_builddir_target_args(self.backend, self.builddir, None)
         self._run(self.clean_command + dir_args, workdir=self.builddir)
 
-    def run_tests(self, inprocess=False):
+    def run_tests(self, *, inprocess=False):
         if not inprocess:
             self._run(self.test_command, workdir=self.builddir)
         else:
@@ -1498,7 +1498,7 @@ class AllPlatformTests(BasePlatformTests):
                       # This can just be a relative path, but we want to test
                       # that passing this as an absolute path also works
                       '--libdir=' + prefix + '/' + libdir]
-        self.init(testdir, extra_args, default_args=False)
+        self.init(testdir, extra_args=extra_args, default_args=False)
         opts = self.introspect('--buildoptions')
         for opt in opts:
             if opt['name'] == 'prefix':
@@ -1514,11 +1514,11 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         # libdir being inside prefix is ok
         args = ['--prefix', '/opt', '--libdir', '/opt/lib32']
-        self.init(testdir, args)
+        self.init(testdir, extra_args=args)
         self.wipe()
         # libdir not being inside prefix is not ok
         args = ['--prefix', '/usr', '--libdir', '/opt/lib32']
-        self.assertRaises(subprocess.CalledProcessError, self.init, testdir, args)
+        self.assertRaises(subprocess.CalledProcessError, self.init, testdir, extra_args=args)
         self.wipe()
         # libdir must be inside prefix even when set via mesonconf
         self.init(testdir)
@@ -1558,7 +1558,7 @@ class AllPlatformTests(BasePlatformTests):
         }
         for prefix in expected:
             args = ['--prefix', prefix]
-            self.init(testdir, args, default_args=False)
+            self.init(testdir, extra_args=args, default_args=False)
             opts = self.introspect('--buildoptions')
             for opt in opts:
                 name = opt['name']
@@ -1597,7 +1597,7 @@ class AllPlatformTests(BasePlatformTests):
              'sharedstatedir': '/var/state'},
         }
         for args in expected:
-            self.init(testdir, args.split(), default_args=False)
+            self.init(testdir, extra_args=args.split(), default_args=False)
             opts = self.introspect('--buildoptions')
             for opt in opts:
                 name = opt['name']
@@ -1755,7 +1755,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_forcefallback(self):
         testdir = os.path.join(self.unit_test_dir, '31 forcefallback')
-        self.init(testdir, ['--wrap-mode=forcefallback'])
+        self.init(testdir, extra_args=['--wrap-mode=forcefallback'])
         self.build()
         self.run_tests()
 
@@ -2189,7 +2189,7 @@ class AllPlatformTests(BasePlatformTests):
         for env_var in ['CPPFLAGS', 'CFLAGS']:
             os.environ[env_var] = '-D{}="{}"'.format(define, value)
             os.environ['LDFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
-            self.init(testdir, ['-D{}={}'.format(define, value)])
+            self.init(testdir, extra_args=['-D{}={}'.format(define, value)])
 
     def test_custom_target_exe_data_deterministic(self):
         testdir = os.path.join(self.common_test_dir, '114 custom target capture')
@@ -2783,12 +2783,12 @@ int main(int argc, char **argv) {
             name = os.path.basename(f.name)
 
             with mock.patch.dict(os.environ, {'XDG_DATA_HOME': d}):
-                self.init(testdir, ['--cross-file=' + name], inprocess=True)
+                self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
                 self.wipe()
 
             with mock.patch.dict(os.environ, {'XDG_DATA_DIRS': d}):
                 os.environ.pop('XDG_DATA_HOME', None)
-                self.init(testdir, ['--cross-file=' + name], inprocess=True)
+                self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
                 self.wipe()
 
         with tempfile.TemporaryDirectory() as d:
@@ -2804,7 +2804,7 @@ int main(int argc, char **argv) {
             with mock.patch.dict(os.environ):
                 os.environ.pop('XDG_DATA_HOME', None)
                 with mock.patch('mesonbuild.coredata.os.path.expanduser', lambda x: x.replace('~', d)):
-                    self.init(testdir, ['--cross-file=' + name], inprocess=True)
+                    self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
                     self.wipe()
 
     def test_compiler_run_command(self):
@@ -4392,7 +4392,7 @@ class LinuxlikeTests(BasePlatformTests):
         qt4 = subprocess.call(['pkg-config', '--exists', 'QtCore'])
         qt5 = subprocess.call(['pkg-config', '--exists', 'Qt5Core'])
         testdir = os.path.join(self.framework_test_dir, '4 qt')
-        self.init(testdir, ['-Dmethod=pkg-config'])
+        self.init(testdir, extra_args=['-Dmethod=pkg-config'])
         # Confirm that the dependency was found with pkg-config
         mesonlog = self.get_meson_log()
         if qt4 == 0:
@@ -4410,7 +4410,7 @@ class LinuxlikeTests(BasePlatformTests):
             raise unittest.SkipTest('-fsanitize=address is not supported on OpenBSD')
 
         testdir = os.path.join(self.framework_test_dir, '7 gnome')
-        self.init(testdir, ['-Db_sanitize=address', '-Db_lundef=false'])
+        self.init(testdir, extra_args=['-Db_sanitize=address', '-Db_lundef=false'])
         self.build()
 
     def test_qt5dependency_qmake_detection(self):
@@ -4427,7 +4427,7 @@ class LinuxlikeTests(BasePlatformTests):
                 raise unittest.SkipTest('Qmake found, but it is not for Qt 5.')
         # Disable pkg-config codepath and force searching with qmake/qmake-qt5
         testdir = os.path.join(self.framework_test_dir, '4 qt')
-        self.init(testdir, ['-Dmethod=qmake'])
+        self.init(testdir, extra_args=['-Dmethod=qmake'])
         # Confirm that the dependency was found with qmake
         mesonlog = self.get_meson_log()
         self.assertRegex('\n'.join(mesonlog),
@@ -4522,7 +4522,7 @@ class LinuxlikeTests(BasePlatformTests):
             if (compiler.get_id() == 'gcc' and '2a' in v and version_compare(compiler.version, '<8.0.0')):
                 continue
             std_opt = '{}={}'.format(lang_std, v)
-            self.init(testdir, ['-D' + std_opt])
+            self.init(testdir, extra_args=['-D' + std_opt])
             cmd = self.get_compdb()[0]['command']
             # c++03 and gnu++03 are not understood by ICC, don't try to look for them
             skiplist = frozenset([
@@ -4875,7 +4875,7 @@ class LinuxlikeTests(BasePlatformTests):
             raise unittest.SkipTest('-fsanitize=address is not supported on OpenBSD')
 
         testdir = os.path.join(self.common_test_dir, '13 pch')
-        self.init(testdir, ['-Db_sanitize=address'])
+        self.init(testdir, extra_args=['-Db_sanitize=address'])
         self.build()
         compdb = self.get_compdb()
         for i in compdb:
@@ -4891,7 +4891,7 @@ class LinuxlikeTests(BasePlatformTests):
             # We need to use llvm-cov instead of gcovr with clang
             raise unittest.SkipTest('Coverage does not work with clang right now, help wanted!')
         testdir = os.path.join(self.common_test_dir, '1 trivial')
-        self.init(testdir, ['-Db_coverage=true'])
+        self.init(testdir, extra_args=['-Db_coverage=true'])
         self.build()
         self.run_tests()
         self.run_target('coverage-html')
@@ -4921,7 +4921,7 @@ endian = 'little'
 
     def test_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '13 reconfigure')
-        self.init(testdir, ['-Db_coverage=true'], default_args=False)
+        self.init(testdir, extra_args=['-Db_coverage=true'], default_args=False)
         self.build('reconfigure')
 
     def test_vala_generated_source_buildir_inside_source_tree(self):
@@ -4967,7 +4967,7 @@ endian = 'little'
                            stderr=subprocess.DEVNULL) != 0:
             raise unittest.SkipTest('Glib 2.0 dependency not available.')
         with tempfile.TemporaryDirectory() as tempdirname:
-            self.init(testdir1, ['--prefix=' + tempdirname, '--libdir=lib'], default_args=False)
+            self.init(testdir1, extra_args=['--prefix=' + tempdirname, '--libdir=lib'], default_args=False)
             self.install(use_destdir=False)
             shutil.rmtree(self.builddir)
             os.mkdir(self.builddir)
@@ -5390,7 +5390,7 @@ class PythonTests(BasePlatformTests):
         # will also try 'python' as a fallback and use it if the major
         # version matches
         try:
-            self.init(testdir, ['-Dpython=python2'])
+            self.init(testdir, extra_args=['-Dpython=python2'])
             self.build()
             self.run_tests()
         except unittest.SkipTest:
@@ -5406,7 +5406,7 @@ class PythonTests(BasePlatformTests):
 
         for py in ('pypy', 'pypy3'):
             try:
-                self.init(testdir, ['-Dpython=%s' % py])
+                self.init(testdir, extra_args=['-Dpython=%s' % py])
             except unittest.SkipTest:
                 # Same as above, pypy2 and pypy3 are not expected to be present
                 # on the test system, the test project only raises in these cases
@@ -5420,13 +5420,13 @@ class PythonTests(BasePlatformTests):
         # The test is configured to error out with MESON_SKIP_TEST
         # in case it could not find python
         with self.assertRaises(unittest.SkipTest):
-            self.init(testdir, ['-Dpython=not-python'])
+            self.init(testdir, extra_args=['-Dpython=not-python'])
         self.wipe()
 
         # While dir is an external command on both Windows and Linux,
         # it certainly isn't python
         with self.assertRaises(unittest.SkipTest):
-            self.init(testdir, ['-Dpython=dir'])
+            self.init(testdir, extra_args=['-Dpython=dir'])
         self.wipe()
 
 
