@@ -14,7 +14,6 @@
 
 """A library of random helper functionality."""
 from pathlib import Path
-from typing import List
 import sys
 import stat
 import time
@@ -259,7 +258,7 @@ class File:
     def endswith(self, ending: str) -> bool:
         return self.fname.endswith(ending)
 
-    def split(self, s: str) -> List[str]:
+    def split(self, s: str) -> typing.List[str]:
         return self.fname.split(s)
 
     def __eq__(self, other) -> bool:
@@ -463,7 +462,7 @@ def is_dragonflybsd() -> bool:
 def is_freebsd() -> bool:
     return platform.system().lower() == 'freebsd'
 
-def exe_exists(arglist: List[str]) -> bool:
+def exe_exists(arglist: typing.List[str]) -> bool:
     try:
         if subprocess.run(arglist, timeout=10).returncode == 0:
             return True
@@ -574,7 +573,7 @@ class Version:
         # otherwise, the version with a suffix remaining is greater
         return comparator(len(self._v), len(other._v))
 
-def _version_extract_cmpop(vstr2: str) -> tuple:
+def _version_extract_cmpop(vstr2: str) -> typing.Tuple[typing.Callable[[typing.Any, typing.Any], bool], str]:
     if vstr2.startswith('>='):
         cmpop = operator.ge
         vstr2 = vstr2[2:]
@@ -619,7 +618,7 @@ def version_compare_many(vstr1, conditions):
 
 # determine if the minimum version satisfying the condition |condition| exceeds
 # the minimum version for a feature |minimum|
-def version_compare_condition_with_min(condition, minimum) -> bool:
+def version_compare_condition_with_min(condition: str, minimum: str) -> bool:
     if condition.startswith('>='):
         cmpop = operator.le
         condition = condition[2:]
@@ -682,7 +681,7 @@ def default_libexecdir():
 def default_prefix():
     return 'c:/' if is_windows() else '/usr/local'
 
-def get_library_dirs() -> List[str]:
+def get_library_dirs() -> typing.List[str]:
     if is_windows():
         return ['C:/mingw/lib'] # TODO: get programatically
     if is_osx():
