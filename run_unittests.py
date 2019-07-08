@@ -1221,7 +1221,7 @@ class BasePlatformTests(unittest.TestCase):
         os.environ.update(self.orig_env)
         super().tearDown()
 
-    def _run(self, command, *, workdir=None):
+    def _run(self, command, *, workdir=None, override_envvars=None):
         '''
         Run a command while printing the stdout and stderr to stdout,
         and also return a copy of it
@@ -1229,8 +1229,14 @@ class BasePlatformTests(unittest.TestCase):
         # If this call hangs CI will just abort. It is very hard to distinguish
         # between CI issue and test bug in that case. Set timeout and fail loud
         # instead.
+        if override_envvars is None:
+            env = None
+        else:
+            env = os.environ.copy()
+            env.update(override_envvars)
+
         p = subprocess.run(command, stdout=subprocess.PIPE,
-                           stderr=subprocess.STDOUT, env=os.environ.copy(),
+                           stderr=subprocess.STDOUT, env=env,
                            universal_newlines=True, cwd=workdir, timeout=60 * 5)
         print(p.stdout)
         if p.returncode != 0:
@@ -1239,7 +1245,11 @@ class BasePlatformTests(unittest.TestCase):
             raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
         return p.stdout
 
-    def init(self, srcdir, *, extra_args=None, default_args=True, inprocess=False):
+    def init(self, srcdir, *,
+             extra_args=None,
+             default_args=True,
+             inprocess=False,
+             override_envvars=None):
         self.assertPathExists(srcdir)
         if extra_args is None:
             extra_args = []
@@ -1254,7 +1264,13 @@ class BasePlatformTests(unittest.TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
+                if override_envvars is not None:
+                    old_envvars = os.environ.copy()
+                    os.environ.update(override_envvars)
                 (returncode, out, err) = run_configure_inprocess(self.meson_args + args + extra_args)
+                if override_envvars is not None:
+                    os.environ.clear()
+                    os.environ.update(old_envvars)
                 if 'MESON_SKIP_TEST' in out:
                     raise unittest.SkipTest('Project requested skipping.')
                 if returncode != 0:
@@ -1274,7 +1290,7 @@ class BasePlatformTests(unittest.TestCase):
                 mesonbuild.mlog.log_file = None
         else:
             try:
-                out = self._run(self.setup_command + args + extra_args)
+                out = self._run(self.setup_command + args + extra_args, override_envvars=override_envvars)
             except unittest.SkipTest:
                 raise unittest.SkipTest('Project requested skipping: ' + srcdir)
             except Exception:
@@ -1282,40 +1298,46 @@ class BasePlatformTests(unittest.TestCase):
                 raise
         return out
 
-    def build(self, target=None, *, extra_args=None):
+    def build(self, target=None, *, extra_args=None, override_envvars=None):
         if extra_args is None:
             extra_args = []
         # Add arguments for building the target (if specified),
         # and using the build dir (if required, with VS)
         args = get_builddir_target_args(self.backend, self.builddir, target)
-        return self._run(self.build_command + args + extra_args, workdir=self.builddir)
+        return self._run(self.build_command + args + extra_args, workdir=self.builddir, override_envvars=override_envvars)
 
-    def clean(self):
+    def clean(self, *, override_envvars=None):
         dir_args = get_builddir_target_args(self.backend, self.builddir, None)
-        self._run(self.clean_command + dir_args, workdir=self.builddir)
+        self._run(self.clean_command + dir_args, workdir=self.builddir, override_envvars=override_envvars)
 
-    def run_tests(self, *, inprocess=False):
+    def run_tests(self, *, inprocess=False, override_envvars=None):
         if not inprocess:
-            self._run(self.test_command, workdir=self.builddir)
+            self._run(self.test_command, workdir=self.builddir, override_envvars=override_envvars)
         else:
+            if override_envvars is not None:
+                raise RuntimeError('Can not combine inprocess and override_envvars.')
             run_mtest_inprocess(['-C', self.builddir])
 
-    def install(self, *, use_destdir=True):
+    def install(self, *, use_destdir=True, override_envvars=None):
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
         if use_destdir:
-            os.environ['DESTDIR'] = self.installdir
-        self._run(self.install_command, workdir=self.builddir)
+            destdir = {'DESTDIR': self.installdir}
+            if override_envvars is None:
+                override_envvars = destdir
+            else:
+                override_envvars.update(destdir)
+        self._run(self.install_command, workdir=self.builddir, override_envvars=override_envvars)
 
-    def uninstall(self):
-        self._run(self.uninstall_command, workdir=self.builddir)
+    def uninstall(self, *, override_envvars=None):
+        self._run(self.uninstall_command, workdir=self.builddir, override_envvars=override_envvars)
 
-    def run_target(self, target):
+    def run_target(self, target, *, override_envvars=None):
         '''
         Run a Ninja target while printing the stdout and stderr to stdout,
         and also return a copy of it
         '''
-        return self.build(target=target)
+        return self.build(target=target, override_envvars=override_envvars)
 
     def setconf(self, arg, will_build=True):
         if not isinstance(arg, list):
@@ -2187,9 +2209,10 @@ class AllPlatformTests(BasePlatformTests):
         # !, ^, *, and < confuse lcc preprocessor
         value = 'spaces and fun@$&()-=_+{}[]:;>?,./~`'
         for env_var in ['CPPFLAGS', 'CFLAGS']:
-            os.environ[env_var] = '-D{}="{}"'.format(define, value)
-            os.environ['LDFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
-            self.init(testdir, extra_args=['-D{}={}'.format(define, value)])
+            env = {}
+            env[env_var] = '-D{}="{}"'.format(define, value)
+            env['LDFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
+            self.init(testdir, extra_args=['-D{}={}'.format(define, value)], override_envvars=env)
 
     def test_custom_target_exe_data_deterministic(self):
         testdir = os.path.join(self.common_test_dir, '114 custom target capture')
@@ -2542,9 +2565,8 @@ int main(int argc, char **argv) {
         self.build_static_lib(cc, stlinker, source, objectfile, stlibfile, extra_args=['-DFOO_STATIC'])
         self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
         # Run test
-        os.environ['PKG_CONFIG_LIBDIR'] = self.builddir
         try:
-            self.init(testdir)
+            self.init(testdir, override_envvars={'PKG_CONFIG_LIBDIR': self.builddir})
             self.build()
             self.run_tests()
         finally:
@@ -2899,9 +2921,8 @@ recommended as it is not supported on some platforms''')
         # build user of library
         self.new_builddir()
         # replace is needed because meson mangles platform pathes passed via LDFLAGS
-        os.environ["LDFLAGS"] = '-L{}'.format(libdir.replace('\\', '/'))
-        self.init(os.path.join(testdirbase, 'exe'))
-        del os.environ["LDFLAGS"]
+        self.init(os.path.join(testdirbase, 'exe'),
+                  override_envvars={"LDFLAGS": '-L{}'.format(libdir.replace('\\', '/'))})
         self.build()
         self.assertBuildIsNoop()
 
@@ -3230,11 +3251,11 @@ recommended as it is not supported on some platforms''')
             crossfile.flush()
             self.meson_cross_file = crossfile.name
 
-        os.environ['PKG_CONFIG_LIBDIR'] = os.path.join(testdir,
-                                                       'native_pkgconfig')
-        self.init(testdir, extra_args=['-Dstart_native=false'])
+        env = {'PKG_CONFIG_LIBDIR':  os.path.join(testdir,
+                                                  'native_pkgconfig')}
+        self.init(testdir, extra_args=['-Dstart_native=false'], override_envvars=env)
         self.wipe()
-        self.init(testdir, extra_args=['-Dstart_native=true'])
+        self.init(testdir, extra_args=['-Dstart_native=true'], override_envvars=env)
 
     def __reconfigure(self, change_minor=False):
         # Set an older version to force a reconfigure from scratch
@@ -3741,7 +3762,12 @@ class FailureTests(BasePlatformTests):
         super().tearDown()
         windows_proof_rmtree(self.srcdir)
 
-    def assertMesonRaises(self, contents, match, extra_args=None, langs=None, meson_version=None, options=None):
+    def assertMesonRaises(self, contents, match, *,
+                          extra_args=None,
+                          langs=None,
+                          meson_version=None,
+                          options=None,
+                          override_envvars=None):
         '''
         Assert that running meson configure on the specified @contents raises
         a error message matching regex @match.
@@ -3759,11 +3785,17 @@ class FailureTests(BasePlatformTests):
         if options is not None:
             with open(self.moptions, 'w') as f:
                 f.write(options)
+        o = {'MESON_FORCE_BACKTRACE': '1'}
+        if override_envvars is None:
+            override_envvars = o
+        else:
+            override_envvars.update(o)
         # Force tracebacks so we can detect them properly
-        os.environ['MESON_FORCE_BACKTRACE'] = '1'
         with self.assertRaisesRegex(MesonException, match, msg=contents):
             # Must run in-process or we'll get a generic CalledProcessError
-            self.init(self.srcdir, extra_args=extra_args, inprocess=True)
+            self.init(self.srcdir, extra_args=extra_args,
+                      inprocess=True,
+                      override_envvars = override_envvars)
 
     def obtainMesonOutput(self, contents, match, extra_args, langs, meson_version=None):
         if langs is None:
@@ -3873,9 +3905,9 @@ class FailureTests(BasePlatformTests):
 
     def test_boost_BOOST_ROOT_dependency(self):
         # Test BOOST_ROOT; can be run even if Boost is found or not
-        os.environ['BOOST_ROOT'] = 'relative/path'
         self.assertMesonRaises("dependency('boost')",
-                               "(BOOST_ROOT.*absolute|{})".format(self.dnf))
+                               "(BOOST_ROOT.*absolute|{})".format(self.dnf),
+                               override_envvars = {'BOOST_ROOT': 'relative/path'})
 
     def test_dependency_invalid_method(self):
         code = '''zlib_dep = dependency('zlib', required : false)
@@ -3934,9 +3966,8 @@ class FailureTests(BasePlatformTests):
         Test exit status on python exception
         '''
         tdir = os.path.join(self.unit_test_dir, '21 exit status')
-        os.environ['MESON_UNIT_TEST'] = '1'
         with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.init(tdir, inprocess=False)
+            self.init(tdir, inprocess=False, override_envvars = {'MESON_UNIT_TEST': '1'})
         self.assertEqual(cm.exception.returncode, 2)
         self.wipe()
 
@@ -4207,11 +4238,10 @@ class DarwinTests(BasePlatformTests):
         # to ascertain that Meson does not call install_name_tool
         # with duplicate -delete_rpath arguments, which would
         # lead to erroring out on installation
-        os.environ["LDFLAGS"] = "-Wl,-rpath,/foo/bar"
-        self.init(testdir)
+        env = {"LDFLAGS": "-Wl,-rpath,/foo/bar"}
+        self.init(testdir, override_envvars=env)
         self.build()
         self.install()
-        del os.environ["LDFLAGS"]
 
 
 @unittest.skipUnless(not is_windows(), "requires something Unix-like")
@@ -4294,13 +4324,13 @@ class LinuxlikeTests(BasePlatformTests):
         privatedir1 = self.privatedir
 
         self.new_builddir()
-        os.environ['PKG_CONFIG_LIBDIR'] = privatedir1
         testdir = os.path.join(self.common_test_dir, '48 pkgconfig-gen', 'dependencies')
-        self.init(testdir)
+        self.init(testdir, override_envvars={'PKG_CONFIG_LIBDIR': privatedir1})
         privatedir2 = self.privatedir
 
-        os.environ['PKG_CONFIG_LIBDIR'] = os.pathsep.join([privatedir1, privatedir2])
-        self._run(['pkg-config', 'dependency-test', '--validate'])
+        os.environ
+        env = {'PKG_CONFIG_LIBDIR': os.pathsep.join([privatedir1, privatedir2])}
+        self._run(['pkg-config', 'dependency-test', '--validate'], override_envvars=env)
 
         # pkg-config strips some duplicated flags so we have to parse the
         # generated file ourself.
@@ -4326,14 +4356,14 @@ class LinuxlikeTests(BasePlatformTests):
             self.assertEqual(len(expected), matched_lines)
 
         cmd = ['pkg-config', 'requires-test']
-        out = self._run(cmd + ['--print-requires']).strip().split('\n')
+        out = self._run(cmd + ['--print-requires'], override_envvars=env).strip().split('\n')
         if not is_openbsd():
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo >= 1.0', 'libhello']))
         else:
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo>=1.0', 'libhello']))
 
         cmd = ['pkg-config', 'requires-private-test']
-        out = self._run(cmd + ['--print-requires-private']).strip().split('\n')
+        out = self._run(cmd + ['--print-requires-private'], override_envvars=env).strip().split('\n')
         if not is_openbsd():
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo >= 1.0', 'libhello']))
         else:
@@ -4492,9 +4522,10 @@ class LinuxlikeTests(BasePlatformTests):
         an ordinary test case because it needs the environment to be set.
         '''
         Oflag = '-O3'
-        os.environ['CFLAGS'] = os.environ['CXXFLAGS'] = Oflag
+        env = {'CFLAGS': Oflag,
+               'CXXFLAGS': Oflag}
         testdir = os.path.join(self.common_test_dir, '40 has function')
-        self.init(testdir)
+        self.init(testdir, override_envvars=env)
         cmds = self.get_meson_log_compiler_checks()
         for cmd in cmds:
             if cmd[0] == 'ccache':
@@ -4540,11 +4571,17 @@ class LinuxlikeTests(BasePlatformTests):
         # Check that an invalid std option in CFLAGS/CPPFLAGS fails
         # Needed because by default ICC ignores invalid options
         cmd_std = '-std=FAIL'
-        env_flags = p.upper() + 'FLAGS'
-        os.environ[env_flags] = cmd_std
+        if p == 'c':
+            env_flag_name = 'CFLAGS'
+        elif p == 'cpp':
+            env_flag_name = 'CXXFLAGS'
+        else:
+            raise NotImplementedError('Language {} not defined.'.format(p))
+        env = {}
+        env[env_flag_name] = cmd_std
         with self.assertRaises((subprocess.CalledProcessError, mesonbuild.mesonlib.EnvironmentException),
                                msg='C compiler should have failed with -std=FAIL'):
-            self.init(testdir)
+            self.init(testdir, override_envvars = env)
             # ICC won't fail in the above because additional flags are needed to
             # make unknown -std=... options errors.
             self.build()
@@ -4793,8 +4830,7 @@ class LinuxlikeTests(BasePlatformTests):
     @skipIfNoPkgconfig
     def test_order_of_l_arguments(self):
         testdir = os.path.join(self.unit_test_dir, '8 -L -l order')
-        os.environ['PKG_CONFIG_PATH'] = testdir
-        self.init(testdir)
+        self.init(testdir, override_envvars={'PKG_CONFIG_PATH': testdir})
         # NOTE: .pc file has -Lfoo -lfoo -Lbar -lbar but pkg-config reorders
         # the flags before returning them to -Lfoo -Lbar -lfoo -lbar
         # but pkgconf seems to not do that. Sigh. Support both.
@@ -4952,11 +4988,15 @@ endian = 'little'
         also tested.
         '''
         testdir = os.path.join(self.framework_test_dir, '7 gnome')
-        os.environ['MESON_UNIT_TEST_PRETEND_GLIB_OLD'] = "1"
         mesonbuild.modules.gnome.native_glib_version = '2.20'
-        self.init(testdir, inprocess=True)
-        self.build()
-        mesonbuild.modules.gnome.native_glib_version = None
+        env = {'MESON_UNIT_TEST_PRETEND_GLIB_OLD': "1"}
+        try:
+            self.init(testdir,
+                      inprocess=True,
+                      override_envvars=env)
+            self.build(override_envvars=env)
+        finally:
+            mesonbuild.modules.gnome.native_glib_version = None
 
     @skipIfNoPkgconfig
     def test_pkgconfig_usage(self):
@@ -4974,16 +5014,17 @@ endian = 'little'
             pkg_dir = os.path.join(tempdirname, 'lib/pkgconfig')
             self.assertTrue(os.path.exists(os.path.join(pkg_dir, 'libpkgdep.pc')))
             lib_dir = os.path.join(tempdirname, 'lib')
-            os.environ['PKG_CONFIG_PATH'] = pkg_dir
+            myenv = os.environ.copy()
+            myenv['PKG_CONFIG_PATH'] = pkg_dir
             # Private internal libraries must not leak out.
-            pkg_out = subprocess.check_output(['pkg-config', '--static', '--libs', 'libpkgdep'])
+            pkg_out = subprocess.check_output(['pkg-config', '--static', '--libs', 'libpkgdep'], env=myenv)
             self.assertFalse(b'libpkgdep-int' in pkg_out, 'Internal library leaked out.')
             # Dependencies must not leak to cflags when building only a shared library.
-            pkg_out = subprocess.check_output(['pkg-config', '--cflags', 'libpkgdep'])
+            pkg_out = subprocess.check_output(['pkg-config', '--cflags', 'libpkgdep'], env=myenv)
             self.assertFalse(b'glib' in pkg_out, 'Internal dependency leaked to headers.')
             # Test that the result is usable.
-            self.init(testdir2)
-            self.build()
+            self.init(testdir2, override_envvars=myenv)
+            self.build(override_envvars=myenv)
             myenv = os.environ.copy()
             myenv['LD_LIBRARY_PATH'] = ':'.join([lib_dir, myenv.get('LD_LIBRARY_PATH', '')])
             if is_cygwin():
@@ -5027,9 +5068,9 @@ endian = 'little'
 
             # build user of library
             pkg_dir = os.path.join(tempdirname, 'lib/pkgconfig')
-            os.environ['PKG_CONFIG_PATH'] = pkg_dir
             self.new_builddir()
-            self.init(os.path.join(testdirbase, 'app'))
+            self.init(os.path.join(testdirbase, 'app'),
+                      override_envvars={'PKG_CONFIG_PATH': pkg_dir})
             self.build()
 
     @skipIfNoPkgconfig
@@ -5134,16 +5175,16 @@ endian = 'little'
         self.install(use_destdir=False)
         ## New builddir for the consumer
         self.new_builddir()
-        os.environ['LIBRARY_PATH'] = os.path.join(installdir, self.libdir)
-        os.environ['PKG_CONFIG_PATH'] = os.path.join(installdir, self.libdir, 'pkgconfig')
+        env = {'LIBRARY_PATH': os.path.join(installdir, self.libdir),
+               'PKG_CONFIG_PATH': os.path.join(installdir, self.libdir, 'pkgconfig')}
         testdir = os.path.join(self.unit_test_dir, '40 external, internal library rpath', 'built library')
         # install into installdir without using DESTDIR
         self.prefix = self.installdir
-        self.init(testdir)
+        self.init(testdir, override_envvars=env)
         self.prefix = oldprefix
-        self.build()
+        self.build(override_envvars=env)
         # test uninstalled
-        self.run_tests()
+        self.run_tests(override_envvars=env)
         if not is_osx():
             # Rest of the workflow only works on macOS
             return
@@ -5156,10 +5197,10 @@ endian = 'little'
         ## New builddir for testing that DESTDIR is not added to install_name
         self.new_builddir()
         # install into installdir with DESTDIR
-        self.init(testdir)
-        self.build()
+        self.init(testdir, override_envvars=env)
+        self.build(override_envvars=env)
         # test running after installation
-        self.install()
+        self.install(override_envvars=env)
         prog = self.installdir + os.path.join(self.prefix, 'bin', 'prog')
         lib = self.installdir + os.path.join(self.prefix, 'lib', 'libbar_built.dylib')
         for f in prog, lib:
@@ -5249,14 +5290,14 @@ endian = 'little'
     def test_identity_cross(self):
         testdir = os.path.join(self.unit_test_dir, '58 identity cross')
         crossfile = tempfile.NamedTemporaryFile(mode='w')
-        os.environ['CC'] = '"' + os.path.join(testdir, 'build_wrapper.py') + '"'
+        env = {'CC': '"' + os.path.join(testdir, 'build_wrapper.py') + '"'}
         crossfile.write('''[binaries]
 c = ['{0}']
 '''.format(os.path.join(testdir, 'host_wrapper.py')))
         crossfile.flush()
         self.meson_cross_file = crossfile.name
         # TODO should someday be explicit about build platform only here
-        self.init(testdir)
+        self.init(testdir, override_envvars=env)
 
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
@@ -5278,8 +5319,7 @@ class LinuxCrossArmTests(BasePlatformTests):
         inspect the compiler database.
         '''
         testdir = os.path.join(self.common_test_dir, '3 static')
-        os.environ['CFLAGS'] = '-DBUILD_ENVIRONMENT_ONLY'
-        self.init(testdir)
+        self.init(testdir, override_envvars={'CFLAGS': '-DBUILD_ENVIRONMENT_ONLY'})
         compdb = self.get_compdb()
         self.assertNotIn('-DBUILD_ENVIRONMENT_ONLY', compdb[0]['command'])
 
@@ -5348,18 +5388,23 @@ class LinuxCrossMingwTests(BasePlatformTests):
         # Change cross file to use a non-existing exe_wrapper and it should fail
         self.meson_cross_file = os.path.join(testdir, 'broken-cross.txt')
         # Force tracebacks so we can detect them properly
-        os.environ['MESON_FORCE_BACKTRACE'] = '1'
+        env = {'MESON_FORCE_BACKTRACE': '1'}
         with self.assertRaisesRegex(MesonException, 'exe_wrapper.*target.*use-exe-wrapper'):
             # Must run in-process or we'll get a generic CalledProcessError
-            self.init(testdir, extra_args='-Drun-target=false', inprocess=True)
+            self.init(testdir, extra_args='-Drun-target=false',
+                      inprocess=True,
+                      override_envvars=env)
         with self.assertRaisesRegex(MesonException, 'exe_wrapper.*run target.*run-prog'):
             # Must run in-process or we'll get a generic CalledProcessError
-            self.init(testdir, extra_args='-Dcustom-target=false', inprocess=True)
-        self.init(testdir, extra_args=['-Dcustom-target=false', '-Drun-target=false'])
+            self.init(testdir, extra_args='-Dcustom-target=false',
+                      inprocess=True,
+                      override_envvars=env)
+        self.init(testdir, extra_args=['-Dcustom-target=false', '-Drun-target=false'],
+                  override_envvars=env)
         self.build()
         with self.assertRaisesRegex(MesonException, 'exe_wrapper.*PATH'):
             # Must run in-process or we'll get a generic CalledProcessError
-            self.run_tests(inprocess=True)
+            self.run_tests(inprocess=True, override_envvars=env)
 
     @skipIfNoPkgconfig
     def test_cross_pkg_config_option(self):
