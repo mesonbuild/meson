@@ -66,6 +66,15 @@ usr/share/doc/foobar/html/assets/js/search/indecision
 usr/share/doc/foobar/html/assets/js/search/hotdoc_fragments/index.html-hello-world.fragment
 usr/share/doc/foobar/html/assets/js/search/hotdoc_fragments/dumped.trie
 usr/share/doc/foobar/html/assets/js/search/hotdoc_fragments/foo.html-FooIndecision.fragment
+usr/share/doc/foobar/html/assets/js/search/Subpages
+usr/share/doc/foobar/html/assets/js/search/foo
+usr/share/doc/foobar/html/assets/js/search/API
+usr/share/doc/foobar/html/assets/js/search/Reference
+usr/share/doc/foobar/html/assets/js/search/api
+usr/share/doc/foobar/html/assets/js/search/reference
+usr/share/doc/foobar/html/assets/js/search/subpages
+usr/share/doc/foobar/html/assets/js/search/hotdoc_fragments/index.html-subpages.fragment
+usr/share/doc/foobar/html/assets/js/search/hotdoc_fragments/c-index.html-subpages.fragment
 usr/share/doc/foobar/html/assets/prism_components/prism-inform7.min.js
 usr/share/doc/foobar/html/assets/prism_components/prism-pascal.min.js
 usr/share/doc/foobar/html/assets/prism_components/prism-bro.js
