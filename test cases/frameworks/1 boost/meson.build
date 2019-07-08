@@ -27,10 +27,10 @@ nomoddep = dependency('boost')
 extralibdep = dependency('boost', modules : ['thread', 'system', 'log_setup', 'log'])
 
 pymod = import('python')
-python2 = pymod.find_installation('python2', required: false, disabler: true)
-python3 = pymod.find_installation('python3', required: false, disabler: true)
-python2dep = python2.dependency(required: false, disabler: true)
-python3dep = python3.dependency(required: false, disabler: true)
+python2 = pymod.find_installation('python2', required: host_machine.system() == 'linux', disabler: true)
+python3 = pymod.find_installation('python3', required: host_machine.system() == 'linux', disabler: true)
+python2dep = python2.dependency(required: host_machine.system() == 'linux', disabler: true)
+python3dep = python3.dependency(required: host_machine.system() == 'linux', disabler: true)
 
 # compile python 2/3 modules only if we found a corresponding python version
 if(python2dep.found() and host_machine.system() == 'linux')
@@ -39,10 +39,10 @@ if(python2dep.found() and host_machine.system() == 'linux')
     # on the installed version of python (and hope that they match the version boost
     # was compiled against)
     py2version_string = ''.join(python2dep.version().split('.'))
-    bpython2dep = dependency('boost', modules : ['python' + py2version_string], required: false)
+    bpython2dep = dependency('boost', modules : ['python' + py2version_string])
   else
     # if we have an older version of boost, we need to use the old module names
-    bpython2dep = dependency('boost', modules : ['python'], required: false)
+    bpython2dep = dependency('boost', modules : ['python'])
   endif
 
   if not (bpython2dep.found())
@@ -56,9 +56,9 @@ endif
 if(python3dep.found() and host_machine.system() == 'linux')
   if(dep.version().version_compare('>=1.67'))
     py3version_string = ''.join(python3dep.version().split('.'))
-    bpython3dep = dependency('boost', modules : ['python' + py3version_string], required: false)
+    bpython3dep = dependency('boost', modules : ['python' + py3version_string])
   else
-    bpython3dep = dependency('boost', modules : ['python3'], required: false)
+    bpython3dep = dependency('boost', modules : ['python3'])
   endif
 
   if not (bpython3dep.found())
