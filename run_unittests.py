@@ -1315,8 +1315,14 @@ class BasePlatformTests(unittest.TestCase):
             self._run(self.test_command, workdir=self.builddir, override_envvars=override_envvars)
         else:
             if override_envvars is not None:
-                raise RuntimeError('Can not combine inprocess and override_envvars.')
-            run_mtest_inprocess(['-C', self.builddir])
+                old_envvars = os.environ.copy()
+                os.environ.update(override_envvars)
+            try:
+                run_mtest_inprocess(['-C', self.builddir])
+            finally:
+                if override_envvars is not None:
+                    os.environ.clear()
+                    os.environ.update(old_envvars)
 
     def install(self, *, use_destdir=True, override_envvars=None):
         if self.backend is not Backend.ninja:
