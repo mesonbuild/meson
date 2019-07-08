@@ -262,6 +262,7 @@ def main():
                         choices=backendlist)
     parser.add_argument('--cross', default=False, dest='cross', action='store_true')
     parser.add_argument('--failfast', action='store_true')
+    parser.add_argument('--no-unittests', action='store_true', default=False)
     (options, _) = parser.parse_known_args()
     # Enable coverage early...
     enable_coverage = options.cov
@@ -273,6 +274,7 @@ def main():
     returncode = 0
     cross = options.cross
     backend, _ = guess_backend(options.backend, shutil.which('msbuild'))
+    no_unittests = options.no_unittests
     # Running on a developer machine? Be nice!
     if not mesonlib.is_windows() and not mesonlib.is_haiku() and 'CI' not in os.environ:
         os.nice(20)
@@ -314,12 +316,16 @@ def main():
             returncode += subprocess.call(cmd, env=env)
             if options.failfast and returncode != 0:
                 return returncode
-            cmd = mesonlib.python_command + ['run_unittests.py', '-v']
-            if options.failfast:
-                cmd += ['--failfast']
-            returncode += subprocess.call(cmd, env=env)
-            if options.failfast and returncode != 0:
-                return returncode
+            if no_unittests:
+                print('Skipping all unit tests.')
+                returncode = 0
+            else:
+                cmd = mesonlib.python_command + ['run_unittests.py', '-v']
+                if options.failfast:
+                    cmd += ['--failfast']
+                returncode += subprocess.call(cmd, env=env)
+                if options.failfast and returncode != 0:
+                    return returncode
             cmd = mesonlib.python_command + ['run_project_tests.py'] + sys.argv[1:]
             returncode += subprocess.call(cmd, env=env)
         else:

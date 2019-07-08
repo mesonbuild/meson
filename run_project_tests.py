@@ -870,6 +870,8 @@ if __name__ == '__main__':
                         choices=backendlist)
     parser.add_argument('--failfast', action='store_true',
                         help='Stop running if test case fails')
+    parser.add_argument('--no-unittests', action='store_true',
+                        help='Not used, only here to simplify run_tests.py')
     parser.add_argument('--only', help='name of test(s) to run', nargs='+')
     options = parser.parse_args()
     setup_commands(options.backend)
