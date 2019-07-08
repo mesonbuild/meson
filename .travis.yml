@@ -16,7 +16,7 @@ compiler:
 
 env:
   - MESON_ARGS=""
-  - MESON_ARGS="--unity=on"
+  - RUN_TESTS_ARGS="--no-unittests" MESON_ARGS="--unity=on"
 
 language:
   - cpp
