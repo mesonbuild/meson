@@ -803,6 +803,8 @@ def check_format():
     for (root, _, files) in os.walk('.'):
         if '.dub' in root: # external deps are here
             continue
+        if '.pytest_cache' in root:
+            continue
         if 'meson-logs' in root or 'meson-private' in root:
             continue
         for fname in files:
