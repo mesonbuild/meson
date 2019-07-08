@@ -154,6 +154,10 @@ steps:
      where.exe python
      python --version
 
+     # Needed for running unit tests in parallel.
+     python -m pip install --upgrade pytest-xdist
+
+
      echo ""
      echo "Locating cl, rc:"
      where.exe cl
