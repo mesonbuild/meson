@@ -370,9 +370,11 @@ class VisualStudioLikeCPPCompilerMixin:
         'vc++11': (True, 11),
         'vc++14': (True, 14),
         'vc++17': (True, 17),
+        'vc++latest': (True, "latest"),
         'c++11': (False, 11),
         'c++14': (False, 14),
         'c++17': (False, 17),
+        'c++latest': (False, "latest"),
     }
 
     def get_option_link_args(self, options):
