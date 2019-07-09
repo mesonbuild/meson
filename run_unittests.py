@@ -5797,7 +5797,7 @@ class NativeFileTests(BasePlatformTests):
             if mesonbuild.environment.detect_msys2_arch():
                 f.write(r'@python3 {} %*'.format(filename))
             else:
-                f.write('@py -3 {} %*'.format(filename))
+                f.write('@{} {} %*'.format(sys.executable, filename))
         return batfile
 
     def helper_for_compiler(self, lang, cb, for_machine = MachineChoice.HOST):
