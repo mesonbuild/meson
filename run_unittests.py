@@ -4551,13 +4551,13 @@ class LinuxlikeTests(BasePlatformTests):
     def _test_stds_impl(self, testdir, compiler, p: str):
         lang_std = p + '_std'
 
-        has_cpp17 = (compiler.get_Id() not in {'clang', 'gcc'} or
+        has_cpp17 = (compiler.get_id() not in {'clang', 'gcc'} or
                      compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=5.0.0', '>=9.1') or
                      compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=5.0.0'))
-        has_cpp2a_c17 = (compiler.get_Id() not in {'clang', 'gcc'} or
+        has_cpp2a_c17 = (compiler.get_id() not in {'clang', 'gcc'} or
                          compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=6.0.0', '>=10.0') or
                          compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=8.0.0'))
-        has_c18 = (compiler.get_Id() not in {'clang', 'gcc'} or
+        has_c18 = (compiler.get_id() not in {'clang', 'gcc'} or
                    compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=8.0.0', '>=11.0') or
                    compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=8.0.0'))
         # Check that all the listed -std=xxx options for this compiler work just fine when used
