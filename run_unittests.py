@@ -3398,7 +3398,7 @@ recommended as it is not supported on some platforms''')
 
         for entry in res:
             name = entry['name']
-            self.assertEquals(entry['subproject'], expected[name])
+            self.assertEqual(entry['subproject'], expected[name])
 
     def test_introspect_projectinfo_subproject_dir(self):
         testdir = os.path.join(self.common_test_dir, '79 custom subproject dir')
@@ -6480,6 +6480,17 @@ def unset_envs():
 
 def main():
     unset_envs()
+    pytest_args = ['-n', 'auto', './run_unittests.py']
+    if shutil.which('pytest-3'):
+        return subprocess.run(['pytest-3'] + pytest_args).returncode
+    elif shutil.which('pytest'):
+        return subprocess.run(['pytest'] + pytest_args).returncode
+    try:
+        import pytest # noqa: F401
+        return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
+    except ImportError:
+        pass
+    # All attempts at locating pytest failed, fall back to plain unittest.
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
              'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests',
              'TAPParserTests',

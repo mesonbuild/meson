@@ -7,6 +7,7 @@ ENV DC=gdc
 RUN sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list" \
 && apt-get -y update && apt-get -y upgrade \
 && apt-get -y build-dep meson \
+&& apt-get -y install python3-pytest-xdist \
 && apt-get -y install python3-pip libxml2-dev libxslt1-dev cmake libyaml-dev \
 && python3 -m pip install hotdoc codecov \
 && apt-get -y install wget unzip \

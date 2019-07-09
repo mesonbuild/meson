@@ -803,6 +803,8 @@ def check_format():
     for (root, _, files) in os.walk('.'):
         if '.dub' in root: # external deps are here
             continue
+        if '.pytest_cache' in root:
+            continue
         if 'meson-logs' in root or 'meson-private' in root:
             continue
         for fname in files:
@@ -870,6 +872,8 @@ if __name__ == '__main__':
                         choices=backendlist)
     parser.add_argument('--failfast', action='store_true',
                         help='Stop running if test case fails')
+    parser.add_argument('--no-unittests', action='store_true',
+                        help='Not used, only here to simplify run_tests.py')
     parser.add_argument('--only', help='name of test(s) to run', nargs='+')
     options = parser.parse_args()
     setup_commands(options.backend)
