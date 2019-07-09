@@ -402,3 +402,72 @@ the form `foo.lib` when building with MSVC, you can set the
 kwarg to `''` and the [`name_suffix:`](https://mesonbuild.com/Reference-manual.html#library)
 kwarg to `'lib'`. To get the default behaviour for each, you can either not
 specify the kwarg, or pass `[]` (an empty array) to it.
+
+## How do I tell Meson that my sources use generated headers?
+
+Let's say you use a [`custom_target()`](https://mesonbuild.com/Reference-manual.html#custom_target)
+to generate the headers, and then `#include` them in your C code. Here's how
+you ensure that Meson generates the headers before trying to compile any
+sources in the build target:
+
+```meson
+libfoo_gen_headers = custom_target('gen-headers', ..., output: 'foo-gen.h')
+libfoo_sources = files('foo-utils.c', 'foo-lib.c')
+# Add generated headers to the list of sources for the build target
+libfoo = library('foo', sources: libfoo_sources + libfoo_gen_headers)
+```
+
+Now let's say you have a new target that links to `libfoo`:
+
+```meson
+libbar_sources = files('bar-lib.c')
+libbar = library('bar', sources: libbar_sources, link_with: libfoo)
+```
+
+This adds a **link-time** dependency between the two targets, but note that the
+sources of the targets have **no compile-time** dependencies and can be built
+in any order; which improves parallelism and speeds up builds.
+
+If the sources in `libbar` *also* use `foo-gen.h`, that's a *compile-time*
+dependency, and you'll have to add `libfoo_gen_headers` to `sources:` for
+`libbar` too:
+
+```meson
+libbar_sources = files('bar-lib.c')
+libbar = library('bar', sources: libbar_sources + libfoo_gen_headers, link_with: libfoo)
+```
+
+Alternatively, if you have multiple libraries with sources that link to
+a library and also use its generated headers, this code is equivalent to above:
+
+```meson
+# Add generated headers to the list of sources for the build target
+libfoo = library('foo', sources: libfoo_sources + libfoo_gen_headers)
+
+# Declare a dependency that will add the generated headers to sources
+libfoo_dep = declare_dependency(link_with: libfoo, sources: libfoo_gen_headers)
+
+...
+
+libbar = library('bar', sources: libbar_sources, dependencies: libfoo_dep)
+```
+
+**Note:** You should only add *headers* to `sources:` while declaring
+a dependency. If your custom target outputs both sources and headers, you can
+use the subscript notation to get only the header(s):
+
+```meson
+libfoo_gen_sources = custom_target('gen-headers', ..., output: ['foo-gen.h', 'foo-gen.c'])
+libfoo_gen_headers = libfoo_gen_sources[0]
+
+# Add static and generated sources to the target
+libfoo = library('foo', sources: libfoo_sources + libfoo_gen_sources)
+
+# Declare a dependency that will add the generated *headers* to sources
+libfoo_dep = declare_dependency(link_with: libfoo, sources: libfoo_gen_headers)
+...
+libbar = library('bar', sources: libbar_sources, dependencies: libfoo_dep)
+```
+
+A good example of a generator that outputs both sources and headers is
+[`gnome.mkenums()`](https://mesonbuild.com/Gnome-module.html#gnomemkenums).
