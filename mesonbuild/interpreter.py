@@ -2020,6 +2020,8 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'test': {'args', 'depends', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir',
                              'suite', 'protocol'},
                     'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
+                    'filter': {'pattern'},
+                    'filter_out': {'pattern'},
                     }
 
 
@@ -2147,7 +2149,9 @@ class Interpreter(InterpreterBase):
                            'static_library': self.func_static_lib,
                            'both_libraries': self.func_both_lib,
                            'test': self.func_test,
-                           'vcs_tag': self.func_vcs_tag
+                           'vcs_tag': self.func_vcs_tag,
+                           'filter': self.func_filter,
+                           'filter_out': self.func_filter_out
                            })
         if 'MESON_UNIT_TEST' in os.environ:
             self.funcs.update({'exception': self.func_exception})
@@ -3244,6 +3248,50 @@ external dependencies (including libraries) must go to "dependencies".''')
         if len(args) > 0:
             raise InterpreterException('exit does not take any arguments')
         raise SubdirDoneRequest()
+
+    @FeatureNew('filter', '0.50.1')
+    @stringArgs
+    @permittedKwargs(permitted_kwargs['filter'])
+    def func_filter(self, node, args, kwargs):
+        if len(kwargs) > 1:
+            raise InterpreterException('filter received too many arguments')
+        if 'pattern' not in kwargs:
+            raise InterpreterException('must specify pattern to filter on')
+        if not isinstance(kwargs['pattern'], str):
+            raise InterpreterException('pattern must be a str')
+        if len(args) > 1:
+            return self._func_filter_impl(node, args, kwargs)
+        if len(args) == 1 and isinstance(args[0], list):
+            return self._func_filter_impl(node, args[0], kwargs)
+        raise mesonlib.MesonException('filter error. Received args as {}'.format(type(args)))
+
+    def _func_filter_impl(self, node, args, kwargs):
+        ptrn = re.compile(kwargs['pattern'])
+        if isinstance(args, list) and all(isinstance(arg, str) for arg in args):
+            return [x for x in args if ptrn.match(x)]
+        raise mesonlib.MesonException('filter only operates on lists of strings')
+
+    @FeatureNew('filter_out', '0.50.1')
+    @stringArgs
+    @permittedKwargs(permitted_kwargs['filter_out'])
+    def func_filter_out(self, node, args, kwargs):
+        if len(kwargs) > 1:
+            raise InterpreterException('filter_out received too many arguments')
+        if 'pattern' not in kwargs:
+            raise InterpreterException('must specify pattern to filter_out on')
+        if not isinstance(kwargs['pattern'], str):
+            raise InterpreterException('pattern must be a str')
+        if len(args) > 1:
+            return self._func_filter_out_impl(node, args, kwargs)
+        if len(args) == 1 and isinstance(args[0], list):
+            return self._func_filter_out_impl(node, args[0], kwargs)
+        raise mesonlib.MesonException('filter_out error. Received args as {}'.format(type(args)))
+
+    def _func_filter_out_impl(self, node, args, kwargs):
+        ptrn = re.compile(kwargs['pattern'])
+        if isinstance(args, list) and all(isinstance(arg, str) for arg in args):
+            return [x for x in args if not ptrn.match(x)]
+        raise mesonlib.MesonException('filter_out only operates on lists of strings')
 
     @stringArgs
     @FeatureNewKwargs('custom_target', '0.48.0', ['console'])

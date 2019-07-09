@@ -117,6 +117,8 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'add_test_setup': self.func_do_nothing,
                            'find_library': self.func_do_nothing,
                            'subdir_done': self.func_do_nothing,
+                           'filter': self.func_do_nothing,
+                           'filter_out': self.func_do_nothing,
                            })
 
     def func_do_nothing(self, node, args, kwargs):
