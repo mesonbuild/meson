@@ -3853,6 +3853,23 @@ different subdirectory.
         for_machine = self.machine_from_native_kwarg(kwargs)
         self.add_project_arguments(node, self.build.projects_link_args[for_machine], args, kwargs)
 
+    def warn_about_builtin_args(self, args):
+        warnargs = ('/W1', '/W2', '/W3', '/W4', '/Wall', '-Wall', '-Wextra', '-Wpedantic')
+        optargs = ('-O0', '-O2', '-O3', '-Os', '/O1', '/O2', '/Os')
+        for arg in args:
+            if arg in warnargs:
+                mlog.warning("Consider using the builtin warning_level option instead of adding warning flags by hand.")
+            elif arg in optargs:
+                mlog.warning('Consider using the builtin optimization level rather than adding flags by hand.')
+            elif arg == '-g':
+                mlog.warning('Consider using the builtin debug option rather than adding flags by hand.')
+            elif arg == '-pipe':
+                mlog.warning("You don't need to add -pipe, Meson will use it automatically when it is available.")
+            elif arg.startswith('-fsanitize'):
+                mlog.warning('Consider using the builtin option for sanitizers rather than adding flags by hand.')
+            elif arg.startswith('-std=') or arg.startswith('/std:'):
+                mlog.warning('Consider using the builtin option for language standard version rather than adding flags by hand.')
+
     def add_global_arguments(self, node, argsdict, args, kwargs):
         if self.is_subproject():
             msg = 'Function \'{}\' cannot be used in subprojects because ' \
@@ -3880,6 +3897,8 @@ different subdirectory.
 
         if 'language' not in kwargs:
             raise InvalidCode('Missing language definition in {}'.format(node.func_name))
+
+        self.warn_about_builtin_args(args)
 
         for lang in mesonlib.stringlistify(kwargs['language']):
             lang = lang.lower()
