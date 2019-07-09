@@ -1039,7 +1039,7 @@ This will become a hard error in the future.''')
         res = [custom_target, alias_target]
         if kwargs.get('install', True):
             res.append(build.RunScript(command, args))
-        return ModuleReturnValue(None, res)
+        return ModuleReturnValue(custom_target, res)
 
     def _get_build_args(self, kwargs, state, depends):
         args = []

@@ -346,6 +346,9 @@ of the module.
 This creates a `$module-doc` target that can be ran to build docs and
 normally these are only built on install.
 
+*Since 0.52.0* Returns a target object that can be passed as dependency to other
+targets using generated doc files (e.g. in `content_files` of another doc).
+
 ### gnome.gtkdoc_html_dir()
 
 Takes as argument a module name and returns the path where that
