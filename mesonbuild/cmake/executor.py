@@ -24,7 +24,7 @@ from typing import List, Tuple, Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from ..dependencies.base import ExternalProgram
 
-import re, os, ctypes
+import re, os, shutil, ctypes
 
 class CMakeExecutor:
     # The class's copy of the CMake path. Avoids having to search for it
@@ -162,6 +162,41 @@ class CMakeExecutor:
 
         os.makedirs(build_dir, exist_ok=True)
 
+        # Try to set the correct compiler for C and C++
+        # This step is required to make try_compile work inside CMake
+        fallback = os.path.realpath(__file__)  # A file used as a fallback wehen everything else fails
+        compilers = self.environment.coredata.compilers[MachineChoice.BUILD]
+
+        def make_abs(exe: str, lang: str):
+            if os.path.isabs(exe):
+                return exe
+
+            p = shutil.which(exe)
+            if p is None:
+                mlog.debug('Failed to find a {} compiler for CMake. This might cause CMake to fail.'.format(lang))
+                p = fallback
+            return p
+
+        def choose_compiler(lang: str):
+            exe_list = []
+            if lang in compilers:
+                exe_list = compilers[lang].get_exelist()
+            else:
+                comp_obj = self.environment.compiler_from_language(lang, MachineChoice.BUILD)
+                if comp_obj is not None:
+                    exe_list = comp_obj.get_exelist()
+
+            if len(exe_list) == 1:
+                return make_abs(exe_list[0], lang), ''
+            elif len(exe_list) == 2:
+                return make_abs(exe_list[1], lang), make_abs(exe_list[0], lang)
+            else:
+                mlog.debug('Failed to find a {} compiler for CMake. This might cause CMake to fail.'.format(lang))
+                return fallback, ''
+
+        c_comp, c_launcher = choose_compiler('c')
+        cxx_comp, cxx_launcher = choose_compiler('cpp')
+
         # Reset the CMake cache
         with open('{}/CMakeCache.txt'.format(build_dir), 'w') as fp:
             fp.write('CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1\n')
@@ -170,32 +205,38 @@ class CMakeExecutor:
         comp_dir = '{}/CMakeFiles/{}'.format(build_dir, self.cmakevers)
         os.makedirs(comp_dir, exist_ok=True)
 
-        c_comp = '{}/CMakeCCompiler.cmake'.format(comp_dir)
-        cxx_comp = '{}/CMakeCXXCompiler.cmake'.format(comp_dir)
+        c_comp_file = '{}/CMakeCCompiler.cmake'.format(comp_dir)
+        cxx_comp_file = '{}/CMakeCXXCompiler.cmake'.format(comp_dir)
 
-        if not os.path.exists(c_comp):
-            with open(c_comp, 'w') as fp:
+        if not os.path.exists(c_comp_file):
+            with open(c_comp_file, 'w') as fp:
                 fp.write('''# Fake CMake file to skip the boring and slow stuff
-set(CMAKE_C_COMPILER "{}") # Just give CMake a valid full path to any file
+set(CMAKE_C_COMPILER "{}") # Should be a valid compiler for try_compile, etc.
+set(CMAKE_C_COMPILER_LAUNCHER "{}") # The compiler launcher (if presentt)
 set(CMAKE_C_COMPILER_ID "GNU") # Pretend we have found GCC
 set(CMAKE_COMPILER_IS_GNUCC 1)
 set(CMAKE_C_COMPILER_LOADED 1)
 set(CMAKE_C_COMPILER_WORKS TRUE)
 set(CMAKE_C_ABI_COMPILED TRUE)
+set(CMAKE_C_SOURCE_FILE_EXTENSIONS c;m)
+set(CMAKE_C_IGNORE_EXTENSIONS h;H;o;O;obj;OBJ;def;DEF;rc;RC)
 set(CMAKE_SIZEOF_VOID_P "{}")
-'''.format(os.path.realpath(__file__), ctypes.sizeof(ctypes.c_voidp)))
+'''.format(c_comp, c_launcher, ctypes.sizeof(ctypes.c_voidp)))
 
-        if not os.path.exists(cxx_comp):
-            with open(cxx_comp, 'w') as fp:
+        if not os.path.exists(cxx_comp_file):
+            with open(cxx_comp_file, 'w') as fp:
                 fp.write('''# Fake CMake file to skip the boring and slow stuff
-set(CMAKE_CXX_COMPILER "{}") # Just give CMake a valid full path to any file
+set(CMAKE_CXX_COMPILER "{}") # Should be a valid compiler for try_compile, etc.
+set(CMAKE_CXX_COMPILER_LAUNCHER "{}") # The compiler launcher (if presentt)
 set(CMAKE_CXX_COMPILER_ID "GNU") # Pretend we have found GCC
 set(CMAKE_COMPILER_IS_GNUCXX 1)
 set(CMAKE_CXX_COMPILER_LOADED 1)
 set(CMAKE_CXX_COMPILER_WORKS TRUE)
 set(CMAKE_CXX_ABI_COMPILED TRUE)
+set(CMAKE_CXX_IGNORE_EXTENSIONS inl;h;hpp;HPP;H;o;O;obj;OBJ;def;DEF;rc;RC)
+set(CMAKE_CXX_SOURCE_FILE_EXTENSIONS C;M;c++;cc;cpp;cxx;mm;CPP)
 set(CMAKE_SIZEOF_VOID_P "{}")
-'''.format(os.path.realpath(__file__), ctypes.sizeof(ctypes.c_voidp)))
+'''.format(cxx_comp, cxx_launcher, ctypes.sizeof(ctypes.c_voidp)))
 
         return self.call(args, build_dir, env)
 
