@@ -316,6 +316,8 @@ class CLikeCompiler:
         with open(source_name, 'w') as ofile:
             ofile.write(code)
         # Compile sanity check
+        # NOTE: extra_flags must be added at the end. On MSVC, it might contain a '/link' argument
+        # after which all further arguments will be passed directly to the linker        
         cmdlist = self.exelist + [source_name] + self.get_output_args(binary_name) + extra_flags
         pc, stdo, stde = mesonlib.Popen_safe(cmdlist, cwd=work_dir)
         mlog.debug('Sanity check compiler command line:', ' '.join(cmdlist))
