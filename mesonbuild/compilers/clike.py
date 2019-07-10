@@ -255,7 +255,8 @@ class CLikeCompiler:
                 # a ton of compiler flags to differentiate between
                 # arm and x86_64. So just compile.
                 mode = 'compile'
-        extra_flags = self._get_basic_compiler_args(environment, mode)
+        cargs, largs = self._get_basic_compiler_args(environment, mode)
+        extra_flags = cargs + self.linker_to_compiler_args(largs)
 
         # Is a valid executable output for all toolchains and platforms
         binname += '.exe'
@@ -264,7 +265,9 @@ class CLikeCompiler:
         with open(source_name, 'w') as ofile:
             ofile.write(code)
         # Compile sanity check
-        cmdlist = self.exelist + extra_flags + [source_name] + self.get_output_args(binary_name)
+        # NOTE: extra_flags must be added at the end. On MSVC, it might contain a '/link' argument
+        # after which all further arguments will be passed directly to the linker
+        cmdlist = self.exelist + [source_name] + self.get_output_args(binary_name) + extra_flags
         pc, stdo, stde = mesonlib.Popen_safe(cmdlist, cwd=work_dir)
         mlog.debug('Sanity check compiler command line:', ' '.join(cmdlist))
         mlog.debug('Sanity check compile stdout:')
@@ -329,10 +332,10 @@ class CLikeCompiler:
                              dependencies=dependencies)
 
     def _get_basic_compiler_args(self, env, mode):
-        args = []
+        cargs, largs = [], []
         # Select a CRT if needed since we're linking
         if mode == 'link':
-            args += self.get_linker_debug_crt_args()
+            cargs += self.get_linker_debug_crt_args()
 
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
         sys_args = env.coredata.get_external_args(self.for_machine, self.language)
@@ -341,17 +344,17 @@ class CLikeCompiler:
         # also used during linking. These flags can break
         # argument checks. Thanks, Autotools.
         cleaned_sys_args = self.remove_linkerlike_args(sys_args)
-        args += cleaned_sys_args
+        cargs += cleaned_sys_args
 
         if mode == 'link':
             # Add LDFLAGS from the env
             sys_ld_args = env.coredata.get_external_link_args(self.for_machine, self.language)
             # CFLAGS and CXXFLAGS go to both linking and compiling, but we want them
             # to only appear on the command line once. Remove dupes.
-            args += [x for x in sys_ld_args if x not in sys_args]
+            largs += [x for x in sys_ld_args if x not in sys_args]
 
-        args += self.get_compiler_args_for_mode(mode)
-        return args
+        cargs += self.get_compiler_args_for_mode(mode)
+        return cargs, largs
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         if extra_args is None:
@@ -365,19 +368,27 @@ class CLikeCompiler:
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
         # Collect compiler arguments
-        args = compilers.CompilerArgs(self)
+        cargs = compilers.CompilerArgs(self)
+        largs = []
         for d in dependencies:
             # Add compile flags needed by dependencies
-            args += d.get_compile_args()
+            cargs += d.get_compile_args()
             if mode == 'link':
                 # Add link flags needed to find dependencies
-                args += d.get_link_args()
+                largs += d.get_link_args()
 
-        args += self._get_basic_compiler_args(env, mode)
+        ca, la = self._get_basic_compiler_args(env, mode)
+        cargs += ca
+        largs += la
 
-        args += self.get_compiler_check_args()
-        # extra_args must override all other arguments, so we add them last
-        args += extra_args
+        cargs += self.get_compiler_check_args()
+
+        # on MSVC compiler and linker flags must be separated by the "/link" argument
+        # at this point, the '/link' argument may already be part of extra_args, otherwise, it is added here
+        if self.linker_to_compiler_args([]) == ['/link'] and largs != [] and not ('/link' in extra_args):
+            extra_args += ['/link']
+
+        args = cargs + extra_args + largs
         return args
 
     def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile', disable_cache=False):
@@ -964,10 +975,12 @@ class CLikeCompiler:
         # search for .a. This is only allowed if libtype is LibType.PREFER_SHARED
         if ((not extra_dirs and libtype is LibType.PREFER_SHARED) or
                 libname in self.internal_libs):
-            args = ['-l' + libname]
-            largs = self.linker_to_compiler_args(self.get_allow_undefined_link_args())
-            if self.links(code, env, extra_args=(args + largs), disable_cache=True)[0]:
-                return args
+            cargs = ['-l' + libname]
+            largs = self.get_allow_undefined_link_args()
+            extra_args = cargs + self.linker_to_compiler_args(largs)
+
+            if self.links(code, env, extra_args=extra_args, disable_cache=True)[0]:
+                return cargs
             # Don't do a manual search for internal libs
             if libname in self.internal_libs:
                 return None
