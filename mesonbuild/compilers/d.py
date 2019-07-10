@@ -356,6 +356,10 @@ class DCompiler(Compiler):
             # Translate common D arguments here.
             if arg == '-pthread':
                 continue
+            if arg.startswith('-fstack-protector'):
+                continue
+            if arg.startswith('-D'):
+                continue
             if arg.startswith('-Wl,'):
                 # Translate linker arguments here.
                 linkargs = arg[arg.index(',') + 1:].split(',')
