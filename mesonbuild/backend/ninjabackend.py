@@ -702,6 +702,13 @@ int dummy;
         self.add_build(elem)
         self.processed_targets[target.get_id()] = True
 
+    def build_run_target_name(self, target):
+        if target.subproject != '':
+            subproject_prefix = '{}@@'.format(target.subproject)
+        else:
+            subproject_prefix = ''
+        return '{}{}'.format(subproject_prefix, target.name)
+
     def generate_run_target(self, target):
         cmd = self.environment.get_build_command() + ['--internal', 'commandrunner']
         deps = self.unwrap_dep_list(target)
@@ -718,12 +725,6 @@ int dummy;
                 arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
             else:
                 raise AssertionError('Unreachable code in generate_run_target: ' + str(i))
-        if target.subproject != '':
-            subproject_prefix = '{}@@'.format(target.subproject)
-        else:
-            subproject_prefix = ''
-        target_name = 'meson-{}{}'.format(subproject_prefix, target.name)
-        elem = NinjaBuildElement(self.all_outputs, target_name, 'CUSTOM_COMMAND', [])
         cmd += [self.environment.get_source_dir(),
                 self.environment.get_build_dir(),
                 target.subdir] + self.environment.get_build_command()
@@ -756,14 +757,21 @@ int dummy;
             cmd.append(target.command)
         cmd += arg_strings
 
+        if texe:
+            target_name = 'meson-{}'.format(self.build_run_target_name(target))
+            elem = NinjaBuildElement(self.all_outputs, target_name, 'CUSTOM_COMMAND', [])
+            elem.add_item('COMMAND', cmd)
+            elem.add_item('description', 'Running external command %s.' % target.name)
+            elem.add_item('pool', 'console')
+            # Alias that runs the target defined above with the name the user specified
+            self.create_target_alias(target_name)
+        else:
+            target_name = self.build_run_target_name(target)
+            elem = NinjaBuildElement(self.all_outputs, target_name, 'phony', [])
+
         elem.add_dep(deps)
         cmd = self.replace_paths(target, cmd)
-        elem.add_item('COMMAND', cmd)
-        elem.add_item('description', 'Running external command %s.' % target.name)
-        elem.add_item('pool', 'console')
         self.add_build(elem)
-        # Alias that runs the target defined above with the name the user specified
-        self.create_target_alias(target_name)
         self.processed_targets[target.get_id()] = True
 
     def generate_coverage_command(self, elem, outputs):

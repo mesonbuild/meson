@@ -863,10 +863,9 @@ class CustomTargetHolder(TargetHolder):
         return IncludeDirsHolder(build.IncludeDirs('', [], False,
                                                    [os.path.join('@BUILD_ROOT@', self.interpreter.backend.get_target_dir(self.held_object))]))
 
-class RunTargetHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, name, command, args, dependencies, subdir, subproject):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, build.RunTarget(name, command, args, dependencies, subdir, subproject))
+class RunTargetHolder(TargetHolder):
+    def __init__(self, target, interp):
+        super().__init__(target, interp)
 
     def __repr__(self):
         r = '<{} {}: {}>'
@@ -2103,6 +2102,7 @@ class Interpreter(InterpreterBase):
                            'add_project_link_arguments': self.func_add_project_link_arguments,
                            'add_test_setup': self.func_add_test_setup,
                            'add_languages': self.func_add_languages,
+                           'alias_target': self.func_alias_target,
                            'assert': self.func_assert,
                            'benchmark': self.func_benchmark,
                            'build_target': self.func_build_target,
@@ -3300,7 +3300,23 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 raise InterpreterException('Depends items must be build targets.')
             cleaned_deps.append(d)
         command, *cmd_args = cleaned_args
-        tg = RunTargetHolder(name, command, cmd_args, cleaned_deps, self.subdir, self.subproject)
+        tg = RunTargetHolder(build.RunTarget(name, command, cmd_args, cleaned_deps, self.subdir, self.subproject), self)
+        self.add_target(name, tg.held_object)
+        return tg
+
+    @FeatureNew('alias_target', '0.52.0')
+    @noKwargs
+    def func_alias_target(self, node, args, kwargs):
+        if len(args) < 2:
+            raise InvalidCode('alias_target takes at least 2 arguments.')
+        name = args[0]
+        if not isinstance(name, str):
+            raise InterpreterException('First argument must be a string.')
+        deps = listify(args[1:], unholder=True)
+        for d in deps:
+            if not isinstance(d, (build.BuildTarget, build.CustomTarget)):
+                raise InterpreterException('Depends items must be build targets.')
+        tg = RunTargetHolder(build.AliasTarget(name, deps, self.subdir, self.subproject), self)
         self.add_target(name, tg.held_object)
         return tg
 

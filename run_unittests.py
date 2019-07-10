@@ -3747,6 +3747,19 @@ recommended as it is not supported on some platforms''')
         testdir = os.path.join(self.unit_test_dir, '61 cmake parser')
         self.init(testdir, extra_args=['-Dcmake_prefix_path=' + os.path.join(testdir, 'prefix')])
 
+    def test_alias_target(self):
+        if self.backend is Backend.vs:
+            # FIXME: This unit test is broken with vs backend, needs investigation
+            raise unittest.SkipTest('Skipping alias_target test with {} backend'.format(self.backend.name))
+        testdir = os.path.join(self.unit_test_dir, '62 alias target')
+        self.init(testdir)
+        self.build()
+        self.assertPathDoesNotExist(os.path.join(self.builddir, 'prog' + exe_suffix))
+        self.assertPathDoesNotExist(os.path.join(self.builddir, 'hello.txt'))
+        self.run_target('build-all')
+        self.assertPathExists(os.path.join(self.builddir, 'prog' + exe_suffix))
+        self.assertPathExists(os.path.join(self.builddir, 'hello.txt'))
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically

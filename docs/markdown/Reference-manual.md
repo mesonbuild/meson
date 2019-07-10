@@ -119,6 +119,20 @@ Note that all these options are also available while running the
 `meson test` script for running tests instead of `ninja test` or
 `msbuild RUN_TESTS.vcxproj`, etc depending on the backend.
 
+### alias_target
+
+``` meson
+runtarget alias_target(target_name, dep1, ...)
+```
+
+Since *0.52.0*
+
+This function creates a new top-level target. Like all top-level targets, this
+integrates with the selected backend. For instance, with Ninja you can
+run it as `ninja target_name`. This is a dummy target that does not execute any
+command, but ensures that all dependencies are built. Dependencies can be any
+build target (e.g. return value of executable(), custom_target(), etc)
+
 ### assert()
 
 ``` meson

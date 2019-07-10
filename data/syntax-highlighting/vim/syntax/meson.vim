@@ -69,6 +69,7 @@ syn keyword mesonBuiltin
   \ add_project_arguments
   \ add_project_link_arguments
   \ add_test_setup
+  \ alias_target
   \ assert
   \ benchmark
   \ both_libraries
