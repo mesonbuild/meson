@@ -84,6 +84,7 @@ class AstVisitor:
 
     def visit_IndexNode(self, node: mparser.IndexNode):
         self.visit_default_func(node)
+        node.iobject.accept(self)
         node.index.accept(self)
 
     def visit_MethodNode(self, node: mparser.MethodNode):
