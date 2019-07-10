@@ -5926,10 +5926,7 @@ class NativeFileTests(BasePlatformTests):
         # invokes our python wrapper
         batfile = os.path.join(self.builddir, 'binary_wrapper{}.bat'.format(self.current_wrapper))
         with open(batfile, 'wt') as f:
-            if mesonbuild.environment.detect_msys2_arch():
-                f.write(r'@python3 {} %*'.format(filename))
-            else:
-                f.write('@{} {} %*'.format(sys.executable, filename))
+            f.write(r'@{} {} %*'.format(sys.executable, filename))
         return batfile
 
     def helper_for_compiler(self, lang, cb, for_machine = MachineChoice.HOST):
