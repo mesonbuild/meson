@@ -524,8 +524,8 @@ class Vs2010Backend(backends.Backend):
             cmd_raw = [target.command] + target.args
         cmd = python_command + \
             [os.path.join(self.environment.get_script_dir(), 'commandrunner.py'),
-             self.environment.get_build_dir(),
              self.environment.get_source_dir(),
+             self.environment.get_build_dir(),
              self.get_target_dir(target)] + self.environment.get_build_command()
         for i in cmd_raw:
             if isinstance(i, build.BuildTarget):
