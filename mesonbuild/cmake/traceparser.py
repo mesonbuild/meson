@@ -343,8 +343,8 @@ class CMakeTraceParser:
         # set_property() this is not context free. There are two approaches I
         # can think of, both have drawbacks:
         #
-        #   1. Assume that the property will be capitalized, this is convention
-        #      but cmake doesn't require it.
+        #   1. Assume that the property will be capitalized ([A-Z_]), this is
+        #      convention but cmake doesn't require it.
         #   2. Maintain a copy of the list here: https://cmake.org/cmake/help/latest/manual/cmake-properties.7.html#target-properties
         #
         # Neither of these is awesome for obvious reasons. I'm going to try
@@ -354,8 +354,9 @@ class CMakeTraceParser:
         arglist = []  # type: List[Tuple[str, List[str]]]
         name = args.pop(0)
         values = []
+        prop_regex = re.compile(r'^[A-Z_]+$')
         for a in args:
-            if a.isupper():
+            if prop_regex.match(a):
                 if values:
                     arglist.append((name, ' '.join(values).split(';')))
                 name = a
