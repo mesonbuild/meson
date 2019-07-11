@@ -199,16 +199,23 @@ class CMakeTraceParser:
         args = list(tline.args) # Make a working copy
 
         # Make sure the lib is imported
-        if 'IMPORTED' not in args:
-            return self._gen_exception('add_library', 'non imported libraries are not supported', tline)
+        if 'INTERFACE' in args:
+            args.remove('INTERFACE')
 
-        args.remove('IMPORTED')
+            if len(args) < 1:
+                return self._gen_exception('add_library', 'interface library name not specified', tline)
 
-        # No only look at the first two arguments (target_name and target_type) and ignore the rest
-        if len(args) < 2:
-            return self._gen_exception('add_library', 'requires at least 2 arguments', tline)
+            self.targets[args[0]] = CMakeTarget(args[0], 'INTERFACE', {})
+        elif 'IMPORTED' in args:
+            args.remove('IMPORTED')
 
-        self.targets[args[0]] = CMakeTarget(args[0], args[1], {})
+            # No only look at the first two arguments (target_name and target_type) and ignore the rest
+            if len(args) < 2:
+                return self._gen_exception('add_library', 'requires at least 2 arguments', tline)
+
+            self.targets[args[0]] = CMakeTarget(args[0], args[1], {})
+        else:
+            return self._gen_exception('add_library', 'non imported / interface libraries are not supported', tline)
 
     def _cmake_add_custom_command(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_command.html
