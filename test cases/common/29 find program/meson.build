@@ -18,3 +18,12 @@ else
   e = executable('prog', generated)
   test('external exe', e)
 endif
+
+prog = find_program('print-version.py', version : '>=2.0', required : false)
+assert(not prog.found(), 'Version should be too old')
+
+prog = find_program('print-version.py', version : '>=1.0')
+assert(prog.found(), 'Program version should match')
+
+prog = find_program('print-version-with-prefix.py', version : '>=1.0')
+assert(prog.found(), 'Program version should match')

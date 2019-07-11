@@ -671,6 +671,14 @@ Keyword arguments are the following:
   [disabler object](#disabler-object) instead of a not-found object.
   *Since 0.49.0*
 
+- `version` *(since 0.52.0)* Specifies the required version, see
+  [`dependency()`](#dependency) for argument format. The version of the program
+  is determined by running `program_name --version` command. If stdout is empty
+  it fallbacks to stderr. If the output contains more text than simply a version
+  number, only the first occurence of numbers separated by dots is kept.
+  If the output is more complicated than that, the version checking will have to
+  be done manually using [`run_command()`](#run_command).
+
 Meson will also autodetect scripts with a shebang line and run them
 with the executable/interpreter specified in it both on Windows
 (because the command invocator will reject the command otherwise) and

@@ -489,6 +489,7 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
         ObjectHolder.__init__(self, ep)
         self.methods.update({'found': self.found_method,
                              'path': self.path_method})
+        self.cached_version = None
 
     @noPosargs
     @permittedKwargs({})
@@ -508,6 +509,24 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
 
     def get_name(self):
         return self.held_object.get_name()
+
+    def get_version(self, interpreter):
+        if not self.cached_version:
+            raw_cmd = self.get_command() + ['--version']
+            cmd = [self, '--version']
+            res = interpreter.run_command_impl(interpreter.current_node, cmd, {}, True)
+            if res.returncode != 0:
+                m = 'Running {!r} failed'
+                raise InterpreterException(m.format(raw_cmd))
+            output = res.stdout.strip()
+            if not output:
+                output = res.stderr.strip()
+            match = re.search(r'([0-9\.]+)', output)
+            if not match:
+                m = 'Could not find a version number in output of {!r}'
+                raise InterpreterException(m.format(raw_cmd))
+            self.cached_version = match.group(1)
+        return self.cached_version
 
 class ExternalLibraryHolder(InterpreterObject, ObjectHolder):
     def __init__(self, el, pv):
@@ -1993,7 +2012,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                            'version',
                                            },
                     'executable': build.known_exe_kwargs,
-                    'find_program': {'required', 'native'},
+                    'find_program': {'required', 'native', 'version'},
                     'generator': {'arguments',
                                   'output',
                                   'depends',
@@ -2879,7 +2898,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
-    def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST, required=True, silent=True):
+    def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST, required=True, silent=True, wanted=''):
         if not isinstance(args, list):
             args = [args]
 
@@ -2897,8 +2916,20 @@ external dependencies (including libraries) must go to "dependencies".''')
             return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
         # Only store successful lookups
         self.store_name_lookups(args)
+        if wanted:
+            version = progobj.get_version(self)
+            is_found, not_found, found = mesonlib.version_compare_many(version, wanted)
+            if not is_found:
+                mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'),
+                         'found {!r} but need:'.format(version),
+                         ', '.join(["'{}'".format(e) for e in not_found]))
+                if required:
+                    m = 'Invalid version of program, need {!r} {!r} found {!r}.'
+                    raise InvalidArguments(m.format(progobj.get_name(), not_found, version))
+                return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
         return progobj
 
+    @FeatureNewKwargs('find_program', '0.52.0', ['version'])
     @FeatureNewKwargs('find_program', '0.49.0', ['disabler'])
     @disablerIfNotFound
     @permittedKwargs(permitted_kwargs['find_program'])
@@ -2913,8 +2944,9 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         if not isinstance(required, bool):
             raise InvalidArguments('"required" argument must be a boolean.')
+        wanted = mesonlib.stringlistify(kwargs.get('version', []))
         for_machine = self.machine_from_native_kwarg(kwargs)
-        return self.find_program_impl(args, for_machine, required=required, silent=False)
+        return self.find_program_impl(args, for_machine, required=required, silent=False, wanted=wanted)
 
     def func_find_library(self, node, args, kwargs):
         raise InvalidCode('find_library() is removed, use meson.get_compiler(\'name\').find_library() instead.\n'
