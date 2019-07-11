@@ -74,7 +74,10 @@ target_type_map = {
     'SHARED_LIBRARY': 'shared_library',
     'EXECUTABLE': 'executable',
     'OBJECT_LIBRARY': 'static_library',
+    'INTERFACE_LIBRARY': 'header_only'
 }
+
+target_type_requires_trace = ['INTERFACE_LIBRARY']
 
 skip_targets = ['UTILITY']
 
@@ -138,6 +141,7 @@ class ConverterTarget:
         self.link_with = []
         self.object_libs = []
         self.compile_opts = {}
+        self.public_compile_opts = []
         self.pie = False
 
         # Project default override options (c_std, cpp_std, etc.)
@@ -170,7 +174,7 @@ class ConverterTarget:
 
     std_regex = re.compile(r'([-]{1,2}std=|/std:v?|[-]{1,2}std:)(.*)')
 
-    def postprocess(self, output_target_map: dict, root_src_dir: str, subdir: str, install_prefix: str) -> None:
+    def postprocess(self, output_target_map: dict, root_src_dir: str, subdir: str, install_prefix: str, trace: CMakeTraceParser) -> None:
         # Detect setting the C and C++ standard
         for i in ['c', 'cpp']:
             if i not in self.compile_opts:
@@ -193,6 +197,18 @@ class ConverterTarget:
         # Make sure to force enable -fPIC for OBJECT libraries
         if self.type.upper() == 'OBJECT_LIBRARY':
             self.pie = True
+
+        # Use the CMake trace, if required
+        if self.type.upper() in target_type_requires_trace:
+            if self.name in trace.targets:
+                props = trace.targets[self.name].properies
+
+                self.includes += props.get('INTERFACE_INCLUDE_DIRECTORIES', [])
+                self.public_compile_opts += props.get('INTERFACE_COMPILE_DEFINITIONS', [])
+                self.public_compile_opts += props.get('INTERFACE_COMPILE_OPTIONS', [])
+                self.link_flags += props.get('INTERFACE_LINK_OPTIONS', [])
+            else:
+                mlog.warning('CMake: Target', mlog.bold(self.name), 'not found in CMake trace. This can lead to build errors')
 
         # Fix link libraries
         temp = []
@@ -584,7 +600,7 @@ class CMakeInterpreter:
         for i in self.custom_targets:
             i.postprocess(output_target_map, self.src_dir, self.subdir, self.build_dir)
         for i in self.targets:
-            i.postprocess(output_target_map, self.src_dir, self.subdir, self.install_prefix)
+            i.postprocess(output_target_map, self.src_dir, self.subdir, self.install_prefix, self.trace)
             if i.type == 'OBJECT_LIBRARY':
                 object_libs += [i]
             self.languages += [x for x in i.languages if x not in self.languages]
@@ -762,17 +778,31 @@ class CMakeInterpreter:
             dep_kwargs = {
                 'link_args': tgt.link_flags + tgt.link_libraries,
                 'link_with': id_node(tgt_var),
+                'compile_args': tgt.public_compile_opts,
                 'include_directories': id_node(inc_var),
             }
 
             # Generate the function nodes
-            inc_node = assign(inc_var, function('include_directories', tgt.includes))
-            src_node = assign(src_var, function('files', sources))
-            tgt_node = assign(tgt_var, function(tgt_func, [base_name, [id_node(src_var)] + generated], tgt_kwargs))
-            dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
+            node_list = []
+            if tgt_func == 'header_only':
+                del dep_kwargs['link_with']
+                inc_node = assign(inc_var, function('include_directories', tgt.includes))
+                dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
+
+                node_list = [inc_node, dep_node]
+                src_var = ''
+                tgt_var = ''
+
+            else:
+                inc_node = assign(inc_var, function('include_directories', tgt.includes))
+                src_node = assign(src_var, function('files', sources))
+                tgt_node = assign(tgt_var, function(tgt_func, [base_name, [id_node(src_var)] + generated], tgt_kwargs))
+                dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
+
+                node_list = [inc_node, src_node, tgt_node, dep_node]
 
             # Add the nodes to the ast
-            root_cb.lines += [inc_node, src_node, tgt_node, dep_node]
+            root_cb.lines += node_list
             processed[tgt.name] = {'inc': inc_var, 'src': src_var, 'dep': dep_var, 'tgt': tgt_var, 'func': tgt_func}
 
         def process_custom_target(tgt: ConverterCustomTarget) -> None:
