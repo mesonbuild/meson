@@ -81,7 +81,11 @@ class CMakeTraceParser:
             'add_custom_command': self._cmake_add_custom_command,
             'add_custom_target': self._cmake_add_custom_target,
             'set_property': self._cmake_set_property,
-            'set_target_properties': self._cmake_set_target_properties
+            'set_target_properties': self._cmake_set_target_properties,
+            'target_compile_definitions': self._cmake_target_compile_definitions,
+            'target_compile_options': self._cmake_target_compile_options,
+            'target_include_directories': self._cmake_target_include_directories,
+            'target_link_options': self._cmake_target_link_options,
         }
 
         # Primary pass -- parse everything
@@ -380,6 +384,66 @@ class CMakeTraceParser:
 
                 self.targets[i].properies[name] = value
 
+    def _cmake_target_compile_definitions(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/target_compile_definitions.html
+        self._parse_common_target_options('target_compile_definitions', 'COMPILE_DEFINITIONS', 'INTERFACE_COMPILE_DEFINITIONS', tline)
+
+    def _cmake_target_compile_options(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/target_compile_options.html
+        self._parse_common_target_options('target_compile_options', 'COMPILE_OPTIONS', 'INTERFACE_COMPILE_OPTIONS', tline)
+
+    def _cmake_target_include_directories(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/target_include_directories.html
+        self._parse_common_target_options('target_include_directories', 'INCLUDE_DIRECTORIES', 'INTERFACE_INCLUDE_DIRECTORIES', tline, ignore=['SYSTEM', 'BEFORE'], paths=True)
+
+    def _cmake_target_link_options(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/target_link_options.html
+        self._parse_common_target_options('target_link_options', 'LINK_OPTIONS', 'INTERFACE_LINK_OPTIONS', tline)
+
+    def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: Optional[List[str]] = None, paths: bool = False):
+        if ignore is None:
+            ignore = ['BEFORE']
+
+        args = list(tline.args)
+
+        if len(args) < 1:
+            return self._gen_exception(func, 'requires at least one argument', tline)
+
+        target = args[0]
+        if target not in self.targets:
+            return self._gen_exception(func, 'TARGET {} not found'.format(target), tline)
+
+        interface = []
+        private = []
+
+        mode = 'PUBLIC'
+        for i in args[1:]:
+            if i in ignore:
+                continue
+
+            if i in ['INTERFACE', 'PUBLIC', 'PRIVATE']:
+                mode = i
+                continue
+
+            if mode in ['INTERFACE', 'PUBLIC']:
+                interface += [i]
+
+            if mode in ['PUBLIC', 'PRIVATE']:
+                private += [i]
+
+        if paths:
+            interface = self._guess_files(interface)
+            private = self._guess_files(private)
+
+        interface = [x for x in interface if x]
+        private = [x for x in private if x]
+
+        for i in [(private_prop, private), (interface_prop, interface)]:
+            if not i[0] in self.targets[target].properies:
+                self.targets[target].properies[i[0]] = []
+
+            self.targets[target].properies[i[0]] += i[1]
+
     def _lex_trace(self, trace):
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
         reg_tline = re.compile(r'\s*(.*\.(cmake|txt))\(([0-9]+)\):\s*(\w+)\(([\s\S]*?) ?\)\s*\n', re.MULTILINE)
@@ -428,7 +492,7 @@ class CMakeTraceParser:
                 # Abort concatination if curr_str no longer matches the regex
                 fixed_list += [curr_str]
                 curr_str = i
-            elif reg_end.match(i):
+            elif reg_end.match(i) or os.path.exists('{} {}'.format(curr_str, i)):
                 # File detected
                 curr_str = '{} {}'.format(curr_str, i)
                 fixed_list += [curr_str]
