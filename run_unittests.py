@@ -279,6 +279,7 @@ class PatchModule:
     Fancy monkey-patching! Whee! Can't use mock.patch because it only
     patches in the local namespace.
     '''
+
     def __init__(self, func, name, impl):
         self.func = func
         assert(isinstance(name, str))
@@ -1483,6 +1484,7 @@ class AllPlatformTests(BasePlatformTests):
     '''
     Tests that should run on all platforms
     '''
+
     def test_default_options_prefix(self):
         '''
         Tests that setting a prefix in default_options in project() works.
@@ -4055,6 +4057,7 @@ class WindowsTests(BasePlatformTests):
     '''
     Tests that should run on Cygwin, MinGW, and MSVC
     '''
+
     def setUp(self):
         super().setUp()
         self.platform_test_dir = os.path.join(self.src_root, 'test cases/windows')
@@ -4169,6 +4172,7 @@ class DarwinTests(BasePlatformTests):
     '''
     Tests that should run on macOS
     '''
+
     def setUp(self):
         super().setUp()
         self.platform_test_dir = os.path.join(self.src_root, 'test cases/osx')
@@ -4268,6 +4272,7 @@ class LinuxlikeTests(BasePlatformTests):
     '''
     Tests that should run on Linux, macOS, and *BSD
     '''
+
     def test_basic_soname(self):
         '''
         Test that the soname is set correctly for shared libraries. This can't
@@ -4556,20 +4561,32 @@ class LinuxlikeTests(BasePlatformTests):
             Oargs = [arg for arg in cmd if arg.startswith('-O')]
             self.assertEqual(Oargs, [Oflag, '-O0'])
 
-    def _test_stds_impl(self, testdir, compiler, p):
+    def _test_stds_impl(self, testdir, compiler, p: str):
         lang_std = p + '_std'
-        # Check that all the listed -std=xxx options for this compiler work
-        # just fine when used
+
+        has_cpp17 = (compiler.get_id() not in {'clang', 'gcc'} or
+                     compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=5.0.0', '>=9.1') or
+                     compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=5.0.0'))
+        has_cpp2a_c17 = (compiler.get_id() not in {'clang', 'gcc'} or
+                         compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=6.0.0', '>=10.0') or
+                         compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=8.0.0'))
+        has_c18 = (compiler.get_id() not in {'clang', 'gcc'} or
+                   compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=8.0.0', '>=11.0') or
+                   compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=8.0.0'))
+        # Check that all the listed -std=xxx options for this compiler work just fine when used
+        # https://en.wikipedia.org/wiki/Xcode#Latest_versions
+        # https://www.gnu.org/software/gcc/projects/cxx-status.html
         for v in compiler.get_options()[lang_std].choices:
-            if (compiler.get_id() == 'clang' and '17' in v and
-                (version_compare(compiler.version, '<5.0.0') or
-                 (compiler.compiler_type == mesonbuild.compilers.CompilerType.CLANG_OSX and version_compare(compiler.version, '<9.1')))):
+            # we do it like this to handle gnu++17,c++17 and gnu17,c17 cleanly
+            # thus, C++ first
+            if '++17' in v and not has_cpp17:
                 continue
-            if (compiler.get_id() == 'clang' and '2a' in v and
-                (version_compare(compiler.version, '<6.0.0') or
-                 (compiler.compiler_type == mesonbuild.compilers.CompilerType.CLANG_OSX and version_compare(compiler.version, '<9.1')))):
+            elif '++2a' in v and not has_cpp2a_c17:  # https://en.cppreference.com/w/cpp/compiler_support
                 continue
-            if (compiler.get_id() == 'gcc' and '2a' in v and version_compare(compiler.version, '<8.0.0')):
+            # now C
+            elif '17' in v and not has_cpp2a_c17:
+                continue
+            elif '18' in v and not has_c18:
                 continue
             std_opt = '{}={}'.format(lang_std, v)
             self.init(testdir, extra_args=['-D' + std_opt])
@@ -5326,6 +5343,7 @@ class LinuxCrossArmTests(BasePlatformTests):
     '''
     Tests that cross-compilation to Linux/ARM works
     '''
+
     def setUp(self):
         super().setUp()
         src_root = os.path.dirname(__file__)
@@ -5385,6 +5403,7 @@ class LinuxCrossMingwTests(BasePlatformTests):
     '''
     Tests that cross-compilation to Windows/MinGW works
     '''
+
     def setUp(self):
         super().setUp()
         src_root = os.path.dirname(__file__)
@@ -5438,6 +5457,7 @@ class PythonTests(BasePlatformTests):
     '''
     Tests that verify compilation of python extension modules
     '''
+
     def test_versions(self):
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('Skipping python tests with {} backend'.format(self.backend.name))
@@ -6481,6 +6501,30 @@ class TAPParserTests(unittest.TestCase):
         self.assert_error(events)
         self.assert_test(events, number=2, name='', result=TestResult.FAIL)
         self.assert_last(events)
+
+
+def _clang_at_least(compiler, minver: str, apple_minver: str) -> bool:
+    """
+    check that Clang compiler is at least a specified version, whether AppleClang or regular Clang
+
+    Parameters
+    ----------
+    compiler:
+        Meson compiler object
+    minver: str
+        Clang minimum version
+    apple_minver: str
+        AppleCLang minimum version
+
+    Returns
+    -------
+    at_least: bool
+        Clang is at least the specified version
+    """
+    if compiler.compiler_type == mesonbuild.compilers.CompilerType.CLANG_OSX:
+        return version_compare(compiler.version, apple_minver)
+    return version_compare(compiler.version, minver)
+
 
 def unset_envs():
     # For unit tests we must fully control all command lines
