@@ -679,12 +679,11 @@ int dummy;
             if extra_paths:
                 serialize = True
         if serialize:
-            exe_data = self.serialize_executable(target.name, target.command[0], cmd[1:],
-                                                 # All targets are built from the build dir
-                                                 self.environment.get_build_dir(),
-                                                 extra_paths=extra_paths,
-                                                 capture=ofilenames[0] if target.capture else None)
-            cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
+            cmd = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
+                                            # All targets are built from the build dir
+                                            self.environment.get_build_dir(),
+                                            extra_paths=extra_paths,
+                                            capture=ofilenames[0] if target.capture else None)
             cmd_type = 'meson_exe.py custom'
         else:
             cmd_type = 'custom'
@@ -1787,14 +1786,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
             if generator.capture:
-                exe_data = self.serialize_executable(
+                cmd = self.as_meson_exe_cmdline(
                     'generator ' + cmdlist[0],
                     cmdlist[0],
                     cmdlist[1:],
                     self.environment.get_build_dir(),
                     capture=outfiles[0]
                 )
-                cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
                 abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
                 os.makedirs(abs_pdir, exist_ok=True)
             else:

@@ -323,7 +323,7 @@ class Backend:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
 
-    def serialize_executable(self, tname, exe, cmd_args, workdir, env=None,
+    def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir, env=None,
                              extra_paths=None, capture=None):
         '''
         Serialize an executable for running with a generator or a custom target
@@ -376,7 +376,7 @@ class Backend:
                                          extra_paths, capture,
                                          self.environment.need_exe_wrapper())
             pickle.dump(es, f)
-        return exe_data
+        return self.environment.get_build_command() + ['--internal', 'exe', exe_data]
 
     def serialize_tests(self):
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
