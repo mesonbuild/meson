@@ -336,8 +336,28 @@ class Backend:
         else:
             extra_paths = []
 
+        if isinstance(exe, dependencies.ExternalProgram):
+            exe_cmd = exe.get_command()
+            exe_for_machine = exe.for_machine
+        elif isinstance(exe, (build.BuildTarget, build.CustomTarget)):
+            exe_cmd = [self.get_target_filename_abs(exe)]
+            exe_for_machine = exe.for_machine
+        else:
+            exe_cmd = [exe]
+            exe_for_machine = MachineChoice.BUILD
+        is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
+        if is_cross_built and self.environment.need_exe_wrapper():
+            exe_wrapper = self.environment.get_exe_wrapper()
+            if not exe_wrapper.found():
+                msg = 'The exe_wrapper {!r} defined in the cross file is ' \
+                      'needed by target {!r}, but was not found. Please ' \
+                      'check the command and/or add it to PATH.'
+                raise MesonException(msg.format(exe_wrapper.name, tname))
+        else:
+            exe_wrapper = None
+
         force_serialize = force_serialize or extra_paths or capture or workdir or \
-            any('\n' in c for c in cmd_args)
+            exe_wrapper or any('\n' in c for c in cmd_args)
         if not force_serialize:
             return None
 
@@ -359,25 +379,6 @@ class Backend:
         scratch_file = 'meson_exe_{0}_{1}.dat'.format(basename, digest)
         exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
         with open(exe_data, 'wb') as f:
-            if isinstance(exe, dependencies.ExternalProgram):
-                exe_cmd = exe.get_command()
-                exe_for_machine = exe.for_machine
-            elif isinstance(exe, (build.BuildTarget, build.CustomTarget)):
-                exe_cmd = [self.get_target_filename_abs(exe)]
-                exe_for_machine = exe.for_machine
-            else:
-                exe_cmd = [exe]
-                exe_for_machine = MachineChoice.BUILD
-            is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
-            if is_cross_built and self.environment.need_exe_wrapper():
-                exe_wrapper = self.environment.get_exe_wrapper()
-                if not exe_wrapper.found():
-                    msg = 'The exe_wrapper {!r} defined in the cross file is ' \
-                          'needed by target {!r}, but was not found. Please ' \
-                          'check the command and/or add it to PATH.'
-                    raise MesonException(msg.format(exe_wrapper.name, tname))
-            else:
-                exe_wrapper = None
             es = ExecutableSerialisation(basename, exe_cmd, cmd_args, env,
                                          is_cross_built, exe_wrapper, workdir,
                                          extra_paths, capture,
