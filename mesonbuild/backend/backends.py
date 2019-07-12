@@ -323,26 +323,33 @@ class Backend:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
 
-    def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir, env=None,
-                             extra_paths=None, capture=None):
+    def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir=None,
+                             for_machine=MachineChoice.BUILD,
+                             extra_bdeps=None, capture=None, force_serialize=False):
         '''
         Serialize an executable for running with a generator or a custom target
         '''
         import hashlib
-        if env is None:
-            env = {}
-        if extra_paths is None:
-            # The callee didn't check if we needed extra paths, so check it here
-            if mesonlib.is_windows() or mesonlib.is_cygwin():
-                extra_paths = self.determine_windows_extra_paths(exe, [])
-            else:
-                extra_paths = []
-        # Can't just use exe.name here; it will likely be run more than once
+        machine = self.environment.machines[for_machine]
+        if machine.is_windows() or machine.is_cygwin():
+            extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps or [])
+        else:
+            extra_paths = []
+
+        force_serialize = force_serialize or extra_paths or capture or workdir or \
+            any('\n' in c for c in cmd_args)
+        if not force_serialize:
+            return None
+
+        workdir = workdir or self.environment.get_build_dir()
+        env = {}
         if isinstance(exe, (dependencies.ExternalProgram,
                             build.BuildTarget, build.CustomTarget)):
             basename = exe.name
         else:
             basename = os.path.basename(exe)
+
+        # Can't just use exe.name here; it will likely be run more than once
         # Take a digest of the cmd args, env, workdir, and capture. This avoids
         # collisions and also makes the name deterministic over regenerations
         # which avoids a rebuild by Ninja because the cmdline stays the same.

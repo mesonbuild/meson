@@ -658,32 +658,13 @@ int dummy;
             # Add a dependency on all the outputs of this target
             for output in d.get_outputs():
                 elem.add_dep(os.path.join(self.get_target_dir(d), output))
-        serialize = False
-        extra_paths = []
-        # If the target requires capturing stdout, then use the serialized
-        # executable wrapper to capture that output and save it to a file.
-        if target.capture:
-            serialize = True
-        # If the command line requires a newline, also use the wrapper, as
-        # ninja does not support them in its build rule syntax.
-        if any('\n' in c for c in cmd):
-            serialize = True
-        # Windows doesn't have -rpath, so for EXEs that need DLLs built within
-        # the project, we need to set PATH so the DLLs are found. We use
-        # a serialized executable wrapper for that and check if the
-        # CustomTarget command needs extra paths first.
-        machine = self.environment.machines[target.for_machine]
-        if machine.is_windows() or machine.is_cygwin():
-            extra_bdeps = target.get_transitive_build_target_deps()
-            extra_paths = self.determine_windows_extra_paths(target.command[0], extra_bdeps)
-            if extra_paths:
-                serialize = True
-        if serialize:
-            cmd = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
-                                            # All targets are built from the build dir
-                                            self.environment.get_build_dir(),
-                                            extra_paths=extra_paths,
-                                            capture=ofilenames[0] if target.capture else None)
+
+        meson_exe_cmd = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
+                                                  for_machine=target.for_machine,
+                                                  extra_bdeps=target.get_transitive_build_target_deps(),
+                                                  capture=ofilenames[0] if target.capture else None)
+        if meson_exe_cmd:
+            cmd = meson_exe_cmd
             cmd_type = 'meson_exe.py custom'
         else:
             cmd_type = 'custom'
@@ -1785,18 +1766,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 outfilelist = outfilelist[len(generator.outputs):]
             args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
-            if generator.capture:
-                cmd = self.as_meson_exe_cmdline(
-                    'generator ' + cmdlist[0],
-                    cmdlist[0],
-                    cmdlist[1:],
-                    self.environment.get_build_dir(),
-                    capture=outfiles[0]
-                )
-                abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-                os.makedirs(abs_pdir, exist_ok=True)
-            else:
-                cmd = cmdlist
+            meson_exe_cmd = self.as_meson_exe_cmdline('generator ' + cmdlist[0],
+                                                      cmdlist[0], cmdlist[1:],
+                                                      capture=outfiles[0] if generator.capture else None)
+            if meson_exe_cmd:
+                cmdlist = meson_exe_cmd
+            abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+            os.makedirs(abs_pdir, exist_ok=True)
 
             elem = NinjaBuildElement(self.all_outputs, outfiles, rulename, infilename)
             elem.add_dep([self.get_target_filename(x) for x in generator.depends])
@@ -1811,7 +1787,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 elem.add_item('DESC', 'Generating source from {!r}.'.format(sole_output))
             if isinstance(exe, build.BuildTarget):
                 elem.add_dep(self.get_target_filename(exe))
-            elem.add_item('COMMAND', cmd)
+            elem.add_item('COMMAND', cmdlist)
             self.add_build(elem)
 
     def scan_fortran_module_outputs(self, target):

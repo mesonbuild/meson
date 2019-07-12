@@ -150,8 +150,9 @@ class Vs2010Backend(backends.Backend):
                         'generator ' + cmd[0],
                         cmd[0],
                         cmd[1:],
-                        tdir_abs,
-                        capture=outfiles[0] if generator.capture else None
+                        workdir=tdir_abs,
+                        capture=outfiles[0] if generator.capture else None,
+                        force_serialize=True
                     )
                     deps = cmd[-1:] + deps
                     abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
@@ -559,12 +560,12 @@ class Vs2010Backend(backends.Backend):
         # there are many arguments.
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
         extra_bdeps = target.get_transitive_build_target_deps()
-        extra_paths = self.determine_windows_extra_paths(target.command[0], extra_bdeps)
         wrapper_cmd = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
                                                 # All targets run from the target dir
-                                                tdir_abs,
-                                                extra_paths=extra_paths,
-                                                capture=ofilenames[0] if target.capture else None)
+                                                workdir=tdir_abs,
+                                                extra_bdeps=extra_bdeps,
+                                                capture=ofilenames[0] if target.capture else None,
+                                                force_serialize=True)
         if target.build_always_stale:
             # Use a nonexistent file to always consider the target out-of-date.
             ofilenames += [self.nonexistent_file(os.path.join(self.environment.get_scratch_dir(),
