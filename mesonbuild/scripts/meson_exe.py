@@ -38,28 +38,18 @@ def is_cygwin():
     platname = platform.system().lower()
     return 'cygwin' in platname
 
-def run_with_mono(fname):
-    if fname.endswith('.exe') and not (is_windows() or is_cygwin()):
-        return True
-    return False
-
 def run_exe(exe):
-    if exe.fname[0].endswith('.jar'):
-        cmd = ['java', '-jar'] + exe.fname
-    elif not exe.is_cross and run_with_mono(exe.fname[0]):
-        cmd = ['mono'] + exe.fname
-    else:
-        if exe.is_cross and exe.needs_exe_wrapper:
-            if exe.exe_runner is None:
-                raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} '
-                                     'with no wrapper'.format(exe.name))
-            elif not exe.exe_runner.found():
-                raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
-                                     'wrapper {!r}'.format(exe.name, exe.exe_runner.get_path()))
-            else:
-                cmd = exe.exe_runner.get_command() + exe.fname
+    if exe.is_cross and exe.needs_exe_wrapper:
+        if exe.exe_runner is None:
+            raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} '
+                                 'with no wrapper'.format(exe.name))
+        elif not exe.exe_runner.found():
+            raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
+                                 'wrapper {!r}'.format(exe.name, exe.exe_runner.get_path()))
         else:
-            cmd = exe.fname
+            cmd = exe.exe_runner.get_command() + exe.fname
+    else:
+        cmd = exe.fname
     child_env = os.environ.copy()
     child_env.update(exe.env)
     if exe.extra_paths:
