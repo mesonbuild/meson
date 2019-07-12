@@ -1021,7 +1021,10 @@ def run(options: argparse.Namespace) -> int:
 
     if not options.list and not options.no_rebuild:
         if not rebuild_all(options.wd):
-            return 1
+            # We return 125 here in case the build failed.
+            # The reason is that exit code 125 tells `git bisect run` that the current commit should be skipped.
+            # Thus users can directly use `meson test` to bisect without needing to handle the does-not-build case separately in a wrapper script.
+            return 125
 
     with TestHarness(options) as th:
         try:
