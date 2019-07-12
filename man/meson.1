@@ -124,6 +124,18 @@ The default way of running tests is to invoke the default build command:
 .B meson test
 provides a richer set of tools for invoking tests.
 
+.B meson test
+automatically rebuilds the necessary targets to run tests when used with the Ninja backend.
+Upon build failure,
+.B meson test
+will return an exit code of 125.
+This return code tells
+.B git bisect run
+to skip the current commit.
+Thus bisecting using git can be done conveniently like this.
+
+.B git bisect run meson test -C build_dir
+
 .SS "options:"
 .TP
 \fB\-\-repeat\fR
@@ -213,6 +225,10 @@ Usage error, or an error parsing or executing meson.build.
 .TP
 .B 2
 Internal error.
+.TP
+.B 125
+.B meson test
+could not rebuild the required targets.
 .TP
 
 .SH SEE ALSO
