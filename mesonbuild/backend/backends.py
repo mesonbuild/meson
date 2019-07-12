@@ -69,17 +69,14 @@ class TargetInstallData:
         self.optional = optional
 
 class ExecutableSerialisation:
-    def __init__(self, name, fname, cmd_args, env=None, is_cross=False, exe_wrapper=None,
-                 workdir=None, extra_paths=None, capture=None, needs_exe_wrapper: bool = False):
-        self.name = name
+    def __init__(self, fname, cmd_args, env=None, exe_wrapper=None,
+                 workdir=None, extra_paths=None, capture=None):
         self.fname = fname
         self.cmd_args = cmd_args
         self.env = env or {}
-        self.is_cross = is_cross
         if exe_wrapper is not None:
             assert(isinstance(exe_wrapper, dependencies.ExternalProgram))
         self.exe_runner = exe_wrapper
-        self.needs_exe_wrapper = needs_exe_wrapper
         self.workdir = workdir
         self.extra_paths = extra_paths
         self.capture = capture
@@ -387,10 +384,9 @@ class Backend:
         scratch_file = 'meson_exe_{0}_{1}.dat'.format(basename, digest)
         exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
         with open(exe_data, 'wb') as f:
-            es = ExecutableSerialisation(basename, exe_cmd, cmd_args, env,
-                                         is_cross_built, exe_wrapper, workdir,
-                                         extra_paths, capture,
-                                         self.environment.need_exe_wrapper())
+            es = ExecutableSerialisation(exe_cmd, cmd_args, env,
+                                         exe_wrapper, workdir,
+                                         extra_paths, capture)
             pickle.dump(es, f)
         return self.environment.get_build_command() + ['--internal', 'exe', '--unpickle', exe_data]
 

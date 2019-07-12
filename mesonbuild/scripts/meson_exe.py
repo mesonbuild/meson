@@ -39,15 +39,11 @@ def is_cygwin():
     return 'cygwin' in platname
 
 def run_exe(exe):
-    if exe.is_cross and exe.needs_exe_wrapper:
-        if exe.exe_runner is None:
-            raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} '
-                                 'with no wrapper'.format(exe.name))
-        elif not exe.exe_runner.found():
+    if exe.exe_runner:
+        if not exe.exe_runner.found():
             raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
-                                 'wrapper {!r}'.format(exe.name, exe.exe_runner.get_path()))
-        else:
-            cmd = exe.exe_runner.get_command() + exe.fname
+                                 'wrapper {!r}'.format(exe.fname[0], exe.exe_runner.get_path()))
+        cmd = exe.exe_runner.get_command() + exe.fname
     else:
         cmd = exe.fname
     child_env = os.environ.copy()
@@ -109,8 +105,7 @@ def run(args):
     else:
         exe_cmd = cmd_args[0]
         cmd_args = cmd_args[1:]
-        basename = os.path.basename(exe_cmd)
-        exe = ExecutableSerialisation(basename, [exe_cmd], cmd_args,
+        exe = ExecutableSerialisation([exe_cmd], cmd_args,
                                       capture=options.capture)
 
     return run_exe(exe)
