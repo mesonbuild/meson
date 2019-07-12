@@ -69,12 +69,12 @@ class TargetInstallData:
         self.optional = optional
 
 class ExecutableSerialisation:
-    def __init__(self, name, fname, cmd_args, env, is_cross, exe_wrapper,
-                 workdir, extra_paths, capture, needs_exe_wrapper: bool):
+    def __init__(self, name, fname, cmd_args, env=None, is_cross=False, exe_wrapper=None,
+                 workdir=None, extra_paths=None, capture=None, needs_exe_wrapper: bool = False):
         self.name = name
         self.fname = fname
         self.cmd_args = cmd_args
-        self.env = env
+        self.env = env or {}
         self.is_cross = is_cross
         if exe_wrapper is not None:
             assert(isinstance(exe_wrapper, dependencies.ExternalProgram))
@@ -345,6 +345,7 @@ class Backend:
         else:
             exe_cmd = [exe]
             exe_for_machine = MachineChoice.BUILD
+
         is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
         if is_cross_built and self.environment.need_exe_wrapper():
             exe_wrapper = self.environment.get_exe_wrapper()
@@ -356,10 +357,13 @@ class Backend:
         else:
             exe_wrapper = None
 
-        force_serialize = force_serialize or extra_paths or capture or workdir or \
+        force_serialize = force_serialize or extra_paths or workdir or \
             exe_wrapper or any('\n' in c for c in cmd_args)
         if not force_serialize:
-            return None
+            if not capture:
+                return None
+            return (self.environment.get_build_command() +
+                    ['--internal', 'exe', '--capture', capture, '--'] + exe_cmd + cmd_args)
 
         workdir = workdir or self.environment.get_build_dir()
         env = {}
@@ -384,7 +388,7 @@ class Backend:
                                          extra_paths, capture,
                                          self.environment.need_exe_wrapper())
             pickle.dump(es, f)
-        return self.environment.get_build_command() + ['--internal', 'exe', exe_data]
+        return self.environment.get_build_command() + ['--internal', 'exe', '--unpickle', exe_data]
 
     def serialize_tests(self):
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')

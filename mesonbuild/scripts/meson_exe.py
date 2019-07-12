@@ -20,12 +20,14 @@ import platform
 import subprocess
 
 from .. import mesonlib
+from ..backend.backends import ExecutableSerialisation
 
 options = None
 
 def buildparser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('args', nargs='+')
+    parser = argparse.ArgumentParser(description='Custom executable wrapper for Meson. Do not run on your own, mmm\'kay?')
+    parser.add_argument('--unpickle')
+    parser.add_argument('--capture')
     return parser
 
 def is_windows():
@@ -101,13 +103,26 @@ def run_exe(exe):
 
 def run(args):
     global options
-    options = buildparser().parse_args(args)
-    if len(options.args) != 1:
-        print('Test runner for Meson. Do not run on your own, mmm\'kay?')
-        print(sys.argv[0] + ' [data file]')
-    exe_data_file = options.args[0]
-    with open(exe_data_file, 'rb') as f:
-        exe = pickle.load(f)
+    parser = buildparser()
+    options, cmd_args = parser.parse_known_args(args)
+    # argparse supports double dash to separate options and positional arguments,
+    # but the user has to remove it manually.
+    if cmd_args and cmd_args[0] == '--':
+        cmd_args = cmd_args[1:]
+    if not options.unpickle and not cmd_args:
+        parser.error('either --unpickle or executable and arguments are required')
+    if options.unpickle:
+        if cmd_args or options.capture:
+            parser.error('no other arguments can be used with --unpickle')
+        with open(options.unpickle, 'rb') as f:
+            exe = pickle.load(f)
+    else:
+        exe_cmd = cmd_args[0]
+        cmd_args = cmd_args[1:]
+        basename = os.path.basename(exe_cmd)
+        exe = ExecutableSerialisation(basename, [exe_cmd], cmd_args,
+                                      capture=options.capture)
+
     return run_exe(exe)
 
 if __name__ == '__main__':
