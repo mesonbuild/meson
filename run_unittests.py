@@ -1194,9 +1194,17 @@ class BasePlatformTests(unittest.TestCase):
         self.builddirs.append(self.builddir)
 
     def new_builddir(self):
+        if not is_cygwin():
+            # Keep builddirs inside the source tree so that virus scanners
+            # don't complain
+            newdir = tempfile.mkdtemp(dir=os.getcwd())
+        else:
+            # But not on Cygwin because that breaks the umask tests. See:
+            # https://github.com/mesonbuild/meson/pull/5546#issuecomment-509666523
+            newdir = tempfile.mkdtemp()
         # In case the directory is inside a symlinked directory, find the real
         # path otherwise we might not find the srcdir from inside the builddir.
-        newdir = os.path.realpath(tempfile.mkdtemp(dir=os.getcwd()))
+        newdir = os.path.realpath(newdir)
         self.change_builddir(newdir)
 
     def _print_meson_log(self):
