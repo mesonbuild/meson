@@ -69,9 +69,8 @@ class TargetInstallData:
         self.optional = optional
 
 class ExecutableSerialisation:
-    def __init__(self, fname, cmd_args, env=None, exe_wrapper=None,
+    def __init__(self, cmd_args, env=None, exe_wrapper=None,
                  workdir=None, extra_paths=None, capture=None):
-        self.fname = fname
         self.cmd_args = cmd_args
         self.env = env or {}
         if exe_wrapper is not None:
@@ -384,7 +383,7 @@ class Backend:
         scratch_file = 'meson_exe_{0}_{1}.dat'.format(basename, digest)
         exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
         with open(exe_data, 'wb') as f:
-            es = ExecutableSerialisation(exe_cmd, cmd_args, env,
+            es = ExecutableSerialisation(exe_cmd + cmd_args, env,
                                          exe_wrapper, workdir,
                                          extra_paths, capture)
             pickle.dump(es, f)

@@ -42,10 +42,10 @@ def run_exe(exe):
     if exe.exe_runner:
         if not exe.exe_runner.found():
             raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
-                                 'wrapper {!r}'.format(exe.fname[0], exe.exe_runner.get_path()))
-        cmd = exe.exe_runner.get_command() + exe.fname
+                                 'wrapper {!r}'.format(exe.cmd_args[0], exe.exe_runner.get_path()))
+        cmd_args = exe.exe_runner.get_command() + exe.cmd_args
     else:
-        cmd = exe.fname
+        cmd_args = exe.cmd_args
     child_env = os.environ.copy()
     child_env.update(exe.env)
     if exe.extra_paths:
@@ -61,7 +61,7 @@ def run_exe(exe):
             else:
                 child_env['WINEPATH'] = wine_path
 
-    p = subprocess.Popen(cmd + exe.cmd_args, env=child_env, cwd=exe.workdir,
+    p = subprocess.Popen(cmd_args, env=child_env, cwd=exe.workdir,
                          close_fds=False,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
@@ -103,10 +103,7 @@ def run(args):
         with open(options.unpickle, 'rb') as f:
             exe = pickle.load(f)
     else:
-        exe_cmd = cmd_args[0]
-        cmd_args = cmd_args[1:]
-        exe = ExecutableSerialisation([exe_cmd], cmd_args,
-                                      capture=options.capture)
+        exe = ExecutableSerialisation(cmd_args, capture=options.capture)
 
     return run_exe(exe)
 
