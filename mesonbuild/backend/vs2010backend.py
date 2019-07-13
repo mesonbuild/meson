@@ -143,21 +143,23 @@ class Vs2010Backend(backends.Backend):
                             for x in args]
                     args = [x.replace('\\', '/') for x in args]
                     cmd = exe_arr + self.replace_extra_args(args, genlist)
-                    if generator.capture:
-                        cmd = self.as_meson_exe_cmdline(
-                            'generator ' + cmd[0],
-                            cmd[0],
-                            cmd[1:],
-                            self.environment.get_build_dir(),
-                            capture=outfiles[0]
-                        )
-                        abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-                        os.makedirs(abs_pdir, exist_ok=True)
+                    # Always use a wrapper because MSBuild eats random characters when
+                    # there are many arguments.
+                    tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+                    cmd = self.as_meson_exe_cmdline(
+                        'generator ' + cmd[0],
+                        cmd[0],
+                        cmd[1:],
+                        tdir_abs,
+                        capture=outfiles[0] if generator.capture else None
+                    )
+                    deps = cmd[-1:] + deps
+                    abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+                    os.makedirs(abs_pdir, exist_ok=True)
                     cbs = ET.SubElement(idgroup, 'CustomBuild', Include=infilename)
                     ET.SubElement(cbs, 'Command').text = ' '.join(self.quote_arguments(cmd))
                     ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
-                    if deps:
-                        ET.SubElement(cbs, 'AdditionalInputs').text = ';'.join(deps)
+                    ET.SubElement(cbs, 'AdditionalInputs').text = ';'.join(deps)
         return generator_output_files, custom_target_output_files, custom_target_include_dirs
 
     def generate(self, interp):
