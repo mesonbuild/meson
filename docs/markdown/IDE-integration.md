@@ -143,7 +143,8 @@ the `intro-buildoptions.json` file. Here is the JSON format for each option.
     "description": "the description",
     "type": "type ID",
     "value": "value depends on type",
-    "section": "section ID"
+    "section": "section ID",
+    "machine": "machine ID"
 }
 ```
 
@@ -167,6 +168,13 @@ The possible values for `section` are:
  - directory
  - user
  - test
+
+The `machine` key specifies the machine configuration for the option. Possible
+values are:
+
+ - any
+ - host
+ - build
 
 To set the options, use the `meson configure` command.
 
