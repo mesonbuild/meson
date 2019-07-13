@@ -274,7 +274,10 @@ class CmakeModule(ExtensionModule):
         if len(args) != 1:
             raise InterpreterException('Subproject takes exactly one argument')
         dirname = args[0]
-        return CMakeSubprojectHolder(interpreter.do_subproject(dirname, 'cmake', kwargs), dirname)
+        subp = interpreter.do_subproject(dirname, 'cmake', kwargs)
+        if not subp.held_object:
+            return subp
+        return CMakeSubprojectHolder(subp, dirname)
 
 def initialize(*args, **kwargs):
     return CmakeModule(*args, **kwargs)
