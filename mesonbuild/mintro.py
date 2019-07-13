@@ -227,31 +227,33 @@ def list_buildoptions(coredata: cdata.CoreData) -> List[dict]:
     core_options = {k: o for k, o in coredata.builtins.items() if k in core_option_names}
 
     add_keys(optlist, core_options, 'core')
-    add_keys(optlist, coredata.builtins_per_machine.host, 'core (for host machine)')
+    add_keys(optlist, coredata.builtins_per_machine.host, 'core', machine='host')
     add_keys(
         optlist,
         {'build.' + k: o for k, o in coredata.builtins_per_machine.build.items()},
-        'core (for build machine)',
+        'core',
+        machine='build',
     )
     add_keys(optlist, coredata.backend_options, 'backend')
     add_keys(optlist, coredata.base_options, 'base')
-    add_keys(optlist, coredata.compiler_options.host, 'compiler (for host machine)')
+    add_keys(optlist, coredata.compiler_options.host, 'compiler', machine='host')
     add_keys(
         optlist,
         {'build.' + k: o for k, o in coredata.compiler_options.build.items()},
-        'compiler (for build machine)',
+        'compiler',
+        machine='build',
     )
     add_keys(optlist, dir_options, 'directory')
     add_keys(optlist, coredata.user_options, 'user')
     add_keys(optlist, test_options, 'test')
     return optlist
 
-def add_keys(optlist, options: Dict[str, cdata.UserOption], section):
+def add_keys(optlist, options: Dict[str, cdata.UserOption], section: str, machine: str = 'any'):
     keys = list(options.keys())
     keys.sort()
     for key in keys:
         opt = options[key]
-        optdict = {'name': key, 'value': opt.value, 'section': section}
+        optdict = {'name': key, 'value': opt.value, 'section': section, 'machine': machine}
         if isinstance(opt, cdata.UserStringOption):
             typestr = 'string'
         elif isinstance(opt, cdata.UserBooleanOption):

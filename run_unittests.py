@@ -2560,6 +2560,7 @@ int main(int argc, char **argv) {
             'section': 'user',
             'type': 'array',
             'value': ['foo', 'bar'],
+            'machine': 'any',
         }
         tdir = os.path.join(self.unit_test_dir, '19 array option')
         self.init(tdir)
@@ -2585,6 +2586,7 @@ int main(int argc, char **argv) {
             'section': 'user',
             'type': 'array',
             'value': ['foo', 'bar'],
+            'machine': 'any',
         }
         tdir = os.path.join(self.unit_test_dir, '19 array option')
         self.init(tdir)
@@ -2610,6 +2612,7 @@ int main(int argc, char **argv) {
             'section': 'user',
             'type': 'array',
             'value': [],
+            'machine': 'any',
         }
         tdir = os.path.join(self.unit_test_dir, '19 array option')
         self.init(tdir, extra_args='-Dlist=')
@@ -3427,6 +3430,7 @@ recommended as it is not supported on some platforms''')
             ('section', str),
             ('type', str),
             ('description', str),
+            ('machine', str),
         ]
 
         buildoptions_typelist = [
@@ -3436,6 +3440,9 @@ recommended as it is not supported on some platforms''')
             ('integer', int, []),
             ('array', list, []),
         ]
+
+        buildoptions_sections = ['core', 'backend', 'base', 'compiler', 'directory', 'user', 'test']
+        buildoptions_machines = ['any', 'build', 'host']
 
         dependencies_typelist = [
             ('name', str),
@@ -3492,6 +3499,8 @@ recommended as it is not supported on some platforms''')
                     valid_type = True
                     break
 
+            self.assertIn(i['section'], buildoptions_sections)
+            self.assertIn(i['machine'], buildoptions_machines)
             self.assertTrue(valid_type)
             if i['name'] in buildopts_to_find:
                 self.assertEqual(i['value'], buildopts_to_find[i['name']])
