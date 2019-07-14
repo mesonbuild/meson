@@ -4553,10 +4553,17 @@ class LinuxlikeTests(BasePlatformTests):
         Test that compiler check flags override all other flags. This can't be
         an ordinary test case because it needs the environment to be set.
         '''
-        Oflag = '-O3'
-        env = {'CFLAGS': Oflag,
-               'CXXFLAGS': Oflag}
         testdir = os.path.join(self.common_test_dir, '40 has function')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cpp = env.detect_cpp_compiler(MachineChoice.HOST)
+        Oflag = '-O3'
+        OflagCPP = Oflag
+        if cpp.get_id() in ('clang', 'gcc'):
+            # prevent developers from adding "int main(int argc, char **argv)"
+            # to small Meson checks unless these parameters are actually used
+            OflagCPP += ' -Werror=unused-parameter'
+        env = {'CFLAGS': Oflag,
+               'CXXFLAGS': OflagCPP}
         self.init(testdir, override_envvars=env)
         cmds = self.get_meson_log_compiler_checks()
         for cmd in cmds:
