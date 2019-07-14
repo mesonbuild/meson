@@ -343,7 +343,7 @@ class CLikeCompiler:
             raise mesonlib.EnvironmentException('Executables created by {0} compiler {1} are not runnable.'.format(self.language, self.name_string()))
 
     def sanity_check(self, work_dir, environment):
-        code = 'int main(int argc, char **argv) { int class=0; return class; }\n'
+        code = 'int main() { int class=0; return class; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
     def check_header(self, hname, prefix, env, *, extra_args=None, dependencies=None):
@@ -534,7 +534,7 @@ class CLikeCompiler:
         fargs = {'prefix': prefix, 'expression': expression}
         t = '''#include<stdio.h>
         {prefix}
-        int main(int argc, char **argv) {{
+        int main() {{
             printf("%ld\\n", (long)({expression}));
             return 0;
         }};'''
@@ -552,7 +552,7 @@ class CLikeCompiler:
         fargs = {'prefix': prefix, 'type': typename}
         t = '''#include <stdio.h>
         {prefix}
-        int main(int argc, char **argv) {{
+        int main() {{
             {type} something;
             return 0;
         }}'''
@@ -570,7 +570,7 @@ class CLikeCompiler:
                                      dependencies=dependencies)
         t = '''#include<stdio.h>
         {prefix}
-        int main(int argc, char **argv) {{
+        int main() {{
             printf("%ld\\n", (long)(sizeof({type})));
             return 0;
         }};'''
@@ -588,7 +588,7 @@ class CLikeCompiler:
         fargs = {'prefix': prefix, 'type': typename}
         t = '''#include <stdio.h>
         {prefix}
-        int main(int argc, char **argv) {{
+        int main() {{
             {type} something;
         }}'''
         if not self.compiles(t.format(**fargs), env, extra_args=extra_args,
@@ -616,7 +616,7 @@ class CLikeCompiler:
             char c;
             {type} target;
         }};
-        int main(int argc, char **argv) {{
+        int main() {{
             printf("%d", (int)offsetof(struct tmp, target));
             return 0;
         }}'''
@@ -666,7 +666,7 @@ class CLikeCompiler:
         fargs = {'prefix': prefix, 'f': fname, 'cast': cast, 'fmt': fmt}
         code = '''{prefix}
         #include <stdio.h>
-        int main(int argc, char *argv[]) {{
+        int main() {{
             printf ("{fmt}", {cast} {f}());
         }}'''.format(**fargs)
         res = self.run(code, env, extra_args=extra_args, dependencies=dependencies)
@@ -1064,7 +1064,7 @@ class CLikeCompiler:
         return value[:]
 
     def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):
-        code = 'int main(int argc, char **argv) { return 0; }'
+        code = 'int main() { return 0; }'
         return self.find_library_impl(libname, env, extra_dirs, code, libtype)
 
     def find_framework_paths(self, env):
@@ -1094,7 +1094,7 @@ class CLikeCompiler:
         return paths
 
     def find_framework_real(self, name, env, extra_dirs, allow_system):
-        code = 'int main(int argc, char **argv) { return 0; }'
+        code = 'int main() { return 0; }'
         link_args = []
         for d in extra_dirs:
             link_args += ['-F' + d]
@@ -1177,7 +1177,7 @@ class CLikeCompiler:
             args = fatal_warnings_args + args
 
         args = self.linker_to_compiler_args(args)
-        code = 'int main(int argc, char **argv) { return 0; }'
+        code = 'int main() { return 0; }'
         return self.has_arguments(args, env, code, mode='link')
 
     @staticmethod

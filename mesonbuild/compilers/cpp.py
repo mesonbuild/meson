@@ -69,7 +69,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         return ['-nostdinc++']
 
     def sanity_check(self, work_dir, environment):
-        code = 'class breakCCompiler;int main(int argc, char **argv) { return 0; }\n'
+        code = 'class breakCCompiler;int main() { return 0; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
 
     def get_compiler_check_args(self):
