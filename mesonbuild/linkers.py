@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import abc
+import os
+import shlex
 import typing
 
 from . import mesonlib
@@ -189,3 +192,160 @@ class CcrxLinker(StaticLinker):
 
     def get_linker_always_args(self) -> typing.List[str]:
         return ['-nologo', '-form=library']
+
+
+class DynamicLinker(metaclass=abc.ABCMeta):
+
+    """Base class for dynamic linkers."""
+
+    _BUILDTYPE_ARGS = {
+        'plain': [],
+        'debug': [],
+        'debugoptimized': [],
+        'release': [],
+        'minsize': [],
+        'custom': [],
+    }  # type: typing.Dict[str, typing.List[str]]
+
+    def __init__(self, exelist: typing.List[str], for_machine: mesonlib.MachineChoice,
+                 id_: str, *, version: str = 'unknown version'):
+        self.exelist = exelist
+        self.for_machine = for_machine
+        self.version = version
+        self.id = id_
+
+    def __repr__(self) -> str:
+        return '<{}: v{} `{}`>'.format(type(self).__name__, self.version, ' '.join(self.exelist))
+
+    def get_id(self) -> str:
+        return self.id
+
+    def get_version_string(self) -> str:
+        return '({} {})'.format(self.id, self.version)
+
+    def get_exelist(self) -> typing.List[str]:
+        return self.exelist.copy()
+
+    def get_accepts_rsp(self) -> bool:
+        # TODO: is it really a matter of is_windows or is it for_windows?
+        return mesonlib.is_windows()
+
+    def get_always_args(self) -> typing.List[str]:
+        return []
+
+    def get_lib_prefix(self) -> str:
+        return ''
+
+    # XXX: is use_ldflags a compiler or a linker attribute?
+
+    def get_args_from_envvars(self) -> typing.List[str]:
+        flags = os.environ.get('LDFLAGS')
+        if not flags:
+            return []
+        return shlex.split(flags)
+
+    def get_option_args(self, options: 'OptionDictType') -> typing.List[str]:
+        return []
+
+    def has_multi_arguments(self, args: typing.List[str], env: 'Environment') -> typing.Tuple[bool, bool]:
+        m = 'Language {} does not support has_multi_link_arguments.'
+        raise mesonlib.EnvironmentException(m.format(self.id))
+
+    def get_debugfile_args(self, targetfile: str) -> typing.List[str]:
+        """Some compilers (MSVC) write debug into a separate file.
+
+        This method takes the target object path and returns a list of
+        commands to append to the linker invocation to control where that
+        file is written.
+        """
+        return []
+
+    def get_std_shared_lib_args(self) -> typing.List[str]:
+        return []
+
+    def get_std_shared_module_args(self, options: 'OptionDictType') -> typing.List[str]:
+        return self.get_std_shared_lib_args()
+
+    def get_pie_args(self) -> typing.List[str]:
+        # TODO: this really needs to take a boolean and return the args to
+        # disable pie, otherwise it only acts to enable pie if pie *isn't* the
+        # default.
+        m = 'Linker {} does not support position-independent executable'
+        raise mesonlib.EnvironmentException(m.format(self.id))
+
+    def get_lto_args(self) -> typing.List[str]:
+        return []
+
+    def sanitizer_args(self, value: str) -> typing.List[str]:
+        return []
+
+    def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
+        # We can override these in children by just overriding the
+        # _BUILDTYPE_ARGS value.
+        return self._BUILDTYPE_ARGS[buildtype]
+
+    def get_asneeded_args(self) -> typing.List[str]:
+        return []
+
+    def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
+        raise mesonlib.EnvironmentException(
+            'Linker {} does not support link_whole'.format(self.id))
+
+    def get_allow_undefined_args(self) -> typing.List[str]:
+        raise mesonlib.EnvironmentException(
+            'Linker {} does not support allow undefined'.format(self.id))
+
+    def invoked_by_compiler(self) -> bool:
+        """True if meson uses the compiler to invoke the linker."""
+        return True
+
+    @abc.abstractmethod
+    def get_output_args(self, outname: str) -> typing.List[str]:
+        pass
+
+    def get_coverage_args(self) -> typing.List[str]:
+        m = "Linker {} doesn't implement coverage data generation.".format(self.id)
+        raise mesonlib.EnvironmentException(m)
+
+    @abc.abstractmethod
+    def get_search_args(self, dirname: str) -> typing.List[str]:
+        pass
+
+    def export_dynamic_args(self, env: 'Environment') -> typing.List[str]:
+        return []
+
+    def import_library_args(self, implibname: str) -> typing.List[str]:
+        """The name of the outputted import library.
+
+        This implementation is used only on Windows by compilers that use GNU ld
+        """
+        return []
+
+    def thread_flags(self, env: 'Environment') -> typing.List[str]:
+        return []
+
+    def no_undefined_args(self) -> typing.List[str]:
+        """Arguments to error if there are any undefined symbols at link time.
+
+        This is the inverse of get_allow_undefined_args().
+
+        TODO: A future cleanup might merge this and
+              get_allow_undefined_args() into a single method taking a
+              boolean
+        """
+        return []
+
+    def fatal_warnings(self) -> typing.List[str]:
+        """Arguments to make all warnings errors."""
+        return []
+
+    def bitcode_args(self) -> typing.List[str]:
+        raise mesonlib.MesonException('This linker does not support bitcode bundles')
+
+    def get_debug_crt_args(self) -> typing.List[str]:
+        return []
+
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> typing.List[str]:
+        return []
