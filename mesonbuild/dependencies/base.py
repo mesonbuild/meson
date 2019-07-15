@@ -649,6 +649,8 @@ class PkgConfigDependency(ExternalDependency):
         if ret != 0:
             return
 
+        self.is_found = True
+
         try:
             # Fetch cargs to be used while using this dependency
             self._set_cargs()
@@ -662,8 +664,6 @@ class PkgConfigDependency(ExternalDependency):
                 self.link_args = []
                 self.is_found = False
                 self.reason = e
-
-        self.is_found = True
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
