@@ -1334,6 +1334,13 @@ variables defined in the [`executable`](#executable) it is loaded by,
 you will need to set the `export_dynamic` argument of the executable to
 `true`.
 
+Supports the following extra keyword arguments:
+
+- `vs_module_defs`, *(Added 0.52.0)*, a string, a File object, or
+  Custom Target for a Microsoft module definition file for controlling
+  symbol exports, etc., on platforms where that is possible
+  (e.g. Windows).
+
 **Note:** Linking to a shared module is not supported on some
 platforms, notably OSX.  Consider using a
 [`shared_library`](#shared_library) instead, if you need to both

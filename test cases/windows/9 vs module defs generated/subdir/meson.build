@@ -7,3 +7,4 @@ def_file = configure_file(
 )
 
 shlib = shared_library('somedll', 'somedll.c', vs_module_defs : def_file)
+shmod = shared_module('somemod', 'somedll.c', vs_module_defs : def_file)
