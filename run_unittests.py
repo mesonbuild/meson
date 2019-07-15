@@ -6224,7 +6224,8 @@ class NativeFileTests(BasePlatformTests):
     @skip_if_not_language('swift')
     def test_swift_compiler(self):
         wrapper = self.helper_create_binary_wrapper(
-            'swiftc', version='Swift 1.2345', outfile='stderr')
+            'swiftc', version='Swift 1.2345', outfile='stderr',
+            extra_args={'Xlinker': 'macosx_version. PROJECT:ld - 1.2.3'})
         env = get_fake_env()
         env.binaries.host.binaries['swift'] = wrapper
         compiler = env.detect_swift_compiler(MachineChoice.HOST)
