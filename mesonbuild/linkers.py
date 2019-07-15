@@ -544,3 +544,13 @@ class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dynam
     """Representation of GNU ld.bfd and ld.gold."""
 
     pass
+
+
+class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
+
+    """Representation of LLVM's lld (not lld-link) linker.
+
+    This is only the posix-like linker.
+    """
+
+    pass
