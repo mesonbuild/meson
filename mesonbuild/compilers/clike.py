@@ -375,6 +375,7 @@ class CLikeCompiler:
             #ifndef {symbol}
                 {symbol};
             #endif
+            return 0;
         }}'''
         return self.compiles(t.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies)
@@ -590,6 +591,7 @@ class CLikeCompiler:
         {prefix}
         int main() {{
             {type} something;
+            return 0;
         }}'''
         if not self.compiles(t.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies)[0]:
@@ -668,6 +670,7 @@ class CLikeCompiler:
         #include <stdio.h>
         int main() {{
             printf ("{fmt}", {cast} {f}());
+            return 0;
         }}'''.format(**fargs)
         res = self.run(code, env, extra_args=extra_args, dependencies=dependencies)
         if not res.compiled:
@@ -820,6 +823,7 @@ class CLikeCompiler:
                 #error "No definition for __builtin_{func} found in the prefix"
             #endif
         #endif
+        return 0;
         }}'''
         return self.links(t.format(**fargs), env, extra_args=extra_args,
                           dependencies=dependencies)

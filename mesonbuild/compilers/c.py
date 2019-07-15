@@ -70,6 +70,7 @@ class CCompiler(CLikeCompiler, Compiler):
             #ifndef {symbol}
                 {symbol};
             #endif
+            return 0;
         }}'''
         return self.compiles(t.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies)
