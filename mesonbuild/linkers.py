@@ -620,3 +620,23 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
     """
 
     pass
+
+
+class XildLinuxDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
+
+    """Representation of Intel's Xild linker.
+
+    This is only the linux-like linker which dispatches to Gnu ld.
+    """
+
+    pass
+
+
+class XildAppleDynamicLinker(AppleDynamicLinker):
+
+    """Representation of Intel's Xild linker.
+
+    This is the apple linker, which dispatches to Apple's ld.
+    """
+
+    pass
