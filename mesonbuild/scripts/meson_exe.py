@@ -84,8 +84,15 @@ def run_exe(exe):
         raise FileNotFoundError('Missing DLLs on calling {!r}'.format(exe.name))
 
     if exe.capture and p.returncode == 0:
-        with open(exe.capture, 'wb') as output:
-            output.write(stdout)
+        skip_write = False
+        try:
+            with open(exe.capture, 'rb') as cur:
+                skip_write = cur.read() == stdout
+        except IOError:
+            pass
+        if not skip_write:
+            with open(exe.capture, 'wb') as output:
+                output.write(stdout)
     else:
         sys.stdout.buffer.write(stdout)
     if stderr:
