@@ -23,7 +23,7 @@ from . import compilers
 
 forbidden_option_names = set(coredata.builtin_options.keys())
 forbidden_prefixes = [lang + '_' for lang in compilers.all_languages] + ['b_', 'backend_']
-reserved_prefixes = ['cross_', 'build_']
+reserved_prefixes = ['cross_']
 
 def is_invalid_name(name: str, *, log: bool = True) -> bool:
     if name in forbidden_option_names:
