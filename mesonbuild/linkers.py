@@ -194,6 +194,36 @@ class CcrxLinker(StaticLinker):
         return ['-nologo', '-form=library']
 
 
+def prepare_rpaths(raw_rpaths: str, build_dir: str, from_dir: str) -> typing.List[str]:
+    # The rpaths we write must be relative if they point to the build dir,
+    # because otherwise they have different length depending on the build
+    # directory. This breaks reproducible builds.
+    internal_format_rpaths = [evaluate_rpath(p, build_dir, from_dir) for p in raw_rpaths]
+    ordered_rpaths = order_rpaths(internal_format_rpaths)
+    return ordered_rpaths
+
+
+def order_rpaths(rpath_list: typing.List[str]) -> typing.List[str]:
+    # We want rpaths that point inside our build dir to always override
+    # those pointing to other places in the file system. This is so built
+    # binaries prefer our libraries to the ones that may lie somewhere
+    # in the file system, such as /lib/x86_64-linux-gnu.
+    #
+    # The correct thing to do here would be C++'s std::stable_partition.
+    # Python standard library does not have it, so replicate it with
+    # sort, which is guaranteed to be stable.
+    return sorted(rpath_list, key=os.path.isabs)
+
+
+def evaluate_rpath(p: str, build_dir: str, from_dir: str) -> str:
+    if p == from_dir:
+        return '' # relpath errors out in this case
+    elif os.path.isabs(p):
+        return p # These can be outside of build dir.
+    else:
+        return os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
+
+
 class DynamicLinker(metaclass=abc.ABCMeta):
 
     """Base class for dynamic linkers."""
@@ -368,3 +398,149 @@ class PosixDynamicLinkerMixin:
 
     def get_search_args(self, dirname: str) -> typing.List[str]:
         return ['-L', dirname]
+
+
+class GnuLikeDynamicLinkerMixin:
+
+    """Mixin class for dynamic linkers that provides gnu-like interface.
+
+    This acts as a base for the GNU linkers (bfd and gold), the Intel Xild
+    (which comes with ICC), LLVM's lld, and other linkers like GNU-ld.
+    """
+
+    _BUILDTYPE_ARGS = {
+        'plain': [],
+        'debug': [],
+        'debugoptimized': [],
+        'release': ['-Wl,-O1'],
+        'minsize': [],
+        'custom': [],
+    }  # type: typing.Dict[str, typing.List[str]]
+
+    def get_pie_args(self) -> typing.List[str]:
+        return ['-pie']
+
+    def get_asneeded_args(self) -> typing.List[str]:
+        return ['-Wl,--as-needed']
+    
+    def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
+        if not args:
+            return args
+        return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
+
+    def get_allow_undefined_args(self) -> typing.List[str]:
+        return ['-Wl,--allow-shlib-undefined']
+
+    def get_lto_args(self) -> typing.List[str]:
+        return ['-flto']
+
+    def sanitizer_args(self, value: str) -> typing.List[str]:
+        if value == 'none':
+            return []
+        return ['-fsanitize=' + value]
+
+    def invoked_by_compiler(self) -> bool:
+        """True if meson uses the compiler to invoke the linker."""
+        return True
+
+    def get_coverage_args(self) -> typing.List[str]:
+        return ['--coverage']
+
+    def export_dynamic_args(self, env: 'Environment') -> typing.List[str]:
+        m = env.machines[self.for_machine]
+        if m.is_windows() or m.is_cygwin():
+            return ['-Wl,--export-all-symbols']
+        return ['-Wl,-export-dynamic']
+
+    def import_library_args(self, implibname: str) -> typing.List[str]:
+        return ['-Wl,--out-implib=' + implibname]
+
+    def thread_flags(self, env: 'Environment') -> typing.List[str]:
+        if env.machines[self.for_machine].is_haiku():
+            return []
+        return ['-pthread']
+
+    def no_undefined_args(self) -> typing.List[str]:
+        return ['-Wl,--no-undefined']
+
+    def fatal_warnings(self) -> typing.List[str]:
+        return ['-Wl,--fatal-warnings']
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
+                        is_shared_module: bool) -> typing.List[str]:
+        m = env.machines[self.for_machine]
+        if m.is_windows() or m.is_cygwin():
+            # For PE/COFF the soname argument has no effect
+            return []
+        sostr = '' if soversion is None else '.' + soversion
+        return ['-Wl,-soname,{}{}.{}{}'.format(prefix, shlib_name, suffix, sostr)]
+
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> typing.List[str]:
+        m = env.machines[self.for_machine]
+        if m.is_windows() or m.is_cygwin():
+            return []
+        if not rpath_paths and not install_rpath and not build_rpath:
+            return []
+        args = []
+        origin_placeholder = '$ORIGIN'
+        processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
+        # Need to deduplicate rpaths, as macOS's install_name_tool
+        # is *very* allergic to duplicate -delete_rpath arguments
+        # when calling depfixer on installation.
+        all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
+        # Build_rpath is used as-is (it is usually absolute).
+        if build_rpath != '':
+            all_paths.add(build_rpath)
+
+        # TODO: should this actually be "for (dragonfly|open)bsd"?
+        if mesonlib.is_dragonflybsd() or mesonlib.is_openbsd():
+            # This argument instructs the compiler to record the value of
+            # ORIGIN in the .dynamic section of the elf. On Linux this is done
+            # by default, but is not on dragonfly/openbsd for some reason. Without this
+            # $ORIGIN in the runtime path will be undefined and any binaries
+            # linked against local libraries will fail to resolve them.
+            args.append('-Wl,-z,origin')
+
+        # In order to avoid relinking for RPATH removal, the binary needs to contain just
+        # enough space in the ELF header to hold the final installation RPATH.
+        paths = ':'.join(all_paths)
+        if len(paths) < len(install_rpath):
+            padding = 'X' * (len(install_rpath) - len(paths))
+            if not paths:
+                paths = padding
+            else:
+                paths = paths + ':' + padding
+        args.append('-Wl,-rpath,' + paths)
+
+        # TODO: should this actually be "for solaris/sunos"?
+        if mesonlib.is_sunos():
+            return args
+
+        # Rpaths to use while linking must be absolute. These are not
+        # written to the binary. Needed only with GNU ld:
+        # https://sourceware.org/bugzilla/show_bug.cgi?id=16936
+        # Not needed on Windows or other platforms that don't use RPATH
+        # https://github.com/mesonbuild/meson/issues/1897
+        #
+        # In addition, this linker option tends to be quite long and some
+        # compilers have trouble dealing with it. That's why we will include
+        # one option per folder, like this:
+        #
+        #   -Wl,-rpath-link,/path/to/folder1 -Wl,-rpath,/path/to/folder2 ...
+        #
+        # ...instead of just one single looooong option, like this:
+        #
+        #   -Wl,-rpath-link,/path/to/folder1:/path/to/folder2:...
+        args.extend(['-Wl,-rpath-link,' + os.path.join(build_dir, p) for p in rpath_paths])
+
+        return args
+
+
+class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
+
+    """Representation of GNU ld.bfd and ld.gold."""
+
+    pass
