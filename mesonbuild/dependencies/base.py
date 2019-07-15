@@ -645,7 +645,7 @@ class PkgConfigDependency(ExternalDependency):
 
         mlog.debug('Determining dependency {!r} with pkg-config executable '
                    '{!r}'.format(name, self.pkgbin.get_path()))
-        ret, self.version = self._call_pkgbin(['--modversion', name])
+        ret, self.version, _ = self._call_pkgbin(['--modversion', name])
         if ret != 0:
             return
 
@@ -672,11 +672,11 @@ class PkgConfigDependency(ExternalDependency):
 
     def _call_pkgbin_real(self, args, env):
         cmd = self.pkgbin.get_command() + args
-        p, out = Popen_safe(cmd, env=env)[0:2]
-        rc, out = p.returncode, out.strip()
+        p, out, err = Popen_safe(cmd, env=env)
+        rc, out, err = p.returncode, out.strip(), err.strip()
         call = ' '.join(cmd)
         mlog.debug("Called `{}` -> {}\n{}".format(call, rc, out))
-        return rc, out
+        return rc, out, err
 
     def _call_pkgbin(self, args, env=None):
         # Always copy the environment since we're going to modify it
@@ -741,10 +741,10 @@ class PkgConfigDependency(ExternalDependency):
             # so don't allow pkg-config to suppress -I flags for system paths
             env = os.environ.copy()
             env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
-        ret, out = self._call_pkgbin(['--cflags', self.name], env=env)
+        ret, out, err = self._call_pkgbin(['--cflags', self.name], env=env)
         if ret != 0:
-            raise DependencyException('Could not generate cargs for %s:\n\n%s' %
-                                      (self.name, out))
+            raise DependencyException('Could not generate cargs for %s:\n%s\n' %
+                                      (self.name, err))
         self.compile_args = self._convert_mingw_paths(self._split_args(out))
 
     def _search_libs(self, out, out_raw, out_all):
@@ -910,20 +910,21 @@ class PkgConfigDependency(ExternalDependency):
         # paths so we can do manual searching with cc.find_library() later.
         env = os.environ.copy()
         env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
-        ret, out = self._call_pkgbin(libcmd, env=env)
+        ret, out, err = self._call_pkgbin(libcmd, env=env)
         if ret != 0:
-            raise DependencyException('Could not generate libs for %s:\n\n%s' %
-                                      (self.name, out))
+            raise DependencyException('Could not generate libs for %s:\n%s\n' %
+                                      (self.name, err))
         # Also get the 'raw' output without -Lfoo system paths for adding -L
         # args with -lfoo when a library can't be found, and also in
         # gnome.generate_gir + gnome.gtkdoc which need -L -l arguments.
-        ret, out_raw = self._call_pkgbin(libcmd)
+        ret, out_raw, err_raw = self._call_pkgbin(libcmd)
         if ret != 0:
-            raise DependencyException('Could not generate libs for %s:\n\n%s' %
-                                      (self.name, out_raw))
-        ret, out_all = self._call_pkgbin(libcmd_all)
+            raise DependencyException('Could not generate libs for %s:\n%s\n' %
+                                      (self.name, err_raw))
+        ret, out_all, err_all = self._call_pkgbin(libcmd_all)
         if ret != 0:
-            mlog.warning('Could not determine complete list of dependencies for %s' % self.name)
+            mlog.warning('Could not determine complete list of dependencies for %s:\n%s\n' %
+                         (self.name, err_all))
         self.link_args, self.raw_link_args = self._search_libs(out, out_raw, out_all)
 
     def get_pkgconfig_variable(self, variable_name, kwargs):
@@ -939,19 +940,19 @@ class PkgConfigDependency(ExternalDependency):
 
             options = ['--define-variable=' + '='.join(definition)] + options
 
-        ret, out = self._call_pkgbin(options)
+        ret, out, err = self._call_pkgbin(options)
         variable = ''
         if ret != 0:
             if self.required:
-                raise DependencyException('dependency %s not found.' %
-                                          (self.name))
+                raise DependencyException('dependency %s not found:\n%s\n' %
+                                          (self.name, err))
         else:
             variable = out.strip()
 
             # pkg-config doesn't distinguish between empty and non-existent variables
             # use the variable list to check for variable existence
             if not variable:
-                ret, out = self._call_pkgbin(['--print-variables', self.name])
+                ret, out, _ = self._call_pkgbin(['--print-variables', self.name])
                 if not re.search(r'^' + variable_name + r'$', out, re.MULTILINE):
                     if 'default' in kwargs:
                         variable = kwargs['default']
