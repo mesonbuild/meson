@@ -91,7 +91,7 @@ known_build_target_kwargs = (
 
 known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'link_language', 'pie'}
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions'}
-known_shmod_kwargs = known_build_target_kwargs
+known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic'}
 known_jar_kwargs = known_exe_kwargs | {'main_class'}
 
