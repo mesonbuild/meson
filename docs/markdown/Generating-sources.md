@@ -59,14 +59,14 @@ foo_c = custom_target(
     output : 'foo.c',
     input : 'my_gen.py',
     command : [prog_python, '@INPUT@', '--code', '@OUTPUT@'],
-]
+)
 
 foo_h = custom_target(
     'foo.h',
     output : 'foo.h',
     input : 'my_gen.py',
     command : [prog_python, '@INPUT@', '--header', '@OUTPUT@'],
-]
+)
 
 libfoo = static_library('foo', [foo_c, foo_h])
 
@@ -94,7 +94,7 @@ foo_ch = custom_target(
     output : ['foo.c', 'foo.h'],
     input : 'my_gen.py',
     command : [prog_python, '@INPUT@', '@OUTPUT@'],
-]
+)
 
 libfoo = static_library('foo', [foo_ch])
 
