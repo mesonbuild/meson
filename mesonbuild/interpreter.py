@@ -2823,12 +2823,16 @@ external dependencies (including libraries) must go to "dependencies".''')
                         continue
                     else:
                         raise
+
             if for_machine == MachineChoice.HOST or self.environment.is_cross_build():
                 logger_fun = mlog.log
             else:
                 logger_fun = mlog.debug
             logger_fun(comp.get_display_language(), 'compiler for the', machine_name, 'machine:',
                        mlog.bold(' '.join(comp.get_exelist())), comp.get_version_string())
+            if comp.linker is not None:
+                logger_fun(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
+                           mlog.bold(comp.linker.id), comp.linker.version)
             self.build.ensure_static_linker(comp)
 
         langs = self.coredata.compilers[for_machine].keys()
