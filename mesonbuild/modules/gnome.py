@@ -913,6 +913,7 @@ This will become a hard error in the future.''')
         rv = [inscript, pottarget, potarget]
         return ModuleReturnValue(None, rv)
 
+    @FeatureNewKwargs('gnome.gtkdoc', '0.52.0', ['check'])
     @FeatureNewKwargs('gnome.gtkdoc', '0.48.0', ['c_args'])
     @FeatureNewKwargs('gnome.gtkdoc', '0.48.0', ['module_version'])
     @FeatureNewKwargs('gnome.gtkdoc', '0.37.0', ['namespace', 'mode'])
@@ -1019,10 +1020,26 @@ This will become a hard error in the future.''')
         args += self._unpack_args('--ignore-headers=', 'ignore_headers', kwargs)
         args += self._unpack_args('--installdir=', 'install_dir', kwargs)
         args += self._get_build_args(kwargs, state, depends)
-        res = [build.RunTarget(targetname, command[0], command[1:] + args, depends, state.subdir, state.subproject)]
+        custom_kwargs = {'output': modulename + '-decl.txt',
+                         'command': command + args,
+                         'depends': depends,
+                         'build_always_stale': True,
+                         }
+        custom_target = build.CustomTarget(targetname, state.subdir, state.subproject, custom_kwargs)
+        alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject)
+        if kwargs.get('check', False):
+            check_cmd = self.interpreter.find_program_impl('gtkdoc-check')
+            check_env = ['DOC_MODULE=' + modulename,
+                         'DOC_MAIN_SGML_FILE=' + main_file]
+            check_args = [targetname + '-check', check_cmd]
+            check_kwargs = {'env': check_env,
+                            'workdir': os.path.join(state.environment.get_build_dir(), state.subdir),
+                            'depends': custom_target}
+            self.interpreter.add_test(state.current_node, check_args, check_kwargs, True)
+        res = [custom_target, alias_target]
         if kwargs.get('install', True):
             res.append(build.RunScript(command, args))
-        return ModuleReturnValue(None, res)
+        return ModuleReturnValue(custom_target, res)
 
     def _get_build_args(self, kwargs, state, depends):
         args = []

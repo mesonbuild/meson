@@ -339,9 +339,15 @@ of the module.
 * `scanobjs_args`: a list of arguments to pass to `gtkdoc-scangobj`
 * `c_args`: (*Added 0.48.0*) additional compile arguments to pass
 * `src_dir`: include_directories to include
+* `check`: (*Since 0.52.0*) if `true` runs `gtkdoc-check` when running unit tests.
+  Note that this has the downside of rebuilding the doc for each build, which is
+  often very slow. It usually should be enabled only in CI.
 
 This creates a `$module-doc` target that can be ran to build docs and
 normally these are only built on install.
+
+*Since 0.52.0* Returns a target object that can be passed as dependency to other
+targets using generated doc files (e.g. in `content_files` of another doc).
 
 ### gnome.gtkdoc_html_dir()
 
