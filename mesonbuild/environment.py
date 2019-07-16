@@ -927,39 +927,15 @@ class Environment:
     def get_scratch_dir(self):
         return self.scratch_dir
 
-    def detect_objc_compiler(self, for_machine):
-        popen_exceptions = {}
-        compilers, ccache, exe_wrap = self._get_compilers('objc', for_machine)
-        is_cross = not self.machines.matches_build_machine(for_machine)
-        for compiler in compilers:
-            if isinstance(compiler, str):
-                compiler = [compiler]
-            arg = ['--version']
-            try:
-                p, out, err = Popen_safe(compiler + arg)
-            except OSError as e:
-                popen_exceptions[' '.join(compiler + arg)] = e
-                continue
-            version = search_version(out)
-            if 'Free Software Foundation' in out or ('e2k' in out and 'lcc' in out):
-                defines = self.get_gnu_compiler_defines(compiler)
-                if not defines:
-                    popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
-                    continue
-                compiler_type = self.get_gnu_compiler_type(defines)
-                version = self.get_gnu_version_from_defines(defines)
-                return GnuObjCCompiler(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, defines)
-            if out.startswith('Apple LLVM') or out.startswith('Apple clang'):
-                return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_OSX, for_machine, is_cross, exe_wrap)
-            if 'windows' in out:
-                return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_MINGW, for_machine, is_cross, exe_wrap)
-            if out.startswith(('clang', 'OpenBSD clang')):
-                return ClangObjCCompiler(ccache + compiler, version, CompilerType.CLANG_STANDARD, for_machine, is_cross, exe_wrap)
-        self._handle_exceptions(popen_exceptions, compilers)
+    def detect_objc_compiler(self, for_machine: MachineInfo) -> 'Compiler':
+        return self._detect_objc_or_objcpp_compiler(for_machine, True)
 
-    def detect_objcpp_compiler(self, for_machine):
+    def detect_objcpp_compiler(self, for_machine: MachineInfo) -> 'Compiler':
+        return self._detect_objc_or_objcpp_compiler(for_machine, False)
+
+    def _detect_objc_or_objcpp_compiler(self, for_machine: MachineInfo, objc: bool) -> 'Compiler':
         popen_exceptions = {}
-        compilers, ccache, exe_wrap = self._get_compilers('objcpp', for_machine)
+        compilers, ccache, exe_wrap = self._get_compilers('objc' if objc else 'objcpp', for_machine)
         is_cross = not self.machines.matches_build_machine(for_machine)
         for compiler in compilers:
             if isinstance(compiler, str):
@@ -978,13 +954,16 @@ class Environment:
                     continue
                 compiler_type = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
-                return GnuObjCPPCompiler(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, defines)
-            if out.startswith('Apple LLVM') or out.startswith('Apple clang'):
-                return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_OSX, for_machine, is_cross, exe_wrap)
-            if 'windows' in out:
-                return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_MINGW, for_machine, is_cross, exe_wrap)
-            if out.startswith(('clang', 'OpenBSD clang')):
-                return ClangObjCPPCompiler(ccache + compiler, version, CompilerType.CLANG_STANDARD, for_machine, is_cross, exe_wrap)
+                comp = GnuObjCCompiler if objc else GnuObjCPPCompiler
+                return comp(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, defines)
+            else:
+                comp = ClangObjCCompiler if objc else ClangObjCPPCompiler
+                if out.startswith('Apple LLVM') or out.startswith('Apple clang'):
+                    return comp(ccache + compiler, version, CompilerType.CLANG_OSX, for_machine, is_cross, exe_wrap)
+                if 'windows' in out:
+                    return comp(ccache + compiler, version, CompilerType.CLANG_MINGW, for_machine, is_cross, exe_wrap)
+                if out.startswith(('clang', 'OpenBSD clang')):
+                    return comp(ccache + compiler, version, CompilerType.CLANG_STANDARD, for_machine, is_cross, exe_wrap)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self, for_machine):
