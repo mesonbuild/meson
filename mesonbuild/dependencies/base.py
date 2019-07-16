@@ -1397,18 +1397,14 @@ class CMakeDependency(ExternalDependency):
 
     def _setup_cmake_dir(self, cmake_file: str) -> str:
         # Setup the CMake build environment and return the "build" directory
-        build_dir = '{}/cmake_{}'.format(self.cmake_root_dir, self.name)
-        os.makedirs(build_dir, exist_ok=True)
+        build_dir = Path(self.cmake_root_dir) / 'cmake_{}'.format(self.name)
+        build_dir.mkdir(parents=True, exist_ok=True)
 
         # Copy the CMakeLists.txt
-        cmake_lists = '{}/CMakeLists.txt'.format(build_dir)
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        src_cmake = '{}/data/{}'.format(dir_path, cmake_file)
-        if os.path.exists(cmake_lists):
-            os.remove(cmake_lists)
-        shutil.copyfile(src_cmake, cmake_lists)
+        src_cmake = Path(__file__).parent / 'data' / cmake_file
+        shutil.copyfile(str(src_cmake), str(build_dir / 'CMakeLists.txt'))  # str() is for Python 3.5
 
-        return build_dir
+        return str(build_dir)
 
     def _call_cmake(self, args, cmake_file: str, env=None):
         build_dir = self._setup_cmake_dir(cmake_file)
@@ -1543,7 +1539,7 @@ class DubDependency(ExternalDependency):
                 for lib in target['buildSettings'][field_name]:
                     if lib not in libs:
                         libs.append(lib)
-                        if os.name is not 'nt':
+                        if os.name != 'nt':
                             pkgdep = PkgConfigDependency(lib, environment, {'required': 'true', 'silent': 'true'})
                             for arg in pkgdep.get_compile_args():
                                 self.compile_args.append(arg)
