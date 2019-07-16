@@ -48,6 +48,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [Hardcode-Tray](https://github.com/bil-elmoussaoui/Hardcode-Tray), fixes hardcoded tray icons in Linux
  - [HexChat](https://github.com/hexchat/hexchat), a cross-platform IRC client in C
  - [IGT](https://cgit.freedesktop.org/xorg/app/intel-gpu-tools/), Linux kernel graphics driver test suite
+ - [Irssi](https://github.com/irssi/irssi), a terminal chat client in C
  - [iSH](https://github.com/tbodt/ish), Linux shell for iOS
  - [Janet](https://github.com/janet-lang/janet), a functional and imperative programming language and bytecode interpreter
  - [json](https://github.com/nlohmann/json), JSON for Modern C++
