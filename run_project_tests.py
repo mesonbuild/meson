@@ -35,6 +35,7 @@ from mesonbuild import mtest
 from mesonbuild.mesonlib import MachineChoice, stringlistify, Popen_safe
 from mesonbuild.coredata import backendlist
 import argparse
+import json
 import xml.etree.ElementTree as ET
 import time
 import multiprocessing
@@ -348,6 +349,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
     test_args = parse_test_args(testdir)
     gen_start = time.time()
+    setup_env = None
     # Configure in-process
     if pass_prefix_to_test(testdir):
         gen_args = ['--prefix', '/usr']
@@ -362,7 +364,15 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     crossfile = os.path.join(testdir, 'crossfile.ini')
     if os.path.exists(crossfile):
         gen_args.extend(['--cross-file', crossfile])
-    (returncode, stdo, stde) = run_configure(gen_args)
+    setup_env_file = os.path.join(testdir, 'setup_env.json')
+    if os.path.exists(setup_env_file):
+        setup_env = os.environ.copy()
+        with open(setup_env_file, 'r') as fp:
+            data = json.load(fp)
+            for key, val in data.items():
+                val = val.replace('@ROOT@', os.path.abspath(testdir))
+                setup_env[key] = val
+    (returncode, stdo, stde) = run_configure(gen_args, env=setup_env)
     try:
         logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
         mesonlog = logfile.open(errors='ignore', encoding='utf-8').read()
