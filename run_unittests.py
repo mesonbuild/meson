@@ -30,6 +30,8 @@ import functools
 import io
 import operator
 import threading
+import urllib.error
+import urllib.request
 from itertools import chain
 from unittest import mock
 from configparser import ConfigParser
@@ -1126,10 +1128,10 @@ class DataTests(unittest.TestCase):
             if f not in exceptions:
                 self.assertIn(f, toc)
 
-    def test_syntax_highlighting_files(self):
+    def test_vim_syntax_highlighting(self):
         '''
-        Ensure that syntax highlighting files were updated for new functions in
-        the global namespace in build files.
+        Ensure that vim syntax highlighting files were updated for new
+        functions in the global namespace in build files.
         '''
         env = get_fake_env()
         interp = Interpreter(FakeBuild(env), mock=True)
@@ -1137,6 +1139,39 @@ class DataTests(unittest.TestCase):
             res = re.search(r'syn keyword mesonBuiltin(\s+\\\s\w+)+', f.read(), re.MULTILINE)
             defined = set([a.strip() for a in res.group().split('\\')][1:])
             self.assertEqual(defined, set(chain(interp.funcs.keys(), interp.builtin.keys())))
+
+    def test_json_grammar_syntax_highlighting(self):
+        '''
+        Ensure that syntax highlighting JSON grammar written by TingPing was
+        updated for new functions in the global namespace in build files.
+        https://github.com/TingPing/language-meson/
+        '''
+        env = get_fake_env()
+        interp = Interpreter(FakeBuild(env), mock=True)
+        url = 'https://raw.githubusercontent.com/TingPing/language-meson/master/grammars/meson.json'
+        try:
+            r = urllib.request.urlopen(url)
+        except urllib.error.URLError as e:
+            # Skip test when network is not available, such as during packaging
+            # by a distro or Flatpak
+            if not isinstance(e, urllib.error.HTTPError):
+                raise unittest.SkipTest('Network unavailable')
+            # Don't fail the test if github is down, but do fail if 4xx
+            if e.code >= 500:
+                raise unittest.SkipTest('Server error ' + str(e.code))
+            raise e
+        # On Python 3.5, we must decode bytes to string. Newer versions don't require that.
+        grammar = json.loads(r.read().decode('utf-8', 'surrogatepass'))
+        for each in grammar['patterns']:
+            if 'name' in each and each['name'] == 'support.function.builtin.meson':
+                # The string is of the form: (?x)\\b(func1|func2|...\n)\\b\\s*(?=\\() and
+                # we convert that to [func1, func2, ...] without using regex to parse regex
+                funcs = set(each['match'].split('\\b(')[1].split('\n')[0].split('|'))
+            if 'name' in each and each['name'] == 'support.variable.meson':
+                # \\b(builtin1|builtin2...)\\b
+                builtin = set(each['match'].split('\\b(')[1].split(')\\b')[0].split('|'))
+        self.assertEqual(builtin, set(interp.builtin.keys()))
+        self.assertEqual(funcs, set(interp.funcs.keys()))
 
     def test_all_functions_defined_in_ast_interpreter(self):
         '''
