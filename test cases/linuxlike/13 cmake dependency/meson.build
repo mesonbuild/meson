@@ -36,6 +36,10 @@ depf2 = dependency('ZLIB', required : false, method : 'cmake', modules : 'dfggh:
 
 assert(depf2.found() == false, 'Invalid CMake targets should fail')
 
+# Try to find cmMesonTestDep in a custom prefix
+
+depPrefEnv = dependency('cmMesonTestDep', required : true, method : 'cmake')
+
 # Try to find a dependency with a custom CMake module
 
 depm1 = dependency('SomethingLikeZLIB', required : true, method : 'cmake', cmake_module_path : 'cmake')
