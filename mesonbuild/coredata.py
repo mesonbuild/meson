@@ -635,7 +635,7 @@ class CoreData:
                 if type(oldval) != type(value):
                     self.user_options[name] = value
 
-    def set_options(self, options, subproject='', warn_unknown=True):
+    def set_options(self, options, *, subproject='', warn_unknown=True):
         # Set prefix first because it's needed to sanitize other options
         prefix = self.builtins['prefix'].value
         if 'prefix' in options:
@@ -709,7 +709,7 @@ class CoreData:
                     continue
             options[k] = v
 
-        self.set_options(options, subproject)
+        self.set_options(options, subproject=subproject)
 
     def process_new_compiler(self, lang: str, comp, env):
         from . import compilers
