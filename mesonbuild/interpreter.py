@@ -2801,8 +2801,9 @@ external dependencies (including libraries) must go to "dependencies".''')
                         continue
                     else:
                         raise
-            mlog.log(comp.get_display_language(), 'compiler for the', machine_name, 'machine:',
-                     mlog.bold(' '.join(comp.get_exelist())), comp.get_version_string())
+            if machine_name != 'build' or self.environment.is_cross_build():
+                mlog.log(comp.get_display_language(), 'compiler for the', machine_name, 'machine:',
+                         mlog.bold(' '.join(comp.get_exelist())), comp.get_version_string())
             self.build.ensure_static_linker(comp)
 
         langs = self.coredata.compilers[for_machine].keys()
