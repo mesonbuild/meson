@@ -27,9 +27,9 @@ swift_optimization_args = {'0': [],
                            }
 
 class SwiftCompiler(Compiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross):
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, **kwargs):
         self.language = 'swift'
-        super().__init__(exelist, version, for_machine)
+        super().__init__(exelist, version, for_machine, **kwargs)
         self.version = version
         self.id = 'llvm'
         self.is_cross = is_cross
