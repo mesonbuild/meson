@@ -3717,6 +3717,8 @@ recommended as it is not supported on some platforms''')
         for idx, i in enumerate(res1):
             if i['name'] == 'cpp_std':
                 res1[idx]['value'] = 'c++14'
+            if i['name'] == 'build.cpp_std':
+                res1[idx]['value'] = 'c++14'
             if i['name'] == 'buildtype':
                 res1[idx]['value'] = 'release'
             if i['name'] == 'optimization':
@@ -5380,20 +5382,14 @@ endian = 'little'
                 # Assert that
                 self.assertEqual(len(line.split(lib)), 2, msg=(lib, line))
 
-    @skipIfNoPkgconfig
-    def test_pkg_config_option(self):
-        testdir = os.path.join(self.unit_test_dir, '58 pkg_config_path option')
-        self.init(testdir, extra_args=[
-            '-Dbuild.pkg_config_path=' + os.path.join(testdir, 'build_extra_path'),
-            '-Dpkg_config_path=' + os.path.join(testdir, 'host_extra_path'),
-        ])
-
-    def test_std_remains(self):
+    def test_noncross_options(self):
         # C_std defined in project options must be in effect also when native compiling.
-        testdir = os.path.join(self.unit_test_dir, '51 std remains')
-        self.init(testdir)
+        testdir = os.path.join(self.unit_test_dir, '51 noncross options')
+        self.init(testdir, extra_args=['-Dpkg_config_path=' + testdir])
         compdb = self.get_compdb()
+        self.assertEqual(len(compdb), 2)
         self.assertRegex(compdb[0]['command'], '-std=c99')
+        self.assertRegex(compdb[1]['command'], '-std=c99')
         self.build()
 
     def test_identity_cross(self):
@@ -5461,11 +5457,19 @@ class LinuxCrossArmTests(BasePlatformTests):
 
     def test_std_remains(self):
         # C_std defined in project options must be in effect also when cross compiling.
-        testdir = os.path.join(self.unit_test_dir, '51 std remains')
+        testdir = os.path.join(self.unit_test_dir, '51 noncross options')
         self.init(testdir)
         compdb = self.get_compdb()
         self.assertRegex(compdb[0]['command'], '-std=c99')
         self.build()
+
+    @skipIfNoPkgconfig
+    def test_pkg_config_option(self):
+        testdir = os.path.join(self.unit_test_dir, '58 pkg_config_path option')
+        self.init(testdir, extra_args=[
+            '-Dbuild.pkg_config_path=' + os.path.join(testdir, 'build_extra_path'),
+            '-Dpkg_config_path=' + os.path.join(testdir, 'host_extra_path'),
+        ])
 
 
 def should_run_cross_mingw_tests():
