@@ -222,28 +222,33 @@ def clear_meson_configure_class_caches():
     mesonbuild.dependencies.PkgConfigDependency.pkgbin_cache = {}
     mesonbuild.dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None)
 
-def run_configure_inprocess(commandlist):
+def run_configure_inprocess(commandlist, env=None):
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
     old_stderr = sys.stderr
     sys.stderr = mystderr = StringIO()
+    old_environ = os.environ.copy()
+    if env is not None:
+        os.environ.update(env)
     try:
         returncode = mesonmain.run(commandlist, get_meson_script())
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr
         clear_meson_configure_class_caches()
+        os.environ.clear()
+        os.environ.update(old_environ)
     return returncode, mystdout.getvalue(), mystderr.getvalue()
 
-def run_configure_external(full_command):
-    pc, o, e = mesonlib.Popen_safe(full_command)
+def run_configure_external(full_command, env=None):
+    pc, o, e = mesonlib.Popen_safe(full_command, env=env)
     return pc.returncode, o, e
 
-def run_configure(commandlist):
+def run_configure(commandlist, env=None):
     global meson_exe
     if meson_exe:
-        return run_configure_external(meson_exe + commandlist)
-    return run_configure_inprocess(commandlist)
+        return run_configure_external(meson_exe + commandlist, env=env)
+    return run_configure_inprocess(commandlist, env=env)
 
 def print_system_info():
     print(mlog.bold('System information.').get_text(mlog.colorize_console))

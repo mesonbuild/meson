@@ -1,0 +1,3 @@
+{
+  "CMAKE_PREFIX_PATH": "@ROOT@/cmake_pref_env"
+}
