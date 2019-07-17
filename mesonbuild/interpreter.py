@@ -2795,6 +2795,8 @@ external dependencies (including libraries) must go to "dependencies".''')
     def add_languages(self, args: Sequence[str], required: bool) -> bool:
         success = self.add_languages_for(args, required, MachineChoice.BUILD)
         success &= self.add_languages_for(args, required, MachineChoice.HOST)
+        if not self.coredata.is_cross_build():
+            self.coredata.copy_build_options_from_regular_ones()
         return success
 
     def add_languages_for(self, args, required, for_machine: MachineChoice):

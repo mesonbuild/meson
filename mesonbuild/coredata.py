@@ -635,7 +635,28 @@ class CoreData:
                 if type(oldval) != type(value):
                     self.user_options[name] = value
 
+    def is_cross_build(self):
+        return len(self.cross_files) > 0
+
+    def strip_build_option_names(self, options):
+        res = {}
+        for k, v in options.items():
+            if k.startswith('build.'):
+                k = k.split('.', 1)[1]
+            res[k] = v
+        return res
+
+    def copy_build_options_from_regular_ones(self):
+        assert(not self.is_cross_build())
+        for k, o in self.builtins_per_machine.host.items():
+            self.builtins_per_machine.build[k].set_value(o.value)
+        for k, o in self.compiler_options.host.items():
+            if k in self.compiler_options.build:
+                self.compiler_options.build[k].set_value(o.value)
+
     def set_options(self, options, *, subproject='', warn_unknown=True):
+        if not self.is_cross_build():
+            options = self.strip_build_option_names(options)
         # Set prefix first because it's needed to sanitize other options
         prefix = self.builtins['prefix'].value
         if 'prefix' in options:
@@ -663,6 +684,8 @@ class CoreData:
             unknown_options = ', '.join(sorted(unknown_options))
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
             mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options))
+        if not self.is_cross_build():
+            self.copy_build_options_from_regular_ones()
 
     def set_default_options(self, default_options, subproject, env):
         # Set defaults first from conf files (cross or native), then
