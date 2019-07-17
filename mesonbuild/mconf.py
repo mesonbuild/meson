@@ -181,16 +181,22 @@ class Conf:
         core_options = {k: o for k, o in self.coredata.builtins.items() if k in core_option_names}
 
         self.print_options('Core options', core_options)
-        self.print_options('Core options (for host machine)', self.coredata.builtins_per_machine.host)
-        self.print_options(
-            'Core options (for build machine)',
-            {'build.' + k: o for k, o in self.coredata.builtins_per_machine.build.items()})
+        if self.build.environment.is_cross_build():
+            self.print_options('Core options (for host machine)', self.coredata.builtins_per_machine.host)
+            self.print_options(
+                'Core options (for build machine)',
+                {'build.' + k: o for k, o in self.coredata.builtins_per_machine.build.items()})
+        else:
+            self.print_options('Core options', self.coredata.builtins_per_machine.host)
         self.print_options('Backend options', self.coredata.backend_options)
         self.print_options('Base options', self.coredata.base_options)
-        self.print_options('Compiler options (for host machine)', self.coredata.compiler_options.host)
-        self.print_options(
-            'Compiler options (for build machine)',
-            {'build.' + k: o for k, o in self.coredata.compiler_options.build.items()})
+        if self.build.environment.is_cross_build():
+            self.print_options('Compiler options (for host machine)', self.coredata.compiler_options.host)
+            self.print_options(
+                'Compiler options (for build machine)',
+                {'build.' + k: o for k, o in self.coredata.compiler_options.build.items()})
+        else:
+            self.print_options('Compiler options', self.coredata.compiler_options.host)
         self.print_options('Directories', dir_options)
         self.print_options('Project options', self.coredata.user_options)
         self.print_options('Testing options', test_options)
