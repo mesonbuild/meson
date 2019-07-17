@@ -23,9 +23,9 @@ from .mixins.gnu import GnuCompiler
 from .mixins.clang import ClangCompiler
 
 class ObjCCompiler(CLikeCompiler, Compiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool, exe_wrap: typing.Optional[str]):
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool, exe_wrap: typing.Optional[str], **kwargs):
         self.language = 'objc'
-        Compiler.__init__(self, exelist, version, for_machine)
+        Compiler.__init__(self, exelist, version, for_machine, **kwargs)
         CLikeCompiler.__init__(self, is_cross, exe_wrap)
 
     def get_display_language(self):
@@ -57,8 +57,8 @@ class ObjCCompiler(CLikeCompiler, Compiler):
 
 
 class GnuObjCCompiler(GnuCompiler, ObjCCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, defines=None):
-        ObjCCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, defines=None, **kwargs):
+        ObjCCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
         GnuCompiler.__init__(self, compiler_type, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
@@ -68,8 +68,8 @@ class GnuObjCCompiler(GnuCompiler, ObjCCompiler):
 
 
 class ClangObjCCompiler(ClangCompiler, ObjCCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None):
-        ObjCCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
+        ObjCCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
         ClangCompiler.__init__(self, compiler_type)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
