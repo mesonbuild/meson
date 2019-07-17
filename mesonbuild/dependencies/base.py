@@ -1299,6 +1299,9 @@ class CMakeDependency(ExternalDependency):
                 self.compile_args = list(map(lambda x: '-I{}'.format(x), incDirs)) + defs
                 self.link_args = libs
                 mlog.debug('using old-style CMake variables for dependency {}'.format(name))
+                mlog.debug('Include Dirs:         {}'.format(incDirs))
+                mlog.debug('Compiler Definitions: {}'.format(defs))
+                mlog.debug('Libraries:            {}'.format(libs))
                 return
 
             # Even the old-style approach failed. Nothing else we can do here
