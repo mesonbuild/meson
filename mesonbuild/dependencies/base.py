@@ -1035,6 +1035,12 @@ class CMakeDependency(ExternalDependency):
             cm_args.append('-DCMAKE_MODULE_PATH=' + ';'.join(cm_path))
 
         pref_path = self.env.coredata.builtins_per_machine[self.for_machine]['cmake_prefix_path'].value
+        if 'CMAKE_PREFIX_PATH' in os.environ:
+            env_pref_path = os.environ['CMAKE_PREFIX_PATH'].split(':')
+            env_pref_path = [x for x in env_pref_path if x]  # Filter out enpty strings
+            if not pref_path:
+                pref_path = []
+            pref_path += env_pref_path
         if pref_path:
             cm_args.append('-DCMAKE_PREFIX_PATH={}'.format(';'.join(pref_path)))
 
