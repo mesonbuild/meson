@@ -71,10 +71,23 @@ The simplest thing to do is just to run all tests, which is equivalent to runnin
 $ meson test
 ```
 
-You can also run only a single test by giving its name:
+### Run subsets of tests
+
+For clarity, consider the meson.build containing:
+
+```meson
+
+test('A', ..., suite: 'foo')
+test('B', ..., suite: 'foo')
+test('C', ..., suite: 'bar')
+test('D', ..., suite: 'baz')
+
+```
+
+Specify test(s) by name like:
 
 ```console
-$ meson test testname
+$ meson test A D
 ```
 
 Tests belonging to a suite `suite` can be run as follows
@@ -84,6 +97,18 @@ $ meson test --suite (sub)project_name:suite
 ```
 
 Since version *0.46*, `(sub)project_name` can be omitted if it is the top-level project.
+
+Multiple suites are specified like:
+
+```console
+$ meson test --suite foo --suite bar
+```
+
+NOTE: If you choose to specify both suite(s) and specific test name(s), the
+test name(s) must be contained in the suite(s). This however is redundant--
+it would be more useful to specify either specific test names or suite(s).
+
+### Other test options
 
 Sometimes you need to run the tests multiple times, which is done like this:
 
@@ -127,4 +152,8 @@ Meson will report the output produced by the failing tests along with other usef
 
 For further information see the command line help of Meson by running `meson test -h`.
 
-**NOTE:** If `meson test` does not work for you, you likely have a old version of Meson. In that case you should call `mesontest` instead. If `mesontest` doesn't work either you have a very old version prior to 0.37.0 and should upgrade.
+## Legacy notes
+
+If `meson test` does not work for you, you likely have a old version of Meson.
+In that case you should call `mesontest` instead. If `mesontest` doesn't work
+either you have a very old version prior to 0.37.0 and should upgrade.

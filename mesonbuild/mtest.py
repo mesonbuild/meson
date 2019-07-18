@@ -833,8 +833,9 @@ Timeout:            %4d
         return False
 
     def test_suitable(self, test: 'TestSerialisation') -> bool:
-        return (not self.options.include_suites or TestHarness.test_in_suites(test, self.options.include_suites)) \
-            and not TestHarness.test_in_suites(test, self.options.exclude_suites)
+        return ((not self.options.include_suites or
+                TestHarness.test_in_suites(test, self.options.include_suites)) and not
+                TestHarness.test_in_suites(test, self.options.exclude_suites))
 
     def get_tests(self) -> typing.List['TestSerialisation']:
         if not self.tests:
@@ -849,6 +850,7 @@ Timeout:            %4d
         else:
             tests = self.tests
 
+        # allow specifying test names like "meson test foo1 foo2", where test('foo1', ...)
         if self.options.args:
             tests = [t for t in tests if t.name in self.options.args]
 
