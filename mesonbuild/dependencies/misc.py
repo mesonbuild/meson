@@ -17,6 +17,7 @@
 from pathlib import Path
 import functools
 import re
+import shlex
 import sysconfig
 import typing as T
 
@@ -27,7 +28,7 @@ from ..environment import detect_cpu_family
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency,
     PkgConfigDependency, CMakeDependency, ConfigToolDependency,
-    factory_methods, DependencyFactory,
+    factory_methods, DependencyFactory, find_external_program,
 )
 
 if T.TYPE_CHECKING:
@@ -153,6 +154,87 @@ class BlocksDependency(ExternalDependency):
                 return
 
             self.is_found = True
+
+
+class PerlDependencySystem(ExternalDependency):
+    def __init__(self, name, environment, kwargs):
+        super().__init__(name, environment, kwargs)
+        self.is_found = False
+        try:
+            self.perl_prog = next(find_external_program(self.env, self.for_machine, 'perl', 'Perl', ['perl'], False))
+        except StopIteration:
+            return
+        if not self.perl_prog.found():
+            return
+
+        version = self._try_perl('-V::version:')
+        if version is not None:
+            self.version = version[0]
+
+        ccopts = self.get_configtool_variable('ccopts')
+        ldopts = self.get_configtool_variable('ldopts')
+        self.compile_args = self._filter_ccopts(ccopts)
+        self.link_args = self._filter_ldopts(ldopts)
+
+        if self.clib_compiler is not None:
+            self.compile_args += self.clib_compiler.get_pic_args()
+
+        self.rpath = self._extract_rpath(ldopts)
+
+        mlog.warning('ccopts = {!r}'.format(self.compile_args))
+        mlog.warning('ldopts = {!r}'.format(self.link_args))
+        mlog.warning('rpath = {!r}'.format(self.rpath))
+
+        self.is_found = True
+
+    def _filter_ccopts(self, *args):
+        """
+        Return the interesting ccopts
+        """
+        return list(filter(lambda x:
+                           x.startswith(('-D', '-U', '-I', '-i', '-f', '-m')),
+                           *args))
+
+    def _filter_ldopts(self, *args):
+        """
+        Return the interesting ldopts
+        """
+        skip_libs = ['-ldb', '-ldbm', '-lndbm', '-lgdbm', '-lc', '-lposix', '-rdynamic']
+        return list(filter(lambda x:
+                           x not in skip_libs and not x.startswith(('-A', '-Wl,-rpath,')),
+                           *args))
+
+    def _extract_rpath(self, *args):
+        rpath_flag = next((x for x in list(*args) if x.startswith('-Wl,-rpath,')), '')
+        return rpath_flag.split(',', 3)[2] if rpath_flag != '' else ''
+
+    def get_configtool_variable(self, variable_name):
+        if variable_name in ['ldopts', 'perl_inc', 'ccflags', 'ccldflags', 'ccopts']:
+            return self._try_perl('-MExtUtils::Embed', '-e', variable_name)
+
+        return self._try_perl('-V::' + variable_name + ':')
+
+    def _try_perl(self, *args):
+        if not self.perl_prog.found():
+            return None
+
+        cmd = self.perl_prog.get_command() + list(args)
+        p, o, e = mesonlib.Popen_safe(cmd)
+        p.wait()
+        if p.returncode != 0:
+            mlog.debug('Command', mlog.bold(cmd), 'failed to run:')
+            mlog.debug(mlog.bold('Standard output\n'), o)
+            mlog.debug(mlog.bold('Standard error\n'), e)
+            return None
+
+        return shlex.split(o)
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.SYSTEM]
+
+    def log_tried(self):
+        return 'system'
 
 
 class Python3DependencySystem(ExternalDependency):
@@ -480,6 +562,12 @@ pcap_factory = DependencyFactory(
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
     configtool_class=PcapDependencyConfigTool,
     pkgconfig_name='libpcap',
+)
+
+perl_factory = DependencyFactory(
+    'perl',
+    [DependencyMethods.SYSTEM],
+    system_class=PerlDependencySystem,
 )
 
 python3_factory = DependencyFactory(

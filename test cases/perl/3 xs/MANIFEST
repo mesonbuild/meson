@@ -1,0 +1,7 @@
+meson.build
+MANIFEST
+README
+Storer.xs
+typemap
+t/Meson-Storer.t
+lib/Meson/Storer.pm
