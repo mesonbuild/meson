@@ -539,6 +539,72 @@ class GnuLikeDynamicLinkerMixin:
         return args
 
 
+class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
+
+    """Apple's ld implementation."""
+
+    def get_asneeded_args(self) -> typing.List[str]:
+        return ['-Wl,-dead_strip_dylibs']
+
+    def get_allow_undefined_args(self) -> typing.List[str]:
+        return ['-Wl,-undefined,dynamic_lookup']
+
+    def get_std_shared_module_args(self, options: 'OptionDictType') -> typing.List[str]:
+        return ['-bundle', '-Wl,-undefined,dynamic_lookup']
+
+    def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
+        result = []  # type: typing.List[str]
+        for a in args:
+            result.extend(['-Wl,-force_load', a])
+        return result
+
+    def no_undefined_args(self) -> typing.List[str]:
+        return ['-Wl,-undefined,error']
+
+    def get_always_args(self) -> typing.List[str]:
+        return ['-Wl,-headerpad_max_install_names']
+
+    def bitcode_args(self) -> typing.List[str]:
+        return ['-Wl,-bitcode_bundle']
+
+    def fatal_warnings(self) -> typing.List[str]:
+        return ['-Wl,-fatal_warnings']
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
+                        is_shared_module: bool) -> typing.List[str]:
+        if is_shared_module:
+            return []
+        install_name = ['@rpath/', prefix, shlib_name]
+        if soversion is not None:
+            install_name.append('.' + soversion)
+        install_name.append('.dylib')
+        args = ['-install_name', ''.join(install_name)]
+        if darwin_versions:
+            args.extend(['-compatibility_version', darwin_versions[0],
+                         '-current_version', darwin_versions[1]])
+        return args
+
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> typing.List[str]:
+        if not rpath_paths and not install_rpath and not build_rpath:
+            return []
+        # Ensure that there is enough space for install_name_tool in-place
+        # editing of large RPATHs
+        args = ['-Wl,-headerpad_max_install_names']
+        # @loader_path is the equivalent of $ORIGIN on macOS
+        # https://stackoverflow.com/q/26280738
+        origin_placeholder = '@loader_path'
+        processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
+        all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
+        if build_rpath != '':
+            all_paths.add(build_rpath)
+        args.extend(['-Wl,-rpath,' + rp for rp in all_paths])
+
+        return args
+
+
 class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 
     """Representation of GNU ld.bfd and ld.gold."""
