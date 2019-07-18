@@ -895,7 +895,8 @@ class Test(InterpreterObject):
     def __init__(self, name: str, project: str, suite: List[str], exe: build.Executable,
                  depends: List[Union[build.CustomTarget, build.BuildTarget]],
                  is_parallel: bool, cmd_args: List[str], env: build.EnvironmentVariables,
-                 should_fail: bool, timeout: int, workdir: Optional[str], protocol: str):
+                 should_fail: bool, timeout: int, workdir: Optional[str], protocol: str,
+                 priority: int):
         InterpreterObject.__init__(self)
         self.name = name
         self.suite = suite
@@ -909,6 +910,7 @@ class Test(InterpreterObject):
         self.timeout = timeout
         self.workdir = workdir
         self.protocol = protocol
+        self.priority = priority
 
     def get_exe(self):
         return self.exe
@@ -2036,7 +2038,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'subdir': {'if_found'},
                     'subproject': {'version', 'default_options', 'required'},
                     'test': {'args', 'depends', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir',
-                             'suite', 'protocol'},
+                             'suite', 'protocol', 'priority'},
                     'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
                     }
 
@@ -3366,6 +3368,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         self.add_test(node, args, kwargs, False)
 
     @FeatureNewKwargs('test', '0.46.0', ['depends'])
+    @FeatureNewKwargs('test', '0.52.0', ['priority'])
     @permittedKwargs(permitted_kwargs['test'])
     def func_test(self, node, args, kwargs):
         self.add_test(node, args, kwargs, True)
@@ -3436,8 +3439,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         for dep in depends:
             if not isinstance(dep, (build.CustomTarget, build.BuildTarget)):
                 raise InterpreterException('Depends items must be build targets.')
+        priority = kwargs.get('priority', 0)
+        if not isinstance(priority, int):
+            raise InterpreterException('Keyword argument priority must be an integer.')
         t = Test(args[0], prj, suite, exe.held_object, depends, par, cmd_args,
-                 env, should_fail, timeout, workdir, protocol)
+                 env, should_fail, timeout, workdir, protocol, priority)
         if is_base_test:
             self.build.tests.append(t)
             mlog.debug('Adding test', mlog.bold(args[0], True))

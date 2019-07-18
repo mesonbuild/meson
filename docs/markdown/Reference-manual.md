@@ -1512,6 +1512,12 @@ Keyword arguments are the following:
   Protocol](https://www.testanything.org/)). For more on the Meson test
   harness protocol read [Unit Tests](Unit-tests.md). Since 0.50.0
 
+- `priority` specifies the priority of a test. Tests with a
+  higher priority are *started* before tests with a lower priority.
+  The starting order of tests with identical priorities is
+  implementation-defined. The default priority is 0, negative numbers are
+  permitted. Since 0.52.0
+
 Defined tests can be run in a backend-agnostic way by calling
 `meson test` inside the build dir, or by using backend-specific
 commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.

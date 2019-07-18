@@ -727,7 +727,7 @@ class Backend:
 
     def create_test_serialisation(self, tests):
         arr = []
-        for t in tests:
+        for t in sorted(tests, key=lambda tst: -1 * tst.priority):
             exe = t.get_exe()
             if isinstance(exe, dependencies.ExternalProgram):
                 cmd = exe.get_command()

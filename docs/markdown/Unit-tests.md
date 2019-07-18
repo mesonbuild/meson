@@ -51,6 +51,19 @@ By default Meson uses as many concurrent processes as there are cores on the tes
 $ MESON_TESTTHREADS=5 ninja test
 ```
 
+Priorities
+--
+
+Tests can be assigned a priority that determines when a test is *started*. Tests with higher priority are started first, tests with lower priority started later. The default priority is 0, meson makes no guarantee on the ordering of tests with identical priority.
+
+```meson
+test('started second', t, priority : 0)
+test('started third', t, priority : -50)
+test('started first', t, priority : 1000)
+```
+
+Note that the test priority only affects the starting order of tests and subsequent tests are affected by how long it takes previous tests to complete. It is thus possible that a higher-priority test is still running when lower-priority tests with a shorter runtime have completed.
+
 ## Skipped tests and hard errors
 
 Sometimes a test can only determine at runtime that it can not be run.
