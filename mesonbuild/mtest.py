@@ -14,6 +14,7 @@
 
 # A tool to run tests in many different ways.
 
+from pathlib import Path
 from collections import namedtuple
 from copy import deepcopy
 import argparse
@@ -426,18 +427,18 @@ def run_with_mono(fname: str) -> bool:
     return False
 
 def load_benchmarks(build_dir: str) -> typing.List['TestSerialisation']:
-    datafile = os.path.join(build_dir, 'meson-private', 'meson_benchmark_setup.dat')
-    if not os.path.isfile(datafile):
-        raise TestException('Directory ${!r} does not seem to be a Meson build directory.'.format(build_dir))
-    with open(datafile, 'rb') as f:
+    datafile = Path(build_dir) / 'meson-private' / 'meson_benchmark_setup.dat'
+    if not datafile.is_file():
+        raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(build_dir))
+    with datafile.open('rb') as f:
         obj = typing.cast(typing.List['TestSerialisation'], pickle.load(f))
     return obj
 
 def load_tests(build_dir: str) -> typing.List['TestSerialisation']:
-    datafile = os.path.join(build_dir, 'meson-private', 'meson_test_setup.dat')
-    if not os.path.isfile(datafile):
-        raise TestException('Directory ${!r} does not seem to be a Meson build directory.'.format(build_dir))
-    with open(datafile, 'rb') as f:
+    datafile = Path(build_dir) / 'meson-private' / 'meson_test_setup.dat'
+    if not datafile.is_file():
+        raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(build_dir))
+    with datafile.open('rb') as f:
         obj = typing.cast(typing.List['TestSerialisation'], pickle.load(f))
     return obj
 
@@ -975,7 +976,7 @@ def list_tests(th: TestHarness) -> bool:
     return not tests
 
 def rebuild_all(wd: str) -> bool:
-    if not os.path.isfile(os.path.join(wd, 'build.ninja')):
+    if not (Path(wd) / 'build.ninja').is_file():
         print('Only ninja backend is supported to rebuild tests before running them.')
         return True
 
@@ -984,11 +985,9 @@ def rebuild_all(wd: str) -> bool:
         print("Can't find ninja, can't rebuild test.")
         return False
 
-    p = subprocess.Popen([ninja, '-C', wd])
-    p.communicate()
-
-    if p.returncode != 0:
-        print('Could not rebuild')
+    ret = subprocess.run([ninja, '-C', wd]).returncode
+    if ret != 0:
+        print('Could not rebuild {}'.format(wd))
         return False
 
     return True
