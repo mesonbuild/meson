@@ -21,7 +21,7 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
-from .mesonlib import FileMode, MachineChoice, PerMachine, Popen_safe, listify, extract_as_list, has_path_sep
+from .mesonlib import FileMode, MachineChoice, Popen_safe, listify, extract_as_list, has_path_sep
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .interpreterbase import InterpreterBase
@@ -40,7 +40,7 @@ from collections import namedtuple
 from itertools import chain
 from pathlib import PurePath
 import functools
-from typing import Sequence, List, Union, Optional, Iterator, Dict, Any
+from typing import Sequence, List, Union, Optional, Dict, Any
 
 import importlib
 
