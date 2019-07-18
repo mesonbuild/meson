@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import abc, contextlib, enum, os.path, re, tempfile, shlex
-from typing import List, Optional, Tuple
-from pathlib import Path
+import contextlib, enum, os.path, re, tempfile, shlex
+from typing import Optional, Tuple
 
 from ..linkers import StaticLinker
 from .. import coredata
@@ -22,7 +21,7 @@ from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
     EnvironmentException, MachineChoice, MesonException, OrderedSet,
-    version_compare, Popen_safe
+    Popen_safe
 )
 from ..envconfig import (
     Properties,

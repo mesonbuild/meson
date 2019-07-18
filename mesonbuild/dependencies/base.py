@@ -1543,7 +1543,7 @@ class DubDependency(ExternalDependency):
                 for lib in target['buildSettings'][field_name]:
                     if lib not in libs:
                         libs.append(lib)
-                        if os.name is not 'nt':
+                        if os.name != 'nt':
                             pkgdep = PkgConfigDependency(lib, environment, {'required': 'true', 'silent': 'true'})
                             for arg in pkgdep.get_compile_args():
                                 self.compile_args.append(arg)
