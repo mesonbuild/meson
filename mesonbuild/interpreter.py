@@ -2718,18 +2718,20 @@ external dependencies (including libraries) must go to "dependencies".''')
         return result
 
     def get_option_internal(self, optname):
+        raw_optname = optname
+        if self.is_subproject():
+            optname = self.subproject + ':' + optname
+
         for opts in chain(
                 [self.coredata.base_options, compilers.base_options, self.coredata.builtins],
                 self.coredata.get_prefixed_options_per_machine(self.coredata.builtins_per_machine),
                 self.coredata.get_prefixed_options_per_machine(self.coredata.compiler_options),
         ):
             v = opts.get(optname)
+            if v is None or v.yielding:
+                v = opts.get(raw_optname)
             if v is not None:
                 return v
-
-        raw_optname = optname
-        if self.is_subproject():
-            optname = self.subproject + ':' + optname
 
         try:
             opt = self.coredata.user_options[optname]
@@ -2837,6 +2839,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if self.environment.first_invocation:
             default_options = self.project_default_options
             default_options.update(self.default_project_options)
+            self.coredata.init_builtins(self.subproject)
         else:
             default_options = {}
         self.coredata.set_default_options(default_options, self.subproject, self.environment)
@@ -4336,7 +4339,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
         return BothLibrariesHolder(shared_holder, static_holder, self)
 
     def build_library(self, node, args, kwargs):
-        default_library = self.coredata.get_builtin_option('default_library')
+        default_library = self.coredata.get_builtin_option('default_library', self.subproject)
         if default_library == 'shared':
             return self.build_target(node, args, kwargs, SharedLibraryHolder)
         elif default_library == 'static':
