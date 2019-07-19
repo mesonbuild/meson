@@ -452,7 +452,7 @@ class SingleTestRunner:
         self.options = options
 
     def _get_cmd(self) -> typing.Optional[typing.List[str]]:
-        if self.test.fname[0].endswith('.jar'):
+        if self.test.fname and self.test.fname[0].endswith('.jar'):
             return ['java', '-jar'] + self.test.fname
         elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
             return ['mono'] + self.test.fname
