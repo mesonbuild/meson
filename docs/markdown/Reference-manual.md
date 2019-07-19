@@ -1553,7 +1553,8 @@ arguments:
    that override those set in the subproject's `meson_options.txt`
    (like `default_options` in `project`, they only have effect when
    Meson is run for the first time, and command line arguments override
-   any default options in build files)
+   any default options in build files). *Since 0.54.0* `default_library`
+   built-in option can also be overridden.
  - `version` keyword argument that works just like the one in
    `dependency`. It specifies what version the subproject should be,
    as an example `>=1.0.1`
