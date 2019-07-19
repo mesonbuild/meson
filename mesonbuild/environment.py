@@ -956,14 +956,15 @@ class Environment:
                 version = self.get_gnu_version_from_defines(defines)
                 comp = GnuObjCCompiler if objc else GnuObjCPPCompiler
                 return comp(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, defines)
-            else:
+            if 'clang' in out:
                 comp = ClangObjCCompiler if objc else ClangObjCPPCompiler
-                if out.startswith('Apple LLVM') or out.startswith('Apple clang'):
-                    return comp(ccache + compiler, version, CompilerType.CLANG_OSX, for_machine, is_cross, exe_wrap)
-                if 'windows' in out:
-                    return comp(ccache + compiler, version, CompilerType.CLANG_MINGW, for_machine, is_cross, exe_wrap)
-                if out.startswith(('clang', 'OpenBSD clang')):
-                    return comp(ccache + compiler, version, CompilerType.CLANG_STANDARD, for_machine, is_cross, exe_wrap)
+                if 'Apple' in out or self.machines[for_machine].is_darwin():
+                    compiler_type = CompilerType.CLANG_OSX
+                elif 'windows' in out or self.machines[for_machine].is_windows():
+                    compiler_type = CompilerType.CLANG_MINGW
+                else:
+                    compiler_type = CompilerType.CLANG_STANDARD
+                return comp(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self, for_machine):
