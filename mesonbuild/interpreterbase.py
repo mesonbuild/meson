@@ -337,20 +337,25 @@ class Disabler(InterpreterObject):
     def found_method(self, args, kwargs):
         return False
 
-def is_disabler(i):
+def is_disabler(i) -> bool:
     return isinstance(i, Disabler)
 
-def is_disabled(args, kwargs):
+def is_arg_disabled(arg) -> bool:
+    if is_disabler(arg):
+        return True
+    if isinstance(arg, list):
+        for i in arg:
+            if is_arg_disabled(i):
+                return True
+    return False
+
+def is_disabled(args, kwargs) -> bool:
     for i in args:
-        if isinstance(i, Disabler):
+        if is_arg_disabled(i):
             return True
     for i in kwargs.values():
-        if isinstance(i, Disabler):
+        if is_arg_disabled(i):
             return True
-        if isinstance(i, list):
-            for j in i:
-                if isinstance(j, Disabler):
-                    return True
     return False
 
 class InterpreterBase:
