@@ -38,7 +38,7 @@ class ValaCompiler(Compiler):
         return []
 
     def get_debug_args(self, is_debug):
-        return ['--debug']
+        return ['--debug'] if is_debug else []
 
     def get_output_args(self, target):
         return [] # Because compiles into C.
