@@ -68,6 +68,10 @@ from run_tests import (
     run_configure_inprocess, run_mtest_inprocess
 )
 
+
+URLOPEN_TIMEOUT = 5
+
+
 def get_dynamic_section_entry(fname, entry):
     if is_cygwin() or is_osx():
         raise unittest.SkipTest('Test only applicable to ELF platforms')
@@ -1150,7 +1154,9 @@ class DataTests(unittest.TestCase):
         interp = Interpreter(FakeBuild(env), mock=True)
         url = 'https://raw.githubusercontent.com/TingPing/language-meson/master/grammars/meson.json'
         try:
-            r = urllib.request.urlopen(url)
+            # Use a timeout to avoid blocking forever in case the network is
+            # slow or unavailable in a weird way
+            r = urllib.request.urlopen(url, timeout=URLOPEN_TIMEOUT)
         except urllib.error.URLError as e:
             # Skip test when network is not available, such as during packaging
             # by a distro or Flatpak
