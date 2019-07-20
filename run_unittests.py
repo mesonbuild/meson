@@ -6599,15 +6599,14 @@ def unset_envs():
 
 def main():
     unset_envs()
-    pytest_args = ['-n', 'auto', './run_unittests.py']
-    if shutil.which('pytest-3'):
-        return subprocess.run(['pytest-3'] + pytest_args).returncode
-    elif shutil.which('pytest'):
-        return subprocess.run(['pytest'] + pytest_args).returncode
     try:
         import pytest # noqa: F401
+        # Need pytest-xdist for `-n` arg
+        import xdist # noqa: F401
+        pytest_args = ['-n', 'auto', './run_unittests.py']
         return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
     except ImportError:
+        print('pytest-xdist not found, using unittest instead')
         pass
     # All attempts at locating pytest failed, fall back to plain unittest.
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
