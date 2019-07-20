@@ -49,6 +49,7 @@ if sys.platform != 'win32':
 if __name__ == '__main__':
     setup(name='meson',
           version=version,
+          extras_require={'progress': ['tqdm']},
           packages=packages,
           package_data=package_data,
           entry_points=entries,
