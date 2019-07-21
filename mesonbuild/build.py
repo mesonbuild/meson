@@ -282,7 +282,7 @@ class ExtractedObjects:
         # TODO: Consider if we need to handle genlist here
         return [
             backend.object_filename_from_source(self.target, source)
-                for source in self.srclist
+            for source in self.srclist
         ]
 
 class EnvironmentVariables:
