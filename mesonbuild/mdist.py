@@ -14,17 +14,26 @@
 
 
 import lzma
+import gzip
 import os
 import sys
 import shutil
 import subprocess
-import pickle
 import hashlib
-import tarfile, zipfile
 from glob import glob
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import windows_proof_rmtree
 from mesonbuild import mlog, build
+
+archive_choices = ['gztar', 'xztar', 'zip']
+archive_extension = {'gztar': '.tar.gz',
+                     'xztar': '.tar.xz',
+                     'zip': '.zip'}
+
+def add_arguments(parser):
+    parser.add_argument('--formats', default='xztar',
+                        help='Comma separated list of archive types to create.')
+
 
 def create_hash(fname):
     hashname = fname + '.sha256sum'
@@ -33,22 +42,6 @@ def create_hash(fname):
     with open(hashname, 'w') as f:
         f.write('%s %s\n' % (m.hexdigest(), os.path.basename(fname)))
 
-
-def create_zip(zipfilename, packaging_dir):
-    prefix = os.path.dirname(packaging_dir)
-    removelen = len(prefix) + 1
-    with zipfile.ZipFile(zipfilename,
-                         'w',
-                         compression=zipfile.ZIP_DEFLATED,
-                         allowZip64=True) as zf:
-        zf.write(packaging_dir, packaging_dir[removelen:])
-        for root, dirs, files in os.walk(packaging_dir):
-            for d in dirs:
-                dname = os.path.join(root, d)
-                zf.write(dname, dname[removelen:])
-            for f in files:
-                fname = os.path.join(root, f)
-                zf.write(fname, fname[removelen:])
 
 def del_gitfiles(dirname):
     for f in glob(os.path.join(dirname, '.git*')):
@@ -97,7 +90,7 @@ def git_have_dirty_index(src_root):
     ret = subprocess.call(['git', '-C', src_root, 'diff-index', '--quiet', 'HEAD'])
     return ret == 1
 
-def create_dist_git(dist_name, src_root, bld_root, dist_sub, dist_scripts):
+def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts):
     if git_have_dirty_index(src_root):
         mlog.warning('Repository has uncommitted changes that will not be included in the dist tarball')
     distdir = os.path.join(dist_sub, dist_name)
@@ -108,15 +101,13 @@ def create_dist_git(dist_name, src_root, bld_root, dist_sub, dist_scripts):
     process_submodules(distdir)
     del_gitfiles(distdir)
     run_dist_scripts(distdir, dist_scripts)
-    xzname = distdir + '.tar.xz'
-    # Should use shutil but it got xz support only in 3.5.
-    with tarfile.open(xzname, 'w:xz') as tf:
-        tf.add(distdir, dist_name)
-    # Create only .tar.xz for now.
-    # zipname = distdir + '.zip'
-    # create_zip(zipname, distdir)
+    output_names = []
+    for a in archives:
+        compressed_name = distdir + archive_extension[a]
+        shutil.make_archive(distdir, a, root_dir=dist_sub, base_dir=dist_name)
+        output_names.append(compressed_name)
     shutil.rmtree(distdir)
-    return (xzname, )
+    return output_names
 
 
 def hg_have_dirty_index(src_root):
@@ -124,23 +115,32 @@ def hg_have_dirty_index(src_root):
     out = subprocess.check_output(['hg', '-R', src_root, 'summary'])
     return b'commit: (clean)' not in out
 
-def create_dist_hg(dist_name, src_root, bld_root, dist_sub, dist_scripts):
+def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts):
     if hg_have_dirty_index(src_root):
         mlog.warning('Repository has uncommitted changes that will not be included in the dist tarball')
 
     os.makedirs(dist_sub, exist_ok=True)
     tarname = os.path.join(dist_sub, dist_name + '.tar')
     xzname = tarname + '.xz'
+    gzname = tarname + '.gz'
+    zipname = os.path.join(dist_sub, dist_name + '.zip')
     subprocess.check_call(['hg', 'archive', '-R', src_root, '-S', '-t', 'tar', tarname])
+    output_names = []
     if dist_scripts:
         mlog.warning('dist scripts are not supported in Mercurial projects')
-    with lzma.open(xzname, 'wb') as xf, open(tarname, 'rb') as tf:
-        shutil.copyfileobj(tf, xf)
+    if 'xztar' in archives:
+        with lzma.open(xzname, 'wb') as xf, open(tarname, 'rb') as tf:
+            shutil.copyfileobj(tf, xf)
+        output_names.append(xzname)
+    if 'gztar' in archives:
+        with gzip.open(gzname, 'wb') as zf, open(tarname, 'rb') as tf:
+            shutil.copyfileobj(tf, zf)
+        output_names.append(gzname)
     os.unlink(tarname)
-    # Create only .tar.xz for now.
-    # zipname = os.path.join(dist_sub, dist_name + '.zip')
-    # subprocess.check_call(['hg', 'archive', '-R', src_root, '-S', '-t', 'zip', zipname])
-    return (xzname, )
+    if 'zip' in archives:
+        subprocess.check_call(['hg', 'archive', '-R', src_root, '-S', '-t', 'zip', zipname])
+        output_names.append(zipname)
+    return output_names
 
 
 def check_dist(packagename, meson_command, privdir):
@@ -154,10 +154,11 @@ def check_dist(packagename, meson_command, privdir):
         os.mkdir(p)
     ninja_bin = detect_ninja()
     try:
-        tf = tarfile.open(packagename)
-        tf.extractall(unpackdir)
-        srcdir = glob(os.path.join(unpackdir, '*'))[0]
-        if subprocess.call(meson_command + ['--backend=ninja', srcdir, builddir]) != 0:
+        shutil.unpack_archive(packagename, unpackdir)
+        unpacked_files = glob(os.path.join(unpackdir, '*'))
+        assert(len(unpacked_files) == 1)
+        unpacked_src_dir = unpacked_files[0]
+        if subprocess.call(meson_command + ['--backend=ninja', unpacked_src_dir, builddir]) != 0:
             print('Running Meson on distribution package failed')
             return 1
         if subprocess.call([ninja_bin], cwd=builddir) != 0:
@@ -178,7 +179,17 @@ def check_dist(packagename, meson_command, privdir):
     print('Distribution package %s tested' % packagename)
     return 0
 
-def run(opts):
+def determine_archives_to_generate(options):
+    result = []
+    for i in options.formats.split(','):
+        if i not in archive_choices:
+            sys.exit('Value "{}" not one of permitted values {}.'.format(i, archive_choices))
+        result.append(i)
+    if len(i) == 0:
+        sys.exit('No archive types specified.')
+    return result
+
+def run(options):
     b = build.load('.')
     # This import must be load delayed, otherwise it will get the default
     # value of None.
@@ -190,20 +201,21 @@ def run(opts):
 
     dist_name = b.project_name + '-' + b.project_version
 
+    archives = determine_archives_to_generate(options)
+
     _git = os.path.join(src_root, '.git')
     if os.path.isdir(_git) or os.path.isfile(_git):
-        names = create_dist_git(dist_name, src_root, bld_root, dist_sub, b.dist_scripts)
+        names = create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, b.dist_scripts)
     elif os.path.isdir(os.path.join(src_root, '.hg')):
-        names = create_dist_hg(dist_name, src_root, bld_root, dist_sub, b.dist_scripts)
+        names = create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, b.dist_scripts)
     else:
         print('Dist currently only works with Git or Mercurial repos')
         return 1
     if names is None:
         return 1
-    error_count = 0
-    for name in names:
-        rc = check_dist(name, meson_command, priv_dir) # Check only one.
-        if rc == 0:
+    # Check only one.
+    rc = check_dist(names[0], meson_command, priv_dir)
+    if rc == 0:
+        for name in names:
             create_hash(name)
-        error_count += rc
-    return 1 if error_count else 0
+    return rc
