@@ -4058,7 +4058,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
             sources = [sources]
         for s in sources:
             if isinstance(s, (mesonlib.File, GeneratedListHolder,
-                              TargetHolder, CustomTargetIndexHolder)):
+                              TargetHolder, CustomTargetIndexHolder,
+                              GeneratedObjectsHolder)):
                 pass
             elif isinstance(s, str):
                 self.validate_within_subproject(self.subdir, s)
