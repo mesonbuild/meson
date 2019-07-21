@@ -24,7 +24,7 @@ import tarfile, zipfile
 from glob import glob
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import windows_proof_rmtree
-from mesonbuild import mlog
+from mesonbuild import mlog, build
 
 def create_hash(fname):
     hashname = fname + '.sha256sum'
@@ -178,24 +178,23 @@ def check_dist(packagename, meson_command, privdir):
     print('Distribution package %s tested' % packagename)
     return 0
 
-def run(args):
-    src_root = args[0]
-    bld_root = args[1]
-    meson_command = args[2:]
+def run(opts):
+    b = build.load('.')
+    # This import must be load delayed, otherwise it will get the default
+    # value of None.
+    from mesonbuild.mesonlib import meson_command
+    src_root = b.environment.source_dir
+    bld_root = b.environment.build_dir
     priv_dir = os.path.join(bld_root, 'meson-private')
     dist_sub = os.path.join(bld_root, 'meson-dist')
 
-    buildfile = os.path.join(priv_dir, 'build.dat')
-
-    build = pickle.load(open(buildfile, 'rb'))
-
-    dist_name = build.project_name + '-' + build.project_version
+    dist_name = b.project_name + '-' + b.project_version
 
     _git = os.path.join(src_root, '.git')
     if os.path.isdir(_git) or os.path.isfile(_git):
-        names = create_dist_git(dist_name, src_root, bld_root, dist_sub, build.dist_scripts)
+        names = create_dist_git(dist_name, src_root, bld_root, dist_sub, b.dist_scripts)
     elif os.path.isdir(os.path.join(src_root, '.hg')):
-        names = create_dist_hg(dist_name, src_root, bld_root, dist_sub, build.dist_scripts)
+        names = create_dist_hg(dist_name, src_root, bld_root, dist_sub, b.dist_scripts)
     else:
         print('Dist currently only works with Git or Mercurial repos')
         return 1
