@@ -2410,13 +2410,21 @@ int main(int argc, char **argv) {
     return 0;
 }
 ''')
+            xz_distfile = os.path.join(self.distdir, 'disttest-1.4.3.tar.xz')
+            xz_checksumfile = xz_distfile + '.sha256sum'
+            zip_distfile = os.path.join(self.distdir, 'disttest-1.4.3.zip')
+            zip_checksumfile = zip_distfile + '.sha256sum'
             vcs_init(project_dir)
             self.init(project_dir)
             self.build('dist')
-            distfile = os.path.join(self.distdir, 'disttest-1.4.3.tar.xz')
-            checksumfile = distfile + '.sha256sum'
-            self.assertPathExists(distfile)
-            self.assertPathExists(checksumfile)
+            self.assertPathExists(xz_distfile)
+            self.assertPathExists(xz_checksumfile)
+            self.assertPathDoesNotExist(zip_distfile)
+            self.assertPathDoesNotExist(zip_checksumfile)
+            self._run(self.meson_command + ['dist', '--formats', 'zip'],
+                      workdir=self.builddir)
+            self.assertPathExists(zip_distfile)
+            self.assertPathExists(zip_checksumfile)
 
     def test_rpath_uses_ORIGIN(self):
         '''
