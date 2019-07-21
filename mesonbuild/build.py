@@ -279,11 +279,11 @@ class ExtractedObjects:
                                      'the object files for each compiler at once.')
 
     def get_outputs(self, backend):
-       # TODO: Consider if we need to handle genlist here
-       return [
-          backend.object_filename_from_source(self.target, source)
-             for source in self.srclist
-       ]
+        # TODO: Consider if we need to handle genlist here
+        return [
+            backend.object_filename_from_source(self.target, source)
+                for source in self.srclist
+        ]
 
 class EnvironmentVariables:
     def __init__(self):
