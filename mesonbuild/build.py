@@ -1918,7 +1918,7 @@ class CustomTarget(Target):
         'console',
     ])
 
-    def __init__(self, name, subdir, subproject, backend, kwargs, absolute_paths=False):
+    def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False, backend=None):
         self.typename = 'custom'
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
