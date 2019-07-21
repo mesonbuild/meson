@@ -22,7 +22,7 @@ import shutil
 
 from . import mesonlib
 from . import mlog
-from . import mconf, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata
+from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata
 from .mesonlib import MesonException
 from .environment import detect_msys2_arch
 from .wrap import wraptool
@@ -44,6 +44,8 @@ class CommandLineParser:
                          help_msg='Configure the project')
         self.add_command('configure', mconf.add_arguments, mconf.run,
                          help_msg='Change project options',)
+        self.add_command('dist', mconf.add_arguments, mdist.run,
+                         help_msg='Generate release archive',)
         self.add_command('install', minstall.add_arguments, minstall.run,
                          help_msg='Install the project')
         self.add_command('introspect', mintro.add_arguments, mintro.run,
