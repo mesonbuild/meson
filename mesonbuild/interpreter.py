@@ -3314,7 +3314,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             except mesonlib.MesonException:
                 mlog.warning('''Custom target input \'%s\' can\'t be converted to File object(s).
 This will become a hard error in the future.''' % kwargs['input'], location=self.current_node)
-        tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs), self)
+        tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, self.backend, kwargs), self)
         self.add_target(name, tg.held_object)
         return tg
 

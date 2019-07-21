@@ -1911,7 +1911,7 @@ class CustomTarget(Target):
         'console',
     ])
 
-    def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False):
+    def __init__(self, name, subdir, subproject, backend, kwargs, absolute_paths=False):
         self.typename = 'custom'
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
@@ -1919,7 +1919,7 @@ class CustomTarget(Target):
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
         self.depfile = None
-        self.process_kwargs(kwargs)
+        self.process_kwargs(kwargs, backend)
         self.extra_files = []
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths
@@ -1996,14 +1996,14 @@ class CustomTarget(Target):
                 raise InvalidArguments('Argument {!r} in "command" is invalid'.format(c))
         return final_cmd
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs(self, kwargs, backend):
         super().process_kwargs(kwargs)
         self.sources = extract_as_list(kwargs, 'input', unholder=True)
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.outputs = listify(kwargs['output'])
         # This will substitute values from the input into output and return it.
-        inputs = get_sources_string_names(self.sources)
+        inputs = get_sources_string_names(self.sources, backend)
         values = get_filenames_templates_dict(inputs, [])
         for i in self.outputs:
             if not(isinstance(i, str)):
@@ -2370,7 +2370,7 @@ class TestSetup:
         self.timeout_multiplier = timeout_multiplier
         self.env = env
 
-def get_sources_string_names(sources):
+def get_sources_string_names(sources, backend):
     '''
     For the specified list of @sources which can be strings, Files, or targets,
     get all the output basenames.
