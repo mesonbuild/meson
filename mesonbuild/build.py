@@ -278,6 +278,13 @@ class ExtractedObjects:
                                      'in Unity builds. You can only extract all '
                                      'the object files for each compiler at once.')
 
+    def get_outputs(self, backend):
+       # TODO: Consider if we need to handle genlist here
+       return [
+          backend.object_filename_from_source(self.target, source)
+             for source in self.srclist
+       ]
+
 class EnvironmentVariables:
     def __init__(self):
         self.envvars = []
@@ -2383,6 +2390,8 @@ def get_sources_string_names(sources, backend):
             names.append(s)
         elif isinstance(s, (BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList)):
             names += s.get_outputs()
+        elif isinstance(s, ExtractedObjects):
+            names += s.get_outputs(backend)
         elif isinstance(s, File):
             names.append(s.fname)
         else:
