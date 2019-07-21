@@ -918,6 +918,8 @@ class Backend:
                 fname = [os.path.join(self.get_target_dir(i), p) for p in i.get_outputs()]
             elif isinstance(i, build.GeneratedList):
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
+            elif isinstance(i, build.ExtractedObjects):
+                fname = [os.path.join(self.get_target_private_dir(i.target), p) for p in i.get_outputs(self)]
             else:
                 fname = [i.rel_to_builddir(self.build_to_src)]
             if target.absolute_paths:
