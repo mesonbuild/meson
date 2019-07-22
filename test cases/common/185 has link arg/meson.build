@@ -8,8 +8,8 @@ if cc.get_argument_syntax() == 'msvc'
   useless = '/DEBUG'
   isnt_arg = '/iambroken'
 else
-  is_arg = '-Wl,-Lfoo'
-  useless = '-Wl,-Lbar'
+  is_arg = '-Wl,-L/tmp'
+  useless = '-Wl,-L/usr'
   isnt_arg = '-Wl,-iambroken'
 endif
 
