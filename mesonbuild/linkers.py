@@ -422,7 +422,7 @@ class GnuLikeDynamicLinkerMixin:
 
     def get_asneeded_args(self) -> typing.List[str]:
         return ['-Wl,--as-needed']
-    
+
     def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
         if not args:
             return args
@@ -735,3 +735,81 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         if env.machines[self.for_machine].is_windows():
             return ['-R' + os.path.join(build_dir, p) for p in rpath_paths]
         return []
+
+
+class VisualStudioLikeLinkerMixin:
+
+    _BUILDTYPE_ARGS = {
+        'plain': [],
+        'debug': [],
+        'debugoptimized': [],
+        # The otherwise implicit REF and ICF linker optimisations are disabled by
+        # /DEBUG. REF implies ICF.
+        'release': ['/OPT:REF'],
+        'minsize': ['/INCREMENTAL:NO', '/OPT:REF'],
+        'custom': [],
+    }  # type: typing.Dict[str, typing.List[str]]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.machine = 'x86'
+
+    def get_debug_crt_args(self) -> typing.List[str]:
+        """Arguments needed to select a debug crt for the linker.
+
+        Sometimes we need to manually select the CRT (C runtime) to use with
+        MSVC. One example is when trying to link with static libraries since
+        MSVC won't auto-select a CRT for us in that case and will error out
+        asking us to select one.
+        """
+        return ['/MDd']
+
+    def get_output_args(self, outputname: str) -> typing.List[str]:
+        return ['/MACHINE:' + self.machine, '/OUT:' + outputname]
+
+    def get_always_args(self) -> typing.List[str]:
+        return ['/nologo']
+
+    def get_search_args(self, dirname: str) -> typing.List[str]:
+        return ['/LIBPATH:' + dirname]
+
+    def get_std_shared_lib_args(self) -> typing.List[str]:
+        return ['/DLL']
+
+    def get_debugfile_args(self, targetfile: str) -> typing.List[str]:
+        pdbarr = targetfile.split('.')[:-1]
+        pdbarr += ['pdb']
+        return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
+
+    def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
+        # Only since VS2015
+        args = mesonlib.listify(args)
+        return ['/WHOLEARCHIVE:' + x for x in args]
+
+    def get_allow_undefined_args(self) -> typing.List[str]:
+        # link.exe
+        return ['/FORCE:UNRESOLVED']
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
+                        is_shared_module: bool) -> typing.List[str]:
+        return []
+
+
+class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
+
+    """Microsoft's Link.exe."""
+
+    def __init__(self, for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__(['link.exe'], for_machine, 'link', version=version)
+
+
+class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
+
+    """Clang's lld-link.exe."""
+
+    def __init__(self, for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__(['lld-link.exe'], for_machine, 'lld-link',
+                         version=version)
