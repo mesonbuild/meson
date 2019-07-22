@@ -692,3 +692,18 @@ class ArmDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def get_allow_undefined_args(self) -> typing.List[str]:
         return []
+
+
+class ArmClangDynamicLinker(ArmDynamicLinker):
+
+    """Linker used with ARM's clang fork.
+
+    The interface is similar enough to the old ARM ld that it inherits and
+    extends a few things as needed.
+    """
+
+    def export_dynamic_args(self, env: 'Environment') -> typing.List[str]:
+        return ['--export_dynamic']
+
+    def import_library_args(self, implibname: str) -> typing.List[str]:
+        return ['--symdefs=' + implibname]
