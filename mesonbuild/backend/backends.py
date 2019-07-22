@@ -165,10 +165,6 @@ class Backend:
     def get_target_filename_abs(self, target):
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
-    def get_builtin_options_for_target(self, target):
-        return OptionOverrideProxy(target.option_overrides,
-                                   self.environment.coredata.builtins)
-
     def get_base_options_for_target(self, target):
         return OptionOverrideProxy(target.option_overrides,
                                    self.environment.coredata.builtins,
