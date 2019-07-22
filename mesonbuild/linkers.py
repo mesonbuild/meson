@@ -707,3 +707,31 @@ class ArmClangDynamicLinker(ArmDynamicLinker):
 
     def import_library_args(self, implibname: str) -> typing.List[str]:
         return ['--symdefs=' + implibname]
+
+
+class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
+
+    """PGI linker."""
+
+    def get_allow_undefined_args(self) -> typing.List[str]:
+        return []
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
+                        is_shared_module: bool) -> typing.List[str]:
+        return []
+
+    def get_std_shared_lib_args(self) -> typing.List[str]:
+        # PGI -shared is Linux only.
+        if mesonlib.is_windows():
+            return ['-Bdynamic', '-Mmakedll']
+        elif mesonlib.is_linux:
+            return ['-shared']
+        return []
+
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> typing.List[str]:
+        if env.machines[self.for_machine].is_windows():
+            return ['-R' + os.path.join(build_dir, p) for p in rpath_paths]
+        return []
