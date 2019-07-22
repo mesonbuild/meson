@@ -640,3 +640,36 @@ class XildAppleDynamicLinker(AppleDynamicLinker):
     """
 
     pass
+
+
+class CcrxDynamicLinker(DynamicLinker):
+
+    """Linker for Renesis CCrx compiler."""
+
+    def __init__(self, for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__(['rlink.exe'], for_machine, 'rlink',
+                         version=version)
+
+    def get_accepts_rsp(self) -> bool:
+        return False
+
+    def get_lib_prefix(self) -> str:
+        return '-lib='
+
+    def get_std_shared_lib_args(self) -> typing.List[str]:
+        return []
+
+    def get_output_args(self, outputname: str) -> typing.List[str]:
+        return ['-output=%s' % outputname]
+
+    def get_search_args(self, dirname: str) -> typing.NoReturn:
+        raise EnvironmentError('rlink.exe does not have a search dir argument')
+
+    def get_allow_undefined_args(self) -> typing.List[str]:
+        return []
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
+                        is_shared_module: bool) -> typing.List[str]:
+        return []
