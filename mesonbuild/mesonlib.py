@@ -1537,15 +1537,22 @@ class OptionProxy:
 class OptionOverrideProxy:
     '''Mimic an option list but transparently override
     selected option values.'''
-    def __init__(self, overrides, *options):
+    def __init__(self, overrides, subproject, *options):
         self.overrides = overrides
         self.options = options
+        self.subproject = subproject
 
-    def __getitem__(self, option_name):
+    def __getitem__(self, optname):
+        raw_optname = optname
+        if self.subproject:
+            optname = self.subproject + ':' + optname
         for opts in self.options:
-            if option_name in opts:
-                return self._get_override(option_name, opts[option_name])
-        raise KeyError('Option not found', option_name)
+            v = opts.get(optname)
+            if v is None or v.yielding:
+                v = opts.get(raw_optname)
+            if v is not None:
+                return self._get_override(raw_optname, v)
+        raise KeyError('Option not found', raw_optname)
 
     def _get_override(self, option_name, base_opt):
         if option_name in self.overrides:

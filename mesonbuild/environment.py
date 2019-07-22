@@ -1592,11 +1592,11 @@ class Environment:
             comp = None
         return comp
 
-    def detect_compiler_for(self, lang: str, for_machine: MachineChoice):
+    def detect_compiler_for(self, lang: str, for_machine: MachineChoice, subproject=''):
         comp = self.compiler_from_language(lang, for_machine)
         if comp is not None:
             assert comp.for_machine == for_machine
-            self.coredata.process_new_compiler(lang, comp, self)
+            self.coredata.process_new_compiler(lang, comp, self, subproject)
         return comp
 
     def detect_static_linker(self, compiler):

@@ -718,102 +718,102 @@ class CoreData:
             self.copy_build_options_from_regular_ones()
 
     def set_default_options(self, default_options, subproject, env):
-        # Set defaults first from conf files (cross or native), then
-        # override them as nec as necessary.
-        for k, v in env.paths.host:
-            if v is not None:
-                env.cmd_line_options.setdefault(k, v)
+        if not subproject:
+            # Set defaults first from conf files (cross or native), then
+            # override them as necessary.
+            for k, v in env.paths.host:
+                if v is not None:
+                    env.cmd_line_options.setdefault(k, v)
+
+            # Some options default to environment variables if they are
+            # unset, set those now. These will either be overwritten
+            # below, or they won't. These should only be set on the first run.
+            p_env = os.environ.get('PKG_CONFIG_PATH')
+            if p_env:
+                # PKG_CONFIG_PATH may contain duplicates, which must be
+                # removed, else a duplicates-in-array-option warning arises.
+                p_list = list(OrderedSet(p_env.split(':')))
+                if env.first_invocation:
+                    env.cmd_line_options.setdefault('pkg_config_path', p_list)
+                elif options.get('pkg_config_path', []) != p_list:
+                    mlog.warning(
+                        'PKG_CONFIG_PATH environment variable has changed '
+                        'between configurations, meson ignores this. '
+                        'Use -Dpkg_config_path to change pkg-config search '
+                        'path instead.')
 
         # Set default options as if they were passed to the command line.
-        # Subprojects can only define default for user options and not yielding
-        # builtin option.
-        from . import optinterpreter
         for k, v in default_options.items():
             if subproject:
-                if (k not in builtin_options or builtin_options[k].yielding) \
-                        and optinterpreter.is_invalid_name(k, log=False):
-                    continue
                 k = subproject + ':' + k
             env.cmd_line_options.setdefault(k, v)
 
-        # Create a subset of cmd_line_options, keeping only options for this
-        # subproject. Also take builtin options if it's the main project.
+        # Create a subset of cmd_line_options, keeping only project and builtin
+        # options for this subproject.
         # Language and backend specific options will be set later when adding
         # languages and setting the backend (builtin options must be set first
         # to know which backend we'll use).
         options = {}
 
-        # Some options default to environment variables if they are
-        # unset, set those now. These will either be overwritten
-        # below, or they won't. These should only be set on the first run.
-        p_env = os.environ.get('PKG_CONFIG_PATH')
-        if p_env:
-            # PKG_CONFIG_PATH may contain duplicates, which must be
-            # removed, else a duplicates-in-array-option warning arises.
-            p_list = list(OrderedSet(p_env.split(':')))
-            if env.first_invocation:
-                options['pkg_config_path'] = p_list
-            elif options.get('pkg_config_path', []) != p_list:
-                mlog.warning(
-                    'PKG_CONFIG_PATH environment variable has changed '
-                    'between configurations, meson ignores this. '
-                    'Use -Dpkg_config_path to change pkg-config search '
-                    'path instead.'
-                )
-
+        from . import optinterpreter
         for k, v in env.cmd_line_options.items():
+            raw_optname = k
             if subproject:
                 if not k.startswith(subproject + ':'):
                     continue
-            elif k not in builtin_options.keys() \
-                    and 'build.' + k not in builtin_options_per_machine.keys() \
-                    and k not in builtin_options_per_machine.keys():
-                if ':' in k:
-                    continue
-                if optinterpreter.is_invalid_name(k, log=False):
-                    continue
+                raw_optname = k.split(':')[1]
+            elif ':' in k:
+                continue
+            if k not in self.builtins \
+               and k not in self.get_prefixed_options_per_machine(self.builtins_per_machine) \
+               and optinterpreter.is_invalid_name(raw_optname, log=False):
+                continue
             options[k] = v
 
         self.set_options(options, subproject=subproject)
+
+    def add_lang_args_internal(self, lang: str, for_machine: MachineChoice,
+                               env: 'Environment', subproject: str, options):
+        optprefix = lang + '_'
+        for k, o in options.items():
+            if not k.startswith(optprefix):
+                raise MesonException('Internal error, %s has incorrect prefix.' % k)
+            # prefixed compiler options affect just this machine
+            opt_prefix = for_machine.get_prefix()
+            raw_optname = optname = opt_prefix + k
+            if subproject and not o.yielding:
+                optname = subproject + ':' + optname
+            value = env.cmd_line_options.get(optname)
+            if value is None:
+                value = env.cmd_line_options.get(raw_optname)
+            if value is not None:
+                o.set_value(value)
+            optname = optname.replace(opt_prefix, '')
+            raw_optname = raw_optname.replace(opt_prefix, '')
+            self.compiler_options[for_machine].setdefault(optname, o)
+            self.compiler_options[for_machine].setdefault(raw_optname, o)
 
     def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
                       for_machine: MachineChoice, env: 'Environment') -> None:
         """Add global language arguments that are needed before compiler/linker detection."""
         from .compilers import compilers
+        options = compilers.get_global_options(lang, comp, env.properties[for_machine])
+        self.add_lang_args_internal(lang, for_machine, env, '', options)
 
-        optprefix = lang + '_'
-        for k, o in compilers.get_global_options(lang, comp, env.properties[for_machine]).items():
-            if not k.startswith(optprefix):
-                raise MesonException('Internal error, %s has incorrect prefix.' % k)
-            # prefixed compiler options affect just this machine
-            opt_prefix = for_machine.get_prefix()
-            if opt_prefix + k in env.cmd_line_options:
-                o.set_value(env.cmd_line_options[opt_prefix + k])
-            self.compiler_options[for_machine].setdefault(k, o)
-
-    def process_new_compiler(self, lang: str, comp: T.Type['Compiler'], env: 'Environment') -> None:
+    def process_new_compiler(self, lang: str, comp: T.Type['Compiler'], env: 'Environment', subproject: str='') -> None:
         from . import compilers
 
         self.compilers[comp.for_machine][lang] = comp
-        enabled_opts = []
-
-        optprefix = lang + '_'
-        for k, o in comp.get_options().items():
-            if not k.startswith(optprefix):
-                raise MesonException('Internal error, %s has incorrect prefix.' % k)
-            # prefixed compiler options affect just this machine
-            opt_prefix = comp.for_machine.get_prefix()
-            if opt_prefix + k in env.cmd_line_options:
-                o.set_value(env.cmd_line_options[opt_prefix + k])
-            self.compiler_options[comp.for_machine].setdefault(k, o)
+        self.add_lang_args_internal(lang, comp.for_machine, env, subproject, comp.get_options())
 
         enabled_opts = []
         for optname in comp.base_options:
             if optname in self.base_options:
                 continue
             oobj = compilers.base_options[optname]
-            if optname in env.cmd_line_options:
-                oobj.set_value(env.cmd_line_options[optname])
+            value = env.cmd_line_options.get(optname)
+            if value is not None:
+                oobj.set_value(vaue)
                 enabled_opts.append(optname)
             self.base_options[optname] = oobj
         self.emit_base_options_warnings(enabled_opts)

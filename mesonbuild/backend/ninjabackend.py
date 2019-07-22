@@ -2522,7 +2522,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             commands += self.build.get_global_link_args(linker, target.for_machine)
             # Link args added from the env: LDFLAGS. We want these to override
             # all the defaults but not the per-target link args.
-            commands += self.environment.coredata.get_external_link_args(target.for_machine, linker.get_language())
+            copt_proxy = self.get_compiler_options_for_target(target)
+            commands += copt_proxy[linker.get_language() + '_args'].value
 
         # Now we will add libraries and library paths from various sources
 

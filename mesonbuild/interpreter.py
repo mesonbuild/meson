@@ -3044,9 +3044,10 @@ external dependencies (including libraries) must go to "dependencies".''')
             machine_name = for_machine.get_lower_case_name()
             if lang in clist:
                 comp = clist[lang]
+                self.coredata.process_new_compiler(lang, comp, self.environment, self.subproject)
             else:
                 try:
-                    comp = self.environment.detect_compiler_for(lang, for_machine)
+                    comp = self.environment.detect_compiler_for(lang, for_machine, self.subproject)
                     if comp is None:
                         raise InvalidArguments('Tried to use unknown language "%s".' % lang)
                     comp.sanity_check(self.environment.get_scratch_dir(), self.environment)

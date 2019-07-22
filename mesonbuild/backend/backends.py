@@ -167,12 +167,14 @@ class Backend:
 
     def get_base_options_for_target(self, target):
         return OptionOverrideProxy(target.option_overrides,
+                                   target.subproject,
                                    self.environment.coredata.builtins,
                                    self.environment.coredata.base_options)
 
     def get_compiler_options_for_target(self, target):
         return OptionOverrideProxy(
             target.option_overrides,
+            target.subproject,
             self.environment.coredata.compiler_options[target.for_machine])
 
     def get_option_for_target(self, option_name, target):
@@ -615,7 +617,7 @@ class Backend:
         # Compile args added from the env: CFLAGS/CXXFLAGS, etc, or the cross
         # file. We want these to override all the defaults, but not the
         # per-target compile args.
-        commands += self.environment.coredata.get_external_args(target.for_machine, compiler.get_language())
+        commands += copt_proxy[compiler.get_language() + '_args'].value
         # Always set -fPIC for shared libraries
         if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_args()
