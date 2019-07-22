@@ -293,14 +293,14 @@ class VisualStudioLikeCCompilerMixin:
 
 class VisualStudioCCompiler(VisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target: str):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap)
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target: str, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
         VisualStudioLikeCompiler.__init__(self, target)
         self.id = 'msvc'
 
 class ClangClCCompiler(VisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap)
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
         VisualStudioLikeCompiler.__init__(self, target)
         self.id = 'clang-cl'
 
@@ -311,8 +311,8 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
 
     __have_warned = False
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap)
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
     def get_options(self):
