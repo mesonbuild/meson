@@ -673,3 +673,22 @@ class CcrxDynamicLinker(DynamicLinker):
                         suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
                         is_shared_module: bool) -> typing.List[str]:
         return []
+
+
+class ArmDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
+
+    """Linker for the ARM compiler."""
+
+    def __init__(self, for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__(['armlink'], for_machine, 'armlink',
+                         version=version)
+
+    def get_accepts_rsp(self) -> bool:
+        return False
+
+    def get_std_shared_lib_args(self) -> typing.NoReturn:
+        raise mesonlib.MesonException('The Arm Linkers do not support shared libraries')
+
+    def get_allow_undefined_args(self) -> typing.List[str]:
+        return []
