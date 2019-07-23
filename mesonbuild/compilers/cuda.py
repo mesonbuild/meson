@@ -20,10 +20,10 @@ from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
                         cuda_debug_args, CompilerType)
 
 class CudaCompiler(Compiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
         if not hasattr(self, 'language'):
             self.language = 'cuda'
-        super().__init__(exelist, version, for_machine)
+        super().__init__(exelist, version, for_machine, **kwargs)
         self.is_cross = is_cross
         self.exe_wrapper = exe_wrapper
         self.id = 'nvcc'
