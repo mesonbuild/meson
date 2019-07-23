@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re, os.path
+import os.path
 
 from .. import mlog
 from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
                         cuda_debug_args, CompilerType)
-from .mixins.gnu import get_gcc_soname_args
 
 class CudaCompiler(Compiler):
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None):
@@ -165,7 +164,7 @@ class CudaCompiler(Compiler):
         Converts GNU-style arguments -Wl,-arg,-arg
         to NVCC-style arguments -Xlinker=-arg,-arg
         """
-        return [re.sub('^-Wl,', '-Xlinker=', arg) for arg in args]
+        return [arg.replace('-Wl', '-Xlinker=', 1) if arg.startswith('-Wl') else arg for arg in args]
 
     def get_output_args(self, target):
         return ['-o', target]
