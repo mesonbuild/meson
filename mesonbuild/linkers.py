@@ -813,3 +813,12 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  *, version: str = 'unknown version'):
         super().__init__(['lld-link.exe'], for_machine, 'lld-link',
                          version=version)
+
+
+class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
+
+    """Intel's Xilink.exe."""
+
+    def __init__(self, for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__(['xilink.exe'], for_machine, 'xilink', version=version)
