@@ -276,8 +276,8 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
         'custom': [],
     }
 
-    def __init__(self, exelist, for_machine: MachineChoice, version, is_cross, target: str, exe_wrapper=None):
-        FortranCompiler.__init__(self, exelist, for_machine, version, is_cross, exe_wrapper)
+    def __init__(self, exelist, for_machine: MachineChoice, version, is_cross, target: str, exe_wrapper=None, **kwargs):
+        FortranCompiler.__init__(self, exelist, for_machine, version, is_cross, exe_wrapper, **kwargs)
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
         default_warn_args = ['/warn:general', '/warn:truncated_source']
