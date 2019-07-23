@@ -57,6 +57,17 @@ if ret.returncode() != 0
   error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
 endif
 
+# multiple inputs
+genscript2c = '@0@/generator-with-inputs.py'.format(meson.current_source_dir())
+ofile2c = '@0@/config2c.h'.format(meson.current_build_dir())
+outf = configure_file(input : ['dummy.dat', 'config.h.in'],
+                      output : 'config2c.h',
+                      command : [genprog, genscript2c,  '@INPUT@', ofile2c])
+ret = run_command(check_file, outf)
+if ret.returncode() != 0
+  error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
+endif
+
 found_script = find_program('generator.py')
 # More configure_file tests in here
 subdir('subdir')

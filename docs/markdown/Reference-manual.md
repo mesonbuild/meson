@@ -259,9 +259,11 @@ These are all the supported keyword arguments:
 to replace `#cmakedefine` statements and variables with the `${variable}` syntax. Finally you can use
 `cmake@` in which case substitutions will apply on `#cmakedefine` statements and variables with
 the `@variable@` syntax.
-- `input` the input file name. If it's not specified in configuration
+- `input` the input file name(s). If it's not specified in configuration
   mode, all the variables in the `configuration:` object (see above)
   are written to the `output:` file.
+  Since *0.52.0*, multiple input file names can be passed to the
+  `command:`.
 - `install` *(added 0.50.0)* When true, this generated file is installed during
 the install step, and `install_dir` must be set and not empty. When false, this
 generated file is not installed regardless of the value of `install_dir`.

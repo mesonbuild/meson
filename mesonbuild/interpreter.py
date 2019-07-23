@@ -3646,31 +3646,32 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if output_format not in ('c', 'nasm'):
             raise InterpreterException('"format" possible values are "c" or "nasm".')
 
+        srcdir = self.environment.get_source_dir()
+        builddir = self.environment.get_build_dir()
+
         # Validate input
-        inputfile = None
+        inputfiles = []
         ifile_abs = None
         if 'input' in kwargs:
-            inputfile = kwargs['input']
-            if isinstance(inputfile, list):
-                if len(inputfile) != 1:
+            inputfiles = kwargs['input']
+            if not isinstance(inputfiles, list):
+                inputfiles = [inputfiles]
+            if len(inputfiles) != 1:
+                if 'command' in kwargs:
+                    FeatureNew("Multiple files for keyword argument 'input'", '0.52.0').use(self.subproject)
+                else:
                     m = "Keyword argument 'input' requires exactly one file"
                     raise InterpreterException(m)
-                inputfile = inputfile[0]
-            if not isinstance(inputfile, (str, mesonlib.File)):
-                raise InterpreterException('Input must be a string or a file')
-            if isinstance(inputfile, str):
-                inputfile = mesonlib.File.from_source_file(self.environment.source_dir,
-                                                           self.subdir, inputfile)
-            ifile_abs = inputfile.absolute_path(self.environment.source_dir,
-                                                self.environment.build_dir)
+            inputfiles = self.source_strings_to_files(extract_as_list(kwargs, 'input'))
+            ifile_abs = [x.absolute_path(srcdir, builddir) for x in inputfiles]
         elif 'command' in kwargs and '@INPUT@' in kwargs['command']:
             raise InterpreterException('@INPUT@ used as command argument, but no input file specified.')
         # Validate output
         output = kwargs['output']
         if not isinstance(output, str):
             raise InterpreterException('Output file name must be a string')
-        if ifile_abs:
-            values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
+        if inputfiles:
+            values = mesonlib.get_filenames_templates_dict(ifile_abs, None)
             outputs = mesonlib.substitute_values([output], values)
             output = outputs[0]
         ofile_rpath = os.path.join(self.subdir, output)
@@ -3696,20 +3697,20 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             elif not isinstance(conf, ConfigurationDataHolder):
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
             mlog.log('Configuring', mlog.bold(output), 'using configuration')
-            if inputfile is not None:
+            if inputfiles:
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
                 file_encoding = kwargs.setdefault('encoding', 'utf-8')
                 missing_variables, confdata_useless = \
-                    mesonlib.do_conf_file(ifile_abs, ofile_abs, conf.held_object,
+                    mesonlib.do_conf_file(ifile_abs[0], ofile_abs, conf.held_object,
                                           fmt, file_encoding)
                 if missing_variables:
                     var_list = ", ".join(map(repr, sorted(missing_variables)))
                     mlog.warning(
                         "The variable(s) %s in the input file '%s' are not "
                         "present in the given configuration data." % (
-                            var_list, inputfile), location=node)
+                            var_list, inputfiles[0]), location=node)
                 if confdata_useless:
-                    ifbase = os.path.basename(ifile_abs)
+                    ifbase = os.path.basename(ifile_abs[0])
                     mlog.warning('Got an empty configuration_data() object and found no '
                                  'substitutions in the input file {!r}. If you want to '
                                  'copy a file to the build dir, use the \'copy:\' keyword '
@@ -3721,10 +3722,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             # We use absolute paths for input and output here because the cwd
             # that the command is run from is 'unspecified', so it could change.
             # Currently it's builddir/subdir for in_builddir else srcdir/subdir.
-            if ifile_abs:
-                values = mesonlib.get_filenames_templates_dict([ifile_abs], [ofile_abs])
-            else:
-                values = mesonlib.get_filenames_templates_dict(None, [ofile_abs])
+            values = mesonlib.get_filenames_templates_dict(ifile_abs, [ofile_abs])
             # Substitute @INPUT@, @OUTPUT@, etc here.
             cmd = mesonlib.substitute_values(kwargs['command'], values)
             mlog.log('Configuring', mlog.bold(output), 'with command')
@@ -3737,26 +3735,27 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 file_encoding = kwargs.setdefault('encoding', 'utf-8')
                 with open(dst_tmp, 'w', encoding=file_encoding) as f:
                     f.writelines(res.stdout)
-                if ifile_abs:
-                    shutil.copymode(ifile_abs, dst_tmp)
+                if inputfiles:
+                    shutil.copymode(ifile_abs[0], dst_tmp)
                 mesonlib.replace_if_different(ofile_abs, dst_tmp)
         elif 'copy' in kwargs:
             os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
-            shutil.copyfile(ifile_abs, ofile_abs)
-            shutil.copymode(ifile_abs, ofile_abs)
+            shutil.copyfile(ifile_abs[0], ofile_abs)
+            shutil.copymode(ifile_abs[0], ofile_abs)
         else:
             # Not reachable
             raise AssertionError
         # If the input is a source file, add it to the list of files that we
         # need to reconfigure on when they change. FIXME: Do the same for
         # files() objects in the command: kwarg.
-        if inputfile and not inputfile.is_built:
-            # Normalize the path of the conffile (relative to the
-            # source root) to avoid duplicates. This is especially
-            # important to convert '/' to '\' on Windows
-            conffile = os.path.normpath(inputfile.relative_name())
-            if conffile not in self.build_def_files:
-                self.build_def_files.append(conffile)
+        for inputfile in inputfiles:
+            if inputfile and not inputfile.is_built:
+                # Normalize the path of the conffile (relative to the
+                # source root) to avoid duplicates. This is especially
+                # important to convert '/' to '\' on Windows
+                conffile = os.path.normpath(inputfile.relative_name())
+                if conffile not in self.build_def_files:
+                    self.build_def_files.append(conffile)
         # Install file if requested, we check for the empty string
         # for backwards compatibility. That was the behaviour before
         # 0.45.0 so preserve it.
