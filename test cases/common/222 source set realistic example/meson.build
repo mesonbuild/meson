@@ -11,14 +11,15 @@ endif
 ss = import('sourceset')
 kconfig = import('unstable-kconfig')
 
-zlib = dependency('zlib', version : '>=1.2.8', required: false)
+zlib = declare_dependency(compile_args: '-DZLIB=1')
+another = declare_dependency(compile_args: '-DANOTHER=1')
 not_found = dependency('not-found', required: false)
 
 common = ss.source_set()
 specific = ss.source_set()
 
 common.add(files('main.cc'))
-common.add(when: zlib, if_true: files('zlib.cc'))
+common.add(when: [zlib, another], if_true: files('zlib.cc'))
 common.add(when: not_found,
            if_true: files('was-found.cc'),
            if_false: files('not-found.cc'))
@@ -31,7 +32,8 @@ if meson.is_unity()
   common = ss.source_set()
 endif
 
-common_lib = static_library('common', common.all_sources())
+common_lib = static_library('common', common.all_sources(),
+                            dependencies: common.all_dependencies())
 
 targets = [ 'arm', 'aarch64', 'x86' ]
 target_dirs = { 'arm' : 'arm', 'aarch64' : 'arm', 'x86': 'x86' }

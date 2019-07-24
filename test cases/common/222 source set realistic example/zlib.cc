@@ -6,8 +6,10 @@ struct ZLibDependency : Dependency {
 };
 
 void ZLibDependency::initialize() {
-    std::cout << ANSI_START << "hello from zlib"
-              << ANSI_END << std::endl;
+    if (ZLIB && ANOTHER) {
+        std::cout << ANSI_START << "hello from zlib"
+                  << ANSI_END << std::endl;
+    }
 }
 
 ZLibDependency zlib;

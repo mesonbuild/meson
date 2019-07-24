@@ -41,6 +41,7 @@ class SourceSetHolder(MutableInterpreterObject, ObjectHolder):
             'add': self.add_method,
             'add_all': self.add_all_method,
             'all_sources': self.all_sources_method,
+            'all_dependencies': self.all_dependencies_method,
             'apply': self.apply_method,
         })
 
@@ -130,6 +131,14 @@ class SourceSetHolder(MutableInterpreterObject, ObjectHolder):
         self.frozen = True
         files = self.collect(lambda x: True, True)
         return list(files.sources)
+
+    @noKwargs
+    @noPosargs
+    @FeatureNew('source_set.all_dependencies() method', '0.52.0')
+    def all_dependencies_method(self, args, kwargs):
+        self.frozen = True
+        files = self.collect(lambda x: True, True)
+        return list(files.dependencies)
 
     @permittedKwargs(['strict'])
     def apply_method(self, args, kwargs):
