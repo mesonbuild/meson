@@ -58,7 +58,7 @@ script:
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       ci_env=`bash <(curl -s https://codecov.io/env)`
-      docker run $ci_env -v ${PWD}/.coverage:/root/.coverage \
+      docker run --security-opt seccomp:unconfined $ci_env -v ${PWD}/.coverage:/root/.coverage \
         withgit \
           /bin/sh -c "cd /root && mkdir -p tools; wget -c http://nirbheek.in/files/binaries/ninja/linux-amd64/ninja -O /root/tools/ninja; chmod +x /root/tools/ninja; CC=$CC CXX=$CXX OBJC=$CC OBJCXX=$CXX PATH=/root/tools:$PATH MESON_FIXED_NINJA=1 ./run_tests.py $RUN_TESTS_ARGS -- $MESON_ARGS && chmod -R a+rwX .coverage"
     fi
