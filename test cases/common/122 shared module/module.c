@@ -27,6 +27,19 @@ fptr find_any_f (const char *name) {
 #include <windows.h>
 #include <tlhelp32.h>
 
+static wchar_t*
+win32_get_last_error (void)
+{
+    wchar_t *msg = NULL;
+
+    FormatMessageW (FORMAT_MESSAGE_ALLOCATE_BUFFER
+                    | FORMAT_MESSAGE_IGNORE_INSERTS
+                    | FORMAT_MESSAGE_FROM_SYSTEM,
+                    NULL, GetLastError (), 0,
+                    (LPWSTR) &msg, 0, NULL);
+    return msg;
+}
+
 /* Unlike Linux and OS X, when a library is loaded, all the symbols aren't
  * loaded into a single namespace. You must fetch the symbol by iterating over
  * all loaded modules. Code for finding the function from any of the loaded
@@ -38,7 +51,8 @@ fptr find_any_f (const char *name) {
 
     snapshot = CreateToolhelp32Snapshot (TH32CS_SNAPMODULE, 0);
     if (snapshot == (HANDLE) -1) {
-        printf("Could not get snapshot\n");
+        wchar_t *msg = win32_get_last_error ();
+        printf("Could not get snapshot: %S\n", msg);
         return 0;
     }
 

@@ -8,7 +8,7 @@ typedef int (*fptr) (void);
 
 #include <windows.h>
 
-wchar_t*
+static wchar_t*
 win32_get_last_error (void)
 {
     wchar_t *msg = NULL;
