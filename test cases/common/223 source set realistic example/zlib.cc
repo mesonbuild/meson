@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 #include "common.h"
 
 struct ZLibDependency : Dependency {
@@ -6,6 +7,7 @@ struct ZLibDependency : Dependency {
 };
 
 void ZLibDependency::initialize() {
+    assert(ZLIB);
     std::cout << ANSI_START << "hello from zlib"
               << ANSI_END << std::endl;
 }
