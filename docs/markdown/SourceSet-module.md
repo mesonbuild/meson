@@ -149,6 +149,17 @@ sources are included (if any).
 
 **Returns**: a list of file objects
 
+#### `all_dependencies()` *(since 0.52.0)*
+
+``` meson
+list source_set.all_dependencies(...)
+```
+
+Returns a list of all dependencies that were placed in the source set
+using `add` (including nested source sets) and that were found.
+
+**Returns**: a list of dependencies
+
 #### `apply()`
 
 ``` meson
