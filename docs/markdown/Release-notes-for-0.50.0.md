@@ -334,3 +334,9 @@ Meson now generates a `meson-info.json` file in the `meson-info` directory
 to provide introspection information about the latest meson run. This file
 is updated when the build configuration is changed and the build files are
 (re)generated.
+
+## New kwarg `install:` for `configure_file()`
+
+Previously when using `configure_file()`, you could install the outputted file
+by setting the `install_dir:` keyword argument. Now, there is an explicit kwarg
+`install:` to enable/disable it. Omitting it will maintain the old behaviour.
