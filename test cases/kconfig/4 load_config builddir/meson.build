@@ -2,8 +2,8 @@ project('kconfig builddir test')
 
 k = import('unstable-kconfig')
 
-configure_file(input: 'config', output: 'out-config', copy: true)
-conf = k.load(meson.build_root() / 'out-config')
+out_conf = configure_file(input: 'config', output: 'out-config', copy: true)
+conf = k.load(out_conf)
 
 if not conf.has_key('CONFIG_IS_SET')
   error('Expected CONFIG_IS_SET to be set, but it wasn\'t')
