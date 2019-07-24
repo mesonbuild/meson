@@ -92,6 +92,11 @@ excluding `name_suffix` and `name_prefix`, and with the addition of the followin
   it will be appended to that location. This keyword argument is
   mutually exclusive with `install_dir`
 
+- `use_venv_prefix`: Use the configured virtual environment prefix for that
+  installation instead of the global prefix. This way you can get all python
+  related files installed in the python virtual environment, you can easily
+  making that opt-in by exposing an option for that.
+
 `extension_module` does not add any dependencies to the library so user may
 need to add `dependencies : py_installation.dependency()`, see [][`dependency()`].
 
@@ -125,6 +130,9 @@ with the addition of the following:
   Defaults to `true`
 
 - `subdir`: See documentation for the argument of the same name to
+  [][`extension_module()`]
+
+- `use_venv_prefix`: See documentation for the argument of the same name to
   [][`extension_module()`]
 
 #### `get_install_dir()`

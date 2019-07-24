@@ -37,7 +37,7 @@ from ..dependencies.base import (
     NonExistingExternalProgram
 )
 
-mod_kwargs = set(['subdir'])
+mod_kwargs = set(['subdir', 'use_venv_prefix'])
 mod_kwargs.update(known_shmod_kwargs)
 mod_kwargs -= set(['name_prefix', 'name_suffix'])
 
@@ -271,6 +271,12 @@ import sys
 
 install_paths = sysconfig.get_paths(scheme='posix_prefix', vars={'base': '', 'platbase': '', 'installed_base': ''})
 
+venv_prefix = None
+if hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix:
+    venv_prefix = sys.base_prefix
+elif hasattr(sys, 'real_prefix'):
+    venv_prefix = sys.real_prefix
+
 def links_against_libpython():
     from distutils.core import Distribution, Extension
     cmd = Distribution().get_command_obj('build_ext')
@@ -285,6 +291,7 @@ print (json.dumps ({
   'platform': sysconfig.get_platform(),
   'is_pypy': '__pypy__' in sys.builtin_module_names,
   'link_libpython': links_against_libpython(),
+  'venv_prefix': venv_prefix,
 }))
 '''
 
@@ -294,12 +301,10 @@ class PythonInstallation(ExternalProgramHolder):
         ExternalProgramHolder.__init__(self, python)
         self.interpreter = interpreter
         self.subproject = self.interpreter.subproject
-        prefix = self.interpreter.environment.coredata.get_builtin_option('prefix')
         self.variables = info['variables']
         self.paths = info['paths']
-        install_paths = info['install_paths']
-        self.platlib_install_path = os.path.join(prefix, install_paths['platlib'][1:])
-        self.purelib_install_path = os.path.join(prefix, install_paths['purelib'][1:])
+        self.install_paths = info['install_paths']
+        self.venv_prefix = info['venv_prefix']
         self.version = info['version']
         self.platform = info['platform']
         self.is_pypy = info['is_pypy']
@@ -318,17 +323,37 @@ class PythonInstallation(ExternalProgramHolder):
             'path': self.path_method,
         })
 
+    def get_install_dir(self, kwargs, pure=False):
+        pure = kwargs.pop('pure', pure)
+        if not isinstance(pure, bool):
+            raise InvalidArguments('"pure" argument must be a boolean.')
+
+        subdir = kwargs.pop('subdir', '')
+        if not isinstance(subdir, str):
+            raise InvalidArguments('"subdir" argument must be a string.')
+
+        use_venv_prefix = kwargs.pop('use_venv_prefix', False)
+        if not isinstance(pure, bool):
+            raise InvalidArguments('"pure" argument must be a boolean.')
+
+        if use_venv_prefix and self.venv_prefix:
+            prefix = self.venv_prefix
+        else:
+            prefix = self.interpreter.environment.coredata.get_builtin_option('prefix')
+
+        if pure:
+            return os.path.join(prefix, self.install_paths['purelib'][1:], subdir)
+        else:
+            return os.path.join(prefix, self.install_paths['platlib'][1:], subdir)
+
     @permittedKwargs(mod_kwargs)
+    @FeatureNewKwargs('python.extension_module', '0.52.0', ['use_venv_prefix'])
     def extension_module_method(self, args, kwargs):
         if 'subdir' in kwargs and 'install_dir' in kwargs:
             raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
 
         if 'subdir' in kwargs:
-            subdir = kwargs.pop('subdir', '')
-            if not isinstance(subdir, str):
-                raise InvalidArguments('"subdir" argument must be a string.')
-
-            kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
+            kwargs['install_dir'] = self.get_install_dir(kwargs, pure=True)
 
         # On macOS and some Linux distros (Debian) distutils doesn't link
         # extensions against libpython. We call into distutils and mirror its
@@ -358,39 +383,18 @@ class PythonInstallation(ExternalProgramHolder):
         dep = PythonDependency(self, self.interpreter.environment, kwargs)
         return self.interpreter.holderify(dep)
 
-    @permittedKwargs(['pure', 'subdir'])
+    @permittedKwargs(['pure', 'subdir', 'use_venv_prefix'])
+    @FeatureNewKwargs('python.install_sources', '0.52.0', ['use_venv_prefix'])
     def install_sources_method(self, args, kwargs):
-        pure = kwargs.pop('pure', False)
-        if not isinstance(pure, bool):
-            raise InvalidArguments('"pure" argument must be a boolean.')
-
-        subdir = kwargs.pop('subdir', '')
-        if not isinstance(subdir, str):
-            raise InvalidArguments('"subdir" argument must be a string.')
-
-        if pure:
-            kwargs['install_dir'] = os.path.join(self.purelib_install_path, subdir)
-        else:
-            kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
+        kwargs['install_dir'] = self.get_install_dir(kwargs)
 
         return self.interpreter.holderify(self.interpreter.func_install_data(None, args, kwargs))
 
     @noPosargs
-    @permittedKwargs(['pure', 'subdir'])
+    @permittedKwargs(['pure', 'subdir', 'use_venv_prefix'])
+    @FeatureNewKwargs('python.get_install_dir', '0.52.0', ['use_venv_prefix'])
     def get_install_dir_method(self, args, kwargs):
-        pure = kwargs.pop('pure', True)
-        if not isinstance(pure, bool):
-            raise InvalidArguments('"pure" argument must be a boolean.')
-
-        subdir = kwargs.pop('subdir', '')
-        if not isinstance(subdir, str):
-            raise InvalidArguments('"subdir" argument must be a string.')
-
-        if pure:
-            res = os.path.join(self.purelib_install_path, subdir)
-        else:
-            res = os.path.join(self.platlib_install_path, subdir)
-
+        res = self.get_install_dir(kwargs)
         return self.interpreter.module_method_callback(ModuleReturnValue(res, []))
 
     @noPosargs
