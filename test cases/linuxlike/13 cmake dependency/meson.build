@@ -46,6 +46,12 @@ depm1 = dependency('SomethingLikeZLIB', required : true, method : 'cmake', cmake
 depm2 = dependency('SomethingLikeZLIB', required : true, method : 'cmake', cmake_module_path : ['cmake'])
 depm3 = dependency('SomethingLikeZLIB', required : true, cmake_module_path : 'cmake')
 
+# Test some edge cases with spaces, etc.
+
+testDep = dependency('ImportedTarget', required : true, method : 'cmake', cmake_module_path : 'cmake', modules: 'mesonTestLibDefs')
+testFlagSet = executable('testFlagSet', ['testFlagSet.c'], dependencies: [testDep])
+test('testFlagSetTest', testFlagSet)
+
 # Try to compile a test that takes a dep and an include_directories
 
 cc = meson.get_compiler('c')
