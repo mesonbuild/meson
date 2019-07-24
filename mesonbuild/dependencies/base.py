@@ -1407,15 +1407,18 @@ class CMakeDependency(ExternalDependency):
 
         # Failed to guess a target --> try the old-style method
         if len(modules) == 0:
-            incDirs = self.get_first_cmake_var_of(['PACKAGE_INCLUDE_DIRS'])
-            defs = self.get_first_cmake_var_of(['PACKAGE_DEFINITIONS'])
-            libs = self.get_first_cmake_var_of(['PACKAGE_LIBRARIES'])
+            incDirs = [x for x in self.get_first_cmake_var_of(['PACKAGE_INCLUDE_DIRS']) if x]
+            defs = [x for x in self.get_first_cmake_var_of(['PACKAGE_DEFINITIONS']) if x]
+            libs = [x for x in self.get_first_cmake_var_of(['PACKAGE_LIBRARIES']) if x]
 
             # Try to use old style variables if no module is specified
             if len(libs) > 0:
                 self.compile_args = list(map(lambda x: '-I{}'.format(x), incDirs)) + defs
                 self.link_args = libs
                 mlog.debug('using old-style CMake variables for dependency {}'.format(name))
+                mlog.debug('Include Dirs:         {}'.format(incDirs))
+                mlog.debug('Compiler Definitions: {}'.format(defs))
+                mlog.debug('Libraries:            {}'.format(libs))
                 return
 
             # Even the old-style approach failed. Nothing else we can do here
@@ -1457,35 +1460,33 @@ class CMakeDependency(ExternalDependency):
                 mlog.debug(tgt)
 
                 if 'INTERFACE_INCLUDE_DIRECTORIES' in tgt.properies:
-                    incDirs += tgt.properies['INTERFACE_INCLUDE_DIRECTORIES']
+                    incDirs += [x for x in tgt.properies['INTERFACE_INCLUDE_DIRECTORIES'] if x]
 
                 if 'INTERFACE_COMPILE_DEFINITIONS' in tgt.properies:
-                    tempDefs = list(tgt.properies['INTERFACE_COMPILE_DEFINITIONS'])
-                    tempDefs = list(map(lambda x: '-D{}'.format(re.sub('^-D', '', x)), tempDefs))
-                    compileDefinitions += tempDefs
+                    compileDefinitions += ['-D' + re.sub('^-D', '', x) for x in tgt.properies['INTERFACE_COMPILE_DEFINITIONS'] if x]
 
                 if 'INTERFACE_COMPILE_OPTIONS' in tgt.properies:
-                    compileOptions += tgt.properies['INTERFACE_COMPILE_OPTIONS']
+                    compileOptions += [x for x in tgt.properies['INTERFACE_COMPILE_OPTIONS'] if x]
 
                 if 'IMPORTED_CONFIGURATIONS' in tgt.properies:
-                    cfgs = tgt.properies['IMPORTED_CONFIGURATIONS']
+                    cfgs = [x for x in tgt.properies['IMPORTED_CONFIGURATIONS'] if x]
                     cfg = cfgs[0]
 
                 if 'RELEASE' in cfgs:
                     cfg = 'RELEASE'
 
                 if 'IMPORTED_LOCATION_{}'.format(cfg) in tgt.properies:
-                    libraries += tgt.properies['IMPORTED_LOCATION_{}'.format(cfg)]
+                    libraries += [x for x in tgt.properies['IMPORTED_LOCATION_{}'.format(cfg)] if x]
                 elif 'IMPORTED_LOCATION' in tgt.properies:
-                    libraries += tgt.properies['IMPORTED_LOCATION']
+                    libraries += [x for x in tgt.properies['IMPORTED_LOCATION'] if x]
 
                 if 'INTERFACE_LINK_LIBRARIES' in tgt.properies:
-                    otherDeps += tgt.properies['INTERFACE_LINK_LIBRARIES']
+                    otherDeps += [x for x in tgt.properies['INTERFACE_LINK_LIBRARIES'] if x]
 
                 if 'IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg) in tgt.properies:
-                    otherDeps += tgt.properies['IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg)]
+                    otherDeps += [x for x in tgt.properies['IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg)] if x]
                 elif 'IMPORTED_LINK_DEPENDENT_LIBRARIES' in tgt.properies:
-                    otherDeps += tgt.properies['IMPORTED_LINK_DEPENDENT_LIBRARIES']
+                    otherDeps += [x for x in tgt.properies['IMPORTED_LINK_DEPENDENT_LIBRARIES'] if x]
 
                 for j in otherDeps:
                     if j in self.targets:
@@ -1504,7 +1505,7 @@ class CMakeDependency(ExternalDependency):
         mlog.debug('Compiler Options:     {}'.format(compileOptions))
         mlog.debug('Libraries:            {}'.format(libraries))
 
-        self.compile_args = compileOptions + compileDefinitions + list(map(lambda x: '-I{}'.format(x), incDirs))
+        self.compile_args = compileOptions + compileDefinitions + ['-I{}'.format(x) for x in incDirs]
         self.link_args = libraries
 
     def get_first_cmake_var_of(self, var_list: List[str]) -> List[str]:
