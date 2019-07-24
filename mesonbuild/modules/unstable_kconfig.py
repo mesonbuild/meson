@@ -54,15 +54,16 @@ class KconfigModule(ExtensionModule):
             raise InvalidCode('load takes only one file input.')
 
         s = sources[0]
+        is_built = False
         if isinstance(s, mesonlib.File):
-            # kconfig input is processed at "meson setup" time, not during
-            # the build, so it cannot reside in the build directory.
             if s.is_built:
-                raise InvalidCode('kconfig input must be a source file.')
-            s = s.relative_name()
+                FeatureNew('kconfig.load() of built files', '0.52.0').use(state.subproject)
+                is_built = True
+            s = s.absolute_path(interpreter.environment.source_dir, interpreter.environment.build_dir)
+        else:
+            s = os.path.join(interpreter.environment.source_dir, s)
 
-        s = os.path.join(interpreter.environment.source_dir, s)
-        if s not in interpreter.build_def_files:
+        if s not in interpreter.build_def_files and not is_built:
             interpreter.build_def_files.append(s)
 
         return self._load_file(s)
