@@ -1794,6 +1794,7 @@ are immutable, all operations return their results as a new string.
 
  - `is_even()` returns true if the number is even
  - `is_odd()` returns true if the number is odd
+ - `to_string()` returns the value of the number as a string.
 
 ### `boolean` object
 
