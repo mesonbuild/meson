@@ -3639,7 +3639,7 @@ recommended as it is not supported on some platforms''')
         self.assertListEqual(dependencies_to_find, [])
 
         # Check projectinfo
-        self.assertDictEqual(res['projectinfo'], {'version': '1.2.3', 'descriptive_name': 'introspection', 'subproject_dir': 'subprojects', 'subprojects': []})
+        self.assertDictEqual(res['projectinfo'], {'version': '1.2.3', 'descriptive_name': 'introspection', 'subproject_dir': 'subprojects', 'license': ['unknown'], 'subprojects': [], 'metadata': {}})
 
         # Check targets
         targets_to_find = {
