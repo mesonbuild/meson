@@ -88,7 +88,6 @@ jobs:
         gccx64ninja: {}
   variables:
     CYGWIN_ROOT: $(System.Workfolder)\cygwin
-    CYGWIN_CMAKE_LINK: http://cygwin.mirror.constant.com/x86_64/release/cmake/cmake-3.13.1-1.tar.xz
     CYGWIN_MIRROR: http://cygwin.mirror.constant.com
   steps:
     - script: |
@@ -112,12 +111,10 @@ jobs:
         python35-pip,^
         vala,^
         wget,^
+        cmake,^
         zlib-devel
       displayName: Install Dependencies
     - script: |
-        %CYGWIN_ROOT%\bin\bash.exe -cl "wget %CYGWIN_CMAKE_LINK% -O cmake.tar.xz"
-        %CYGWIN_ROOT%\bin\bash.exe -cl "tar -xf cmake.tar.xz -C /"
-      displayName: Manually install CMake 3.13.1
     - script: |
         set BOOST_ROOT=
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
