@@ -333,6 +333,7 @@ def list_benchmarks(benchdata):
 def list_projinfo(builddata: build.Build):
     result = {'version': builddata.project_version,
               'descriptive_name': builddata.project_name,
+              'license': builddata.project_version,
               'subproject_dir': builddata.subproject_dir}
     subprojects = []
     for k, v in builddata.subprojects.items():

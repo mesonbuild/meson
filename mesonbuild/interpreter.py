@@ -1671,7 +1671,7 @@ class CompilerHolder(InterpreterObject):
 
 ModuleState = namedtuple('ModuleState', [
     'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
-    'project_name', 'project_version', 'backend', 'targets',
+    'project_name', 'project_version', 'project_license', 'backend', 'targets',
     'data', 'headers', 'man', 'global_args', 'project_args', 'build_machine',
     'host_machine', 'target_machine', 'current_node'])
 
@@ -1703,6 +1703,7 @@ class ModuleHolder(InterpreterObject, ObjectHolder):
             environment=self.interpreter.environment,
             project_name=self.interpreter.build.project_name,
             project_version=self.interpreter.build.dep_manifest[self.interpreter.active_projectname],
+            project_license=self.interpreter.build.dep_manifest[self.interpreter.active_projectname]['license'],
             # The backend object is under-used right now, but we will need it:
             # https://github.com/mesonbuild/meson/issues/1419
             backend=self.interpreter.backend,
