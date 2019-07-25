@@ -258,5 +258,6 @@ This API can also work without a build directory for the `--projectinfo` command
 # Existing integrations
 
 - [Gnome Builder](https://wiki.gnome.org/Apps/Builder)
+- [KDevelop](https://www.kdevelop.org)
 - [Eclipse CDT](https://www.eclipse.org/cdt/) (experimental)
 - [Meson Cmake Wrapper](https://github.com/prozum/meson-cmake-wrapper) (for cmake IDEs)
