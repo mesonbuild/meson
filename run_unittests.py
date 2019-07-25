@@ -6605,6 +6605,21 @@ def unset_envs():
         if v in os.environ:
             del os.environ[v]
 
+def convert_args(argv):
+    # If we got passed a list of tests, pass it on
+    pytest_args = ['-v'] if '-v' in argv else []
+    test_list = []
+    for arg in argv:
+        if arg.startswith('-'):
+            continue
+        # ClassName.test_name => 'ClassName and test_name'
+        if '.' in arg:
+            arg = ' and '.join(arg.split('.'))
+        test_list.append(arg)
+    if test_list:
+        pytest_args += ['-k', ' or '.join(test_list)]
+    return pytest_args
+
 def main():
     unset_envs()
     try:
@@ -6612,6 +6627,7 @@ def main():
         # Need pytest-xdist for `-n` arg
         import xdist # noqa: F401
         pytest_args = ['-n', 'auto', './run_unittests.py']
+        pytest_args += convert_args(sys.argv[1:])
         return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
     except ImportError:
         print('pytest-xdist not found, using unittest instead')
