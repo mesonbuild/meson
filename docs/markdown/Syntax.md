@@ -78,6 +78,13 @@ string_var = '42'
 num = string_var.to_int()
 ```
 
+Numbers can be converted to a string:
+
+```meson
+int_var = 42
+string_var = int_var.to_string()
+```
+
 Booleans
 --
 
