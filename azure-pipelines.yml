@@ -115,9 +115,12 @@ jobs:
         zlib-devel
       displayName: Install Dependencies
     - script: |
+        %CYGWIN_ROOT%\bin\python3.5m.exe -m pip --disable-pip-version-check install pytest-xdist
+      displayName: pip install pytest-xdist
     - script: |
         set BOOST_ROOT=
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
+        # FIXME: we need to support systems without unversioned `python3`
         cp /usr/bin/python3.5 /usr/bin/python3
         env.exe -- python3 run_tests.py --backend=ninja
       displayName: Run Tests
