@@ -2226,7 +2226,7 @@ an external dependency with the following methods:
    - sources: any compiled or static sources the dependency has
 
  - `get_variable(cmake : str, pkgconfig : str, configtool : str,
-   default_value : str, pkgconfig_define : [str, str]) *(Added in
+   default_value : str, pkgconfig_define : [str, str])` *(Added in
    0.51.0)* A generic variable getter method, which repalces the
    get_*type*_variable methods. This allows one to get the variable
    from a dependency without knowing specifically how that dependency
