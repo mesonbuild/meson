@@ -54,13 +54,13 @@ def add_arguments(parser):
                         help='Wipe build directory and reconfigure using previous command line options. ' +
                              'Userful when build directory got corrupted, or when rebuilding with a ' +
                              'newer version of meson.')
-    parser.add_argument('builddir', nargs='?', default=None)
     parser.add_argument('sourcedir', nargs='?', default=None)
+    parser.add_argument('builddir', nargs='?', default=None)
 
 class MesonApp:
     def __init__(self, options):
-        (self.source_dir, self.build_dir) = self.validate_dirs(options.builddir,
-                                                               options.sourcedir,
+        (self.source_dir, self.build_dir) = self.validate_dirs(options.sourcedir,
+                                                               options.builddir,
                                                                options.reconfigure,
                                                                options.wipe)
         if options.wipe:
