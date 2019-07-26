@@ -30,11 +30,12 @@ SourceSetRule = namedtuple('SourceSetRule', 'keys sources if_false sourcesets de
 SourceFiles = namedtuple('SourceFiles', 'sources dependencies')
 
 class SourceSetHolder(MutableInterpreterObject, ObjectHolder):
-    def __init__(self, environment, subdir):
+    def __init__(self, interpreter):
         MutableInterpreterObject.__init__(self)
         ObjectHolder.__init__(self, list())
-        self.environment = environment
-        self.subdir = subdir
+        self.subproject = interpreter.subproject
+        self.environment = interpreter.environment
+        self.subdir = interpreter.subdir
         self.frozen = False
         self.methods.update({
             'add': self.add_method,
@@ -184,7 +185,7 @@ class SourceSetModule(ExtensionModule):
     @noKwargs
     @noPosargs
     def source_set(self, interpreter, state, args, kwargs):
-        return SourceSetHolder(interpreter.environment, interpreter.subdir)
+        return SourceSetHolder(interpreter)
 
 def initialize(*args, **kwargs):
     return SourceSetModule(*args, **kwargs)
