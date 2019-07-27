@@ -863,17 +863,11 @@ class Backend:
         # also be built by default. XXX: Sometime in the future these should be
         # built only before running tests.
         for t in self.build.get_tests():
-            exe = t.exe
-            if hasattr(exe, 'held_object'):
-                exe = exe.held_object
-            if isinstance(exe, (build.CustomTarget, build.BuildTarget)):
-                result[exe.get_id()] = exe
-            for arg in t.cmd_args:
+            for arg in [t.exe] + t.cmd_args:
                 if hasattr(arg, 'held_object'):
                     arg = arg.held_object
-                if not isinstance(arg, (build.CustomTarget, build.BuildTarget)):
-                    continue
-                result[arg.get_id()] = arg
+                if isinstance(arg, (build.CustomTarget, build.BuildTarget)):
+                    result[arg.get_id()] = arg
             for dep in t.depends:
                 assert isinstance(dep, (build.CustomTarget, build.BuildTarget))
                 result[dep.get_id()] = dep
