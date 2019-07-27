@@ -24,6 +24,7 @@ from . import mesonlib
 from .mesonlib import FileMode, MachineChoice, Popen_safe, listify, extract_as_list, has_path_sep
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
+from .depfile import DepFile
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, flatten, noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
@@ -1960,6 +1961,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                        'configuration',
                                        'command',
                                        'copy',
+                                       'depfile',
                                        'install_dir',
                                        'install_mode',
                                        'capture',
@@ -3603,6 +3605,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('configure_file', '0.46.0', ['format'])
     @FeatureNewKwargs('configure_file', '0.41.0', ['capture'])
     @FeatureNewKwargs('configure_file', '0.50.0', ['install'])
+    @FeatureNewKwargs('configure_file', '0.52.0', ['depfile'])
     @permittedKwargs(permitted_kwargs['configure_file'])
     def func_configure_file(self, node, args, kwargs):
         if len(args) > 0:
@@ -3648,6 +3651,13 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if output_format not in ('c', 'nasm'):
             raise InterpreterException('"format" possible values are "c" or "nasm".')
 
+        if 'depfile' in kwargs:
+            depfile = kwargs['depfile']
+            if not isinstance(depfile, str):
+                raise InterpreterException('depfile file name must be a string')
+        else:
+            depfile = None
+
         # Validate input
         inputs = self.source_strings_to_files(extract_as_list(kwargs, 'input'))
         inputs_abs = []
@@ -3665,6 +3675,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             values = mesonlib.get_filenames_templates_dict(inputs_abs, None)
             outputs = mesonlib.substitute_values([output], values)
             output = outputs[0]
+            if depfile:
+                depfile = mesonlib.substitute_values([depfile], values)[0]
         ofile_rpath = os.path.join(self.subdir, output)
         if ofile_rpath in self.configure_file_outputs:
             mesonbuildfile = os.path.join(self.subdir, 'meson.build')
@@ -3716,6 +3728,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             # that the command is run from is 'unspecified', so it could change.
             # Currently it's builddir/subdir for in_builddir else srcdir/subdir.
             values = mesonlib.get_filenames_templates_dict(inputs_abs, [ofile_abs])
+            if depfile:
+                depfile = os.path.join(self.environment.get_scratch_dir(), depfile)
+                values['@DEPFILE@'] = depfile
             # Substitute @INPUT@, @OUTPUT@, etc here.
             cmd = mesonlib.substitute_values(kwargs['command'], values)
             mlog.log('Configuring', mlog.bold(output), 'with command')
@@ -3731,6 +3746,15 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 if inputs_abs:
                     shutil.copymode(inputs_abs[0], dst_tmp)
                 mesonlib.replace_if_different(ofile_abs, dst_tmp)
+            if depfile:
+                mlog.log('Reading depfile:', mlog.bold(depfile))
+                with open(depfile, 'r') as f:
+                    df = DepFile(f.readlines())
+                    deps = df.get_all_dependencies(ofile_fname)
+                    for dep in deps:
+                        if dep not in self.build_def_files:
+                            self.build_def_files.append(dep)
+
         elif 'copy' in kwargs:
             if len(inputs_abs) != 1:
                 raise InterpreterException('Exactly one input file must be given in copy mode')

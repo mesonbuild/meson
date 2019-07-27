@@ -260,6 +260,9 @@ These are all the supported keyword arguments:
   substitutions.
 - `copy` *(added 0.47.0)* as explained above, if specified Meson only
   copies the file from input to output.
+- `depfile` *(added 0.52.0)* is a dependency file that the command can write listing
+  all the additional files this target depends on. A change
+  in any one of these files triggers a reconfiguration.
 - `format` *(added 0.46.0)* the format of defines. It defaults to `meson`, and so substitutes
 `#mesondefine` statements and variables surrounded by `@` characters, you can also use `cmake`
 to replace `#cmakedefine` statements and variables with the `${variable}` syntax. Finally you can use
