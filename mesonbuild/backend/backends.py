@@ -859,9 +859,11 @@ class Backend:
         for name, t in self.build.get_targets().items():
             if t.build_by_default:
                 result[name] = t
-        # Get all targets used as test executables and arguments. These must
-        # also be built by default. XXX: Sometime in the future these should be
-        # built only before running tests.
+        return result
+
+    def get_test_targets(self):
+        result = OrderedDict()
+        # Get all targets used as test executables and arguments.
         for t in self.build.get_tests():
             for arg in [t.exe] + t.cmd_args:
                 if hasattr(arg, 'held_object'):

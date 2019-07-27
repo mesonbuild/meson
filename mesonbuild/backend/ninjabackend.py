@@ -823,7 +823,7 @@ int dummy;
             cmd += ['--no-stdsplit']
         if self.environment.coredata.get_builtin_option('errorlogs'):
             cmd += ['--print-errorlogs']
-        elem = NinjaBuildElement(self.all_outputs, 'meson-test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
+        elem = NinjaBuildElement(self.all_outputs, 'meson-test', 'CUSTOM_COMMAND', ['all', 'tests', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running all tests.')
         elem.add_item('pool', 'console')
@@ -835,7 +835,7 @@ int dummy;
         cmd = self.environment.get_build_command(True) + [
             'test', '--benchmark', '--logbase',
             'benchmarklog', '--num-processes=1', '--no-rebuild']
-        elem = NinjaBuildElement(self.all_outputs, 'meson-benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
+        elem = NinjaBuildElement(self.all_outputs, 'meson-benchmark', 'CUSTOM_COMMAND', ['all', 'tests', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running benchmark suite.')
         elem.add_item('pool', 'console')
@@ -2684,14 +2684,23 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.create_target_alias('meson-uninstall')
 
     def generate_ending(self):
-        targetlist = []
+        default_targetlist = []
         for t in self.get_build_by_default_targets().values():
             # Add the first output of each target to the 'all' target so that
             # they are all built
-            targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
+            default_targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
-        elem = NinjaBuildElement(self.all_outputs, 'all', 'phony', targetlist)
-        self.add_build(elem)
+        default_elem = NinjaBuildElement(self.all_outputs, 'all', 'phony', default_targetlist)
+        self.add_build(default_elem)
+
+        test_targetlist = []
+        for t in self.get_test_targets().values():
+            # Add the first output of each target to the 'all' target so that
+            # they are all built
+            test_targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
+
+        test_elem = NinjaBuildElement(self.all_outputs, 'tests', 'phony', test_targetlist)
+        self.add_build(test_elem)
 
         elem = NinjaBuildElement(self.all_outputs, 'meson-clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [self.ninja_command, '-t', 'clean'])
