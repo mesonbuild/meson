@@ -57,6 +57,17 @@ if ret.returncode() != 0
   error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
 endif
 
+genscript2deps = '@0@/generator-deps.py'.format(meson.current_source_dir())
+ofile2deps = '@0@/config2deps.h'.format(meson.current_build_dir())
+outf = configure_file(
+  output : 'config2deps.h',
+  depfile : 'depfile.d',
+  command : [genprog, genscript2deps, ofile2deps, '@DEPFILE@'])
+ret = run_command(check_file, outf)
+if ret.returncode() != 0
+  error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
+endif
+
 found_script = find_program('generator.py')
 # More configure_file tests in here
 subdir('subdir')

@@ -40,6 +40,7 @@ from pathlib import (PurePath, Path)
 from distutils.dir_util import copy_tree
 
 import mesonbuild.mlog
+import mesonbuild.depfile
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
@@ -1118,6 +1119,34 @@ class InternalTests(unittest.TestCase):
         for (arg, expected) in test_data:
             self.assertEqual(quote_arg(arg), expected)
             self.assertEqual(split_args(expected)[0], arg)
+
+    def test_depfile(self):
+        for (f, target, expdeps) in [
+                # empty, unknown target
+                ([''], 'unknown', set()),
+                # simple target & deps
+                (['meson/foo.o  : foo.c   foo.h'], 'meson/foo.o', set({'foo.c', 'foo.h'})),
+                (['meson/foo.o: foo.c foo.h'], 'foo.c', set()),
+                # get all deps
+                (['meson/foo.o: foo.c foo.h',
+                  'foo.c: gen.py'], 'meson/foo.o', set({'foo.c', 'foo.h', 'gen.py'})),
+                (['meson/foo.o: foo.c foo.h',
+                  'foo.c: gen.py'], 'foo.c', set({'gen.py'})),
+                # linue continuation, multiple targets
+                (['foo.o \\', 'foo.h: bar'], 'foo.h', set({'bar'})),
+                (['foo.o \\', 'foo.h: bar'], 'foo.o', set({'bar'})),
+                # \\ handling
+                (['foo: Program\\ F\\iles\\\\X'], 'foo', set({'Program Files\\X'})),
+                # $ handling
+                (['f$o.o: c/b'], 'f$o.o', set({'c/b'})),
+                (['f$$o.o: c/b'], 'f$o.o', set({'c/b'})),
+                # cycles
+                (['a: b', 'b: a'], 'a', set({'a', 'b'})),
+                (['a: b', 'b: a'], 'b', set({'a', 'b'})),
+        ]:
+            d = mesonbuild.depfile.DepFile(f)
+            deps = d.get_all_dependencies(target)
+            self.assertEqual(deps, expdeps)
 
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
