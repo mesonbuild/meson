@@ -992,12 +992,9 @@ class Backend:
         # built only before running tests.
         for t in self.build.get_tests():
             exe = unholder(t.exe)
-            if isinstance(exe, (build.CustomTarget, build.BuildTarget)):
-                result[exe.get_id()] = exe
-            for arg in unholder(t.cmd_args):
-                if not isinstance(arg, (build.CustomTarget, build.BuildTarget)):
-                    continue
-                result[arg.get_id()] = arg
+            for arg in [exe] + unholder(t.cmd_args):
+                if isinstance(arg, (build.CustomTarget, build.BuildTarget)):
+                    result[arg.get_id()] = arg
             for dep in t.depends:
                 assert isinstance(dep, (build.CustomTarget, build.BuildTarget))
                 result[dep.get_id()] = dep
