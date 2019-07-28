@@ -16,6 +16,7 @@
 
 import typing
 import os
+from pathlib import Path
 
 from ..compilers import clike_debug_args, clike_optimization_args
 
@@ -42,8 +43,9 @@ pgi_buildtype_linker_args = {
 }  # type: typing.Dict[str, typing.List[str]]
 
 
-class PGICompiler:
+class PGICompiler():
     def __init__(self, compiler_type: 'CompilerType'):
+        self.base_options = ['b_pch']
         self.id = 'pgi'
         self.compiler_type = compiler_type
 
@@ -93,3 +95,17 @@ class PGICompiler:
 
     def get_always_args(self) -> typing.List[str]:
         return []
+
+    def get_pch_suffix(self) -> str:
+        # PGI defaults to .pch suffix for PCH on Linux and Windows with --pch option
+        return 'pch'
+
+    def get_pch_use_args(self, pch_dir: str, header: str) -> typing.List[str]:
+        # PGI supports PCH for C++ only.
+        hdr = Path(pch_dir).resolve().parent / header
+        if self.language == 'cpp':
+            return ['--pch',
+                    '--pch_dir', str(hdr.parent),
+                    '-I{}'.format(hdr.parent)]
+        else:
+            return []
