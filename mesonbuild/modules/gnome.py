@@ -19,6 +19,7 @@ import os
 import copy
 import shlex
 import subprocess
+import shutil
 
 from .. import build
 from .. import mlog
@@ -943,8 +944,76 @@ This will become a hard error in the future.''')
             if main_file != '':
                 raise MesonException('You can only specify main_xml or main_sgml, not both.')
             main_file = main_xml
+        if not main_file:
+            main_file = modulename + '-docs.xml'
         targetname = modulename + ('-' + moduleversion if moduleversion else '') + '-doc'
-        command = state.environment.get_build_command()
+
+        build_root = state.environment.get_build_dir()
+        doc_src = os.path.join(state.environment.get_source_dir(), state.subdir)
+        abs_out = os.path.join(state.environment.get_build_dir(), state.subdir)
+
+        src_dirs, _ = self._extract_paths(kwargs, 'src_dir', state, relative_to_root=True)
+        content_files, depends = self._extract_paths(kwargs, 'content_files', state)
+        content_files.append(os.path.join(doc_src, main_file))
+        sections = os.path.join(doc_src, modulename + "-sections.txt")
+        if os.path.exists(sections):
+            content_files.append(sections)
+        overrides = os.path.join(doc_src, modulename + "-overrides.txt")
+        if os.path.exists(overrides):
+            content_files.append(overrides)
+
+        # Copy files to build directory
+        for f in content_files:
+            if os.path.commonpath([f, build_root]) == build_root:
+                continue
+            shutil.copyfile(f, os.path.join(abs_out, os.path.basename(f)))
+
+        all_targets = []
+
+        ignore_headers = mesonlib.stringlistify(kwargs.get('ignore_headers', []))
+        scan_args = mesonlib.stringlistify(kwargs.get('scan_args', []))
+        scan_args += ['--module=' + modulename,
+                      '--output-dir=' + abs_out,
+                      ]
+        scan_args += ['--source-dir=' + d for d in src_dirs]
+        scan_args += ['--ignore-headers=' + h for h in ignore_headers]
+        scan_target = self._custom_target(state, 'gtkdoc-scan', scan_args, modulename + '-decl.txt', depends, always_stale=True)
+        all_targets.append(scan_target)
+
+        if '--rebuild-types' in scan_args:
+            # Use the generated types file when available, otherwise gobject_typesfile
+            # would often be a path to source dir instead of build dir.
+            gobject_typesfile = os.path.join(abs_out, modulename + '.types')
+        else:
+            paths, _ = self._extract_paths(kwargs, 'gobject_typesfile', state)
+            gobject_typesfile = paths[0] if paths else ''
+
+        if gobject_typesfile:
+            scanobjs_args = mesonlib.stringlistify(kwargs.get('scanobjs_args', []))
+            scanobjs_args += ['--generate-only',
+                              '--types=' + gobject_typesfile,
+                              '--module=' + modulename,
+                              '--output-dir=' + abs_out,
+                              ]
+            scanobjs_target = self._custom_target(state, 'gtkdoc-scangobj', scanobjs_args, modulename + '-scan.c', scan_target)
+            scanobjs_exe_kwargs = {'dependencies': kwargs.get('dependencies', []),
+                                   'include_directories': kwargs.get('include_directories', []),
+                                   'build_by_default': False}
+            scanobjs_exe = build.Executable(modulename + '-scan',
+                                            state.subdir,
+                                            state.subproject,
+                                            MachineChoice.HOST,
+                                            [scanobjs_target],
+                                            [],
+                                            state.environment,
+                                            scanobjs_exe_kwargs)
+            scanobjs_run_target = self._custom_target(state, scanobjs_exe, [], 'gio.args.new', [])
+            scanobjs_postprocess_args = ['--postprocess-only',
+                                         '--module=' + modulename,
+                                         '--output-dir=' + abs_out,
+                                         ]
+            scanobjs_postprocess_target = self._custom_target(state, 'gtkdoc-scangobj', scanobjs_postprocess_args, 'gio.args', scanobjs_run_target)
+            all_targets += [scanobjs_target, scanobjs_exe, scanobjs_run_target, scanobjs_postprocess_target]
 
         namespace = kwargs.get('namespace', '')
         mode = kwargs.get('mode', 'auto')
@@ -952,80 +1021,72 @@ This will become a hard error in the future.''')
         if mode not in VALID_MODES:
             raise MesonException('gtkdoc: Mode {} is not a valid mode: {}'.format(mode, VALID_MODES))
 
-        src_dirs = mesonlib.extract_as_list(kwargs, 'src_dir')
-        header_dirs = []
-        for src_dir in src_dirs:
-            if hasattr(src_dir, 'held_object'):
-                src_dir = src_dir.held_object
-                if not isinstance(src_dir, build.IncludeDirs):
-                    raise MesonException('Invalid keyword argument for src_dir.')
-                for inc_dir in src_dir.get_incdirs():
-                    header_dirs.append(os.path.join(state.environment.get_source_dir(),
-                                                    src_dir.get_curdir(), inc_dir))
-                    header_dirs.append(os.path.join(state.environment.get_build_dir(),
-                                                    src_dir.get_curdir(), inc_dir))
+        # Make docbook files
+        if mode == 'auto':
+            # Guessing is probably a poor idea but these keeps compat
+            # with previous behavior
+            if main_file.endswith('sgml'):
+                modeflag = '--sgml-mode'
             else:
-                header_dirs.append(src_dir)
-
-        args = ['--internal', 'gtkdoc',
-                '--sourcedir=' + state.environment.get_source_dir(),
-                '--builddir=' + state.environment.get_build_dir(),
-                '--subdir=' + state.subdir,
-                '--headerdirs=' + '@@'.join(header_dirs),
-                '--mainfile=' + main_file,
-                '--modulename=' + modulename,
-                '--moduleversion=' + moduleversion,
-                '--mode=' + mode]
+                modeflag = '--xml-mode'
+        elif mode == 'xml':
+            modeflag = '--xml-mode'
+        elif mode == 'sgml':
+            modeflag = '--sgml-mode'
+        else: # none
+            modeflag = None
+        expand_content_files, _ = self._extract_paths(kwargs, 'expand_content_files', state)
+        mkdb_args = mesonlib.stringlistify(kwargs.get('mkdb_args', []))
+        mkdb_args += ['--module=' + modulename,
+                      '--output-format=xml',
+                      '--output-dir=' + abs_out,
+                      '--expand-content-files=' + ' '.join(expand_content_files),
+                      '--main-sgml-file=' + os.path.join(abs_out, main_file),
+                      ]
+        mkdb_args += ['--source-dir=' + d for d in src_dirs]
         if namespace:
-            args.append('--namespace=' + namespace)
-        args += self._unpack_args('--htmlargs=', 'html_args', kwargs)
-        args += self._unpack_args('--scanargs=', 'scan_args', kwargs)
-        args += self._unpack_args('--scanobjsargs=', 'scanobjs_args', kwargs)
-        args += self._unpack_args('--gobjects-types-file=', 'gobject_typesfile', kwargs, state)
-        args += self._unpack_args('--fixxrefargs=', 'fixxref_args', kwargs)
-        args += self._unpack_args('--mkdbargs=', 'mkdb_args', kwargs)
-        args += self._unpack_args('--html-assets=', 'html_assets', kwargs, state)
+            mkdb_args.append('--name-space=' + namespace)
+        if modeflag:
+            mkdb_args.append(modeflag)
+        mkdb_target = self._custom_target(state, 'gtkdoc-mkdb', mkdb_args, 'sgml.stamp', all_targets, always_stale=True)
+        all_targets.append(mkdb_target)
 
-        depends = []
-        content_files = []
-        for s in mesonlib.extract_as_list(kwargs, 'content_files'):
-            if hasattr(s, 'held_object'):
-                s = s.held_object
-            if isinstance(s, (build.CustomTarget, build.CustomTargetIndex)):
-                depends.append(s)
-                for o in s.get_outputs():
-                    content_files.append(os.path.join(state.environment.get_build_dir(),
-                                                      state.backend.get_target_dir(s),
-                                                      o))
-            elif isinstance(s, mesonlib.File):
-                content_files.append(s.absolute_path(state.environment.get_source_dir(),
-                                                     state.environment.get_build_dir()))
-            elif isinstance(s, build.GeneratedList):
-                depends.append(s)
-                for gen_src in s.get_outputs():
-                    content_files.append(os.path.join(state.environment.get_source_dir(),
-                                                      state.subdir,
-                                                      gen_src))
-            elif isinstance(s, str):
-                content_files.append(os.path.join(state.environment.get_source_dir(),
-                                                  state.subdir,
-                                                  s))
-            else:
-                raise MesonException(
-                    'Invalid object type: {!r}'.format(s.__class__.__name__))
-        args += ['--content-files=' + '@@'.join(content_files)]
+        # Make HTML documentation
+        htmldir = os.path.join(abs_out, 'html')
+        try:
+            os.mkdir(htmldir)
+        except Exception:
+            pass
+        mkhtml_args = mesonlib.stringlistify(kwargs.get('html_args', []))
+        mkhtml_args += ['--path=' + ':'.join((doc_src, abs_out)),
+                        '--output-dir=' + htmldir,
+                        modulename,
+                        '../' + main_file,
+                        ]
+        mkhtml_target = self._custom_target(state, 'gtkdoc-mkhtml', mkhtml_args, 'html.stamp', mkdb_target)
+        all_targets.append(mkhtml_target)
 
-        args += self._unpack_args('--expand-content-files=', 'expand_content_files', kwargs, state)
-        args += self._unpack_args('--ignore-headers=', 'ignore_headers', kwargs)
-        args += self._unpack_args('--installdir=', 'install_dir', kwargs)
-        args += self._get_build_args(kwargs, state, depends)
-        custom_kwargs = {'output': modulename + '-decl.txt',
-                         'command': command + args,
-                         'depends': depends,
-                         'build_always_stale': True,
-                         }
-        custom_target = build.CustomTarget(targetname, state.subdir, state.subproject, custom_kwargs)
-        alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject)
+        install_prefix = state.environment.coredata.get_builtin_option('prefix')
+        install_dir = kwargs.get('install_dir', None)
+        if install_dir is None:
+            install_dir = modulename
+            if moduleversion:
+                install_dir += '-' + moduleversion
+        final_destination = os.path.join('share', 'gtk-doc', 'html', install_dir)
+
+        # Fix cross-references in HTML files
+        fixxref_args = mesonlib.stringlistify(kwargs.get('fixxref_args', []))
+        fixxref_args += ['--module=' + modulename,
+                         '--module-dir=' + htmldir,
+                         '--html-dir=' + os.path.join(install_prefix, final_destination),
+                         '--output-dir=' + abs_out,
+                         ]
+        fixxref_target = self._custom_target(state, 'gtkdoc-fixxref', fixxref_args, 'fixxref.stamp', mkhtml_target)
+        all_targets.append(fixxref_target)
+
+        alias_target = build.AliasTarget(targetname, [fixxref_target], state.subdir, state.subproject)
+        all_targets.append(alias_target)
+
         if kwargs.get('check', False):
             check_cmd = self.interpreter.find_program_impl('gtkdoc-check')
             check_env = ['DOC_MODULE=' + modulename,
@@ -1033,49 +1094,30 @@ This will become a hard error in the future.''')
             check_args = [targetname + '-check', check_cmd]
             check_kwargs = {'env': check_env,
                             'workdir': os.path.join(state.environment.get_build_dir(), state.subdir),
-                            'depends': custom_target}
+                            'depends': fixxref_target}
             self.interpreter.add_test(state.current_node, check_args, check_kwargs, True)
-        res = [custom_target, alias_target]
+
         if kwargs.get('install', True):
-            res.append(build.RunScript(command, args))
-        return ModuleReturnValue(custom_target, res)
+            idir = interpreter.InstallDir(state.subdir,
+                                          os.path.join('html'),
+                                          install_dir=final_destination,
+                                          install_mode=None,
+                                          exclude=None,
+                                          strip_directory=True,
+                                          from_source_dir=False)
+            self.interpreter.build.install_dirs.append(idir)
 
-    def _get_build_args(self, kwargs, state, depends):
-        args = []
-        deps = extract_as_list(kwargs, 'dependencies', unholder=True)
-        cflags = []
-        cflags.extend(mesonlib.stringlistify(kwargs.pop('c_args', [])))
-        deps_cflags, internal_ldflags, external_ldflags, gi_includes = \
-            self._get_dependencies_flags(deps, state, depends, include_rpath=True)
-        inc_dirs = mesonlib.extract_as_list(kwargs, 'include_directories')
-        for incd in inc_dirs:
-            if not isinstance(incd.held_object, (str, build.IncludeDirs)):
-                raise MesonException(
-                    'Gir include dirs should be include_directories().')
+        return ModuleReturnValue(fixxref_target, all_targets)
 
-        cflags.extend(deps_cflags)
-        cflags.extend(get_include_args(inc_dirs))
-        ldflags = []
-        ldflags.extend(internal_ldflags)
-        ldflags.extend(external_ldflags)
-
-        cflags.extend(state.environment.coredata.get_external_args(MachineChoice.HOST, 'c'))
-        ldflags.extend(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
-        compiler = state.environment.coredata.compilers[MachineChoice.HOST]['c']
-
-        compiler_flags = self._get_langs_compilers_flags(state, [('c', compiler)])
-        cflags.extend(compiler_flags[0])
-        ldflags.extend(compiler_flags[1])
-        ldflags.extend(compiler_flags[2])
-        if compiler:
-            args += ['--cc=%s' % ' '.join([shlex.quote(x) for x in compiler.get_exelist()])]
-            args += ['--ld=%s' % ' '.join([shlex.quote(x) for x in compiler.get_linker_exelist()])]
-        if cflags:
-            args += ['--cflags=%s' % ' '.join([shlex.quote(x) for x in cflags])]
-        if ldflags:
-            args += ['--ldflags=%s' % ' '.join([shlex.quote(x) for x in ldflags])]
-
-        return args
+    def _custom_target(self, state, program, args, output, depends, always_stale=False):
+        if isinstance(program, str):
+            program = self.interpreter.find_program_impl(program)
+        kwargs = {'output': output,
+                  'command': [program] + args,
+                  'depends': depends,
+                  'build_always_stale': always_stale,
+                  }
+        return build.CustomTarget(output, state.subdir, state.subproject, kwargs)
 
     @noKwargs
     def gtkdoc_html_dir(self, state, args, kwargs):
@@ -1087,25 +1129,43 @@ This will become a hard error in the future.''')
         return ModuleReturnValue(os.path.join('share/gtk-doc/html', modulename), [])
 
     @staticmethod
-    def _unpack_args(arg, kwarg_name, kwargs, expend_file_state=None):
-        if kwarg_name not in kwargs:
-            return []
+    def _extract_paths(kwargs, name, state, relative_to_root=False):
+        paths = []
+        depends = []
+        for i in mesonlib.extract_as_list(kwargs, name, unholder=True):
+            if isinstance(i, mesonlib.File):
+                paths.append(i.absolute_path(state.environment.get_source_dir(),
+                                             state.environment.get_build_dir()))
+            elif isinstance(i, build.IncludeDirs):
+                for inc_dir in i.get_incdirs():
+                    paths.append(os.path.join(state.environment.get_source_dir(),
+                                              i.get_curdir(), inc_dir))
+                    paths.append(os.path.join(state.environment.get_build_dir(),
+                                              i.get_curdir(), inc_dir))
+            elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
+                depends.append(i)
+                for o in i.get_outputs():
+                    paths.append(os.path.join(state.environment.get_build_dir(),
+                                              state.backend.get_target_dir(i),
+                                              o))
+            elif isinstance(i, build.GeneratedList):
+                depends.append(i)
+                for gen_src in i.get_outputs():
+                    paths.append(os.path.join(state.environment.get_build_dir(),
+                                              gen_src))
+            elif isinstance(i, str):
+                if os.path.isabs(i):
+                    paths.append(i)
+                elif relative_to_root:
+                    paths.append(os.path.join(state.environment.get_source_dir(), i))
+                    paths.append(os.path.join(state.environment.get_build_dir(), i))
+                else:
+                    paths.append(os.path.join(state.environment.get_source_dir(), state.subdir, i))
+                    paths.append(os.path.join(state.environment.get_build_dir(), state.subdir, i))
+            else:
+                raise MesonException(name + ' values must be strings or file.')
 
-        new_args = mesonlib.extract_as_list(kwargs, kwarg_name)
-        args = []
-        for i in new_args:
-            if expend_file_state and isinstance(i, mesonlib.File):
-                i = i.absolute_path(expend_file_state.environment.get_source_dir(), expend_file_state.environment.get_build_dir())
-            elif expend_file_state and isinstance(i, str):
-                i = os.path.join(expend_file_state.environment.get_source_dir(), expend_file_state.subdir, i)
-            elif not isinstance(i, str):
-                raise MesonException(kwarg_name + ' values must be strings.')
-            args.append(i)
-
-        if args:
-            return [arg + '@@'.join(args)]
-
-        return []
+        return paths, depends
 
     def _get_autocleanup_args(self, kwargs, glib_version):
         if not mesonlib.version_compare(glib_version, '>= 2.49.1'):
