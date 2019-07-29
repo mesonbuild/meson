@@ -374,9 +374,16 @@ class OpenMPDependency(ExternalDependency):
             openmp_date = self.clib_compiler.get_define(
                 '_OPENMP', '', self.env, self.clib_compiler.openmp_flags(), [self], disable_cache=True)[0]
         except mesonlib.EnvironmentException as e:
-            mlog.debug('OpenMP support not available in the compiler')
-            mlog.debug(e)
-            openmp_date = False
+            if self.clib_compiler.get_id() == 'pgi':
+                # through at least PGI 19.4, there is no macro defined for OpenMP, but OpenMP 3.1 is supported.
+                self.version = '3.1'
+                self.is_found = True
+                self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
+                return
+            else:
+                mlog.debug('OpenMP support not available in the compiler')
+                mlog.debug(e)
+                openmp_date = None
 
         if openmp_date:
             self.version = self.VERSIONS[openmp_date]
