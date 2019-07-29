@@ -1195,7 +1195,11 @@ class Backend:
 
     def generate_subdir_install(self, d):
         for sd in self.build.get_install_subdirs():
-            src_dir = os.path.join(self.environment.get_source_dir(),
+            if sd.from_source_dir:
+                from_dir = self.environment.get_source_dir()
+            else:
+                from_dir = self.environment.get_build_dir()
+            src_dir = os.path.join(from_dir,
                                    sd.source_subdir,
                                    sd.installable_subdir).rstrip('/')
             dst_dir = os.path.join(self.environment.get_prefix(),
