@@ -387,14 +387,17 @@ class CoreData:
         if not filenames:
             return []
 
-        real = []
+        found_invalid = []  # type: typing.List[str]
+        missing = []        # type: typing.List[str]
+        real = []           # type: typing.List[str]
         for i, f in enumerate(filenames):
             f = os.path.expanduser(os.path.expandvars(f))
             if os.path.exists(f):
                 if os.path.isfile(f):
                     real.append(os.path.abspath(f))
+                    continue
                 elif os.path.isdir(f):
-                    raise MesonException('Cross and native files must not be directories')
+                    found_invalid.append(os.path.abspath(f))
                 else:
                     # in this case we've been passed some kind of pipe, copy
                     # the contents of that file into the meson private (scratch)
@@ -408,8 +411,8 @@ class CoreData:
                     # Also replace the command line argument, as the pipe
                     # probably wont exist on reconfigure
                     filenames[i] = copy
-                continue
-            elif sys.platform != 'win32':
+                    continue
+            if sys.platform != 'win32':
                 paths = [
                     os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')),
                 ] + os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share').split(':')
@@ -419,9 +422,14 @@ class CoreData:
                         real.append(path_to_try)
                         break
                 else:
-                    raise MesonException('Cannot find specified {} file: {}'.format(ftype, f))
-                continue
+                    missing.append(f)
+            else:
+                missing.append(f)
 
+        if missing:
+            if found_invalid:
+                mlog.log('Found invalid candidates for', ftype, 'file:', *found_invalid)
+            mlog.log('Could not find any valid candidate for', ftype, 'files:', *missing)
             raise MesonException('Cannot find specified {} file: {}'.format(ftype, f))
         return real
 
