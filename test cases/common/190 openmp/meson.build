@@ -1,4 +1,4 @@
-project('openmp', 'c', 'cpp')
+project('openmp', 'c')
 
 cc = meson.get_compiler('c')
 if cc.get_id() == 'gcc' and cc.version().version_compare('<4.2.0')
@@ -21,21 +21,22 @@ if host_machine.system() == 'darwin'
 endif
 
 openmp = dependency('openmp')
+env = environment()
+env.set('OMP_NUM_THREADS', '2')
 
 exec = executable('exec',
   'main.c',
   dependencies : [openmp])
-
-execpp = executable('execpp',
-  'main.cpp',
-  dependencies : [openmp])
-
-env = environment()
-env.set('OMP_NUM_THREADS', '2')
-
 test('OpenMP C', exec, env : env)
-test('OpenMP C++', execpp, env : env)
 
+if not(build_machine.system() == 'windows' and cc.get_id() == 'pgi')
+  if add_languages('cpp', required : false)
+    execpp = executable('execpp',
+      'main.cpp',
+      dependencies : [openmp])
+    test('OpenMP C++', execpp, env : env)
+  endif
+endif
 
 if add_languages('fortran', required : false)
   # Mixing compilers (msvc/clang with gfortran) does not seem to work on Windows.
