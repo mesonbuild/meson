@@ -380,11 +380,14 @@ class OpenMPDependency(ExternalDependency):
 
         if openmp_date:
             self.version = self.VERSIONS[openmp_date]
-            if self.clib_compiler.has_header('omp.h', '', self.env, dependencies=[self], disable_cache=True)[0]:
-                self.is_found = True
-                self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
-            else:
-                mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
+            # Flang has omp_lib.h
+            header_names = ('omp.h', 'omp_lib.h')
+            for name in header_names:
+                if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
+                    self.is_found = True
+                    self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
+                else:
+                    mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
 
 
 class ThreadDependency(ExternalDependency):
