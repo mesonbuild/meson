@@ -20,6 +20,7 @@ import sys
 import shutil
 import subprocess
 import hashlib
+import json
 from glob import glob
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import windows_proof_rmtree
@@ -143,7 +144,7 @@ def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scrip
     return output_names
 
 
-def check_dist(packagename, meson_command, privdir):
+def check_dist(packagename, meson_command, bld_root, privdir):
     print('Testing distribution package %s' % packagename)
     unpackdir = os.path.join(privdir, 'dist-unpack')
     builddir = os.path.join(privdir, 'dist-build')
@@ -158,6 +159,9 @@ def check_dist(packagename, meson_command, privdir):
         unpacked_files = glob(os.path.join(unpackdir, '*'))
         assert(len(unpacked_files) == 1)
         unpacked_src_dir = unpacked_files[0]
+        with open(os.path.join(bld_root, 'meson-info', 'intro-buildoptions.json')) as boptions:
+            meson_command += ['-D{name}={value}'.format(**o) for o in json.load(boptions)
+                              if o['name'] not in ['backend', 'install_umask']]
         if subprocess.call(meson_command + ['--backend=ninja', unpacked_src_dir, builddir]) != 0:
             print('Running Meson on distribution package failed')
             return 1
@@ -214,7 +218,7 @@ def run(options):
     if names is None:
         return 1
     # Check only one.
-    rc = check_dist(names[0], meson_command, priv_dir)
+    rc = check_dist(names[0], meson_command, bld_root, priv_dir)
     if rc == 0:
         for name in names:
             create_hash(name)
