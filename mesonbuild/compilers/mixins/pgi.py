@@ -61,6 +61,9 @@ class PGICompiler():
     def get_no_warn_args(self) -> typing.List[str]:
         return ['-silent']
 
+    def gen_import_library_args(self, implibname: str) -> typing.List[str]:
+        return []
+
     def get_std_shared_lib_link_args(self) -> typing.List[str]:
         # PGI -shared is Linux only.
         if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:

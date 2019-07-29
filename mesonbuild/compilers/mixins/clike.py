@@ -209,25 +209,25 @@ class CLikeCompiler:
         '''
         return self.get_compiler_dirs(env, 'programs')
 
-    def get_pic_args(self):
+    def get_pic_args(self) -> typing.List[str]:
         return ['-fPIC']
 
-    def name_string(self):
+    def name_string(self) -> str:
         return ' '.join(self.exelist)
 
-    def get_pch_use_args(self, pch_dir, header):
+    def get_pch_use_args(self, pch_dir: str, header: str) -> typing.List[str]:
         return ['-include', os.path.basename(header)]
 
-    def get_pch_name(self, header_name):
+    def get_pch_name(self, header_name: str) -> str:
         return os.path.basename(header_name) + '.' + self.get_pch_suffix()
 
-    def get_linker_search_args(self, dirname):
+    def get_linker_search_args(self, dirname: str) -> typing.List[str]:
         return ['-L' + dirname]
 
     def get_default_include_dirs(self):
         return []
 
-    def gen_export_dynamic_link_args(self, env):
+    def gen_export_dynamic_link_args(self, env) -> typing.List[str]:
         m = env.machines[self.for_machine]
         if m.is_windows() or m.is_cygwin():
             return ['-Wl,--export-all-symbols']
@@ -236,7 +236,7 @@ class CLikeCompiler:
         else:
             return ['-Wl,-export-dynamic']
 
-    def gen_import_library_args(self, implibname):
+    def gen_import_library_args(self, implibname: str) -> typing.List[str]:
         """
         The name of the outputted import library
 
