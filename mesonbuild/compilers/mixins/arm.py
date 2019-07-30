@@ -161,8 +161,8 @@ class ArmclangCompiler:
     def __init__(self, compiler_type: 'CompilerType'):
         if not self.is_cross:
             raise mesonlib.EnvironmentException('armclang supports only cross-compilation.')
-        # Check whether 'armlink.exe' is available in path
-        self.linker_exe = 'armlink.exe'
+        # Check whether 'armlink' is available in path
+        self.linker_exe = 'armlink'
         args = '--vsn'
         try:
             p, stdo, stderr = mesonlib.Popen_safe(self.linker_exe, args)
