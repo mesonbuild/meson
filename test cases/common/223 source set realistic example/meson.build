@@ -2,6 +2,12 @@
 # modules, inspired by QEMU's build system
 
 project('sourceset-example', 'cpp')
+
+cppid = meson.get_compiler('cpp').get_id()
+if cppid == 'pgi'
+  error('MESON_SKIP_TEST: Even PGI 19.4 that claims C++17 full support, cannot handle auto x = y syntax used in this test.')
+endif
+
 ss = import('sourceset')
 kconfig = import('unstable-kconfig')
 
