@@ -1,4 +1,5 @@
-project('modules', 'fortran')
+project('modules', 'fortran',
+  default_options : ['default_library=static'])
 
 commented = library('commented', 'comment_mod.f90')
 

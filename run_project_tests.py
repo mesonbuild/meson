@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Tuple
+import typing
 import itertools
 import os
 import subprocess
@@ -109,18 +109,10 @@ def setup_commands(optbackend):
     compile_commands, clean_commands, test_commands, install_commands, \
         uninstall_commands = get_backend_commands(backend, do_debug)
 
-def get_relative_files_list_from_dir(fromdir):
-    paths = []
-    for (root, _, files) in os.walk(fromdir):
-        reldir = os.path.relpath(root, start=fromdir)
-        for f in files:
-            path = os.path.join(reldir, f).replace('\\', '/')
-            if path.startswith('./'):
-                path = path[2:]
-            paths.append(path)
-    return paths
+def get_relative_files_list_from_dir(fromdir: Path) -> typing.List[Path]:
+    return [file.relative_to(fromdir) for file in fromdir.rglob('*') if file.is_file()]
 
-def platform_fix_name(fname, compiler, env):
+def platform_fix_name(fname: str, compiler, env) -> str:
     # canonicalize compiler
     if compiler in {'clang-cl', 'intel-cl'}:
         canonical_compiler = 'msvc'
@@ -200,35 +192,36 @@ def platform_fix_name(fname, compiler, env):
 
     return fname
 
-def validate_install(srcdir, installdir, compiler, env):
+def validate_install(srcdir: str, installdir: Path, compiler, env) -> str:
     # List of installed files
-    info_file = os.path.join(srcdir, 'installed_files.txt')
+    info_file = Path(srcdir) / 'installed_files.txt'
+    installdir = Path(installdir)
     # If this exists, the test does not install any other files
-    noinst_file = 'usr/no-installed-files'
-    expected = {}
+    noinst_file = Path('usr/no-installed-files')
+    expected = {}  # type: typing.Dict[Path, bool]
     ret_msg = ''
     # Generate list of expected files
-    if os.path.exists(os.path.join(installdir, noinst_file)):
+    if (installdir / noinst_file).is_file():
         expected[noinst_file] = False
-    elif os.path.exists(info_file):
-        with open(info_file) as f:
+    elif info_file.is_file():
+        with info_file.open() as f:
             for line in f:
                 line = platform_fix_name(line.strip(), compiler, env)
                 if line:
-                    expected[line] = False
+                    expected[Path(line)] = False
     # Check if expected files were found
     for fname in expected:
-        file_path = os.path.join(installdir, fname)
-        if os.path.exists(file_path) or os.path.islink(file_path):
+        file_path = installdir / fname
+        if file_path.is_file() or file_path.is_symlink():
             expected[fname] = True
     for (fname, found) in expected.items():
         if not found:
-            ret_msg += 'Expected file {0} missing.\n'.format(fname)
+            ret_msg += 'Expected file {} missing.\n'.format(fname)
     # Check if there are any unexpected files
     found = get_relative_files_list_from_dir(installdir)
     for fname in found:
         if fname not in expected:
-            ret_msg += 'Extra file {0} found.\n'.format(fname)
+            ret_msg += 'Extra file {} found.\n'.format(fname)
     if ret_msg != '':
         ret_msg += '\nInstall dir contents:\n'
         for i in found:
@@ -445,7 +438,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     return TestResult(validate_install(testdir, install_dir, compiler, builddata.environment),
                       BuildStep.validate, stdo, stde, mesonlog, gen_time, build_time, test_time)
 
-def gather_tests(testdir: Path) -> List[Path]:
+def gather_tests(testdir: Path) -> typing.List[Path]:
     test_names = [t.name for t in testdir.glob('*') if t.is_dir()]
     test_names = [t for t in test_names if not t.startswith('.')] # Filter non-tests files (dot files, etc)
     test_nums = [(int(t.split()[0]), t) for t in test_names]
@@ -598,7 +591,7 @@ def should_skip_rust() -> bool:
             return True
     return False
 
-def detect_tests_to_run(only: List[str]) -> List[Tuple[str, List[Path], bool]]:
+def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str, typing.List[Path], bool]]:
     """
     Parameters
     ----------
@@ -611,10 +604,8 @@ def detect_tests_to_run(only: List[str]) -> List[Tuple[str, List[Path], bool]]:
         tests to run
     """
 
-    ninja_fortran_compiler = shutil.which('gfortran') or shutil.which('flang') or shutil.which('pgfortran') or (not mesonlib.is_windows() and shutil.which('ifort'))
-    ninja_fortran = backend is Backend.ninja and ninja_fortran_compiler
-    vs_fortran = mesonlib.is_windows() and backend is Backend.vs and shutil.which('ifort')
-    skip_fortran = not(ninja_fortran or vs_fortran)
+    skip_fortran = not(shutil.which('gfortran') or shutil.which('flang') or
+                       shutil.which('pgfortran') or shutil.which('ifort'))
 
     # Name, subdirectory, skip condition.
     all_tests = [
@@ -637,7 +628,7 @@ def detect_tests_to_run(only: List[str]) -> List[Tuple[str, List[Path], bool]]:
         ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
         ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler()),
         ('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler()),
-        ('fortran', 'fortran', skip_fortran),
+        ('fortran', 'fortran', skip_fortran or backend != Backend.ninja),
         ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         ('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('nvcc')),
         ('python3', 'python3', backend is not Backend.ninja),
@@ -654,14 +645,14 @@ def detect_tests_to_run(only: List[str]) -> List[Tuple[str, List[Path], bool]]:
     gathered_tests = [(name, gather_tests(Path('test cases', subdir)), skip) for name, subdir, skip in all_tests]
     return gathered_tests
 
-def run_tests(all_tests, log_name_base, failfast, extra_args):
+def run_tests(all_tests, log_name_base, failfast: bool, extra_args):
     global logfile
     txtname = log_name_base + '.txt'
     with open(txtname, 'w', encoding='utf-8', errors='ignore') as lf:
         logfile = lf
         return _run_tests(all_tests, log_name_base, failfast, extra_args)
 
-def _run_tests(all_tests, log_name_base, failfast, extra_args):
+def _run_tests(all_tests, log_name_base, failfast: bool, extra_args):
     global stop, executor, futures, system_compiler
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
@@ -767,8 +758,8 @@ def _run_tests(all_tests, log_name_base, failfast, extra_args):
                 stdeel = ET.SubElement(current_test, 'system-err')
                 stdeel.text = result.stde
 
-        if failfast and failing_tests > 0:
-            break
+            if failfast and failing_tests > 0:
+                break
 
     print("\nTotal configuration time: %.2fs" % conf_time)
     print("Total build time: %.2fs" % build_time)

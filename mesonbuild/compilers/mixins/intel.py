@@ -22,13 +22,12 @@ import os
 import typing
 
 from ... import mesonlib
+from ..compilers import CompilerType
 from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
 
 if typing.TYPE_CHECKING:
     import subprocess  # noqa: F401
-
-    from ..compilers import CompilerType
 
 # XXX: avoid circular dependencies
 # TODO: this belongs in a posix compiler class

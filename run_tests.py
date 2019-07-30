@@ -34,11 +34,13 @@ from mesonbuild import mlog
 from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.coredata import backendlist
 
-def guess_backend(backend, msbuild_exe):
+def guess_backend(backend, msbuild_exe: str):
     # Auto-detect backend if unspecified
     backend_flags = []
     if backend is None:
-        if msbuild_exe is not None and mesonlib.is_windows():
+        if (msbuild_exe is not None and
+            mesonlib.is_windows() and not
+                (os.environ.get('CC') == 'icl' or os.environ.get('CXX') == 'icl' or os.environ.get('FC') == 'ifort')):
             backend = 'vs' # Meson will auto-detect VS version to use
         else:
             backend = 'ninja'
