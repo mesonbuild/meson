@@ -40,7 +40,7 @@ def guess_backend(backend, msbuild_exe: str):
     if backend is None:
         if (msbuild_exe is not None and
             mesonlib.is_windows() and not
-            (os.environ.get('CC') == 'icl' or os.environ.get('CXX') == 'icl' or os.environ.get('FC') == 'ifort')) :
+                (os.environ.get('CC') == 'icl' or os.environ.get('CXX') == 'icl' or os.environ.get('FC') == 'ifort')):
             backend = 'vs' # Meson will auto-detect VS version to use
         else:
             backend = 'ninja'
