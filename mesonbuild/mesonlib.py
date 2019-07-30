@@ -1368,3 +1368,17 @@ try:
             super().__init__(*args, **kwargs)
 except ImportError:
     ProgressBar = ProgressBarFallback
+
+
+def get_config_path():
+    if 'MESON_CONFIG' in os.environ:
+        return Path(os.environ.get('MESON_CONFIG'))
+
+    if is_windows():
+        path = Path(os.environ.get('APPDATA'))
+    else:
+        path = Path(
+            os.environ.get('XDG_CONFIG_HOME') or
+            Path.home() / '.config'
+        )
+    return path / 'meson'

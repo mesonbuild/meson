@@ -2699,7 +2699,6 @@ external dependencies (including libraries) must go to "dependencies".''')
             default_options.update(self.default_project_options)
         else:
             default_options = {}
-        self.coredata.set_default_options(default_options, self.subproject, self.environment)
         self.set_backend()
 
         if not self.is_subproject():
@@ -2734,6 +2733,15 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))
         mlog.log('Project version:', mlog.bold(self.project_version))
+
+        if not self.is_subproject():
+            conf = InterpreterBase(self.source_root, self.subdir)
+            conf.subproject = self.subproject
+            conf.builtin.update({'meson': self.builtin['meson']})
+            conf.load_config_default_options()
+            default_options.update(conf.variables)
+        self.coredata.set_default_options(default_options, self.subproject, self.environment)
+
         self.add_languages(proj_langs, True)
         if not self.is_subproject():
             self.check_stdlibs()

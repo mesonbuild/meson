@@ -304,6 +304,7 @@ def main():
     env = os.environ.copy()
     env['MESON_UNIT_TEST_BACKEND'] = backend.name
     with tempfile.TemporaryDirectory() as temp_dir:
+        env['MESON_CONFIG'] = temp_dir
         # Enable coverage on all subsequent processes.
         if enable_coverage:
             Path(temp_dir, 'usercustomize.py').open('w').write(

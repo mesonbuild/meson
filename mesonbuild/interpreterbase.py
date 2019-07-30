@@ -371,6 +371,23 @@ class InterpreterBase:
         # when printing a warning message during a method call.
         self.current_node = None
 
+    def load_config_default_options(self):
+        f = mesonlib.get_config_path() / 'default-options'
+        if not f.is_file():
+            return
+        mlog.log('Loading home config options:', mlog.bold(str(f)))
+        code = f.read_text(encoding='utf8')
+        if code.isspace():
+            return
+        assert(isinstance(code, str))
+        try:
+            self.ast = mparser.Parser(code, self.subdir).parse()
+        except mesonlib.MesonException as me:
+            me.file = environment.build_filename
+            raise me
+        self.evaluate_codeblock(self.ast)
+        mlog.log('Home config options:', mlog.bold(str(self.variables)))
+
     def load_root_meson_file(self):
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
         if not os.path.isfile(mesonfile):
