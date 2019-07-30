@@ -586,7 +586,7 @@ be passed to [shared and static libraries](#library).
 - `include_directories` one or more objects created with the
   `include_directories` function, or, since 0.50.0, strings, which
   will be transparently expanded to include directory objects
-- `install`, when set to true, this executable should be installed
+- `install`, when set to true, this executable should be installed, defaults to `false`
 - `install_dir` override install directory for this file. The value is
   relative to the `prefix` specified. F.ex, if you want to install
   plugins into a subdir, you'd use something like this: `install_dir :
