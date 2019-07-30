@@ -158,16 +158,20 @@ class IntrospectionInterpreter(AstInterpreter):
         args = self.flatten_args(args)
         if not args or not isinstance(args[0], str):
             return
-        kwargs = self.flatten_kwargs(kwargs, True)
         name = args[0]
         srcqueue = [node]
+
+        # Process the soruces BEFORE flattening the kwargs, to preserve the original nodes
         if 'sources' in kwargs:
-            srcqueue += kwargs['sources']
+            srcqueue += mesonlib.listify(kwargs['sources'])
+
+        kwargs = self.flatten_kwargs(kwargs, True)
 
         source_nodes = []
         while srcqueue:
             curr = srcqueue.pop(0)
             arg_node = None
+            assert(isinstance(curr, BaseNode))
             if isinstance(curr, FunctionNode):
                 arg_node = curr.args
             elif isinstance(curr, ArrayNode):
