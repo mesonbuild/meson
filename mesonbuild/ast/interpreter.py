@@ -325,7 +325,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         for key, val in kwargs.items():
             if isinstance(val, ElementaryNode):
                 flattend_kwargs[key] = val.value
-            elif isinstance(val, (ArrayNode, ArgumentNode)):
+            elif isinstance(val, (ArrayNode, ArgumentNode, ArithmeticNode, MethodNode)):
                 flattend_kwargs[key] = self.flatten_args(val, include_unknown_args)
             elif isinstance(val, (str, bool, int, float)) or include_unknown_args:
                 flattend_kwargs[key] = val
