@@ -767,8 +767,8 @@ def _run_tests(all_tests, log_name_base, failfast, extra_args):
                 stdeel = ET.SubElement(current_test, 'system-err')
                 stdeel.text = result.stde
 
-        if failfast and failing_tests > 0:
-            break
+            if failfast and failing_tests > 0:
+                break
 
     print("\nTotal configuration time: %.2fs" % conf_time)
     print("Total build time: %.2fs" % build_time)
