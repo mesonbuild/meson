@@ -321,6 +321,9 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
                           '2': default_warn_args,
                           '3': default_warn_args}
 
+    def language_stdlib_only_link_flags(self) -> List[str]:
+        return ['-lflang', '-lpgmath']
+
 class Open64FortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwags):
         FortranCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwags)
