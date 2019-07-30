@@ -274,7 +274,6 @@ class PGICPPCompiler(PGICompiler, CPPCompiler):
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
         PGICompiler.__init__(self, compiler_type)
 
-
 class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
     def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, defines=None, **kwargs):
         GnuCPPCompiler.__init__(self, exelist, version, compiler_type, for_machine, is_cross, exe_wrapper, defines, **kwargs)
