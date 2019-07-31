@@ -81,7 +81,11 @@ class CMakeTraceParser:
             'add_custom_command': self._cmake_add_custom_command,
             'add_custom_target': self._cmake_add_custom_target,
             'set_property': self._cmake_set_property,
-            'set_target_properties': self._cmake_set_target_properties
+            'set_target_properties': self._cmake_set_target_properties,
+            'target_compile_definitions': self._cmake_target_compile_definitions,
+            'target_compile_options': self._cmake_target_compile_options,
+            'target_include_directories': self._cmake_target_include_directories,
+            'target_link_options': self._cmake_target_link_options,
         }
 
         # Primary pass -- parse everything
@@ -199,16 +203,23 @@ class CMakeTraceParser:
         args = list(tline.args) # Make a working copy
 
         # Make sure the lib is imported
-        if 'IMPORTED' not in args:
-            return self._gen_exception('add_library', 'non imported libraries are not supported', tline)
+        if 'INTERFACE' in args:
+            args.remove('INTERFACE')
 
-        args.remove('IMPORTED')
+            if len(args) < 1:
+                return self._gen_exception('add_library', 'interface library name not specified', tline)
 
-        # No only look at the first two arguments (target_name and target_type) and ignore the rest
-        if len(args) < 2:
-            return self._gen_exception('add_library', 'requires at least 2 arguments', tline)
+            self.targets[args[0]] = CMakeTarget(args[0], 'INTERFACE', {})
+        elif 'IMPORTED' in args:
+            args.remove('IMPORTED')
 
-        self.targets[args[0]] = CMakeTarget(args[0], args[1], {})
+            # No only look at the first two arguments (target_name and target_type) and ignore the rest
+            if len(args) < 2:
+                return self._gen_exception('add_library', 'requires at least 2 arguments', tline)
+
+            self.targets[args[0]] = CMakeTarget(args[0], args[1], {})
+        else:
+            return self._gen_exception('add_library', 'non imported / interface libraries are not supported', tline)
 
     def _cmake_add_custom_command(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_command.html
@@ -343,8 +354,8 @@ class CMakeTraceParser:
         # set_property() this is not context free. There are two approaches I
         # can think of, both have drawbacks:
         #
-        #   1. Assume that the property will be capitalized, this is convention
-        #      but cmake doesn't require it.
+        #   1. Assume that the property will be capitalized ([A-Z_]), this is
+        #      convention but cmake doesn't require it.
         #   2. Maintain a copy of the list here: https://cmake.org/cmake/help/latest/manual/cmake-properties.7.html#target-properties
         #
         # Neither of these is awesome for obvious reasons. I'm going to try
@@ -354,8 +365,9 @@ class CMakeTraceParser:
         arglist = []  # type: List[Tuple[str, List[str]]]
         name = args.pop(0)
         values = []
+        prop_regex = re.compile(r'^[A-Z_]+$')
         for a in args:
-            if a.isupper():
+            if prop_regex.match(a):
                 if values:
                     arglist.append((name, ' '.join(values).split(';')))
                 name = a
@@ -371,6 +383,66 @@ class CMakeTraceParser:
                     return self._gen_exception('set_target_properties', 'TARGET {} not found'.format(i), tline)
 
                 self.targets[i].properies[name] = value
+
+    def _cmake_target_compile_definitions(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/target_compile_definitions.html
+        self._parse_common_target_options('target_compile_definitions', 'COMPILE_DEFINITIONS', 'INTERFACE_COMPILE_DEFINITIONS', tline)
+
+    def _cmake_target_compile_options(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/target_compile_options.html
+        self._parse_common_target_options('target_compile_options', 'COMPILE_OPTIONS', 'INTERFACE_COMPILE_OPTIONS', tline)
+
+    def _cmake_target_include_directories(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/target_include_directories.html
+        self._parse_common_target_options('target_include_directories', 'INCLUDE_DIRECTORIES', 'INTERFACE_INCLUDE_DIRECTORIES', tline, ignore=['SYSTEM', 'BEFORE'], paths=True)
+
+    def _cmake_target_link_options(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/target_link_options.html
+        self._parse_common_target_options('target_link_options', 'LINK_OPTIONS', 'INTERFACE_LINK_OPTIONS', tline)
+
+    def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: Optional[List[str]] = None, paths: bool = False):
+        if ignore is None:
+            ignore = ['BEFORE']
+
+        args = list(tline.args)
+
+        if len(args) < 1:
+            return self._gen_exception(func, 'requires at least one argument', tline)
+
+        target = args[0]
+        if target not in self.targets:
+            return self._gen_exception(func, 'TARGET {} not found'.format(target), tline)
+
+        interface = []
+        private = []
+
+        mode = 'PUBLIC'
+        for i in args[1:]:
+            if i in ignore:
+                continue
+
+            if i in ['INTERFACE', 'PUBLIC', 'PRIVATE']:
+                mode = i
+                continue
+
+            if mode in ['INTERFACE', 'PUBLIC']:
+                interface += [i]
+
+            if mode in ['PUBLIC', 'PRIVATE']:
+                private += [i]
+
+        if paths:
+            interface = self._guess_files(interface)
+            private = self._guess_files(private)
+
+        interface = [x for x in interface if x]
+        private = [x for x in private if x]
+
+        for i in [(private_prop, private), (interface_prop, interface)]:
+            if not i[0] in self.targets[target].properies:
+                self.targets[target].properies[i[0]] = []
+
+            self.targets[target].properies[i[0]] += i[1]
 
     def _lex_trace(self, trace):
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
@@ -420,7 +492,7 @@ class CMakeTraceParser:
                 # Abort concatination if curr_str no longer matches the regex
                 fixed_list += [curr_str]
                 curr_str = i
-            elif reg_end.match(i):
+            elif reg_end.match(i) or os.path.exists('{} {}'.format(curr_str, i)):
                 # File detected
                 curr_str = '{} {}'.format(curr_str, i)
                 fixed_list += [curr_str]
