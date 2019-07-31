@@ -325,3 +325,14 @@ then the following command would start a cross build using that cross files:
 ```sh
 meson builddir/ --cross-file x86-linux
 ```
+
+## Forcing a cross build
+
+There is also a `--force-cross-build`, that forces certain cross-specific
+behavior regardless of whether a cross file is provided, or otherwise it is
+determined that the build machine and host machine are the same.
+
+This is a rather obscure feature, but is useful for certain automatated uses of
+Meson. Meson's own tests use it. Distros and packagemanagers may also want to
+use it. The benefit is by "un-special-casing" native builds, that tooling can be
+simpler.

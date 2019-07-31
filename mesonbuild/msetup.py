@@ -40,6 +40,9 @@ def add_arguments(parser):
                         default=[],
                         action='append',
                         help='File describing cross compilation environment.')
+    parser.add_argument('--force-cross-build', action='store_true',
+                        help='Consider the build a cross build even if it would normally be considered native. ' +
+                             '(i.e. even if build_machine == host_machine.)')
     parser.add_argument('-v', '--version', action='version',
                         version=coredata.version)
     parser.add_argument('--profile-self', action='store_true', dest='profile',

@@ -3830,6 +3830,10 @@ recommended as it is not supported on some platforms''')
         self.assertPathExists(os.path.join(self.builddir, 'prog' + exe_suffix))
         self.assertPathExists(os.path.join(self.builddir, 'hello.txt'))
 
+    def test_force_cross_build(self):
+        testdir = os.path.join(self.unit_test_dir, '63 force cross build')
+        self.init(testdir, extra_args=['--force-cross-build'])
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically

@@ -466,6 +466,8 @@ class Environment:
 
         self.cmd_line_options = options.cmd_line_options.copy()
 
+        self.force_cross_build = options.force_cross_build # type: bool
+
         # List of potential compilers.
         if mesonlib.is_windows():
             # Intel C and C++ compiler is icl on Windows, but icc and icpc elsewhere.
@@ -513,7 +515,7 @@ class Environment:
         self.first_invocation = True
 
     def is_cross_build(self) -> bool:
-        return not self.machines.matches_build_machine(MachineChoice.HOST)
+        return self.force_cross_build or not self.machines.matches_build_machine(MachineChoice.HOST)
 
     def dump_coredata(self):
         return coredata.save(self.coredata, self.get_build_dir())

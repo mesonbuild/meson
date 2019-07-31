@@ -76,6 +76,7 @@ def get_fake_options(prefix=''):
     opts.wrap_mode = None
     opts.prefix = prefix
     opts.cmd_line_options = {}
+    opts.force_cross_build = False
     return opts
 
 def get_fake_env(sdir='', bdir=None, prefix='', opts=None):
