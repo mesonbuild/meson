@@ -1,0 +1,9 @@
+[MASTER]
+jobs=0
+
+[REPORTS]
+score=no
+
+[MESSAGES CONTROL]
+disable=all
+enable=unreachable
