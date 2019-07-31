@@ -69,11 +69,11 @@ class FakeCompilerOptions:
 def get_fake_options(prefix=''):
     import argparse
     opts = argparse.Namespace()
+    opts.native_file = []
     opts.cross_file = None
     opts.wrap_mode = None
     opts.prefix = prefix
     opts.cmd_line_options = {}
-    opts.native_file = []
     return opts
 
 def get_fake_env(sdir='', bdir=None, prefix='', opts=None):
