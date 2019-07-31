@@ -763,7 +763,6 @@ class Environment:
                 target = 'x86' if 'IA-32' in err else 'x86_64'
                 cls = IntelClCCompiler if lang == 'c' else IntelClCPPCompiler
                 return cls(compiler, version, for_machine, is_cross, exe_wrap, target)
-                return cls(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, full_version=full_version)
             if 'Microsoft' in out or 'Microsoft' in err:
                 # Latest versions of Visual Studio print version
                 # number to stderr but earlier ones print version

@@ -413,9 +413,8 @@ def fix_darwin(fname, new_rpath, final_path, install_name_mappings):
             subprocess.check_call(['install_name_tool', fname] + args,
                                   stdout=subprocess.DEVNULL,
                                   stderr=subprocess.DEVNULL)
-    except Exception:
-        raise
-        sys.exit(0)
+    except Exception as err:
+        raise SystemExit(err)
 
 def fix_jar(fname):
     subprocess.check_call(['jar', 'xfv', fname, 'META-INF/MANIFEST.MF'])
