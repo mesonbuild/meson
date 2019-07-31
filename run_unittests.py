@@ -5032,7 +5032,7 @@ class LinuxlikeTests(BasePlatformTests):
             raise unittest.SkipTest('-fsanitize=address is not supported on OpenBSD')
 
         testdir = os.path.join(self.common_test_dir, '13 pch')
-        self.init(testdir, extra_args=['-Db_sanitize=address'])
+        self.init(testdir, extra_args=['-Db_sanitize=address', '-Db_lundef=false'])
         self.build()
         compdb = self.get_compdb()
         for i in compdb:
