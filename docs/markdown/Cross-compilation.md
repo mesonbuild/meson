@@ -134,7 +134,7 @@ single string (i.e. not as `'-DCROSS=1 -DSOMETHING=3'`).
 
 *Since 0.52.0* The `sys_root` property may point to the root of the host
 system path (the system that will run the compiled binaries). This is used
-internally by meson to set the PKG_CONFIG_SYSROOT_DIR environment variable
+internally by Meson to set the PKG_CONFIG_SYSROOT_DIR environment variable
 for pkg-config. If this is unset the host system is assumed to share a root
 with the build system.
 
