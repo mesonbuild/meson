@@ -12,6 +12,21 @@ variables:
   CI: 1
 
 jobs:
+- job: Pylint
+  pool:
+    vmImage: ubuntu-latest
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+      addToPath: true
+  - script: python -m pip install pylint
+    displayName: Install Pylint
+  - script: pylint mesonbuild
+    displayName: Lint Checks
+
+
 - job: vs2015
   pool:
     vmImage: vs2015-win2012r2
