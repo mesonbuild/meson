@@ -14,9 +14,10 @@ else
 endif
 
 assert(cc.has_link_argument(is_arg), 'Arg that should have worked does not work.')
-assert(not cc.has_link_argument(isnt_arg), 'Arg that should be broken is not.')
-
 assert(cpp.has_link_argument(is_arg), 'Arg that should have worked does not work.')
+
+if cc.get_id() != 'pgi'
+assert(not cc.has_link_argument(isnt_arg), 'Arg that should be broken is not.')
 assert(not cpp.has_link_argument(isnt_arg), 'Arg that should be broken is not.')
 
 assert(cc.get_supported_link_arguments([is_arg, isnt_arg, useless]) == [is_arg, useless], 'Arg filtering returned different result.')
@@ -38,7 +39,9 @@ assert(l1.get(0) == is_arg, 'First supported returned wrong argument.')
 assert(l2.length() == 0, 'First supported did not return empty array.')
 
 assert(not cc.has_multi_link_arguments([isnt_arg, is_arg]), 'Arg that should be broken is not.')
-assert(cc.has_multi_link_arguments(is_arg), 'Arg that should have worked does not work.')
-assert(cc.has_multi_link_arguments([useless, is_arg]), 'Arg that should have worked does not work.')
 
 assert(not cc.has_link_argument('-Wl,-z,nodelete42'), 'Did not detect wrong -z linker argument')
+endif
+
+assert(cc.has_multi_link_arguments(is_arg), 'Arg that should have worked does not work.')
+assert(cc.has_multi_link_arguments([useless, is_arg]), 'Arg that should have worked does not work.')
