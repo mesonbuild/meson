@@ -75,7 +75,8 @@ class CPPCompiler(CLikeCompiler, Compiler):
         # -fpermissive allows non-conforming code to compile which is necessary
         # for many C++ checks. Particularly, the has_header_symbol check is
         # too strict without this and always fails.
-        return super().get_compiler_check_args() + ['-fpermissive']
+        # -Werror causes -Wstrict-prototypes to fail as desired with c++ (else it's a warning)
+        return super().get_compiler_check_args() + ['-Werror', '-fpermissive']
 
     def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
         # Check if it's a C-like symbol
