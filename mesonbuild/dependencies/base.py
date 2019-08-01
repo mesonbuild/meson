@@ -1095,7 +1095,16 @@ class CMakeDependency(ExternalDependency):
             return None
 
         # Extract the variables and sanity check them
-        module_paths = sorted(set(temp_parser.get_cmake_var('MESON_PATHS_LIST')))
+        root_paths = set(temp_parser.get_cmake_var('MESON_FIND_ROOT_PATH'))
+        root_paths.update(set(temp_parser.get_cmake_var('MESON_CMAKE_SYSROOT')))
+        root_paths = sorted(root_paths)
+        root_paths = list(filter(lambda x: os.path.isdir(x), root_paths))
+        module_paths = set(temp_parser.get_cmake_var('MESON_PATHS_LIST'))
+        rooted_paths = []
+        for j in [Path(x) for x in root_paths]:
+            for i in [Path(x) for x in module_paths]:
+                rooted_paths.append(str(j / i.relative_to(i.anchor)))
+        module_paths = sorted(module_paths.union(rooted_paths))
         module_paths = list(filter(lambda x: os.path.isdir(x), module_paths))
         archs = temp_parser.get_cmake_var('MESON_ARCH_LIST')
 
