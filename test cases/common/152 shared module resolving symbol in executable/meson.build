@@ -9,6 +9,11 @@ project('shared module resolving symbol in executable', 'c')
 # See testcase 125 for an example of the more complex portability gymnastics
 # required if we do not know (at link-time) what provides the symbol.
 
+cc = meson.get_compiler('c')
+if cc.get_id() == 'pgi'
+  error('MESON_SKIP_TEST PGI has its own unique set of macros that would need to be handled')
+endif
+
 dl = meson.get_compiler('c').find_library('dl', required: false)
 e = executable('prog', 'prog.c', dependencies: dl, export_dynamic: true)
 m = shared_module('module', 'module.c', link_with: e)
