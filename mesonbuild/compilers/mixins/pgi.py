@@ -74,9 +74,9 @@ class PGICompiler():
 
     def get_pic_args(self) -> typing.List[str]:
         # PGI -fPIC is Linux only.
-        if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
-            return []
-        return ['-fPIC']
+        if self.compiler_type.is_linux_compiler():
+            return ['-fPIC']
+        return []
 
     def openmp_flags(self) -> typing.List[str]:
         return ['-mp']
