@@ -41,7 +41,7 @@ from . import build
 from . import environment
 from . import mlog
 from .dependencies import ExternalProgram
-from .mesonlib import substring_is_in_list, MesonException
+from .mesonlib import MesonException, get_wine_shortpath
 
 if typing.TYPE_CHECKING:
     from .backend.backends import TestSerialisation
@@ -488,15 +488,15 @@ class SingleTestRunner:
 
         if len(self.test.extra_paths) > 0:
             self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
-            if substring_is_in_list('wine', cmd):
-                wine_paths = ['Z:' + p for p in self.test.extra_paths]
-                wine_path = ';'.join(wine_paths)
-                # Don't accidentally end with an `;` because that will add the
-                # current directory and might cause unexpected behaviour
-                if 'WINEPATH' in self.env:
-                    self.env['WINEPATH'] = wine_path + ';' + self.env['WINEPATH']
-                else:
-                    self.env['WINEPATH'] = wine_path
+            winecmd = []
+            for c in cmd:
+                winecmd.append(c)
+                if os.path.basename(c).startswith('wine'):
+                    self.env['WINEPATH'] = get_wine_shortpath(
+                        winecmd,
+                        ['Z:' + p for p in self.test.extra_paths] + self.env.get('WINEPATH', '').split(';')
+                    )
+                    break
 
         # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
         # (i.e., the test or the environment don't explicitly set it), set
