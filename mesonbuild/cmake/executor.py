@@ -66,7 +66,7 @@ class CMakeExecutor:
         # Create an iterator of options
         def search():
             # Lookup in cross or machine file.
-            potential_cmakepath = environment.binaries[self.for_machine].lookup_entry('cmake')
+            potential_cmakepath = environment.lookup_binary_entry(self.for_machine, 'cmake')
             if potential_cmakepath is not None:
                 mlog.debug('CMake binary for %s specified from cross file, native file, or env var as %s.', self.for_machine, potential_cmakepath)
                 yield ExternalProgram.from_entry('cmake', potential_cmakepath)

@@ -17,6 +17,7 @@ import os
 import typing as T
 
 from . import mesonlib
+from .envconfig import get_env_var
 
 if T.TYPE_CHECKING:
     from .coredata import OptionDictType
@@ -268,7 +269,20 @@ def evaluate_rpath(p: str, build_dir: str, from_dir: str) -> str:
         return os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
 
 
-class DynamicLinker(metaclass=abc.ABCMeta):
+class LinkerEnvVarsMixin(metaclass=abc.ABCMeta):
+
+    """Mixin reading LDFLAGS from the environment."""
+
+    @staticmethod
+    def get_args_from_envvars(for_machine: mesonlib.MachineChoice,
+                              is_cross: bool) -> T.List[str]:
+        raw_value = get_env_var(for_machine, is_cross, 'LDFLAGS')
+        if raw_value is not None:
+            return mesonlib.split_args(raw_value)
+        else:
+            return []
+
+class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
 
     """Base class for dynamic linkers."""
 
@@ -326,12 +340,6 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         return ''
 
     # XXX: is use_ldflags a compiler or a linker attribute?
-
-    def get_args_from_envvars(self) -> T.List[str]:
-        flags = os.environ.get('LDFLAGS')
-        if not flags:
-            return []
-        return mesonlib.split_args(flags)
 
     def get_option_args(self, options: 'OptionDictType') -> T.List[str]:
         return []

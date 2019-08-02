@@ -19,7 +19,7 @@ import typing as T
 
 from pathlib import Path
 from .. import mesonlib
-from ..mesonlib import MesonException
+from ..mesonlib import MachineChoice, MesonException
 from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue
 from ..interpreterbase import (
@@ -506,7 +506,7 @@ class PythonModule(ExtensionModule):
         if len(args) > 1:
             raise InvalidArguments('find_installation takes zero or one positional argument.')
 
-        name_or_path = state.environment.binaries.host.lookup_entry('python')
+        name_or_path = state.environment.lookup_binary_entry(MachineChoice.HOST, 'python')
         if name_or_path is None and args:
             name_or_path = args[0]
             if not isinstance(name_or_path, str):

@@ -1044,7 +1044,7 @@ class Backend:
             subprocess.check_call(cmd, env=child_env)
 
     def create_install_data(self):
-        strip_bin = self.environment.binaries.host.lookup_entry('strip')
+        strip_bin = self.environment.lookup_binary_entry(MachineChoice.HOST, 'strip')
         if strip_bin is None:
             if self.environment.is_cross_build():
                 mlog.warning('Cross file does not specify strip binary, result will not be stripped.')

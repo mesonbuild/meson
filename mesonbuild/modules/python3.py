@@ -48,7 +48,7 @@ class Python3Module(ExtensionModule):
 
     @noKwargs
     def find_python(self, state, args, kwargs):
-        command = state.environment.binaries.host.lookup_entry('python3')
+        command = state.environment.lookup_binary_entry(mesonlib.MachineChoice.HOST, 'python3')
         if command is not None:
             py3 = dependencies.ExternalProgram.from_entry('python3', command)
         else:
