@@ -23,10 +23,12 @@ __all__ = [
     'CMakeTarget',
     'CMakeTraceLine',
     'CMakeTraceParser',
+    'parse_generator_expressions',
 ]
 
 from .common import CMakeException
 from .client import CMakeClient
 from .executor import CMakeExecutor
+from .generator import parse_generator_expressions
 from .interpreter import CMakeInterpreter
 from .traceparser import CMakeTarget, CMakeTraceLine, CMakeTraceParser

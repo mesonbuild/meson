@@ -16,6 +16,7 @@
 # or an interpreter-based tool.
 
 from .common import CMakeException
+from .generator import parse_generator_expressions
 from .. import mlog
 
 from typing import List, Tuple, Optional
@@ -448,7 +449,6 @@ class CMakeTraceParser:
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
         reg_tline = re.compile(r'\s*(.*\.(cmake|txt))\(([0-9]+)\):\s*(\w+)\(([\s\S]*?) ?\)\s*\n', re.MULTILINE)
         reg_other = re.compile(r'[^\n]*\n')
-        reg_genexp = re.compile(r'\$<.*>')
         loc = 0
         while loc < len(trace):
             mo_file_line = reg_tline.match(trace, loc)
@@ -466,9 +466,10 @@ class CMakeTraceParser:
             file = mo_file_line.group(1)
             line = mo_file_line.group(3)
             func = mo_file_line.group(4)
-            args = mo_file_line.group(5).split(' ')
+            args = mo_file_line.group(5)
+            args = parse_generator_expressions(args)
+            args = args.split(' ')
             args = list(map(lambda x: x.strip(), args))
-            args = list(map(lambda x: reg_genexp.sub('', x), args)) # Remove generator expressions
 
             yield CMakeTraceLine(file, line, func, args)
 
