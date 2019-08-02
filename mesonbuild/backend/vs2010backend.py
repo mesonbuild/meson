@@ -143,22 +143,24 @@ class Vs2010Backend(backends.Backend):
                             for x in args]
                     args = [x.replace('\\', '/') for x in args]
                     cmd = exe_arr + self.replace_extra_args(args, genlist)
-                    if generator.capture:
-                        exe_data = self.serialize_executable(
-                            'generator ' + cmd[0],
-                            cmd[0],
-                            cmd[1:],
-                            self.environment.get_build_dir(),
-                            capture=outfiles[0]
-                        )
-                        cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
-                        abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-                        os.makedirs(abs_pdir, exist_ok=True)
+                    # Always use a wrapper because MSBuild eats random characters when
+                    # there are many arguments.
+                    tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+                    cmd = self.as_meson_exe_cmdline(
+                        'generator ' + cmd[0],
+                        cmd[0],
+                        cmd[1:],
+                        workdir=tdir_abs,
+                        capture=outfiles[0] if generator.capture else None,
+                        force_serialize=True
+                    )
+                    deps = cmd[-1:] + deps
+                    abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+                    os.makedirs(abs_pdir, exist_ok=True)
                     cbs = ET.SubElement(idgroup, 'CustomBuild', Include=infilename)
                     ET.SubElement(cbs, 'Command').text = ' '.join(self.quote_arguments(cmd))
                     ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
-                    if deps:
-                        ET.SubElement(cbs, 'AdditionalInputs').text = ';'.join(deps)
+                    ET.SubElement(cbs, 'AdditionalInputs').text = ';'.join(deps)
         return generator_output_files, custom_target_output_files, custom_target_include_dirs
 
     def generate(self, interp):
@@ -558,19 +560,18 @@ class Vs2010Backend(backends.Backend):
         # there are many arguments.
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
         extra_bdeps = target.get_transitive_build_target_deps()
-        extra_paths = self.determine_windows_extra_paths(target.command[0], extra_bdeps)
-        exe_data = self.serialize_executable(target.name, target.command[0], cmd[1:],
-                                             # All targets run from the target dir
-                                             tdir_abs,
-                                             extra_paths=extra_paths,
-                                             capture=ofilenames[0] if target.capture else None)
-        wrapper_cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
+        wrapper_cmd = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
+                                                # All targets run from the target dir
+                                                workdir=tdir_abs,
+                                                extra_bdeps=extra_bdeps,
+                                                capture=ofilenames[0] if target.capture else None,
+                                                force_serialize=True)
         if target.build_always_stale:
             # Use a nonexistent file to always consider the target out-of-date.
             ofilenames += [self.nonexistent_file(os.path.join(self.environment.get_scratch_dir(),
                                                  'outofdate.file'))]
         self.add_custom_build(root, 'custom_target', ' '.join(self.quote_arguments(wrapper_cmd)),
-                              deps=[exe_data] + srcs + depend_files, outputs=ofilenames)
+                              deps=wrapper_cmd[-1:] + srcs + depend_files, outputs=ofilenames)
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.generate_custom_generator_commands(target, root)
         self.add_regen_dependency(root)

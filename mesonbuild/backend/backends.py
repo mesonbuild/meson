@@ -69,17 +69,13 @@ class TargetInstallData:
         self.optional = optional
 
 class ExecutableSerialisation:
-    def __init__(self, name, fname, cmd_args, env, is_cross, exe_wrapper,
-                 workdir, extra_paths, capture, needs_exe_wrapper: bool):
-        self.name = name
-        self.fname = fname
+    def __init__(self, cmd_args, env=None, exe_wrapper=None,
+                 workdir=None, extra_paths=None, capture=None):
         self.cmd_args = cmd_args
-        self.env = env
-        self.is_cross = is_cross
+        self.env = env or {}
         if exe_wrapper is not None:
             assert(isinstance(exe_wrapper, dependencies.ExternalProgram))
         self.exe_runner = exe_wrapper
-        self.needs_exe_wrapper = needs_exe_wrapper
         self.workdir = workdir
         self.extra_paths = extra_paths
         self.capture = capture
@@ -323,26 +319,61 @@ class Backend:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
 
-    def serialize_executable(self, tname, exe, cmd_args, workdir, env=None,
-                             extra_paths=None, capture=None):
+    def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir=None,
+                             for_machine=MachineChoice.BUILD,
+                             extra_bdeps=None, capture=None, force_serialize=False):
         '''
         Serialize an executable for running with a generator or a custom target
         '''
         import hashlib
-        if env is None:
-            env = {}
-        if extra_paths is None:
-            # The callee didn't check if we needed extra paths, so check it here
-            if mesonlib.is_windows() or mesonlib.is_cygwin():
-                extra_paths = self.determine_windows_extra_paths(exe, [])
-            else:
-                extra_paths = []
-        # Can't just use exe.name here; it will likely be run more than once
+        machine = self.environment.machines[for_machine]
+        if machine.is_windows() or machine.is_cygwin():
+            extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps or [])
+        else:
+            extra_paths = []
+
+        if isinstance(exe, dependencies.ExternalProgram):
+            exe_cmd = exe.get_command()
+            exe_for_machine = exe.for_machine
+        elif isinstance(exe, (build.BuildTarget, build.CustomTarget)):
+            exe_cmd = [self.get_target_filename_abs(exe)]
+            exe_for_machine = exe.for_machine
+        else:
+            exe_cmd = [exe]
+            exe_for_machine = MachineChoice.BUILD
+
+        is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
+        if is_cross_built and self.environment.need_exe_wrapper():
+            exe_wrapper = self.environment.get_exe_wrapper()
+            if not exe_wrapper.found():
+                msg = 'The exe_wrapper {!r} defined in the cross file is ' \
+                      'needed by target {!r}, but was not found. Please ' \
+                      'check the command and/or add it to PATH.'
+                raise MesonException(msg.format(exe_wrapper.name, tname))
+        else:
+            if exe_cmd[0].endswith('.jar'):
+                exe_cmd = ['java', '-jar'] + exe_cmd
+            elif exe_cmd[0].endswith('.exe') and not (mesonlib.is_windows() or mesonlib.is_cygwin()):
+                exe_cmd = ['mono'] + exe_cmd
+            exe_wrapper = None
+
+        force_serialize = force_serialize or extra_paths or workdir or \
+            exe_wrapper or any('\n' in c for c in cmd_args)
+        if not force_serialize:
+            if not capture:
+                return None
+            return (self.environment.get_build_command() +
+                    ['--internal', 'exe', '--capture', capture, '--'] + exe_cmd + cmd_args)
+
+        workdir = workdir or self.environment.get_build_dir()
+        env = {}
         if isinstance(exe, (dependencies.ExternalProgram,
                             build.BuildTarget, build.CustomTarget)):
             basename = exe.name
         else:
             basename = os.path.basename(exe)
+
+        # Can't just use exe.name here; it will likely be run more than once
         # Take a digest of the cmd args, env, workdir, and capture. This avoids
         # collisions and also makes the name deterministic over regenerations
         # which avoids a rebuild by Ninja because the cmdline stays the same.
@@ -352,31 +383,11 @@ class Backend:
         scratch_file = 'meson_exe_{0}_{1}.dat'.format(basename, digest)
         exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
         with open(exe_data, 'wb') as f:
-            if isinstance(exe, dependencies.ExternalProgram):
-                exe_cmd = exe.get_command()
-                exe_for_machine = exe.for_machine
-            elif isinstance(exe, (build.BuildTarget, build.CustomTarget)):
-                exe_cmd = [self.get_target_filename_abs(exe)]
-                exe_for_machine = exe.for_machine
-            else:
-                exe_cmd = [exe]
-                exe_for_machine = MachineChoice.BUILD
-            is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
-            if is_cross_built and self.environment.need_exe_wrapper():
-                exe_wrapper = self.environment.get_exe_wrapper()
-                if not exe_wrapper.found():
-                    msg = 'The exe_wrapper {!r} defined in the cross file is ' \
-                          'needed by target {!r}, but was not found. Please ' \
-                          'check the command and/or add it to PATH.'
-                    raise MesonException(msg.format(exe_wrapper.name, tname))
-            else:
-                exe_wrapper = None
-            es = ExecutableSerialisation(basename, exe_cmd, cmd_args, env,
-                                         is_cross_built, exe_wrapper, workdir,
-                                         extra_paths, capture,
-                                         self.environment.need_exe_wrapper())
+            es = ExecutableSerialisation(exe_cmd + cmd_args, env,
+                                         exe_wrapper, workdir,
+                                         extra_paths, capture)
             pickle.dump(es, f)
-        return exe_data
+        return self.environment.get_build_command() + ['--internal', 'exe', '--unpickle', exe_data]
 
     def serialize_tests(self):
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')

@@ -20,12 +20,14 @@ import platform
 import subprocess
 
 from .. import mesonlib
+from ..backend.backends import ExecutableSerialisation
 
 options = None
 
 def buildparser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('args', nargs='+')
+    parser = argparse.ArgumentParser(description='Custom executable wrapper for Meson. Do not run on your own, mmm\'kay?')
+    parser.add_argument('--unpickle')
+    parser.add_argument('--capture')
     return parser
 
 def is_windows():
@@ -36,28 +38,14 @@ def is_cygwin():
     platname = platform.system().lower()
     return 'cygwin' in platname
 
-def run_with_mono(fname):
-    if fname.endswith('.exe') and not (is_windows() or is_cygwin()):
-        return True
-    return False
-
 def run_exe(exe):
-    if exe.fname[0].endswith('.jar'):
-        cmd = ['java', '-jar'] + exe.fname
-    elif not exe.is_cross and run_with_mono(exe.fname[0]):
-        cmd = ['mono'] + exe.fname
+    if exe.exe_runner:
+        if not exe.exe_runner.found():
+            raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
+                                 'wrapper {!r}'.format(exe.cmd_args[0], exe.exe_runner.get_path()))
+        cmd_args = exe.exe_runner.get_command() + exe.cmd_args
     else:
-        if exe.is_cross and exe.needs_exe_wrapper:
-            if exe.exe_runner is None:
-                raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} '
-                                     'with no wrapper'.format(exe.name))
-            elif not exe.exe_runner.found():
-                raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
-                                     'wrapper {!r}'.format(exe.name, exe.exe_runner.get_path()))
-            else:
-                cmd = exe.exe_runner.get_command() + exe.fname
-        else:
-            cmd = exe.fname
+        cmd_args = exe.cmd_args
     child_env = os.environ.copy()
     child_env.update(exe.env)
     if exe.extra_paths:
@@ -73,7 +61,7 @@ def run_exe(exe):
             else:
                 child_env['WINEPATH'] = wine_path
 
-    p = subprocess.Popen(cmd + exe.cmd_args, env=child_env, cwd=exe.workdir,
+    p = subprocess.Popen(cmd_args, env=child_env, cwd=exe.workdir,
                          close_fds=False,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
@@ -101,13 +89,22 @@ def run_exe(exe):
 
 def run(args):
     global options
-    options = buildparser().parse_args(args)
-    if len(options.args) != 1:
-        print('Test runner for Meson. Do not run on your own, mmm\'kay?')
-        print(sys.argv[0] + ' [data file]')
-    exe_data_file = options.args[0]
-    with open(exe_data_file, 'rb') as f:
-        exe = pickle.load(f)
+    parser = buildparser()
+    options, cmd_args = parser.parse_known_args(args)
+    # argparse supports double dash to separate options and positional arguments,
+    # but the user has to remove it manually.
+    if cmd_args and cmd_args[0] == '--':
+        cmd_args = cmd_args[1:]
+    if not options.unpickle and not cmd_args:
+        parser.error('either --unpickle or executable and arguments are required')
+    if options.unpickle:
+        if cmd_args or options.capture:
+            parser.error('no other arguments can be used with --unpickle')
+        with open(options.unpickle, 'rb') as f:
+            exe = pickle.load(f)
+    else:
+        exe = ExecutableSerialisation(cmd_args, capture=options.capture)
+
     return run_exe(exe)
 
 if __name__ == '__main__':
