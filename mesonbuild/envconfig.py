@@ -138,9 +138,14 @@ class Properties(HasEnvVarFallback):
         return self.properties.get('sys_root', None)
 
     def __eq__(self, other: typing.Any) -> 'typing.Union[bool, NotImplemented]':
-        if isinstance(other, type(self)):
-            return self.properties == other.properties
-        return NotImplemented
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return self.properties is other.properties
+
+    def __ne__(self, other: typing.Any) -> 'typing.Union[bool, NotImplemented]':
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return not self.__eq__(other)
 
     # TODO consider removing so Properties is less freeform
     def __getitem__(self, key: str) -> typing.Any:
@@ -163,7 +168,7 @@ class MachineInfo:
         self.is_64_bit = cpu_family in CPU_FAMILES_64_BIT  # type: bool
 
     def __eq__(self, other: typing.Any) -> 'typing.Union[bool, NotImplemented]':
-        if self.__class__ is not other.__class__:
+        if not isinstance(other, type(self)):
             return NotImplemented
         return \
             self.system == other.system and \
@@ -172,7 +177,7 @@ class MachineInfo:
             self.endian == other.endian
 
     def __ne__(self, other: typing.Any) -> 'typing.Union[bool, NotImplemented]':
-        if self.__class__ is not other.__class__:
+        if not isinstance(other, type(self)):
             return NotImplemented
         return not self.__eq__(other)
 
@@ -294,6 +299,16 @@ class BinaryTable(HasEnvVarFallback):
         'qmake': 'QMAKE',
         'pkgconfig': 'PKG_CONFIG',
     }  # type: typing.Dict[str, str]
+
+    def __eq__(self, other: typing.Any) -> 'typing.Union[bool, NotImplemented]':
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return self.binaries is other.binaries
+
+    def __ne__(self, other: typing.Any) -> 'typing.Union[bool, NotImplemented]':
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return not self.__eq__(other)
 
     @staticmethod
     def detect_ccache() -> typing.List[str]:

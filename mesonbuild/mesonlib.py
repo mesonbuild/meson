@@ -19,6 +19,7 @@ import stat
 import time
 import platform, subprocess, operator, os, shutil, re
 import collections
+import copy
 from enum import Enum
 from functools import lru_cache
 import typing
@@ -403,7 +404,7 @@ class PerMachineDefaultable(PerMachine[typing.Optional[_T]]):
         """
         freeze = PerMachine(self.build, self.host)
         if freeze.host is None:
-            freeze.host = freeze.build
+            freeze.host = copy.copy(freeze.build)
         return freeze
 
 
@@ -422,9 +423,9 @@ class PerThreeMachineDefaultable(PerMachineDefaultable, PerThreeMachine[typing.O
         """
         freeze = PerThreeMachine(self.build, self.host, self.target)
         if freeze.host is None:
-            freeze.host = freeze.build
+            freeze.host = copy.copy(freeze.build)
         if freeze.target is None:
-            freeze.target = freeze.host
+            freeze.target = copy.copy(freeze.host)
         return freeze
 
 
