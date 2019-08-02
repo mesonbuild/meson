@@ -8,6 +8,7 @@ If you have a project that uses Meson that you want to add to this list, please 
 listed in the [`meson` GitHub topic](https://github.com/topics/meson).
 
  - [2048.cpp](https://github.com/plibither8/2048.cpp), a fully featured terminal version of the game "2048" written in C++
+ - [Aravis](https://github.com/AravisProject/aravis), a glib/gobject based library for video acquisition using Genicam cameras
  - [Akira](https://github.com/akiraux/Akira), a native Linux app for UI and UX design built in Vala and Gtk
  - [AQEMU](https://github.com/tobimensch/aqemu), a Qt GUI for QEMU virtual machines, since version 0.9.3
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
