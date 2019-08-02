@@ -20,7 +20,6 @@ are both the linker and compiler in one binary. This module provides mixin
 classes for those cases.
 """
 
-import os
 import typing as T
 
 from ... import mesonlib
@@ -28,17 +27,6 @@ from ... import mesonlib
 if T.TYPE_CHECKING:
     from ...coredata import OptionDictType
     from ...environment import Environment
-
-
-class LinkerEnvVarsMixin:
-
-    """Mixin reading LDFLAGS from the environment."""
-
-    def get_linker_args_from_envvars(self) -> T.List[str]:
-        flags = os.environ.get('LDFLAGS')
-        if not flags:
-            return []
-        return mesonlib.split_args(flags)
 
 
 class BasicLinkerIsCompilerMixin:

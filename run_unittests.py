@@ -1454,6 +1454,7 @@ class BasePlatformTests(unittest.TestCase):
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
         self.meson_args = ['--backend=' + self.backend.name]
+        self.meson_native_file = None
         self.meson_cross_file = None
         self.meson_command = python_command + [get_meson_script()]
         self.setup_command = self.meson_command + self.meson_args
@@ -1563,6 +1564,8 @@ class BasePlatformTests(unittest.TestCase):
         if default_args:
             args += ['--prefix', self.prefix,
                      '--libdir', self.libdir]
+            if self.meson_native_file:
+                args += ['--native-file', self.meson_native_file]
             if self.meson_cross_file:
                 args += ['--cross-file', self.meson_cross_file]
         self.privatedir = os.path.join(self.builddir, 'meson-private')
@@ -6313,8 +6316,30 @@ class LinuxlikeTests(BasePlatformTests):
 
     def test_identity_cross(self):
         testdir = os.path.join(self.unit_test_dir, '61 identity cross')
+
+        nativefile = tempfile.NamedTemporaryFile(mode='w')
+        nativefile.write('''[binaries]
+c = ['{0}']
+'''.format(os.path.join(testdir, 'build_wrapper.py')))
+        nativefile.flush()
+        self.meson_native_file = nativefile.name
+
         crossfile = tempfile.NamedTemporaryFile(mode='w')
-        env = {'CC': '"' + os.path.join(testdir, 'build_wrapper.py') + '"'}
+        crossfile.write('''[binaries]
+c = ['{0}']
+'''.format(os.path.join(testdir, 'host_wrapper.py')))
+        crossfile.flush()
+        self.meson_cross_file = crossfile.name
+
+        # TODO should someday be explicit about build platform only here
+        self.init(testdir)
+
+    def test_identity_cross_env(self):
+        testdir = os.path.join(self.unit_test_dir, '61 identity cross')
+        env = {
+            'CC_FOR_BUILD': '"' + os.path.join(testdir, 'build_wrapper.py') + '"',
+        }
+        crossfile = tempfile.NamedTemporaryFile(mode='w')
         crossfile.write('''[binaries]
 c = ['{0}']
 '''.format(os.path.join(testdir, 'host_wrapper.py')))

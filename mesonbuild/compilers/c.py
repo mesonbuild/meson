@@ -17,6 +17,7 @@ import typing as T
 
 from .. import coredata
 from ..mesonlib import MachineChoice, MesonException, mlog, version_compare
+from ..linkers import LinkerEnvVarsMixin
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
@@ -29,7 +30,6 @@ from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
-from .mixins.islinker import LinkerEnvVarsMixin
 from .mixins.emscripten import EmscriptenMixin
 from .compilers import (
     gnu_winlibs,

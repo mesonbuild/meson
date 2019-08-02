@@ -31,6 +31,7 @@ from pathlib import Path, PurePath
 from .. import mlog
 from .. import mesonlib
 from ..compilers import clib_langs
+from ..envconfig import get_env_var
 from ..environment import BinaryTable, Environment, MachineInfo
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
@@ -352,7 +353,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
     # Create an iterator of options
     def search_tool(self, name, display_name, default_names):
         # Lookup in cross or machine file.
-        potential_path = self.env.binaries[self.for_machine].lookup_entry(name)
+        potential_path = self.env.lookup_binary_entry(self.for_machine, name)
         if potential_path is not None:
             mlog.debug('{} binary for {} specified from cross file, native file, '
                        'or env var as {}'.format(display_name, self.for_machine, potential_path))
@@ -435,7 +436,7 @@ class ConfigToolDependency(ExternalDependency):
         if not isinstance(versions, list) and versions is not None:
             versions = listify(versions)
 
-        tool = self.env.binaries[self.for_machine].lookup_entry(self.tool_name)
+        tool = self.env.lookup_binary_entry(self.for_machine, self.tool_name)
         if tool is not None:
             tools = [tool]
         else:
@@ -762,7 +763,10 @@ class PkgConfigDependency(ExternalDependency):
         #
         # Only prefix_libpaths are reordered here because there should not be
         # too many system_libpaths to cause library version issues.
-        pkg_config_path = os.environ.get('PKG_CONFIG_PATH')
+        pkg_config_path = get_env_var(
+            self.for_machine,
+            self.env.is_cross_build(),
+            'PKG_CONFIG_PATH')
         if pkg_config_path:
             pkg_config_path = pkg_config_path.split(os.pathsep)
         else:
@@ -1098,8 +1102,12 @@ class CMakeDependency(ExternalDependency):
             cm_args.append('-DCMAKE_MODULE_PATH=' + ';'.join(cm_path))
 
         pref_path = self.env.coredata.builtins_per_machine[self.for_machine]['cmake_prefix_path'].value
-        if 'CMAKE_PREFIX_PATH' in os.environ:
-            env_pref_path = os.environ['CMAKE_PREFIX_PATH'].split(os.pathsep)
+        env_pref_path = get_env_var(
+            self.for_machine,
+            self.env.is_cross_build(),
+            'CMAKE_PREFIX_PATH')
+        if env_pref_path is not None:
+            env_pref_path = env_pref_path.split(os.pathsep)
             env_pref_path = [x for x in env_pref_path if x]  # Filter out empty strings
             if not pref_path:
                 pref_path = []
@@ -1813,8 +1821,12 @@ class ExternalProgram:
         return ' '.join(self.command)
 
     @classmethod
-    def from_bin_list(cls, bt: BinaryTable, name):
-        command = bt.lookup_entry(name)
+    def from_bin_list(cls, env: Environment, for_machine: MachineChoice, name):
+        # There is a static `for_machine` for this class because the binary
+        # aways runs on the build platform. (It's host platform is our build
+        # platform.) But some external programs have a target platform, so this
+        # is what we are specifying here.
+        command = env.lookup_binary_entry(for_machine, name)
         if command is None:
             return NonExistingExternalProgram()
         return cls.from_entry(name, command)

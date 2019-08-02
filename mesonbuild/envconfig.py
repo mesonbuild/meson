@@ -16,7 +16,7 @@ import configparser, os, subprocess
 import typing as T
 
 from . import mesonlib
-from .mesonlib import EnvironmentException, split_args
+from .mesonlib import EnvironmentException, MachineChoice, PerMachine, split_args
 from . import mlog
 
 _T = T.TypeVar('_T')
@@ -108,27 +108,47 @@ class MesonConfigFile:
             out[s] = section
         return out
 
-class HasEnvVarFallback:
+def get_env_var_pair(for_machine: MachineChoice,
+                     is_cross: bool,
+                     var_name: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
     """
-    A tiny class to indicate that this class contains data that can be
-    initialized from either a config file or environment file. The `fallback`
-    field says whether env vars should be used. Downstream logic (e.g. subclass
-    methods) can check it to decide what to do, since env vars are currently
-    lazily decoded.
-
-    Frankly, this is a pretty silly class at the moment. The hope is the way
-    that we deal with environment variables will become more structured, and
-    this can be starting point.
+    Returns the exact env var and the value.
     """
-    def __init__(self, fallback: bool = True):
-        self.fallback = fallback
+    candidates = PerMachine(
+        # The prefixed build version takes priority, but if we are native
+        # compiling we fall back on the unprefixed host version. This
+        # allows native builds to never need to worry about the 'BUILD_*'
+        # ones.
+        ([var_name + '_FOR_BUILD'] if is_cross else [var_name]),
+        # Always just the unprefixed host verions
+        ([] if is_cross else [var_name]),
+    )[for_machine]
+    for var in candidates:
+        value = os.environ.get(var)
+        if value is not None:
+            break
+    else:
+        formatted = ', '.join(['{!r}'.format(var) for var in candidates])
+        mlog.debug('None of {} are defined in the environment, not changing global flags.'.format(formatted))
+        return None
+    mlog.log('Using {!r} from environment with value: {!r}'.format(var, value))
+    return var, value
 
-class Properties(HasEnvVarFallback):
+def get_env_var(for_machine: MachineChoice,
+                is_cross: bool,
+                var_name: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
+    ret = get_env_var_pair(for_machine, is_cross, var_name)
+    if ret is None:
+        return None
+    else:
+        var, value = ret
+        return value
+
+class Properties:
     def __init__(
             self,
             properties: T.Optional[T.Dict[str, T.Union[str, T.List[str]]]] = None,
-            fallback: bool = True):
-        super().__init__(fallback)
+    ):
         self.properties = properties or {}  # type: T.Dict[str, T.Union[str, T.List[str]]]
 
     def has_stdlib(self, language: str) -> bool:
@@ -290,12 +310,11 @@ class MachineInfo:
     def libdir_layout_is_win(self) -> bool:
         return self.is_windows() or self.is_cygwin()
 
-class BinaryTable(HasEnvVarFallback):
+class BinaryTable:
     def __init__(
             self,
             binaries: T.Optional[T.Dict[str, T.Union[str, T.List[str]]]] = None,
-            fallback: bool = True):
-        super().__init__(fallback)
+    ):
         self.binaries = binaries or {}  # type: T.Dict[str, T.Union[str, T.List[str]]]
         for name, command in self.binaries.items():
             if not isinstance(command, (list, str)):
@@ -355,13 +374,6 @@ class BinaryTable(HasEnvVarFallback):
         return ['ccache']
 
     @classmethod
-    def _warn_about_lang_pointing_to_cross(cls, compiler_exe: str, evar: str) -> None:
-        evar_str = os.environ.get(evar, 'WHO_WOULD_CALL_THEIR_COMPILER_WITH_THIS_NAME')
-        if evar_str == compiler_exe:
-            mlog.warning('''Env var %s seems to point to the cross compiler.
-This is probably wrong, it should always point to the native compiler.''' % evar)
-
-    @classmethod
     def parse_entry(cls, entry: T.Union[str, T.List[str]]) -> T.Tuple[T.List[str], T.List[str]]:
         compiler = mesonlib.stringlistify(entry)
         # Ensure ccache exists and remove it if it doesn't
@@ -373,38 +385,42 @@ This is probably wrong, it should always point to the native compiler.''' % evar
         # Return value has to be a list of compiler 'choices'
         return compiler, ccache
 
-    def lookup_entry(self, name: str) -> T.Optional[T.List[str]]:
+    def lookup_entry(self,
+                     for_machine: MachineChoice,
+                     is_cross: bool,
+                     name: str) -> T.Optional[T.List[str]]:
         """Lookup binary in cross/native file and fallback to environment.
 
         Returns command with args as list if found, Returns `None` if nothing is
         found.
         """
         # Try explicit map, don't fall back on env var
-        command = self.binaries.get(name)
-        if command is not None:
-            command = mesonlib.stringlistify(command)
-            # Relies on there being no "" env var
-            evar = self.evarMap.get(name, "")
-            self._warn_about_lang_pointing_to_cross(command[0], evar)
-        elif self.fallback:
-            # Relies on there being no "" env var
-            evar = self.evarMap.get(name, "")
-            command = os.environ.get(evar)
-            if command is None:
-                deprecated = self.DEPRECATION_MAP.get(evar)
-                if deprecated:
-                    command = os.environ.get(deprecated)
-                    if command:
-                        mlog.deprecation(
-                            'The', deprecated, 'environment variable is deprecated in favor of',
-                            evar, once=True)
-            if command is not None:
-                command = split_args(command)
+        # Try explict map, then env vars
+        for _ in [()]: # a trick to get `break`
+            raw_command = self.binaries.get(name)
+            if raw_command is not None:
+                command = mesonlib.stringlistify(raw_command)
+                break # found
+            evar = self.evarMap.get(name)
+            if evar is not None:
+                raw_command = get_env_var(for_machine, is_cross, evar)
+                if raw_command is None:
+                    deprecated = self.DEPRECATION_MAP.get(evar)
+                    if deprecated is not None:
+                        raw_command = get_env_var(for_machine, is_cross, deprecated)
+                        if raw_command is not None:
+                            mlog.deprecation(
+                                'The', deprecated, 'environment variable is deprecated in favor of',
+                                evar, once=True)
+                if raw_command is not None:
+                    command = split_args(raw_command)
+                    break # found
+            command = None
 
 
         # Do not return empty or blank string entries
         if command is not None and (len(command) == 0 or len(command[0].strip()) == 0):
-            return None
+            command = None
         return command
 
 class Directories:

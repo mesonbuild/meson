@@ -3136,13 +3136,12 @@ external dependencies (including libraries) must go to "dependencies".''')
         return success
 
     def program_from_file_for(self, for_machine, prognames, silent):
-        bins = self.environment.binaries[for_machine]
         for p in unholder(prognames):
             if isinstance(p, mesonlib.File):
                 continue # Always points to a local (i.e. self generated) file.
             if not isinstance(p, str):
                 raise InterpreterException('Executable name must be a string')
-            prog = ExternalProgram.from_bin_list(bins, p)
+            prog = ExternalProgram.from_bin_list(self.environment, for_machine, p)
             if prog.found():
                 return ExternalProgramHolder(prog)
         return None

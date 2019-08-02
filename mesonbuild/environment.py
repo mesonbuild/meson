@@ -558,8 +558,8 @@ class Environment:
         if self.coredata.cross_files:
             config = MesonConfigFile.from_config_parser(
                 coredata.load_configs(self.coredata.cross_files))
-            properties.host = Properties(config.get('properties', {}), False)
-            binaries.host = BinaryTable(config.get('binaries', {}), False)
+            properties.host = Properties(config.get('properties', {}))
+            binaries.host = BinaryTable(config.get('binaries', {}))
             if 'host_machine' in config:
                 machines.host = MachineInfo.from_literal(config['host_machine'])
             if 'target_machine' in config:
@@ -573,12 +573,10 @@ class Environment:
         self.properties = properties.default_missing()
         self.paths = paths.default_missing()
 
-        exe_wrapper = self.binaries.host.lookup_entry('exe_wrapper')
+        exe_wrapper = self.lookup_binary_entry(MachineChoice.HOST, 'exe_wrapper')
         if exe_wrapper is not None:
             from .dependencies import ExternalProgram
-            self.exe_wrapper = ExternalProgram.from_bin_list(
-                self.binaries.host,
-                'exe_wrapper')
+            self.exe_wrapper = ExternalProgram.from_bin_list(self, MachineChoice.HOST, 'exe_wrapper')
         else:
             self.exe_wrapper = None
 
@@ -680,6 +678,12 @@ class Environment:
     def is_library(self, fname):
         return is_library(fname)
 
+    def lookup_binary_entry(self, for_machine: MachineChoice, name: str):
+        return self.binaries[for_machine].lookup_entry(
+            for_machine,
+            self.is_cross_build(),
+            name)
+
     @staticmethod
     def get_gnu_compiler_defines(compiler):
         """
@@ -729,7 +733,7 @@ class Environment:
         The list of compilers is detected in the exact same way for
         C, C++, ObjC, ObjC++, Fortran, CS so consolidate it here.
         '''
-        value = self.binaries[for_machine].lookup_entry(lang)
+        value = self.lookup_binary_entry(for_machine, lang)
         if value is not None:
             compilers, ccache = BinaryTable.parse_entry(value)
             # Return value has to be a list of compiler 'choices'
@@ -772,7 +776,7 @@ class Environment:
         check_args += self.coredata.compiler_options[for_machine][comp_class.language + '_args'].value
 
         override = []  # type: T.List[str]
-        value = self.binaries[for_machine].lookup_entry(comp_class.language + '_ld')
+        value = self.lookup_binary_entry(for_machine, comp_class.language + '_ld')
         if value is not None:
             override = comp_class.use_linker_args(value[0])
             check_args += override
@@ -839,7 +843,7 @@ class Environment:
             check_args = comp_class.LINKER_PREFIX + ['--version'] + extra_args
 
         override = []  # type: T.List[str]
-        value = self.binaries[for_machine].lookup_entry(comp_class.language + '_ld')
+        value = self.lookup_binary_entry(for_machine, comp_class.language + '_ld')
         if value is not None:
             override = comp_class.use_linker_args(value[0])
             check_args += override
@@ -1347,7 +1351,7 @@ class Environment:
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self, for_machine):
-        exelist = self.binaries.host.lookup_entry('java')
+        exelist = self.lookup_binary_entry(for_machine, 'java')
         info = self.machines[for_machine]
         if exelist is None:
             # TODO support fallback
@@ -1394,7 +1398,7 @@ class Environment:
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_vala_compiler(self, for_machine):
-        exelist = self.binaries.host.lookup_entry('vala')
+        exelist = self.lookup_binary_entry(for_machine, 'vala')
         is_cross = not self.machines.matches_build_machine(for_machine)
         info = self.machines[for_machine]
         if exelist is None:
@@ -1420,7 +1424,7 @@ class Environment:
 
         cc = self.detect_c_compiler(for_machine)
         is_link_exe = isinstance(cc.linker, VisualStudioLikeLinkerMixin)
-        override = self.binaries[for_machine].lookup_entry('rust_ld')
+        override = self.lookup_binary_entry(for_machine, 'rust_ld')
 
         for compiler in compilers:
             if isinstance(compiler, str):
@@ -1596,7 +1600,7 @@ class Environment:
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_swift_compiler(self, for_machine):
-        exelist = self.binaries.host.lookup_entry('swift')
+        exelist = self.lookup_binary_entry(for_machine, 'swift')
         is_cross = not self.machines.matches_build_machine(for_machine)
         info = self.machines[for_machine]
         if exelist is None:
@@ -1656,16 +1660,13 @@ class Environment:
         return comp
 
     def detect_static_linker(self, compiler):
-        linker = self.binaries[compiler.for_machine].lookup_entry('ar')
+        linker = self.lookup_binary_entry(compiler.for_machine, 'ar')
         if linker is not None:
             linkers = [linker]
         else:
-            evar = 'AR'
             defaults = [[l] for l in self.default_static_linker]
             if isinstance(compiler, compilers.CudaCompiler):
                 linkers = [self.cuda_static_linker] + defaults
-            elif evar in os.environ:
-                linkers = [split_args(os.environ[evar])]
             elif isinstance(compiler, compilers.VisualStudioLikeCompiler):
                 linkers = [self.vs_static_linker, self.clang_cl_static_linker]
             elif isinstance(compiler, compilers.GnuCompiler):

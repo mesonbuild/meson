@@ -21,6 +21,7 @@ from .. import coredata
 from .. import mlog
 from ..mesonlib import MesonException, MachineChoice, version_compare
 
+from ..linkers import LinkerEnvVarsMixin
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -37,7 +38,6 @@ from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
-from .mixins.islinker import LinkerEnvVarsMixin
 from .mixins.emscripten import EmscriptenMixin
 
 if T.TYPE_CHECKING:

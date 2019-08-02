@@ -12,19 +12,15 @@ When first running Meson, set it in an environment variable.
 $ CC=mycc meson <options>
 ```
 
-Note that environment variables like `CC` _always_ refer to the native
-compiler. That is, the compiler used to compile programs that run on
-the current machine. The compiler used in cross compilation is set
-with the cross file.
+Note that environment variables like `CC` only works in native builds. The `CC`
+refers to the compiler for the host platform, that is the compiler used to
+compile programs that run on the machine we will eventually install the project
+on. The compiler used to build things that run on the machine we do the
+building can be specified with `CC_FOR_BUILD`. You can use it in cross builds.
 
-This behaviour is different from e.g. Autotools, where cross
-compilation is done by setting `CC` to point to the cross compiler
-(such as `/usr/bin/arm-linux-gnueabihf-gcc`). The reason for this is
-that Meson supports natively the case where you compile helper tools
-(such as code generators) and use the results during the
-build. Because of this Meson needs to know both the native and the
-cross compiler. The former is set via the environment variables or
-native-files and the latter via the cross file only.
+Note that environment variables are never the idiomatic way to do anything with
+Meson, however. It is better to use the native and cross files. And the tools
+for the host platform in cross builds can only be specified with a cross file.
 
 There is a table of all environment variables supported [Here](Reference-tables.md#compiler-and-linker-selection-variables)
 
