@@ -221,7 +221,7 @@ set(CMAKE_C_ABI_COMPILED TRUE)
 set(CMAKE_C_SOURCE_FILE_EXTENSIONS c;m)
 set(CMAKE_C_IGNORE_EXTENSIONS h;H;o;O;obj;OBJ;def;DEF;rc;RC)
 set(CMAKE_SIZEOF_VOID_P "{}")
-'''.format(c_comp, c_launcher, ctypes.sizeof(ctypes.c_voidp)))
+'''.format(c_comp.replace('\\','/'), c_launcher.replace('\\','/'), ctypes.sizeof(ctypes.c_voidp)))
 
         if not os.path.exists(cxx_comp_file):
             with open(cxx_comp_file, 'w') as fp:
@@ -236,7 +236,7 @@ set(CMAKE_CXX_ABI_COMPILED TRUE)
 set(CMAKE_CXX_IGNORE_EXTENSIONS inl;h;hpp;HPP;H;o;O;obj;OBJ;def;DEF;rc;RC)
 set(CMAKE_CXX_SOURCE_FILE_EXTENSIONS C;M;c++;cc;cpp;cxx;mm;CPP)
 set(CMAKE_SIZEOF_VOID_P "{}")
-'''.format(cxx_comp, cxx_launcher, ctypes.sizeof(ctypes.c_voidp)))
+'''.format(cxx_comp.replace('\\','/'), cxx_launcher.replace('\\','/'), ctypes.sizeof(ctypes.c_voidp)))
 
         return self.call(args, build_dir, env)
 
