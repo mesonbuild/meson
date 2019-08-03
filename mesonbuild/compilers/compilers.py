@@ -1262,7 +1262,7 @@ class Compiler:
         if not rpath_paths and not install_rpath and not build_rpath:
             return []
         args = []
-        if mesonlib.is_osx():
+        if get_compiler_is_osx_compiler(self):
             # Ensure that there is enough space for install_name_tool in-place editing of large RPATHs
             args.append('-Wl,-headerpad_max_install_names')
             # @loader_path is the equivalent of $ORIGIN on macOS
@@ -1290,7 +1290,7 @@ class Compiler:
             # linked against local libraries will fail to resolve them.
             args.append('-Wl,-z,origin')
 
-        if mesonlib.is_osx():
+        if get_compiler_is_osx_compiler(self):
             # macOS does not support colon-separated strings in LC_RPATH,
             # hence we have to pass each path component individually
             args += ['-Wl,-rpath,' + rp for rp in all_paths]
@@ -1459,6 +1459,10 @@ def get_gcc_soname_args(compiler_type, prefix, shlib_name, suffix, soversion, da
 def get_compiler_is_linuxlike(compiler):
     compiler_type = getattr(compiler, 'compiler_type', None)
     return compiler_type and compiler_type.is_standard_compiler
+
+def get_compiler_is_osx_compiler(compiler):
+    compiler_type = getattr(compiler, 'compiler_type', None)
+    return compiler_type and compiler_type.is_osx_compiler
 
 def get_compiler_uses_gnuld(c):
     # FIXME: Perhaps we should detect the linker in the environment?
