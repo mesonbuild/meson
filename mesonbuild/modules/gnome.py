@@ -976,6 +976,11 @@ This will become a hard error in the future.''')
                 '--modulename=' + modulename,
                 '--moduleversion=' + moduleversion,
                 '--mode=' + mode]
+        for tool in ['scan', 'scangobj', 'mkdb', 'mkhtml', 'fixxref']:
+            program_name = 'gtkdoc-' + tool
+            program = self.interpreter.find_program_impl(program_name)
+            path = program.held_object.get_path()
+            args.append('--{}={}'.format(program_name, path))
         if namespace:
             args.append('--namespace=' + namespace)
         args += self._unpack_args('--htmlargs=', 'html_args', kwargs)
