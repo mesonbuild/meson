@@ -33,6 +33,7 @@ from .interpreterbase import ObjectHolder
 from .modules import ModuleReturnValue
 from .cmake import CMakeInterpreter
 
+from pathlib import Path
 import os, shutil, uuid
 import re, shlex
 import subprocess
@@ -1543,9 +1544,12 @@ class CompilerHolder(InterpreterObject):
                 return self.notfound_library(libname)
 
         search_dirs = mesonlib.stringlistify(kwargs.get('dirs', []))
-        for i in search_dirs:
-            if not os.path.isabs(i):
-                raise InvalidCode('Search directory %s is not an absolute path.' % i)
+        search_dirs = [Path(d).expanduser() for d in search_dirs]
+        for d in search_dirs:
+            if not d.is_absolute():
+                raise InvalidCode('Search directory {} is not an absolute path.'.format(d))
+        search_dirs = list(map(str, search_dirs))
+
         libtype = mesonlib.LibType.PREFER_SHARED
         if 'static' in kwargs:
             if not isinstance(kwargs['static'], bool):
