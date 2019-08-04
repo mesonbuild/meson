@@ -215,33 +215,24 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     """
     if mesonlib.is_windows():
         trial = detect_windows_arch(compilers)
+    elif mesonlib.is_freebsd() or mesonlib.is_openbsd():
+        trial = platform.processor().lower()
     else:
         trial = platform.machine().lower()
     if trial.startswith('i') and trial.endswith('86'):
         trial = 'x86'
     elif trial == 'bepc':
         trial = 'x86'
-    # OpenBSD's 64 bit arm architecute identifies as 'arm64'
-    elif trial == 'arm64':
-        trial = 'aarch64'
     elif trial.startswith('arm'):
         trial = 'arm'
     elif trial.startswith('ppc64'):
         trial = 'ppc64'
     elif trial == 'macppc':
         trial = 'ppc'
+    elif trial == 'powerpc64':
+        trial = 'ppc64'
     elif trial == 'powerpc':
         trial = 'ppc'
-        # FreeBSD calls both ppc and ppc64 "powerpc".
-        # https://github.com/mesonbuild/meson/issues/4397
-        try:
-            p, stdo, _ = Popen_safe(['uname', '-p'])
-        except (FileNotFoundError, PermissionError):
-            # Not much to go on here.
-            if sys.maxsize > 2**32:
-                trial = 'ppc64'
-        if 'powerpc64' in stdo:
-            trial = 'ppc64'
     elif trial in ('amd64', 'x64', 'i86pc'):
         trial = 'x86_64'
 
@@ -271,6 +262,8 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
 def detect_cpu(compilers: CompilersDict):
     if mesonlib.is_windows():
         trial = detect_windows_arch(compilers)
+    elif mesonlib.is_freebsd() or mesonlib.is_openbsd():
+        trial = platform.processor().lower()
     else:
         trial = platform.machine().lower()
     if trial in ('amd64', 'x64', 'i86pc'):
