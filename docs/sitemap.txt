@@ -109,6 +109,7 @@ index.md
 		Use-of-Python.md
 		Users.md
 		Using-multiple-build-directories.md
+		Vs-External.md
 	Contributing.md
 	legal.md
 	Videos.md
