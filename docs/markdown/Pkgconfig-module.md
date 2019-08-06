@@ -56,6 +56,8 @@ keyword arguments.
    D sources referred to by this pkg-config file
 - `uninstalled_variables` used instead of the `variables` keyword argument, when
   generating the uninstalled pkg-config file. Since *0.54.0*
+- `dataonly` field. (*since 0.54.0*) this is used for architecture-independent
+   pkg-config files in projects which also have architecture-dependent outputs.
 
 Since 0.46 a `StaticLibrary` or `SharedLibrary` object can optionally be passed
 as first positional argument. If one is provided a default value will be
