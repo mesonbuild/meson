@@ -1,11 +1,5 @@
 sudo: false
 
-branches:
-  only:
-  - master
-  # Release branches
-  - /^[0-9]+\.[0-9]+$/
-
 os:
   - linux
   - osx
