@@ -252,19 +252,29 @@ int dummy;
                                '/showIncludes', '/c', 'incdetect.c'],
                               cwd=self.environment.get_scratch_dir(),
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdo, _) = pc.communicate()
+        (stdout, stderr) = pc.communicate()
 
         # We want to match 'Note: including file: ' in the line
         # 'Note: including file: d:\MyDir\include\stdio.h', however
         # different locales have different messages with a different
         # number of colons. Match up to the the drive name 'd:\'.
         matchre = re.compile(rb"^(.*\s)[a-zA-Z]:\\.*stdio.h$")
-        for line in re.split(rb'\r?\n', stdo):
-            match = matchre.match(line)
-            if match:
-                with open(tempfilename, 'ab') as binfile:
-                    binfile.write(b'msvc_deps_prefix = ' + match.group(1) + b'\n')
-                return open(tempfilename, 'a', encoding='utf-8')
+
+        def detect_prefix(out):
+            for line in re.split(rb'\r?\n', out):
+                match = matchre.match(line)
+                if match:
+                    with open(tempfilename, 'ab') as binfile:
+                        binfile.write(b'msvc_deps_prefix = ' + match.group(1) + b'\n')
+                    return open(tempfilename, 'a', encoding='utf-8')
+            return None
+
+        # Some cl wrappers (e.g. Squish Coco) output dependency info
+        # to stderr rather than stdout
+        result = detect_prefix(stdout) or detect_prefix(stderr)
+        if result:
+            return result
+
         raise MesonException('Could not determine vs dep dependency prefix string.')
 
     def generate(self, interp):
