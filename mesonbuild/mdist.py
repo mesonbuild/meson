@@ -22,8 +22,9 @@ import subprocess
 import hashlib
 import json
 from glob import glob
+from pathlib import Path
 from mesonbuild.environment import detect_ninja
-from mesonbuild.mesonlib import windows_proof_rmtree
+from mesonbuild.mesonlib import windows_proof_rmtree, MesonException
 from mesonbuild import mlog, build
 
 archive_choices = ['gztar', 'xztar', 'zip']
@@ -32,6 +33,8 @@ archive_extension = {'gztar': '.tar.gz',
                      'zip': '.zip'}
 
 def add_arguments(parser):
+    parser.add_argument('-C', default='.', dest='wd',
+                        help='directory to cd into before running')
     parser.add_argument('--formats', default='xztar',
                         help='Comma separated list of archive types to create.')
 
@@ -194,7 +197,11 @@ def determine_archives_to_generate(options):
     return result
 
 def run(options):
-    b = build.load('.')
+    options.wd = os.path.abspath(options.wd)
+    buildfile = Path(options.wd) / 'meson-private' / 'build.dat'
+    if not buildfile.is_file():
+        raise MesonException('Directory {!r} does not seem to be a Meson build directory.'.format(options.wd))
+    b = build.load(options.wd)
     # This import must be load delayed, otherwise it will get the default
     # value of None.
     from mesonbuild.mesonlib import meson_command
