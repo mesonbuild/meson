@@ -51,3 +51,10 @@ pkgg.generate(
   description : 'A minimalistic pkgconfig file.',
   version : libver,
 )
+
+pkgg.generate(
+  name : 'libhello_nolib',
+  description : 'A minimalistic pkgconfig file.',
+  version : libver,
+  dataonly: true
+)

@@ -2,3 +2,4 @@ usr/include/simple.h
 usr/lib/pkgconfig/simple.pc
 usr/lib/pkgconfig/libfoo.pc
 usr/lib/pkgconfig/libhello.pc
+usr/lib/pkgconfig/libhello_nolib.pc

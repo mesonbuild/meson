@@ -4969,6 +4969,11 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(foo_dep.get_pkgconfig_variable('foo', {}), 'bar')
         self.assertPathEqual(foo_dep.get_pkgconfig_variable('datadir', {}), '/usr/data')
 
+        libhello_nolib = PkgConfigDependency('libhello_nolib', env, kwargs)
+        self.assertTrue(libhello_nolib.found())
+        self.assertEqual(libhello_nolib.get_link_args(), [])
+        self.assertEqual(libhello_nolib.get_compile_args(), [])
+
     def test_pkgconfig_gen_deps(self):
         '''
         Test that generated pkg-config files correctly handle dependencies
