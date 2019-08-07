@@ -42,7 +42,11 @@ jobs:
     - flake8
     - pylint mesonbuild
   - stage: test
+    before_install: ./before_install
+    script: ./script
   - stage: cross
+    before_install: ./before_install
+    script: ./script
 
 before_install:
 - python ./skip_ci.py --base-branch-env=TRAVIS_BRANCH --is-pull-env=TRAVIS_PULL_REQUEST
