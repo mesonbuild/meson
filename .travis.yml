@@ -1,4 +1,4 @@
-language: python
+language: minimal
 
 branches:
   only:
@@ -6,44 +6,38 @@ branches:
   # Release branches
   - /^[0-9]+\.[0-9]+$/
 
+# https://docs.travis-ci.com/user/conditions-v1
+conditions: v1
+
 stages:
-- lint
-- test
+- name: PEP8_lint
+- name: "Host Tests"
+  if: env(RUN_TESTS_ARGS) != "--cross"
+- name: "Cross Tests"
+  if: os = linux AND env(CC) = gcc AND env(RUN_TESTS_ARGS) = "--cross"
 
 os:
 - linux
 - osx
 
-compiler:
-- gcc
-- clang
-
 env:
-- MESON_ARGS=""
-- RUN_TESTS_ARGS="--no-unittests" MESON_ARGS="--unity=on"
+- MESON_ARGS="" CC=gcc CXX=g++
+- MESON_ARGS="" CC=clang CXX=clang++
+- RUN_TESTS_ARGS="--no-unittests" MESON_ARGS="--unity=on" CC=gcc CXX=g++
+- RUN_TESTS_ARGS="--no-unittests" MESON_ARGS="--unity=on" CC=clang CXX=clang++
+- RUN_TESTS_ARGS="--cross" CC=gcc CXX=g++
+- RUN_TESTS_ARGS="--cross" MESON_ARGS="--unity=on" CC=gcc CXX=g++
 
 services:
 - docker
 
-matrix:
-  exclude:
-  # On OS X gcc is just a wrapper around clang, so don't waste time testing that
-  - os: osx
-    compiler: gcc
-  include:
-  # Test cross builds separately, they do not use the global compiler
-  - os: linux
-    compiler: gcc
-    env: RUN_TESTS_ARGS="--cross"
-  - os: linux
-    compiler: gcc
-    env: RUN_TESTS_ARGS="--cross" MESON_ARGS="--unity=on"
 
 jobs:
   include:
-  - stage: lint
+  - stage: PEP8_lint
+    language: python
     before_install: skip
-    install: python -m pip install pylint flake8 flake8-blind-except flake8-builtins flake8-bugbear
+    install: python3 -m pip install pylint flake8 flake8-blind-except flake8-builtins flake8-bugbear
     script:
     - flake8
     - pylint mesonbuild
