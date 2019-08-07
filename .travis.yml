@@ -10,11 +10,9 @@ branches:
 conditions: v1
 
 stages:
-- name: lint
-- name: test
-  if: env(RUN_TESTS_ARGS) != "--cross"
-- name: cross
-  if: os = linux AND env(CC) = gcc AND env(RUN_TESTS_ARGS) = "--cross"
+- lint
+- test
+- cross
 
 os:
 - linux
@@ -42,9 +40,11 @@ jobs:
     - flake8
     - pylint mesonbuild
   - stage: test
+    if: env(RUN_TESTS_ARGS) != "--cross"
     before_install: ./before_install
     script: ./script
   - stage: cross
+    if: os = linux AND env(CC) = gcc AND env(RUN_TESTS_ARGS) = "--cross"
     before_install: ./before_install
     script: ./script
 
