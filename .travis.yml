@@ -11,7 +11,7 @@ conditions: v1
 
 stages:
 - name: PEP8_lint
-- name: Host_Tests
+- name: test
   if: env(RUN_TESTS_ARGS) != "--cross"
 - name: Cross_Tests
   if: os = linux AND env(CC) = gcc AND env(RUN_TESTS_ARGS) = "--cross"
