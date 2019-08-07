@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from pathlib import Path
 from typing import List
 import subprocess, os
-from pathlib import Path
+import typing
 
 from .compilers import (
     CompilerType,
@@ -255,6 +257,10 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
     def language_stdlib_only_link_flags(self):
         return ['-lifcore', '-limf']
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> typing.List[str]:
+        return ['-gen-dep=' + outtarget, '-gen-depformat=make']
+
 
 class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
