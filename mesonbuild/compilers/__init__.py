@@ -61,6 +61,8 @@ __all__ = [
     'GnuDCompiler',
     'GnuFortranCompiler',
     'ElbrusFortranCompiler',
+    'EmscriptenCCompiler',
+    'EmscriptenCPPCompiler',
     'FlangFortranCompiler',
     'GnuObjCCompiler',
     'GnuObjCPPCompiler',

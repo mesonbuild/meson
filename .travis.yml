@@ -43,7 +43,7 @@ jobs:
   include:
   - stage: lint
     before_install: skip
-    install: python -m pip install pylint flake8
+    install: python -m pip install pylint flake8 flake8-blind-except flake8-builtins flake8-bugbear
     script:
     - flake8
     - pylint mesonbuild
