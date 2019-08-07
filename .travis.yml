@@ -10,10 +10,10 @@ branches:
 conditions: v1
 
 stages:
-- name: PEP8_lint
+- name: lint
 - name: test
   if: env(RUN_TESTS_ARGS) != "--cross"
-- name: Cross_Tests
+- name: cross
   if: os = linux AND env(CC) = gcc AND env(RUN_TESTS_ARGS) = "--cross"
 
 os:
@@ -34,13 +34,15 @@ services:
 
 jobs:
   include:
-  - stage: PEP8_lint
+  - stage: lint
     language: python
     before_install: skip
     install: python3 -m pip install pylint flake8 flake8-blind-except flake8-builtins flake8-bugbear
     script:
     - flake8
     - pylint mesonbuild
+  - stage: test
+  - stage: cross
 
 before_install:
 - python ./skip_ci.py --base-branch-env=TRAVIS_BRANCH --is-pull-env=TRAVIS_PULL_REQUEST
