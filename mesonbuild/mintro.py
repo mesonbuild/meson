@@ -321,6 +321,7 @@ def get_test_list(testdata):
         to['timeout'] = t.timeout
         to['suite'] = t.suite
         to['is_parallel'] = t.is_parallel
+        to['priority'] = t.priority
         result.append(to)
     return result
 
