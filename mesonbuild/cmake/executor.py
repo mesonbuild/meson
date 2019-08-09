@@ -24,7 +24,7 @@ from typing import List, Tuple, Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from ..dependencies.base import ExternalProgram
 
-import re, os, shutil, ctypes
+import re, os, shutil, ctypes, pathlib
 
 class CMakeExecutor:
     # The class's copy of the CMake path. Avoids having to search for it
@@ -197,6 +197,12 @@ class CMakeExecutor:
         c_comp, c_launcher = choose_compiler('c')
         cxx_comp, cxx_launcher = choose_compiler('cpp')
 
+        # on Windows, choose_compiler returns path with \ as separator - replace by / before writing to CMAKE file
+        c_comp = pathlib.PurePath(c_comp).as_posix()
+        c_launcher = pathlib.PurePath(c_launcher).as_posix()
+        cxx_comp = pathlib.PurePath(cxx_comp).as_posix()
+        cxx_launcher = pathlib.PurePath(cxx_launcher).as_posix()
+
         # Reset the CMake cache
         with open('{}/CMakeCache.txt'.format(build_dir), 'w') as fp:
             fp.write('CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1\n')
@@ -221,7 +227,7 @@ set(CMAKE_C_ABI_COMPILED TRUE)
 set(CMAKE_C_SOURCE_FILE_EXTENSIONS c;m)
 set(CMAKE_C_IGNORE_EXTENSIONS h;H;o;O;obj;OBJ;def;DEF;rc;RC)
 set(CMAKE_SIZEOF_VOID_P "{}")
-'''.format(c_comp.replace('\\','/'), c_launcher.replace('\\','/'), ctypes.sizeof(ctypes.c_voidp)))
+'''.format(c_comp, c_launcher, ctypes.sizeof(ctypes.c_voidp)))
 
         if not os.path.exists(cxx_comp_file):
             with open(cxx_comp_file, 'w') as fp:
@@ -236,7 +242,7 @@ set(CMAKE_CXX_ABI_COMPILED TRUE)
 set(CMAKE_CXX_IGNORE_EXTENSIONS inl;h;hpp;HPP;H;o;O;obj;OBJ;def;DEF;rc;RC)
 set(CMAKE_CXX_SOURCE_FILE_EXTENSIONS C;M;c++;cc;cpp;cxx;mm;CPP)
 set(CMAKE_SIZEOF_VOID_P "{}")
-'''.format(cxx_comp.replace('\\','/'), cxx_launcher.replace('\\','/'), ctypes.sizeof(ctypes.c_voidp)))
+'''.format(cxx_comp, cxx_launcher, ctypes.sizeof(ctypes.c_voidp)))
 
         return self.call(args, build_dir, env)
 
