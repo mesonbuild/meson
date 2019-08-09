@@ -14,7 +14,6 @@
 
 import abc
 import os
-import shlex
 import typing
 
 from . import mesonlib
@@ -279,7 +278,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         flags = os.environ.get('LDFLAGS')
         if not flags:
             return []
-        return shlex.split(flags)
+        return mesonlib.split_args(flags)
 
     def get_option_args(self, options: 'OptionDictType') -> typing.List[str]:
         return []

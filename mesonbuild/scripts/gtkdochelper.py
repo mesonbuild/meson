@@ -14,10 +14,9 @@
 
 import sys, os
 import subprocess
-import shlex
 import shutil
 import argparse
-from ..mesonlib import MesonException, Popen_safe, is_windows
+from ..mesonlib import MesonException, Popen_safe, is_windows, split_args
 from . import destdir_join
 
 parser = argparse.ArgumentParser()
@@ -149,7 +148,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                          '--output-dir=' + abs_out]
 
         library_paths = []
-        for ldflag in shlex.split(ldflags):
+        for ldflag in split_args(ldflags):
             if ldflag.startswith('-Wl,-rpath,'):
                 library_paths.append(ldflag[11:])
 

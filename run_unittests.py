@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import stat
-import shlex
 import subprocess
 import re
 import json
@@ -51,7 +50,7 @@ from mesonbuild.ast import AstInterpreter
 from mesonbuild.mesonlib import (
     BuildDirLock, LibType, MachineChoice, PerMachine, Version,
     is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku,
-    windows_proof_rmtree, python_command, version_compare,
+    windows_proof_rmtree, python_command, version_compare, split_args, quote_arg
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -1021,6 +1020,103 @@ class InternalTests(unittest.TestCase):
             vctools_ver = (Path(os.environ['VCINSTALLDIR']) / 'Auxiliary' / 'Build' / 'Microsoft.VCToolsVersion.default.txt').read_text()
         self.assertTrue(vctools_ver.startswith(toolset_ver),
                         msg='{!r} does not start with {!r}'.format(vctools_ver, toolset_ver))
+
+    def test_split_args(self):
+        split_args = mesonbuild.mesonlib.split_args
+        join_args = mesonbuild.mesonlib.join_args
+        if is_windows():
+            test_data = [
+                # examples from https://docs.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments
+                (r'"a b c" d e', ['a b c', 'd', 'e'], True),
+                (r'"ab\"c" "\\" d', ['ab"c', '\\', 'd'], False),
+                (r'a\\\b d"e f"g h', [r'a\\\b', 'de fg', 'h'], False),
+                (r'a\\\"b c d', [r'a\"b', 'c', 'd'], False),
+                (r'a\\\\"b c" d e', [r'a\\b c', 'd', 'e'], False),
+                # other basics
+                (r'""', [''], True),
+                (r'a b c d "" e', ['a', 'b', 'c', 'd', '', 'e'], True),
+                (r"'a b c' d e", ["'a", 'b', "c'", 'd', 'e'], True),
+                (r"'a&b&c' d e", ["'a&b&c'", 'd', 'e'], True),
+                (r"a & b & c d e", ['a', '&', 'b', '&', 'c', 'd', 'e'], True),
+                (r"'a & b & c d e'", ["'a", '&', 'b', '&', 'c', 'd', "e'"], True),
+                ('a  b\nc\rd \n\re', ['a', 'b', 'c', 'd', 'e'], False),
+                # more illustrative tests
+                (r'cl test.cpp /O1 /Fe:test.exe', ['cl', 'test.cpp', '/O1', '/Fe:test.exe'], True),
+                (r'cl "test.cpp /O1 /Fe:test.exe"', ['cl', 'test.cpp /O1 /Fe:test.exe'], True),
+                (r'cl /DNAME=\"Bob\" test.cpp', ['cl', '/DNAME="Bob"', 'test.cpp'], False),
+                (r'cl "/DNAME=\"Bob\"" test.cpp', ['cl', '/DNAME="Bob"', 'test.cpp'], True),
+                (r'cl /DNAME=\"Bob, Alice\" test.cpp', ['cl', '/DNAME="Bob,', 'Alice"', 'test.cpp'], False),
+                (r'cl "/DNAME=\"Bob, Alice\"" test.cpp', ['cl', '/DNAME="Bob, Alice"', 'test.cpp'], True),
+                (r'cl C:\path\with\backslashes.cpp', ['cl', r'C:\path\with\backslashes.cpp'], True),
+                (r'cl C:\\path\\with\\double\\backslashes.cpp', ['cl', r'C:\\path\\with\\double\\backslashes.cpp'], True),
+                (r'cl "C:\\path\\with\\double\\backslashes.cpp"', ['cl', r'C:\\path\\with\\double\\backslashes.cpp'], False),
+                (r'cl C:\path with spaces\test.cpp', ['cl', r'C:\path', 'with', r'spaces\test.cpp'], False),
+                (r'cl "C:\path with spaces\test.cpp"', ['cl', r'C:\path with spaces\test.cpp'], True),
+                (r'cl /DPATH="C:\path\with\backslashes test.cpp', ['cl', r'/DPATH=C:\path\with\backslashes test.cpp'], False),
+                (r'cl /DPATH=\"C:\\ends\\with\\backslashes\\\" test.cpp', ['cl', r'/DPATH="C:\\ends\\with\\backslashes\"', 'test.cpp'], False),
+                (r'cl /DPATH="C:\\ends\\with\\backslashes\\" test.cpp', ['cl', '/DPATH=C:\\\\ends\\\\with\\\\backslashes\\', 'test.cpp'], False),
+                (r'cl "/DNAME=\"C:\\ends\\with\\backslashes\\\"" test.cpp', ['cl', r'/DNAME="C:\\ends\\with\\backslashes\"', 'test.cpp'], True),
+                (r'cl "/DNAME=\"C:\\ends\\with\\backslashes\\\\"" test.cpp', ['cl', r'/DNAME="C:\\ends\\with\\backslashes\\ test.cpp'], False),
+                (r'cl "/DNAME=\"C:\\ends\\with\\backslashes\\\\\"" test.cpp', ['cl', r'/DNAME="C:\\ends\\with\\backslashes\\"', 'test.cpp'], True),
+            ]
+        else:
+            test_data = [
+                (r"'a b c' d e", ['a b c', 'd', 'e'], True),
+                (r"a/b/c d e", ['a/b/c', 'd', 'e'], True),
+                (r"a\b\c d e", [r'abc', 'd', 'e'], False),
+                (r"a\\b\\c d e", [r'a\b\c', 'd', 'e'], False),
+                (r'"a b c" d e', ['a b c', 'd', 'e'], False),
+                (r'"a\\b\\c\\" d e', ['a\\b\\c\\', 'd', 'e'], False),
+                (r"'a\b\c\' d e", ['a\\b\\c\\', 'd', 'e'], True),
+                (r"'a&b&c' d e", ['a&b&c', 'd', 'e'], True),
+                (r"a & b & c d e", ['a', '&', 'b', '&', 'c', 'd', 'e'], False),
+                (r"'a & b & c d e'", ['a & b & c d e'], True),
+                (r"abd'e f'g h", [r'abde fg', 'h'], False),
+                ('a  b\nc\rd \n\re', ['a', 'b', 'c', 'd', 'e'], False),
+
+                ('g++ -DNAME="Bob" test.cpp', ['g++', '-DNAME=Bob', 'test.cpp'], False),
+                ("g++ '-DNAME=\"Bob\"' test.cpp", ['g++', '-DNAME="Bob"', 'test.cpp'], True),
+                ('g++ -DNAME="Bob, Alice" test.cpp', ['g++', '-DNAME=Bob, Alice', 'test.cpp'], False),
+                ("g++ '-DNAME=\"Bob, Alice\"' test.cpp", ['g++', '-DNAME="Bob, Alice"', 'test.cpp'], True),
+            ]
+
+        for (cmd, expected, roundtrip) in test_data:
+            self.assertEqual(split_args(cmd), expected)
+            if roundtrip:
+                self.assertEqual(join_args(expected), cmd)
+
+    def test_quote_arg(self):
+        split_args = mesonbuild.mesonlib.split_args
+        quote_arg = mesonbuild.mesonlib.quote_arg
+        if is_windows():
+            test_data = [
+                ('', '""'),
+                ('arg1', 'arg1'),
+                ('/option1', '/option1'),
+                ('/Ovalue', '/Ovalue'),
+                ('/OBob&Alice', '/OBob&Alice'),
+                ('/Ovalue with spaces', r'"/Ovalue with spaces"'),
+                (r'/O"value with spaces"', r'"/O\"value with spaces\""'),
+                (r'/OC:\path with spaces\test.exe', r'"/OC:\path with spaces\test.exe"'),
+                ('/LIBPATH:C:\\path with spaces\\ends\\with\\backslashes\\', r'"/LIBPATH:C:\path with spaces\ends\with\backslashes\\"'),
+                ('/LIBPATH:"C:\\path with spaces\\ends\\with\\backslashes\\\\"', r'"/LIBPATH:\"C:\path with spaces\ends\with\backslashes\\\\\""'),
+                (r'/DMSG="Alice said: \"Let\'s go\""', r'"/DMSG=\"Alice said: \\\"Let\'s go\\\"\""'),
+            ]
+        else:
+            test_data = [
+                ('arg1', 'arg1'),
+                ('--option1', '--option1'),
+                ('-O=value', '-O=value'),
+                ('-O=Bob&Alice', "'-O=Bob&Alice'"),
+                ('-O=value with spaces', "'-O=value with spaces'"),
+                ('-O="value with spaces"', '\'-O=\"value with spaces\"\''),
+                ('-O=/path with spaces/test', '\'-O=/path with spaces/test\''),
+                ('-DMSG="Alice said: \\"Let\'s go\\""', "'-DMSG=\"Alice said: \\\"Let'\"'\"'s go\\\"\"'"),
+            ]
+
+        for (arg, expected) in test_data:
+            self.assertEqual(quote_arg(arg), expected)
+            self.assertEqual(split_args(expected)[0], arg)
 
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
@@ -2033,7 +2129,7 @@ class AllPlatformTests(BasePlatformTests):
         if not execmd or not fxecmd:
             raise Exception('Could not find someexe and somfxe commands')
         # Check include order for 'someexe'
-        incs = [a for a in shlex.split(execmd) if a.startswith("-I")]
+        incs = [a for a in split_args(execmd) if a.startswith("-I")]
         self.assertEqual(len(incs), 9)
         # target private dir
         someexe_id = Target.construct_id_from_path("sub4", "someexe", "@exe")
@@ -2055,7 +2151,7 @@ class AllPlatformTests(BasePlatformTests):
         # custom target include dir
         self.assertPathEqual(incs[8], '-Ictsub')
         # Check include order for 'somefxe'
-        incs = [a for a in shlex.split(fxecmd) if a.startswith('-I')]
+        incs = [a for a in split_args(fxecmd) if a.startswith('-I')]
         self.assertEqual(len(incs), 9)
         # target private dir
         self.assertPathEqual(incs[0], '-Isomefxe@exe')
@@ -2123,7 +2219,7 @@ class AllPlatformTests(BasePlatformTests):
                 else:
                     raise AssertionError('Unknown compiler {!r}'.format(evalue))
                 # Check that we actually used the evalue correctly as the compiler
-                self.assertEqual(ecc.get_exelist(), shlex.split(evalue))
+                self.assertEqual(ecc.get_exelist(), split_args(evalue))
             # Do auto-detection of compiler based on platform, PATH, etc.
             cc = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
             self.assertTrue(cc.version)
@@ -2174,14 +2270,14 @@ class AllPlatformTests(BasePlatformTests):
             wrappercc = python_command + [wrapper] + cc.get_exelist() + ['-DSOME_ARG']
             wrappercc_s = ''
             for w in wrappercc:
-                wrappercc_s += shlex.quote(w) + ' '
+                wrappercc_s += quote_arg(w) + ' '
             os.environ[evar] = wrappercc_s
             wcc = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
             # Check static linker too
             wrapperlinker = python_command + [wrapper] + linker.get_exelist() + linker.get_always_args()
             wrapperlinker_s = ''
             for w in wrapperlinker:
-                wrapperlinker_s += shlex.quote(w) + ' '
+                wrapperlinker_s += quote_arg(w) + ' '
             os.environ['AR'] = wrapperlinker_s
             wlinker = env.detect_static_linker(wcc)
             # Pop it so we don't use it for the next detection
@@ -2207,7 +2303,7 @@ class AllPlatformTests(BasePlatformTests):
         commands = {'c-asm': {}, 'cpp-asm': {}, 'cpp-c-asm': {}, 'c-cpp-asm': {}}
         for cmd in self.get_compdb():
             # Get compiler
-            split = shlex.split(cmd['command'])
+            split = split_args(cmd['command'])
             if split[0] == 'ccache':
                 compiler = split[1]
             else:
@@ -2272,7 +2368,7 @@ class AllPlatformTests(BasePlatformTests):
         define = 'MESON_TEST_DEFINE_VALUE'
         # NOTE: this list can't have \n, ' or "
         # \n is never substituted by the GNU pre-processor via a -D define
-        # ' and " confuse shlex.split() even when they are escaped
+        # ' and " confuse split_args() even when they are escaped
         # % and # confuse the MSVC preprocessor
         # !, ^, *, and < confuse lcc preprocessor
         value = 'spaces and fun@$&()-=_+{}[]:;>?,./~`'
@@ -3154,7 +3250,7 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(obj.user_options['subp:subp_opt'].value, 'foo')
         self.wipe()
 
-        # c_args value should be parsed with shlex
+        # c_args value should be parsed with split_args
         self.init(testdir, extra_args=['-Dc_args=-Dfoo -Dbar "-Dthird=one two"'])
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.compiler_options.host['c_args'].value, ['-Dfoo', '-Dbar', '-Dthird=one two'])

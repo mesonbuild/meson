@@ -13,14 +13,14 @@
 # limitations under the License.
 
 from . import mlog
-import pickle, os, uuid, shlex
+import pickle, os, uuid
 import sys
 from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict
 from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
-    default_libdir, default_libexecdir, default_prefix
+    default_libdir, default_libexecdir, default_prefix, split_args
 )
 from .wrap import WrapMode
 import ast
@@ -163,9 +163,9 @@ class UserComboOption(UserOption[str]):
         return value
 
 class UserArrayOption(UserOption[List[str]]):
-    def __init__(self, description, value, shlex_split=False, user_input=False, allow_dups=False, **kwargs):
+    def __init__(self, description, value, split_args=False, user_input=False, allow_dups=False, **kwargs):
         super().__init__(description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
-        self.shlex_split = shlex_split
+        self.split_args = split_args
         self.allow_dups = allow_dups
         self.value = self.validate_value(value, user_input=user_input)
 
@@ -183,8 +183,8 @@ class UserArrayOption(UserOption[List[str]]):
             elif value == '':
                 newvalue = []
             else:
-                if self.shlex_split:
-                    newvalue = shlex.split(value)
+                if self.split_args:
+                    newvalue = split_args(value)
                 else:
                     newvalue = [v.strip() for v in value.split(',')]
         elif isinstance(value, list):

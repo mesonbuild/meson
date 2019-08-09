@@ -17,7 +17,6 @@ functionality such as gobject-introspection, gresources and gtk-doc'''
 
 import os
 import copy
-import shlex
 import subprocess
 
 from .. import build
@@ -29,7 +28,7 @@ from . import get_include_args
 from . import ExtensionModule
 from . import ModuleReturnValue
 from ..mesonlib import (
-    MachineChoice, MesonException, OrderedSet, Popen_safe, extract_as_list
+    MachineChoice, MesonException, OrderedSet, Popen_safe, extract_as_list, join_args
 )
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs
@@ -1079,12 +1078,12 @@ This will become a hard error in the future.''')
         ldflags.extend(compiler_flags[1])
         ldflags.extend(compiler_flags[2])
         if compiler:
-            args += ['--cc=%s' % ' '.join([shlex.quote(x) for x in compiler.get_exelist()])]
-            args += ['--ld=%s' % ' '.join([shlex.quote(x) for x in compiler.get_linker_exelist()])]
+            args += ['--cc=%s' % join_args(compiler.get_exelist())]
+            args += ['--ld=%s' % join_args(compiler.get_linker_exelist())]
         if cflags:
-            args += ['--cflags=%s' % ' '.join([shlex.quote(x) for x in cflags])]
+            args += ['--cflags=%s' % join_args(cflags)]
         if ldflags:
-            args += ['--ldflags=%s' % ' '.join([shlex.quote(x) for x in ldflags])]
+            args += ['--ldflags=%s' % join_args(ldflags)]
 
         return args
 

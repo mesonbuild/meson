@@ -13,12 +13,11 @@
 # limitations under the License.
 
 import os
-import shlex
 import subprocess
 import shutil
 import tempfile
 from ..environment import detect_ninja
-from ..mesonlib import Popen_safe
+from ..mesonlib import Popen_safe, split_args
 
 def scanbuild(exelist, srcdir, blddir, privdir, logdir, args):
     with tempfile.TemporaryDirectory(dir=privdir) as scandir:
@@ -63,7 +62,7 @@ def run(args):
             break
 
     if 'SCANBUILD' in os.environ:
-        exelist = shlex.split(os.environ['SCANBUILD'])
+        exelist = split_args(os.environ['SCANBUILD'])
     else:
         exelist = [toolname]
 

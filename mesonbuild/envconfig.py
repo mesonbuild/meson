@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import configparser, os, shlex, subprocess
+import configparser, os, subprocess
 import typing
 
 from . import mesonlib
-from .mesonlib import EnvironmentException
+from .mesonlib import EnvironmentException, split_args
 from . import mlog
 
 _T = typing.TypeVar('_T')
@@ -361,7 +361,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             evar = self.evarMap.get(name, "")
             command = os.environ.get(evar)
             if command is not None:
-                command = shlex.split(command)
+                command = split_args(command)
 
         # Do not return empty or blank string entries
         if command is not None and (len(command) == 0 or len(command[0].strip()) == 0):

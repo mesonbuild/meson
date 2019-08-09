@@ -18,11 +18,11 @@ from pathlib import Path
 import functools
 import os
 import re
-import shlex
 import sysconfig
 
 from .. import mlog
 from .. import mesonlib
+from ..mesonlib import split_args
 from ..environment import detect_cpu_family
 
 from .base import (
@@ -277,7 +277,7 @@ class MPIDependency(ExternalDependency):
                 mlog.debug(mlog.bold('Standard output\n'), o)
                 mlog.debug(mlog.bold('Standard error\n'), e)
                 return
-            cargs = shlex.split(o)
+            cargs = split_args(o)
 
             cmd = prog.get_command() + ['--showme:link']
             p, o, e = mesonlib.Popen_safe(cmd)
@@ -287,7 +287,7 @@ class MPIDependency(ExternalDependency):
                 mlog.debug(mlog.bold('Standard output\n'), o)
                 mlog.debug(mlog.bold('Standard error\n'), e)
                 return
-            libs = shlex.split(o)
+            libs = split_args(o)
 
             cmd = prog.get_command() + ['--showme:version']
             p, o, e = mesonlib.Popen_safe(cmd)
@@ -316,7 +316,7 @@ class MPIDependency(ExternalDependency):
                 mlog.debug(mlog.bold('Standard output\n'), o)
                 mlog.debug(mlog.bold('Standard error\n'), e)
                 return
-            args = shlex.split(o)
+            args = split_args(o)
 
             version = None
 
