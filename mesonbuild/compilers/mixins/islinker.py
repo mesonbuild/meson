@@ -21,7 +21,6 @@ classes for those cases.
 """
 
 import os
-import shlex
 import typing
 
 from ... import mesonlib
@@ -39,7 +38,7 @@ class LinkerEnvVarsMixin:
         flags = os.environ.get('LDFLAGS')
         if not flags:
             return []
-        return shlex.split(flags)
+        return mesonlib.split_args(flags)
 
 
 class BasicLinkerIsCompilerMixin:

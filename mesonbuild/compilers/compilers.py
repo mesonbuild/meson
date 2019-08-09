@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib, enum, os.path, re, tempfile, shlex
+import contextlib, enum, os.path, re, tempfile
 import typing
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple, List
 
 from ..linkers import StaticLinker, GnuLikeDynamicLinkerMixin
 from .. import coredata
@@ -22,7 +22,7 @@ from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
     EnvironmentException, MachineChoice, MesonException, OrderedSet,
-    Popen_safe
+    Popen_safe, split_args
 )
 from ..envconfig import (
     Properties,
@@ -799,7 +799,7 @@ class Compiler:
         env_compile_flags = os.environ.get(cflags_mapping[lang])
         log_var(cflags_mapping[lang], env_compile_flags)
         if env_compile_flags is not None:
-            compile_flags += shlex.split(env_compile_flags)
+            compile_flags += split_args(env_compile_flags)
 
         # Link flags (same for all languages)
         if self.use_ldflags():
@@ -820,7 +820,7 @@ class Compiler:
             env_preproc_flags = os.environ.get('CPPFLAGS')
             log_var('CPPFLAGS', env_preproc_flags)
             if env_preproc_flags is not None:
-                compile_flags += shlex.split(env_preproc_flags)
+                compile_flags += split_args(env_preproc_flags)
 
         return compile_flags, link_flags
 
@@ -830,10 +830,10 @@ class Compiler:
         opts.update({
             self.language + '_args': coredata.UserArrayOption(
                 description + ' compiler',
-                [], shlex_split=True, user_input=True, allow_dups=True),
+                [], split_args=True, user_input=True, allow_dups=True),
             self.language + '_link_args': coredata.UserArrayOption(
                 description + ' linker',
-                [], shlex_split=True, user_input=True, allow_dups=True),
+                [], split_args=True, user_input=True, allow_dups=True),
         })
 
         return opts

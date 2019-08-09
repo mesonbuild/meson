@@ -34,7 +34,7 @@ from ..compilers import clib_langs
 from ..environment import BinaryTable, Environment, MachineInfo
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
-from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list
+from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list, split_args
 from ..mesonlib import Version, LibType
 
 # These must be defined in this file to avoid cyclical references.
@@ -490,16 +490,13 @@ class ConfigToolDependency(ExternalDependency):
 
     def get_config_value(self, args, stage):
         p, out, err = Popen_safe(self.config + args)
-        # This is required to keep shlex from stripping path separators on
-        # Windows. Also, don't put escape sequences in config values, okay?
-        out = out.replace('\\', '\\\\')
         if p.returncode != 0:
             if self.required:
                 raise DependencyException(
                     'Could not generate {} for {}.\n{}'.format(
                         stage, self.name, err))
             return []
-        return shlex.split(out)
+        return split_args(out)
 
     @staticmethod
     def get_methods():
@@ -697,6 +694,11 @@ class PkgConfigDependency(ExternalDependency):
             converted.append(arg)
         return converted
 
+    def _split_args(self, cmd):
+        # pkg-config paths follow Unix conventions, even on Windows; split the
+        # output using shlex.split rather than mesonlib.split_args
+        return shlex.split(cmd)
+
     def _set_cargs(self):
         env = None
         if self.language == 'fortran':
@@ -708,7 +710,7 @@ class PkgConfigDependency(ExternalDependency):
         if ret != 0:
             raise DependencyException('Could not generate cargs for %s:\n\n%s' %
                                       (self.name, out))
-        self.compile_args = self._convert_mingw_paths(shlex.split(out))
+        self.compile_args = self._convert_mingw_paths(self._split_args(out))
 
     def _search_libs(self, out, out_raw):
         '''
@@ -737,7 +739,7 @@ class PkgConfigDependency(ExternalDependency):
         # always searched first.
         prefix_libpaths = OrderedSet()
         # We also store this raw_link_args on the object later
-        raw_link_args = self._convert_mingw_paths(shlex.split(out_raw))
+        raw_link_args = self._convert_mingw_paths(self._split_args(out_raw))
         for arg in raw_link_args:
             if arg.startswith('-L') and not arg.startswith(('-L-l', '-L-L')):
                 path = arg[2:]
@@ -746,7 +748,7 @@ class PkgConfigDependency(ExternalDependency):
                     path = os.path.join(self.env.get_build_dir(), path)
                 prefix_libpaths.add(path)
         system_libpaths = OrderedSet()
-        full_args = self._convert_mingw_paths(shlex.split(out))
+        full_args = self._convert_mingw_paths(self._split_args(out))
         for arg in full_args:
             if arg.startswith(('-L-l', '-L-L')):
                 # These are D language arguments, not library paths

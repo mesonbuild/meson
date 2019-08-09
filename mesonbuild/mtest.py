@@ -29,7 +29,6 @@ import pickle
 import platform
 import random
 import re
-import shlex
 import signal
 import subprocess
 import sys
@@ -41,7 +40,7 @@ from . import build
 from . import environment
 from . import mlog
 from .dependencies import ExternalProgram
-from .mesonlib import MesonException, get_wine_shortpath
+from .mesonlib import MesonException, get_wine_shortpath, split_args
 
 if typing.TYPE_CHECKING:
     from .backend.backends import TestSerialisation
@@ -88,7 +87,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Run test under gdb.')
     parser.add_argument('--list', default=False, dest='list', action='store_true',
                         help='List available tests.')
-    parser.add_argument('--wrapper', default=None, dest='wrapper', type=shlex.split,
+    parser.add_argument('--wrapper', default=None, dest='wrapper', type=split_args,
                         help='wrapper to run tests with (e.g. Valgrind)')
     parser.add_argument('-C', default='.', dest='wd',
                         help='directory to cd into before running')
@@ -116,7 +115,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         ' more time to execute.')
     parser.add_argument('--setup', default=None, dest='setup',
                         help='Which test setup to use.')
-    parser.add_argument('--test-args', default=[], type=shlex.split,
+    parser.add_argument('--test-args', default=[], type=split_args,
                         help='Arguments to pass to the specified test(s) or all tests')
     parser.add_argument('args', nargs='*',
                         help='Optional list of tests to run')

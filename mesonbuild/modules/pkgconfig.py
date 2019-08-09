@@ -240,7 +240,7 @@ class PkgConfigModule(ExtensionModule):
 
     def _escape(self, value):
         '''
-        We cannot use shlex.quote because it quotes with ' and " which does not
+        We cannot use quote_arg because it quotes with ' and " which does not
         work with pkg-config and pkgconf at all.
         '''
         # We should always write out paths with / because pkg-config requires

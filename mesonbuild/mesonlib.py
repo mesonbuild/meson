@@ -17,7 +17,7 @@ from pathlib import Path
 import sys
 import stat
 import time
-import platform, subprocess, operator, os, shutil, re
+import platform, subprocess, operator, os, shlex, shutil, re
 import collections
 from enum import Enum
 from functools import lru_cache
@@ -728,6 +728,84 @@ def has_path_sep(name, sep='/\\'):
         if each in name:
             return True
     return False
+
+
+if is_windows():
+    # shlex.split is not suitable for splitting command line on Window (https://bugs.python.org/issue1724822);
+    # shlex.quote is similarly problematic. Below are "proper" implementations of these functions according to
+    # https://docs.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments and
+    # https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/
+
+    _whitespace = ' \t\n\r'
+    _find_unsafe_char = re.compile(r'[{}"]'.format(_whitespace)).search
+
+    def quote_arg(arg):
+        if arg and not _find_unsafe_char(arg):
+            return arg
+
+        result = '"'
+        num_backslashes = 0
+        for c in arg:
+            if c == '\\':
+                num_backslashes += 1
+            else:
+                if c == '"':
+                    # Escape all backslashes and the following double quotation mark
+                    num_backslashes = num_backslashes * 2 + 1
+
+                result += num_backslashes * '\\' + c
+                num_backslashes = 0
+
+        # Escape all backslashes, but let the terminating double quotation
+        # mark we add below be interpreted as a metacharacter
+        result += (num_backslashes * 2) * '\\' + '"'
+        return result
+
+    def split_args(cmd):
+        result = []
+        arg = ''
+        num_backslashes = 0
+        num_quotes = 0
+        in_quotes = False
+        for c in cmd:
+            if c == '\\':
+                num_backslashes += 1
+            else:
+                if c == '"' and not (num_backslashes % 2):
+                    # unescaped quote, eat it
+                    arg += (num_backslashes // 2) * '\\'
+                    num_quotes += 1
+                    in_quotes = not in_quotes
+                elif c in _whitespace and not in_quotes:
+                    if arg or num_quotes:
+                        # reached the end of the argument
+                        result.append(arg)
+                        arg = ''
+                        num_quotes = 0
+                else:
+                    if c == '"':
+                        # escaped quote
+                        num_backslashes = (num_backslashes - 1) // 2
+
+                    arg += num_backslashes * '\\' + c
+
+                num_backslashes = 0
+
+        if arg or num_quotes:
+            result.append(arg)
+
+        return result
+else:
+    def quote_arg(arg):
+        return shlex.quote(arg)
+
+    def split_args(cmd):
+        return shlex.split(cmd)
+
+
+def join_args(args):
+    return ' '.join([quote_arg(x) for x in args])
+
 
 def do_replacement(regex, line, variable_format, confdata):
     missing_variables = set()

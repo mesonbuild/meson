@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, platform, re, sys, shlex, shutil, subprocess, typing
+import os, platform, re, sys, shutil, subprocess, typing
 import tempfile
 
 from . import coredata
@@ -20,7 +20,7 @@ from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLin
 from . import mesonlib
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, Popen_safe,
-    PerMachineDefaultable, PerThreeMachineDefaultable
+    PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg
 )
 from . import mlog
 
@@ -120,7 +120,7 @@ def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
     found = search_version(found)
     if p.returncode == 0 and mesonlib.version_compare(found, '>=' + min_version):
         if log:
-            mlog.log('Found gcovr-{} at {}'.format(found, shlex.quote(shutil.which(gcovr_exe))))
+            mlog.log('Found gcovr-{} at {}'.format(found, quote_arg(shutil.which(gcovr_exe))))
         return gcovr_exe, mesonlib.version_compare(found, '>=' + new_rootdir_version)
     return None, None
 
@@ -158,7 +158,7 @@ def detect_ninja(version: str = '1.5', log: bool = False) -> str:
                     name = 'ninja'
                 if name == 'samu':
                     name = 'samurai'
-                mlog.log('Found {}-{} at {}'.format(name, found, shlex.quote(n)))
+                mlog.log('Found {}-{} at {}'.format(name, found, quote_arg(n)))
             return n
 
 def detect_native_windows_arch():
@@ -1322,7 +1322,7 @@ class Environment:
             if isinstance(compiler, compilers.CudaCompiler):
                 linkers = [self.cuda_static_linker, self.default_static_linker]
             elif evar in os.environ:
-                linkers = [shlex.split(os.environ[evar])]
+                linkers = [split_args(os.environ[evar])]
             elif isinstance(compiler, compilers.VisualStudioLikeCompiler):
                 linkers = [self.vs_static_linker, self.clang_cl_static_linker]
             elif isinstance(compiler, compilers.GnuCompiler):

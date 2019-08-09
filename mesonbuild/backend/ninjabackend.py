@@ -14,7 +14,6 @@
 from typing import List
 import os
 import re
-import shlex
 import pickle
 import subprocess
 from collections import OrderedDict
@@ -32,7 +31,7 @@ from .. import compilers
 from ..compilers import Compiler, CompilerArgs, CCompiler, VisualStudioLikeCompiler, FortranCompiler
 from ..linkers import ArLinker
 from ..mesonlib import (
-    File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine, ProgressBar
+    File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine, ProgressBar, quote_arg
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
@@ -44,11 +43,14 @@ FORTRAN_SUBMOD_PAT = r"^\s*\bsubmodule\b\s*\((\w+:?\w+)\)\s*(\w+)"
 FORTRAN_USE_PAT = r"^\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)"
 
 if mesonlib.is_windows():
+    # FIXME: can't use quote_arg on Windows just yet; there are a number of existing workarounds
+    # throughout the codebase that cumulatively make the current code work (see, e.g. Backend.escape_extra_args
+    # and NinjaBuildElement.write below) and need to be properly untangled before attempting this
     quote_func = lambda s: '"{}"'.format(s)
     execute_wrapper = ['cmd', '/c']
     rmfile_prefix = ['del', '/f', '/s', '/q', '{}', '&&']
 else:
-    quote_func = shlex.quote
+    quote_func = quote_arg
     execute_wrapper = []
     rmfile_prefix = ['rm', '-f', '{}', '&&']
 

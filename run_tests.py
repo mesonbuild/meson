@@ -117,7 +117,7 @@ Backend = Enum('Backend', 'ninja vs xcode')
 
 if 'MESON_EXE' in os.environ:
     import shlex
-    meson_exe = shlex.split(os.environ['MESON_EXE'])
+    meson_exe = mesonlib.split_args(os.environ['MESON_EXE'])
 else:
     meson_exe = None
 
