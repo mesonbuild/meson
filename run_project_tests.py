@@ -636,6 +636,7 @@ def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str,
         ('fpga', 'fpga', shutil.which('yosys') is None),
         ('frameworks', 'frameworks', False),
         ('nasm', 'nasm', False),
+        ('wasm', 'wasm', shutil.which('emcc') is None or backend is not Backend.ninja),
     ]
 
     if only:
