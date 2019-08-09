@@ -10,6 +10,7 @@ subdir('libdir')
 result = custom_target('check',
   input: objlib.extract_objects('source.c'),
   output: 'objcheck',
-  command: [checker, '@INPUT@', '@OUTPUT@'])
+  command: [checker, '@INPUT@', '@OUTPUT@'],
+  build_by_default: true)
 
 test('verify', verify, args: result)
