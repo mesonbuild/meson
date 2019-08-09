@@ -822,3 +822,49 @@ class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
         super().__init__(['xilink.exe'], for_machine, 'xilink', version=version)
+
+
+class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
+
+    """Sys-V derived linker used on Solaris and OpenSolaris."""
+
+    def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
+        if not args:
+            return args
+        return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
+
+    def no_undefined_args(self) -> typing.List[str]:
+        return ['-z', 'defs']
+
+    def get_allow_undefined_args(self) -> typing.List[str]:
+        return ['-z', 'nodefs']
+
+    def fatal_warnings(self) -> typing.List[str]:
+        return ['-z', 'fatal-warnings']
+
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> typing.List[str]:
+        if not rpath_paths and not install_rpath and not build_rpath:
+            return []
+        processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
+        all_paths = mesonlib.OrderedSet([os.path.join('$ORIGIN', p) for p in processed_rpaths])
+        if build_rpath != '':
+            all_paths.add(build_rpath)
+
+        # In order to avoid relinking for RPATH removal, the binary needs to contain just
+        # enough space in the ELF header to hold the final installation RPATH.
+        paths = ':'.join(all_paths)
+        if len(paths) < len(install_rpath):
+            padding = 'X' * (len(install_rpath) - len(paths))
+            if not paths:
+                paths = padding
+            else:
+                paths = paths + ':' + padding
+        return ['-Wl,-rpath,{}'.format(paths)]
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
+                        is_shared_module: bool) -> typing.List[str]:
+        sostr = '' if soversion is None else '.' + soversion
+        return ['-Wl,-soname,{}{}.{}{}'.format(prefix, shlib_name, suffix, sostr)]
