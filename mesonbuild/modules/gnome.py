@@ -66,11 +66,15 @@ class GnomeModule(ExtensionModule):
     gir_dep = None
 
     @staticmethod
+    def _get_glib_dep(state):
+        return PkgConfigDependency('glib-2.0', state.environment,
+                                   {'native': True, 'required': False})
+
+    @staticmethod
     def _get_native_glib_version(state):
         global native_glib_version
         if native_glib_version is None:
-            glib_dep = PkgConfigDependency('glib-2.0', state.environment,
-                                           {'native': True, 'required': False})
+            glib_dep = GnomeModule._get_glib_dep(state)
             if glib_dep.found():
                 native_glib_version = glib_dep.get_version()
             else:
@@ -1503,7 +1507,12 @@ G_END_DECLS'''
 
         new_genmarshal = mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.3')
 
-        cmd = [self.interpreter.find_program_impl('glib-genmarshal')]
+        glib_dep = self._get_glib_dep(state)
+        glib_genmarshal = glib_dep.get_pkgconfig_variable('glib_genmarshal', {'default': ''})
+        if not glib_genmarshal:
+            glib_genmarshal = self.interpreter.find_program_impl('glib-genmarshal')
+
+        cmd = [glib_genmarshal]
         known_kwargs = ['internal', 'nostdinc', 'skip_source', 'stdinc',
                         'valist_marshallers', 'extra_args']
         known_custom_target_kwargs = ['build_always', 'depends',
