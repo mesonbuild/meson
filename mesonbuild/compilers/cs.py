@@ -18,6 +18,7 @@ from ..mesonlib import EnvironmentException
 from ..mesonlib import is_windows
 
 from .compilers import Compiler, MachineChoice, mono_buildtype_args
+from .mixins.islinker import BasicLinkerIsCompilerMixin
 
 cs_optimization_args = {'0': [],
                         'g': [],
@@ -27,7 +28,7 @@ cs_optimization_args = {'0': [],
                         's': ['-optimize+'],
                         }
 
-class CsCompiler(Compiler):
+class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def __init__(self, exelist, version, for_machine: MachineChoice, comp_id, runner=None):
         self.language = 'cs'
         super().__init__(exelist, version, for_machine)
@@ -50,17 +51,11 @@ class CsCompiler(Compiler):
     def get_link_args(self, fname):
         return ['-r:' + fname]
 
-    def get_soname_args(self, *args):
-        return []
-
     def get_werror_args(self):
         return ['-warnaserror']
 
     def split_shlib_to_parts(self, fname):
         return None, fname
-
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        return []
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
@@ -71,13 +66,7 @@ class CsCompiler(Compiler):
     def get_compile_only_args(self):
         return []
 
-    def get_linker_output_args(self, outputname):
-        return []
-
     def get_coverage_args(self):
-        return []
-
-    def get_coverage_link_args(self):
         return []
 
     def get_std_exe_link_args(self):
@@ -141,6 +130,7 @@ class CsCompiler(Compiler):
 
     def get_optimization_args(self, optimization_level):
         return cs_optimization_args[optimization_level]
+
 
 class MonoCompiler(CsCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice):

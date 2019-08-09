@@ -34,9 +34,6 @@ class SwiftCompiler(Compiler):
         self.id = 'llvm'
         self.is_cross = is_cross
 
-    def get_linker_exelist(self):
-        return self.exelist[:]
-
     def name_string(self):
         return ' '.join(self.exelist)
 
@@ -58,9 +55,6 @@ class SwiftCompiler(Compiler):
     def get_output_args(self, target):
         return ['-o', target]
 
-    def get_linker_output_args(self, target):
-        return ['-o', target]
-
     def get_header_import_args(self, headername):
         return ['-import-objc-header', headername]
 
@@ -70,9 +64,6 @@ class SwiftCompiler(Compiler):
     def get_buildtype_args(self, buildtype):
         return swift_buildtype_args[buildtype]
 
-    def get_buildtype_linker_args(self, buildtype):
-        return []
-
     def get_std_exe_link_args(self):
         return ['-emit-executable']
 
@@ -81,9 +72,6 @@ class SwiftCompiler(Compiler):
 
     def get_mod_gen_args(self):
         return ['-emit-module']
-
-    def build_rpath_args(self, *args):
-        return [] # FIXME
 
     def get_include_args(self, dirname):
         return ['-I' + dirname]

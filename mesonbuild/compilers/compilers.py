@@ -13,9 +13,10 @@
 # limitations under the License.
 
 import contextlib, enum, os.path, re, tempfile, shlex
-from typing import Optional, Tuple, List
+import typing
+from typing import List, Optional, Tuple
 
-from ..linkers import StaticLinker
+from ..linkers import StaticLinker, GnuLikeDynamicLinkerMixin
 from .. import coredata
 from .. import mlog
 from .. import mesonlib
@@ -26,6 +27,11 @@ from ..mesonlib import (
 from ..envconfig import (
     Properties,
 )
+
+if typing.TYPE_CHECKING:
+    from ..coredata import OptionDictType
+    from ..environment import Environment
+    from ..linkers import DynamicLinker  # noqa: F401
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
@@ -335,18 +341,26 @@ def get_base_link_args(options, linker, is_shared_module):
             args += linker.get_coverage_link_args()
     except KeyError:
         pass
-    # These do not need a try...except
-    if not is_shared_module and option_enabled(linker.base_options, options, 'b_lundef'):
-        args.append('-Wl,--no-undefined')
+
     as_needed = option_enabled(linker.base_options, options, 'b_asneeded')
     bitcode = option_enabled(linker.base_options, options, 'b_bitcode')
     # Shared modules cannot be built with bitcode_bundle because
     # -bitcode_bundle is incompatible with -undefined and -bundle
     if bitcode and not is_shared_module:
-        args.append('-Wl,-bitcode_bundle')
+        args.extend(linker.bitcode_args())
     elif as_needed:
         # -Wl,-dead_strip_dylibs is incompatible with bitcode
         args.extend(linker.get_asneeded_args())
+
+    # Apple's ld (the only one that supports bitcode) does not like any
+    # -undefined arguments at all, so don't pass these when using bitcode
+    if not bitcode:
+        if (not is_shared_module and
+                option_enabled(linker.base_options, options, 'b_lundef')):
+            args.extend(linker.no_undefined_link_args())
+        else:
+            args.extend(linker.get_allow_undefined_link_args())
+
     try:
         crt_val = options['b_vscrt'].value
         buildtype = options['buildtype'].value
@@ -357,30 +371,6 @@ def get_base_link_args(options, linker, is_shared_module):
     except KeyError:
         pass
     return args
-
-def prepare_rpaths(raw_rpaths, build_dir, from_dir):
-    internal_format_rpaths = [evaluate_rpath(p, build_dir, from_dir) for p in raw_rpaths]
-    ordered_rpaths = order_rpaths(internal_format_rpaths)
-    return ordered_rpaths
-
-def order_rpaths(rpath_list):
-    # We want rpaths that point inside our build dir to always override
-    # those pointing to other places in the file system. This is so built
-    # binaries prefer our libraries to the ones that may lie somewhere
-    # in the file system, such as /lib/x86_64-linux-gnu.
-    #
-    # The correct thing to do here would be C++'s std::stable_partition.
-    # Python standard library does not have it, so replicate it with
-    # sort, which is guaranteed to be stable.
-    return sorted(rpath_list, key=os.path.isabs)
-
-def evaluate_rpath(p, build_dir, from_dir):
-    if p == from_dir:
-        return '' # relpath errors out in this case
-    elif os.path.isabs(p):
-        return p # These can be outside of build dir.
-    else:
-        return os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
 
 
 class CrossNoRunException(MesonException):
@@ -529,7 +519,7 @@ class CompilerArgs(list):
             return True
         return False
 
-    def to_native(self, copy=False):
+    def to_native(self, copy: bool = False) -> typing.List[str]:
         # Check if we need to add --start/end-group for circular dependencies
         # between static libraries, and for recursively searching for symbols
         # needed by static libraries that are provided by object files or
@@ -538,8 +528,12 @@ class CompilerArgs(list):
             new = self.copy()
         else:
             new = self
-        if get_compiler_uses_gnuld(self.compiler):
-            global soregex
+        # This covers all ld.bfd, ld.gold, ld.gold, and xild on Linux, which
+        # all act like (or are) gnu ld
+        # TODO: this could probably be added to the DynamicLinker instead
+        if (hasattr(self.compiler, 'linker') and
+                self.compiler.linker is not None and
+                isinstance(self.compiler.linker, GnuLikeDynamicLinkerMixin)):
             group_start = -1
             group_end = -1
             for i, each in enumerate(new):
@@ -656,7 +650,8 @@ class Compiler:
     # manually searched.
     internal_libs = ()
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, **kwargs):
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 linker: typing.Optional['DynamicLinker'] = None, **kwargs):
         if isinstance(exelist, str):
             self.exelist = [exelist]
         elif isinstance(exelist, list):
@@ -676,6 +671,7 @@ class Compiler:
             self.full_version = None
         self.for_machine = for_machine
         self.base_options = []
+        self.linker = linker
 
     def __repr__(self):
         repr_str = "<{0}: v{1} `{2}`>"
@@ -729,6 +725,12 @@ class Compiler:
     def get_exelist(self):
         return self.exelist[:]
 
+    def get_linker_exelist(self) -> typing.List[str]:
+        return self.linker.get_exelist()
+
+    def get_linker_output_args(self, outputname: str) -> typing.List[str]:
+        return self.linker.get_output_args(outputname)
+
     def get_builtin_define(self, *args, **kwargs):
         raise EnvironmentException('%s does not support get_builtin_define.' % self.id)
 
@@ -738,17 +740,17 @@ class Compiler:
     def get_always_args(self):
         return []
 
-    def can_linker_accept_rsp(self):
+    def can_linker_accept_rsp(self) -> bool:
         """
         Determines whether the linker can accept arguments using the @rsp syntax.
         """
-        return mesonlib.is_windows()
+        return self.linker.get_accepts_rsp()
 
     def get_linker_always_args(self):
-        return []
+        return self.linker.get_always_args()
 
     def get_linker_lib_prefix(self):
-        return ''
+        return self.linker.get_lib_prefix()
 
     def gen_import_library_args(self, implibname):
         """
@@ -769,7 +771,10 @@ class Compiler:
         """
         return self.get_language() in languages_using_ldflags
 
-    def get_args_from_envvars(self):
+    def get_linker_args_from_envvars(self) -> typing.List[str]:
+        return self.linker.get_args_from_envvars()
+
+    def get_args_from_envvars(self) -> typing.Tuple[typing.List[str], typing.List[str]]:
         """
         Returns a tuple of (compile_flags, link_flags) for the specified language
         from the inherited environment
@@ -781,15 +786,13 @@ class Compiler:
                 mlog.debug('No {} in the environment, not changing global flags.'.format(var))
 
         lang = self.get_language()
-        compiler_is_linker = False
-        if hasattr(self, 'get_linker_exelist'):
-            compiler_is_linker = (self.get_exelist() == self.get_linker_exelist())
+        compiler_is_linker = self.linker is not None and self.linker.invoked_by_compiler()
 
         if lang not in cflags_mapping:
             return [], []
 
-        compile_flags = []
-        link_flags = []
+        compile_flags = []  # type: typing.List[str]
+        link_flags = []     # type: typing.List[str]
 
         env_compile_flags = os.environ.get(cflags_mapping[lang])
         log_var(cflags_mapping[lang], env_compile_flags)
@@ -798,12 +801,11 @@ class Compiler:
 
         # Link flags (same for all languages)
         if self.use_ldflags():
-            env_link_flags = os.environ.get('LDFLAGS')
+            env_link_flags = self.get_linker_args_from_envvars()
         else:
-            env_link_flags = None
+            env_link_flags = []
         log_var('LDFLAGS', env_link_flags)
-        if env_link_flags is not None:
-            link_flags += shlex.split(env_link_flags)
+        link_flags += env_link_flags
         if compiler_is_linker:
             # When the compiler is used as a wrapper around the linker (such as
             # with GCC and Clang), the compile flags can be needed while linking
@@ -861,8 +863,8 @@ class Compiler:
     def get_option_compile_args(self, options):
         return []
 
-    def get_option_link_args(self, options):
-        return []
+    def get_option_link_args(self, options: 'OptionDictType') -> typing.List[str]:
+        return self.linker.get_option_args(options)
 
     def check_header(self, *args, **kwargs) -> Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
@@ -910,10 +912,8 @@ class Compiler:
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
-    def has_multi_link_arguments(self, args, env) -> Tuple[bool, bool]:
-        raise EnvironmentException(
-            'Language {} does not support has_multi_link_arguments.'.format(
-                self.get_display_language()))
+    def has_multi_link_arguments(self, args: typing.List[str], env: 'Environment') -> Tuple[bool, bool]:
+        return self.linker.has_multi_arguments(args, env)
 
     def _get_compile_output(self, dirname, mode):
         # In pre-processor mode, the output is sent to stdout and discarded
@@ -1026,19 +1026,23 @@ class Compiler:
     def get_compile_debugfile_args(self, rel_obj, **kwargs):
         return []
 
-    def get_link_debugfile_args(self, rel_obj):
-        return []
+    def get_link_debugfile_args(self, targetfile: str) -> typing.List[str]:
+        return self.linker.get_debugfile_args(targetfile)
 
-    def get_std_shared_lib_link_args(self):
-        return []
+    def get_std_shared_lib_link_args(self) -> typing.List[str]:
+        return self.linker.get_std_shared_lib_args()
 
-    def get_std_shared_module_link_args(self, options):
-        return self.get_std_shared_lib_link_args()
+    def get_std_shared_module_link_args(self, options: 'OptionDictType') -> typing.List[str]:
+        return self.linker.get_std_shared_module_args(options)
 
-    def get_link_whole_for(self, args):
-        if isinstance(args, list) and not args:
-            return []
-        raise EnvironmentException('Language %s does not support linking whole archives.' % self.get_display_language())
+    def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
+        return self.linker.get_link_whole_for(args)
+
+    def get_allow_undefined_link_args(self) -> typing.List[str]:
+        return self.linker.get_allow_undefined_args()
+
+    def no_undefined_link_args(self) -> typing.List[str]:
+        return self.linker.no_undefined_args()
 
     # Compiler arguments needed to enable the given instruction set.
     # May be [] meaning nothing needed or None meaning the given set
@@ -1046,77 +1050,11 @@ class Compiler:
     def get_instruction_set_args(self, instruction_set):
         return None
 
-    def build_unix_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        if not rpath_paths and not install_rpath and not build_rpath:
-            return []
-        args = []
-        if get_compiler_is_osx_compiler(self):
-            # Ensure that there is enough space for install_name_tool in-place editing of large RPATHs
-            args.append('-Wl,-headerpad_max_install_names')
-            # @loader_path is the equivalent of $ORIGIN on macOS
-            # https://stackoverflow.com/q/26280738
-            origin_placeholder = '@loader_path'
-        else:
-            origin_placeholder = '$ORIGIN'
-        # The rpaths we write must be relative if they point to the build dir,
-        # because otherwise they have different length depending on the build
-        # directory. This breaks reproducible builds.
-        processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
-        # Need to deduplicate rpaths, as macOS's install_name_tool
-        # is *very* allergic to duplicate -delete_rpath arguments
-        # when calling depfixer on installation.
-        all_paths = OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
-        # Build_rpath is used as-is (it is usually absolute).
-        if build_rpath != '':
-            all_paths.add(build_rpath)
-
-        if mesonlib.is_dragonflybsd() or mesonlib.is_openbsd():
-            # This argument instructs the compiler to record the value of
-            # ORIGIN in the .dynamic section of the elf. On Linux this is done
-            # by default, but is not on dragonfly/openbsd for some reason. Without this
-            # $ORIGIN in the runtime path will be undefined and any binaries
-            # linked against local libraries will fail to resolve them.
-            args.append('-Wl,-z,origin')
-
-        if get_compiler_is_osx_compiler(self):
-            # macOS does not support colon-separated strings in LC_RPATH,
-            # hence we have to pass each path component individually
-            args += ['-Wl,-rpath,' + rp for rp in all_paths]
-        else:
-            # In order to avoid relinking for RPATH removal, the binary needs to contain just
-            # enough space in the ELF header to hold the final installation RPATH.
-            paths = ':'.join(all_paths)
-            if len(paths) < len(install_rpath):
-                padding = 'X' * (len(install_rpath) - len(paths))
-                if not paths:
-                    paths = padding
-                else:
-                    paths = paths + ':' + padding
-            args.append('-Wl,-rpath,' + paths)
-
-        if mesonlib.is_sunos():
-            return args
-
-        if get_compiler_is_linuxlike(self):
-            # Rpaths to use while linking must be absolute. These are not
-            # written to the binary. Needed only with GNU ld:
-            # https://sourceware.org/bugzilla/show_bug.cgi?id=16936
-            # Not needed on Windows or other platforms that don't use RPATH
-            # https://github.com/mesonbuild/meson/issues/1897
-            #
-            # In addition, this linker option tends to be quite long and some
-            # compilers have trouble dealing with it. That's why we will include
-            # one option per folder, like this:
-            #
-            #   -Wl,-rpath-link,/path/to/folder1 -Wl,-rpath,/path/to/folder2 ...
-            #
-            # ...instead of just one single looooong option, like this:
-            #
-            #   -Wl,-rpath-link,/path/to/folder1:/path/to/folder2:...
-
-            args += ['-Wl,-rpath-link,' + os.path.join(build_dir, p) for p in rpath_paths]
-
-        return args
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> typing.List[str]:
+        return self.linker.build_rpath_args(
+            env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
     def thread_flags(self, env):
         return []
@@ -1125,10 +1063,6 @@ class Compiler:
         raise EnvironmentException('Language %s does not support OpenMP flags.' % self.get_display_language())
 
     def language_stdlib_only_link_flags(self):
-        # The linker flags needed to link the standard library of the current
-        # language in. This is needed in cases where you e.g. combine D and C++
-        # and both of which need to link their runtime library in or otherwise
-        # building fails with undefined symbols.
         return []
 
     def gnu_symbol_visibility_args(self, vistype):
@@ -1149,9 +1083,8 @@ class Compiler:
         m = 'Language {} does not support position-independent executable'
         raise EnvironmentException(m.format(self.get_display_language()))
 
-    def get_pie_link_args(self):
-        m = 'Language {} does not support position-independent executable'
-        raise EnvironmentException(m.format(self.get_display_language()))
+    def get_pie_link_args(self) -> typing.List[str]:
+        return self.linker.get_pie_args()
 
     def get_argument_syntax(self):
         """Returns the argument family type.
@@ -1172,11 +1105,8 @@ class Compiler:
         raise EnvironmentException(
             '%s does not support get_profile_use_args ' % self.get_id())
 
-    def get_undefined_link_args(self):
-        '''
-        Get args for allowing undefined symbols when linking to a shared library
-        '''
-        return []
+    def get_undefined_link_args(self) -> typing.List[str]:
+        return self.linker.get_undefined_link_args()
 
     def remove_linkerlike_args(self, args):
         return [x for x in args if not x.startswith('-Wl')]
@@ -1185,13 +1115,32 @@ class Compiler:
         return []
 
     def get_lto_link_args(self) -> List[str]:
-        return []
+        return self.linker.get_lto_args()
 
     def sanitizer_compile_args(self, value: str) -> List[str]:
         return []
 
     def sanitizer_link_args(self, value: str) -> List[str]:
-        return []
+        return self.linker.sanitizer_args(value)
+
+    def get_asneeded_args(self) -> typing.List[str]:
+        return self.linker.get_asneeded_args()
+
+    def bitcode_args(self) -> typing.List[str]:
+        return self.linker.bitcode_args()
+
+    def get_linker_debug_crt_args(self) -> typing.List[str]:
+        return self.linker.get_debug_crt_args()
+
+    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
+        return self.linker.get_buildtype_args(buildtype)
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
+                        is_shared_module: bool) -> typing.List[str]:
+        return self.linker.get_soname_args(
+            env, prefix, shlib_name, suffix, soversion,
+            darwin_versions, is_shared_module)
 
 
 @enum.unique
@@ -1234,23 +1183,6 @@ class CompilerType(enum.Enum):
 def get_compiler_is_linuxlike(compiler):
     compiler_type = getattr(compiler, 'compiler_type', None)
     return compiler_type and compiler_type.is_standard_compiler
-
-def get_compiler_is_osx_compiler(compiler):
-    compiler_type = getattr(compiler, 'compiler_type', None)
-    return compiler_type and compiler_type.is_osx_compiler
-
-def get_compiler_uses_gnuld(c):
-    # FIXME: Perhaps we should detect the linker in the environment?
-    # FIXME: Assumes that *BSD use GNU ld, but they might start using lld soon
-    compiler_type = getattr(c, 'compiler_type', None)
-    return compiler_type in {
-        CompilerType.GCC_STANDARD,
-        CompilerType.GCC_MINGW,
-        CompilerType.GCC_CYGWIN,
-        CompilerType.CLANG_STANDARD,
-        CompilerType.CLANG_MINGW,
-        CompilerType.ICC_STANDARD,
-    }
 
 def get_largefile_args(compiler):
     '''

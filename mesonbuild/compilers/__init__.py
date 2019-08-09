@@ -23,7 +23,6 @@ __all__ = [
     'clink_langs',
     'c_suffixes',
     'cpp_suffixes',
-    'get_macos_dylib_install_name',
     'get_base_compile_args',
     'get_base_link_args',
     'is_assembly',
@@ -185,6 +184,6 @@ from .rust import RustCompiler
 from .swift import SwiftCompiler
 from .vala import ValaCompiler
 from .mixins.visualstudio import VisualStudioLikeCompiler
-from .mixins.gnu import GnuCompiler, get_macos_dylib_install_name
+from .mixins.gnu import GnuCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler

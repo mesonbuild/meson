@@ -13,10 +13,13 @@
 # limitations under the License.
 
 import subprocess, os.path
+import typing
 
 from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
-
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
+
+if typing.TYPE_CHECKING:
+    from ..environment import Environment  # noqa: F401
 
 rust_optimization_args = {'0': [],
                           'g': ['-C', '--opt-level=0'],
@@ -77,9 +80,6 @@ class RustCompiler(Compiler):
     def get_buildtype_args(self, buildtype):
         return rust_buildtype_args[buildtype]
 
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
-
     def get_sysroot(self):
         cmd = self.exelist + ['--print', 'sysroot']
         p, stdo, stde = Popen_safe(cmd)
@@ -101,9 +101,6 @@ class RustCompiler(Compiler):
                         break
 
         return parameter_list
-
-    def get_buildtype_linker_args(self, build_type):
-        return []
 
     def get_std_exe_link_args(self):
         return []

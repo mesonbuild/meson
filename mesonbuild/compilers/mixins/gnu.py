@@ -46,24 +46,6 @@ gnulike_buildtype_args = {
     'custom': [],
 }  # type: typing.Dict[str, typing.List[str]]
 
-apple_buildtype_linker_args = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}  # type: typing.Dict[str, typing.List[str]]
-
-gnulike_buildtype_linker_args = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': ['-Wl,-O1'],
-    'minsize': [],
-    'custom': [],
-}  # type: typing.Dict[str, typing.List[str]]
-
 gnu_optimization_args = {
     '0': [],
     'g': ['-Og'],
@@ -100,35 +82,6 @@ gnu_color_args = {
     'always': ['-fdiagnostics-color=always'],
     'never': ['-fdiagnostics-color=never'],
 }  # type: typing.Dict[str, typing.List[str]]
-
-
-def get_macos_dylib_install_name(prefix: str, shlib_name: str, suffix: str, soversion: str) -> str:
-    install_name = prefix + shlib_name
-    if soversion is not None:
-        install_name += '.' + soversion
-    install_name += '.dylib'
-    return '@rpath/' + install_name
-
-
-def get_gcc_soname_args(compiler_type: 'CompilerType', prefix: str,
-                        shlib_name: str, suffix: str, soversion: str, darwin_versions:
-                        typing.Tuple[str, str], is_shared_module: bool) -> typing.List[str]:
-    if compiler_type.is_standard_compiler:
-        sostr = '' if soversion is None else '.' + soversion
-        return ['-Wl,-soname,%s%s.%s%s' % (prefix, shlib_name, suffix, sostr)]
-    elif compiler_type.is_windows_compiler:
-        # For PE/COFF the soname argument has no effect with GNU LD
-        return []
-    elif compiler_type.is_osx_compiler:
-        if is_shared_module:
-            return []
-        name = get_macos_dylib_install_name(prefix, shlib_name, suffix, soversion)
-        args = ['-install_name', name]
-        if darwin_versions:
-            args += ['-compatibility_version', darwin_versions[0], '-current_version', darwin_versions[1]]
-        return args
-    else:
-        raise RuntimeError('Not implemented yet.')
 
 
 # TODO: The result from calling compiler should be cached. So that calling this
@@ -179,24 +132,12 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         self.compiler_type = compiler_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_ndebug', 'b_staticpic', 'b_pie']
-        if (not self.compiler_type.is_osx_compiler and
-                not self.compiler_type.is_windows_compiler and
-                not mesonlib.is_openbsd()):
+        if not (self.compiler_type.is_windows_compiler or mesonlib.is_openbsd()):
             self.base_options.append('b_lundef')
         if not self.compiler_type.is_windows_compiler:
             self.base_options.append('b_asneeded')
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
-
-    def get_asneeded_args(self) -> typing.List[str]:
-        # GNU ld cannot be installed on macOS
-        # https://github.com/Homebrew/homebrew-core/issues/17794#issuecomment-328174395
-        # Hence, we don't need to differentiate between OS and ld
-        # for the sake of adding as-needed support
-        if self.compiler_type.is_osx_compiler:
-            return ['-Wl,-dead_strip_dylibs']
-        else:
-            return ['-Wl,--as-needed']
 
     def get_pic_args(self) -> typing.List[str]:
         if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
@@ -205,9 +146,6 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
 
     def get_pie_args(self) -> typing.List[str]:
         return ['-fPIE']
-
-    def get_pie_link_args(self) -> typing.List[str]:
-        return ['-pie']
 
     def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
         return gnulike_buildtype_args[buildtype]
@@ -219,38 +157,12 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
     def get_debug_args(self, is_debug: bool) -> typing.List[str]:
         return clike_debug_args[is_debug]
 
-    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
-        if self.compiler_type.is_osx_compiler:
-            return apple_buildtype_linker_args[buildtype]
-        return gnulike_buildtype_linker_args[buildtype]
-
     @abc.abstractmethod
     def get_pch_suffix(self) -> str:
         raise NotImplementedError("get_pch_suffix not implemented")
 
     def split_shlib_to_parts(self, fname: str) -> typing.Tuple[str, str]:
         return os.path.dirname(fname), fname
-
-    # We're doing argument proxying here, I don't think there's anyway to
-    # accurately model this without copying the real signature
-    def get_soname_args(self, *args: typing.Any) -> typing.List[str]:
-        return get_gcc_soname_args(self.compiler_type, *args)
-
-    def get_std_shared_lib_link_args(self) -> typing.List[str]:
-        return ['-shared']
-
-    def get_std_shared_module_link_args(self, options: typing.Dict[str, 'UserOption[typing.Any]']) -> typing.List[str]:
-        if self.compiler_type.is_osx_compiler:
-            return ['-bundle', '-Wl,-undefined,dynamic_lookup']
-        return ['-shared']
-
-    def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
-        if self.compiler_type.is_osx_compiler:
-            result = []  # type: typing.List[str]
-            for a in args:
-                result += ['-Wl,-force_load', a]
-            return result
-        return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
 
     def get_instruction_set_args(self, instruction_set: str) -> typing.Optional[typing.List[str]]:
         return gnulike_instruction_set_args.get(instruction_set, None)
@@ -283,19 +195,6 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
 
     def get_profile_use_args(self) -> typing.List[str]:
         return ['-fprofile-use', '-fprofile-correction']
-
-    def get_allow_undefined_link_args(self) -> typing.List[str]:
-        if self.compiler_type.is_osx_compiler:
-            # Apple ld
-            return ['-Wl,-undefined,dynamic_lookup']
-        elif self.compiler_type.is_windows_compiler:
-            # For PE/COFF this is impossible
-            return []
-        elif mesonlib.is_sunos():
-            return []
-        else:
-            # GNU ld and LLVM lld
-            return ['-Wl,--allow-shlib-undefined']
 
     def get_gui_app_args(self, value: bool) -> typing.List[str]:
         if self.compiler_type.is_windows_compiler:
@@ -369,9 +268,6 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
     def get_lto_compile_args(self) -> typing.List[str]:
         return ['-flto']
 
-    def get_lto_link_args(self) -> typing.List[str]:
-        return ['-flto']
-
     def sanitizer_compile_args(self, value: str) -> typing.List[str]:
         if value == 'none':
             return []
@@ -380,10 +276,19 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
             args.append('-fno-omit-frame-pointer')
         return args
 
-    def sanitizer_link_args(self, value: str) -> typing.List[str]:
-        if value == 'none':
-            return []
-        return ['-fsanitize=' + value]
+    def get_output_args(self, target: str) -> typing.List[str]:
+        return ['-o', target]
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return ['-MD', '-MQ', outtarget, '-MF', outfile]
+
+    def get_compile_only_args(self) -> typing.List[str]:
+        return ['-c']
+
+    def get_include_args(self, path: str, is_system: bool) -> typing.List[str]:
+        if is_system:
+            return ['-isystem' + path]
+        return ['-I' + path]
 
 
 class GnuCompiler(GnuLikeCompiler):

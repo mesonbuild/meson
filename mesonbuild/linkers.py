@@ -54,8 +54,9 @@ class StaticLinker:
     def get_coverage_link_args(self) -> typing.List[str]:
         return []
 
-    def build_rpath_args(self, build_dir: str, from_dir: str, rpath_paths: str,
-                         build_rpath: str, install_rpath: str) -> typing.List[str]:
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> typing.List[str]:
         return []
 
     def thread_link_flags(self, env: 'Environment') -> typing.List[str]:

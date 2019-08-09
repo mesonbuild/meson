@@ -33,17 +33,7 @@ pgi_buildtype_args = {
 }  # type: typing.Dict[str, typing.List[str]]
 
 
-pgi_buildtype_linker_args = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}  # type: typing.Dict[str, typing.List[str]]
-
-
-class PGICompiler():
+class PGICompiler:
     def __init__(self, compiler_type: 'CompilerType'):
         self.base_options = ['b_pch']
         self.id = 'pgi'
@@ -64,14 +54,6 @@ class PGICompiler():
     def gen_import_library_args(self, implibname: str) -> typing.List[str]:
         return []
 
-    def get_std_shared_lib_link_args(self) -> typing.List[str]:
-        # PGI -shared is Linux only.
-        if self.compiler_type.is_windows_compiler:
-            return ['-Bdynamic', '-Mmakedll']
-        elif not self.compiler_type.is_osx_compiler:
-            return ['-shared']
-        return []
-
     def get_pic_args(self) -> typing.List[str]:
         # PGI -fPIC is Linux only.
         if self.compiler_type.is_linux_compiler():
@@ -84,9 +66,6 @@ class PGICompiler():
     def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
         return pgi_buildtype_args[buildtype]
 
-    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
-        return pgi_buildtype_linker_args[buildtype]
-
     def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
         return clike_optimization_args[optimization_level]
 
@@ -98,9 +77,6 @@ class PGICompiler():
             if i[:2] == '-I' or i[:2] == '-L':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
         return parameter_list
-
-    def get_allow_undefined_link_args(self) -> typing.List[str]:
-        return []
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> typing.List[str]:
         return []

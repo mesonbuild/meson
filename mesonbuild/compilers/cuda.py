@@ -13,11 +13,16 @@
 # limitations under the License.
 
 import os.path
+import typing
 
 from .. import mlog
 from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
                         cuda_debug_args, CompilerType)
+
+if typing.TYPE_CHECKING:
+    from ..environment import Environment  # noqa: F401
+
 
 class CudaCompiler(Compiler):
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
@@ -47,7 +52,7 @@ class CudaCompiler(Compiler):
         return []
 
     def thread_link_flags(self, environment):
-        return ['-Xcompiler=-pthread']
+        return self._cook_link_args(super().thread_link_flags())
 
     def sanity_check(self, work_dir, environment):
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
@@ -142,9 +147,6 @@ class CudaCompiler(Compiler):
         else:
             mlog.debug('cudaGetDeviceCount() returned ' + stde)
 
-    def get_compiler_check_args(self):
-        return super().get_compiler_check_args() + []
-
     def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
         result, cached = super().has_header_symbol(hname, symbol, prefix, env, extra_args, dependencies)
         if result:
@@ -159,22 +161,24 @@ class CudaCompiler(Compiler):
         return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
     @staticmethod
-    def _cook_link_args(args):
+    def _cook_link_args(args: typing.List[str]) -> typing.List[str]:
         """
         Converts GNU-style arguments -Wl,-arg,-arg
         to NVCC-style arguments -Xlinker=-arg,-arg
         """
-        return [arg.replace('-Wl', '-Xlinker=', 1) if arg.startswith('-Wl') else arg for arg in args]
-
-    def get_output_args(self, target):
-        return ['-o', target]
+        cooked = []  # type: typing.List[str]
+        for arg in args:
+            if arg.startswith('-Wl,'):
+                arg = arg.replace('-Wl,', '-Xlinker=', 1)
+            arg = arg.replace(' ', '\\')
+            cooked.append(arg)
+        return cooked
 
     def name_string(self):
         return ' '.join(self.exelist)
 
     def get_soname_args(self, *args):
-        rawargs = get_gcc_soname_args(CompilerType.GCC_STANDARD, *args)
-        return self._cook_link_args(rawargs)
+        return self._cook_link_args(super().get_soname_args(*args))
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
@@ -194,12 +198,6 @@ class CudaCompiler(Compiler):
     def get_werror_args(self):
         return ['-Werror=cross-execution-space-call,deprecated-declarations,reorder']
 
-    def get_linker_exelist(self):
-        return self.exelist[:]
-
-    def get_linker_output_args(self, outputname):
-        return ['-o', outputname]
-
     def get_warn_args(self, level):
         return self.warn_args[level]
 
@@ -211,27 +209,17 @@ class CudaCompiler(Compiler):
             path = '.'
         return ['-I' + path]
 
-    def get_std_shared_lib_link_args(self):
-        return ['-shared']
-
     def depfile_for_object(self, objfile):
         return objfile + '.' + self.get_depfile_suffix()
 
     def get_depfile_suffix(self):
         return 'd'
 
-    def get_buildtype_linker_args(self, buildtype):
-        return []
-
-    def get_std_exe_link_args(self):
-        return []
-
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        rawargs = self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
-        return self._cook_link_args(rawargs)
-
-    def get_linker_search_args(self, dirname):
-        return ['-L' + dirname]
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> typing.List[str]:
+        return self._cook_link_args(super().build_rpath_args(
+            env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath))
 
     def linker_to_compiler_args(self, args):
         return args
@@ -240,4 +228,10 @@ class CudaCompiler(Compiler):
         return ['-Xcompiler=-fPIC']
 
     def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+        return []
+
+    def get_output_args(self, target: str) -> typing.List[str]:
+        return ['-o', target]
+
+    def get_std_exe_link_args(self) -> typing.List[str]:
         return []

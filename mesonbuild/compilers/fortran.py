@@ -24,8 +24,7 @@ from .compilers import (
 )
 from .mixins.clike import CLikeCompiler
 from .mixins.gnu import (
-    GnuCompiler, apple_buildtype_linker_args, gnulike_buildtype_args,
-    gnulike_buildtype_linker_args, gnu_optimization_args,
+    GnuCompiler, gnulike_buildtype_args, gnu_optimization_args,
 )
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
@@ -100,11 +99,6 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
     def get_debug_args(self, is_debug):
         return clike_debug_args[is_debug]
-
-    def get_buildtype_linker_args(self, buildtype):
-        if is_osx():
-            return apple_buildtype_linker_args[buildtype]
-        return gnulike_buildtype_linker_args[buildtype]
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return []

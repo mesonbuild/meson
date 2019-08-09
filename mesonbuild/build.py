@@ -28,7 +28,7 @@ from .mesonlib import (
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
 )
-from .compilers import Compiler, is_object, clink_langs, sort_clink, lang_suffixes, get_macos_dylib_install_name
+from .compilers import Compiler, is_object, clink_langs, sort_clink, lang_suffixes
 from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
@@ -96,8 +96,12 @@ known_stlib_kwargs = known_build_target_kwargs | {'pic'}
 known_jar_kwargs = known_exe_kwargs | {'main_class'}
 
 @lru_cache(maxsize=None)
-def get_target_macos_dylib_install_name(ld):
-    return get_macos_dylib_install_name(ld.prefix, ld.name, ld.suffix, ld.soversion)
+def get_target_macos_dylib_install_name(ld) -> str:
+    name = ['@rpath/', ld.prefix, ld.name]
+    if ld.soversion is not None:
+        name.append('.' + ld.soversion)
+    name.append('.dylib')
+    return ''.join(name)
 
 class InvalidArguments(MesonException):
     pass

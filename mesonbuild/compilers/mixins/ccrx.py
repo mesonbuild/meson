@@ -32,15 +32,6 @@ ccrx_buildtype_args = {
     'custom': [],
 }  # type: typing.Dict[str, typing.List[str]]
 
-ccrx_buildtype_linker_args = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}  # type: typing.Dict[str, typing.List[str]]
-
 ccrx_optimization_args = {
     '0': ['-optimize=0'],
     'g': ['-optimize=0'],
@@ -60,14 +51,6 @@ class CcrxCompiler:
     def __init__(self, compiler_type: 'CompilerType'):
         if not self.is_cross:
             raise EnvironmentException('ccrx supports only cross-compilation.')
-        # Check whether 'rlink.exe' is available in path
-        self.linker_exe = 'rlink.exe'
-        args = '--version'
-        try:
-            p, stdo, stderr = Popen_safe(self.linker_exe, args)
-        except OSError as e:
-            err_msg = 'Unknown linker\nRunning "{0}" gave \n"{1}"'.format(' '.join([self.linker_exe] + [args]), e)
-            raise EnvironmentException(err_msg)
         self.id = 'ccrx'
         self.compiler_type = compiler_type
         # Assembly
@@ -78,9 +61,6 @@ class CcrxCompiler:
                           '2': default_warn_args + [],
                           '3': default_warn_args + []}
 
-    def can_linker_accept_rsp(self) -> bool:
-        return False
-
     def get_pic_args(self) -> typing.List[str]:
         # PIC support is not enabled by default for CCRX,
         # if users want to use it, they need to add the required arguments explicitly
@@ -88,13 +68,6 @@ class CcrxCompiler:
 
     def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
         return ccrx_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
-        return ccrx_buildtype_linker_args[buildtype]
-
-    # Override CCompiler.get_std_shared_lib_link_args
-    def get_std_shared_lib_link_args(self) -> typing.List[str]:
-        return []
 
     def get_pch_suffix(self) -> str:
         return 'pch'
@@ -106,26 +79,10 @@ class CcrxCompiler:
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> typing.List[str]:
         return []
 
-    # Override CCompiler.build_rpath_args
-    def build_rpath_args(self, build_dir: str, from_dir: str, rpath_paths: str, build_rpath: str, install_rpath: str) -> typing.List[str]:
-        return []
-
     def thread_flags(self, env: 'Environment') -> typing.List[str]:
         return []
 
-    def thread_link_flags(self, env: 'Environment') -> typing.List[str]:
-        return []
-
-    def get_linker_exelist(self) -> typing.List[str]:
-        return [self.linker_exe]
-
-    def get_linker_lib_prefix(self) -> str:
-        return '-lib='
-
     def get_coverage_args(self) -> typing.List[str]:
-        return []
-
-    def get_coverage_link_args(self) -> typing.List[str]:
         return []
 
     def get_optimization_args(self, optimization_level: str) -> typing.List[str]:

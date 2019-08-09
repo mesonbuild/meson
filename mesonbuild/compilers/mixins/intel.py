@@ -133,8 +133,5 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         version = int(v1 + v2)
         return self._calculate_toolset_version(version)
 
-    def get_linker_exelist(self) -> typing.List[str]:
-        return ['xilink']
-
     def openmp_flags(self) -> typing.List[str]:
         return ['/Qopenmp']
