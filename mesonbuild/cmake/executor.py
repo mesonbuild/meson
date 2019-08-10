@@ -24,7 +24,7 @@ from typing import List, Tuple, Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from ..dependencies.base import ExternalProgram
 
-import re, os, shutil, ctypes, pathlib
+import re, os, shutil, ctypes
 
 class CMakeExecutor:
     # The class's copy of the CMake path. Avoids having to search for it
@@ -198,10 +198,10 @@ class CMakeExecutor:
         cxx_comp, cxx_launcher = choose_compiler('cpp')
 
         # on Windows, choose_compiler returns path with \ as separator - replace by / before writing to CMAKE file
-        c_comp = pathlib.PurePath(c_comp).as_posix()
-        c_launcher = pathlib.PurePath(c_launcher).as_posix()
-        cxx_comp = pathlib.PurePath(cxx_comp).as_posix()
-        cxx_launcher = pathlib.PurePath(cxx_launcher).as_posix()
+        c_comp = c_comp.replace('\\', '/')
+        c_launcher = c_launcher.replace('\\', '/')
+        cxx_comp = cxx_comp.replace('\\', '/')
+        cxx_launcher = cxx_launcher.replace('\\', '/')
 
         # Reset the CMake cache
         with open('{}/CMakeCache.txt'.format(build_dir), 'w') as fp:
