@@ -60,10 +60,11 @@ ALL_TESTS = ['cmake', 'common', 'native', 'warning-meson', 'failing-meson', 'fai
 class BuildStep(Enum):
     configure = 1
     build = 2
-    test = 3
-    install = 4
-    clean = 5
-    validate = 6
+    buildtest = 3
+    test = 4
+    install = 5
+    clean = 6
+    validate = 7
 
 
 class TestResult(BaseException):
@@ -264,9 +265,9 @@ signal.signal(signal.SIGTERM, stop_handler)
 
 def setup_commands(optbackend):
     global do_debug, backend, backend_flags
-    global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands
+    global compile_commands, clean_commands, buildtests_commands, test_commands, install_commands, uninstall_commands
     backend, backend_flags = guess_backend(optbackend, shutil.which('msbuild'))
-    compile_commands, clean_commands, test_commands, install_commands, \
+    compile_commands, clean_commands, buildtests_commands, test_commands, install_commands, \
         uninstall_commands = get_backend_commands(backend, do_debug)
 
 # TODO try to eliminate or at least reduce this function
@@ -530,7 +531,7 @@ def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, shou
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
 def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, compiler, backend, flags, commands, should_fail):
-    compile_commands, clean_commands, install_commands, uninstall_commands = commands
+    compile_commands, clean_commands, buildtests_commands, install_commands, uninstall_commands = commands
     gen_start = time.time()
     # Configure in-process
     gen_args = []  # type: T.List[str]
@@ -576,16 +577,26 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
     dir_args = get_backend_args_for_dir(backend, test_build_dir)
 
     # Build with subprocess
-    def build_step():
+    def build_step(step: BuildStep, commands: T.List[str]) -> None:
         build_start = time.time()
-        pc, o, e = Popen_safe(compile_commands + dir_args, cwd=test_build_dir)
-        testresult.add_step(BuildStep.build, o, e, '', time.time() - build_start)
-        if should_fail == 'build':
+        pc, o, e = Popen_safe(commands + dir_args, cwd=test_build_dir)
+        testresult.add_step(step, o, e, '', time.time() - build_start)
+
+        if step is BuildStep.build:
+            strstep = 'build'
+            fail_msg = 'Test that should have failed to build succeeded.'
+        elif step is BuildStep.buildtest:
+            strstep = 'build'
+            fail_msg = 'Test that should have failed to build tests succeeded.'
+        else:
+            raise Exception('Unknown build step')
+
+        if should_fail == strstep:
             if pc.returncode != 0:
                 raise testresult
-            testresult.fail('Test that should have failed to build succeeded.')
+            testresult.fail(fail_msg)
             raise testresult
-        if pc.returncode != 0:
+        if returncode != 0:
             testresult.fail('Compiling source code failed.')
             raise testresult
 
@@ -595,11 +606,13 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
         os.utime(str(test.path / 'meson.build'))
 
     # just test building
-    build_step()
+    build_step(BuildStep.build, compile_commands)
+    build_step(BuildStep.buildtest, buildtests_commands)
 
     # test that regeneration works for build step
     force_regenerate()
-    build_step()  # TBD: assert nothing gets built after the regenerate?
+    build_step(BuildStep.build, compile_commands)  # TBD: assert nothing gets built after the regenerate?
+    build_step(BuildStep.buildtest, buildtests_commands)
 
     # test that regeneration works for test step
     force_regenerate()
@@ -1019,7 +1032,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     passing_tests = 0
     failing_tests = 0
     skipped_tests = 0
-    commands = (compile_commands, clean_commands, install_commands, uninstall_commands)
+    commands = (compile_commands, clean_commands, buildtests_commands, install_commands, uninstall_commands)
 
     try:
         # This fails in some CI environments for unknown reasons.
@@ -1178,7 +1191,7 @@ def check_format():
                 check_file(root / file)
 
 def check_meson_commands_work(options):
-    global backend, compile_commands, test_commands, install_commands
+    global backend, compile_commands, buildtests_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if options.use_tmpdir else '.')) as build_dir:
@@ -1197,6 +1210,10 @@ def check_meson_commands_work(options):
         pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
         if pc.returncode != 0:
             raise RuntimeError('Failed to build {!r}:\n{}\n{}'.format(testdir, e, o))
+        print('Checking that building tests works...')
+        pc, o, e = Popen_safe(buildtests_commands, cwd=build_dir)
+        if pc.returncode != 0:
+            raise RuntimeError('Failed to build tests {!r}:\n{}\n{}'.format(testdir, e, o))
         print('Checking that testing works...')
         pc, o, e = Popen_safe(test_commands, cwd=build_dir)
         if pc.returncode != 0:
