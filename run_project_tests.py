@@ -50,10 +50,11 @@ from run_tests import guess_backend
 class BuildStep(Enum):
     configure = 1
     build = 2
-    test = 3
-    install = 4
-    clean = 5
-    validate = 6
+    buildtest = 3
+    test = 4
+    install = 5
+    clean = 6
+    validate = 7
 
 
 class TestResult:
@@ -104,9 +105,9 @@ signal.signal(signal.SIGTERM, stop_handler)
 
 def setup_commands(optbackend):
     global do_debug, backend, backend_flags
-    global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands
+    global compile_commands, clean_commands, buildtests_commands, test_commands, install_commands, uninstall_commands
     backend, backend_flags = guess_backend(optbackend, shutil.which('msbuild'))
-    compile_commands, clean_commands, test_commands, install_commands, \
+    compile_commands, clean_commands, buildtests_commands, test_commands, install_commands, \
         uninstall_commands = get_backend_commands(backend, do_debug)
 
 def get_relative_files_list_from_dir(fromdir: Path) -> typing.List[Path]:
@@ -339,7 +340,7 @@ def pass_libdir_to_test(dirname):
     return True
 
 def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail):
-    compile_commands, clean_commands, install_commands, uninstall_commands = commands
+    compile_commands, clean_commands, buildtests_commands, install_commands, uninstall_commands = commands
     test_args = parse_test_args(testdir)
     gen_start = time.time()
     setup_env = None
@@ -399,6 +400,18 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
         return TestResult('Test that should have failed to build succeeded', BuildStep.build, stdo, stde, mesonlog, gen_time)
     if pc.returncode != 0:
         return TestResult('Compiling source code failed.', BuildStep.build, stdo, stde, mesonlog, gen_time, build_time)
+    # Build tests with subprocess
+    build_start = time.time()
+    pc, o, e = Popen_safe(buildtests_commands + dir_args, cwd=test_build_dir)
+    build_time = time.time() - build_start
+    stdo += o
+    stde += e
+    if should_fail == 'buildtest':
+        if pc.returncode != 0:
+            return TestResult('', BuildStep.buildtest, stdo, stde, mesonlog, gen_time)
+        return TestResult('Test that should have failed to build tests succeeded', BuildStep.buildtest, stdo, stde, mesonlog, gen_time)
+    if pc.returncode != 0:
+        return TestResult('Compiling test source code failed.', BuildStep.buildtest, stdo, stde, mesonlog, gen_time, build_time)
     # Touch the meson.build file to force a regenerate so we can test that
     # regeneration works after a build is complete.
     ensure_backend_detects_changes(backend)
@@ -663,7 +676,7 @@ def _run_tests(all_tests, log_name_base, failfast: bool, extra_args):
     passing_tests = 0
     failing_tests = 0
     skipped_tests = 0
-    commands = (compile_commands, clean_commands, install_commands, uninstall_commands)
+    commands = (compile_commands, clean_commands, buildtests_commands, install_commands, uninstall_commands)
 
     try:
         # This fails in some CI environments for unknown reasons.
@@ -814,7 +827,7 @@ def check_format():
                 check_file(root / file)
 
 def check_meson_commands_work():
-    global backend, compile_commands, test_commands, install_commands
+    global backend, compile_commands, buildtests_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
@@ -828,6 +841,10 @@ def check_meson_commands_work():
         pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
         if pc.returncode != 0:
             raise RuntimeError('Failed to build {!r}:\n{}\n{}'.format(testdir, e, o))
+        print('Checking that building tests works...')
+        pc, o, e = Popen_safe(buildtests_commands, cwd=build_dir)
+        if pc.returncode != 0:
+            raise RuntimeError('Failed to build tests {!r}:\n{}\n{}'.format(testdir, e, o))
         print('Checking that testing works...')
         pc, o, e = Popen_safe(test_commands, cwd=build_dir)
         if pc.returncode != 0:

@@ -1221,7 +1221,7 @@ class BasePlatformTests(unittest.TestCase):
         self.wrap_command = self.meson_command + ['wrap']
         self.rewrite_command = self.meson_command + ['rewrite']
         # Backend-specific build commands
-        self.build_command, self.clean_command, self.test_command, self.install_command, \
+        self.build_command, self.clean_command, self.buildtests_command, self.test_command, self.install_command, \
             self.uninstall_command = get_backend_commands(self.backend)
         # Test directories
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
@@ -1372,6 +1372,7 @@ class BasePlatformTests(unittest.TestCase):
         self._run(self.clean_command + dir_args, workdir=self.builddir, override_envvars=override_envvars)
 
     def run_tests(self, *, inprocess=False, override_envvars=None):
+        self._run(self.buildtests_command, workdir=self.builddir, override_envvars=override_envvars)
         if not inprocess:
             self._run(self.test_command, workdir=self.builddir, override_envvars=override_envvars)
         else:
