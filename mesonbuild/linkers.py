@@ -868,3 +868,17 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                         is_shared_module: bool) -> typing.List[str]:
         sostr = '' if soversion is None else '.' + soversion
         return ['-Wl,-soname,{}{}.{}{}'.format(prefix, shlib_name, suffix, sostr)]
+
+
+class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
+
+    """Digital Mars dynamic linker for windows."""
+
+    def __init__(self, for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        # Use optlink instead of link so we don't interfer with other link.exe
+        # implementations.
+        super().__init__(['optlink.exe'], for_machine, 'optlink', version=version)
+
+    def get_allow_undefined_args(self) -> typing.List[str]:
+        return []
