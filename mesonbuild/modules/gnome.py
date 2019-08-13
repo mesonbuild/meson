@@ -106,8 +106,7 @@ class GnomeModule(ExtensionModule):
         self.__print_gresources_warning(state)
         glib_version = self._get_native_glib_version(state)
 
-        glib_compile_resources = self.interpreter.find_program_impl('glib-compile-resources')
-        cmd = [glib_compile_resources, '@INPUT@']
+        cmd = ['glib-compile-resources', '@INPUT@']
 
         source_dirs, dependencies = mesonlib.extract_as_list(kwargs, 'source_dir', 'dependencies', pop=True)
 
@@ -153,7 +152,7 @@ class GnomeModule(ExtensionModule):
         else:
             raise MesonException('Invalid file argument: {!r}'.format(ifile))
 
-        depend_files, depends, subdirs = self._get_gresource_dependencies(glib_compile_resources,
+        depend_files, depends, subdirs = self._get_gresource_dependencies(
             state, ifile, source_dirs, dependencies)
 
         # Make source dirs relative to build dir now
@@ -226,9 +225,9 @@ class GnomeModule(ExtensionModule):
         rv = [target_c, target_h]
         return ModuleReturnValue(rv, rv)
 
-    def _get_gresource_dependencies(self, glib_compile_resources, state, input_file, source_dirs, dependencies):
+    def _get_gresource_dependencies(self, state, input_file, source_dirs, dependencies):
 
-        cmd = [glib_compile_resources.held_object.get_path(),
+        cmd = ['glib-compile-resources',
                input_file,
                '--generate-dependencies']
 
