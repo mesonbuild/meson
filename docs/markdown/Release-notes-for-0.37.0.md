@@ -66,7 +66,7 @@ As always, you can also mix LLVM IR files with C++, C, and Assembly (GAS) source
 
 ## ViM indent and syntax files
 
-We now include filetype, indent, and syntax files for ViM [with the source tree](https://github.com/mesonbuild/meson/tree/master/syntax-highlighting/vim). Please file issues (or pull requests!) for enhancements or if you face any problems using them.
+We now include filetype, indent, and syntax files for ViM [with the source tree](https://github.com/mesonbuild/meson/tree/master/data/syntax-highlighting/vim). Please file issues (or pull requests!) for enhancements or if you face any problems using them.
 
 ## Push URLs in .wrap files
 
