@@ -5950,9 +5950,10 @@ class NativeFileTests(BasePlatformTests):
                     f.write("{}='{}'\n".format(k, v))
         return filename
 
-    def helper_create_binary_wrapper(self, binary, dir_=None, **kwargs):
+    def helper_create_binary_wrapper(self, binary, dir_=None, extra_args=None, **kwargs):
         """Creates a wrapper around a binary that overrides specific values."""
         filename = os.path.join(dir_ or self.builddir, 'binary_wrapper{}.py'.format(self.current_wrapper))
+        extra_args = extra_args or {}
         self.current_wrapper += 1
         if is_haiku():
             chbang = '#!/bin/env python3'
@@ -5969,10 +5970,10 @@ class NativeFileTests(BasePlatformTests):
                 def main():
                     parser = argparse.ArgumentParser()
                 '''.format(chbang)))
-            for name in kwargs:
+            for name in chain(extra_args, kwargs):
                 f.write('    parser.add_argument("-{0}", "--{0}", action="store_true")\n'.format(name))
             f.write('    args, extra_args = parser.parse_known_args()\n')
-            for name, value in kwargs.items():
+            for name, value in chain(extra_args.items(), kwargs.items()):
                 f.write('    if args.{}:\n'.format(name))
                 f.write('        print("{}", file=sys.{})\n'.format(value, kwargs.get('outfile', 'stdout')))
                 f.write('        sys.exit(0)\n')
