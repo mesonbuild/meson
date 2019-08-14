@@ -20,3 +20,15 @@ endif
 assert(has_not_changed, 'Executable has changed.')
 
 assert(not is_disabler(exe), 'Executable is a disabler.')
+
+exe = executable('trivialprog', 'trivial.cc', extra_files : disabler())
+
+assert(is_disabler(exe), 'Executable is not a disabler.')
+
+if exe.found()
+  exe_disabled = false
+else
+  exe_disabled = true
+endif
+
+assert(exe_disabled, 'Executable was not disabled.')

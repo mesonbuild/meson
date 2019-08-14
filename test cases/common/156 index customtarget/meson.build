@@ -59,3 +59,22 @@ custom_target(
 )
 
 subdir('subdir')
+
+gen = disabler()
+
+assert(is_disabler(gen), 'Generator is not a disabler.')
+
+lib = static_library(
+  'libfoo',
+  ['lib.c', gen[1]],
+)
+
+assert(is_disabler(lib), 'Static library is not a disabler.')
+
+if lib.found()
+  lib_disabled = false
+else
+  lib_disabled = true
+endif
+
+assert(lib_disabled, 'Static library was not disabled.')
