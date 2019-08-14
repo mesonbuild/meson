@@ -523,6 +523,10 @@ def skippable(suite, test):
     if test.endswith('14 fortran links c'):
         return True
 
+    # Blocks are not supported on all compilers
+    if test.endswith('29 blocks'):
+        return True
+
     # No frameworks test should be skipped on linux CI, as we expect all
     # prerequisites to be installed
     if mesonlib.is_linux():

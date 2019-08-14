@@ -9,3 +9,7 @@ short-description: Release notes for 0.52.0
 
 Added the function `is_disabler(var)`. Returns true if a variable is a disabler
 and false otherwise.
+
+## Add blocks dependency
+
+Add `dependency('blocks')` to use the Clang blocks extension.

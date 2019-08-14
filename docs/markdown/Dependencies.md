@@ -246,6 +246,16 @@ dep = dependency('appleframeworks', modules : 'foundation')
 
 These dependencies can never be found for non-OSX hosts.
 
+## Blocks
+
+Enable support for Clang's blocks extension.
+
+```meson
+dep = dependency('blocks')
+```
+
+*(added 0.52.0)*
+
 ## Boost
 
 Boost is not a single dependency but rather a group of different
