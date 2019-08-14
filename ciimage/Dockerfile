@@ -24,6 +24,7 @@ RUN sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list" \
 && apt-get -y install libgpgme-dev \
 && apt-get -y install libhdf5-dev \
 && apt-get -y install libboost-python-dev \
+&& apt-get -y install libblocksruntime-dev \
 && dub fetch urld && dub build urld --compiler=gdc \
 && dub fetch dubtestproject \
 && dub build dubtestproject:test1 --compiler=ldc2 \
