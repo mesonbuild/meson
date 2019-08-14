@@ -41,6 +41,14 @@ run_target('py3hi',
 run_target('check_exists',
   command : [find_program('check_exists.py'), files('helloprinter.c')])
 
+run_target('check_exists',
+  command : [find_program('check_exists.py'), files('helloprinter.c')],
+  depends : disabler(),
+)
+
+run_target('check_exists',
+  command : [disabler(), files('helloprinter.c')])
+
 # What if the output of a custom_target is the command to
 # execute. Obviously this will not work as hex is not an
 # executable but test that the output is generated correctly.

@@ -29,4 +29,38 @@ assert(has_not_changed, 'Custom target has changed.')
 
 assert(not is_disabler(mytarget), 'Custom target is a disabler.')
 
+mytarget_disabler = custom_target('bindat',
+output : 'data.dat',
+input : 'data_source.txt',
+command : [disabler(), comp, '--input=@INPUT@', '--output=@OUTPUT@', useless],
+install : true,
+install_dir : 'subdir'
+)
+
+if mytarget_disabler.found()
+  mytarget_disabled = false
+else
+  mytarget_disabled = true
+endif
+
+assert(mytarget_disabled, 'Disabled custom target should not be found.')
+
+mytarget_disabler = custom_target('bindat',
+output : 'data.dat',
+input : disabler(),
+command : [python, comp, '--input=@INPUT@', '--output=@OUTPUT@', useless],
+install : true,
+install_dir : 'subdir'
+)
+
+assert(is_disabler(mytarget_disabler), 'Disabled custom target is not a disabler.')
+
+if mytarget_disabler.found()
+  mytarget_disabled = false
+else
+  mytarget_disabled = true
+endif
+
+assert(mytarget_disabled, 'Disabled custom target should not be found.')
+
 subdir('depfile')
