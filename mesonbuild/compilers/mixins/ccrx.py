@@ -148,6 +148,8 @@ class CcrxCompiler:
                 continue
             elif i.startswith('-L'):
                 continue
+            elif not i.startswith('-lib=') and i.endswith(('.a', '.lib')):
+                i = '-lib=' + i
             result.append(i)
         return result
 
