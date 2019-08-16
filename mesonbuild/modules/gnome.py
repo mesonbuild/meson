@@ -55,8 +55,14 @@ def gir_has_option(intr_obj, option):
 
     _gir_has_option[option] = False
     try:
-        g_ir_scanner = intr_obj.find_program_impl('g-ir-scanner').get_command()
-        opts = Popen_safe(g_ir_scanner + ['--help'], stderr=subprocess.STDOUT)[1]
+        g_ir_scanner = intr_obj.find_program_impl('g-ir-scanner')
+        # Handle overriden g-ir-scanner
+        if isinstance(getattr(g_ir_scanner, "held_object", g_ir_scanner), interpreter.OverrideProgram):
+            assert option in ['--extra-library', '--sources-top-dirs']
+            _gir_has_option[option] = True
+            return True
+
+        opts = Popen_safe(g_ir_scanner.get_command() + ['--help'], stderr=subprocess.STDOUT)[1]
         _gir_has_option[option] = option in opts
     except (MesonException, FileNotFoundError, subprocess.CalledProcessError):
         pass
