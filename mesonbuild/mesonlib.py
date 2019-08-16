@@ -704,11 +704,15 @@ def get_library_dirs() -> typing.List[str]:
     else:
         plat = ''
 
-    unixdirs += [str(x) for x in (Path('/usr/lib/') / plat).iterdir() if x.is_dir()]
+    usr_platdir = Path('/usr/lib/') / plat
+    if usr_platdir.is_dir():
+        unixdirs += [str(x) for x in (usr_platdir).iterdir() if x.is_dir()]
     if os.path.exists('/usr/lib64'):
         unixdirs.append('/usr/lib64')
 
-    unixdirs += [str(x) for x in (Path('/lib/') / plat).iterdir() if x.is_dir()]
+    lib_platdir = Path('/lib/') / plat
+    if lib_platdir.is_dir():
+        unixdirs += [str(x) for x in (lib_platdir).iterdir() if x.is_dir()]
     if os.path.exists('/lib64'):
         unixdirs.append('/lib64')
 
