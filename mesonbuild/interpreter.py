@@ -62,6 +62,10 @@ def stringifyUserArguments(args):
     raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
 
 
+class OverrideProgram(dependencies.ExternalProgram):
+    pass
+
+
 class FeatureOptionHolder(InterpreterObject, ObjectHolder):
     def __init__(self, env, name, option):
         InterpreterObject.__init__(self)
@@ -1901,7 +1905,7 @@ class MesonMain(InterpreterObject):
                                         self.interpreter.environment.build_dir)
             if not os.path.exists(abspath):
                 raise InterpreterException('Tried to override %s with a file that does not exist.' % name)
-            exe = dependencies.ExternalProgram(abspath)
+            exe = OverrideProgram(abspath)
         if not isinstance(exe, (dependencies.ExternalProgram, build.Executable)):
             raise InterpreterException('Second argument must be an external program or executable.')
         self.interpreter.add_find_program_override(name, exe)
