@@ -210,17 +210,16 @@ def get_builddir_target_args(backend, builddir, target):
 def get_backend_commands(backend, debug=False):
     install_cmd = []
     uninstall_cmd = []
+    buildtests_cmd = []
     if backend is Backend.vs:
         cmd = ['msbuild']
         clean_cmd = cmd + ['/target:Clean']
-        buildtests_cmd = cmd + ['BUILD_TESTS.vcxproj']
         test_cmd = cmd + ['RUN_TESTS.vcxproj']
     elif backend is Backend.xcode:
         cmd = ['xcodebuild']
         # In Xcode9 new build system's clean command fails when using a custom build directory.
         # Maybe use it when CI uses Xcode10 we can remove '-UseNewBuildSystem=FALSE'
         clean_cmd = cmd + ['-alltargets', 'clean', '-UseNewBuildSystem=FALSE']
-        buildtests_cmd = cmd + ['-target', 'BUILD_TESTS']
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
         global NINJA_CMD
@@ -228,7 +227,7 @@ def get_backend_commands(backend, debug=False):
         if debug:
             cmd += ['-v']
         clean_cmd = cmd + ['clean']
-        buildtests_cmd = cmd + ['tests']
+        buildtests_cmd = cmd + ['meson-build-tests', 'meson-build-benchmarks']
         test_cmd = cmd + ['test', 'benchmark']
         install_cmd = cmd + ['install']
         uninstall_cmd = cmd + ['uninstall']

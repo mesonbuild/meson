@@ -1210,10 +1210,11 @@ def check_meson_commands_work(options):
         pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
         if pc.returncode != 0:
             raise RuntimeError('Failed to build {!r}:\n{}\n{}'.format(testdir, e, o))
-        print('Checking that building tests works...')
-        pc, o, e = Popen_safe(buildtests_commands, cwd=build_dir)
-        if pc.returncode != 0:
-            raise RuntimeError('Failed to build tests {!r}:\n{}\n{}'.format(testdir, e, o))
+        if buildtests_commands:
+            print('Checking that building tests works...')
+            pc, o, e = Popen_safe(buildtests_commands, cwd=build_dir)
+            if pc.returncode != 0:
+                raise RuntimeError('Failed to build tests {!r}:\n{}\n{}'.format(testdir, e, o))
         print('Checking that testing works...')
         pc, o, e = Popen_safe(test_commands, cwd=build_dir)
         if pc.returncode != 0:
