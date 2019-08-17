@@ -19,11 +19,11 @@ from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
 rust_optimization_args = {'0': [],
-                          'g': ['-C', '--opt-level=0'],
-                          '1': ['-C', '--opt-level=1'],
-                          '2': ['-C', '--opt-level=2'],
-                          '3': ['-C', '--opt-level=3'],
-                          's': ['-C', '--opt-level=s'],
+                          'g': ['-C', 'opt-level=0'],
+                          '1': ['-C', 'opt-level=1'],
+                          '2': ['-C', 'opt-level=2'],
+                          '3': ['-C', 'opt-level=3'],
+                          's': ['-C', 'opt-level=s'],
                           }
 
 class RustCompiler(Compiler):
