@@ -400,18 +400,19 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
         return TestResult('Test that should have failed to build succeeded', BuildStep.build, stdo, stde, mesonlog, gen_time)
     if pc.returncode != 0:
         return TestResult('Compiling source code failed.', BuildStep.build, stdo, stde, mesonlog, gen_time, build_time)
-    # Build tests with subprocess
-    build_start = time.time()
-    pc, o, e = Popen_safe(buildtests_commands + dir_args, cwd=test_build_dir)
-    build_time = time.time() - build_start
-    stdo += o
-    stde += e
-    if should_fail == 'buildtest':
+    # Build tests with subprocess if backend requires it
+    if buildtests_commands:
+        build_start = time.time()
+        pc, o, e = Popen_safe(buildtests_commands + dir_args, cwd=test_build_dir)
+        build_time = time.time() - build_start
+        stdo += o
+        stde += e
+        if should_fail == 'buildtest':
+            if pc.returncode != 0:
+                return TestResult('', BuildStep.buildtest, stdo, stde, mesonlog, gen_time)
+            return TestResult('Test that should have failed to build tests succeeded', BuildStep.buildtest, stdo, stde, mesonlog, gen_time)
         if pc.returncode != 0:
-            return TestResult('', BuildStep.buildtest, stdo, stde, mesonlog, gen_time)
-        return TestResult('Test that should have failed to build tests succeeded', BuildStep.buildtest, stdo, stde, mesonlog, gen_time)
-    if pc.returncode != 0:
-        return TestResult('Compiling test source code failed.', BuildStep.buildtest, stdo, stde, mesonlog, gen_time, build_time)
+            return TestResult('Compiling test source code failed.', BuildStep.buildtest, stdo, stde, mesonlog, gen_time, build_time)
     # Touch the meson.build file to force a regenerate so we can test that
     # regeneration works after a build is complete.
     ensure_backend_detects_changes(backend)
@@ -841,10 +842,11 @@ def check_meson_commands_work():
         pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
         if pc.returncode != 0:
             raise RuntimeError('Failed to build {!r}:\n{}\n{}'.format(testdir, e, o))
-        print('Checking that building tests works...')
-        pc, o, e = Popen_safe(buildtests_commands, cwd=build_dir)
-        if pc.returncode != 0:
-            raise RuntimeError('Failed to build tests {!r}:\n{}\n{}'.format(testdir, e, o))
+        if buildtests_commands:
+            print('Checking that building tests works...')
+            pc, o, e = Popen_safe(buildtests_commands, cwd=build_dir)
+            if pc.returncode != 0:
+                raise RuntimeError('Failed to build tests {!r}:\n{}\n{}'.format(testdir, e, o))
         print('Checking that testing works...')
         pc, o, e = Popen_safe(test_commands, cwd=build_dir)
         if pc.returncode != 0:

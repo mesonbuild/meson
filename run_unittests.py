@@ -1372,7 +1372,8 @@ class BasePlatformTests(unittest.TestCase):
         self._run(self.clean_command + dir_args, workdir=self.builddir, override_envvars=override_envvars)
 
     def run_tests(self, *, inprocess=False, override_envvars=None):
-        self._run(self.buildtests_command, workdir=self.builddir, override_envvars=override_envvars)
+        if self.buildtests_command:
+            self._run(self.buildtests_command, workdir=self.builddir, override_envvars=override_envvars)
         if not inprocess:
             self._run(self.test_command, workdir=self.builddir, override_envvars=override_envvars)
         else:
