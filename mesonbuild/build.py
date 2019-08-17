@@ -278,6 +278,13 @@ class ExtractedObjects:
                                      'in Unity builds. You can only extract all '
                                      'the object files for each compiler at once.')
 
+    def get_outputs(self, backend):
+        # TODO: Consider if we need to handle genlist here
+        return [
+            backend.object_filename_from_source(self.target, source)
+            for source in self.srclist
+        ]
+
 class EnvironmentVariables:
     def __init__(self):
         self.envvars = []
@@ -1911,7 +1918,7 @@ class CustomTarget(Target):
         'console',
     ])
 
-    def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False):
+    def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False, backend=None):
         self.typename = 'custom'
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
@@ -1919,7 +1926,7 @@ class CustomTarget(Target):
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
         self.depfile = None
-        self.process_kwargs(kwargs)
+        self.process_kwargs(kwargs, backend)
         self.extra_files = []
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths
@@ -1996,14 +2003,14 @@ class CustomTarget(Target):
                 raise InvalidArguments('Argument {!r} in "command" is invalid'.format(c))
         return final_cmd
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs(self, kwargs, backend):
         super().process_kwargs(kwargs)
         self.sources = extract_as_list(kwargs, 'input', unholder=True)
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.outputs = listify(kwargs['output'])
         # This will substitute values from the input into output and return it.
-        inputs = get_sources_string_names(self.sources)
+        inputs = get_sources_string_names(self.sources, backend)
         values = get_filenames_templates_dict(inputs, [])
         for i in self.outputs:
             if not(isinstance(i, str)):
@@ -2370,7 +2377,7 @@ class TestSetup:
         self.timeout_multiplier = timeout_multiplier
         self.env = env
 
-def get_sources_string_names(sources):
+def get_sources_string_names(sources, backend):
     '''
     For the specified list of @sources which can be strings, Files, or targets,
     get all the output basenames.
@@ -2383,6 +2390,8 @@ def get_sources_string_names(sources):
             names.append(s)
         elif isinstance(s, (BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList)):
             names += s.get_outputs()
+        elif isinstance(s, ExtractedObjects):
+            names += s.get_outputs(backend)
         elif isinstance(s, File):
             names.append(s.fname)
         else:
