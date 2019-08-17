@@ -197,6 +197,12 @@ class CMakeExecutor:
         c_comp, c_launcher = choose_compiler('c')
         cxx_comp, cxx_launcher = choose_compiler('cpp')
 
+        # on Windows, choose_compiler returns path with \ as separator - replace by / before writing to CMAKE file
+        c_comp = c_comp.replace('\\', '/')
+        c_launcher = c_launcher.replace('\\', '/')
+        cxx_comp = cxx_comp.replace('\\', '/')
+        cxx_launcher = cxx_launcher.replace('\\', '/')
+
         # Reset the CMake cache
         with open('{}/CMakeCache.txt'.format(build_dir), 'w') as fp:
             fp.write('CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1\n')
