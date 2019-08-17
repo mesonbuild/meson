@@ -301,6 +301,7 @@ class Vs2010Backend(backends.Backend):
 
     def generate_solution(self, sln_filename, projlist):
         default_projlist = self.get_build_by_default_targets()
+        default_projlist.update(self.get_test_targets())
         sln_filename_tmp = sln_filename + '~'
         with open(sln_filename_tmp, 'w', encoding='utf-8') as ofile:
             ofile.write('Microsoft Visual Studio Solution File, Format '
