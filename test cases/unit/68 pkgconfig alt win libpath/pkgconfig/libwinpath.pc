@@ -1,0 +1,9 @@
+prefix=C:/opt/blort
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+
+Name: Windows libpath
+Description: Windows libpath library
+Version: 0.0.1
+Libs: -LIBPATH:${libdir} -lwinpath
+Cflags:

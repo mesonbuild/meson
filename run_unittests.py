@@ -4257,9 +4257,24 @@ class WindowsTests(BasePlatformTests):
         libwinpath_dep = PkgConfigDependency('libwinpath', env, kwargs)
         self.assertTrue(libwinpath_dep.found())
 
-        # Ensure link_args are properly quoted
         libpath = 'C:/opt/blort/lib'
         link_args = ['/LIBPATH:' + libpath, '-lwinpath']
+        self.assertEqual(libwinpath_dep.get_link_args(), link_args)
+
+    @skipIfNoPkgconfig
+    def test_pkgconfig_alt_win_libpath(self):
+        testdir = os.path.join(self.unit_test_dir, '68 pkgconfig alt win libpath')
+        pkg_dir = os.path.join(testdir, 'pkgconfig')
+        self.assertTrue(os.path.exists(os.path.join(pkg_dir, 'libwinpath.pc')))
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        env.coredata.set_options({'pkg_config_path': pkg_dir}, subproject='')
+        kwargs = {'required': True, 'silent': True}
+        libwinpath_dep = PkgConfigDependency('libwinpath', env, kwargs)
+        self.assertTrue(libwinpath_dep.found())
+
+        libpath = 'C:/opt/blort/lib'
+        link_args = ['-LIBPATH:' + libpath, '-lwinpath']
         self.assertEqual(libwinpath_dep.get_link_args(), link_args)
 
 @unittest.skipUnless(is_osx(), "requires Darwin")
