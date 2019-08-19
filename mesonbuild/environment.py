@@ -499,16 +499,19 @@ class Environment:
             # There is currently no pgc++ for Windows, only for  Mac and Linux.
             self.default_cpp = ['icl', 'cl', 'c++', 'g++', 'clang++', 'clang-cl']
             self.default_fortran = ['ifort', 'gfortran', 'flang', 'pgfortran', 'g95']
+            # Clang and clang++ are valid, but currently unsupported.
+            self.default_objc = ['cc', 'gcc']
+            self.default_objcpp = ['c++', 'g++']
         else:
             self.default_c = ['cc', 'gcc', 'clang', 'pgcc', 'icc']
             self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++', 'icpc']
             self.default_fortran = ['gfortran', 'flang', 'pgfortran', 'ifort', 'g95']
+            self.default_objc = ['cc', 'gcc', 'clang']
+            self.default_objcpp = ['c++', 'g++', 'clang++']
         if mesonlib.is_windows():
             self.default_cs = ['csc', 'mcs']
         else:
             self.default_cs = ['mcs', 'csc']
-        self.default_objc = ['cc']
-        self.default_objcpp = ['c++']
         self.default_d = ['ldc2', 'ldc', 'gdc', 'dmd']
         self.default_java = ['javac']
         self.default_cuda = ['nvcc']
