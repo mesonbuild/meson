@@ -23,7 +23,7 @@ intrp_copyfile (char * src, char * dest)
     return 1;
   return 0;
 #else
-  return execlp ("cp", "copyfile", src, dest, NULL);
+  return execlp ("cp", "cp", src, dest, NULL);
 #endif
 }
 
