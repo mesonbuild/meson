@@ -48,9 +48,10 @@ import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.ast import AstInterpreter
 from mesonbuild.mesonlib import (
-    BuildDirLock, LibType, MachineChoice, PerMachine, Version,
-    is_windows, is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku,
-    windows_proof_rmtree, python_command, version_compare, split_args, quote_arg
+    BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,
+    is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_sunos,
+    windows_proof_rmtree, python_command, version_compare, split_args,
+    quote_arg
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -2955,11 +2956,15 @@ int main(int argc, char **argv) {
     def test_cross_file_system_paths(self):
         if is_windows():
             raise unittest.SkipTest('system crossfile paths not defined for Windows (yet)')
+        if is_sunos():
+            cc = 'gcc'
+        else:
+            cc = 'cc'
 
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         cross_content = textwrap.dedent("""\
             [binaries]
-            c = '/usr/bin/cc'
+            c = '/usr/bin/{}'
             ar = '/usr/bin/ar'
             strip = '/usr/bin/ar'
 
@@ -2970,7 +2975,7 @@ int main(int argc, char **argv) {
             cpu_family = 'x86'
             cpu = 'i686'
             endian = 'little'
-            """)
+            """.format(cc))
 
         with tempfile.TemporaryDirectory() as d:
             dir_ = os.path.join(d, 'meson', 'cross')
@@ -5154,21 +5159,23 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '11 cross prog')
         crossfile = tempfile.NamedTemporaryFile(mode='w')
         print(os.path.join(testdir, 'some_cross_tool.py'))
-        crossfile.write('''[binaries]
-c = '/usr/bin/cc'
-ar = '/usr/bin/ar'
-strip = '/usr/bin/ar'
-sometool.py = ['{0}']
-someothertool.py = '{0}'
+        crossfile.write(textwrap.dedent('''\
+            [binaries]
+            c = '/usr/bin/{1}'
+            ar = '/usr/bin/ar'
+            strip = '/usr/bin/ar'
+            sometool.py = ['{0}']
+            someothertool.py = '{0}'
 
-[properties]
+            [properties]
 
-[host_machine]
-system = 'linux'
-cpu_family = 'arm'
-cpu = 'armv7' # Not sure if correct.
-endian = 'little'
-'''.format(os.path.join(testdir, 'some_cross_tool.py')))
+            [host_machine]
+            system = 'linux'
+            cpu_family = 'arm'
+            cpu = 'armv7' # Not sure if correct.
+            endian = 'little'
+            ''').format(os.path.join(testdir, 'some_cross_tool.py'),
+                        'gcc' if is_sunos() else 'cc'))
         crossfile.flush()
         self.meson_cross_file = crossfile.name
         self.init(testdir)
