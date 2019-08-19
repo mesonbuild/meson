@@ -644,6 +644,9 @@ class PkgConfigDependency(ExternalDependency):
         rc, out = p.returncode, out.strip()
         call = ' '.join(cmd)
         mlog.debug("Called `{}` -> {}\n{}".format(call, rc, out))
+        # Hack to support alternate spelling of /LIBPATH:
+        out = out.replace('-LIBPATH:', '/LIBPATH:')
+        out = out.replace('-libpath:', '/libpath:')
         return rc, out
 
     def _call_pkgbin(self, args, env=None):
@@ -724,6 +727,7 @@ class PkgConfigDependency(ExternalDependency):
         Libraries that are provided by the toolchain or are not found by
         find_library() will be added with -L -l pairs.
         '''
+
         # Library paths should be safe to de-dup
         #
         # First, figure out what library paths to use. Originally, we were
@@ -846,6 +850,7 @@ class PkgConfigDependency(ExternalDependency):
         if ret != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' %
                                       (self.name, out_raw))
+
         self.link_args, self.raw_link_args = self._search_libs(out, out_raw)
 
     def get_pkgconfig_variable(self, variable_name, kwargs):

@@ -4274,7 +4274,8 @@ class WindowsTests(BasePlatformTests):
         self.assertTrue(libwinpath_dep.found())
 
         libpath = 'C:/opt/blort/lib'
-        link_args = ['-LIBPATH:' + libpath, '-lwinpath']
+        # Hack: let meson munge -LIBPATH: to /LIBPATH:
+        link_args = ['/LIBPATH:' + libpath, '-lwinpath']
         self.assertEqual(libwinpath_dep.get_link_args(), link_args)
 
 @unittest.skipUnless(is_osx(), "requires Darwin")
