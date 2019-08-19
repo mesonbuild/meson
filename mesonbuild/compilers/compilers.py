@@ -16,7 +16,7 @@ import contextlib, enum, os.path, re, tempfile
 import typing
 from typing import Optional, Tuple, List
 
-from ..linkers import StaticLinker, GnuLikeDynamicLinkerMixin
+from ..linkers import StaticLinker, GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
 from .. import coredata
 from .. import mlog
 from .. import mesonlib
@@ -533,7 +533,7 @@ class CompilerArgs(list):
         # TODO: this could probably be added to the DynamicLinker instead
         if (hasattr(self.compiler, 'linker') and
                 self.compiler.linker is not None and
-                isinstance(self.compiler.linker, GnuLikeDynamicLinkerMixin)):
+                isinstance(self.compiler.linker, (GnuLikeDynamicLinkerMixin, SolarisDynamicLinker))):
             group_start = -1
             group_end = -1
             for i, each in enumerate(new):
