@@ -27,6 +27,7 @@ from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
+from .mixins.islinker import BasicLinkerIsCompilerMixin, LinkerEnvVarsMixin
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -112,14 +113,8 @@ class ClangCCompiler(ClangCompiler, CCompiler):
     def get_option_link_args(self, options):
         return []
 
-    def get_linker_always_args(self):
-        basic = super().get_linker_always_args()
-        if self.compiler_type.is_osx_compiler:
-            return basic + ['-Wl,-headerpad_max_install_names']
-        return basic
 
-
-class EmscriptenCCompiler(ClangCCompiler):
+class EmscriptenCCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, ClangCCompiler):
     def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
         if not is_cross:
             raise MesonException('Emscripten compiler can only be used for cross compilation.')
@@ -127,18 +122,6 @@ class EmscriptenCCompiler(ClangCCompiler):
         self.id = 'emscripten'
 
     def get_option_link_args(self, options):
-        return []
-
-    def get_linker_always_args(self):
-        return []
-
-    def get_asneeded_args(self):
-        return []
-
-    def get_lundef_args(self):
-        return []
-
-    def build_rpath_args(self, *args, **kwargs):
         return []
 
     def get_soname_args(self, *args, **kwargs):
@@ -293,14 +276,14 @@ class VisualStudioLikeCCompilerMixin:
 
 class VisualStudioCCompiler(VisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target: str):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap)
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target: str, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
         VisualStudioLikeCompiler.__init__(self, target)
         self.id = 'msvc'
 
 class ClangClCCompiler(VisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap)
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
         VisualStudioLikeCompiler.__init__(self, target)
         self.id = 'clang-cl'
 
@@ -311,8 +294,8 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
 
     __have_warned = False
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap)
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
     def get_options(self):
@@ -387,9 +370,6 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
 
     def get_output_args(self, target):
         return ['-output=obj=%s' % target]
-
-    def get_linker_output_args(self, outputname):
-        return ['-output=%s' % outputname]
 
     def get_werror_args(self):
         return ['-change_message=error']

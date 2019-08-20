@@ -35,15 +35,6 @@ arm_buildtype_args = {
     'custom': [],
 }  # type: typing.Dict[str, typing.List[str]]
 
-arm_buildtype_linker_args = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}  # type: typing.Dict[str, typing.List[str]]
-
 arm_optimization_args = {
     '0': ['-O0'],
     'g': ['-g'],
@@ -87,8 +78,6 @@ class ArmCompiler:
         # Assembly
         self.can_compile_suffixes.add('s')
 
-    def can_linker_accept_rsp(self) -> bool:
-        return False
 
     def get_pic_args(self) -> typing.List[str]:
         # FIXME: Add /ropi, /rwpi, /fpic etc. qualifiers to --apcs
@@ -97,19 +86,12 @@ class ArmCompiler:
     def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
         return arm_buildtype_args[buildtype]
 
-    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
-        return arm_buildtype_linker_args[buildtype]
-
     # Override CCompiler.get_always_args
     def get_always_args(self) -> typing.List[str]:
         return []
 
     # Override CCompiler.get_dependency_gen_args
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> typing.List[str]:
-        return []
-
-    # Override CCompiler.get_std_shared_lib_link_args
-    def get_std_shared_lib_link_args(self) -> typing.List[str]:
         return []
 
     def get_pch_use_args(self, pch_dir: str, header: str) -> typing.List[str]:
@@ -130,17 +112,7 @@ class ArmCompiler:
     def thread_flags(self, env: 'Environment') -> typing.List[str]:
         return []
 
-    def thread_link_flags(self, env: 'Environment') -> typing.List[str]:
-        return []
-
-    def get_linker_exelist(self) -> typing.List[str]:
-        args = ['armlink']
-        return args
-
     def get_coverage_args(self) -> typing.List[str]:
-        return []
-
-    def get_coverage_link_args(self) -> typing.List[str]:
         return []
 
     def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
@@ -191,9 +163,6 @@ class ArmclangCompiler:
         # Assembly
         self.can_compile_suffixes.update('s')
 
-    def can_linker_accept_rsp(self) -> bool:
-        return False
-
     def get_pic_args(self) -> typing.List[str]:
         # PIC support is not enabled by default for ARM,
         # if users want to use it, they need to add the required arguments explicitly
@@ -204,13 +173,6 @@ class ArmclangCompiler:
 
     def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
         return armclang_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
-        return arm_buildtype_linker_args[buildtype]
-
-    # Override CCompiler.get_std_shared_lib_link_args
-    def get_std_shared_lib_link_args(self) -> typing.List[str]:
-        return []
 
     def get_pch_suffix(self) -> str:
         return 'gch'
@@ -225,33 +187,11 @@ class ArmclangCompiler:
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> typing.List[str]:
         return []
 
-    # Override CCompiler.build_rpath_args
-    def build_rpath_args(self, build_dir: str, from_dir: str, rpath_paths: str,
-                         build_rpath: str, install_rpath: str) -> typing.List[str]:
-        return []
-
-    def get_linker_exelist(self) -> typing.List[str]:
-        return [self.linker_exe]
-
     def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
         return armclang_optimization_args[optimization_level]
 
     def get_debug_args(self, is_debug: bool) -> typing.List[str]:
         return clike_debug_args[is_debug]
-
-    def gen_export_dynamic_link_args(self, env: 'Environment') -> typing.List[str]:
-        """
-        The args for export dynamic
-        """
-        return ['--export_dynamic']
-
-    def gen_import_library_args(self, implibname: str) -> typing.List[str]:
-        """
-        The args of the outputted import library
-
-        ArmLinker's symdefs output can be used as implib
-        """
-        return ['--symdefs=' + implibname]
 
     def compute_parameters_with_absolute_paths(self, parameter_list: typing.List[str], build_dir: str) -> typing.List[str]:
         for idx, i in enumerate(parameter_list):

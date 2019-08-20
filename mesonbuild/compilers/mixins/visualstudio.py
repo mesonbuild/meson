@@ -61,17 +61,6 @@ msvc_buildtype_args = {
     'custom': [],
 }  # type: typing.Dict[str, typing.List[str]]
 
-msvc_buildtype_linker_args = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    # The otherwise implicit REF and ICF linker optimisations are disabled by
-    # /DEBUG. REF implies ICF.
-    'release': ['/OPT:REF'],
-    'minsize': ['/INCREMENTAL:NO', '/OPT:REF'],
-    'custom': [],
-}  # type: typing.Dict[str, typing.List[str]]
-
 msvc_optimization_args = {
     '0': [],
     'g': ['/O0'],
@@ -133,30 +122,17 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             self.machine = 'x86'
         else:
             self.machine = target
+        self.linker.machine = self.machine
 
     # Override CCompiler.get_always_args
     def get_always_args(self) -> typing.List[str]:
         return self.always_args
-
-    def get_linker_debug_crt_args(self) -> typing.List[str]:
-        """
-        Arguments needed to select a debug crt for the linker
-
-        Sometimes we need to manually select the CRT (C runtime) to use with
-        MSVC. One example is when trying to link with static libraries since
-        MSVC won't auto-select a CRT for us in that case and will error out
-        asking us to select one.
-        """
-        return ['/MDd']
 
     def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
         args = msvc_buildtype_args[buildtype]
         if self.id == 'msvc' and mesonlib.version_compare(self.version, '<18.0'):
             args = [arg for arg in args if arg != '/Gw']
         return args
-
-    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
-        return msvc_buildtype_linker_args[buildtype]
 
     def get_pch_suffix(self) -> str:
         return 'pch'
@@ -197,23 +173,6 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> typing.List[str]:
         return []
 
-    def get_linker_exelist(self) -> typing.List[str]:
-        # FIXME, should have same path as compiler.
-        # FIXME, should be controllable via cross-file.
-        if self.id == 'clang-cl':
-            return ['lld-link']
-        else:
-            return ['link']
-
-    def get_linker_always_args(self) -> typing.List[str]:
-        return ['/nologo']
-
-    def get_linker_output_args(self, outputname: str) -> typing.List[str]:
-        return ['/MACHINE:' + self.machine, '/OUT:' + outputname]
-
-    def get_linker_search_args(self, dirname: str) -> typing.List[str]:
-        return ['/LIBPATH:' + dirname]
-
     def linker_to_compiler_args(self, args: typing.List[str]) -> typing.List[str]:
         return ['/link'] + args
 
@@ -227,12 +186,6 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
 
     def get_pic_args(self) -> typing.List[str]:
         return [] # PIC is handled by the loader on Windows
-
-    def gen_export_dynamic_link_args(self, env: 'Environment') -> typing.List[str]:
-        return [] # Not applicable with MSVC
-
-    def get_std_shared_lib_link_args(self) -> typing.List[str]:
-        return ['/DLL']
 
     def gen_vs_module_defs_args(self, defsfile: str) -> typing.List[str]:
         if not isinstance(defsfile, str):
@@ -249,17 +202,11 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         "The name of the outputted import library"
         return ['/IMPLIB:' + implibname]
 
-    def build_rpath_args(self, build_dir: str, from_dir: str, rpath_paths: str, build_rpath: str, install_rpath: str) -> typing.List[str]:
-        return []
-
     def openmp_flags(self) -> typing.List[str]:
         return ['/openmp']
 
     # FIXME, no idea what these should be.
     def thread_flags(self, env: 'Environment') -> typing.List[str]:
-        return []
-
-    def thread_link_flags(self, env: 'Environment') -> typing.List[str]:
         return []
 
     @classmethod
@@ -330,16 +277,6 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         if pch and self.id == 'msvc' and mesonlib.version_compare(self.version, '>=18.0'):
             args = ['/FS'] + args
         return args
-
-    def get_link_debugfile_args(self, targetfile: str) -> typing.List[str]:
-        pdbarr = targetfile.split('.')[:-1]
-        pdbarr += ['pdb']
-        return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
-
-    def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
-        # Only since VS2015
-        args = mesonlib.listify(args)
-        return ['/WHOLEARCHIVE:' + x for x in args]
 
     def get_instruction_set_args(self, instruction_set: str) -> typing.Optional[typing.List[str]]:
         if self.is_64:
@@ -418,7 +355,3 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
 
     def get_argument_syntax(self) -> str:
         return 'msvc'
-
-    def get_allow_undefined_link_args(self) -> typing.List[str]:
-        # link.exe
-        return ['/FORCE:UNRESOLVED']

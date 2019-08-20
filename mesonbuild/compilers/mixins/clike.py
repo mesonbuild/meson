@@ -61,9 +61,6 @@ class CLikeCompiler:
         else:
             self.exe_wrapper = exe_wrapper.get_command()
 
-        # Set to None until we actually need to check this
-        self.has_fatal_warnings_link_arg = None
-
     def needs_static_linker(self):
         return True # When compiling static libraries, so yes.
 
@@ -72,13 +69,6 @@ class CLikeCompiler:
         Args that are always-on for all C compilers other than MSVC
         '''
         return ['-pipe'] + compilers.get_largefile_args(self)
-
-    def get_linker_debug_crt_args(self):
-        """
-        Arguments needed to select a debug crt for the linker
-        This is only needed for MSVC
-        """
-        return []
 
     def get_no_stdinc_args(self):
         return ['-nostdinc']
@@ -93,21 +83,8 @@ class CLikeCompiler:
         # Almost every compiler uses this for disabling warnings
         return ['-w']
 
-    def get_soname_args(self, *args):
-        return []
-
     def split_shlib_to_parts(self, fname):
         return None, fname
-
-    # The default behavior is this, override in MSVC
-    @functools.lru_cache(maxsize=None)
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        if self.compiler_type.is_windows_compiler:
-            return []
-        return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
-
-    def get_dependency_gen_args(self, outtarget, outfile):
-        return ['-MD', '-MQ', outtarget, '-MF', outfile]
 
     def depfile_for_object(self, objfile):
         return objfile + '.' + self.get_depfile_suffix()
@@ -116,9 +93,6 @@ class CLikeCompiler:
         return 'd'
 
     def get_exelist(self):
-        return self.exelist[:]
-
-    def get_linker_exelist(self):
         return self.exelist[:]
 
     def get_preprocess_only_args(self):
@@ -140,19 +114,17 @@ class CLikeCompiler:
     def get_output_args(self, target):
         return ['-o', target]
 
-    def get_linker_output_args(self, outputname):
-        return ['-o', outputname]
-
     def get_coverage_args(self):
         return ['--coverage']
 
-    def get_coverage_link_args(self):
-        return ['--coverage']
+    def get_coverage_link_args(self) -> typing.List[str]:
+        return self.linker.get_coverage_args()
 
     def get_werror_args(self):
         return ['-Werror']
 
     def get_std_exe_link_args(self):
+        # TODO: is this a linker property?
         return []
 
     def get_include_args(self, path, is_system):
@@ -161,9 +133,6 @@ class CLikeCompiler:
         if is_system:
             return ['-isystem', path]
         return ['-I' + path]
-
-    def get_std_shared_lib_link_args(self):
-        return ['-shared']
 
     def get_compiler_dirs(self, env: 'Environment', name: str) -> typing.List[str]:
         '''
@@ -222,27 +191,16 @@ class CLikeCompiler:
         return os.path.basename(header_name) + '.' + self.get_pch_suffix()
 
     def get_linker_search_args(self, dirname: str) -> typing.List[str]:
-        return ['-L' + dirname]
+        return self.linker.get_search_args(dirname)
 
     def get_default_include_dirs(self):
         return []
 
-    def gen_export_dynamic_link_args(self, env) -> typing.List[str]:
-        m = env.machines[self.for_machine]
-        if m.is_windows() or m.is_cygwin():
-            return ['-Wl,--export-all-symbols']
-        elif env.machines[self.for_machine].is_darwin():
-            return []
-        else:
-            return ['-Wl,-export-dynamic']
+    def gen_export_dynamic_link_args(self, env: 'Environment') -> typing.List[str]:
+        return self.linker.export_dynamic_args(env)
 
     def gen_import_library_args(self, implibname: str) -> typing.List[str]:
-        """
-        The name of the outputted import library
-
-        This implementation is used only on Windows by compilers that use GNU ld
-        """
-        return ['-Wl,--out-implib=' + implibname]
+        return self.linker.import_library_args(implibname)
 
     def sanity_check_impl(self, work_dir, environment, sname, code):
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
@@ -1104,11 +1062,8 @@ class CLikeCompiler:
             return []
         return ['-pthread']
 
-    def thread_link_flags(self, env):
-        host_m = env.machines[self.for_machine]
-        if host_m.is_haiku() or host_m.is_darwin():
-            return []
-        return ['-pthread']
+    def thread_link_flags(self, env: 'Environment') -> typing.List[str]:
+        return self.linker.thread_flags(env)
 
     def linker_to_compiler_args(self, args):
         return args
@@ -1139,14 +1094,7 @@ class CLikeCompiler:
         # First time we check for link flags we need to first check if we have
         # --fatal-warnings, otherwise some linker checks could give some
         # false positive.
-        fatal_warnings_args = ['-Wl,--fatal-warnings']
-        if self.has_fatal_warnings_link_arg is None:
-            self.has_fatal_warnings_link_arg = False
-            self.has_fatal_warnings_link_arg = self.has_multi_link_arguments(fatal_warnings_args, env)[0]
-
-        if self.has_fatal_warnings_link_arg:
-            args = fatal_warnings_args + args
-
+        args = self.linker.fatal_warnings() + args
         args = self.linker_to_compiler_args(args)
         code = 'int main() { return 0; }'
         return self.has_arguments(args, env, code, mode='link')

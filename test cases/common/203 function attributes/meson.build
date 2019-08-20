@@ -19,6 +19,10 @@ project('gcc func attributes', ['c', 'cpp'])
 c = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 
+if c.get_id() == 'pgi'
+  error('MESON_SKIP_TEST: PGI supports its own set of features, will need a seperate list for PGI to test it.')
+endif
+
 expected_result = not ['msvc', 'clang-cl', 'intel-cl'].contains(c.get_id())
 
 # Q: Why is ifunc not in this list or any of the below lists?

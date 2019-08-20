@@ -36,6 +36,7 @@ from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
+from .mixins.islinker import BasicLinkerIsCompilerMixin, LinkerEnvVarsMixin
 
 
 def non_msvc_eh_options(eh, args):
@@ -183,7 +184,7 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         return ['-lstdc++']
 
 
-class EmscriptenCPPCompiler(ClangCPPCompiler):
+class EmscriptenCPPCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, ClangCPPCompiler):
     def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
         if not is_cross:
             raise MesonException('Emscripten compiler can only be used for cross compilation.')
@@ -198,18 +199,6 @@ class EmscriptenCPPCompiler(ClangCPPCompiler):
         return args
 
     def get_option_link_args(self, options):
-        return []
-
-    def get_linker_always_args(self):
-        return []
-
-    def get_asneeded_args(self):
-        return []
-
-    def get_lundef_args(self):
-        return []
-
-    def build_rpath_args(self, *args, **kwargs):
         return []
 
     def get_soname_args(self, *args, **kwargs):
@@ -473,8 +462,8 @@ class CPP11AsCPP14Mixin:
 
 
 class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, VisualStudioLikeCompiler, CPPCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool, exe_wrap, target):
-        CPPCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap)
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool, exe_wrap, target, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
         VisualStudioLikeCompiler.__init__(self, target)
         self.base_options = ['b_pch', 'b_vscrt'] # FIXME add lto, pgo and the like
         self.id = 'msvc'
@@ -506,8 +495,8 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
         return args
 
 class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, VisualStudioLikeCompiler, CPPCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target):
-        CPPCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap)
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
         VisualStudioLikeCompiler.__init__(self, target)
         self.id = 'clang-cl'
 
@@ -518,8 +507,8 @@ class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, Vi
 
 class IntelClCPPCompiler(VisualStudioLikeCPPCompilerMixin, IntelVisualStudioLikeCompiler, CPPCompiler):
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target):
-        CPPCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap)
+    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
     def get_options(self):
@@ -573,9 +562,6 @@ class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
 
     def get_output_args(self, target):
         return ['-output=obj=%s' % target]
-
-    def get_linker_output_args(self, outputname):
-        return ['-output=%s' % outputname]
 
     def get_option_link_args(self, options):
         return []

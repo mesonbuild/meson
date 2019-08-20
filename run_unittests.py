@@ -444,7 +444,8 @@ class InternalTests(unittest.TestCase):
     def test_compiler_args_class_gnuld(self):
         cargsfunc = mesonbuild.compilers.CompilerArgs
         ## Test --start/end-group
-        gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', mesonbuild.compilers.CompilerType.GCC_STANDARD, False, MachineChoice.HOST)
+        linker = mesonbuild.linkers.GnuDynamicLinker([], MachineChoice.HOST, 'fake')
+        gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', mesonbuild.compilers.CompilerType.GCC_STANDARD, False, MachineChoice.HOST, linker=linker)
         ## Test that 'direct' append and extend works
         l = cargsfunc(gcc, ['-Lfoodir', '-lfoo'])
         self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Wl,--end-group'])
@@ -5032,7 +5033,7 @@ class LinuxlikeTests(BasePlatformTests):
             raise unittest.SkipTest('-fsanitize=address is not supported on OpenBSD')
 
         testdir = os.path.join(self.common_test_dir, '13 pch')
-        self.init(testdir, extra_args=['-Db_sanitize=address'])
+        self.init(testdir, extra_args=['-Db_sanitize=address', '-Db_lundef=false'])
         self.build()
         compdb = self.get_compdb()
         for i in compdb:
@@ -5950,9 +5951,10 @@ class NativeFileTests(BasePlatformTests):
                     f.write("{}='{}'\n".format(k, v))
         return filename
 
-    def helper_create_binary_wrapper(self, binary, dir_=None, **kwargs):
+    def helper_create_binary_wrapper(self, binary, dir_=None, extra_args=None, **kwargs):
         """Creates a wrapper around a binary that overrides specific values."""
         filename = os.path.join(dir_ or self.builddir, 'binary_wrapper{}.py'.format(self.current_wrapper))
+        extra_args = extra_args or {}
         self.current_wrapper += 1
         if is_haiku():
             chbang = '#!/bin/env python3'
@@ -5969,10 +5971,10 @@ class NativeFileTests(BasePlatformTests):
                 def main():
                     parser = argparse.ArgumentParser()
                 '''.format(chbang)))
-            for name in kwargs:
+            for name in chain(extra_args, kwargs):
                 f.write('    parser.add_argument("-{0}", "--{0}", action="store_true")\n'.format(name))
             f.write('    args, extra_args = parser.parse_known_args()\n')
-            for name, value in kwargs.items():
+            for name, value in chain(extra_args.items(), kwargs.items()):
                 f.write('    if args.{}:\n'.format(name))
                 f.write('        print("{}", file=sys.{})\n'.format(value, kwargs.get('outfile', 'stdout')))
                 f.write('        sys.exit(0)\n')
@@ -6223,7 +6225,8 @@ class NativeFileTests(BasePlatformTests):
     @skip_if_not_language('swift')
     def test_swift_compiler(self):
         wrapper = self.helper_create_binary_wrapper(
-            'swiftc', version='Swift 1.2345', outfile='stderr')
+            'swiftc', version='Swift 1.2345', outfile='stderr',
+            extra_args={'Xlinker': 'macosx_version. PROJECT:ld - 1.2.3'})
         env = get_fake_env()
         env.binaries.host.binaries['swift'] = wrapper
         compiler = env.detect_swift_compiler(MachineChoice.HOST)

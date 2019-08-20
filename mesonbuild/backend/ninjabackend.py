@@ -1328,7 +1328,8 @@ int dummy;
                                                                self.get_target_dir(target))
             else:
                 target_slashname_workaround_dir = self.get_target_dir(target)
-            rpath_args = rustc.build_rpath_args(self.environment.get_build_dir(),
+            rpath_args = rustc.build_rpath_args(self.environment,
+                                                self.environment.get_build_dir(),
                                                 target_slashname_workaround_dir,
                                                 self.determine_rpath_dirs(target),
                                                 target.build_rpath,
@@ -2325,9 +2326,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # All shared libraries are PIC
             commands += linker.get_pic_args()
             # Add -Wl,-soname arguments on Linux, -install_name on OS X
-            commands += linker.get_soname_args(target.prefix, target.name, target.suffix,
-                                               target.soversion, target.darwin_versions,
-                                               isinstance(target, build.SharedModule))
+            commands += linker.get_soname_args(
+                self.environment, target.prefix, target.name, target.suffix,
+                target.soversion, target.darwin_versions,
+                isinstance(target, build.SharedModule))
             # This is only visited when building for Windows using either GCC or Visual Studio
             if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
                 commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
@@ -2538,7 +2540,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 self.get_target_dir(target))
         else:
             target_slashname_workaround_dir = self.get_target_dir(target)
-        commands += linker.build_rpath_args(self.environment.get_build_dir(),
+        commands += linker.build_rpath_args(self.environment,
+                                            self.environment.get_build_dir(),
                                             target_slashname_workaround_dir,
                                             self.determine_rpath_dirs(target),
                                             target.build_rpath,
