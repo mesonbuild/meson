@@ -96,6 +96,7 @@ These are provided by the `.system()` method call.
 | linux               | |
 | netbsd              | |
 | windows             | Any version of Windows |
+| sunos               | illumos and Solaris |
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.
