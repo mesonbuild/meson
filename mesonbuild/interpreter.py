@@ -2412,14 +2412,15 @@ external dependencies (including libraries) must go to "dependencies".''')
                 expanded_args.append(a.held_object.get_path())
             else:
                 raise InterpreterException('Arguments ' + m.format(a))
+        # If any file that was used as an argument to the command
+        # changes, we must re-run the configuration step.
         for a in expanded_args:
             if not os.path.isabs(a):
                 a = os.path.join(builddir if in_builddir else srcdir, self.subdir, a)
             if os.path.isfile(a):
                 a = mesonlib.relpath(a, start=srcdir)
-                if not a.startswith('..'):
-                    if a not in self.build_def_files:
-                        self.build_def_files.append(a)
+                if a not in self.build_def_files:
+                    self.build_def_files.append(a)
         return RunProcess(cmd, expanded_args, env, srcdir, builddir, self.subdir,
                           self.environment.get_build_command() + ['introspect'],
                           in_builddir=in_builddir, check=check, capture=capture)
