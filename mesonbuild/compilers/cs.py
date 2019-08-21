@@ -13,12 +13,16 @@
 # limitations under the License.
 
 import os.path, subprocess
+import typing
 
 from ..mesonlib import EnvironmentException
 from ..mesonlib import is_windows
 
 from .compilers import Compiler, MachineChoice, mono_buildtype_args
 from .mixins.islinker import BasicLinkerIsCompilerMixin
+
+if typing.TYPE_CHECKING:
+    from ..envconfig import MachineInfo
 
 cs_optimization_args = {'0': [],
                         'g': [],
@@ -28,10 +32,12 @@ cs_optimization_args = {'0': [],
                         's': ['-optimize+'],
                         }
 
+
 class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, comp_id, runner=None):
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo', comp_id, runner=None):
         self.language = 'cs'
-        super().__init__(exelist, version, for_machine)
+        super().__init__(exelist, version, for_machine, info)
         self.id = comp_id
         self.is_cross = False
         self.runner = runner
@@ -133,14 +139,16 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
 
 class MonoCompiler(CsCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice):
-        super().__init__(exelist, version, for_machine, 'mono',
-                         'mono')
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo'):
+        super().__init__(exelist, version, for_machine, info, 'mono',
+                         runner='mono')
 
 
 class VisualStudioCsCompiler(CsCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice):
-        super().__init__(exelist, version, for_machine, 'csc')
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo'):
+        super().__init__(exelist, version, for_machine, info, 'csc')
 
     def get_buildtype_args(self, buildtype):
         res = mono_buildtype_args[buildtype]

@@ -36,9 +36,6 @@ def dump_compilers(compilers):
             print('      Full version: ' + compiler.full_version)
         if compiler.version:
             print('      Detected version: ' + compiler.version)
-        if hasattr(compiler, 'compiler_type'):
-            print('      Detected type: ' + repr(compiler.compiler_type))
-        #pprint.pprint(compiler.__dict__)
 
 
 def dump_guids(d):

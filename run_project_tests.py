@@ -628,7 +628,7 @@ def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str,
 
         ('java', 'java', backend is not Backend.ninja or mesonlib.is_osx() or not have_java()),
         ('C#', 'csharp', skip_csharp(backend)),
-        ('vala', 'vala', backend is not Backend.ninja or not shutil.which('valac')),
+        ('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
         ('rust', 'rust', should_skip_rust()),
         ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
         ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler()),

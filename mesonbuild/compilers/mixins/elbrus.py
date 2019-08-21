@@ -21,15 +21,14 @@ from .gnu import GnuCompiler
 from ...mesonlib import Popen_safe
 
 if typing.TYPE_CHECKING:
-    from ..compilers import CompilerType
     from ...environment import Environment
 
 
 class ElbrusCompiler(GnuCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
     # PCH, LTO, sanitizers and color output as of version 1.21.x.
-    def __init__(self, compiler_type: 'CompilerType', defines: typing.Dict[str, str]):
-        GnuCompiler.__init__(self, compiler_type, defines)
+    def __init__(self, defines: typing.Dict[str, str]):
+        GnuCompiler.__init__(self, defines)
         self.id = 'lcc'
         self.base_options = ['b_pgo', 'b_coverage',
                              'b_ndebug', 'b_staticpic',

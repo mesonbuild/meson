@@ -23,7 +23,6 @@ from ..compilers import clike_debug_args
 from .clang import clang_color_args
 
 if typing.TYPE_CHECKING:
-    from ..compilers import CompilerType
     from ...environment import Environment
 
 arm_buildtype_args = {
@@ -65,11 +64,10 @@ armclang_optimization_args = {
 
 class ArmCompiler:
     # Functionality that is common to all ARM family compilers.
-    def __init__(self, compiler_type: 'CompilerType'):
+    def __init__(self):
         if not self.is_cross:
             raise mesonlib.EnvironmentException('armcc supports only cross-compilation.')
         self.id = 'arm'
-        self.compiler_type = compiler_type
         default_warn_args = []  # type: typing.List[str]
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -130,7 +128,7 @@ class ArmCompiler:
 
 
 class ArmclangCompiler:
-    def __init__(self, compiler_type: 'CompilerType'):
+    def __init__(self):
         if not self.is_cross:
             raise mesonlib.EnvironmentException('armclang supports only cross-compilation.')
         # Check whether 'armlink' is available in path
@@ -157,7 +155,6 @@ class ArmclangCompiler:
         if not mesonlib.version_compare(self.version, '==' + linker_ver):
             raise mesonlib.EnvironmentException('armlink version does not match with compiler version')
         self.id = 'armclang'
-        self.compiler_type = compiler_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_ndebug', 'b_staticpic', 'b_colorout']
         # Assembly

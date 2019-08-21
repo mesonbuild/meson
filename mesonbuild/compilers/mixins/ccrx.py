@@ -20,7 +20,6 @@ import typing
 from ...mesonlib import Popen_safe, EnvironmentException
 
 if typing.TYPE_CHECKING:
-    from ..compilers import CompilerType
     from ...environment import Environment
 
 ccrx_buildtype_args = {
@@ -48,11 +47,10 @@ ccrx_debug_args = {
 
 
 class CcrxCompiler:
-    def __init__(self, compiler_type: 'CompilerType'):
+    def __init__(self):
         if not self.is_cross:
             raise EnvironmentException('ccrx supports only cross-compilation.')
         self.id = 'ccrx'
-        self.compiler_type = compiler_type
         # Assembly
         self.can_compile_suffixes.update('s')
         default_warn_args = []  # type: typing.List[str]

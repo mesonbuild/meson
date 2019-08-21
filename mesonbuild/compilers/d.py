@@ -20,7 +20,6 @@ from ..mesonlib import (
 )
 
 from .compilers import (
-    CompilerType,
     d_dmd_buildtype_args,
     d_gdc_buildtype_args,
     d_ldc_buildtype_args,
@@ -30,6 +29,9 @@ from .compilers import (
 )
 from .mixins.gnu import GnuCompiler
 from .mixins.islinker import LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin
+
+if typing.TYPE_CHECKING:
+    from ..envconfig import MachineInfo
 
 d_feature_args = {'gcc':  {'unittest': '-funittest',
                            'debug': '-fdebug',
@@ -402,9 +404,10 @@ class DCompiler(Compiler):
         'mtd': ['-mscrtlib=libcmtd'],
     }
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo', arch, **kwargs):
         self.language = 'd'
-        super().__init__(exelist, version, for_machine, **kwargs)
+        super().__init__(exelist, version, for_machine, info, **kwargs)
         self.id = 'unknown'
         self.arch = arch
 
@@ -590,8 +593,9 @@ class GnuDCompiler(DCompiler, GnuCompiler):
     # we mostly want DCompiler, but that gives us the Compiler.LINKER_PREFIX instead
     LINKER_PREFIX = GnuCompiler.LINKER_PREFIX
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo', arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, info, arch, **kwargs)
         self.id = 'gcc'
         default_warn_args = ['-Wall', '-Wdeprecated']
         self.warn_args = {'0': [],
@@ -633,8 +637,10 @@ class GnuDCompiler(DCompiler, GnuCompiler):
 
 
 class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, DCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
+
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo', arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, info, arch, **kwargs)
         self.id = 'llvm'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
 
@@ -671,8 +677,10 @@ class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompi
 
 
 class DmdDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, DCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
+
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo', arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, info, arch, **kwargs)
         self.id = 'dmd'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
 

@@ -20,9 +20,6 @@ from pathlib import Path
 
 from ..compilers import clike_debug_args, clike_optimization_args
 
-if typing.TYPE_CHECKING:
-    from ..compilers import CompilerType
-
 pgi_buildtype_args = {
     'plain': [],
     'debug': [],
@@ -34,10 +31,9 @@ pgi_buildtype_args = {
 
 
 class PGICompiler:
-    def __init__(self, compiler_type: 'CompilerType'):
+    def __init__(self):
         self.base_options = ['b_pch']
         self.id = 'pgi'
-        self.compiler_type = compiler_type
 
         default_warn_args = ['-Minform=inform']
         self.warn_args = {'0': [],
@@ -56,7 +52,7 @@ class PGICompiler:
 
     def get_pic_args(self) -> typing.List[str]:
         # PGI -fPIC is Linux only.
-        if self.compiler_type.is_standard_compiler:
+        if self.info.is_linux():
             return ['-fPIC']
         return []
 
