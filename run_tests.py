@@ -38,9 +38,7 @@ def guess_backend(backend, msbuild_exe: str):
     # Auto-detect backend if unspecified
     backend_flags = []
     if backend is None:
-        if (msbuild_exe is not None and
-            mesonlib.is_windows() and not
-                (os.environ.get('CC') == 'icl' or os.environ.get('CXX') == 'icl' or os.environ.get('FC') == 'ifort')):
+        if msbuild_exe is not None and (mesonlib.is_windows() and not _using_intelcl()):
             backend = 'vs' # Meson will auto-detect VS version to use
         else:
             backend = 'ninja'
@@ -57,6 +55,32 @@ def guess_backend(backend, msbuild_exe: str):
     else:
         raise RuntimeError('Unknown backend: {!r}'.format(backend))
     return (backend, backend_flags)
+
+
+def _using_intelcl() -> bool:
+    """
+    detect if intending to using Intel-Cl compilers (Intel compilers on Windows)
+    Sufficient evidence of intent is that user is working in the Intel compiler
+    shell environment, otherwise this function returns False
+    """
+    if not mesonlib.is_windows():
+        return False
+    # handle where user tried to "blank" MKLROOT and left space(s)
+    if not os.environ.get('MKLROOT', '').strip():
+        return False
+    if (os.environ.get('CC') == 'icl' or
+       os.environ.get('CXX') == 'icl' or
+       os.environ.get('FC') == 'ifort'):
+        return True
+    # Intel-Cl users might not have the CC,CXX,FC envvars set,
+    # but because they're in Intel shell, the exe's below are on PATH
+    if shutil.which('icl') or shutil.which('ifort'):
+        return True
+    mlog.warning('It appears you might be intending to use Intel compiler on Windows '
+                 'since non-empty environment variable MKLROOT is set to {} '
+                 'However, Meson cannot find the Intel WIndows compiler executables (icl,ifort).'
+                 'Please try using the Intel shell.'.format(os.environ.get('MKLROOT')))
+    return False
 
 
 # Fake classes and objects for mocking
