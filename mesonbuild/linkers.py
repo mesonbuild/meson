@@ -664,7 +664,7 @@ class CcrxDynamicLinker(DynamicLinker):
     def get_output_args(self, outputname: str) -> typing.List[str]:
         return ['-output=%s' % outputname]
 
-    def get_search_args(self, dirname: str) -> typing.NoReturn:
+    def get_search_args(self, dirname: str) -> 'typing.NoReturn':
         raise EnvironmentError('rlink.exe does not have a search dir argument')
 
     def get_allow_undefined_args(self) -> typing.List[str]:
@@ -688,7 +688,7 @@ class ArmDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_accepts_rsp(self) -> bool:
         return False
 
-    def get_std_shared_lib_args(self) -> typing.NoReturn:
+    def get_std_shared_lib_args(self) -> 'typing.NoReturn':
         raise mesonlib.MesonException('The Arm Linkers do not support shared libraries')
 
     def get_allow_undefined_args(self) -> typing.List[str]:
