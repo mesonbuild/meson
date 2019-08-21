@@ -65,6 +65,8 @@ from .compilers import (
     ArmCPPCompiler,
     ArmclangCCompiler,
     ArmclangCPPCompiler,
+    AppleClangCCompiler,
+    AppleClangCPPCompiler,
     ClangCCompiler,
     ClangCPPCompiler,
     ClangObjCCompiler,
@@ -947,20 +949,25 @@ class Environment:
                 return cls(compiler, version, for_machine, is_cross, exe_wrap, target, linker=linker)
             if 'clang' in out:
                 linker = None
-                cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
-                if 'Apple' in out or self.machines[for_machine].is_darwin():
-                    compiler_type = CompilerType.CLANG_OSX
-                elif 'windows' in out or self.machines[for_machine].is_windows():
-                    compiler_type = CompilerType.CLANG_MINGW
-                    # If we're in a MINGW context this actually will use a gnu style ld
+
+                # Even if the for_machine is darwin, we could be using vanilla
+                # clang.
+                if 'Apple' in out:
+                    cls = AppleClangCCompiler if lang == 'c' else AppleClangCPPCompiler
+                else:
+                    cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
+
+                if 'windows' in out or self.machines[for_machine].is_windows():
+                    # If we're in a MINGW context this actually will use a gnu
+                    # style ld, but for clang on "real" windows we'll use
+                    # either link.exe or lld-link.exe
                     try:
                         linker = self._guess_win_linker(compiler, for_machine, cls.LINKER_PREFIX)
                     except MesonException:
                         pass
-                else:
-                    compiler_type = CompilerType.CLANG_STANDARD
                 if linker is None:
                     linker = self._guess_nix_linker(compiler, for_machine, cls.LINKER_PREFIX)
+
                 return cls(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, full_version=full_version, linker=linker)
             if 'Intel(R) C++ Intel(R)' in err:
                 version = search_version(err)

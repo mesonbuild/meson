@@ -75,6 +75,10 @@ class CCompiler(CLikeCompiler, Compiler):
 
 
 class ClangCCompiler(ClangCompiler, CCompiler):
+
+    _C17_VERSION = '>=10.0.0'
+    _C18_VERSION = '>=11.0.0'
+
     def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
         CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
         ClangCompiler.__init__(self, compiler_type)
@@ -90,12 +94,10 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         g_stds = ['gnu89', 'gnu99', 'gnu11']
         # https://releases.llvm.org/6.0.0/tools/clang/docs/ReleaseNotes.html
         # https://en.wikipedia.org/wiki/Xcode#Latest_versions
-        v = '>=10.0.0' if self.compiler_type is CompilerType.CLANG_OSX else '>=6.0.0'
-        if version_compare(self.version, v):
+        if version_compare(self.version, self._C17_VERSION):
             c_stds += ['c17']
             g_stds += ['gnu17']
-        v = '>=11.0.0' if self.compiler_type is CompilerType.CLANG_OSX else '>=8.0.0'
-        if version_compare(self.version, v):
+        if version_compare(self.version, self._C18_VERSION):
             c_stds += ['c18']
             g_stds += ['gnu18']
         opts.update({'c_std': coredata.UserComboOption('C language standard to use',
@@ -112,6 +114,18 @@ class ClangCCompiler(ClangCompiler, CCompiler):
 
     def get_option_link_args(self, options):
         return []
+
+
+class AppleClangCCompiler(ClangCCompiler):
+
+    """Handle the differences between Apple Clang and Vanilla Clang.
+    
+    Right now this just handles the differences between the versions that new
+    C standards were added.
+    """
+
+    _C17_VERSION = '>=6.0.0'
+    _C18_VERSION = '>=8.0.0'
 
 
 class EmscriptenCCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, ClangCCompiler):

@@ -184,6 +184,11 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         return ['-lstdc++']
 
 
+class AppleClangCPPCompiler(ClangCPPCompiler):
+
+    pass
+
+
 class EmscriptenCPPCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, ClangCPPCompiler):
     def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
         if not is_cross:

@@ -34,6 +34,8 @@ __all__ = [
     'lang_suffixes',
     'sort_clink',
 
+    'AppleClangCCompiler',
+    'AppleClangCPPCompiler',
     'ArmCCompiler',
     'ArmCPPCompiler',
     'ArmclangCCompiler',
@@ -119,6 +121,7 @@ from .compilers import (
 )
 from .c import (
     CCompiler,
+    AppleClangCCompiler,
     ArmCCompiler,
     ArmclangCCompiler,
     ClangCCompiler,
@@ -134,6 +137,7 @@ from .c import (
 )
 from .cpp import (
     CPPCompiler,
+    AppleClangCPPCompiler,
     ArmCPPCompiler,
     ArmclangCPPCompiler,
     ClangCPPCompiler,
