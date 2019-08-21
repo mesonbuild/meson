@@ -1326,6 +1326,7 @@ class CMakeDependency(ExternalDependency):
                                       'Valid targets are:\n{}'.format(name, list(self.traceparser.targets.keys())))
 
         # Set dependencies with CMake targets
+        reg_is_lib = re.compile(r'^(-l[a-zA-Z0-9_]+|-pthread)$')
         processed_targets = []
         incDirs = []
         compileDefinitions = []
@@ -1393,14 +1394,16 @@ class CMakeDependency(ExternalDependency):
                 for j in otherDeps:
                     if j in self.traceparser.targets:
                         targets += [j]
+                    elif reg_is_lib.match(j) or os.path.exists(j):
+                        libraries += [j]
 
                 processed_targets += [curr]
 
         # Make sure all elements in the lists are unique and sorted
-        incDirs = list(sorted(list(set(incDirs))))
-        compileDefinitions = list(sorted(list(set(compileDefinitions))))
-        compileOptions = list(sorted(list(set(compileOptions))))
-        libraries = list(sorted(list(set(libraries))))
+        incDirs = sorted(set(incDirs))
+        compileDefinitions = sorted(set(compileDefinitions))
+        compileOptions = sorted(set(compileOptions))
+        libraries = sorted(set(libraries))
 
         mlog.debug('Include Dirs:         {}'.format(incDirs))
         mlog.debug('Compiler Definitions: {}'.format(compileDefinitions))
