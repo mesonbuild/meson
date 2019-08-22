@@ -286,6 +286,8 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         return ['-c']
 
     def get_include_args(self, path: str, is_system: bool) -> typing.List[str]:
+        if not path:
+            path = '.'
         if is_system:
             return ['-isystem' + path]
         return ['-I' + path]
