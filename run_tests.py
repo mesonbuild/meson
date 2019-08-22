@@ -69,8 +69,8 @@ def _using_intelcl() -> bool:
     if not os.environ.get('MKLROOT', '').strip():
         return False
     if (os.environ.get('CC') == 'icl' or
-       os.environ.get('CXX') == 'icl' or
-       os.environ.get('FC') == 'ifort'):
+            os.environ.get('CXX') == 'icl' or
+            os.environ.get('FC') == 'ifort'):
         return True
     # Intel-Cl users might not have the CC,CXX,FC envvars set,
     # but because they're in Intel shell, the exe's below are on PATH
