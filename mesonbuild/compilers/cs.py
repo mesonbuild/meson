@@ -16,7 +16,6 @@ import os.path, subprocess
 import typing
 
 from ..mesonlib import EnvironmentException
-from ..mesonlib import is_windows
 
 from .compilers import Compiler, MachineChoice, mono_buildtype_args
 from .mixins.islinker import BasicLinkerIsCompilerMixin
@@ -152,7 +151,7 @@ class VisualStudioCsCompiler(CsCompiler):
 
     def get_buildtype_args(self, buildtype):
         res = mono_buildtype_args[buildtype]
-        if not is_windows():
+        if not self.info.is_windows():
             tmp = []
             for flag in res:
                 if flag == '-debug':

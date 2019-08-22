@@ -1034,7 +1034,6 @@ class Environment:
         popen_exceptions = {}
         is_cross = not self.machines.matches_build_machine(for_machine)
         compilers, ccache, exe_wrap = self._get_compilers('cuda', for_machine)
-        info = self.machines[for_machine]
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
