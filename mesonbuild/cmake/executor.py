@@ -43,11 +43,11 @@ class CMakeExecutor:
             return
 
         if not version_compare(self.cmakevers, self.min_version):
-            self.cmakebin = None
             mlog.warning(
                 'The version of CMake', mlog.bold(self.cmakebin.get_path()),
                 'is', mlog.bold(self.cmakevers), 'but version', mlog.bold(self.min_version),
                 'is required')
+            self.cmakebin = None
             return
 
     def find_cmake_binary(self, environment: Environment, silent: bool = False) -> Tuple['ExternalProgram', str]:
