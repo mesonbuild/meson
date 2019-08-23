@@ -4,3 +4,4 @@ option('combo_opt', type : 'combo', choices : ['one', 'two', 'combo'], value : '
 option('array_opt', type : 'array', choices : ['one', 'two', 'three'], value : ['one', 'two'])
 option('free_array_opt', type : 'array')
 option('integer_opt', type : 'integer', min : 0, max : 5, value : 3)
+option('path_opt', type : 'path', value : '~/foo')

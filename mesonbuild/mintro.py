@@ -267,6 +267,8 @@ def add_keys(optlist, options: Dict[str, cdata.UserOption], section: str, machin
             typestr = 'integer'
         elif isinstance(opt, cdata.UserArrayOption):
             typestr = 'array'
+        elif isinstance(opt, cdata.UserPathOption):
+            typestr = 'path'
         else:
             raise RuntimeError("Unknown option type")
         optdict['type'] = typestr

@@ -65,6 +65,12 @@ def StringParser(description, kwargs):
                                      kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield'})
+def PathParser(description, kwargs):
+    return coredata.UserPathOption(description,
+                                   kwargs.get('value', ''),
+                                   kwargs.get('yield', coredata.default_yielding))
+
+@permitted_kwargs({'value', 'yield'})
 def BooleanParser(description, kwargs):
     return coredata.UserBooleanOption(description,
                                       kwargs.get('value', True),
@@ -127,6 +133,7 @@ def FeatureParser(description, kwargs):
 
 option_types = {'string': StringParser,
                 'boolean': BooleanParser,
+                'path': PathParser,
                 'combo': ComboParser,
                 'integer': IntegerParser,
                 'array': string_array_parser,

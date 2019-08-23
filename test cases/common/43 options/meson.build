@@ -30,4 +30,12 @@ if get_option('integer_opt') != 3
   error('Incorrect value in integer option.')
 endif
 
+path = get_option('path_opt')
+if not path.endswith('foo')
+  error('Incorrect value in "path" option.')
+endif
+if path.startswith('~')
+  error('path option was not tilde expanded')
+endif
+
 assert(get_option('wrap_mode') == 'default', 'Wrap mode option is broken.')

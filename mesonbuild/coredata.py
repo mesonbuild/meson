@@ -16,7 +16,7 @@ from . import mlog
 import pickle, os, uuid, shlex
 import sys
 from itertools import chain
-from pathlib import PurePath
+from pathlib import Path, PurePath
 from collections import OrderedDict
 from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
@@ -46,7 +46,7 @@ default_yielding = False
 _T = TypeVar('_T')
 
 class UserOption(Generic[_T]):
-    def __init__(self, description, choices, yielding):
+    def __init__(self, description, choices, yielding: bool):
         super().__init__()
         self.choices = choices
         self.description = description
@@ -69,13 +69,28 @@ class UserOption(Generic[_T]):
         self.value = self.validate_value(newvalue)
 
 class UserStringOption(UserOption[str]):
-    def __init__(self, description, value, choices=None, yielding=None):
+    def __init__(self, description: str, value: str,
+                 choices = None, yielding: bool = False):
         super().__init__(description, choices, yielding)
         self.set_value(value)
 
     def validate_value(self, value):
         if not isinstance(value, str):
             raise MesonException('Value "%s" for string option is not a string.' % str(value))
+        return value
+
+class UserPathOption(UserOption[str]):
+    def __init__(self, description: str, value: str, yielding: bool = False):
+        super().__init__(description, None, yielding)
+        self.set_value(value)
+
+    def validate_value(self, value: str) -> str:
+        if not isinstance(value, (str, Path)):
+            raise MesonException('Value "%s" for path option does not appear to be a path.' % str(value))
+        try:
+            value = str(Path(value).expanduser())
+        except TypeError:
+            raise MesonException('Value "%s" for path option does not appear to be a path.' % str(value))
         return value
 
 class UserBooleanOption(UserOption[bool]):
