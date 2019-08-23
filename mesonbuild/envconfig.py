@@ -245,6 +245,19 @@ class MachineInfo:
         """
         return self.system == 'openbsd'
 
+    def is_dragonflybsd(self) -> bool:
+        """Machine is DragonflyBSD?"""
+        return self.system == 'dragonfly'
+
+    def is_freebsd(self) -> bool:
+        """Machine is FreeBSD?"""
+        return self.system == 'freebsd'
+
+    def is_sunos(self) -> bool:
+        """Machine is illumos or Solaris?"""
+        return self.system == 'sunos'
+
+
     # Various prefixes and suffixes for import libraries, shared libraries,
     # static libraries, and executables.
     # Versioning is added to these names in the backends as-needed.
