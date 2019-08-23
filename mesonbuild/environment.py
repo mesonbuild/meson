@@ -235,7 +235,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     """
     if mesonlib.is_windows():
         trial = detect_windows_arch(compilers)
-    elif mesonlib.is_freebsd() or mesonlib.is_openbsd():
+    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd():
         trial = platform.processor().lower()
     else:
         trial = platform.machine().lower()
@@ -243,7 +243,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         trial = 'x86'
     elif trial == 'bepc':
         trial = 'x86'
-    elif trial.startswith('arm'):
+    elif trial.startswith('arm') or trial.startswith('earm'):
         trial = 'arm'
     elif trial.startswith(('powerpc64', 'ppc64')):
         trial = 'ppc64'
@@ -280,7 +280,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
 def detect_cpu(compilers: CompilersDict):
     if mesonlib.is_windows():
         trial = detect_windows_arch(compilers)
-    elif mesonlib.is_freebsd() or mesonlib.is_openbsd():
+    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd():
         trial = platform.processor().lower()
     else:
         trial = platform.machine().lower()
@@ -294,6 +294,8 @@ def detect_cpu(compilers: CompilersDict):
         # Same check as above for cpu_family
         if any_compiler_has_define(compilers, '__arm__'):
             trial = 'arm'
+    elif trial.startswith('earm'):
+        trial = 'arm'
     elif trial == 'e2k':
         # Make more precise CPU detection for Elbrus platform.
         trial = platform.processor().lower()
