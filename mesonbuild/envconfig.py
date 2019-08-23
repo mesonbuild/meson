@@ -233,6 +233,12 @@ class MachineInfo:
         """
         return self.system == 'haiku'
 
+    def is_netbsd(self) -> bool:
+        """
+        Machine is NetBSD?
+        """
+        return self.system == 'netbsd'
+
     def is_openbsd(self) -> bool:
         """
         Machine is OpenBSD?
