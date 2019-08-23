@@ -94,6 +94,7 @@ format files
  - [Playerctl](https://github.com/acrisci/playerctl), mpris command-line controller and library for spotify, vlc, audacious, bmp, cmus, and others
  - [Polari](https://gitlab.gnome.org/GNOME/polari), an IRC client
  - [radare2](https://github.com/radare/radare2), unix-like reverse engineering framework and commandline tools (not the default)
+ - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
  - [SSHFS](https://github.com/libfuse/sshfs), allows you to mount a remote filesystem using SFTP
  - [sway](https://github.com/swaywm/sway), i3-compatible Wayland compositor
  - [Sysprof](https://git.gnome.org/browse/sysprof), a profiling tool
