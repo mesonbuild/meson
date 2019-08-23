@@ -26,6 +26,11 @@ class Vs2019Backend(Vs2010Backend):
             comps = self.environment.coredata.compilers.host
             if comps and all(c.id == 'clang-cl' for c in comps.values()):
                 self.platform_toolset = 'llvm'
+            elif comps and all(c.id == 'intel-cl' for c in comps.values()):
+                c = list(comps.values())[0]
+                if c.version.startswith('19'):
+                    self.platform_toolset = 'Intel C++ Compiler 19.0'
+                # We don't have support for versions older than 2019 right now.
             if not self.platform_toolset:
                 self.platform_toolset = 'v142'
             self.vs_version = '2019'
