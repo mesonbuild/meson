@@ -41,6 +41,7 @@ from collections import namedtuple
 from itertools import chain
 from pathlib import PurePath
 import functools
+import typing
 from typing import Sequence, List, Union, Optional, Dict, Any
 
 import importlib
@@ -2918,7 +2919,11 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
-    def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST, required=True, silent=True, wanted=''):
+    def find_program_impl(self, args: typing.List[str],
+                          for_machine: MachineChoice = MachineChoice.HOST,
+                          required: bool = True,
+                          silent: bool = True,
+                          wanted: str = ''):
         if not isinstance(args, list):
             args = [args]
 
