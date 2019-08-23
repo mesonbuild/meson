@@ -157,6 +157,7 @@ class Backend:
         # Make it possible to construct a dummy backend
         # This is used for introspection without a build directory
         if build is None:
+            self.environment = None
             return
         self.build = build
         self.environment = build.environment

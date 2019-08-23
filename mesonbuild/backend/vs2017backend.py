@@ -16,14 +16,29 @@ import os
 import xml.etree.ElementTree as ET
 
 from .vs2010backend import Vs2010Backend
+from ..mesonlib import MesonException
 
 
 class Vs2017Backend(Vs2010Backend):
     def __init__(self, build):
         super().__init__(build)
         self.name = 'vs2017'
-        self.platform_toolset = 'v141'
         self.vs_version = '2017'
+        # We assume that host == build
+        if self.environment is not None:
+            comps = self.environment.coredata.compilers.host
+            if comps:
+                if comps and all(c.id == 'clang-cl' for c in comps.values()):
+                    self.platform_toolset = 'llvm'
+                elif comps and all(c.id == 'intel-cl' for c in comps.values()):
+                    c = list(comps.values())[0]
+                    if c.version.startswith('19'):
+                        self.platform_toolset = 'Intel C++ Compiler 19.0'
+                    else:
+                        # We don't have support for versions older than 2019 right now.
+                        raise MesonException('There is currently no support for ICL before 19, patches welcome.')
+        if self.platform_toolset is None:
+            self.platform_toolset = 'v141'
         # WindowsSDKVersion should be set by command prompt.
         sdk_version = os.environ.get('WindowsSDKVersion', None)
         if sdk_version:
