@@ -201,13 +201,13 @@ class MachineInfo:
         """
         Machine is windows?
         """
-        return self.system in {'windows', 'mingw'}
+        return self.system == 'windows' or 'mingw' in self.system
 
     def is_cygwin(self) -> bool:
         """
         Machine is cygwin?
         """
-        return self.system == 'cygwin'
+        return self.system.startswith('cygwin')
 
     def is_linux(self) -> bool:
         """
