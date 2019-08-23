@@ -16,6 +16,7 @@ import os
 import xml.etree.ElementTree as ET
 
 from .vs2010backend import Vs2010Backend
+from ..mesonlib import MesonException
 
 
 class Vs2017Backend(Vs2010Backend):
@@ -23,6 +24,12 @@ class Vs2017Backend(Vs2010Backend):
         super().__init__(build)
         self.name = 'vs2017'
         self.vs_version = '2017'
+        # We assume that host == build
+        if self.environment is not None:
+            comps = self.environment.coredata.compilers.host
+            if comps:
+                if comps and all(c.id == 'clang-cl' for c in comps.values()):
+                    self.platform_toolset = 'llvm'
         if self.platform_toolset is None:
             self.platform_toolset = 'v141'
         # WindowsSDKVersion should be set by command prompt.

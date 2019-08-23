@@ -22,8 +22,13 @@ class Vs2019Backend(Vs2010Backend):
     def __init__(self, build):
         super().__init__(build)
         self.name = 'vs2019'
-        self.platform_toolset = 'v142'
-        self.vs_version = '2019'
+        if self.environment is not None:
+            comps = self.environment.coredata.compilers.host
+            if comps and all(c.id == 'clang-cl' for c in comps.values()):
+                self.platform_toolset = 'llvm'
+            if not self.platform_toolset:
+                self.platform_toolset = 'v142'
+            self.vs_version = '2019'
         # WindowsSDKVersion should be set by command prompt.
         sdk_version = os.environ.get('WindowsSDKVersion', None)
         if sdk_version:
