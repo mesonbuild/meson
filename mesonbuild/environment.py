@@ -817,7 +817,7 @@ class Environment:
                 v = 'unknown version'
             linker = AppleDynamicLinker(compiler, for_machine, i, prefix, version=v)
         elif 'GNU' in o:
-            if 'gold' in 'o':
+            if 'gold' in o:
                 i = 'GNU ld.gold'
             else:
                 i = 'GNU ld.bfd'
