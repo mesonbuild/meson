@@ -35,7 +35,7 @@ import enum
 if typing.TYPE_CHECKING:
     from . import dependencies
 
-version = '0.51.1'
+version = '0.51.2'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
 
 default_yielding = False
