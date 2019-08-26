@@ -11,4 +11,4 @@ odir = sys.argv[2]
 with open(os.path.join(odir, name + '.h'), 'w') as f:
     f.write('int func();\n')
 with open(os.path.join(odir, name + '.sh'), 'w') as f:
-    f.write('#!/bin/bash')
+    f.write('#!/bin/sh')

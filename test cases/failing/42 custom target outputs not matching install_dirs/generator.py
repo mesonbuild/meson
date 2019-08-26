@@ -13,4 +13,4 @@ with open(os.path.join(odir, name + '.h'), 'w') as f:
 with open(os.path.join(odir, name + '.c'), 'w') as f:
     f.write('int main(int argc, char *argv[]) { return 0; }')
 with open(os.path.join(odir, name + '.sh'), 'w') as f:
-    f.write('#!/bin/bash')
+    f.write('#!/bin/sh')
