@@ -660,6 +660,28 @@ class Environment:
         raise EnvironmentException(errmsg)
 
     @staticmethod
+    def _guess_win_linker(compiler: typing.List[str], for_machine: MachineChoice,
+                          prefix: typing.Union[str, typing.List[str]]) -> 'DynamicLinker':
+        # Explicitly pass logo here so that we can get the version of link.exe
+        if isinstance(prefix, str):
+            check_args = [prefix + '/logo', prefix + '--version']
+        else:
+            check_args = prefix + ['/logo'] + prefix + ['--version']
+        p, o, _ = Popen_safe(compiler + check_args)
+        if o.startswith('LLD'):
+            return ClangClDynamicLinker(for_machine, exelist=compiler, prefix=prefix, version=search_version(o))
+        elif o.startswith('Microsoft'):
+            match = re.search(r'.*(X86|X64|ARM|ARM64).*', o)
+            if match:
+                target = str(match.group(1))
+            else:
+                target = 'x86'
+            return MSVCDynamicLinker(
+                for_machine, machine=target, exelist=compiler, prefix=prefix,
+                version=search_version(o))
+        raise MesonException('Cannot guess dynamic linker')
+
+    @staticmethod
     def _guess_nix_linker(compiler: typing.List[str], for_machine: MachineChoice,
                           prefix: typing.Union[str, typing.List[str]], *,
                           extra_args: typing.Optional[typing.List[str]] = None) -> 'DynamicLinker':
@@ -827,15 +849,21 @@ class Environment:
                 linker = ClangClDynamicLinker(for_machine, version=version)
                 return cls(compiler, version, for_machine, is_cross, exe_wrap, target, linker=linker)
             if 'clang' in out:
+                linker = None
+                cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
                 if 'Apple' in out or self.machines[for_machine].is_darwin():
                     compiler_type = CompilerType.CLANG_OSX
                 elif 'windows' in out or self.machines[for_machine].is_windows():
                     compiler_type = CompilerType.CLANG_MINGW
+                    # If we're in a MINGW context this actually will use a gnu style ld
+                    try:
+                        linker = self._guess_win_linker(compiler, for_machine, cls.LINKER_PREFIX)
+                    except MesonException:
+                        pass
                 else:
                     compiler_type = CompilerType.CLANG_STANDARD
-                cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
-
-                linker = self._guess_nix_linker(compiler, for_machine, cls.LINKER_PREFIX)
+                if linker is None:
+                    linker = self._guess_nix_linker(compiler, for_machine, cls.LINKER_PREFIX)
                 return cls(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, full_version=full_version, linker=linker)
             if 'Intel(R) C++ Intel(R)' in err:
                 version = search_version(err)
@@ -1052,14 +1080,21 @@ class Environment:
                 linker = self._guess_nix_linker(compiler, for_machine, comp.LINKER_PREFIX)
                 return comp(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, defines, linker=linker)
             if 'clang' in out:
+                linker = None
                 comp = ClangObjCCompiler if objc else ClangObjCPPCompiler
                 if 'Apple' in out or self.machines[for_machine].is_darwin():
                     compiler_type = CompilerType.CLANG_OSX
                 elif 'windows' in out or self.machines[for_machine].is_windows():
                     compiler_type = CompilerType.CLANG_MINGW
+                    # If we're in a MINGW context this actually will use a gnu style ld
+                    try:
+                        linker = self._guess_win_linker(compiler, for_machine, comp.LINKER_PREFIX)
+                    except MesonException:
+                        pass
                 else:
                     compiler_type = CompilerType.CLANG_STANDARD
-                linker = self._guess_nix_linker(compiler, for_machine, comp.LINKER_PREFIX)
+                if not linker:
+                    linker = self._guess_nix_linker(compiler, for_machine, comp.LINKER_PREFIX)
                 return comp(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, linker=linker)
         self._handle_exceptions(popen_exceptions, compilers)
 
