@@ -52,14 +52,10 @@ def run_exe(exe):
         child_env['PATH'] = (os.pathsep.join(exe.extra_paths + ['']) +
                              child_env['PATH'])
         if exe.exe_runner and mesonlib.substring_is_in_list('wine', exe.exe_runner.get_command()):
-            wine_paths = ['Z:' + p for p in exe.extra_paths]
-            wine_path = ';'.join(wine_paths)
-            # Don't accidentally end with an `;` because that will add the
-            # current directory and might cause unexpected behaviour
-            if 'WINEPATH' in child_env:
-                child_env['WINEPATH'] = wine_path + ';' + child_env['WINEPATH']
-            else:
-                child_env['WINEPATH'] = wine_path
+            child_env['WINEPATH'] = mesonlib.get_wine_shortpath(
+                exe.exe_runner.get_command(),
+                ['Z:' + p for p in exe.extra_paths] + child_env.get('WINEPATH', '').split(';')
+            )
 
     p = subprocess.Popen(cmd_args, env=child_env, cwd=exe.workdir,
                          close_fds=False,

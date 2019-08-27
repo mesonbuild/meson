@@ -22,6 +22,7 @@ import collections
 from enum import Enum
 from functools import lru_cache
 import typing
+import uuid
 
 from mesonbuild import mlog
 
@@ -1375,3 +1376,36 @@ try:
             super().__init__(*args, **kwargs)
 except ImportError:
     ProgressBar = ProgressBarFallback
+
+
+def get_wine_shortpath(winecmd, wine_paths):
+
+    """ Get A short version of @wine_paths to avoid
+    reaching WINEPATH number of char limit.
+    """
+
+    seen = set()
+    wine_paths = [p for p in wine_paths if not (p in seen or seen.add(p))]
+
+    getShortPathScript = '%s.bat' % str(uuid.uuid4()).lower()[:5]
+    with open(getShortPathScript, mode='w') as f:
+        f.write("@ECHO OFF\nfor %%x in (%*) do (\n echo|set /p=;%~sx\n)\n")
+        f.flush()
+    try:
+        with open(os.devnull, 'w') as stderr:
+            wine_path = subprocess.check_output(
+                winecmd +
+                ['cmd', '/C', getShortPathScript] + wine_paths,
+                stderr=stderr).decode('utf-8')
+    except subprocess.CalledProcessError as e:
+        print("Could not get short paths: %s" % e)
+        wine_path = ';'.join(wine_paths)
+    finally:
+        os.remove(getShortPathScript)
+    if len(wine_path) > 2048:
+        raise MesonException(
+            'WINEPATH size {} > 2048'
+            ' this will cause random failure.'.format(
+                len(wine_path)))
+
+    return wine_path.strip(';')
