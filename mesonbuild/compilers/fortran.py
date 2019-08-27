@@ -185,6 +185,9 @@ class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
         ElbrusCompiler.__init__(self, compiler_type, defines)
 
 class G95FortranCompiler(FortranCompiler):
+
+    LINKER_PREFIX = '-Wl,'
+
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwags):
         FortranCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwags)
         self.id = 'g95'
@@ -203,6 +206,9 @@ class G95FortranCompiler(FortranCompiler):
 
 
 class SunFortranCompiler(FortranCompiler):
+
+    LINKER_PREFIX = '-Wl,'
+
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwags):
         FortranCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwags)
         self.id = 'sun'

@@ -27,6 +27,9 @@ swift_optimization_args = {'0': [],
                            }
 
 class SwiftCompiler(Compiler):
+
+    LINKER_PREFIX = ['-Xlinker']
+
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, **kwargs):
         self.language = 'swift'
         super().__init__(exelist, version, for_machine, **kwargs)

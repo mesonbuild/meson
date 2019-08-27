@@ -650,6 +650,8 @@ class Compiler:
     # manually searched.
     internal_libs = ()
 
+    LINKER_PREFIX = None  # type: typing.Union[None, str, typing.List[str]]
+
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  linker: typing.Optional['DynamicLinker'] = None, **kwargs):
         if isinstance(exelist, str):

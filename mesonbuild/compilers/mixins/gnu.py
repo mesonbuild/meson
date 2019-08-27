@@ -128,6 +128,9 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
     and ICC. Certain functionality between them is different and requires
     that the actual concrete subclass define their own implementation.
     """
+
+    LINKER_PREFIX = '-Wl,'
+
     def __init__(self, compiler_type: 'CompilerType'):
         self.compiler_type = compiler_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
@@ -298,6 +301,7 @@ class GnuCompiler(GnuLikeCompiler):
     GnuCompiler represents an actual GCC in its many incarnations.
     Compilers imitating GCC (Clang/Intel) should use the GnuLikeCompiler ABC.
     """
+
     def __init__(self, compiler_type: 'CompilerType', defines: typing.Dict[str, str]):
         super().__init__(compiler_type)
         self.id = 'gcc'

@@ -67,6 +67,8 @@ dmd_optimization_args = {'0': [],
 
 class DmdLikeCompilerMixin:
 
+    LINKER_PREFIX = '-L'
+
     def get_output_args(self, target):
         return ['-of=' + target]
 
@@ -577,6 +579,10 @@ class DCompiler(Compiler):
 
 
 class GnuDCompiler(DCompiler, GnuCompiler):
+
+    # we mostly want DCompiler, but that gives us the Compiler.LINKER_PREFIX instead
+    LINKER_PREFIX = GnuCompiler.LINKER_PREFIX
+
     def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
         DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
         self.id = 'gcc'
