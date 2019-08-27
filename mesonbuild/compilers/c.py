@@ -29,6 +29,7 @@ from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin, LinkerEnvVarsMixin
 from .mixins.emscripten import EmscriptenMixin
+from .mixins.misc import SanitizerMixin
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -314,12 +315,13 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
         MSVCCompiler.__init__(self, target)
 
 
-class ClangClCCompiler(ClangClCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
+class ClangClCCompiler(SanitizerMixin, ClangClCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrap, target, **kwargs):
         CCompiler.__init__(self, exelist, version, for_machine, is_cross,
                            info, exe_wrap, **kwargs)
         ClangClCompiler.__init__(self, target)
+        SanitizerMixin.__init__(self)
 
 
 class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
