@@ -287,6 +287,11 @@ class ClangClCCompiler(VisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin,
         VisualStudioLikeCompiler.__init__(self, target)
         self.id = 'clang-cl'
 
+    def sanitizer_compile_args(self, value: str) -> typing.List[str]:
+        if value == 'none':
+            return []
+        args = ['-fsanitize=' + value]
+        return args
 
 class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
 

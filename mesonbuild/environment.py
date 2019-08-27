@@ -683,6 +683,8 @@ class Environment:
         v = search_version(o)
         if o.startswith('LLD'):
             linker = LLVMDynamicLinker(compiler, for_machine, 'lld', version=v)  # type: DynamicLinker
+        elif 'pc-windows-msvc' in o:
+            linker = LLVMDynamicLinker(compiler, for_machine, 'ld.lld', version=v)  # type: DynamicLinker
         # first is for apple clang, second is for real gcc
         elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e:
             if isinstance(prefix, str):
@@ -825,15 +827,18 @@ class Environment:
                 linker = ClangClDynamicLinker(for_machine, version=version)
                 return cls(compiler, version, for_machine, is_cross, exe_wrap, target, linker=linker)
             if 'clang' in out:
+                linker = None
                 if 'Apple' in out or self.machines[for_machine].is_darwin():
                     compiler_type = CompilerType.CLANG_OSX
                 elif 'windows' in out or self.machines[for_machine].is_windows():
                     compiler_type = CompilerType.CLANG_MINGW
+                    linker = self._guess_nix_linker(compiler, for_machine, prefix='')
                 else:
                     compiler_type = CompilerType.CLANG_STANDARD
                 cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
 
-                linker = self._guess_nix_linker(compiler, for_machine)
+                if linker is None:
+                    linker = self._guess_nix_linker(compiler, for_machine)
                 return cls(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, full_version=full_version, linker=linker)
             if 'Intel(R) C++ Intel(R)' in err:
                 version = search_version(err)
@@ -1057,6 +1062,7 @@ class Environment:
                     compiler_type = CompilerType.CLANG_MINGW
                 else:
                     compiler_type = CompilerType.CLANG_STANDARD
+
                 linker = self._guess_nix_linker(compiler, for_machine)
                 return comp(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, linker=linker)
         self._handle_exceptions(popen_exceptions, compilers)
