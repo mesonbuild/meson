@@ -1,6 +1,6 @@
 project('test priorities', 'c')
 
-test_prog = find_program('test.sh')
+test_prog = find_program('testprog.py')
 
 test('priority 0', test_prog,
      args : ['0'],
