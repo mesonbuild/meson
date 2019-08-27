@@ -25,6 +25,9 @@ if typing.TYPE_CHECKING:
 
 
 class CudaCompiler(Compiler):
+
+    LINKER_PREFIX = '-Xlinker='
+
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
         if not hasattr(self, 'language'):
             self.language = 'cuda'
@@ -162,17 +165,8 @@ class CudaCompiler(Compiler):
 
     @staticmethod
     def _cook_link_args(args: typing.List[str]) -> typing.List[str]:
-        """
-        Converts GNU-style arguments -Wl,-arg,-arg
-        to NVCC-style arguments -Xlinker=-arg,-arg
-        """
-        cooked = []  # type: typing.List[str]
-        for arg in args:
-            if arg.startswith('-Wl,'):
-                arg = arg.replace('-Wl,', '-Xlinker=', 1)
-            arg = arg.replace(' ', '\\')
-            cooked.append(arg)
-        return cooked
+        """Fixup arguments."""
+        return [a.replace(' ', '\\') for a in args]
 
     def name_string(self):
         return ' '.join(self.exelist)
