@@ -28,7 +28,7 @@ steps:
      }
 
      DownloadFile -Source 'https://github.com/mesonbuild/cidata/raw/master/ninja.exe' -Destination $(System.WorkFolder)\ninja.exe
-     DownloadFile -Source 'http://nirbheek.in/files/binaries/pkg-config/win32/pkg-config.exe' -Destination $(System.WorkFolder)\pkg-config.exe
+     DownloadFile -Source 'https://github.com/mesonbuild/cidata/raw/master/win32/pkg-config.exe' -Destination $(System.WorkFolder)\pkg-config.exe
      DownloadFile -Source 'https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/msmpisdk.msi' -Destination msmpisdk.msi
      DownloadFile -Source 'https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/MSMpiSetup.exe' -Destination MSMpiSetup.exe
      if ($env:compiler -ne 'msvc2015') {
