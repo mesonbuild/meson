@@ -2640,6 +2640,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.create_target_alias('meson-dist')
 
     def generate_scanbuild(self):
+        import shutil
+        if shutil.which('scan-build') is None:
+            return
         cmd = self.environment.get_build_command() + \
             ['--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir] + \
             self.environment.get_build_command() + self.get_user_option_args()
