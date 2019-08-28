@@ -230,6 +230,8 @@ class UserFeatureOption(UserComboOption):
 def load_configs(filenames: T.List[str]) -> configparser.ConfigParser:
     """Load configuration files from a named subdirectory."""
     config = configparser.ConfigParser(interpolation=None)
+    # Do not lowercase all keys
+    config.optionxform = str
     config.read(filenames)
     return config
 

@@ -5947,6 +5947,35 @@ class LinuxlikeTests(BasePlatformTests):
         self.meson_cross_file = crossfile.name
         self.init(testdir)
 
+    def test_cross_find_program_constants(self):
+        testdir = os.path.join(self.unit_test_dir, '11 cross prog')
+        crossfile = tempfile.NamedTemporaryFile(mode='w')
+        print(os.path.join(testdir, 'some_cross_tool.py'))
+        crossfile.write(textwrap.dedent('''\
+            [constants]
+            SOMEPATH = '{0}'
+            compiler = '{1}'
+
+            [binaries]
+            c = '/usr/bin/@compiler@'
+            ar = '/usr/bin/ar'
+            strip = '/usr/bin/strip'
+            sometool.py = ['@SOMEPATH@']
+            someothertool.py = '@SOMEPATH@'
+
+            [properties]
+
+            [host_machine]
+            system = 'linux'
+            cpu_family = 'arm'
+            cpu = 'armv7' # Not sure if correct.
+            endian = 'little'
+            ''').format(os.path.join(testdir, 'some_cross_tool.py'),
+                        'gcc' if is_sunos() else 'cc'))
+        crossfile.flush()
+        self.meson_cross_file = crossfile.name
+        self.init(testdir)
+
     def test_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '13 reconfigure')
         self.init(testdir, extra_args=['-Db_coverage=true'], default_args=False)

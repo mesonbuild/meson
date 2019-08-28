@@ -79,30 +79,83 @@ CPU_FAMILES_64_BIT = [
 ]
 
 class MesonConfigFile:
-    @classmethod
-    def from_config_parser(cls, parser: configparser.ConfigParser) -> T.Dict[str, T.Dict[str, T.Dict[str, str]]]:
+    variable_format = 'meson'
+    regex = mesonlib.get_variable_regex(variable_format)
+
+    @staticmethod
+    def check_value(kind, entry, value, constants):
+        if isinstance(value, str):
+            value, missing = mesonlib.do_replacement(MesonConfigFile.regex, value, MesonConfigFile.variable_format, constants)
+            if missing:
+                var_list = ", ".join(map(repr, sorted(missing)))
+                raise EnvironmentException(
+                    "The constant(s) {} in the entry {} of {} file are not "
+                    "present in the [constants] section.".format(var_list, entry, kind))
+        elif not isinstance(value, (int, bool)):
+            raise EnvironmentException('Malformed value in {} file variable {}.'.format(kind, entry))
+        return value
+
+    @staticmethod
+    def check_entry(kind, entry):
+        if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
+            raise EnvironmentException('Malformed variable name {} in {} file.'.format(entry, kind))
+
+    @staticmethod
+    def eval_value(kind, entry, value):
+        # Windows paths...
+        value = value.replace('\\', '\\\\')
+        try:
+            return eval(value, {'__builtins__': None}, {'true': True, 'false': False})
+        except Exception:
+            raise EnvironmentException('Malformed value in {} file variable {}.'.format(kind, entry))
+
+    @staticmethod
+    def eval_section(kind, s, constants):
+        section = {}
+        for entry, value in s.items():
+            MesonConfigFile.check_entry(kind, entry)
+            res = MesonConfigFile.eval_value(kind, entry, value)
+
+            if isinstance(res, list):
+                tmp = []
+                for i in res:
+                    tmp.append(MesonConfigFile.check_value(kind, entry, i, constants))
+                res = tmp
+            else:
+                res = MesonConfigFile.check_value(kind, entry, res, constants)
+
+            section[entry] = res
+        return section
+
+    @staticmethod
+    def eval_constants_section(kind, s):
+        section = {}
+        for entry, value in s.items():
+            MesonConfigFile.check_entry(kind, entry)
+            res = MesonConfigFile.eval_value(kind, entry, value)
+            if not isinstance(res, str):
+                m = 'Constant {} in {} file must be string'
+                raise EnvironmentException(m.format(entry, kind))
+            section[entry] = res
+        return section
+
+
+    @staticmethod
+    def from_config_parser(kind: str, parser: configparser.ConfigParser):
         out = {}
-        # This is a bit hackish at the moment.
-        for s in parser.sections():
-            section = {}
-            for entry in parser[s]:
-                value = parser[s][entry]
-                # Windows paths...
-                value = value.replace('\\', '\\\\')
-                if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
-                    raise EnvironmentException('Malformed variable name %s in cross file..' % entry)
-                try:
-                    res = eval(value, {'__builtins__': None}, {'true': True, 'false': False})
-                except Exception:
-                    raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
-
-                for i in (res if isinstance(res, list) else [res]):
-                    if not isinstance(i, (str, int, bool)):
-                        raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
-
-                section[entry] = res
-
-            out[s] = section
+        constants = {}
+        for i, name in enumerate(parser.sections()):
+            s = parser[name]
+            if name == 'constants':
+                if i != 0:
+                    raise EnvironmentException("'constants' section must be first")
+                res = MesonConfigFile.eval_constants_section(kind, s)
+                # do_replacement() wants a tuple (value, desc) as values
+                constants = {k: (v, None) for k, v in res.items()}
+            elif name in ['binaries', 'properties', 'host_machine', 'paths']:
+                out[name] = MesonConfigFile.eval_section(kind, s, constants)
+            else:
+                raise EnvironmentException('Unknown {!r} section in {} file'.format(name, kind))
         return out
 
 class HasEnvVarFallback:

@@ -328,6 +328,21 @@ myvar = meson.get_cross_property('somekey')
 # myvar now has the value 'somevalue'
 ```
 
+## Constants
+
+Since *0.54.0* constants can be defined in the `[constants]` section and
+used in other sections as `@varname@`. If provided, it must be the first section
+in the file. Values must all be strings, integers, booleans and lists are not
+allowed.
+
+```ini
+[constants]
+somepath = '/path/to/toolchain'
+[binaries]
+c = '@somepath@/gcc'
+cpp = '@somepath@/g++'
+```
+
 ## Cross file locations
 
 As of version 0.44.0 meson supports loading cross files from system locations

@@ -76,6 +76,11 @@ expressing all of these configurations in monolithic configurations would
 result in 81 different native files. By layering them, it can be expressed by
 just 12 native files.
 
+## Constants
+
+Since *0.54.0* constants can be defined in the `[constants]` section and
+used in other sections as `@varname@`. See [here](Cross-compilation.md#constants)
+for details.
 
 ## Native file locations
 

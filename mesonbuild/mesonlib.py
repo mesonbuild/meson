@@ -930,6 +930,15 @@ def do_mesondefine(line: str, confdata: 'ConfigurationData') -> str:
     else:
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
+def get_variable_regex(variable_format: str = 'meson'):
+    # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
+    # Also allow escaping '@' with '\@'
+    if variable_format in ['meson', 'cmake@']:
+        return re.compile(r'(?:\\\\)+(?=\\?@)|\\@|@([-a-zA-Z0-9_]+)@')
+    elif variable_format == 'cmake':
+        return re.compile(r'(?:\\\\)+(?=\\?\$)|\\\${|\${([-a-zA-Z0-9_]+)}')
+    else:
+        raise MesonException('Format "{}" not handled'.format(variable_format))
 
 def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_format: str,
                  encoding: str = 'utf-8') -> T.Tuple[T.Set[str], bool]:
@@ -938,14 +947,8 @@ def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_for
             data = f.readlines()
     except Exception as e:
         raise MesonException('Could not read input file %s: %s' % (src, str(e)))
-    # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
-    # Also allow escaping '@' with '\@'
-    if variable_format in ['meson', 'cmake@']:
-        regex = re.compile(r'(?:\\\\)+(?=\\?@)|\\@|@([-a-zA-Z0-9_]+)@')
-    elif variable_format == 'cmake':
-        regex = re.compile(r'(?:\\\\)+(?=\\?\$)|\\\${|\${([-a-zA-Z0-9_]+)}')
-    else:
-        raise MesonException('Format "{}" not handled'.format(variable_format))
+
+    regex = get_variable_regex(variable_format)
 
     search_token = '#mesondefine'
     if variable_format != 'meson':

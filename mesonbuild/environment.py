@@ -542,7 +542,7 @@ class Environment:
         ## Read in native file(s) to override build machine configuration
 
         if self.coredata.config_files is not None:
-            config = MesonConfigFile.from_config_parser(
+            config = MesonConfigFile.from_config_parser('native',
                 coredata.load_configs(self.coredata.config_files))
             binaries.build = BinaryTable(config.get('binaries', {}))
             paths.build = Directories(**config.get('paths', {}))
@@ -551,7 +551,7 @@ class Environment:
         ## Read in cross file(s) to override host machine configuration
 
         if self.coredata.cross_files:
-            config = MesonConfigFile.from_config_parser(
+            config = MesonConfigFile.from_config_parser('cross',
                 coredata.load_configs(self.coredata.cross_files))
             properties.host = Properties(config.get('properties', {}), False)
             binaries.host = BinaryTable(config.get('binaries', {}), False)
