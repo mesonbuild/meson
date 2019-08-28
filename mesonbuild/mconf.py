@@ -303,6 +303,8 @@ class Conf:
             print(f'{m[0]:21}{m[1]:10}{m[2]:10}')
 
 def run(options):
+    options.cross_file_constant = []
+    options.native_file_constant = []
     coredata.parse_cmd_line_options(options)
     builddir = os.path.abspath(os.path.realpath(options.builddir))
     c = None

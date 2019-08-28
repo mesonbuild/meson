@@ -127,7 +127,9 @@ class FakeCompilerOptions:
 def get_fake_options(prefix: str = '') -> argparse.Namespace:
     opts = argparse.Namespace()
     opts.native_file = []
+    opts.native_files_constants = {}
     opts.cross_file = None
+    opts.cross_files_constants = {}
     opts.wrap_mode = None
     opts.prefix = prefix
     opts.cmd_line_options = {}
