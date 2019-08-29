@@ -197,6 +197,20 @@ jobs:
         mingw-w64-$(MSYS2_ARCH)-python3-setuptools ^
         %TOOLCHAIN%
       displayName: Install Dependencies
+    - powershell: |
+        # https://github.com/mesonbuild/meson/issues/5807
+        # https://github.com/msys2/MINGW-packages/issues/5719#issuecomment-525845769
+        if ($env:compiler -eq 'gcc') {
+          (New-Object net.webclient).DownloadFile("https://github.com/mesonbuild/cidata/raw/master/win32/setdllcharacteristics.exe", "$(System.WorkFolder)\setdllcharacteristics.exe")
+          if ($env:MSYS2_ARCH -eq 'x86_64') {
+            $(System.WorkFolder)\setdllcharacteristics -d $env:MSYS2_ROOT\mingw64\lib\gcc\x86_64-w64-mingw32\9.2.0\cc1.exe
+            $(System.WorkFolder)\setdllcharacteristics -d $env:MSYS2_ROOT\mingw64\lib\gcc\x86_64-w64-mingw32\9.2.0\cc1plus.exe
+          } else {
+            $(System.WorkFolder)\setdllcharacteristics -d $env:MSYS2_ROOT\mingw32\lib\gcc\i686-w64-mingw32\9.2.0\cc1.exe
+            $(System.WorkFolder)\setdllcharacteristics -d $env:MSYS2_ROOT\mingw32\lib\gcc\i686-w64-mingw32\9.2.0\cc1plus.exe
+          }
+        }
+      displayName: MSYS2 PCH hack
     - script: |
         set BOOST_ROOT=
         set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
