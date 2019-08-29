@@ -8,7 +8,6 @@ trigger:
     - '0.*'
 
 variables:
-  MESON_FIXED_NINJA: 1
   CI: 1
 
 jobs:

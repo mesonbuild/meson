@@ -34,6 +34,8 @@ from mesonbuild import mlog
 from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.coredata import backendlist
 
+NINJA_1_9_OR_NEWER = False
+
 def guess_backend(backend, msbuild_exe: str):
     # Auto-detect backend if unspecified
     backend_flags = []
@@ -201,8 +203,18 @@ def get_backend_commands(backend, debug=False):
         clean_cmd = cmd + ['-alltargets', 'clean', '-UseNewBuildSystem=FALSE']
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
-        # We need at least 1.6 because of -w dupbuild=err
-        cmd = [detect_ninja('1.6'), '-w', 'dupbuild=err', '-d', 'explain']
+        global NINJA_1_9_OR_NEWER
+        # Look for 1.9 to see if https://github.com/ninja-build/ninja/issues/1219
+        # is fixed, else require 1.6 for -w dupbuild=err
+        for v in ('1.9', '1.6'):
+            ninja_cmd = detect_ninja(v)
+            if ninja_cmd is not None:
+                if v == '1.9':
+                    NINJA_1_9_OR_NEWER = True
+                else:
+                    print('Found ninja <1.9, tests will run slower')
+                break
+        cmd = [ninja_cmd, '-w', 'dupbuild=err', '-d', 'explain']
         if cmd[0] is None:
             raise RuntimeError('Could not find Ninja v1.6 or newer')
         if debug:
@@ -216,11 +228,12 @@ def get_backend_commands(backend, debug=False):
     return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
 
 def ensure_backend_detects_changes(backend):
-    # We're using a ninja with QuLogic's patch for sub-1s resolution timestamps
-    # and not running on HFS+ which only stores dates in seconds:
+    global NINJA_1_9_OR_NEWER
+    # We're using ninja >= 1.9 which has QuLogic's patch for sub-1s resolution
+    # timestamps and not running on HFS+ which only stores dates in seconds:
     # https://developer.apple.com/legacy/library/technotes/tn/tn1150.html#HFSPlusDates
     # FIXME: Upgrade Travis image to Apple FS when that becomes available
-    if 'MESON_FIXED_NINJA' in os.environ and not mesonlib.is_osx():
+    if (NINJA_1_9_OR_NEWER or ('MESON_FIXED_NINJA' in os.environ)) and not mesonlib.is_osx():
         return
     # This is needed to increase the difference between build.ninja's
     # timestamp and the timestamp of whatever you changed due to a Ninja
