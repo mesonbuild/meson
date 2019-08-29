@@ -213,6 +213,8 @@ def get_backend_commands(backend, debug=False):
                     NINJA_1_9_OR_NEWER = True
                 else:
                     print('Found ninja <1.9, tests will run slower')
+                    if 'CI' in os.environ:
+                        raise RuntimeError('Require ninja >= 1.9 when running on Meson CI')
                 break
         cmd = [ninja_cmd, '-w', 'dupbuild=err', '-d', 'explain']
         if cmd[0] is None:
@@ -229,16 +231,24 @@ def get_backend_commands(backend, debug=False):
 
 def ensure_backend_detects_changes(backend):
     global NINJA_1_9_OR_NEWER
-    # We're using ninja >= 1.9 which has QuLogic's patch for sub-1s resolution
-    # timestamps and not running on HFS+ which only stores dates in seconds:
-    # https://developer.apple.com/legacy/library/technotes/tn/tn1150.html#HFSPlusDates
-    # FIXME: Upgrade Travis image to Apple FS when that becomes available
-    if NINJA_1_9_OR_NEWER and not mesonlib.is_osx():
+    if backend is not Backend.ninja:
         return
-    # This is needed to increase the difference between build.ninja's
-    # timestamp and the timestamp of whatever you changed due to a Ninja
-    # bug: https://github.com/ninja-build/ninja/issues/371
-    if backend is Backend.ninja:
+    need_workaround = False
+    # We're not running on HFS+ which only stores dates in seconds:
+    # https://developer.apple.com/legacy/library/technotes/tn/tn1150.html#HFSPlusDates
+    # XXX: Upgrade Travis image to Apple FS when that becomes available
+    # TODO: Detect HFS+ vs APFS
+    if mesonlib.is_osx():
+        print('Running on HFS+, enabling timestamp resolution workaround')
+        need_workaround = True
+    # We're using ninja >= 1.9 which has QuLogic's patch for sub-1s resolution
+    # timestamps
+    if not NINJA_1_9_OR_NEWER:
+        print('Don\'t have ninja >= 1.9, enabling timestamp resolution workaround')
+        need_workaround = True
+    # Increase the difference between build.ninja's timestamp and the timestamp
+    # of whatever you changed: https://github.com/ninja-build/ninja/issues/371
+    if need_workaround:
         time.sleep(1)
 
 def run_mtest_inprocess(commandlist):
