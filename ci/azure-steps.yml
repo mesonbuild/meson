@@ -27,7 +27,14 @@ steps:
           }
      }
 
-     DownloadFile -Source 'https://github.com/mesonbuild/cidata/raw/master/ninja.exe' -Destination $(System.WorkFolder)\ninja.exe
+     DownloadFile -Source 'https://github.com/ninja-build/ninja/releases/download/v1.9.0/ninja-win.zip' -Destination $(System.WorkFolder)\ninja-win.zip
+     # ExpandArchive is only available in Powershell 5+
+     Add-Type -AssemblyName System.IO.Compression.FileSystem
+     function unzip {
+         param( [string]$ziparchive, [string]$extractpath )
+         [System.IO.Compression.ZipFile]::ExtractToDirectory( $ziparchive, $extractpath )
+     }
+     unzip $(System.WorkFolder)\ninja-win.zip $(System.WorkFolder)
      DownloadFile -Source 'https://github.com/mesonbuild/cidata/raw/master/win32/pkg-config.exe' -Destination $(System.WorkFolder)\pkg-config.exe
      DownloadFile -Source 'https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/msmpisdk.msi' -Destination msmpisdk.msi
      DownloadFile -Source 'https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/MSMpiSetup.exe' -Destination MSMpiSetup.exe
