@@ -41,11 +41,9 @@ matrix:
 before_install:
   - python ./skip_ci.py --base-branch-env=TRAVIS_BRANCH --is-pull-env=TRAVIS_PULL_REQUEST
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt llvm; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt llvm ninja; fi
     # # Run one macOS build without pkg-config available, and the other (unity=on) with pkg-config
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$MESON_ARGS" =~ .*unity=on.* ]]; then brew install pkg-config; fi
-  # Use a Ninja with QuLogic's patch: https://github.com/ninja-build/ninja/issues/1219
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mkdir -p $HOME/tools; curl -L http://nirbheek.in/files/binaries/ninja/macos/ninja -o $HOME/tools/ninja; chmod +x $HOME/tools/ninja; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:cosmic; fi
 
 # We need to copy the current checkout inside the Docker container,
@@ -63,4 +61,4 @@ script:
           /bin/sh -c "cd /root && mkdir -p tools; wget -c http://nirbheek.in/files/binaries/ninja/linux-amd64/ninja -O /root/tools/ninja; chmod +x /root/tools/ninja; CC=$CC CXX=$CXX OBJC=$CC OBJCXX=$CXX PATH=/root/tools:$PATH MESON_FIXED_NINJA=1 ./run_tests.py $RUN_TESTS_ARGS -- $MESON_ARGS && chmod -R a+rwX .coverage"
     fi
   # Ensure that llvm is added after $PATH, otherwise the clang from that llvm install will be used instead of the native apple clang.
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib OBJC=$CC OBJCXX=$CXX PATH=$HOME/tools:/usr/local/opt/qt/bin:$PATH:$(brew --prefix llvm)/bin MESON_FIXED_NINJA=1 ./run_tests.py $RUN_TESTS_ARGS --backend=ninja -- $MESON_ARGS ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib OBJC=$CC OBJCXX=$CXX PATH=$HOME/tools:/usr/local/opt/qt/bin:$PATH:$(brew --prefix llvm)/bin ./run_tests.py $RUN_TESTS_ARGS --backend=ninja -- $MESON_ARGS ; fi
