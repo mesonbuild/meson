@@ -486,6 +486,10 @@ class SingleTestRunner:
     def _run_cmd(self, cmd: typing.List[str]) -> TestRun:
         starttime = time.time()
 
+        # This happens when --no-rebuild is passed and test targets have not been built
+        if not os.path.exists(cmd[0]):
+            return TestRun(self.test, self.test_env, TestResult.SKIP, 0, 0, '', 'Test Executable not built.', cmd)
+
         if len(self.test.extra_paths) > 0:
             self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
             winecmd = []
@@ -977,7 +981,7 @@ def list_tests(th: TestHarness) -> bool:
         print(th.get_pretty_suite(t))
     return not tests
 
-def rebuild_all(wd: str) -> bool:
+def rebuild_all(wd: str, benchmark: bool) -> bool:
     if not (Path(wd) / 'build.ninja').is_file():
         print('Only ninja backend is supported to rebuild tests before running them.')
         return True
@@ -987,7 +991,12 @@ def rebuild_all(wd: str) -> bool:
         print("Can't find ninja, can't rebuild test.")
         return False
 
-    ret = subprocess.run([ninja, '-C', wd]).returncode
+    if benchmark:
+        target = 'meson-build-benchmarks'
+    else:
+        target = 'meson-build-tests'
+
+    ret = subprocess.run([ninja, '-C', wd, target]).returncode
     if ret != 0:
         print('Could not rebuild {}'.format(wd))
         return False
@@ -1021,7 +1030,7 @@ def run(options: argparse.Namespace) -> int:
     options.wd = os.path.abspath(options.wd)
 
     if not options.list and not options.no_rebuild:
-        if not rebuild_all(options.wd):
+        if not rebuild_all(options.wd, options.benchmark):
             # We return 125 here in case the build failed.
             # The reason is that exit code 125 tells `git bisect run` that the current commit should be skipped.
             # Thus users can directly use `meson test` to bisect without needing to handle the does-not-build case separately in a wrapper script.

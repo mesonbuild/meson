@@ -211,6 +211,8 @@ def get_backend_commands(backend, debug=False):
         test_cmd = cmd + ['test', 'benchmark']
         install_cmd = cmd + ['install']
         uninstall_cmd = cmd + ['uninstall']
+        # Because we use no-rebuild we need to build the test and benchmark targets explicitly
+        cmd.extend(['all', 'meson-build-tests', 'meson-build-benchmarks'])
     else:
         raise AssertionError('Unknown backend: {!r}'.format(backend))
     return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd

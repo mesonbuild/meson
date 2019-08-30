@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3ass
 # Copyright 2016-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -3840,6 +3840,20 @@ recommended as it is not supported on some platforms''')
         self.run_target('build-all')
         self.assertPathExists(os.path.join(self.builddir, 'prog' + exe_suffix))
         self.assertPathExists(os.path.join(self.builddir, 'hello.txt'))
+
+    def test_tests_not_default(self):
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        self.init(testdir)
+        self.build()
+        self.assertBuildIsNoop()
+        self.run_tests()
+
+    def test_benchmark_not_default(self):
+        testdir = os.path.join(self.common_test_dir, '95 benchmark')
+        self.init(testdir)
+        self.build()
+        self.assertBuildIsNoop()
+
 
 class FailureTests(BasePlatformTests):
     '''

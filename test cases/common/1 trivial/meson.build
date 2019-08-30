@@ -19,7 +19,7 @@ if meson.is_cross_build()
   test('native exe in cross build', native_exe)
 endif
 
-exe = executable('trivialprog', sources : sources)
+exe = executable('trivialprog', sources : sources, build_by_default : false)
 
 test('runtest', exe) # This is a comment
 

@@ -854,15 +854,17 @@ class Backend:
         return newargs
 
     def get_build_by_default_targets(self):
+        """Get all build and custom targets that must be built by default."""
         result = OrderedDict()
-        # Get all build and custom targets that must be built by default
         for name, t in self.build.get_targets().items():
             if t.build_by_default:
                 result[name] = t
-        # Get all targets used as test executables and arguments. These must
-        # also be built by default. XXX: Sometime in the future these should be
-        # built only before running tests.
-        for t in self.build.get_tests():
+        return result
+
+    @staticmethod
+    def _get_targets(values):
+        result = OrderedDict()
+        for t in values:
             exe = t.exe
             if hasattr(exe, 'held_object'):
                 exe = exe.held_object
@@ -878,6 +880,14 @@ class Backend:
                 assert isinstance(dep, (build.CustomTarget, build.BuildTarget))
                 result[dep.get_id()] = dep
         return result
+
+    def get_test_targets(self):
+        """Get all targets used as test executables and arguments."""
+        return self._get_targets(self.build.get_tests())
+
+    def get_benchmark_targets(self):
+        """Get all targets used as test executables and arguments."""
+        return self._get_targets(self.build.get_benchmarks())
 
     @lru_cache(maxsize=None)
     def get_custom_target_provided_by_generated_source(self, generated_source):

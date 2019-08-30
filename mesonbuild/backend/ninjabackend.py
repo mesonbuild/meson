@@ -823,7 +823,15 @@ int dummy;
             cmd += ['--no-stdsplit']
         if self.environment.coredata.get_builtin_option('errorlogs'):
             cmd += ['--print-errorlogs']
-        elem = NinjaBuildElement(self.all_outputs, 'meson-test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
+        tests = self.get_test_targets()
+
+        tests = [os.path.join(self.get_target_dir(t), t.get_outputs()[0])
+                 for t in self.get_test_targets().values()]
+        elem = NinjaBuildElement(self.all_outputs, 'meson-build-tests', 'CUSTOM_COMMAND', 'PHONY')
+        elem.add_dep(tests)
+        self.add_build(elem)
+
+        elem = NinjaBuildElement(self.all_outputs, 'meson-test', 'CUSTOM_COMMAND', ['meson-build-tests', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running all tests.')
         elem.add_item('pool', 'console')
@@ -835,7 +843,13 @@ int dummy;
         cmd = self.environment.get_build_command(True) + [
             'test', '--benchmark', '--logbase',
             'benchmarklog', '--num-processes=1', '--no-rebuild']
-        elem = NinjaBuildElement(self.all_outputs, 'meson-benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
+        elem = NinjaBuildElement(self.all_outputs, 'meson-build-benchmarks', 'CUSTOM_COMMAND', 'PHONY')
+        benches = [os.path.join(self.get_target_dir(t), t.get_outputs()[0])
+                   for t in self.get_benchmark_targets().values()]
+        elem.add_dep(benches)
+        self.add_build(elem)
+
+        elem = NinjaBuildElement(self.all_outputs, 'meson-benchmark', 'CUSTOM_COMMAND', ['meson-build-benchmarks', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running benchmark suite.')
         elem.add_item('pool', 'console')
