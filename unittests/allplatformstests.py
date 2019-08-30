@@ -3463,6 +3463,19 @@ class AllPlatformTests(BasePlatformTests):
             self._run([*self.meson_command, 'compile', '-C', self.builddir, '--vs-args=-t:{}:Clean'.format(re.sub(r'[\%\$\@\;\.\(\)\']', '_', get_exe_name('trivialprog')))])
             self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('trivialprog')))
 
+    def test_tests_not_default(self):
+        testdir = os.path.join(self.common_test_dir, '128 build by default targets in tests')
+        self.init(testdir)
+        self.build()
+        self.assertBuildIsNoop()
+        self.run_tests()
+
+    def test_benchmark_not_default(self):
+        testdir = os.path.join(self.common_test_dir, '91 benchmark')
+        self.init(testdir)
+        self.build()
+        self.assertBuildIsNoop()
+
     def test_spurious_reconfigure_built_dep_file(self):
         testdir = os.path.join(self.unit_test_dir, '73 dep files')
 
