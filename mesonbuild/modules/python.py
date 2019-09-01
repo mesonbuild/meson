@@ -115,7 +115,6 @@ class PythonDependency(ExternalDependency):
                     self._find_libpy_windows(environment)
                 else:
                     self._find_libpy(python_holder, environment)
-
                 if self.is_found:
                     mlog.debug('Found "python-{}" via SYSCONFIG module'.format(self.version))
                     py_lookup_method = 'sysconfig'
@@ -123,7 +122,7 @@ class PythonDependency(ExternalDependency):
         if self.is_found:
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES ({})'.format(py_lookup_method)))
         else:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', [mlog.red('NO')])
+            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
 
     def _find_libpy(self, python_holder, environment):
         if python_holder.is_pypy:
@@ -145,7 +144,7 @@ class PythonDependency(ExternalDependency):
         if largs is not None:
             self.link_args = largs
 
-        self.is_found = largs is not None or not self.link_libpython
+        self.is_found = largs is not None or self.link_libpython
 
         inc_paths = mesonlib.OrderedSet([
             self.variables.get('INCLUDEPY'),

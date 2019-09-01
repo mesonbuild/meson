@@ -6328,6 +6328,15 @@ class NativeFileTests(BasePlatformTests):
             # python module breaks. This is fine on other OSes because they
             # don't need the extra indirection.
             raise unittest.SkipTest('bat indirection breaks internal sanity checks.')
+        if os.path.exists('/etc/debian_version'):
+            rc = subprocess.call(['pkg-config', '--cflags', 'python2'],
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+            if rc != 0:
+                # Python 2 will be removed in Debian Bullseye, thus we must
+                # remove the build dependency on python2-dev. Keep the tests
+                # but only run them if dev packages are available.
+                raise unittest.SkipTest('Not running Python 2 tests because dev packages not installed.')
         self._simple_test('python', 'python')
 
     @unittest.skipIf(is_windows(), 'Setting up multiple compilers on windows is hard')
