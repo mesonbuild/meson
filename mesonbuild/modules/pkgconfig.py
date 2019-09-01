@@ -91,6 +91,8 @@ class DependenciesHelper:
                 self.add_version_reqs(name, version_req)
             elif isinstance(obj, dependencies.Dependency) and not obj.found():
                 pass
+            elif isinstance(obj, dependencies.ThreadDependency):
+                pass
             else:
                 raise mesonlib.MesonException('requires argument not a string, '
                                               'library with pkgconfig-generated file '
