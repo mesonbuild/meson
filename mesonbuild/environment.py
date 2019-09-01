@@ -51,6 +51,7 @@ from .linkers import (
     MSVCDynamicLinker,
     OptlinkDynamicLinker,
     PGIDynamicLinker,
+    PGIStaticLinker,
     SolarisDynamicLinker,
     XildAppleDynamicLinker,
     XildLinuxDynamicLinker,
@@ -1340,6 +1341,8 @@ class Environment:
             elif isinstance(compiler, IntelClCCompiler):
                 # Intel has it's own linker that acts like microsoft's lib
                 linkers = ['xilib']
+            elif isinstance(compiler, (PGICCompiler, PGIFortranCompiler)) and mesonlib.is_windows():
+                linkers = [self.default_static_linker]  # this is just a wrapper calling link/lib on Windows, keeping things simple.
             else:
                 linkers = [self.default_static_linker]
         popen_exceptions = {}
@@ -1357,6 +1360,8 @@ class Environment:
                 return IntelVisualStudioLinker(linker, getattr(compiler, 'machine', None))
             if '/OUT:' in out.upper() or '/OUT:' in err.upper():
                 return VisualStudioLinker(linker, getattr(compiler, 'machine', None))
+            if 'ar-Error-Unknown switch: --version' in err:
+                return PGIStaticLinker(linker)
             if p.returncode == 0 and ('armar' in linker or 'armar.exe' in linker):
                 return ArmarLinker(linker)
             if 'DMD32 D Compiler' in out or 'DMD64 D Compiler' in out:

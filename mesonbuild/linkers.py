@@ -740,17 +740,29 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # PGI -shared is Linux only.
         if mesonlib.is_windows():
             return ['-Bdynamic', '-Mmakedll']
-        elif mesonlib.is_linux:
+        elif mesonlib.is_linux():
             return ['-shared']
         return []
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
                          install_rpath: str) -> typing.List[str]:
-        if env.machines[self.for_machine].is_windows():
+        if not env.machines[self.for_machine].is_windows():
             return ['-R' + os.path.join(build_dir, p) for p in rpath_paths]
         return []
 
+
+class PGIStaticLinker(StaticLinker):
+    def __init__(self, exelist: typing.List[str]):
+        super().__init__(exelist)
+        self.id = 'ar'
+        self.std_args = ['-r']
+
+    def get_std_link_args(self) -> typing.List[str]:
+        return self.std_args
+
+    def get_output_args(self, target: str) -> typing.List[str]:
+        return [target]
 
 class VisualStudioLikeLinkerMixin:
 
