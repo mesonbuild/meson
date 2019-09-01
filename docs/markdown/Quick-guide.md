@@ -1,44 +1,84 @@
 ---
-title: Quick guide
-short-description: Guide to get started using meson
+title: Quickstart Guide
+short-description: Getting Started using mesonbuild
 ...
 
 # Using Meson
 
-Meson has been designed to be as easy to use as possible. This page
-outlines the basic use cases. For more advanced cases refer to Meson's
-command line help which is accessible with the command `meson --help`.
+Meson has been designed to be as simple to use as possible. This page
+outlines the initial steps needed for installation, troubleshooting,
+and standard use. 
 
-Requirements
+For more advanced configuration please refer to the command line help `meson --help` 
+or the meson documentation located at the [mesonbuild](https://mesonbuild.com) website.
+
+Table of Contents:
+* [Requirements](#requirements)
+* [Installation using package manager](#installation-using-package-manager)
+* [Installation using python](#installation-using-python)
+* [Installation from source](#installation-from-source)
+* [Troubleshooting](#troubleshooting)
+* [Compiling a meson project](#compiling-a-meson-project)
+* [Using meson as a distro packager](#using-meson-as-a-distro-packager)
+
+Requirements:
 --
-
-Meson has two main dependencies.
 
 * [Python 3](https://python.org)
 * [Ninja](https://github.com/ninja-build/ninja/)
 
-Ninja is only needed if you use the Ninja backend. Meson can also
-generate native VS and XCode project files.
+*Ninja is only needed if you use the Ninja backend. Meson can also
+generate native VS and XCode project files.*
 
-On Ubuntu these can be easily installed with the following command:
+
+Installation using package manager
+--
+
+Ubuntu:
 
 ```console
 $ sudo apt-get install python3 python3-pip python3-setuptools \
                        python3-wheel ninja-build
 ```
+*Due to our frequent release cycle and development speed, distro packaged software may quickly become outdated.*  
 
-The best way to get Meson is to `pip install` it for your user
+Installation using python
+--
+Requirements: **pip3** 
 
+The best way to receive the most up-to-date version of mesonbuild. 
+
+Install as a local user:
 ```console
 $ pip3 install --user meson
 ```
 
-You can also use Meson as packaged by your distro, but beware that due
-to our frequent release cycle and development speed this version might
-be out of date.
+Install as root:
+```console
+$ pip3 install meson
+```
 
-Another option is to clone the git repository and run it directly from
-there.
+Installation from source
+--
+Requirements: **git**
+
+Meson can be run directly from the cloned git repository.
+
+```console
+$ git clone https://github.com/mesonbuild/meson.git /path/to/sourcedir
+```
+Troubleshooting:
+--
+Common Issues:
+```console
+$ meson builddir && cd builddir
+$ bash: /usr/bin/meson: No such file or directory
+```
+Description: The default installation prefix for the python-based meson installation is not included in your shell environment PATH. The default prefix for python pip installation modules is located under ``/usr/local``.
+
+**Resolution: 
+This issue can be resolved by creating a symlink in ``/usr/bin`` to the meson executable, moving the meson executable to ``/usr/bin``, or altering the default shell environment PATH to include ``/usr/local/bin`` .**
+
 
 Compiling a Meson project
 --
