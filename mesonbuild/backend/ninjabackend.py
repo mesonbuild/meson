@@ -29,7 +29,8 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..compilers import Compiler, CompilerArgs, CCompiler, VisualStudioLikeCompiler, FortranCompiler
+from ..compilers import (Compiler, CompilerArgs, CCompiler, FortranCompiler,
+                         PGICCompiler, VisualStudioLikeCompiler)
 from ..linkers import ArLinker
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine, ProgressBar
@@ -232,6 +233,9 @@ class NinjaBackend(backends.Backend):
             # IFort on windows is MSVC like, but doesn't have /showincludes
             if isinstance(compiler, FortranCompiler):
                 continue
+            if isinstance(compiler, PGICCompiler) and mesonlib.is_windows():
+                # for the purpose of this function, PGI doesn't act enough like MSVC
+                return open(tempfilename, 'a', encoding='utf-8')
             if isinstance(compiler, VisualStudioLikeCompiler):
                 break
         else:
