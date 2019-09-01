@@ -85,7 +85,7 @@ previous versions might have slightly different behaviour.
 - Dependencies provided by pkg-config are added into `Requires:` or
   `Requires.private:`. If a version was specified when declaring that dependency
   it will be written into the generated file too.
-- The thread dependency (i.e. `dependency('thread')`) adds `-pthread` into
+- The threads dependency (i.e. `dependency('threads')`) adds `-pthread` into
   `Libs:` or `Libs.private:`.
 - Internal dependencies (i.e.
   `declare_dependency(compiler_args : '-DFOO', link_args : '-Wl,something', link_with : foo)`)
