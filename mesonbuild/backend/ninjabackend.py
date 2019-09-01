@@ -248,8 +248,8 @@ int dummy;
         # and locale dependent. Any attempt at converting it to
         # Python strings leads to failure. We _must_ do this detection
         # in raw byte mode and write the result in raw bytes.
-        pc = subprocess.Popen([compiler.get_exelist(),
-                               '/showIncludes', '/c', 'incdetect.c'],
+        pc = subprocess.Popen(compiler.get_exelist() +
+                              ['/showIncludes', '/c', 'incdetect.c'],
                               cwd=self.environment.get_scratch_dir(),
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = pc.communicate()
