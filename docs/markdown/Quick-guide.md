@@ -1,6 +1,6 @@
 ---
 title: Quickstart Guide
-short-description: Getting Started using mesonbuild
+short-description: Getting Started using Mesonbuild
 ...
 
 # Using Meson
@@ -10,18 +10,18 @@ outlines the initial steps needed for installation, troubleshooting,
 and standard use. 
 
 For more advanced configuration please refer to the command line help `meson --help` 
-or the meson documentation located at the [mesonbuild](https://mesonbuild.com) website.
+or the Meson documentation located at the [Mesonbuild](https://mesonbuild.com) website.
 
 Table of Contents:
 * [Requirements](#requirements)
 * [Installation using package manager](#installation-using-package-manager)
-* [Installation using python](#installation-using-python)
+* [Installation using Python](#installation-using-python)
 * [Installation from source](#installation-from-source)
 * [Troubleshooting](#troubleshooting)
-* [Compiling a meson project](#compiling-a-meson-project)
-* [Using meson as a distro packager](#using-meson-as-a-distro-packager)
+* [Compiling a Meson project](#compiling-a-meson-project)
+* [Using Meson as a distro packager](#using-meson-as-a-distro-packager)
 
-Requirements:
+Requirements
 --
 
 * [Python 3](https://python.org)
@@ -42,17 +42,16 @@ $ sudo apt-get install python3 python3-pip python3-setuptools \
 ```
 *Due to our frequent release cycle and development speed, distro packaged software may quickly become outdated.*  
 
-Installation using python
+Installation using Python
 --
 Requirements: **pip3** 
 
-The best way to receive the most up-to-date version of mesonbuild. 
+The best way to receive the most up-to-date version of Mesonbuild. 
 
 Install as a local user:
 ```console
 $ pip3 install --user meson
 ```
-
 Install as root:
 ```console
 $ pip3 install meson
@@ -74,10 +73,12 @@ Common Issues:
 $ meson builddir && cd builddir
 $ bash: /usr/bin/meson: No such file or directory
 ```
-Description: The default installation prefix for the python-based meson installation is not included in your shell environment PATH. The default prefix for python pip installation modules is located under ``/usr/local``.
+Description: The default installation prefix for the python pip module installation is not included in your shell environment PATH. The default prefix for python pip installation modules is located under ``/usr/local``.
 
 **Resolution: 
-This issue can be resolved by creating a symlink in ``/usr/bin`` to the meson executable, moving the meson executable to ``/usr/bin``, or altering the default shell environment PATH to include ``/usr/local/bin`` .**
+This issue can be resolved by altering the default shell environment PATH to include ``/usr/local/bin``. **
+
+*Note: There are other ways of fixing this issue such as using symlinks or copying the binaries to a default path and these methods are not recommended or supported as they may break package management interoperability.*
 
 
 Compiling a Meson project
