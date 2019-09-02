@@ -70,7 +70,7 @@ Troubleshooting:
 --
 Common Issues:
 ```console
-$ meson builddir && cd builddir
+$ meson builddir
 $ bash: /usr/bin/meson: No such file or directory
 ```
 Description: The default installation prefix for the python pip module installation is not included in your shell environment PATH. The default prefix for python pip installation modules is located under ``/usr/local``.
