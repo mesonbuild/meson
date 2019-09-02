@@ -909,3 +909,32 @@ class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     def get_allow_undefined_args(self) -> typing.List[str]:
         return []
+
+class CudaLinker(DynamicLinker):
+    """Cuda linker (nvlink)"""
+    @staticmethod
+    def parse_version():
+        version_cmd = ['nvlink', '--version']
+        try:
+            _, out, _ = mesonlib.Popen_safe(version_cmd)
+        except OSError:
+            return 'unknown version'
+        # Output example:
+        # nvlink: NVIDIA (R) Cuda linker
+        # Copyright (c) 2005-2018 NVIDIA Corporation
+        # Built on Sun_Sep_30_21:09:22_CDT_2018
+        # Cuda compilation tools, release 10.0, V10.0.166
+        # we need the most verbose version output. Luckily starting with V
+        return out.strip().split('V')[-1]
+
+    def get_output_args(self, outname: str) -> typing.List[str]:
+        return ['-o', outname]
+
+    def get_search_args(self, dirname: str) -> typing.List[str]:
+        return ['-L', dirname]
+
+    def fatal_warnings(self) -> typing.List[str]:
+        return ['--warning-as-error']
+
+    def get_allow_undefined_args(self) -> typing.List[str]:
+        return []

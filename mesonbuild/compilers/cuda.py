@@ -34,13 +34,17 @@ class CudaCompiler(Compiler):
         super().__init__(exelist, version, for_machine, **kwargs)
         self.is_cross = is_cross
         self.exe_wrapper = exe_wrapper
-        self.id = 'nvcc'
+        self.id = CudaCompiler.cuda_id()
         default_warn_args = []
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Xcompiler=-Wextra'],
                           '3': default_warn_args + ['-Xcompiler=-Wextra',
                                                     '-Xcompiler=-Wpedantic']}
+
+    @staticmethod
+    def cuda_id():
+        return 'nvcc'
 
     def needs_static_linker(self):
         return False

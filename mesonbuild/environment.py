@@ -55,6 +55,7 @@ from .linkers import (
     XildAppleDynamicLinker,
     XildLinuxDynamicLinker,
     XilinkDynamicLinker,
+    CudaLinker,
 )
 from functools import lru_cache
 from .compilers import (
@@ -696,6 +697,9 @@ class Environment:
             `-Xlinker=--version`) you must pass as a list.
         :extra_args: Any addtional arguments rquired (such as a source file)
         """
+        if CudaCompiler.cuda_id() in compiler:
+            return CudaLinker(compiler, for_machine, 'nvlink', prefix, version=CudaLinker.parse_version())
+
         extra_args = typing.cast(typing.List[str], extra_args or [])
         if isinstance(prefix, str):
             check_args = [prefix + '--version'] + extra_args
