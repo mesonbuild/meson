@@ -70,7 +70,11 @@ class StaticLinker:
 
     @classmethod
     def unix_args_to_native(cls, args: typing.List[str]) -> typing.List[str]:
-        return args
+        return args[:]
+
+    @classmethod
+    def native_args_to_unix(cls, args: typing.List[str]) -> typing.List[str]:
+        return args[:]
 
     def get_link_debugfile_args(self, targetfile: str) -> typing.List[str]:
         # Static libraries do not have PDB files
@@ -106,6 +110,11 @@ class VisualStudioLikeLinker:
     def unix_args_to_native(cls, args: typing.List[str]) -> typing.List[str]:
         from .compilers import VisualStudioCCompiler
         return VisualStudioCCompiler.unix_args_to_native(args)
+
+    @classmethod
+    def native_args_to_unix(cls, args: typing.List[str]) -> typing.List[str]:
+        from .compilers import VisualStudioCCompiler
+        return VisualStudioCCompiler.native_args_to_unix(args)
 
 
 class VisualStudioLinker(VisualStudioLikeLinker, StaticLinker):

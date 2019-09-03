@@ -234,6 +234,18 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             result.append(i)
         return result
 
+    @classmethod
+    def native_args_to_unix(cls, args: typing.List[str]) -> typing.List[str]:
+        result = []
+        for arg in args:
+            if arg.startswith('/LIBPATH:'):
+                result.append('-L' + arg[9:])
+            elif arg.endswith(('.a', '.lib')) and not os.path.isabs(arg):
+                result.append('-l' + arg)
+            else:
+                result.append(arg)
+        return result
+
     def get_werror_args(self) -> typing.List[str]:
         return ['/WX']
 
