@@ -347,7 +347,7 @@ about the methods exposed by dictionaries.
 
 Since 0.49.0, you can check if a dictionary contains a key like this:
 ```meson
-my_dict = {'foo': 42, 'foo': 43}
+my_dict = {'foo': 42, 'bar': 43}
 if 'foo' in my_dict
 # This condition is true
 endif
