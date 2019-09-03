@@ -59,7 +59,7 @@ class CCompiler(CLikeCompiler, Compiler):
         return ['-nostdinc']
 
     def sanity_check(self, work_dir, environment):
-        code = 'int main() { int class=0; return class; }\n'
+        code = 'int main(void) { int class=0; return class; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
     def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
