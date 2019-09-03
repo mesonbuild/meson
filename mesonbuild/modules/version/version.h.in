@@ -1,0 +1,30 @@
+@license@
+@header_guard_begin@
+#include <stdbool.h>
+
+/**
+ * The version of the library
+ */
+#define @version_define@ "@version@"
+
+#if @has_version_major@
+/**
+ * The major version of the library
+ */
+#define @version_major_define@ @version_major@
+#endif
+
+#if @has_version_minor@
+/**
+ * The minor version of the library
+ */
+#define @version_minor_define@ @version_minor@
+#endif
+
+#if @has_version_patch@
+/**
+ * The patch version of the library
+ */
+#define @version_patch_define@ @version_patch@
+#endif
+@header_guard_end@
