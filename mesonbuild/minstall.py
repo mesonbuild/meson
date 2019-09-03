@@ -453,7 +453,7 @@ class Installer:
                     if fname.endswith('.jar'):
                         print('Not stripping jar target:', os.path.basename(fname))
                         continue
-                    print('Stripping target {!r}'.format(fname))
+                    print('Stripping target {!r} using {}.'.format(fname, d.strip_bin[0]))
                     ps, stdo, stde = Popen_safe(d.strip_bin + [outname])
                     if ps.returncode != 0:
                         print('Could not strip file.\n')
