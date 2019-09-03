@@ -938,3 +938,8 @@ class CudaLinker(DynamicLinker):
 
     def get_allow_undefined_args(self) -> typing.List[str]:
         return []
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
+                        is_shared_module: bool) -> typing.List[str]:
+        return []
