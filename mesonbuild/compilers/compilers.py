@@ -900,6 +900,11 @@ class Compiler:
         "Always returns a copy that can be independently mutated"
         return args[:]
 
+    @classmethod
+    def native_args_to_unix(cls, args: typing.List[str]) -> typing.List[str]:
+        "Always returns a copy that can be independently mutated"
+        return args[:]
+
     def find_library(self, *args, **kwargs):
         raise EnvironmentException('Language {} does not support library finding.'.format(self.get_display_language()))
 

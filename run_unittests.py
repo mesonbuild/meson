@@ -3079,47 +3079,62 @@ recommended as it is not supported on some platforms''')
         Test that meson adds dependencies for libraries based on the final
         linker command line.
         '''
-        # build library
         testdirbase = os.path.join(self.unit_test_dir, '29 guessed linker dependencies')
         testdirlib = os.path.join(testdirbase, 'lib')
+
         extra_args = None
+        libdir_flags = ['-L']
         env = get_fake_env(testdirlib, self.builddir, self.prefix)
-        if env.detect_c_compiler(MachineChoice.HOST).get_id() not in {'msvc', 'clang-cl', 'intel-cl'}:
+        if env.detect_c_compiler(MachineChoice.HOST).get_id() in {'msvc', 'clang-cl', 'intel-cl'}:
+            # msvc-like compiler, also test it with msvc-specific flags
+            libdir_flags += ['/LIBPATH:']
+        else:
             # static libraries are not linkable with -l with msvc because meson installs them
             # as .a files which unix_args_to_native will not know as it expects libraries to use
             # .lib as extension. For a DLL the import library is installed as .lib. Thus for msvc
             # this tests needs to use shared libraries to test the path resolving logic in the
             # dependency generation code path.
             extra_args = ['--default-library', 'static']
-        self.init(testdirlib, extra_args=extra_args)
-        self.build()
-        self.install()
-        libbuilddir = self.builddir
-        installdir = self.installdir
-        libdir = os.path.join(self.installdir, self.prefix.lstrip('/').lstrip('\\'), 'lib')
 
-        # build user of library
-        self.new_builddir()
-        # replace is needed because meson mangles platform pathes passed via LDFLAGS
-        self.init(os.path.join(testdirbase, 'exe'),
-                  override_envvars={"LDFLAGS": '-L{}'.format(libdir.replace('\\', '/'))})
-        self.build()
-        self.assertBuildIsNoop()
+        initial_builddir = self.builddir
+        initial_installdir = self.installdir
 
-        # rebuild library
-        exebuilddir = self.builddir
-        self.installdir = installdir
-        self.builddir = libbuilddir
-        # Microsoft's compiler is quite smart about touching import libs on changes,
-        # so ensure that there is actually a change in symbols.
-        self.setconf('-Dmore_exports=true')
-        self.build()
-        self.install()
-        # no ensure_backend_detects_changes needed because self.setconf did that already
+        for libdir_flag in libdir_flags:
+            # build library
+            self.init(testdirlib, extra_args=extra_args)
+            self.build()
+            self.install()
+            libbuilddir = self.builddir
+            installdir = self.installdir
+            libdir = os.path.join(self.installdir, self.prefix.lstrip('/').lstrip('\\'), 'lib')
 
-        # assert user of library will be rebuild
-        self.builddir = exebuilddir
-        self.assertRebuiltTarget('app')
+            # build user of library
+            self.new_builddir()
+            # replace is needed because meson mangles platform pathes passed via LDFLAGS
+            self.init(os.path.join(testdirbase, 'exe'),
+                      override_envvars={"LDFLAGS": '{}{}'.format(libdir_flag, libdir.replace('\\', '/'))})
+            self.build()
+            self.assertBuildIsNoop()
+
+            # rebuild library
+            exebuilddir = self.builddir
+            self.installdir = installdir
+            self.builddir = libbuilddir
+            # Microsoft's compiler is quite smart about touching import libs on changes,
+            # so ensure that there is actually a change in symbols.
+            self.setconf('-Dmore_exports=true')
+            self.build()
+            self.install()
+            # no ensure_backend_detects_changes needed because self.setconf did that already
+
+            # assert user of library will be rebuild
+            self.builddir = exebuilddir
+            self.assertRebuiltTarget('app')
+
+            # restore dirs for the next test case
+            self.installdir = initial_builddir
+            self.builddir = initial_installdir
+
 
     def test_conflicting_d_dash_option(self):
         testdir = os.path.join(self.unit_test_dir, '37 mixed command line args')

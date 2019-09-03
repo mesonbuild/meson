@@ -2385,7 +2385,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         build_dir = self.environment.get_build_dir()
         # the following loop sometimes consumes two items from command in one pass
-        it = iter(commands)
+        it = iter(linker.native_args_to_unix(commands))
         for item in it:
             if item in internal and not item.startswith('-'):
                 continue
