@@ -697,9 +697,6 @@ class Environment:
             `-Xlinker=--version`) you must pass as a list.
         :extra_args: Any addtional arguments rquired (such as a source file)
         """
-        if CudaCompiler.cuda_id() in compiler:
-            return CudaLinker(compiler, for_machine, 'nvlink', prefix, version=CudaLinker.parse_version())
-
         extra_args = typing.cast(typing.List[str], extra_args or [])
         if isinstance(prefix, str):
             check_args = [prefix + '--version'] + extra_args
@@ -963,7 +960,7 @@ class Environment:
             # Luckily, the "V" also makes it very simple to extract
             # the full version:
             version = out.strip().split('V')[-1]
-            linker = self._guess_nix_linker(compiler, for_machine, CudaCompiler.LINKER_PREFIX)
+            linker = CudaLinker(compiler, for_machine, 'nvlink', CudaCompiler.LINKER_PREFIX, version=CudaLinker.parse_version())
             return CudaCompiler(ccache + compiler, version, for_machine, exe_wrap, linker=linker)
         raise EnvironmentException('Could not find suitable CUDA compiler: "' + ' '.join(compilers) + '"')
 
