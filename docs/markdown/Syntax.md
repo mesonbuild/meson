@@ -338,7 +338,7 @@ Keys must be unique:
 my_dict = {'foo': 42, 'foo': 43}
 ```
 
-Dictionaries are immutable.
+Dictionaries are immutable and do not have a guaranteed order.
 
 Dictionaries are available since 0.47.0.
 
