@@ -616,7 +616,7 @@ class CoreData:
                     return opt.validate_value(override_value)
                 except MesonException as e:
                     raise type(e)(('Validation failed for option %s: ' % option_name) + str(e)) \
-                        .with_traceback(sys.exc_into()[2])
+                        .with_traceback(sys.exc_info()[2])
         else:
             raise MesonException('Tried to validate unknown option %s.' % option_name)
 
