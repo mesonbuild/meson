@@ -5,7 +5,9 @@ subA = subproject('projectA')
 target_name = 'MAIN'
 target_src = ['main.c']
 
-executable(target_name, target_src)
+foo = false
+
+executable(target_name, target_src, build_by_default : foo)
 
 r = run_command(find_program('c_compiler.py'))
 if r.returncode() != 0
