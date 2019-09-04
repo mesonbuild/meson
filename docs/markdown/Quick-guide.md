@@ -48,14 +48,15 @@ Requirements: **pip3**
 
 The best way to receive the most up-to-date version of Mesonbuild. 
 
-Install as a local user:
+Install as a local user (recommended):
 ```console
 $ pip3 install --user meson
 ```
-Install as root:
+Install as root: 
 ```console
 $ pip3 install meson
 ```
+*Important: Module installation as a root system package is not recommended for professional development or production use.* 
 
 Installation from source
 --
