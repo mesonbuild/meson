@@ -97,3 +97,7 @@ class PGICompiler:
                     '-I{}'.format(hdr.parent)]
         else:
             return []
+
+    def thread_flags(self, env):
+        # PGI cannot accept -pthread, it's already threaded
+        return []
