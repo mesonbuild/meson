@@ -56,7 +56,7 @@ Install as root:
 ```console
 $ pip3 install meson
 ```
-*Important note: Module installation as a root system package is not recommended for professional development or production use.* 
+*If you are unsure whether to install as root or a local user, install as a local user.* 
 
 Installation from source
 --
