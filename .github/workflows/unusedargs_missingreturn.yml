@@ -1,0 +1,38 @@
+name: UnusedMissingReturn
+# this workflow checks for usused input arguments or missing return values in test cases.
+# some users have default configs that will needlessly fail Meson self-tests due to these syntax.
+
+on:
+  push:
+    paths:
+    - "**.yml"
+    - "test cases/cmake/**"
+    - "test cases/common/**"
+    - "test cases/fortran/**"
+    - "test cases/platform-linux/**"
+  pull_request:
+    paths:
+    - "**.yml"
+    - "test cases/cmake/**"
+    - "test cases/common/**"
+    - "test cases/fortran/**"
+    - "test cases/platform-linux/**"
+
+jobs:
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - name: Install Compilers
+      run: |
+        sudo apt update -yq
+        sudo apt install -yq --no-install-recommends g++ gfortran ninja-build
+    - run: python run_project_tests.py --only cmake common fortran platform-linux
+      env:
+        CFLAGS: "-Werror=unused-parameter -Werror=return-type"
+        CPPFLAGS: "-Werror=unused-parameter -Werror=return-type"
+        FFLAGS: "-fimplicit-none"

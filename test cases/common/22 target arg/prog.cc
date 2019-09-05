@@ -8,6 +8,6 @@
 
 extern "C" int func();
 
-int main(int argc, char **argv) {
+int main() {
     return func();
 }

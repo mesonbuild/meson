@@ -1,6 +1,6 @@
 /*
  * Requires a Unity build. Otherwise hidden_func is not specified.
  */
-int main(int argc, char **argv) {
+int main() {
     return hidden_func();
 }

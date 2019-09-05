@@ -8,7 +8,7 @@
 #error "FAIL!"
 #endif
 
-int main(int argc, char **argv) {
+int main() {
 #ifndef BE_TRUE
     return 1;
 #else

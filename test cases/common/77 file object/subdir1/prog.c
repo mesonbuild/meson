@@ -2,7 +2,7 @@
 
 int func();
 
-int main(int argc, char **argv) {
+int main() {
     if(func() == 1) {
         printf("Iz success.\n");
     } else {

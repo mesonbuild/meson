@@ -651,14 +651,18 @@ def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str,
     gathered_tests = [(name, gather_tests(Path('test cases', subdir)), skip) for name, subdir, skip in all_tests]
     return gathered_tests
 
-def run_tests(all_tests, log_name_base, failfast: bool, extra_args):
+def run_tests(all_tests: typing.List[typing.Tuple[str, typing.List[Path], bool]],
+              log_name_base: str, failfast: bool,
+              extra_args: typing.List[str]) -> typing.Tuple[int, int, int]:
     global logfile
     txtname = log_name_base + '.txt'
     with open(txtname, 'w', encoding='utf-8', errors='ignore') as lf:
         logfile = lf
         return _run_tests(all_tests, log_name_base, failfast, extra_args)
 
-def _run_tests(all_tests, log_name_base, failfast: bool, extra_args):
+def _run_tests(all_tests: typing.List[typing.Tuple[str, typing.List[Path], bool]],
+               log_name_base: str, failfast: bool,
+               extra_args: typing.List[str]) -> typing.Tuple[int, int, int]:
     global stop, executor, futures, system_compiler
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
@@ -707,6 +711,7 @@ def _run_tests(all_tests, log_name_base, failfast: bool, extra_args):
             if name.startswith('warning'):
                 suite_args = ['--fatal-meson-warnings']
                 should_fail = name.split('warning-')[1]
+
             result = executor.submit(run_test, skipped, t.as_posix(), extra_args + suite_args,
                                      system_compiler, backend, backend_flags, commands, should_fail)
             futures.append((testname, t, result))

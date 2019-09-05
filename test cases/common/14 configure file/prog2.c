@@ -1,5 +1,5 @@
 #include<config2.h>
 
-int main(int argc, char **argv) {
+int main() {
     return ZERO_RESULT;
 }

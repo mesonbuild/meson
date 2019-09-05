@@ -1,5 +1,5 @@
 int statlibfunc();
 
-int main(int argc, char **argv) {
+int main() {
     return statlibfunc();
 }

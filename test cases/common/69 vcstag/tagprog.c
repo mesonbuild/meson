@@ -2,7 +2,7 @@
 
 const char *vcstag;
 
-int main(int argc, char **argv) {
+int main() {
     printf("Version is %s\n", vcstag);
     return 0;
 }

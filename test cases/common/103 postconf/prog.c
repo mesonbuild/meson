@@ -1,5 +1,5 @@
 #include"generated.h"
 
-int main(int argc, char **argv) {
+int main() {
     return THE_NUMBER != 9;
 }

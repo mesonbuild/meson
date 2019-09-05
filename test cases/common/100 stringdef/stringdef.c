@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include<string.h>
 
-int main(int argc, char **argv) {
+int main() {
     if(strcmp(FOO, "bar")) {
         printf("FOO is misquoted: %s\n", FOO);
         return 1;

@@ -1,6 +1,6 @@
 int func1();
 int func2();
 
-int main(int argc, char **argv) {
+int main() {
     return !(func1() == 23 && func2() == 42);
 }

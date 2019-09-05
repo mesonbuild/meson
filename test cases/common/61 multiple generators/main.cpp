@@ -1,6 +1,6 @@
 #include"source1.h"
 #include"source2.h"
 
-int main(int argc, char **argv) {
+int main() {
     return func1() + func2();
 }

@@ -12,6 +12,6 @@
 #error Source RESULT is not defined correctly
 #endif
 
-int main(int argc, char **argv) {
+int main() {
     return 0;
 }

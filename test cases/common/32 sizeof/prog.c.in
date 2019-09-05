@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <wchar.h>
 
-int main(int argc, char **argv) {
+int main() {
     if(INTSIZE != sizeof(int)) {
         fprintf(stderr, "Mismatch: detected int size %d, actual size %d.\n", INTSIZE, (int)sizeof(int));
         return 1;

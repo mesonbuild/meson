@@ -2,7 +2,7 @@
 char func_b();
 char func_c();
 
-int main(int argc, char **argv) {
+int main() {
     if(func_b() != 'b') {
         return 1;
     }
