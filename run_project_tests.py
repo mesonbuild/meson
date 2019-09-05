@@ -114,7 +114,8 @@ def get_relative_files_list_from_dir(fromdir: Path) -> typing.List[Path]:
 
 def platform_fix_name(fname: str, compiler, env) -> str:
     # canonicalize compiler
-    if compiler in {'clang-cl', 'intel-cl'}:
+    if (compiler in {'clang-cl', 'intel-cl'} or
+       (env.machines.host.is_windows() and compiler == 'pgi')):
         canonical_compiler = 'msvc'
     else:
         canonical_compiler = compiler
