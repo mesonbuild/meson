@@ -650,7 +650,7 @@ class Backend:
                 elif isinstance(dep, dependencies.ExternalLibrary):
                     commands += dep.get_link_args('vala')
             else:
-                commands += dep.get_compile_args()
+                commands += compiler.prepare_compiler_args(dep.get_compile_args())
             # Qt needs -fPIC for executables
             # XXX: We should move to -fPIC for all executables
             if isinstance(target, build.Executable):

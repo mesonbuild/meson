@@ -26,6 +26,7 @@ if typing.TYPE_CHECKING:
 
 class CudaCompiler(Compiler):
 
+    COMPILER_PREFIX = '-Xcompiler='
     LINKER_PREFIX = '-Xlinker='
 
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
@@ -229,3 +230,6 @@ class CudaCompiler(Compiler):
 
     def get_std_exe_link_args(self) -> typing.List[str]:
         return []
+
+    def prepare_compiler_args(self, args: typing.List[str]) -> typing.List[str]:
+        return [CudaCompiler.COMPILER_PREFIX + arg for arg in args]

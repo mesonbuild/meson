@@ -650,6 +650,7 @@ class Compiler:
     # manually searched.
     internal_libs = ()
 
+    COMPILER_PREFIX = None  # type: typing.Union[None, str, typing.List[str]]
     LINKER_PREFIX = None  # type: typing.Union[None, str, typing.List[str]]
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
@@ -1143,6 +1144,9 @@ class Compiler:
         return self.linker.get_soname_args(
             env, prefix, shlib_name, suffix, soversion,
             darwin_versions, is_shared_module)
+
+    def prepare_compiler_args(self, args: typing.List[str]) -> typing.List[str]:
+        return args
 
 
 @enum.unique
