@@ -9,6 +9,7 @@ int main(int argc, char **argv) {
     size_t num_written;
     FILE *fin = fopen(argv[1], "rb");
     FILE *fout;
+    assert(argc>0);
     assert(fin);
     num_read = fread(buffer, 1, BUFSIZE, fin);
     assert(num_read > 0);

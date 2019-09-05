@@ -2,6 +2,6 @@ int funca();
 int funcb();
 int funcc();
 
-int main(int argc, char **argv) {
+int main() {
     return funca() + funcb() + funcc();
 }

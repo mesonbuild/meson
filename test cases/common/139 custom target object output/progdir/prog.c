@@ -1,5 +1,5 @@
 int func1_in_obj();
 
-int main(int argc, char **argv) {
+int main() {
     return func1_in_obj();
 }

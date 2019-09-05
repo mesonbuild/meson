@@ -1,6 +1,6 @@
 #include<stdio.h>
 
-int main(int argc, char **argv) {
+int main() {
     printf("This is test #2.\n");
     return 0;
 }

@@ -4,8 +4,7 @@
 #error "Should have picked up hdr.h from inc1/hdr.h"
 #endif
 
-int
-main (int c, char ** argv)
+int main ()
 {
   return 0;
 }

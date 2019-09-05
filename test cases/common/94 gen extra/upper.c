@@ -1,5 +1,5 @@
 int BOB_MCBOB();
 
-int main(int argc, char **argv) {
+int main() {
     return BOB_MCBOB();
 }

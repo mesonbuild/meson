@@ -4,6 +4,6 @@ static int duplicate_func() {
     return -4;
 }
 
-int main(int argc, char **argv) {
+int main() {
     return duplicate_func() + func();
 }

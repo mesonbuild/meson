@@ -21,13 +21,13 @@ win32_get_last_error (void)
     return msg;
 }
 
-int
-main (int argc, char **argv)
+int main(int argc, char **argv)
 {
     HINSTANCE handle;
     fptr importedfunc;
     int expected, actual;
     int ret = 1;
+    if(argc==0) {};
 
     handle = LoadLibraryA (argv[1]);
     if (!handle) {
@@ -68,6 +68,7 @@ int main(int argc, char **argv) {
     int expected, actual;
     char *error;
     int ret = 1;
+    if(argc==0) {};
 
     dlerror();
     dl = dlopen(argv[1], RTLD_LAZY);

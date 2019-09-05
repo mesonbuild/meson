@@ -15,6 +15,7 @@ end module a1
 program hierN
 
 use a1
+real :: tau, pi
 
 pi = get_pi()
 

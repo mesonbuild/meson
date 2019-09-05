@@ -4,7 +4,7 @@ extern "C" {
   int get_retval(void);
 }
 
-int main(int argc, char **argv) {
+int main() {
   std::cout << "C++ seems to be working." << std::endl;
 #if defined(USE_ASM)
   return get_retval();

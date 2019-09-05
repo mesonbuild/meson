@@ -1,6 +1,6 @@
 #include"input_src.h"
 
-int main(int argc, char **argv) {
+int main() {
     void *foo = printf;
     if(foo) {
         return 0;

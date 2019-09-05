@@ -8,7 +8,7 @@ int is_big_endian(void) {
 }
 
 
-int main(int argc, char **argv) {
+int main() {
     int is_be_check = is_big_endian();
     int is_be;
 #ifdef IS_BE

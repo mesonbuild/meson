@@ -1,6 +1,6 @@
 #include<zlib.h>
 
-int main(int argc, char **argv) {
+int main() {
     void * something = deflate;
     if(something != 0)
         return 0;

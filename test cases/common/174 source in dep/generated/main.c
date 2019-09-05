@@ -1,5 +1,5 @@
 #include"funheader.h"
 
-int main(int argc, char **argv) {
+int main() {
     return my_wonderful_function() != 42;
 }

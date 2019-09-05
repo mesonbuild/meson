@@ -1,6 +1,6 @@
 #include"foo1.h"
 #include"foo2.h"
 
-int main(int argc, char **argv) {
+int main() {
     return foo1() + foo2();
 }

@@ -5,7 +5,7 @@ void func() {
               << std::endl;
 }
 
-int main(int argc, char **argv) {
+int main() {
     func();
     return 0;
 }

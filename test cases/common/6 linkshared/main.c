@@ -6,6 +6,6 @@
 
 int DLL_IMPORT func();
 
-int main(int argc, char **arg) {
+int main() {
     return func();
 }

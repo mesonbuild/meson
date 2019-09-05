@@ -3,12 +3,12 @@
 #include<windows.h>
 #include<stdio.h>
 
-DWORD WINAPI thread_func(LPVOID ignored) {
+DWORD WINAPI thread_func() {
     printf("Printing from a thread.\n");
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main() {
     DWORD id;
     HANDLE th;
     printf("Starting thread.\n");
@@ -22,12 +22,12 @@ int main(int argc, char **argv) {
 #include<pthread.h>
 #include<stdio.h>
 
-void* main_func(void* ignored) {
+void* main_func() {
     printf("Printing from a thread.\n");
     return NULL;
 }
 
-int main(int argc, char** argv) {
+int main() {
     pthread_t thread;
     int rc;
     printf("Starting thread.\n");

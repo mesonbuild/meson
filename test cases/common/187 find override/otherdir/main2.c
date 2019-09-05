@@ -1,5 +1,5 @@
 int number_returner();
 
-int main(int argc, char **argv) {
+int main() {
     return number_returner() == 100 ? 0 : 1;
 }

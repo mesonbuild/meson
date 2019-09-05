@@ -6,7 +6,7 @@ int get_st1_value (void);
 int get_st2_value (void);
 int get_st3_value (void);
 
-int main(int argc, char *argv[]) {
+int main() {
   int val;
 
   val = get_st1_value ();

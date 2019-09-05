@@ -25,11 +25,12 @@ func_from_executable(void)
   return 42;
 }
 
-int
-main (int argc, char **argv)
+int main(int argc, char **argv)
 {
   int expected, actual;
   fptr importedfunc;
+
+  if (argc=0) {};  // noop
 
 #ifdef _WIN32
   HMODULE h = LoadLibraryA(argv[1]);

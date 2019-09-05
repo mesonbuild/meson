@@ -6,7 +6,7 @@
 #include<windows.h>
 #endif
 
-int main(int argc, char **argv) {
+int main() {
     srand(time(NULL));
 #if !defined(_WIN32)
     struct timespec t;

@@ -4,7 +4,7 @@
 #include <limits.h>
 #include "foobar.h"
 
-int main(int argc, char **argv) {
+int main() {
     if(INTSIZE != sizeof(int)) {
         fprintf(stderr, "Mismatch: computed int size %d, actual size %d.\n", INTSIZE, (int)sizeof(int));
         return 1;

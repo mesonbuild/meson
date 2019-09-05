@@ -1,6 +1,6 @@
 #include<iostream>
 
-int main(int argc, char **argv) {
+int main() {
   std::cout << "C++ seems to be working." << std::endl;
   return 0;
 }
