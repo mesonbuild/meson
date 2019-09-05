@@ -82,6 +82,9 @@ class StaticLinker:
     def get_linker_always_args(self) -> typing.List[str]:
         return []
 
+    def prepare_linker_args(self, args: typing.List[str]) -> typing.List[str]:
+        return args
+
 
 class VisualStudioLikeLinker:
     always_args = ['/NOLOGO']
@@ -386,6 +389,9 @@ class DynamicLinker(metaclass=abc.ABCMeta):
                          rpath_paths: str, build_rpath: str,
                          install_rpath: str) -> typing.List[str]:
         return []
+
+    def prepare_linker_args(self, args: typing.List[str]) -> typing.List[str]:
+        return args
 
 
 class PosixDynamicLinkerMixin:
@@ -943,3 +949,9 @@ class CudaLinker(DynamicLinker):
                         suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
                         is_shared_module: bool) -> typing.List[str]:
         return []
+
+    def get_std_shared_lib_args(self) -> typing.List[str]:
+        return ['-shared']
+
+    def prepare_linker_args(self, args: typing.List[str]) -> typing.List[str]:
+        return [a.replace('-Wl,', self.prefix_arg) for a in args]

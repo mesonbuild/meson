@@ -2510,11 +2510,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             for dep in target.get_external_deps():
                 # Extend without reordering or de-dup to preserve `-L -l` sets
                 # https://github.com/mesonbuild/meson/issues/1718
-                commands.extend_preserving_lflags(dep.get_link_args())
+                dep_link_args = linker.linker.prepare_linker_args(dep.get_link_args())
+                commands.extend_preserving_lflags(dep_link_args)
             for d in target.get_dependencies():
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
-                        commands.extend_preserving_lflags(dep.get_link_args())
+                        dep_link_args = linker.linker.prepare_linker_args(dep.get_link_args())
+                        commands.extend_preserving_lflags(dep_link_args)
 
         # Add link args specific to this BuildTarget type that must not be overridden by dependencies
         commands += self.get_target_type_link_args_post_dependencies(target, linker)
