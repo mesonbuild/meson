@@ -222,8 +222,8 @@ cuda_optimization_args = {'0': [],
                           'g': ['-O0'],
                           '1': ['-O1'],
                           '2': ['-O2'],
-                          '3': ['-O3', '-Otime'],
-                          's': ['-O3', '-Ospace']
+                          '3': ['-O3'],
+                          's': ['-O3']
                           }
 
 cuda_debug_args = {False: [],
@@ -1143,6 +1143,15 @@ class Compiler:
         return self.linker.get_soname_args(
             env, prefix, shlib_name, suffix, soversion,
             darwin_versions, is_shared_module)
+
+    def get_target_link_args(self, target):
+        return target.link_args
+
+    def get_dependency_compile_args(self, dep):
+        return dep.get_compile_args()
+
+    def get_dependency_link_args(self, dep):
+        return dep.get_link_args()
 
 
 @enum.unique

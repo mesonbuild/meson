@@ -938,6 +938,23 @@ class CudaLinker(DynamicLinker):
         # we need the most verbose version output. Luckily starting with V
         return out.strip().split('V')[-1]
 
+    def get_accepts_rsp(self) -> bool:
+        # nvcc does not support response files
+        return False
+
+    def get_lib_prefix(self) -> str:
+        if not mesonlib.is_windows():
+            return ''
+        # nvcc doesn't recognize Meson's default .a extension for static libraries on
+        # Windows and passes it to cl as an object file, resulting in 'warning D9024 :
+        # unrecognized source file type 'xxx.a', object file assumed'.
+        #
+        # nvcc's --library= option doesn't help: it takes the library name without the
+        # extension and assumes that the extension on Windows is .lib; prefixing the
+        # library with -Xlinker= seems to work.
+        from .compilers import CudaCompiler
+        return CudaCompiler.LINKER_PREFIX
+
     def get_output_args(self, outname: str) -> typing.List[str]:
         return ['-o', outname]
 
@@ -954,3 +971,6 @@ class CudaLinker(DynamicLinker):
                         suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
                         is_shared_module: bool) -> typing.List[str]:
         return []
+
+    def get_std_shared_lib_args(self) -> typing.List[str]:
+        return ['-shared']
