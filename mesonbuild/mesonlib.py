@@ -1487,3 +1487,33 @@ def get_wine_shortpath(winecmd, wine_paths):
                 len(wine_path)))
 
     return wine_path.strip(';')
+
+
+class OptionProxy:
+    def __init__(self, value):
+        self.value = value
+
+class OptionOverrideProxy:
+    '''Mimic an option list but transparently override
+    selected option values.'''
+    def __init__(self, overrides, *options):
+        self.overrides = overrides
+        self.options = options
+
+    def __getitem__(self, option_name):
+        for opts in self.options:
+            if option_name in opts:
+                return self._get_override(option_name, opts[option_name])
+        raise KeyError('Option not found', option_name)
+
+    def _get_override(self, option_name, base_opt):
+        if option_name in self.overrides:
+            return OptionProxy(base_opt.validate_value(self.overrides[option_name]))
+        return base_opt
+
+    def copy(self):
+        result = {}
+        for opts in self.options:
+            for option_name in opts:
+                result[option_name] = self._get_override(option_name, opts[option_name])
+        return result

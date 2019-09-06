@@ -1056,6 +1056,12 @@ class CLikeCompiler:
             raise mesonlib.MesonException('Cannot find frameworks with non-clang compiler')
         return self.find_framework_impl(name, env, extra_dirs, allow_system)
 
+    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> typing.List[str]:
+        return []
+
+    def get_crt_link_args(self, crt_val: str, buildtype: str) -> typing.List[str]:
+        return []
+
     def thread_flags(self, env):
         host_m = env.machines[self.for_machine]
         if host_m.is_haiku() or host_m.is_darwin():

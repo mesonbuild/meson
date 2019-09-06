@@ -20,7 +20,7 @@ from .. import mesonlib
 from .. import mlog
 import json
 import subprocess
-from ..mesonlib import MachineChoice, MesonException, OrderedSet
+from ..mesonlib import MachineChoice, MesonException, OrderedSet, OptionOverrideProxy
 from ..mesonlib import classify_unity_sources
 from ..mesonlib import File
 from ..compilers import CompilerArgs, VisualStudioLikeCompiler
@@ -104,28 +104,6 @@ class TestSerialisation:
         self.extra_paths = extra_paths
         self.protocol = protocol
         self.priority = priority
-
-class OptionProxy:
-    def __init__(self, value):
-        self.value = value
-
-class OptionOverrideProxy:
-    '''Mimic an option list but transparently override
-    selected option values.'''
-    def __init__(self, overrides, *options):
-        self.overrides = overrides
-        self.options = options
-
-    def __getitem__(self, option_name):
-        for opts in self.options:
-            if option_name in opts:
-                return self._get_override(option_name, opts[option_name])
-        raise KeyError('Option not found', option_name)
-
-    def _get_override(self, option_name, base_opt):
-        if option_name in self.overrides:
-            return OptionProxy(base_opt.validate_value(self.overrides[option_name]))
-        return base_opt
 
 def get_backend_from_name(backend, build):
     if backend == 'ninja':
@@ -650,7 +628,7 @@ class Backend:
                 elif isinstance(dep, dependencies.ExternalLibrary):
                     commands += dep.get_link_args('vala')
             else:
-                commands += dep.get_compile_args()
+                commands += compiler.get_dependency_compile_args(dep)
             # Qt needs -fPIC for executables
             # XXX: We should move to -fPIC for all executables
             if isinstance(target, build.Executable):
