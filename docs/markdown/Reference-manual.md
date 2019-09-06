@@ -251,7 +251,10 @@ These are all the supported keyword arguments:
   `output`. Available since v0.41.0.
 - `command` as explained above, if specified, Meson does not create
   the file itself but rather runs the specified command, which allows
-  you to do fully custom file generation.
+  you to do fully custom file generation. Since *0.52.0* the command can contain
+  file objects and more than one file can be passed to the `input` keyword
+  argument, see [`custom_target()`](#custom_target) for details about string
+  substitutions.
 - `copy` *(added 0.47.0)* as explained above, if specified Meson only
   copies the file from input to output.
 - `format` *(added 0.46.0)* the format of defines. It defaults to `meson`, and so substitutes
