@@ -283,3 +283,9 @@ configure_file(output : 'config9b.h',
 )
 
 test('test9', executable('prog9', 'prog9.c'))
+
+check_inputs = find_program('check_inputs.py')
+configure_file(output : 'check_inputs.txt',
+  input : ['prog.c', files('prog2.c', 'prog4.c')],
+  command : [check_inputs, '@OUTPUT@', '@INPUT0@', '@INPUT@', files('prog5.c')]
+)
