@@ -121,3 +121,6 @@ class BasicLinkerIsCompilerMixin:
                          rpath_paths: str, build_rpath: str,
                          install_rpath: str) -> typing.List[str]:
         return []
+
+    def get_linker_debug_crt_args(self) -> typing.List[str]:
+        return []
