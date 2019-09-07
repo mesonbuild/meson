@@ -127,6 +127,10 @@ class EmscriptenCCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, ClangC
     def get_soname_args(self, *args, **kwargs):
         raise MesonException('Emscripten does not support shared libraries.')
 
+    def get_allow_undefined_link_args(self) -> typing.List[str]:
+        return ['-s', 'ERROR_ON_UNDEFINED_SYMBOLS=0']
+
+
 class ArmclangCCompiler(ArmclangCompiler, CCompiler):
     def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
         CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
