@@ -90,7 +90,7 @@ class BasicLinkerIsCompilerMixin:
         raise mesonlib.EnvironmentException(
             'Linker {} does not support link_whole'.format(self.id))
 
-    def get_allow_undefined_args(self) -> typing.List[str]:
+    def get_allow_undefined_link_args(self) -> typing.List[str]:
         raise mesonlib.EnvironmentException(
             'Linker {} does not support allow undefined'.format(self.id))
 
