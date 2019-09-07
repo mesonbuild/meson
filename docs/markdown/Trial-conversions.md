@@ -20,3 +20,14 @@ Here is a list of projects that have had a build system port done.
 ## More from WrapDB
 
 The [Meson Wrap database](https://wrapdb.mesonbuild.com) contains several projects that have been converted into Meson and are ready to use.
+
+# Other projects ported to Meson
+
+Other projects have got a Meson build configured within the project [Lhelper](https://github.com/franko/lhelper).
+
+Here is a list of projects that have had a build system port done within Lhelper.
+
+* [LuaJIT](https://github.com/franko/luajit.git)
+* [FOX library](https://github.com/franko/fox-1.6.git)
+* [AGG library](https://github.com/franko/agg.git)
+
