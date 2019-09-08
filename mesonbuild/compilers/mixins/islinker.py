@@ -127,3 +127,6 @@ class BasicLinkerIsCompilerMixin:
 
     def get_asneeded_args(self) -> typing.List[str]:
         return []
+
+    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
+        return []
