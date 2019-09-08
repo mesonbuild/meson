@@ -124,3 +124,6 @@ class BasicLinkerIsCompilerMixin:
 
     def get_linker_debug_crt_args(self) -> typing.List[str]:
         return []
+
+    def get_asneeded_args(self) -> typing.List[str]:
+        return []
