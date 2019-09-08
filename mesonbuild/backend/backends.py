@@ -1089,7 +1089,20 @@ class Backend:
             install_mode = t.get_custom_install_mode()
             # Install the target output(s)
             if isinstance(t, build.BuildTarget):
-                should_strip = self.get_option_for_target('strip', t)
+                # In general, stripping static archives is tricky and full of pitfalls.
+                # Wholesale stripping of static archives with a command such as
+                #
+                #   strip libfoo.a
+                #
+                # is broken, as GNU's strip will remove *every* symbol in a static
+                # archive. One solution to this nonintuitive behaviour would be
+                # to only strip local/debug symbols. Unfortunately, strip arguments
+                # are not specified by POSIX and therefore not portable. GNU's `-g`
+                # option (i.e. remove debug symbols) is equivalent to Apple's `-S`.
+                #
+                # TODO: Create GNUStrip/AppleStrip/etc. hierarchy for more
+                #       fine-grained stripping of static archives.
+                should_strip = not isinstance(t, build.StaticLibrary) and self.get_option_for_target('strip', t)
                 # Install primary build output (library/executable/jar, etc)
                 # Done separately because of strip/aliases/rpath
                 if outdirs[0] is not False:

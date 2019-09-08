@@ -5331,6 +5331,33 @@ endian = 'little'
             self.build()
 
     @skipIfNoPkgconfig
+    def test_static_archive_stripping(self):
+        '''
+        Check that Meson produces valid static archives with --strip enabled
+        '''
+        with tempfile.TemporaryDirectory() as tempdirname:
+            testdirbase = os.path.join(self.unit_test_dir, '68 static archive stripping')
+
+            # build lib
+            self.new_builddir()
+            testdirlib = os.path.join(testdirbase, 'lib')
+            testlibprefix = os.path.join(tempdirname, 'libprefix')
+            self.init(testdirlib, extra_args=['--prefix=' + testlibprefix,
+                                              '--libdir=lib',
+                                              '--default-library=static',
+                                              '--buildtype=debug',
+                                              '--strip'], default_args=False)
+            self.build()
+            self.install(use_destdir=False)
+
+            # build executable (uses lib, fails if static archive has been stripped incorrectly)
+            pkg_dir = os.path.join(testlibprefix, 'lib/pkgconfig')
+            self.new_builddir()
+            self.init(os.path.join(testdirbase, 'app'),
+                      override_envvars={'PKG_CONFIG_PATH': pkg_dir})
+            self.build()
+
+    @skipIfNoPkgconfig
     def test_pkgconfig_formatting(self):
         testdir = os.path.join(self.unit_test_dir, '38 pkgconfig format')
         self.init(testdir)
