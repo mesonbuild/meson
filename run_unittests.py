@@ -5300,7 +5300,7 @@ endian = 'little'
         required for dependencies of dependencies (i.e. secondary dependencies).
         '''
         with tempfile.TemporaryDirectory() as tempdirname:
-            testdirbase = os.path.join(self.unit_test_dir, '63 rpath-link secondary')
+            testdirbase = os.path.join(self.unit_test_dir, '67 rpath-link secondary')
 
             # build libA
             testdirlibA = os.path.join(testdirbase, 'libA')
