@@ -207,6 +207,9 @@ class EmscriptenCPPCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, Clan
     def get_allow_undefined_link_args(self) -> typing.List[str]:
         return ['-s', 'ERROR_ON_UNDEFINED_SYMBOLS=0']
 
+    def get_linker_output_args(self, output: str) -> typing.List[str]:
+        return ['-o', output]
+
 
 class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
     def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
