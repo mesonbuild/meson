@@ -16,8 +16,9 @@ import os
 import subprocess
 import shutil
 import tempfile
-from ..environment import detect_ninja
+from ..environment import detect_ninja, detect_scanbuild
 from ..mesonlib import Popen_safe, split_args
+
 
 def scanbuild(exelist, srcdir, blddir, privdir, logdir, args):
     with tempfile.TemporaryDirectory(dir=privdir) as scandir:
@@ -28,6 +29,7 @@ def scanbuild(exelist, srcdir, blddir, privdir, logdir, args):
             return rc
         return subprocess.call(build_cmd)
 
+
 def run(args):
     srcdir = args[0]
     blddir = args[1]
@@ -35,40 +37,10 @@ def run(args):
     privdir = os.path.join(blddir, 'meson-private')
     logdir = os.path.join(blddir, 'meson-logs/scanbuild')
     shutil.rmtree(logdir, ignore_errors=True)
-    tools = [
-        'scan-build',  # base
-        'scan-build-8.0', 'scan-build80',
-        'scan-build-7.0', 'scan-build70',
-        'scan-build-6.0', 'scan-build60',
-        'scan-build-5.0', 'scan-build50',
-        'scan-build-4.0', 'scan-build40',
-        'scan-build-3.9', 'scan-build39',
-        'scan-build-3.8', 'scan-build38',
-        'scan-build-3.7', 'scan-build37',
-        'scan-build-3.6', 'scan-build36',
-        'scan-build-3.5', 'scan-build35',
-        'scan-build-9.0', 'scan-build-devel',  # development snapshot
-    ]
-    toolname = 'scan-build'
-    for tool in tools:
-        try:
-            p, out = Popen_safe([tool, '--help'])[:2]
-        except (FileNotFoundError, PermissionError):
-            continue
-        if p.returncode != 0:
-            continue
-        else:
-            toolname = tool
-            break
 
-    if 'SCANBUILD' in os.environ:
-        exelist = split_args(os.environ['SCANBUILD'])
-    else:
-        exelist = [toolname]
-
-    try:
-        Popen_safe(exelist + ['--help'])
-    except OSError:
+    exelist = detect_scanbuild()
+    if not exelist:
         print('Could not execute scan-build "%s"' % ' '.join(exelist))
         return 1
+
     return scanbuild(exelist, srcdir, blddir, privdir, logdir, meson_cmd)
