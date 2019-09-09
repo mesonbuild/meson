@@ -163,6 +163,55 @@ def detect_ninja(version: str = '1.5', log: bool = False) -> str:
                 mlog.log('Found {}-{} at {}'.format(name, found, quote_arg(n)))
             return n
 
+def detect_scanbuild():
+    """ Look for scan-build binary on build platform
+
+    First, if a SCANBUILD env variable has been provided, give it precedence
+    on all platforms.
+
+    For most platforms, scan-build is found is the PATH contains a binary
+    named "scan-build". However, some distribution's package manager (FreeBSD)
+    don't. For those, loop through a list of candidates to see if one is
+    available.
+    Since this is a costly operation, limit it to the impacted platforms
+    (currently all non-linux platforms)
+
+    Return: a single-element list of the found scan-build binary ready to be
+        passed to Popen()
+    """
+    exelist = []
+    if 'SCANBUILD' in os.environ:
+        exelist = split_args(os.environ['SCANBUILD'])
+
+    elif shutil.which('scan-build') is not None:
+        exelist = [shutil.which('scan-build')]
+
+    elif platform.system() != 'Linux':
+        tools = [
+            'scan-build',  # base
+            'scan-build-8.0', 'scan-build80',
+            'scan-build-7.0', 'scan-build70',
+            'scan-build-6.0', 'scan-build60',
+            'scan-build-5.0', 'scan-build50',
+            'scan-build-4.0', 'scan-build40',
+            'scan-build-3.9', 'scan-build39',
+            'scan-build-3.8', 'scan-build38',
+            'scan-build-3.7', 'scan-build37',
+            'scan-build-3.6', 'scan-build36',
+            'scan-build-3.5', 'scan-build35',
+            'scan-build-9.0', 'scan-build-devel',  # development snapshot
+        ]
+        for tool in tools:
+            if shutil.which(tool) is not None:
+                exelist = [shutil.which(tool)]
+                break
+
+    if exelist:
+        tool = exelist[0]
+        if os.path.isfile(tool) and os.access(tool, os.X_OK):
+            return [tool]
+    return []
+
 def detect_native_windows_arch():
     """
     The architecture of Windows itself: x86, amd64 or arm64
