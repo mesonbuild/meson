@@ -708,6 +708,14 @@ def get_library_dirs() -> typing.List[str]:
     else:
         plat = ''
 
+    # Solaris puts 32-bit libraries in the main /lib & /usr/lib directories
+    # and 64-bit libraries in platform specific subdirectories.
+    if is_sunos():
+        if machine == 'i86pc':
+            plat = 'amd64'
+        elif machine.startswith('sun4'):
+            plat = 'sparcv9'
+
     usr_platdir = Path('/usr/lib/') / plat
     if usr_platdir.is_dir():
         unixdirs += [str(x) for x in (usr_platdir).iterdir() if x.is_dir()]
