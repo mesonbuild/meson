@@ -441,6 +441,21 @@ def load_tests(build_dir: str) -> typing.List['TestSerialisation']:
         obj = typing.cast(typing.List['TestSerialisation'], pickle.load(f))
     return obj
 
+def is_test_compatible(test_case):
+    from subprocess import Popen, PIPE, STDOUT
+    cmd = 'file ' + test_case[0]
+    p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE,
+              stderr=STDOUT, close_fds=True)
+    p.wait()
+    if p.returncode != 0:
+        # Assume it is compatible if this fails so that
+        # it has a chance to run the test anyway
+        return True
+    output = p.stdout.read().decode('utf-8')
+    splitted = output.split(',')
+    test_arch = splitted[1].strip().replace('-', '_')
+    build_machine_arch = platform.machine().replace('-', '_')
+    return test_arch == build_machine_arch
 
 class SingleTestRunner:
 
@@ -457,7 +472,7 @@ class SingleTestRunner:
         elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
             return ['mono'] + self.test.fname
         else:
-            if self.test.is_cross_built:
+            if self.test.is_cross_built or not is_test_compatible(self.test.fname):
                 if self.test.exe_runner is None:
                     # Can not run test on cross compiled executable
                     # because there is no execute wrapper.
