@@ -502,15 +502,13 @@ class Environment:
             # Clang and clang++ are valid, but currently unsupported.
             self.default_objc = ['cc', 'gcc']
             self.default_objcpp = ['c++', 'g++']
+            self.default_cs = ['csc', 'mcs']
         else:
             self.default_c = ['cc', 'gcc', 'clang', 'pgcc', 'icc']
             self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++', 'icpc']
             self.default_fortran = ['gfortran', 'flang', 'pgfortran', 'ifort', 'g95']
             self.default_objc = ['cc', 'gcc', 'clang']
             self.default_objcpp = ['c++', 'g++', 'clang++']
-        if mesonlib.is_windows():
-            self.default_cs = ['csc', 'mcs']
-        else:
             self.default_cs = ['mcs', 'csc']
         self.default_d = ['ldc2', 'ldc', 'gdc', 'dmd']
         self.default_java = ['javac']
