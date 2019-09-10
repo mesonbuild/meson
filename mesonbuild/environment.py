@@ -14,6 +14,7 @@
 
 import os, platform, re, sys, shutil, subprocess, typing
 import tempfile
+import shlex
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, IntelVisualStudioLinker
@@ -708,6 +709,22 @@ class Environment:
         v = search_version(o)
         if o.startswith('LLD'):
             linker = LLVMDynamicLinker(compiler, for_machine, 'lld', prefix, version=v)  # type: DynamicLinker
+        elif e.startswith('lld-link: '):
+            # Toolchain wrapper got in the way; this happens with e.g. https://github.com/mstorsjo/llvm-mingw
+            # Let's try to extract the linker invocation command to grab the version.
+
+            _, o, e = Popen_safe(compiler + check_args + ['-v'])
+
+            try:
+                linker_cmd = re.match(r'.*\n(.*?)\nlld-link: ', e, re.DOTALL).group(1)
+                linker_cmd = shlex.split(linker_cmd)[0]
+            except (AttributeError, IndexError, ValueError):
+                pass
+            else:
+                _, o, e = Popen_safe([linker_cmd, '--version'])
+                v = search_version(o)
+
+            linker = LLVMDynamicLinker(compiler, for_machine, 'lld', prefix, version=v)
         # first is for apple clang, second is for real gcc
         elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e:
             if isinstance(prefix, str):
