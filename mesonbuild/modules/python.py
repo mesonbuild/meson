@@ -41,14 +41,6 @@ mod_kwargs = set(['subdir'])
 mod_kwargs.update(known_shmod_kwargs)
 mod_kwargs -= set(['name_prefix', 'name_suffix'])
 
-
-def run_command(python, command):
-    cmd = python.get_command() + ['-c', command]
-    _, stdout, _ = mesonlib.Popen_safe(cmd)
-
-    return stdout.strip()
-
-
 class PythonDependency(ExternalDependency):
 
     def __init__(self, python_holder, environment, kwargs):
@@ -568,9 +560,16 @@ class PythonModule(ExtensionModule):
         else:
             # Sanity check, we expect to have something that at least quacks in tune
             try:
-                info = json.loads(run_command(python, INTROSPECT_COMMAND))
+                cmd = python.get_command() + ['-c', INTROSPECT_COMMAND]
+                p, stdout, stderr = mesonlib.Popen_safe(cmd)
+                info = json.loads(stdout)
             except json.JSONDecodeError:
                 info = None
+                mlog.debug('Could not introspect Python (%s): exit code %d' % (str(p.args), p.returncode))
+                mlog.debug('Program stdout:\n')
+                mlog.debug(stdout)
+                mlog.debug('Program stderr:\n')
+                mlog.debug(stderr)
 
             if isinstance(info, dict) and 'version' in info and self._check_version(name_or_path, info['version']):
                 res = PythonInstallation(interpreter, python, info)
