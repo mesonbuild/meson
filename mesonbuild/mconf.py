@@ -181,7 +181,7 @@ class Conf:
         core_options = {k: o for k, o in self.coredata.builtins.items() if k in core_option_names}
 
         self.print_options('Core options', core_options)
-        if self.build.environment.is_cross_build():
+        if self.default_values_only or self.build.environment.is_cross_build():
             self.print_options('Core options (for host machine)', self.coredata.builtins_per_machine.host)
             self.print_options(
                 'Core options (for build machine)',
@@ -190,7 +190,7 @@ class Conf:
             self.print_options('Core options', self.coredata.builtins_per_machine.host)
         self.print_options('Backend options', self.coredata.backend_options)
         self.print_options('Base options', self.coredata.base_options)
-        if self.build.environment.is_cross_build():
+        if self.default_values_only or self.build.environment.is_cross_build():
             self.print_options('Compiler options (for host machine)', self.coredata.compiler_options.host)
             self.print_options(
                 'Compiler options (for build machine)',
