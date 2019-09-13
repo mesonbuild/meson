@@ -3624,6 +3624,10 @@ recommended as it is not supported on some platforms''')
         self.maxDiff = None
         self.assertListEqual(res_nb, res_wb)
 
+    def test_meson_configure_from_source_does_not_crash(self):
+        testdir = os.path.join(self.unit_test_dir, '59 introspect buildoptions')
+        self._run(self.mconf_command + [testdir])
+
     def test_introspect_json_dump(self):
         testdir = os.path.join(self.unit_test_dir, '57 introspection')
         self.init(testdir)
