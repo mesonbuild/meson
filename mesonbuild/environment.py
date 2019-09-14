@@ -745,7 +745,7 @@ class Environment:
             else:
                 i = 'GNU ld.bfd'
             linker = GnuDynamicLinker(compiler, for_machine, i, prefix, version=v)
-        elif 'Solaris' in e:
+        elif 'Solaris' in e or 'Solaris' in o:
             linker = SolarisDynamicLinker(
                 compiler, for_machine, 'solaris', prefix,
                 version=search_version(e))
