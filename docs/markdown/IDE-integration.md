@@ -67,7 +67,7 @@ be present. It stores the installation location for each file in `filename`.
 If one file in `filename` is not installed, its corresponding install location
 is set to `null`.
 
-The `subproject' key specifies the name of the subproject this target was
+The `subproject` key specifies the name of the subproject this target was
 defined in, or `null` if the target was defined in the top level project.
 
 A target usually generates only one file. However, it is possible for custom
