@@ -49,3 +49,11 @@ pkgg.generate(
   description : 'Dependency Requires.private field test.',
   requires_private : [exposed_lib, pc_dep, 'libhello', notfound_dep],
 )
+
+# Verify that if we promote internal_lib as public dependency, it comes after
+# the main library.
+main_lib2 = both_libraries('libmain2', link_with : internal_lib)
+pkgg.generate(main_lib2,
+  libraries : internal_lib,
+  filebase : 'pub-lib-order',
+)

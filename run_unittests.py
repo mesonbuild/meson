@@ -4577,6 +4577,10 @@ class LinuxlikeTests(BasePlatformTests):
         else:
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo>=1.0', 'libhello']))
 
+        cmd = ['pkg-config', 'pub-lib-order']
+        out = self._run(cmd + ['--libs'], override_envvars=env).strip().split()
+        self.assertEqual(out, ['-llibmain2', '-llibinternal'])
+
     def test_pkg_unfound(self):
         testdir = os.path.join(self.unit_test_dir, '23 unfound pkgconfig')
         self.init(testdir)
