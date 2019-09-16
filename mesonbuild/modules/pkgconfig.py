@@ -388,10 +388,15 @@ class PkgConfigModule(ExtensionModule):
             raise mesonlib.MesonException('URL is not a string.')
         conflicts = mesonlib.stringlistify(kwargs.get('conflicts', []))
 
-        deps = DependenciesHelper(filebase)
+        # Prepend the main library to public libraries list. This is required
+        # so dep.add_pub_libs() can handle dependency ordering correctly and put
+        # extra libraries after the main library.
+        libraries = mesonlib.extract_as_list(kwargs, 'libraries')
         if mainlib:
-            deps.add_pub_libs(mainlib)
-        deps.add_pub_libs(kwargs.get('libraries', []))
+            libraries = [mainlib] + libraries
+
+        deps = DependenciesHelper(filebase)
+        deps.add_pub_libs(libraries)
         deps.add_priv_libs(kwargs.get('libraries_private', []))
         deps.add_pub_reqs(kwargs.get('requires', []))
         deps.add_priv_reqs(kwargs.get('requires_private', []))
