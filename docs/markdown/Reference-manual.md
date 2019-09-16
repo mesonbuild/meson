@@ -597,7 +597,7 @@ be passed to [shared and static libraries](#library).
 - `install_mode` *(added 0.47.0)* specify the file mode in symbolic format
   and optionally the owner/uid and group/gid for the installed files.
 - `install_rpath` a string to set the target's rpath to after install
-  (but *not* before that)
+  (but *not* before that). On Windows, this argument has no effect.
 - `objects` list of prebuilt object files (usually for third party
   products you don't have source to) that should be linked in this
   target, **never** use this for object files that you build yourself.
