@@ -777,6 +777,7 @@ class CLikeCompiler(Compiler):
         # Short-circuit if the check is already provided by the cross-info file
         varname = 'has function ' + funcname
         varname = varname.replace(' ', '_')
+        varname = varname.lower()
         if self.is_cross:
             val = self.environment.properties.host.get(varname, None)
             if val is not None:
