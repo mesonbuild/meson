@@ -143,6 +143,14 @@ automatically by adding the following *(since 0.48.0)*:
 clone-recursive = true
 ```
 
+Setting the clone depth is supported using the `depth` directive *(since 0.52.0)*.
+Note that git always allow shallowly cloning branches, but in order to clone commit ids
+shallowly, the server must support `uploadpack.allowReachableSHA1InWant=true`.
+
+```ini
+depth = 1
+```
+
 ## Using wrapped projects
 
 Wraps provide a convenient way of obtaining a project into your subproject directory. 
