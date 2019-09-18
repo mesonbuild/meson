@@ -226,16 +226,21 @@ class Resolver:
             self.apply_patch()
 
     def get_git(self):
+        # git doesn't support directly cloning shallowly for commits,
+        # so we follow https://stackoverflow.com/a/43136160
+        subprocess.check_call(['git', 'init', self.directory], cwd=self.subdir_root)
+        subprocess.check_call(['git', 'remote', 'add', 'origin', self.wrap.get('url')],
+                              cwd=self.dirname)
+        git_options = []
         revno = self.wrap.get('revision')
-        subprocess.check_call(['git', 'clone', self.wrap.get('url'),
-                               self.directory], cwd=self.subdir_root)
-        if revno.lower() != 'head':
-            if subprocess.call(['git', 'checkout', revno], cwd=self.dirname) != 0:
-                subprocess.check_call(['git', 'fetch', self.wrap.get('url'), revno], cwd=self.dirname)
-                subprocess.check_call(['git', 'checkout', revno], cwd=self.dirname)
+        if self.wrap.values.get('depth', '') != '':
+            git_options.extend(['--depth', self.wrap.values.get('depth')])
+        subprocess.check_call(['git', 'fetch'] + git_options + ['origin', revno],
+                              cwd=self.dirname)
+        subprocess.check_call(['git', 'checkout', revno], cwd=self.dirname)
         if self.wrap.values.get('clone-recursive', '').lower() == 'true':
             subprocess.check_call(['git', 'submodule', 'update',
-                                   '--init', '--checkout', '--recursive'],
+                                   '--init', '--checkout', '--recursive'] + git_options,
                                   cwd=self.dirname)
         push_url = self.wrap.values.get('push-url')
         if push_url:
