@@ -1389,13 +1389,13 @@ class BuildDirLock:
             msvcrt.locking(self.lockfile.fileno(), msvcrt.LK_UNLCK, 1)
         self.lockfile.close()
 
-def relpath(path, start):
+def relpath(path: str, start: str) -> str:
     # On Windows a relative path can't be evaluated for paths on two different
     # drives (i.e. c:\foo and f:\bar).  The only thing left to do is to use the
     # original absolute path.
     try:
         return os.path.relpath(path, start)
-    except ValueError:
+    except (TypeError, ValueError):
         return path
 
 
