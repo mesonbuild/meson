@@ -173,8 +173,6 @@ def detect_scanbuild():
     named "scan-build". However, some distribution's package manager (FreeBSD)
     don't. For those, loop through a list of candidates to see if one is
     available.
-    Since this is a costly operation, limit it to the impacted platforms
-    (currently all non-linux platforms)
 
     Return: a single-element list of the found scan-build binary ready to be
         passed to Popen()
@@ -183,14 +181,11 @@ def detect_scanbuild():
     if 'SCANBUILD' in os.environ:
         exelist = split_args(os.environ['SCANBUILD'])
 
-    elif shutil.which('scan-build') is not None:
-        exelist = [shutil.which('scan-build')]
-
-    elif platform.system() != 'Linux':
+    else:
         tools = [
             'scan-build',  # base
-            'scan-build-8.0', 'scan-build80',
-            'scan-build-7.0', 'scan-build70',
+            'scan-build-8',   'scan-build80',
+            'scan-build-7',   'scan-build70',
             'scan-build-6.0', 'scan-build60',
             'scan-build-5.0', 'scan-build50',
             'scan-build-4.0', 'scan-build40',
@@ -199,7 +194,7 @@ def detect_scanbuild():
             'scan-build-3.7', 'scan-build37',
             'scan-build-3.6', 'scan-build36',
             'scan-build-3.5', 'scan-build35',
-            'scan-build-9.0', 'scan-build-devel',  # development snapshot
+            'scan-build-9',   'scan-build-devel',  # development snapshot
         ]
         for tool in tools:
             if shutil.which(tool) is not None:
