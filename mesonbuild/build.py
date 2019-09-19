@@ -970,11 +970,11 @@ This will become a hard error in a future Meson release.''')
     def get_extra_args(self, language):
         return self.extra_args.get(language, [])
 
-    def get_dependencies(self, exclude=None, internal=True):
+    def get_dependencies(self, exclude=None, for_pkgconfig=False):
         transitive_deps = []
         if exclude is None:
             exclude = []
-        if internal:
+        if not for_pkgconfig:
             link_targets = itertools.chain(self.link_targets, self.link_whole_targets)
         else:
             # We don't want the 'internal' libraries when generating the
@@ -983,9 +983,13 @@ This will become a hard error in a future Meson release.''')
         for t in link_targets:
             if t in transitive_deps or t in exclude:
                 continue
+            if for_pkgconfig and t.is_internal():
+                # Skip uninstalled static libraries, they have been promoted to
+                # link_whole into the static library.
+                continue
             transitive_deps.append(t)
             if isinstance(t, StaticLibrary):
-                transitive_deps += t.get_dependencies(transitive_deps + exclude, internal)
+                transitive_deps += t.get_dependencies(transitive_deps + exclude, for_pkgconfig)
         return transitive_deps
 
     def get_source_subdir(self):
