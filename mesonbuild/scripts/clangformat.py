@@ -16,9 +16,10 @@ import pathlib
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
+from ..environment import detect_clangformat
 from ..compilers import lang_suffixes
 
-def clangformat(srcdir_name, builddir_name):
+def clangformat(exelist, srcdir_name, builddir_name):
     srcdir = pathlib.Path(srcdir_name)
     suffixes = set(lang_suffixes['c']).union(set(lang_suffixes['cpp']))
     suffixes.add('h')
@@ -28,11 +29,17 @@ def clangformat(srcdir_name, builddir_name):
             strf = str(f)
             if strf.startswith(builddir_name):
                 continue
-            futures.append(e.submit(subprocess.check_call, ['clang-format', '-style=file', '-i', strf]))
+            futures.append(e.submit(subprocess.check_call, exelist + ['-style=file', '-i', strf]))
         [x.result() for x in futures]
     return 0
 
 def run(args):
     srcdir_name = args[0]
     builddir_name = args[1]
-    return clangformat(srcdir_name, builddir_name)
+
+    exelist = detect_clangformat()
+    if not exelist:
+        print('Could not execute clang-format "%s"' % ' '.join(exelist))
+        return 1
+
+    return clangformat(exelist, srcdir_name, builddir_name)

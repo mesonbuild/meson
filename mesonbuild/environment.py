@@ -189,7 +189,7 @@ def get_llvm_tool_names(tool: str) -> typing.List[str]:
         names.append(tool + suffix)
     return names
 
-def detect_scanbuild():
+def detect_scanbuild() -> typing.List[str]:
     """ Look for scan-build binary on build platform
 
     First, if a SCANBUILD env variable has been provided, give it precedence
@@ -218,6 +218,22 @@ def detect_scanbuild():
         tool = exelist[0]
         if os.path.isfile(tool) and os.access(tool, os.X_OK):
             return [tool]
+    return []
+
+def detect_clangformat() -> typing.List[str]:
+    """ Look for clang-format binary on build platform
+
+    Do the same thing as detect_scanbuild to find clang-format except it
+    currently does not check the environment variable.
+
+    Return: a single-element list of the found clang-format binary ready to be
+        passed to Popen()
+    """
+    tools = get_llvm_tool_names('clang-format')
+    for tool in tools:
+        path = shutil.which(tool)
+        if path is not None:
+            return [path]
     return []
 
 def detect_native_windows_arch():

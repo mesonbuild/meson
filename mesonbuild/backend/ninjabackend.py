@@ -2657,9 +2657,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.create_target_alias('meson-scan-build')
 
     def generate_clangformat(self):
-        import shutil
         target_name = 'clang-format'
-        if shutil.which('clang-format') is None:
+        if not environment.detect_clangformat():
             return
         if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-format')) and \
                 not os.path.exists(os.path.join(self.environment.source_dir, '_clang-format')):
