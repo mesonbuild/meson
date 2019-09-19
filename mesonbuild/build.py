@@ -974,20 +974,17 @@ This will become a hard error in a future Meson release.''')
         transitive_deps = []
         if exclude is None:
             exclude = []
-        if not for_pkgconfig:
-            link_targets = itertools.chain(self.link_targets, self.link_whole_targets)
-        else:
-            # We don't want the 'internal' libraries when generating the
-            # `Libs:` and `Libs.private:` lists in pkg-config files.
-            link_targets = self.link_targets
-        for t in link_targets:
+        for t in itertools.chain(self.link_targets, self.link_whole_targets):
             if t in transitive_deps or t in exclude:
                 continue
-            if for_pkgconfig and t.is_internal():
-                # Skip uninstalled static libraries, they have been promoted to
-                # link_whole into the static library.
-                continue
-            transitive_deps.append(t)
+            # When generating `Libs:` and `Libs.private:` lists in pkg-config
+            # files we don't want to include static libraries that we link_whole
+            # or are uninstalled (they're implicitly promoted to link_whole).
+            # But we still need to include their transitive dependencies,
+            # a static library we link_whole would itself link to a shared
+            # library or an installed static library.
+            if not for_pkgconfig or (not t.is_internal() and t not in self.link_whole_targets):
+                transitive_deps.append(t)
             if isinstance(t, StaticLibrary):
                 transitive_deps += t.get_dependencies(transitive_deps + exclude, for_pkgconfig)
         return transitive_deps
@@ -1114,11 +1111,7 @@ You probably should put it in link_with instead.''')
                 # When we're a static library and we link_whole: to another static
                 # library, we need to add that target's objects to ourselves.
                 self.objects.append(t.extract_all_objects())
-                # Add internal and external deps
-                self.external_deps += t.external_deps
-                self.link_targets += t.link_targets
-            else:
-                self.link_whole_targets.append(t)
+            self.link_whole_targets.append(t)
 
     def add_pch(self, language, pchlist):
         if not pchlist:
