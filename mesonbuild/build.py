@@ -1099,7 +1099,15 @@ You probably should put it in link_with instead.''')
                     raise InvalidArguments(msg + ' This is not possible in a cross build.')
                 else:
                     mlog.warning(msg + ' This will fail in cross build.')
-            self.link_whole_targets.append(t)
+            if isinstance(self, StaticLibrary):
+                # When we're a static library and we link_whole: to another static
+                # library, we need to add that target's objects to ourselves.
+                self.objects.append(t.extract_all_objects())
+                # Add internal and external deps
+                self.external_deps += t.external_deps
+                self.link_targets += t.link_targets
+            else:
+                self.link_whole_targets.append(t)
 
     def add_pch(self, language, pchlist):
         if not pchlist:
