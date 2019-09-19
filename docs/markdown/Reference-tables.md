@@ -55,6 +55,7 @@ set in the cross file.
 | arm                 | 32 bit ARM processor  |
 | e2k                 | MCST Elbrus processor |
 | ia64                | Itanium processor     |
+| microblaze          | MicroBlaze processor  |
 | mips                | 32 bit MIPS processor |
 | mips64              | 64 bit MIPS processor |
 | parisc              | HP PA-RISC processor  |
