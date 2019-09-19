@@ -1062,8 +1062,15 @@ You probably should put it in link_with instead.''')
     def get_external_deps(self):
         return self.external_deps
 
+    def is_internal(self):
+        return isinstance(self, StaticLibrary) and not self.need_install
+
     def link(self, target):
         for t in listify(target, unholder=True):
+            if isinstance(self, StaticLibrary) and t.is_internal():
+                # When we're a static library and we link_with to an
+                # internal/convenience library, promote to link_whole.
+                return self.link_whole(t)
             if not isinstance(t, (Target, CustomTargetIndex)):
                 raise InvalidArguments('{!r} is not a target.'.format(t))
             if not t.is_linkable_target():
