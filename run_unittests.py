@@ -5637,6 +5637,9 @@ c = ['{0}']
         self.init(testdir, override_envvars=env)
 
     def test_static_link(self):
+        if is_cygwin():
+            raise unittest.SkipTest("Cygwin doesn't support LD_LIBRARY_PATH.")
+
         # Build some libraries and install them
         testdir = os.path.join(self.unit_test_dir, '69 static link/lib')
         libdir = os.path.join(self.installdir, self.prefix[1:], self.libdir)
@@ -5646,9 +5649,12 @@ c = ['{0}']
         # Test that installed libraries works
         self.new_builddir()
         testdir = os.path.join(self.unit_test_dir, '69 static link')
-        self.init(testdir, extra_args=['-Dc_link_args="-L{}"'.format(libdir)])
+        env = {'PKG_CONFIG_LIBDIR': os.path.join(libdir, 'pkgconfig')}
+        run_env = {'LD_LIBRARY_PATH': libdir}
+        self.init(testdir, extra_args=['-Dc_link_args="-L{}"'.format(libdir)],
+                  override_envvars=env)
         self.build()
-        self.run_tests()
+        self.run_tests(override_envvars=run_env)
 
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')

@@ -148,10 +148,10 @@ class DependenciesHelper:
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
                 if isinstance(obj, build.StaticLibrary) and public:
-                    self.add_pub_libs(obj.get_dependencies(internal=False))
+                    self.add_pub_libs(obj.get_dependencies(for_pkgconfig=True))
                     self.add_pub_libs(obj.get_external_deps())
                 else:
-                    self.add_priv_libs(obj.get_dependencies(internal=False))
+                    self.add_priv_libs(obj.get_dependencies(for_pkgconfig=True))
                     self.add_priv_libs(obj.get_external_deps())
             elif isinstance(obj, str):
                 processed_libs.append(obj)
