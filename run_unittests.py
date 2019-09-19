@@ -5636,6 +5636,20 @@ c = ['{0}']
         # TODO should someday be explicit about build platform only here
         self.init(testdir, override_envvars=env)
 
+    def test_static_link(self):
+        # Build some libraries and install them
+        testdir = os.path.join(self.unit_test_dir, '69 static link/lib')
+        libdir = os.path.join(self.installdir, self.prefix[1:], self.libdir)
+        self.init(testdir)
+        self.install()
+
+        # Test that installed libraries works
+        self.new_builddir()
+        testdir = os.path.join(self.unit_test_dir, '69 static link')
+        self.init(testdir, extra_args=['-Dc_link_args="-L{}"'.format(libdir)])
+        self.build()
+        self.run_tests()
+
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
 
