@@ -26,3 +26,18 @@ libfunc6 = both_libraries('func6', 'func6.c',
   link_with : libfunc5,
   install : true)
 pkg.generate(libfunc6)
+
+# libfunc9 should contain both func8() and func9() but not func7() because that
+# one gets installed. Also test that link_with and link_whole works the same way
+# because libfunc8 is uninstalled.
+libfunc7 = static_library('func7', 'func7.c',
+  install : true)
+libfunc8 = static_library('func8', 'func8.c',
+  link_with : libfunc7,
+  install : false)
+libfunc9_linkwith = static_library('func9_linkwith', 'func9.c',
+  link_with : libfunc8,
+  install : true)
+libfunc9_linkwhole = static_library('func9_linkwhole', 'func9.c',
+  link_whole : libfunc8,
+  install : true)
