@@ -2388,6 +2388,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 msg = 'Program {!r} was overridden with the compiled executable {!r}'\
                       ' and therefore cannot be used during configuration'
                 raise InterpreterException(msg.format(progname, cmd.description()))
+            if not cmd.found():
+                raise InterpreterException('command {!r} not found or not executable'.format(cmd))
         elif isinstance(cmd, CompilerHolder):
             cmd = cmd.compiler.get_exelist()[0]
             prog = ExternalProgram(cmd, silent=True)
