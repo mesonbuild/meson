@@ -163,6 +163,32 @@ def detect_ninja(version: str = '1.5', log: bool = False) -> str:
                 mlog.log('Found {}-{} at {}'.format(name, found, quote_arg(n)))
             return n
 
+def get_llvm_tool_names(tool: str) -> typing.List[str]:
+    # Ordered list of possible suffixes of LLVM executables to try. Start with
+    # base, then try newest back to oldest (3.5 is arbitrary), and finally the
+    # devel version. Please note that the development snapshot in Debian does
+    # not have a distinct name. Do not move it to the beginning of the list
+    # unless it becomes a stable release.
+    suffixes = [
+        '', # base (no suffix)
+        '-8',   '80',
+        '-7',   '70',
+        '-6.0', '60',
+        '-5.0', '50',
+        '-4.0', '40',
+        '-3.9', '39',
+        '-3.8', '38',
+        '-3.7', '37',
+        '-3.6', '36',
+        '-3.5', '35',
+        '-9',     # Debian development snapshot
+        '-devel', # FreeBSD development snapshot
+    ]
+    names = []
+    for suffix in suffixes:
+        names.append(tool + suffix)
+    return names
+
 def detect_scanbuild():
     """ Look for scan-build binary on build platform
 
@@ -182,20 +208,7 @@ def detect_scanbuild():
         exelist = split_args(os.environ['SCANBUILD'])
 
     else:
-        tools = [
-            'scan-build',  # base
-            'scan-build-8',   'scan-build80',
-            'scan-build-7',   'scan-build70',
-            'scan-build-6.0', 'scan-build60',
-            'scan-build-5.0', 'scan-build50',
-            'scan-build-4.0', 'scan-build40',
-            'scan-build-3.9', 'scan-build39',
-            'scan-build-3.8', 'scan-build38',
-            'scan-build-3.7', 'scan-build37',
-            'scan-build-3.6', 'scan-build36',
-            'scan-build-3.5', 'scan-build35',
-            'scan-build-9',   'scan-build-devel',  # development snapshot
-        ]
+        tools = get_llvm_tool_names('scan-build')
         for tool in tools:
             if shutil.which(tool) is not None:
                 exelist = [shutil.which(tool)]
