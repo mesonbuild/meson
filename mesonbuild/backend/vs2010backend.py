@@ -619,11 +619,11 @@ class Vs2010Backend(backends.Backend):
         pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % lang
         return header
 
-    def is_argument_with_msbuild_xml_entry(self, entry):
+    def is_argument_with_msbuild_xml_entry(self, arg):
         # Remove arguments that have a top level XML entry so
         # they are not used twice.
         # FIXME add args as needed.
-        return entry[1:].startswith('M')
+        return arg[:2] in ('/M', '/Z')
 
     def add_additional_options(self, lang, parent_node, file_args):
         args = []
@@ -773,6 +773,8 @@ class Vs2010Backend(backends.Backend):
             sources = self.generate_unity_files(target, sources)
         compiler = self._get_cl_compiler(target)
         buildtype_args = compiler.get_buildtype_args(self.buildtype)
+        debuginfo_val = self.environment.coredata.base_options['b_debuginfo'].value
+        buildtype_args += compiler.get_debug_info_format_args(debuginfo_val, self.buildtype)
         buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
         vscrt_type = self.environment.coredata.base_options['b_vscrt']
         project_name = target.name
@@ -816,6 +818,7 @@ class Vs2010Backend(backends.Backend):
         if '/INCREMENTAL:NO' in buildtype_link_args:
             ET.SubElement(type_config, 'LinkIncremental').text = 'false'
 
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         # Build information
         compiles = ET.SubElement(root, 'ItemDefinitionGroup')
         clconf = ET.SubElement(compiles, 'ClCompile')
@@ -843,20 +846,19 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
         # Debug format
         if '/ZI' in buildtype_args:
-            ET.SubElement(type_config, 'DebugInformationFormat').text = 'EditAndContinue'
+            ET.SubElement(clconf, 'DebugInformationFormat').text = 'EditAndContinue'
         elif '/Zi' in buildtype_args:
-            ET.SubElement(type_config, 'DebugInformationFormat').text = 'ProgramDatabase'
+            ET.SubElement(clconf, 'DebugInformationFormat').text = 'ProgramDatabase'
         elif '/Z7' in buildtype_args:
-            ET.SubElement(type_config, 'DebugInformationFormat').text = 'OldStyle'
+            ET.SubElement(clconf, 'DebugInformationFormat').text = 'OldStyle'
         # Runtime checks
         if '/RTC1' in buildtype_args:
-            ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'EnableFastChecks'
+            ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'EnableFastChecks'
         elif '/RTCu' in buildtype_args:
-            ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'UninitializedLocalUsageCheck'
+            ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'UninitializedLocalUsageCheck'
         elif '/RTCs' in buildtype_args:
-            ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'StackFrameRuntimeCheck'
+            ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'StackFrameRuntimeCheck'
         # End configuration
-        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(target, root)
         (gen_src, gen_hdrs, gen_objs, gen_langs) = self.split_sources(generated_files)
         (custom_src, custom_hdrs, custom_objs, custom_langs) = self.split_sources(custom_target_output_files)

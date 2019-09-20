@@ -54,10 +54,10 @@ vs64_instruction_set_args = {
 
 msvc_buildtype_args = {
     'plain': [],
-    'debug': ["/ZI", "/Ob0", "/Od", "/RTC1"],
-    'debugoptimized': ["/Zi", "/Ob1"],
+    'debug': ["/Ob0", "/Od", "/RTC1"],
+    'debugoptimized': ["/Ob1"],
     'release': ["/Ob2", "/Gw"],
-    'minsize': ["/Zi", "/Gw"],
+    'minsize': ["/Gw"],
     'custom': [],
 }  # type: typing.Dict[str, typing.List[str]]
 
@@ -101,6 +101,13 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         'mtd': ['/MTd'],
     }  # type: typing.Dict[str, typing.List[str]]
 
+    pdb_args = {
+        'none': [],
+        'embedded': ['/Z7'],
+        'standalone': ['/Zi'],
+        'edit-and-continue': ['/ZI']
+    }  # type: typing.Dict[str, typing.List[str]]
+
     # /showIncludes is needed for build dependency tracking in Ninja
     # See: https://ninja-build.org/manual.html#_deps
     always_args = ['/nologo', '/showIncludes']
@@ -112,7 +119,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     }  # type: typing.Dict[str, typing.List[str]]
 
     def __init__(self, target: str):
-        self.base_options = ['b_pch', 'b_ndebug', 'b_vscrt'] # FIXME add lto, pgo and the like
+        self.base_options = ['b_pch', 'b_ndebug', 'b_vscrt', 'b_debuginfo'] # FIXME add lto, pgo and the like
         self.target = target
         self.is_64 = ('x64' in target) or ('x86_64' in target)
         # do some canonicalization of target machine
@@ -289,6 +296,17 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         if pch and self.id == 'msvc' and mesonlib.version_compare(self.version, '>=18.0'):
             args = ['/FS'] + args
         return args
+
+    def get_debug_info_format_args(self, di_format: str, buildtype: str) -> typing.List[str]:
+        if di_format in self.pdb_args:
+            return self.pdb_args[di_format]
+        assert(di_format == 'from_buildtype')
+        # Match what build type flags used to do.
+        if buildtype == 'debug':
+            return self.pdb_args['edit-and-continue']
+        elif buildtype in ('debugoptimized', 'minsize'):
+            return self.pdb_args['standalone']
+        return []
 
     def get_instruction_set_args(self, instruction_set: str) -> typing.Optional[typing.List[str]]:
         if self.is_64:

@@ -465,7 +465,6 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool, exe_wrap, target, **kwargs):
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
         VisualStudioLikeCompiler.__init__(self, target)
-        self.base_options = ['b_pch', 'b_vscrt'] # FIXME add lto, pgo and the like
         self.id = 'msvc'
 
     def get_options(self):

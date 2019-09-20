@@ -269,8 +269,8 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
     BUILD_ARGS = {
         'plain': [],
-        'debug': ["/Zi", "/Od"],
-        'debugoptimized': ["/Zi", "/O1"],
+        'debug': ["/Od"],
+        'debugoptimized': ["/O1"],
         'release': ["/O2"],
         'minsize': ["/Os"],
         'custom': [],
@@ -292,6 +292,10 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
     def get_buildtype_args(self, buildtype: str) -> List[str]:
         return self.BUILD_ARGS[buildtype]
 
+    def get_debug_info_format_args(self, di_format: str, buildtype: str) -> typing.List[str]:
+        if di_format == 'from_buildtype':
+            return self.pdb_args['standalone'] if buildtype in ('debug', 'debugoptimized') else []
+        return super().get_debug_info_format_args(di_format, buildtype)
 
 class PathScaleFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwags):
