@@ -6730,6 +6730,12 @@ class TAPParserTests(unittest.TestCase):
         self.assert_plan(events, count=1, late=True)
         self.assert_last(events)
 
+    def test_empty_line(self):
+        events = self.parse_tap('1..1\n\nok 1')
+        self.assert_plan(events, count=1, late=False)
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_last(events)
+
     def test_unexpected(self):
         events = self.parse_tap('1..1\ninvalid\nok 1')
         self.assert_plan(events, count=1, late=False)
