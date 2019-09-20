@@ -299,6 +299,9 @@ class TAPParser:
                     yield self.Version(version=version)
                 continue
 
+            if len(line) == 0:
+                continue
+
             yield self.Error('unexpected input at line %d' % (lineno,))
 
         if state == self._YAML:
