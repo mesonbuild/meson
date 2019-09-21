@@ -204,8 +204,8 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
 
 
 class AppleClangCPPCompiler(ClangCPPCompiler):
-
-    pass
+    def language_stdlib_only_link_flags(self):
+        return ['-lc++']
 
 
 class EmscriptenCPPCompiler(EmscriptenMixin, LinkerEnvVarsMixin, ClangCPPCompiler):
