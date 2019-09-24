@@ -29,6 +29,7 @@ PACKAGE_INIT_BASE = '''
 ####### Expanded from \\@PACKAGE_INIT\\@ by configure_package_config_file() #######
 ####### Any changes to this file will be overwritten by the next CMake run ####
 ####### The input file was @inputFileName@ ########
+
 get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/@PACKAGE_RELATIVE_PATH@" ABSOLUTE)
 '''
 PACKAGE_INIT_EXT = '''
@@ -41,6 +42,16 @@ if(_realCurr STREQUAL _realOrig)
 endif()
 unset(_realOrig)
 unset(_realCurr)
+'''
+PACKAGE_INIT_SET_AND_CHECK = '''
+macro(set_and_check _var _file)
+  set(${_var} "${_file}")
+  if(NOT EXISTS "${_file}")
+    message(FATAL_ERROR "File or directory ${_file} referenced by variable ${_var} does not exist !")
+  endif()
+endmacro()
+
+####################################################################################
 '''
 
 class CMakeSubprojectHolder(InterpreterObject, ObjectHolder):
@@ -184,6 +195,7 @@ class CmakeModule(ExtensionModule):
         package_init = PACKAGE_INIT_BASE.replace('@PACKAGE_RELATIVE_PATH@', PACKAGE_RELATIVE_PATH)
         package_init = package_init.replace('@inputFileName@', infile)
         package_init += extra
+        package_init += PACKAGE_INIT_SET_AND_CHECK
 
         try:
             with open(infile, "r") as fin:
