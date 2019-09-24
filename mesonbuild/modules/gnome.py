@@ -18,6 +18,7 @@ functionality such as gobject-introspection, gresources and gtk-doc'''
 import os
 import copy
 import subprocess
+import functools
 
 from .. import build
 from .. import mlog
@@ -41,28 +42,20 @@ from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewK
 gresource_dep_needed_version = '>= 2.51.1'
 
 native_glib_version = None
-_gir_has_option = {}
 
+@functools.lru_cache(maxsize=None)
 def gir_has_option(intr_obj, option):
-    global _gir_has_option
-    if option in _gir_has_option:
-        return _gir_has_option[option]
-
-    _gir_has_option[option] = False
     try:
         g_ir_scanner = intr_obj.find_program_impl('g-ir-scanner')
         # Handle overriden g-ir-scanner
         if isinstance(getattr(g_ir_scanner, "held_object", g_ir_scanner), interpreter.OverrideProgram):
             assert option in ['--extra-library', '--sources-top-dirs']
-            _gir_has_option[option] = True
             return True
 
         opts = Popen_safe(g_ir_scanner.get_command() + ['--help'], stderr=subprocess.STDOUT)[1]
-        _gir_has_option[option] = option in opts
+        return option in opts
     except (MesonException, FileNotFoundError, subprocess.CalledProcessError):
-        pass
-
-    return _gir_has_option[option]
+        return False
 
 class GnomeModule(ExtensionModule):
     gir_dep = None
