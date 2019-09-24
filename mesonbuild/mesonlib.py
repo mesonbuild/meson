@@ -20,7 +20,7 @@ import time
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
 from enum import Enum
-from functools import lru_cache
+from functools import lru_cache, update_wrapper
 import typing
 import uuid
 
@@ -1495,6 +1495,19 @@ def get_wine_shortpath(winecmd, wine_paths):
                 len(wine_path)))
 
     return wine_path.strip(';')
+
+def run_once(func):
+    ret = []
+
+    def wrapper(*args, **kwargs):
+        if ret:
+            return ret[0]
+
+        val = func(*args, **kwargs)
+        ret.append(val)
+        return val
+
+    return update_wrapper(wrapper, func)
 
 
 class OptionProxy:

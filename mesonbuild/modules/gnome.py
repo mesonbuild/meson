@@ -42,8 +42,6 @@ gresource_dep_needed_version = '>= 2.51.1'
 
 native_glib_version = None
 girwarning_printed = False
-gdbuswarning_printed = False
-gresource_warning_printed = False
 _gir_has_option = {}
 
 def gir_has_option(intr_obj, option):
@@ -84,24 +82,20 @@ class GnomeModule(ExtensionModule):
                 native_glib_version = '2.54'
         return native_glib_version
 
+    @mesonlib.run_once
     def __print_gresources_warning(self, state):
-        global gresource_warning_printed
-        if not gresource_warning_printed:
-            if not mesonlib.version_compare(self._get_native_glib_version(state), gresource_dep_needed_version):
-                mlog.warning('GLib compiled dependencies do not work reliably with \n'
-                             'the current version of GLib. See the following upstream issue:',
-                             mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=774368'))
-            gresource_warning_printed = True
-        return []
+        if not mesonlib.version_compare(self._get_native_glib_version(state),
+                                        gresource_dep_needed_version):
+            mlog.warning('GLib compiled dependencies do not work reliably with \n'
+                         'the current version of GLib. See the following upstream issue:',
+                         mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=774368'))
 
     @staticmethod
+    @mesonlib.run_once
     def _print_gdbus_warning():
-        global gdbuswarning_printed
-        if not gdbuswarning_printed:
-            mlog.warning('Code generated with gdbus_codegen() requires the root directory be added to\n'
-                         '  include_directories of targets with GLib < 2.51.3:',
-                         mlog.bold('https://github.com/mesonbuild/meson/issues/1387'))
-            gdbuswarning_printed = True
+        mlog.warning('Code generated with gdbus_codegen() requires the root directory be added to\n'
+                     '  include_directories of targets with GLib < 2.51.3:',
+                     mlog.bold('https://github.com/mesonbuild/meson/issues/1387'))
 
     @FeatureNewKwargs('gnome.compile_resources', '0.37.0', ['gresource_bundle', 'export', 'install_header'])
     @permittedKwargs({'source_dir', 'c_name', 'dependencies', 'export', 'gresource_bundle', 'install_header',
