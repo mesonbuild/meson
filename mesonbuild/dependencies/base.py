@@ -105,7 +105,7 @@ class Dependency:
         return methods
 
     @classmethod
-    def  _process_is_system_kw(cls, kwargs):
+    def _process_is_system_kw(cls, kwargs):
         if 'is_system' not in kwargs:
             return False
         if not isinstance(kwargs['is_system'], bool):

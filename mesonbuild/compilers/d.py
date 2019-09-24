@@ -285,7 +285,14 @@ class DmdLikeCompilerMixin:
                 if arg.startswith('-isystem='):
                     dcargs.append('-I=' + arg[9:])
                 else:
-                    dcargs.append('-I')
+                    dcargs.append('-I' + arg[8:])
+                continue
+            elif arg.startswith('-idirafter'):
+                # same as -isystem, but appends the path instead
+                if arg.startswith('-idirafter='):
+                    dcargs.append('-I=' + arg[11:])
+                else:
+                    dcargs.append('-I' + arg[10:])
                 continue
             elif arg.startswith('-L/') or arg.startswith('-L./'):
                 # we need to handle cases where -L is set by e.g. a pkg-config
