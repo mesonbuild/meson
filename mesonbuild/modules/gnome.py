@@ -41,7 +41,6 @@ from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewK
 gresource_dep_needed_version = '>= 2.51.1'
 
 native_glib_version = None
-girwarning_printed = False
 _gir_has_option = {}
 
 def gir_has_option(intr_obj, option):
