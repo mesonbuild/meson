@@ -1150,7 +1150,7 @@ You probably should put it in link_with instead.''')
                 raise MesonException('File %s does not exist.' % f)
         self.pch[language] = pchlist
 
-    def add_include_dirs(self, args):
+    def add_include_dirs(self, args, set_is_system: typing.Optional[bool] = None):
         ids = []
         for a in args:
             # FIXME same hack, forcibly unpack from holder.
@@ -1159,6 +1159,8 @@ You probably should put it in link_with instead.''')
             if not isinstance(a, IncludeDirs):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
             ids.append(a)
+        if set_is_system is not None:
+            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), set_is_system, x.get_extra_build_dirs()) for x in ids]
         self.include_dirs += ids
 
     def add_compiler_args(self, language, args):

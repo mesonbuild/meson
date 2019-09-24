@@ -18,3 +18,10 @@ assert(dep2.is_system() == true, 'is_system must be true when set')
 
 dep2_sys = dep2.as_system(false)
 assert(dep2_sys.is_system() == false, 'as_system must set is_system correctly')
+
+sp = subproject('subDep')
+sp_dep = sp.get_variable('subDep_dep')
+assert(sp_dep.is_system() == false, 'default is false')
+
+sp_dep_sys = sp_dep.as_system(true)
+assert(sp_dep_sys.is_system() == true, 'changing is_system works')
