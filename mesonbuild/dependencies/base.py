@@ -104,6 +104,14 @@ class Dependency:
 
         return methods
 
+    @classmethod
+    def  _process_is_system_kw(cls, kwargs):
+        if 'is_system' not in kwargs:
+            return False
+        if not isinstance(kwargs['is_system'], bool):
+            raise DependencyException('The is_system kwarg must be a boolean type')
+        return kwargs['is_system']
+
     def __init__(self, type_name, kwargs):
         self.name = "null"
         self.version = None
@@ -117,6 +125,7 @@ class Dependency:
         self.raw_link_args = None
         self.sources = []
         self.methods = self._process_method_kw(kwargs)
+        self.is_system = self._process_is_system_kw(kwargs)
         self.ext_deps = []  # type: List[Dependency]
 
     def __repr__(self):
@@ -124,7 +133,21 @@ class Dependency:
         return s.format(self.__class__.__name__, self.name, self.is_found)
 
     def get_compile_args(self):
-        return self.compile_args
+        if not self.is_system:
+            return self.compile_args
+
+        system_args = []
+        for i in self.compile_args:
+            if i.startswith('-I') or i.startswith('/I'):
+                # -isystem and -idirafter, both mark directories as system
+                # directories. However, both affect the search oder, which
+                # can lead to nasty bugs with -isystem:
+                # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70129
+                system_args += ['-idirafter' + i[2:]]
+            else:
+                system_args += [i]
+
+        return system_args
 
     def get_link_args(self, raw=False):
         if raw and self.raw_link_args is not None:
@@ -151,6 +174,9 @@ class Dependency:
             return self.version
         else:
             return 'unknown'
+
+    def get_is_system(self) -> bool:
+        return self.is_system
 
     def get_exe_args(self, compiler):
         return []
