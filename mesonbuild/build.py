@@ -1029,12 +1029,12 @@ This will become a hard error in a future Meson release.''')
                     self.link(l)
                 for l in dep.whole_libraries:
                     self.link_whole(l)
-                if dep.compile_args or dep.link_args:
+                if dep.get_compile_args() or dep.get_link_args():
                     # Those parts that are external.
                     extpart = dependencies.InternalDependency('undefined',
                                                               [],
-                                                              dep.compile_args,
-                                                              dep.link_args,
+                                                              dep.get_compile_args(),
+                                                              dep.get_link_args(),
                                                               [], [], [], [])
                     self.external_deps.append(extpart)
                 # Deps of deps.
