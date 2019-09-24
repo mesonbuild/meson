@@ -722,7 +722,10 @@ class Environment:
             check_args = prefix + ['/logo'] + prefix + ['--version']
         p, o, _ = Popen_safe(compiler + check_args)
         if o.startswith('LLD'):
-            return ClangClDynamicLinker(for_machine, exelist=compiler, prefix=prefix, version=search_version(o))
+            if '(compatible with GNU linkers)' in o:
+                return LLVMDynamicLinker(compiler, for_machine, 'lld', prefix, version=search_version(o))
+            else:
+                return ClangClDynamicLinker(for_machine, exelist=compiler, prefix=prefix, version=search_version(o))
         elif o.startswith('Microsoft'):
             match = re.search(r'.*(X86|X64|ARM|ARM64).*', o)
             if match:
