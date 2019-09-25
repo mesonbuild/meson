@@ -2554,18 +2554,19 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.log()
             with mlog.nested():
                 mlog.log('Processing generated meson AST')
-                mlog.log()
 
                 # Debug print the generated meson file
-                mlog.debug('=== BEGIN meson.build ===')
                 from .ast import AstIndentationGenerator, AstPrinter
                 printer = AstPrinter()
                 ast.accept(AstIndentationGenerator())
                 ast.accept(printer)
                 printer.post_process()
-                mlog.debug(printer.result)
-                mlog.debug('=== END meson.build ===')
-                mlog.debug()
+                meson_filename = os.path.join(self.build.environment.get_build_dir(), subdir, 'meson.build')
+                with open(meson_filename, "w") as f:
+                    f.write(printer.result)
+
+                mlog.log('Build file:', meson_filename)
+                mlog.log()
 
             result = self._do_subproject_meson(dirname, subdir, default_options, required, kwargs, ast, cm_int.bs_files)
             result.cm_interpreter = cm_int
