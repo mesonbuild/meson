@@ -222,13 +222,28 @@ class ConfigureFileHolder(InterpreterObject, ObjectHolder):
 
 
 class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder):
-    def __init__(self):
+    def __init__(self, initial_values=None):
         MutableInterpreterObject.__init__(self)
         ObjectHolder.__init__(self, build.EnvironmentVariables())
         self.methods.update({'set': self.set_method,
                              'append': self.append_method,
                              'prepend': self.prepend_method,
                              })
+        if isinstance(initial_values, dict):
+            for k, v in initial_values.items():
+                self.set_method([k, v], {})
+        elif isinstance(initial_values, list):
+            for e in initial_values:
+                if '=' not in e:
+                    raise InterpreterException('Env var definition must be of type key=val.')
+                (k, val) = e.split('=', 1)
+                k = k.strip()
+                val = val.strip()
+                if ' ' in k:
+                    raise InterpreterException('Env var key must not have spaces in it.')
+                self.set_method([k, val], {})
+        elif initial_values:
+            raise AssertionError('Unsupported EnvironmentVariablesHolder initial_values')
 
     def __repr__(self):
         repr_str = "<{0}: {1}>"
@@ -3360,19 +3375,14 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         envlist = kwargs.get('env', EnvironmentVariablesHolder())
         if isinstance(envlist, EnvironmentVariablesHolder):
             env = envlist.held_object
+        elif isinstance(envlist, dict):
+            FeatureNew('environment dictionary', '0.52.0').use(self.subproject)
+            env = EnvironmentVariablesHolder(envlist)
+            env = env.held_object
         else:
             envlist = listify(envlist)
             # Convert from array to environment object
-            env = EnvironmentVariablesHolder()
-            for e in envlist:
-                if '=' not in e:
-                    raise InterpreterException('Env var definition must be of type key=val.')
-                (k, val) = e.split('=', 1)
-                k = k.strip()
-                val = val.strip()
-                if ' ' in k:
-                    raise InterpreterException('Env var key must not have spaces in it.')
-                env.set_method([k, val], {})
+            env = EnvironmentVariablesHolder(envlist)
             env = env.held_object
         return env
 
@@ -3936,9 +3946,18 @@ different subdirectory.
             argsdict[lang] = argsdict.get(lang, []) + args
 
     @noKwargs
-    @noPosargs
+    @noArgsFlattening
     def func_environment(self, node, args, kwargs):
-        return EnvironmentVariablesHolder()
+        if len(args) > 1:
+            raise InterpreterException('environment takes only one optional positional arguments')
+        elif len(args) == 1:
+            FeatureNew('environment positional arguments', '0.52.0').use(self.subproject)
+            initial_values = args[0]
+            if not isinstance(initial_values, dict) and not isinstance(initial_values, list):
+                raise InterpreterException('environment first argument must be a dictionary or a list')
+        else:
+            initial_values = {}
+        return EnvironmentVariablesHolder(initial_values)
 
     @stringArgs
     @noKwargs

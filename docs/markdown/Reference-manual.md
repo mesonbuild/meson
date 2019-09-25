@@ -104,7 +104,10 @@ Add a custom test setup that can be used to run the tests with a
 custom setup, for example under Valgrind. The keyword arguments are
 the following:
 
-- `env` an [environment object](#environment-object) to use a custom environment
+- `env` environment variables to set, such as `['NAME1=value1',
+  'NAME2=value2']`, or an [`environment()`
+  object](#environment-object) which allows more sophisticated
+  environment juggling. *Since 0.52.0* a dictionary is also accepted.
 - `exe_wrapper` a list containing the wrapper command or script followed by the arguments to it
 - `gdb` if `true`, the tests are also run under `gdb`
 - `timeout_multiplier` a number to multiply the test timeout with
@@ -491,11 +494,15 @@ Print the argument string and halts the build process.
 ### environment()
 
 ``` meson
-    environment_object environment()
+    environment_object environment(...)
 ```
 
 Returns an empty [environment variable
 object](#environment-object). Added in 0.35.0.
+
+Since *0.52.0* takes an optional dictionary as first argument. If
+provided, each key/value pair is added into the `environment_object`
+as if `set()` method was called for each of them.
 
 ### executable()
 
@@ -1256,7 +1263,10 @@ This function supports the following keyword arguments:
    be checked, and the configuration will fail if it is non-zero. The default is
    `false`.
    Since 0.47.0
- - `env` an [environment object](#environment-object) to use a custom environment
+ - `env` environment variables to set, such as `['NAME1=value1',
+   'NAME2=value2']`, or an [`environment()`
+   object](#environment-object) which allows more sophisticated
+   environment juggling. *Since 0.52.0* a dictionary is also accepted.
    Since 0.50.0
 
 See also [External commands](External-commands.md).
@@ -1489,7 +1499,7 @@ Keyword arguments are the following:
 - `env` environment variables to set, such as `['NAME1=value1',
   'NAME2=value2']`, or an [`environment()`
   object](#environment-object) which allows more sophisticated
-  environment juggling
+  environment juggling. *Since 0.52.0* a dictionary is also accepted.
 
 - `is_parallel` when false, specifies that no other test must be
   running at the same time as this test
