@@ -280,7 +280,7 @@ class CmakeModule(ExtensionModule):
         return res
 
     @FeatureNew('subproject', '0.51.0')
-    @permittedKwargs({'cmake_options'})
+    @permittedKwargs({'cmake_options', 'required'})
     @stringArgs
     def subproject(self, interpreter, state, args, kwargs):
         if len(args) != 1:
