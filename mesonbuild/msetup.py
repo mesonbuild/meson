@@ -161,6 +161,7 @@ class MesonApp:
     def _generate(self, env):
         mlog.debug('Build started at', datetime.datetime.now().isoformat())
         mlog.debug('Main binary:', sys.executable)
+        mlog.debug('Build Options:', coredata.get_cmd_line_options(self.build_dir, self.options))
         mlog.debug('Python system:', platform.system())
         mlog.log(mlog.bold('The Meson build system'))
         mlog.log('Version:', coredata.version)
