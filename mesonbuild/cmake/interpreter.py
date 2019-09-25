@@ -783,23 +783,23 @@ class CMakeInterpreter:
             }
 
             # Generate the function nodes
-            node_list = []
+            inc_node = assign(inc_var, function('include_directories', tgt.includes))
+            node_list = [inc_node]
             if tgt_func == 'header_only':
                 del dep_kwargs['link_with']
-                inc_node = assign(inc_var, function('include_directories', tgt.includes))
                 dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
-
-                node_list = [inc_node, dep_node]
+                node_list += [dep_node]
                 src_var = ''
                 tgt_var = ''
-
             else:
-                inc_node = assign(inc_var, function('include_directories', tgt.includes))
                 src_node = assign(src_var, function('files', sources))
                 tgt_node = assign(tgt_var, function(tgt_func, [base_name, [id_node(src_var)] + generated], tgt_kwargs))
-                dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
-
-                node_list = [inc_node, src_node, tgt_node, dep_node]
+                node_list += [src_node, tgt_node]
+                if tgt_func in ['static_library', 'shared_library']:
+                    dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
+                    node_list += [dep_node]
+                else:
+                    dep_var = ''
 
             # Add the nodes to the ast
             root_cb.lines += node_list
