@@ -453,41 +453,6 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
     def variable_method(self, args, kwargs):
         return self.held_object.get_variable(**kwargs)
 
-
-class InternalDependencyHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, dep, pv):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, dep, pv)
-        self.methods.update({'found': self.found_method,
-                             'get_variable': self.variable_method,
-                             'partial_dependency': self.partial_dependency_method,
-                             'version': self.version_method,
-                             })
-
-    @noPosargs
-    @permittedKwargs({})
-    def found_method(self, args, kwargs):
-        return True
-
-    @noPosargs
-    @permittedKwargs({})
-    def version_method(self, args, kwargs):
-        return self.held_object.get_version()
-
-    @FeatureNew('dep.partial_dependency', '0.46.0')
-    @noPosargs
-    @permittedKwargs(permitted_method_kwargs['partial_dependency'])
-    def partial_dependency_method(self, args, kwargs):
-        pdep = self.held_object.get_partial_dependency(**kwargs)
-        return DependencyHolder(pdep, self.subproject)
-
-    @FeatureNew('dep.get_variable', '0.51.0')
-    @noPosargs
-    @permittedKwargs({'cmake', 'pkgconfig', 'configtool', 'default_variable', 'pkgconfig_define'})
-    def variable_method(self, args, kwargs):
-        return self.held_object.get_variable(**kwargs)
-
-
 class ExternalProgramHolder(InterpreterObject, ObjectHolder):
     def __init__(self, ep):
         InterpreterObject.__init__(self)
@@ -2202,9 +2167,7 @@ class Interpreter(InterpreterBase):
             raise RuntimeError('Do not do this.')
         elif isinstance(item, build.Data):
             return DataHolder(item)
-        elif isinstance(item, dependencies.InternalDependency):
-            return InternalDependencyHolder(item, self.subproject)
-        elif isinstance(item, dependencies.ExternalDependency):
+        elif isinstance(item, dependencies.Dependency):
             return DependencyHolder(item, self.subproject)
         elif isinstance(item, dependencies.ExternalProgram):
             return ExternalProgramHolder(item)
