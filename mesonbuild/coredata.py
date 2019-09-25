@@ -31,6 +31,7 @@ from typing import (
 )
 import typing
 import enum
+import shlex
 
 if typing.TYPE_CHECKING:
     from . import dependencies
@@ -776,6 +777,9 @@ def get_cmd_line_file(build_dir):
 
 def read_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
+    if not os.path.isfile(filename):
+        return
+
     config = CmdLineFileParser()
     config.read(filename)
 
@@ -815,6 +819,16 @@ def update_cmd_line_file(build_dir, options):
     config['options'].update(options.cmd_line_options)
     with open(filename, 'w') as f:
         config.write(f)
+
+def get_cmd_line_options(build_dir, options):
+    copy = argparse.Namespace(**vars(options))
+    read_cmd_line_file(build_dir, copy)
+    cmdline = ['-D{}={}'.format(k, v) for k, v in copy.cmd_line_options.items()]
+    if options.cross_file:
+        cmdline += ['--cross-file {}'.format(f) for f in options.cross_file]
+    if options.native_file:
+        cmdline += ['--native-file {}'.format(f) for f in options.native_file]
+    return ' '.join([shlex.quote(x) for x in cmdline])
 
 def major_versions_differ(v1, v2):
     return v1.split('.')[0:2] != v2.split('.')[0:2]
