@@ -328,11 +328,14 @@ int dummy;
             self.write_rules(outfile)
             self.write_builds(outfile)
 
-            default = 'default all\n\n'
+
+            default = 'default fakeall\n\n'
             outfile.write(default)
         # Only overwrite the old build file after the new one has been
         # fully created.
         os.replace(tempfilename, outfilename)
+        import shutil
+        shutil.copy(outfilename, outfilename + '.hackbak')
         self.generate_compdb()
 
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html
@@ -2685,6 +2688,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
         # Alias that runs the target defined above
         self.create_target_alias('meson-uninstall')
+        cmd = self.environment.get_build_command() + ['--internal', 'scanhack']
+        elem = NinjaBuildElement(self.all_outputs, 'meson-fakeall', 'CUSTOM_COMMAND', 'PHONY')
+        elem.add_item('COMMAND', cmd)
+        elem.add_item('pool', 'console')
+        self.add_build(elem)
+        # Alias that runs the target defined above
+        self.create_target_alias('meson-fakeall')
 
     def generate_ending(self):
         targetlist = []
