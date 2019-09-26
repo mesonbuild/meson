@@ -2610,6 +2610,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if len(args) > 1:
             raise InterpreterException('configuration_data takes only one optional positional arguments')
         elif len(args) == 1:
+            FeatureNew('configuration_data dictionary', '0.49.0').use(self.subproject)
             initial_values = args[0]
             if not isinstance(initial_values, dict):
                 raise InterpreterException('configuration_data first argument must be a dictionary')
@@ -3668,6 +3669,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
             if isinstance(conf, dict):
+                FeatureNew('configure_file.configuration dictionary', '0.49.0').use(self.subproject)
                 cdata = ConfigurationDataHolder(self.subproject)
                 for k, v in conf.items():
                     cdata.set_method([k, v], {})
