@@ -15,8 +15,9 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
+from .common import CMakeException
 from .. import mlog, mesonlib
-from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice
+from ..mesonlib import Popen_safe, MachineChoice
 from ..environment import Environment
 
 from typing import List, Tuple, Optional, TYPE_CHECKING
@@ -29,83 +30,62 @@ import re, os, shutil, ctypes
 class CMakeExecutor:
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_cmakebin = PerMachine(None, None)
-    class_cmakevers = PerMachine(None, None)
+    class_cmakebin = None
+    class_cmakevers = None
     class_cmake_cache = {}
 
-    def __init__(self, environment: Environment, version: str, for_machine: MachineChoice, silent: bool = False):
-        self.min_version = version
+    def __init__(self, environment: Environment, wanted: str, required: bool = True):
         self.environment = environment
-        self.for_machine = for_machine
-        self.cmakebin, self.cmakevers = self.find_cmake_binary(self.environment, silent=silent)
+        self.cmakebin, self.cmakevers = self.find_cmake_binary(self.environment)
         if self.cmakebin is False:
+            if required:
+                mlog.log('Program', mlog.bold('cmake'), 'found:', mlog.red('NO'))
+                raise CMakeException('CMake not found')
             self.cmakebin = None
             return
 
-        if not version_compare(self.cmakevers, self.min_version):
-            mlog.warning(
-                'The version of CMake', mlog.bold(self.cmakebin.get_path()),
-                'is', mlog.bold(self.cmakevers), 'but version', mlog.bold(self.min_version),
-                'is required')
+        is_found, not_found, found = mesonlib.version_compare_many(self.cmakevers, wanted)
+        if not is_found:
+            if required:
+                mlog.log('Program', mlog.bold(self.cmakebin.get_name()), 'found:', mlog.red('NO'),
+                         'found {!r} but need:'.format(self.cmakevers),
+                         ', '.join(["'{}'".format(e) for e in not_found]))
+                raise CMakeException('CMake not found')
             self.cmakebin = None
             return
 
-    def find_cmake_binary(self, environment: Environment, silent: bool = False) -> Tuple['ExternalProgram', str]:
+    def find_cmake_binary(self, environment: Environment) -> Tuple['ExternalProgram', str]:
         from ..dependencies.base import ExternalProgram
-
-        # Create an iterator of options
-        def search():
-            # Lookup in cross or machine file.
-            potential_cmakepath = environment.binaries[self.for_machine].lookup_entry('cmake')
-            if potential_cmakepath is not None:
-                mlog.debug('CMake binary for %s specified from cross file, native file, or env var as %s.', self.for_machine, potential_cmakepath)
-                yield ExternalProgram.from_entry('cmake', potential_cmakepath)
-                # We never fallback if the user-specified option is no good, so
-                # stop returning options.
-                return
-            mlog.debug('CMake binary missing from cross or native file, or env var undefined.')
-            # Fallback on hard-coded defaults.
-            # TODO prefix this for the cross case instead of ignoring thing.
-            if environment.machines.matches_build_machine(self.for_machine):
-                for potential_cmakepath in environment.default_cmake:
-                    mlog.debug('Trying a default CMake fallback at', potential_cmakepath)
-                    yield ExternalProgram(potential_cmakepath, silent=True)
 
         # Only search for CMake the first time and store the result in the class
         # definition
-        if CMakeExecutor.class_cmakebin[self.for_machine] is False:
-            mlog.debug('CMake binary for %s is cached as not found' % self.for_machine)
-        elif CMakeExecutor.class_cmakebin[self.for_machine] is not None:
-            mlog.debug('CMake binary for %s is cached.' % self.for_machine)
+        if CMakeExecutor.class_cmakebin is False:
+            mlog.debug('CMake binary is cached as not found')
+        elif CMakeExecutor.class_cmakebin is not None:
+            mlog.debug('CMake binary is cached.')
         else:
-            assert CMakeExecutor.class_cmakebin[self.for_machine] is None
-            mlog.debug('CMake binary for %s is not cached' % self.for_machine)
-            for potential_cmakebin in search():
-                mlog.debug('Trying CMake binary {} for machine {} at {}'
-                           .format(potential_cmakebin.name, self.for_machine, potential_cmakebin.command))
+            bins = environment.binaries[MachineChoice.BUILD]
+            for potential_cmakepath in environment.default_cmake:
+                potential_cmakebin = ExternalProgram.from_bin_list(bins, potential_cmakepath)
+                if not potential_cmakebin.found():
+                    potential_cmakebin = ExternalProgram(potential_cmakepath, silent=True)
+                if not potential_cmakebin.found():
+                    continue
                 version_if_ok = self.check_cmake(potential_cmakebin)
                 if not version_if_ok:
                     continue
-                if not silent:
-                    mlog.log('Found CMake:', mlog.bold(potential_cmakebin.get_path()),
-                             '(%s)' % version_if_ok)
-                CMakeExecutor.class_cmakebin[self.for_machine] = potential_cmakebin
-                CMakeExecutor.class_cmakevers[self.for_machine] = version_if_ok
+                CMakeExecutor.class_cmakebin = potential_cmakebin
+                CMakeExecutor.class_cmakevers = version_if_ok
                 break
             else:
-                if not silent:
-                    mlog.log('Found CMake:', mlog.red('NO'))
                 # Set to False instead of None to signify that we've already
                 # searched for it and not found it
-                CMakeExecutor.class_cmakebin[self.for_machine] = False
-                CMakeExecutor.class_cmakevers[self.for_machine] = None
+                CMakeExecutor.class_cmakebin = False
+                CMakeExecutor.class_cmakevers = None
 
-        return CMakeExecutor.class_cmakebin[self.for_machine], CMakeExecutor.class_cmakevers[self.for_machine]
+        return CMakeExecutor.class_cmakebin, CMakeExecutor.class_cmakevers
 
     def check_cmake(self, cmakebin: 'ExternalProgram') -> Optional[str]:
-        if not cmakebin.found():
-            mlog.log('Did not find CMake {!r}'.format(cmakebin.name))
-            return None
         try:
             p, out = Popen_safe(cmakebin.get_command() + ['--version'])[0:2]
             if p.returncode != 0:
@@ -257,6 +237,3 @@ set(CMAKE_SIZEOF_VOID_P "{}")
 
     def get_command(self):
         return self.cmakebin.get_command()
-
-    def machine_choice(self) -> MachineChoice:
-        return self.for_machine

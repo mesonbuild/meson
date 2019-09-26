@@ -1089,13 +1089,14 @@ class CMakeDependency(ExternalDependency):
         # List of successfully found modules
         self.found_modules = []
 
-        self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, self.for_machine, silent=self.silent)
-        if not self.cmakebin.found():
-            self.cmakebin = None
-            msg = 'No CMake binary for machine %s not found. Giving up.' % self.for_machine
+        # FIXME: Finding cross dependencies is not supported yet
+        if self.for_machine != MachineChoice.BUILD:
             if self.required:
-                raise DependencyException(msg)
-            mlog.debug(msg)
+                raise self._gen_exception('Cross dependency is not supported')
+            return
+
+        self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, required=self.required)
+        if not self.cmakebin.found():
             return
 
         if CMakeDependency.class_cmakeinfo[self.for_machine] is None:

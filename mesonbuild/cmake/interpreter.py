@@ -495,17 +495,12 @@ class CMakeInterpreter:
         self.generated_targets = {}
 
     def configure(self, extra_cmake_options: List[str]) -> None:
-        for_machine = MachineChoice.HOST # TODO make parameter
-        # Find CMake
-        cmake_exe = CMakeExecutor(self.env, '>=3.7', for_machine)
-        if not cmake_exe.found():
-            raise CMakeException('Unable to find CMake')
-
+        cmake_exe = CMakeExecutor(self.env, '>=3.7')
         generator = backend_generator_map[self.backend_name]
         cmake_args = cmake_exe.get_command()
 
         # Map meson compiler to CMake variables
-        for lang, comp in self.env.coredata.compilers[for_machine].items():
+        for lang, comp in self.env.coredata.compilers[MachineChoice.HOST].items():
             if lang not in language_map:
                 continue
             cmake_lang = language_map[lang]

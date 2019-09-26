@@ -474,11 +474,7 @@ class CMakeClient:
     def startup(self) -> None:
         if self.proc is not None:
             raise CMakeException('The CMake server was already started')
-        for_machine = MachineChoice.HOST # TODO make parameter
-        cmake_exe = CMakeExecutor(self.env, '>=3.7', for_machine)
-        if not cmake_exe.found():
-            raise CMakeException('Unable to find CMake')
-
+        cmake_exe = CMakeExecutor(self.env, '>=3.7')
         mlog.debug('Starting CMake server with CMake', mlog.bold(' '.join(cmake_exe.get_command())), 'version', mlog.cyan(cmake_exe.version()))
         self.proc = Popen(cmake_exe.get_command() + ['-E', 'server', '--experimental', '--debug'], stdin=PIPE, stdout=PIPE)
 

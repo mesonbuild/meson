@@ -2561,6 +2561,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self.subprojects[dirname]
 
     def _do_subproject_cmake(self, dirname, subdir, subdir_abs, default_options, kwargs):
+        # FIXME: Cross compilation is not supported yet
+        if self.environment.is_cross_build():
+            raise InterpreterException('Cross compilation of CMake subproject is not supported')
         with mlog.nested():
             new_build = self.build.copy()
             prefix = self.coredata.builtins['prefix'].value
