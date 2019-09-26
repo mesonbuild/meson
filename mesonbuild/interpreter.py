@@ -267,7 +267,7 @@ class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder):
 
 
 class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
-    def __init__(self, pv):
+    def __init__(self, pv, initial_values=None):
         MutableInterpreterObject.__init__(self)
         self.used = False # These objects become immutable after use in configure_file.
         ObjectHolder.__init__(self, build.ConfigurationData(), pv)
@@ -279,6 +279,11 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
                              'get_unquoted': self.get_unquoted_method,
                              'merge_from': self.merge_from_method,
                              })
+        if isinstance(initial_values, dict):
+            for k, v in initial_values.items():
+                self.set_method([k, v], {})
+        elif initial_values:
+            raise AssertionError('Unsupported ConfigurationDataHolder initial_values')
 
     def is_used(self):
         return self.used
@@ -2616,10 +2621,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('configuration_data first argument must be a dictionary')
         else:
             initial_values = {}
-        cdata = ConfigurationDataHolder(self.subproject)
-        for k, v in initial_values.items():
-            cdata.set_method([k, v], {})
-        return cdata
+        return ConfigurationDataHolder(self.subproject, initial_values)
 
     def set_backend(self):
         # The backend is already set when parsing subprojects
@@ -3670,10 +3672,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             conf = kwargs['configuration']
             if isinstance(conf, dict):
                 FeatureNew('configure_file.configuration dictionary', '0.49.0').use(self.subproject)
-                cdata = ConfigurationDataHolder(self.subproject)
-                for k, v in conf.items():
-                    cdata.set_method([k, v], {})
-                conf = cdata
+                conf = ConfigurationDataHolder(self.subproject, conf)
             elif not isinstance(conf, ConfigurationDataHolder):
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
             mlog.log('Configuring', mlog.bold(output), 'using configuration')
