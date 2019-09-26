@@ -2447,7 +2447,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if len(args) != 1:
             raise InterpreterException('Subproject takes exactly one argument')
         dirname = args[0]
-        return self.do_subproject(dirname, 'meson', kwargs)
+        return self.do_subproject(dirname, 'auto', kwargs)
 
     def disabled_subproject(self, dirname):
         self.subprojects[dirname] = SubprojectHolder(None, self.subproject_dir, dirname)
@@ -2486,7 +2486,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
         r = wrap.Resolver(subproject_dir_abs, self.coredata.get_builtin_option('wrap_mode'))
         try:
-            resolved = r.resolve(dirname, method)
+            resolved, method = r.resolve(dirname, method)
         except wrap.WrapException as e:
             subprojdir = os.path.join(self.subproject_dir, r.directory)
             if isinstance(e, wrap.WrapNotFoundException):
@@ -2565,6 +2565,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             new_build = self.build.copy()
             prefix = self.coredata.builtins['prefix'].value
             cmake_options = mesonlib.stringlistify(kwargs.get('cmake_options', []))
+            cmake_options += ['-D{}={}'.format(k, v) for k, v in default_options.items()]
             cm_int = CMakeInterpreter(new_build, subdir, subdir_abs, prefix, new_build.environment, self.backend)
             cm_int.initialise(cmake_options)
             cm_int.analyse()
@@ -3196,7 +3197,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             'default_options': kwargs.get('default_options', []),
             'required': kwargs.get('required', True),
         }
-        self.do_subproject(dirname, 'meson', sp_kwargs)
+        self.do_subproject(dirname, 'auto', sp_kwargs)
         return self.get_subproject_dep(display_name, dirname, varname, kwargs)
 
     @FeatureNewKwargs('executable', '0.42.0', ['implib'])

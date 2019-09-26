@@ -79,6 +79,13 @@ It should be noted that not all projects are guaranteed to work. The
 safest approach would still be to create a `meson.build` for the
 subprojects in question.
 
+*Since 0.52.0* any subproject that has `CMakeLists.txt` file and not
+`meson.build` will transparently be configured using CMake. For example:
+```meson
+  sub_pro = subproject('libsimple_cmake')
+  dep = dependency('simple', fallback : ['libsimple_cmake', 'simplelib_dep'])
+```
+
 ### `subproject` object
 
 This object is returned by the `subproject` function described above

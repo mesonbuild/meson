@@ -429,7 +429,9 @@ arguments:
   that override those set in the subproject's `meson_options.txt`
   (like `default_options` in [`project()`](#project), they only have
   effect when Meson is run for the first time, and command line
-  arguments override any default options in build files)
+  arguments override any default options in build files). *Since 0.52.0* if the
+  subproject is configured using cmake, this array is converted to
+  `[-Dkey=value, ...]` and passed to cmake invokation command.
 - `fallback` specifies a subproject fallback to use in case the
   dependency is not found in the system. The value is an array
   `['subproj_name', 'subproj_dep']` where the first value is the name
@@ -438,7 +440,9 @@ arguments:
   value of [`declare_dependency`](#declare_dependency) or
   [`dependency()`](#dependency), etc. Note that this means the
   fallback dependency may be a not-found dependency, in which
-  case the value of the `required:` kwarg will be obeyed.
+  case the value of the `required:` kwarg will be obeyed. *Since 0.52.0* if the
+  subproject source has `CMakeLists.txt` file and not `meson.build`, it will be
+  configured using CMake.
 - `language` *(added 0.42.0)* defines what language-specific
   dependency to find if it's available for multiple languages.
 - `method` defines the way the dependency is detected, the default is
@@ -1471,7 +1475,9 @@ arguments:
    that override those set in the subproject's `meson_options.txt`
    (like `default_options` in `project`, they only have effect when
    Meson is run for the first time, and command line arguments override
-   any default options in build files)
+   any default options in build files). *Since 0.52.0* if the
+   subproject is configured using cmake, this array is converted to
+   `[-Dkey=value, ...]` and passed to cmake invokation command.
  - `version` keyword argument that works just like the one in
    `dependency`. It specifies what version the subproject should be,
    as an example `>=1.0.1`
@@ -1489,6 +1495,9 @@ inside a subproject, an easier way is to use the `fallback:` keyword
 argument to [`dependency()`](#dependency).
 
 [See additional documentation](Subprojects.md).
+
+*Since 0.52.0* if the subproject source has `CMakeLists.txt` file and not
+`meson.build`, it will be configured using CMake.
 
 ### test()
 
