@@ -1185,8 +1185,8 @@ The first argument to this function must be a string defining the name
 of this project. It is followed by programming languages that the
 project uses. Supported values for languages are `c`, `cpp` (for
 `C++`), `d`, `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`),
-`vala` and `rust`. In versions before `0.40.0` you must have at least one
-language listed.
+`vala` and `rust`. Since version `0.40.0` the list of languages
+is optional.
 
 The project name can be any string you want, it's not used for
 anything except descriptive purposes. However since it is written to
