@@ -587,53 +587,7 @@ class PkgConfigDependency(ExternalDependency):
         # stored in the pickled coredata and recovered.
         self.pkgbin = None
 
-        # Create an iterator of options
-        def search():
-            # Lookup in cross or machine file.
-            potential_pkgpath = environment.binaries[self.for_machine].lookup_entry('pkgconfig')
-            if potential_pkgpath is not None:
-                mlog.debug('Pkg-config binary for {} specified from cross file, native file, '
-                           'or env var as {}'.format(self.for_machine, potential_pkgpath))
-                yield ExternalProgram.from_entry('pkgconfig', potential_pkgpath)
-                # We never fallback if the user-specified option is no good, so
-                # stop returning options.
-                return
-            mlog.debug('Pkg-config binary missing from cross or native file, or env var undefined.')
-            # Fallback on hard-coded defaults.
-            # TODO prefix this for the cross case instead of ignoring thing.
-            if environment.machines.matches_build_machine(self.for_machine):
-                for potential_pkgpath in environment.default_pkgconfig:
-                    mlog.debug('Trying a default pkg-config fallback at', potential_pkgpath)
-                    yield ExternalProgram(potential_pkgpath, silent=True)
-
-        # Only search for pkg-config for each machine the first time and store
-        # the result in the class definition
-        if PkgConfigDependency.class_pkgbin[self.for_machine] is False:
-            mlog.debug('Pkg-config binary for %s is cached as not found.' % self.for_machine)
-        elif PkgConfigDependency.class_pkgbin[self.for_machine] is not None:
-            mlog.debug('Pkg-config binary for %s is cached.' % self.for_machine)
-        else:
-            assert PkgConfigDependency.class_pkgbin[self.for_machine] is None
-            mlog.debug('Pkg-config binary for %s is not cached.' % self.for_machine)
-            for potential_pkgbin in search():
-                mlog.debug('Trying pkg-config binary {} for machine {} at {}'
-                           .format(potential_pkgbin.name, self.for_machine, potential_pkgbin.command))
-                version_if_ok = self.check_pkgconfig(potential_pkgbin)
-                if not version_if_ok:
-                    continue
-                if not self.silent:
-                    mlog.log('Found pkg-config:', mlog.bold(potential_pkgbin.get_path()),
-                             '(%s)' % version_if_ok)
-                PkgConfigDependency.class_pkgbin[self.for_machine] = potential_pkgbin
-                break
-            else:
-                if not self.silent:
-                    mlog.log('Found Pkg-config:', mlog.red('NO'))
-                # Set to False instead of None to signify that we've already
-                # searched for it and not found it
-                PkgConfigDependency.class_pkgbin[self.for_machine] = False
-
-        self.pkgbin = PkgConfigDependency.class_pkgbin[self.for_machine]
+        self.pkgbin = PkgConfigDependency.get_pkgbin(environment, self.for_machine, self.silent)
         if self.pkgbin is False:
             self.pkgbin = None
             msg = 'Pkg-config binary for machine %s not found. Giving up.' % self.for_machine
@@ -669,6 +623,79 @@ class PkgConfigDependency(ExternalDependency):
         s = '<{0} {1}: {2} {3}>'
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
+
+    @staticmethod
+    def get_pkgbin(environment, for_machine, silent):
+        # Create an iterator of options
+        def search():
+            # Lookup in cross or machine file.
+            potential_pkgpath = environment.binaries[for_machine].lookup_entry('pkgconfig')
+            if potential_pkgpath is not None:
+                mlog.debug('Pkg-config binary for {} specified from cross file, native file, '
+                           'or env var as {}'.format(for_machine, potential_pkgpath))
+                yield ExternalProgram.from_entry('pkgconfig', potential_pkgpath)
+                # We never fallback if the user-specified option is no good, so
+                # stop returning options.
+                return
+            mlog.debug('Pkg-config binary missing from cross or native file, or env var undefined.')
+            # Fallback on hard-coded defaults.
+            # TODO prefix this for the cross case instead of ignoring thing.
+            if environment.machines.matches_build_machine(for_machine):
+                for potential_pkgpath in environment.default_pkgconfig:
+                    mlog.debug('Trying a default pkg-config fallback at', potential_pkgpath)
+                    yield ExternalProgram(potential_pkgpath, silent=True)
+
+        # Only search for pkg-config for each machine the first time and store
+        # the result in the class definition
+        if PkgConfigDependency.class_pkgbin[for_machine] is False:
+            mlog.debug('Pkg-config binary for %s is cached as not found.' % for_machine)
+        elif PkgConfigDependency.class_pkgbin[for_machine] is not None:
+            mlog.debug('Pkg-config binary for %s is cached.' % for_machine)
+        else:
+            assert PkgConfigDependency.class_pkgbin[for_machine] is None
+            mlog.debug('Pkg-config binary for %s is not cached.' % for_machine)
+            for potential_pkgbin in search():
+                mlog.debug('Trying pkg-config binary {} for machine {} at {}'
+                           .format(potential_pkgbin.name, for_machine, potential_pkgbin.command))
+                version_if_ok = PkgConfigDependency.check_pkgconfig(potential_pkgbin)
+                if not version_if_ok:
+                    continue
+                if not silent:
+                    mlog.log('Found pkg-config:', mlog.bold(potential_pkgbin.get_path()),
+                             '(%s)' % version_if_ok)
+                PkgConfigDependency.class_pkgbin[for_machine] = potential_pkgbin
+                break
+            else:
+                if not silent:
+                    mlog.log('Found Pkg-config:', mlog.red('NO'))
+                # Set to False instead of None to signify that we've already
+                # searched for it and not found it
+                PkgConfigDependency.class_pkgbin[for_machine] = False
+
+        return PkgConfigDependency.class_pkgbin[for_machine]
+
+    @staticmethod
+    def check_pkgconfig(pkgbin):
+        if not pkgbin.found():
+            mlog.log('Did not find pkg-config by name {!r}'.format(pkgbin.name))
+            return None
+        try:
+            p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
+            if p.returncode != 0:
+                mlog.warning('Found pkg-config {!r} but it failed when run'
+                             ''.format(' '.join(pkgbin.get_command())))
+                return None
+        except FileNotFoundError:
+            mlog.warning('We thought we found pkg-config {!r} but now it\'s not there. How odd!'
+                         ''.format(' '.join(pkgbin.get_command())))
+            return None
+        except PermissionError:
+            msg = 'Found pkg-config {!r} but didn\'t have permissions to run it.'.format(' '.join(pkgbin.get_command()))
+            if not mesonlib.is_windows():
+                msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
+            mlog.warning(msg)
+            return None
+        return out.strip()
 
     def _call_pkgbin_real(self, args, env):
         cmd = self.pkgbin.get_command() + args
@@ -964,28 +991,6 @@ class PkgConfigDependency(ExternalDependency):
     @staticmethod
     def get_methods():
         return [DependencyMethods.PKGCONFIG]
-
-    def check_pkgconfig(self, pkgbin):
-        if not pkgbin.found():
-            mlog.log('Did not find pkg-config by name {!r}'.format(pkgbin.name))
-            return None
-        try:
-            p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
-            if p.returncode != 0:
-                mlog.warning('Found pkg-config {!r} but it failed when run'
-                             ''.format(' '.join(pkgbin.get_command())))
-                return None
-        except FileNotFoundError:
-            mlog.warning('We thought we found pkg-config {!r} but now it\'s not there. How odd!'
-                         ''.format(' '.join(pkgbin.get_command())))
-            return None
-        except PermissionError:
-            msg = 'Found pkg-config {!r} but didn\'t have permissions to run it.'.format(' '.join(pkgbin.get_command()))
-            if not mesonlib.is_windows():
-                msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
-            mlog.warning(msg)
-            return None
-        return out.strip()
 
     def extract_field(self, la_file, fieldname):
         with open(la_file) as f:
