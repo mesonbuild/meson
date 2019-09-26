@@ -214,11 +214,20 @@ class CMakeTraceParser:
         elif 'IMPORTED' in args:
             args.remove('IMPORTED')
 
-            # No only look at the first two arguments (target_name and target_type) and ignore the rest
+            # Now, only look at the first two arguments (target_name and target_type) and ignore the rest
             if len(args) < 2:
                 return self._gen_exception('add_library', 'requires at least 2 arguments', tline)
 
             self.targets[args[0]] = CMakeTarget(args[0], args[1], {})
+        elif 'ALIAS' in args:
+            args.remove('ALIAS')
+
+            # Now, only look at the first two arguments (target_name and target_ref) and ignore the rest
+            if len(args) < 2:
+                return self._gen_exception('add_library', 'requires at least 2 arguments', tline)
+
+            # Simulate the ALIAS with INTERFACE_LINK_LIBRARIES
+            self.targets[args[0]] = CMakeTarget(args[0], 'ALIAS', {'INTERFACE_LINK_LIBRARIES': [args[1]]})
         else:
             return self._gen_exception('add_library', 'non imported / interface libraries are not supported', tline)
 
