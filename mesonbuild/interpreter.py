@@ -2490,9 +2490,9 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.log('Executing subproject', mlog.bold(dirname), 'method', mlog.bold(method), '\n')
         try:
             if method == 'meson':
-                return self._do_subproject_meson(dirname, subdir, default_options, required, kwargs)
+                return self._do_subproject_meson(dirname, subdir, default_options, kwargs)
             elif method == 'cmake':
-                return self._do_subproject_cmake(dirname, subdir, subdir_abs, default_options, required, kwargs)
+                return self._do_subproject_cmake(dirname, subdir, subdir_abs, default_options, kwargs)
             else:
                 raise InterpreterException('The method {} is invalid for the subproject {}'.format(method, dirname))
         # Invalid code is always an error
@@ -2508,7 +2508,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return self.disabled_subproject(dirname)
             raise e
 
-    def _do_subproject_meson(self, dirname, subdir, default_options, required, kwargs, ast=None, build_def_files=None):
+    def _do_subproject_meson(self, dirname, subdir, default_options, kwargs, ast=None, build_def_files=None):
         with mlog.nested():
             new_build = self.build.copy()
             subi = Interpreter(new_build, self.backend, dirname, subdir, self.subproject_dir,
@@ -2539,7 +2539,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.subprojects[dirname] = subi.project_version
         return self.subprojects[dirname]
 
-    def _do_subproject_cmake(self, dirname, subdir, subdir_abs, default_options, required, kwargs):
+    def _do_subproject_cmake(self, dirname, subdir, subdir_abs, default_options, kwargs):
         with mlog.nested():
             new_build = self.build.copy()
             prefix = self.coredata.builtins['prefix'].value
@@ -2568,7 +2568,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.log('Build file:', meson_filename)
                 mlog.log()
 
-            result = self._do_subproject_meson(dirname, subdir, default_options, required, kwargs, ast, cm_int.bs_files)
+            result = self._do_subproject_meson(dirname, subdir, default_options, kwargs, ast, cm_int.bs_files)
             result.cm_interpreter = cm_int
 
         mlog.log()
