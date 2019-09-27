@@ -1068,7 +1068,7 @@ You probably should put it in link_with instead.''')
 
     def link(self, target):
         for t in listify(target, unholder=True):
-            if isinstance(self, StaticLibrary) and t.is_internal():
+            if isinstance(self, StaticLibrary) and self.need_install and t.is_internal():
                 # When we're a static library and we link_with to an
                 # internal/convenience library, promote to link_whole.
                 return self.link_whole(t)
