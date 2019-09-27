@@ -41,3 +41,18 @@ libfunc9_linkwith = static_library('func9_linkwith', 'func9.c',
 libfunc9_linkwhole = static_library('func9_linkwhole', 'func9.c',
   link_whole : libfunc8,
   install : true)
+
+# Pattern found in mesa:
+# - libfunc11 uses func10()
+# - libfunc12 uses both func10() and func11()
+# When a shared library link_whole on libfunc12, we ensure we don't include
+# func10.c.o twice which would fail to link.
+libfunc10 = static_library('func10', 'func10.c',
+  install : false)
+libfunc11 = static_library('func11', 'func11.c',
+  link_with : libfunc10,
+  install : false)
+libfunc12 = static_library('func12', 'func12.c',
+  link_with : [libfunc10, libfunc11],
+  install : false)
+libfunc13 = shared_library('func13', link_whole : libfunc12)
