@@ -83,7 +83,7 @@ class ExecutableSerialisation:
 class TestSerialisation:
     def __init__(self, name: str, project: str, suite: str, fname: typing.List[str],
                  is_cross_built: bool, exe_wrapper: typing.Optional[build.Executable],
-                 is_parallel: bool, cmd_args: typing.List[str],
+                 needs_exe_wrapper: bool, is_parallel: bool, cmd_args: typing.List[str],
                  env: build.EnvironmentVariables, should_fail: bool,
                  timeout: typing.Optional[int], workdir: typing.Optional[str],
                  extra_paths: typing.List[str], protocol: str, priority: int):
@@ -104,6 +104,7 @@ class TestSerialisation:
         self.extra_paths = extra_paths
         self.protocol = protocol
         self.priority = priority
+        self.needs_exe_wrapper = needs_exe_wrapper
 
 def get_backend_from_name(backend, build):
     if backend == 'ninja':
@@ -748,7 +749,8 @@ class Backend:
                 else:
                     raise MesonException('Bad object in test command.')
             ts = TestSerialisation(t.get_name(), t.project_name, t.suite, cmd, is_cross,
-                                   exe_wrapper, t.is_parallel, cmd_args, t.env,
+                                   exe_wrapper, self.environment.need_exe_wrapper(),
+                                   t.is_parallel, cmd_args, t.env,
                                    t.should_fail, t.timeout, t.workdir,
                                    extra_paths, t.protocol, t.priority)
             arr.append(ts)
