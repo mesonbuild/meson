@@ -460,7 +460,7 @@ class SingleTestRunner:
         elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
             return ['mono'] + self.test.fname
         else:
-            if self.test.is_cross_built:
+            if self.test.is_cross_built and self.test.needs_exe_wrapper:
                 if self.test.exe_runner is None:
                     # Can not run test on cross compiled executable
                     # because there is no execute wrapper.
