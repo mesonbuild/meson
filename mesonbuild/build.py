@@ -1110,8 +1110,15 @@ You probably should put it in link_with instead.''')
             if isinstance(self, StaticLibrary):
                 # When we're a static library and we link_whole: to another static
                 # library, we need to add that target's objects to ourselves.
-                self.objects.append(t.extract_all_objects())
+                self.objects += t.extract_all_objects_recurse()
             self.link_whole_targets.append(t)
+
+    def extract_all_objects_recurse(self):
+        objs = [self.extract_all_objects()]
+        for t in self.link_targets:
+            if t.is_internal():
+                objs += t.extract_all_objects_recurse()
+        return objs
 
     def add_pch(self, language, pchlist):
         if not pchlist:

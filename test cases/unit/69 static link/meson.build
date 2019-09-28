@@ -26,3 +26,7 @@ test('test4-linkwhole', executable('test4-linkwhole', 'test4.c',
 func9_linkwith_dep = cc.find_library('func9_linkwith')
 test('test4-linkwith', executable('test4-linkwith', 'test4.c',
   dependencies : [func7_dep, func9_linkwith_dep]))
+
+# Verify that installed libfunc16.a is usable
+libfunc16_dep = cc.find_library('func16')
+test('test5', executable('test5', 'test5.c', dependencies: libfunc16_dep))

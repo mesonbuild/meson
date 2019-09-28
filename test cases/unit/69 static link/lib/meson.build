@@ -56,3 +56,13 @@ libfunc12 = static_library('func12', 'func12.c',
   link_with : [libfunc10, libfunc11],
   install : false)
 libfunc13 = shared_library('func13', link_whole : libfunc12)
+
+# libfunc16 should contain func14(), func15() and func16()
+libfunc14 = static_library('func14', 'func14.c',
+  install : false)
+libfunc15 = static_library('func15', 'func15.c',
+  link_with : libfunc14,
+  install : false)
+libfunc16 = static_library('func16', 'func16.c',
+  link_with : libfunc15,
+  install : true)
