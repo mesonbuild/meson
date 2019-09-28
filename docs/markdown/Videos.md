@@ -4,6 +4,9 @@ short-description: Videos about Meson
 
 # Videos
 
+ - [Behind the Scenes of a C++ Build
+   System](https://www.youtube.com/watch?v=34KzT2yvQuM) CppCon 2019
+
  - [Compiling Multi-Million Line C++ Code Bases Effortlessly with the
    Meson Build system](https://www.youtube.com/watch?v=SCZLnopmYBM),
    CppCon 2018
