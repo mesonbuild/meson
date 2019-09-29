@@ -1024,7 +1024,7 @@ This will become a hard error in a future Meson release.''')
             if isinstance(dep, dependencies.InternalDependency):
                 # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
-                self.add_include_dirs(dep.include_directories)
+                self.add_include_dirs(dep.include_directories, dep.get_include_type())
                 for l in dep.libraries:
                     self.link(l)
                 for l in dep.whole_libraries:
@@ -1150,7 +1150,7 @@ You probably should put it in link_with instead.''')
                 raise MesonException('File %s does not exist.' % f)
         self.pch[language] = pchlist
 
-    def add_include_dirs(self, args, set_is_system: typing.Optional[bool] = None):
+    def add_include_dirs(self, args, set_is_system: typing.Optional[str] = None):
         ids = []
         for a in args:
             # FIXME same hack, forcibly unpack from holder.
@@ -1159,8 +1159,11 @@ You probably should put it in link_with instead.''')
             if not isinstance(a, IncludeDirs):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
             ids.append(a)
-        if set_is_system is not None:
-            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), set_is_system, x.get_extra_build_dirs()) for x in ids]
+        if set_is_system is None:
+            set_is_system = 'preserve'
+        if set_is_system != 'preserve':
+            is_system = set_is_system == 'system'
+            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
         self.include_dirs += ids
 
     def add_compiler_args(self, language, args):

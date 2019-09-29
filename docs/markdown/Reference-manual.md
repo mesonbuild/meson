@@ -461,10 +461,12 @@ arguments:
   You can also specify multiple restrictions by passing a list to this
   keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
   These requirements are never met if the version is unknown.
-- `is_system` *(added 0.52.0)* is a boolean flag, marking the dependency
-  as a system dependency. System dependencies may be handled differently
-  on some platforms, for instance using `-isystem` instead of `-I`, where
-  possible. The default value is `false`.
+- `include_type` *(added 0.52.0)* is an enum flag, marking how the dependency
+  flags should be converted. Supported values are `'preserve'`, `'system'` and
+  `'non-system'`. System dependencies may be handled differently on some
+   platforms, for instance, using `-isystem` instead of `-I`, where possible.
+   If `include_type` is set to `'preserve'`, no additional conversion will be
+   performed. The default value is `'preserve'`.
 - other
 [library-specific](Dependencies.md#dependencies-with-custom-lookup-functionality)
 keywords may also be accepted (e.g. `modules` specifies submodules to use for
@@ -2228,12 +2230,11 @@ an external dependency with the following methods:
    `unknown` if the dependency provider doesn't support determining the
    version.
 
- - `is_system()` returns whether the dependency object was marked as a
-   system dependency
+ - `include_type()` returns whether the value set by the `include_type` kwarg
 
  - `as_system(value)` returns a copy of the dependency object, which has changed
-   the value of `is_system` to `value`. The `value` argument is optional and
-   defaults to `true`.
+   the value of `include_type` to `value`. The `value` argument is optional and
+   defaults to `'preserve'`.
 
  - `partial_dependency(compile_args : false, link_args : false, links
    : false, includes : false, source : false)` *(Added 0.46.0)* returns

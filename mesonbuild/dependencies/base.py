@@ -105,12 +105,14 @@ class Dependency:
         return methods
 
     @classmethod
-    def _process_is_system_kw(cls, kwargs):
-        if 'is_system' not in kwargs:
-            return False
-        if not isinstance(kwargs['is_system'], bool):
-            raise DependencyException('The is_system kwarg must be a boolean type')
-        return kwargs['is_system']
+    def _process_include_type_kw(cls, kwargs) -> str:
+        if 'include_type' not in kwargs:
+            return 'preserve'
+        if not isinstance(kwargs['include_type'], str):
+            raise DependencyException('The include_type kwarg must be a string type')
+        if kwargs['include_type'] not in ['preserve', 'system', 'non-system']:
+            raise DependencyException("include_type may only be one of ['preserve', 'system', 'non-system']")
+        return kwargs['include_type']
 
     def __init__(self, type_name, kwargs):
         self.name = "null"
@@ -125,7 +127,7 @@ class Dependency:
         self.raw_link_args = None
         self.sources = []
         self.methods = self._process_method_kw(kwargs)
-        self.is_system = self._process_is_system_kw(kwargs)
+        self.include_type = self._process_include_type_kw(kwargs)
         self.ext_deps = []  # type: List[Dependency]
 
     def __repr__(self):
@@ -133,17 +135,23 @@ class Dependency:
         return s.format(self.__class__.__name__, self.name, self.is_found)
 
     def get_compile_args(self):
-        if not self.is_system:
-            return self.compile_args
-
-        system_args = []
-        for i in self.compile_args:
-            if i.startswith('-I') or i.startswith('/I'):
-                system_args += ['-isystem' + i[2:]]
-            else:
-                system_args += [i]
-
-        return system_args
+        if self.include_type == 'system':
+            converted = []
+            for i in self.compile_args:
+                if i.startswith('-I') or i.startswith('/I'):
+                    converted += ['-isystem' + i[2:]]
+                else:
+                    converted += [i]
+            return converted
+        if self.include_type == 'non-system':
+            converted = []
+            for i in self.compile_args:
+                if i.startswith('-isystem'):
+                    converted += ['-I' + i[8:]]
+                else:
+                    converted += [i]
+            return converted
+        return self.compile_args
 
     def get_link_args(self, raw=False):
         if raw and self.raw_link_args is not None:
@@ -171,8 +179,8 @@ class Dependency:
         else:
             return 'unknown'
 
-    def get_is_system(self) -> bool:
-        return self.is_system
+    def get_include_type(self) -> str:
+        return self.include_type
 
     def get_exe_args(self, compiler):
         return []
@@ -222,9 +230,9 @@ class Dependency:
             return default_value
         raise DependencyException('No default provided for dependency {!r}, which is not pkg-config, cmake, or config-tool based.'.format(self))
 
-    def generate_system_dependency(self, is_system: bool) -> typing.Type['Dependency']:
+    def generate_system_dependency(self, include_type: str) -> typing.Type['Dependency']:
         new_dep = copy.deepcopy(self)
-        new_dep.is_system = is_system
+        new_dep.include_type = self._process_include_type_kw({'include_type': include_type})
         return new_dep
 
 class InternalDependency(Dependency):
