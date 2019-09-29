@@ -420,7 +420,7 @@ class CompilerArgs(list):
     # Arg prefixes that override by prepending instead of appending
     prepend_prefixes = ('-I', '-L')
     # Arg prefixes and args that must be de-duped by returning 2
-    dedup2_prefixes = ('-I', '-L', '-D', '-U')
+    dedup2_prefixes = ('-I', '-isystem', '-L', '-D', '-U')
     dedup2_suffixes = ()
     dedup2_args = ()
     # Arg prefixes and args that must be de-duped by returning 1
@@ -548,6 +548,22 @@ class CompilerArgs(list):
                 # Last occurrence of a library
                 new.insert(group_end + 1, '-Wl,--end-group')
                 new.insert(group_start, '-Wl,--start-group')
+        # Remove system/default include paths added with -isystem
+        if hasattr(self.compiler, 'get_default_include_dirs'):
+            default_dirs = self.compiler.get_default_include_dirs()
+            bad_idx_list = []
+            for i, each in enumerate(new):
+                # Remove the -isystem and the path if the path is a dafault path
+                if (each == '-isystem' and
+                        i < (len(new) - 1) and
+                        new[i + 1] in default_dirs):
+                    bad_idx_list += [i, i + 1]
+                elif each.startswith('-isystem=') and each[9:] in default_dirs:
+                    bad_idx_list += [i]
+                elif each.startswith('-isystem') and each[8:] in default_dirs:
+                    bad_idx_list += [i]
+            for i in reversed(bad_idx_list):
+                new.pop(i)
         return self.compiler.unix_args_to_native(new)
 
     def append_direct(self, arg):

@@ -139,11 +139,7 @@ class Dependency:
         system_args = []
         for i in self.compile_args:
             if i.startswith('-I') or i.startswith('/I'):
-                # -isystem and -idirafter, both mark directories as system
-                # directories. However, both affect the search oder, which
-                # can lead to nasty bugs with -isystem:
-                # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70129
-                system_args += ['-idirafter' + i[2:]]
+                system_args += ['-isystem' + i[2:]]
             else:
                 system_args += [i]
 
