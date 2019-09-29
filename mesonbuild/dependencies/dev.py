@@ -22,6 +22,7 @@ import re
 
 from .. import mesonlib, mlog
 from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
+from ..environment import get_llvm_tool_names
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
     strip_system_libdirs, ConfigToolDependency, CMakeDependency, HasNativeKwarg
@@ -208,25 +209,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         # before `super().__init__` is called.
         HasNativeKwarg.__init__(self, kwargs)
 
-        # Ordered list of llvm-config binaries to try. Start with base, then try
-        # newest back to oldest (3.5 is arbitrary), and finally the devel version.
-        # Please note that llvm-config-6.0 is a development snapshot and it should
-        # not be moved to the beginning of the list.
-        self.tools = [
-            'llvm-config', # base
-            'llvm-config-8',   'llvm-config80',
-            'llvm-config-7',   'llvm-config70',
-            'llvm-config-6.0', 'llvm-config60',
-            'llvm-config-5.0', 'llvm-config50',
-            'llvm-config-4.0', 'llvm-config40',
-            'llvm-config-3.9', 'llvm-config39',
-            'llvm-config-3.8', 'llvm-config38',
-            'llvm-config-3.7', 'llvm-config37',
-            'llvm-config-3.6', 'llvm-config36',
-            'llvm-config-3.5', 'llvm-config35',
-            'llvm-config-9',     # Debian development snapshot
-            'llvm-config-devel', # FreeBSD development snapshot
-        ]
+        self.tools = get_llvm_tool_names('llvm-config')
 
         # Fedora starting with Fedora 30 adds a suffix of the number
         # of bits in the isa that llvm targets, for example, on x86_64
