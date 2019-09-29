@@ -3659,6 +3659,19 @@ recommended as it is not supported on some platforms''')
             if os.path.exists(testheader):
                 os.unlink(testheader)
 
+    @skipIfNoExecutable('clang-tidy')
+    def test_clang_tidy(self):
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Clang-tidy is for now only supported on Ninja, not {}'.format(self.backend.name))
+        if shutil.which('c++') is None:
+            raise unittest.SkipTest('Clang-tidy breaks when ccache is used and "c++" not in path.')
+        if is_osx():
+            raise unittest.SkipTest('Apple ships a broken clang-tidy that chokes on -pipe.')
+        testdir = os.path.join(self.unit_test_dir, '70 clang-tidy')
+        self.init(testdir, override_envvars={'CXX': 'c++'})
+        out = self.run_target('clang-tidy')
+        self.assertIn('cttest.cpp:4:20', out)
+
     def test_introspect_buildoptions_without_configured_build(self):
         testdir = os.path.join(self.unit_test_dir, '59 introspect buildoptions')
         testfile = os.path.join(testdir, 'meson.build')

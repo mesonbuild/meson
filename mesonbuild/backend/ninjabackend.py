@@ -2657,7 +2657,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.create_target_alias('meson-scan-build')
 
     def generate_clangtool(self, name):
-        import shutil
         target_name = 'clang-' + name
         if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-' + name)) and \
                 not os.path.exists(os.path.join(self.environment.source_dir, '_clang-' + name)):
@@ -2677,10 +2676,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return
         self.generate_clangtool('format')
 
+    def generate_clangtidy(self):
+        import shutil
+        if not shutil.which('clang-tidy'):
+            return
+        self.generate_clangtool('tidy')
+
     # For things like scan-build and other helper tools we might have.
     def generate_utils(self):
         self.generate_scanbuild()
         self.generate_clangformat()
+        self.generate_clangtidy()
         cmd = self.environment.get_build_command() + ['--internal', 'uninstall']
         elem = NinjaBuildElement(self.all_outputs, 'meson-uninstall', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
