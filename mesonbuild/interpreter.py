@@ -36,7 +36,7 @@ from .cmake import CMakeInterpreter
 
 from pathlib import Path, PurePath
 import os, shutil, uuid
-import re, shlex, copy
+import re, shlex
 import subprocess
 from collections import namedtuple
 from itertools import chain
@@ -492,8 +492,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
             if not isinstance(args[0], bool):
                 raise InterpreterException('as_system takes only a boolean value')
             new_is_system = args[0]
-        new_dep = copy.deepcopy(self.held_object)
-        new_dep.is_system = new_is_system
+        new_dep = self.held_object.generate_system_dependency(new_is_system)
         return DependencyHolder(new_dep, self.subproject)
 
 class ExternalProgramHolder(InterpreterObject, ObjectHolder):

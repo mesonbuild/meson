@@ -222,6 +222,10 @@ class Dependency:
             return default_value
         raise DependencyException('No default provided for dependency {!r}, which is not pkg-config, cmake, or config-tool based.'.format(self))
 
+    def generate_system_dependency(self, is_system: bool) -> typing.Type['Dependency']:
+        new_dep = copy.deepcopy(self)
+        new_dep.is_system = is_system
+        return new_dep
 
 class InternalDependency(Dependency):
     def __init__(self, version, incdirs, compile_args, link_args, libraries, whole_libraries, sources, ext_deps):
