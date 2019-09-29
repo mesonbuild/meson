@@ -2656,22 +2656,26 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Alias that runs the target defined above
         self.create_target_alias('meson-scan-build')
 
-    def generate_clangformat(self):
-        target_name = 'clang-format'
-        if not environment.detect_clangformat():
+    def generate_clangtool(self, name):
+        import shutil
+        target_name = 'clang-' + name
+        if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-' + name)) and \
+                not os.path.exists(os.path.join(self.environment.source_dir, '_clang-' + name)):
             return
-        if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-format')) and \
-                not os.path.exists(os.path.join(self.environment.source_dir, '_clang-format')):
-            return
-        if 'target_name' in self.all_outputs:
+        if target_name in self.all_outputs:
             return
         cmd = self.environment.get_build_command() + \
-            ['--internal', 'clangformat', self.environment.source_dir, self.environment.build_dir]
+            ['--internal', 'clang' + name, self.environment.source_dir, self.environment.build_dir]
         elem = NinjaBuildElement(self.all_outputs, 'meson-' + target_name, 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
         self.add_build(elem)
         self.create_target_alias('meson-' + target_name)
+
+    def generate_clangformat(self):
+        if not environment.detect_clangformat():
+            return
+        self.generate_clangtool('format')
 
     # For things like scan-build and other helper tools we might have.
     def generate_utils(self):
