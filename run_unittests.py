@@ -5642,19 +5642,22 @@ c = ['{0}']
 
         # Build some libraries and install them
         testdir = os.path.join(self.unit_test_dir, '69 static link/lib')
-        libdir = os.path.join(self.installdir, self.prefix[1:], self.libdir)
+        libdir = os.path.join(self.installdir, self.libdir)
+        oldprefix = self.prefix
+        self.prefix = self.installdir
         self.init(testdir)
-        self.install()
+        self.install(use_destdir=False)
 
         # Test that installed libraries works
         self.new_builddir()
+        self.prefix = oldprefix
+        meson_args = ['-Dc_link_args=-L{}'.format(libdir),
+                      '--fatal-meson-warnings']
         testdir = os.path.join(self.unit_test_dir, '69 static link')
         env = {'PKG_CONFIG_LIBDIR': os.path.join(libdir, 'pkgconfig')}
-        run_env = {'LD_LIBRARY_PATH': libdir}
-        self.init(testdir, extra_args=['-Dc_link_args="-L{}"'.format(libdir)],
-                  override_envvars=env)
+        self.init(testdir, extra_args=meson_args, override_envvars=env)
         self.build()
-        self.run_tests(override_envvars=run_env)
+        self.run_tests()
 
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
