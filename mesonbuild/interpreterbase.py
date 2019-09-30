@@ -383,7 +383,7 @@ class InterpreterBase:
         try:
             self.ast = mparser.Parser(code, self.subdir).parse()
         except mesonlib.MesonException as me:
-            me.file = environment.build_filename
+            me.file = mesonfile
             raise me
 
     def join_path_strings(self, args):
