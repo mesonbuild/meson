@@ -718,7 +718,13 @@ class CoreData:
         if env.first_invocation:
             p_env = os.environ.get('PKG_CONFIG_PATH')
             if p_env:
-                options['pkg_config_path'] = p_env.split(':')
+                # PKG_CONFIG_PATH may contain duplicates, which must be
+                # removed, else a duplicates-in-array-option warning arises.
+                pkg_config_paths = []
+                for k in p_env.split(':'):
+                    if k not in pkg_config_paths:
+                        pkg_config_paths.append(k)
+                options['pkg_config_path'] = pkg_config_paths
 
         for k, v in env.cmd_line_options.items():
             if subproject:
