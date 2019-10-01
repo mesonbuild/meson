@@ -254,7 +254,7 @@ class CMakeTraceParser:
         def handle_command(key: str, target: CMakeGeneratorTarget) -> None:
             if key == 'ARGS':
                 return
-            target.command[-1] += [key]
+            target.command[-1] += key.split(';')
 
         def handle_depends(key: str, target: CMakeGeneratorTarget) -> None:
             target.depends += [key]
