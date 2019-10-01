@@ -810,6 +810,11 @@ class Backend:
                     cmd_args.append(a)
                 elif isinstance(a, str):
                     cmd_args.append(a)
+                elif isinstance(a, build.Executable):
+                    p = self.construct_target_rel_path(a, t.workdir)
+                    if p == a.get_filename():
+                        p = './' + p
+                    cmd_args.append(p)
                 elif isinstance(a, build.Target):
                     cmd_args.append(self.construct_target_rel_path(a, t.workdir))
                 else:

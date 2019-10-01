@@ -7560,19 +7560,28 @@ class CrossFileTests(BasePlatformTests):
             c = '/usr/bin/{}'
             ar = '/usr/bin/ar'
             strip = '/usr/bin/ar'
+            {}
 
             [properties]
             needs_exe_wrapper = {}
-            {}
 
             [host_machine]
             system = 'linux'
             cpu_family = 'x86'
             cpu = 'i686'
             endian = 'little'
-            """.format(cc, needs_exe_wrapper,
-                       'exe_wrapper = {}'.format(str(exe_wrapper))
-                       if exe_wrapper is not None else ''))
+            """.format(cc,
+                       'exe_wrapper = {}'.format(str(exe_wrapper)) if exe_wrapper is not None else '',
+                       needs_exe_wrapper))
+
+    def _stub_exe_wrapper(self) -> str:
+        return textwrap.dedent('''\
+            #!/usr/bin/env python3
+            import subprocess
+            import sys
+
+            sys.exit(subprocess.run(sys.argv[1:]).returncode)
+            ''')
 
     def test_needs_exe_wrapper_true(self):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
@@ -7599,13 +7608,7 @@ class CrossFileTests(BasePlatformTests):
         with tempfile.TemporaryDirectory() as d:
             s = Path(d) / 'wrapper.py'
             with s.open('wt') as f:
-                f.write(textwrap.dedent('''
-                    #!/usr/bin/env python3
-                    import subprocess
-                    import sys
-
-                    return subprocess.run(sys.argv[1:]).returnncode
-                    '''))
+                f.write(self._stub_exe_wrapper())
             p = Path(d) / 'crossfile'
             with p.open('wt') as f:
                 f.write(self._cross_file_generator(
