@@ -1402,38 +1402,38 @@ class CMakeDependency(ExternalDependency):
                 otherDeps = []
                 mlog.debug(tgt)
 
-                if 'INTERFACE_INCLUDE_DIRECTORIES' in tgt.properies:
-                    incDirs += [x for x in tgt.properies['INTERFACE_INCLUDE_DIRECTORIES'] if x]
+                if 'INTERFACE_INCLUDE_DIRECTORIES' in tgt.properties:
+                    incDirs += [x for x in tgt.properties['INTERFACE_INCLUDE_DIRECTORIES'] if x]
 
-                if 'INTERFACE_COMPILE_DEFINITIONS' in tgt.properies:
-                    compileDefinitions += ['-D' + re.sub('^-D', '', x) for x in tgt.properies['INTERFACE_COMPILE_DEFINITIONS'] if x]
+                if 'INTERFACE_COMPILE_DEFINITIONS' in tgt.properties:
+                    compileDefinitions += ['-D' + re.sub('^-D', '', x) for x in tgt.properties['INTERFACE_COMPILE_DEFINITIONS'] if x]
 
-                if 'INTERFACE_COMPILE_OPTIONS' in tgt.properies:
-                    compileOptions += [x for x in tgt.properies['INTERFACE_COMPILE_OPTIONS'] if x]
+                if 'INTERFACE_COMPILE_OPTIONS' in tgt.properties:
+                    compileOptions += [x for x in tgt.properties['INTERFACE_COMPILE_OPTIONS'] if x]
 
-                if 'IMPORTED_CONFIGURATIONS' in tgt.properies:
-                    cfgs = [x for x in tgt.properies['IMPORTED_CONFIGURATIONS'] if x]
+                if 'IMPORTED_CONFIGURATIONS' in tgt.properties:
+                    cfgs = [x for x in tgt.properties['IMPORTED_CONFIGURATIONS'] if x]
                     cfg = cfgs[0]
 
                 if 'RELEASE' in cfgs:
                     cfg = 'RELEASE'
 
-                if 'IMPORTED_IMPLIB_{}'.format(cfg) in tgt.properies:
-                    libraries += [x for x in tgt.properies['IMPORTED_IMPLIB_{}'.format(cfg)] if x]
-                elif 'IMPORTED_IMPLIB' in tgt.properies:
-                    libraries += [x for x in tgt.properies['IMPORTED_IMPLIB'] if x]
-                elif 'IMPORTED_LOCATION_{}'.format(cfg) in tgt.properies:
-                    libraries += [x for x in tgt.properies['IMPORTED_LOCATION_{}'.format(cfg)] if x]
-                elif 'IMPORTED_LOCATION' in tgt.properies:
-                    libraries += [x for x in tgt.properies['IMPORTED_LOCATION'] if x]
+                if 'IMPORTED_IMPLIB_{}'.format(cfg) in tgt.properties:
+                    libraries += [x for x in tgt.properties['IMPORTED_IMPLIB_{}'.format(cfg)] if x]
+                elif 'IMPORTED_IMPLIB' in tgt.properties:
+                    libraries += [x for x in tgt.properties['IMPORTED_IMPLIB'] if x]
+                elif 'IMPORTED_LOCATION_{}'.format(cfg) in tgt.properties:
+                    libraries += [x for x in tgt.properties['IMPORTED_LOCATION_{}'.format(cfg)] if x]
+                elif 'IMPORTED_LOCATION' in tgt.properties:
+                    libraries += [x for x in tgt.properties['IMPORTED_LOCATION'] if x]
 
-                if 'INTERFACE_LINK_LIBRARIES' in tgt.properies:
-                    otherDeps += [x for x in tgt.properies['INTERFACE_LINK_LIBRARIES'] if x]
+                if 'INTERFACE_LINK_LIBRARIES' in tgt.properties:
+                    otherDeps += [x for x in tgt.properties['INTERFACE_LINK_LIBRARIES'] if x]
 
-                if 'IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg) in tgt.properies:
-                    otherDeps += [x for x in tgt.properies['IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg)] if x]
-                elif 'IMPORTED_LINK_DEPENDENT_LIBRARIES' in tgt.properies:
-                    otherDeps += [x for x in tgt.properies['IMPORTED_LINK_DEPENDENT_LIBRARIES'] if x]
+                if 'IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg) in tgt.properties:
+                    otherDeps += [x for x in tgt.properties['IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg)] if x]
+                elif 'IMPORTED_LINK_DEPENDENT_LIBRARIES' in tgt.properties:
+                    otherDeps += [x for x in tgt.properties['IMPORTED_LINK_DEPENDENT_LIBRARIES'] if x]
 
                 for j in otherDeps:
                     if j in self.traceparser.targets:
