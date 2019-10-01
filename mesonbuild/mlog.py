@@ -230,7 +230,7 @@ def get_relative_path(target: Path, current: Path) -> Path:
     # current is below target (typically build dir in source dir)
     try:
         path = current.relative_to(target.parent)
-        return Path(os.path.join(*['..' for x in path.parts])) / target.name
+        return Path(*['..' for x in path.parts]) / target.name
     except ValueError:
         pass
 
@@ -239,7 +239,7 @@ def get_relative_path(target: Path, current: Path) -> Path:
     for part in current.parents:
         try:
             path = target.relative_to(part)
-            return Path(os.path.join(*acc), path)
+            return Path(*acc, path)
         except ValueError:
             pass
         acc += ['..']
