@@ -2053,6 +2053,9 @@ class ExtraFrameworkDependency(ExternalDependency):
             if each.name.lower() == 'current':
                 continue
             versions.append(Version(each.name))
+        if len(versions) == 0:
+            # most system frameworks do not have a 'Versions' directory
+            return 'Headers'
         return 'Versions/{}/Headers'.format(sorted(versions)[-1]._s)
 
     def _get_framework_include_path(self, path):
