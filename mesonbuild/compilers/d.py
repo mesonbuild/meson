@@ -635,7 +635,7 @@ class GnuDCompiler(DCompiler, GnuCompiler):
         return parameter_list
 
 
-class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, DCompiler):
+class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, DCompiler):
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', arch, **kwargs):
@@ -674,7 +674,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompi
         return ldc_optimization_args[optimization_level]
 
 
-class DmdDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, DCompiler):
+class DmdDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, DCompiler):
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', arch, **kwargs):
