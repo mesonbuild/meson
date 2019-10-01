@@ -201,7 +201,7 @@ class ConverterTarget:
         # Use the CMake trace, if required
         if self.type.upper() in target_type_requires_trace:
             if self.name in trace.targets:
-                props = trace.targets[self.name].properies
+                props = trace.targets[self.name].properties
 
                 self.includes += props.get('INTERFACE_INCLUDE_DIRECTORIES', [])
                 self.public_compile_opts += props.get('INTERFACE_COMPILE_DEFINITIONS', [])
@@ -590,7 +590,7 @@ class CMakeInterpreter:
             output_target_map[i.full_name] = i
             output_target_map[_target_key(i.name)] = i
             ttarget = self.trace.targets.get(i.name)
-            soversion = ttarget.properies.get('SOVERSION') if ttarget else None
+            soversion = ttarget.properties.get('SOVERSION') if ttarget else None
             if soversion:
                 k = '{}.{}'.format(i.full_name, soversion[0])
                 output_target_map[k] = i

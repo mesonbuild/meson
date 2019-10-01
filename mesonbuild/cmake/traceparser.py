@@ -35,18 +35,18 @@ class CMakeTraceLine:
         return s.format(self.file, self.line, self.func, self.args)
 
 class CMakeTarget:
-    def __init__(self, name, target_type, properies=None):
-        if properies is None:
-            properies = {}
+    def __init__(self, name, target_type, properties=None):
+        if properties is None:
+            properties = {}
         self.name = name
         self.type = target_type
-        self.properies = properies
+        self.properties = properties
 
     def __repr__(self):
-        s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- properies: {{\n{}     }}'
+        s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- properties: {{\n{}     }}'
         propSTR = ''
-        for i in self.properies:
-            propSTR += "      '{}': {}\n".format(i, self.properies[i])
+        for i in self.properties:
+            propSTR += "      '{}': {}\n".format(i, self.properties[i])
         return s.format(self.name, self.type, propSTR)
 
 class CMakeGeneratorTarget:
@@ -339,13 +339,13 @@ class CMakeTraceParser:
             if i not in self.targets:
                 return self._gen_exception('set_property', 'TARGET {} not found'.format(i), tline)
 
-            if identifier not in self.targets[i].properies:
-                self.targets[i].properies[identifier] = []
+            if identifier not in self.targets[i].properties:
+                self.targets[i].properties[identifier] = []
 
             if append:
-                self.targets[i].properies[identifier] += value
+                self.targets[i].properties[identifier] += value
             else:
-                self.targets[i].properies[identifier] = value
+                self.targets[i].properties[identifier] = value
 
     def _cmake_set_target_properties(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/set_target_properties.html
@@ -392,7 +392,7 @@ class CMakeTraceParser:
                 if i not in self.targets:
                     return self._gen_exception('set_target_properties', 'TARGET {} not found'.format(i), tline)
 
-                self.targets[i].properies[name] = value
+                self.targets[i].properties[name] = value
 
     def _cmake_target_compile_definitions(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/target_compile_definitions.html
@@ -449,10 +449,10 @@ class CMakeTraceParser:
         private = [x for x in private if x]
 
         for i in [(private_prop, private), (interface_prop, interface)]:
-            if not i[0] in self.targets[target].properies:
-                self.targets[target].properies[i[0]] = []
+            if not i[0] in self.targets[target].properties:
+                self.targets[target].properties[i[0]] = []
 
-            self.targets[target].properies[i[0]] += i[1]
+            self.targets[target].properties[i[0]] += i[1]
 
     def _lex_trace(self, trace):
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
