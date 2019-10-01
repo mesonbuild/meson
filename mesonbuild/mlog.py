@@ -227,16 +227,9 @@ def deprecation(*args: Union[str, AnsiDecorator], **kwargs: Any) -> None:
 
 def get_relative_path(target: Path, current: Path) -> Path:
     """Get the path to target from current"""
-    # current is below target (typically build dir in source dir)
-    try:
-        path = current.relative_to(target.parent)
-        return Path(*['..' for x in path.parts]) / target.name
-    except ValueError:
-        pass
-
-    # current is above target (build dir in parent dir to source dir)
-    acc = ['..']
-    for part in current.parents:
+    # Go up "current" until we find a common ancestor to target
+    acc = ['.']
+    for part in [current, *current.parents]:
         try:
             path = target.relative_to(part)
             return Path(*acc, path)
