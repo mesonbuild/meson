@@ -311,7 +311,7 @@ class TAPParser:
                     yield self.Version(version=version)
                 continue
 
-            if len(line) == 0:
+            if not line:
                 continue
 
             yield self.Error('unexpected input at line {}'.format((lineno,)))
@@ -638,7 +638,7 @@ class SingleTestRunner:
     def _run_cmd(self, cmd: T.List[str]) -> TestRun:
         starttime = time.time()
 
-        if len(self.test.extra_paths) > 0:
+        if self.test.extra_paths:
             self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
             winecmd = []
             for c in cmd:
@@ -941,7 +941,7 @@ class TestHarness:
             self.junit.write()
 
     def print_collected_logs(self) -> None:
-        if len(self.collected_logs) > 0:
+        if self.collected_logs:
             if len(self.collected_logs) > 10:
                 print('\nThe output from 10 first failed tests:\n')
             else:
@@ -1023,7 +1023,7 @@ class TestHarness:
             print('No tests defined.')
             return []
 
-        if len(self.options.include_suites) or len(self.options.exclude_suites):
+        if self.options.include_suites or self.options.exclude_suites:
             tests = []
             for tst in self.tests:
                 if self.test_suitable(tst):
@@ -1085,7 +1085,7 @@ class TestHarness:
         if len(self.suites) > 1 and test.suite:
             rv = TestHarness.split_suite_string(test.suite[0])[0]
             s = "+".join(TestHarness.split_suite_string(s)[1] for s in test.suite)
-            if len(s):
+            if s:
                 rv += ":"
             return rv + s + " / " + test.name
         else:
