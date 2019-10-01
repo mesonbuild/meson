@@ -228,8 +228,10 @@ class CMakeTraceParser:
 
             # Simulate the ALIAS with INTERFACE_LINK_LIBRARIES
             self.targets[args[0]] = CMakeTarget(args[0], 'ALIAS', {'INTERFACE_LINK_LIBRARIES': [args[1]]})
+        elif 'OBJECT' in args:
+            return self._gen_exception('add_library', 'OBJECT libraries are not supported', tline)
         else:
-            return self._gen_exception('add_library', 'non imported / interface libraries are not supported', tline)
+            self.targets[args[0]] = CMakeTarget(args[0], 'NORMAL', {})
 
     def _cmake_add_custom_command(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_command.html
