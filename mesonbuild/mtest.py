@@ -615,14 +615,15 @@ class SingleTestRunner:
                     # Can not run test on cross compiled executable
                     # because there is no execute wrapper.
                     return None
-                else:
+                elif self.test.cmd_is_built:
+                    # If the command is not built (ie, its a python script),
+                    # then we don't check for the exe-wrapper
                     if not self.test.exe_runner.found():
                         msg = 'The exe_wrapper defined in the cross file {!r} was not ' \
                               'found. Please check the command and/or add it to PATH.'
                         raise TestException(msg.format(self.test.exe_runner.name))
                     return self.test.exe_runner.get_command() + self.test.fname
-            else:
-                return self.test.fname
+        return self.test.fname
 
     def run(self) -> TestRun:
         cmd = self._get_cmd()

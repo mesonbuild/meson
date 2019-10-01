@@ -4476,7 +4476,7 @@ recommended as it is not supported on some platforms''')
         self._run(self.mconf_command + [self.builddir])
 
     def test_summary(self):
-        testdir = os.path.join(self.unit_test_dir, '72 summary')
+        testdir = os.path.join(self.unit_test_dir, '73 summary')
         out = self.init(testdir)
         expected = textwrap.dedent(r'''
             Some Subproject 2.0
@@ -4530,7 +4530,7 @@ recommended as it is not supported on some platforms''')
         self.assertPathDoesNotExist(os.path.join(self.builddir, prog))
 
     def test_spurious_reconfigure_built_dep_file(self):
-        testdir = os.path.join(self.unit_test_dir, '74 dep files')
+        testdir = os.path.join(self.unit_test_dir, '75 dep files')
 
         # Regression test: Spurious reconfigure was happening when build
         # directory is inside source directory.
@@ -6630,7 +6630,7 @@ c = ['{0}']
             return hashlib.sha256(f.read()).hexdigest()
 
     def test_wrap_with_file_url(self):
-        testdir = os.path.join(self.unit_test_dir, '73 wrap file url')
+        testdir = os.path.join(self.unit_test_dir, '74 wrap file url')
         source_filename = os.path.join(testdir, 'subprojects', 'foo.tar.xz')
         patch_filename = os.path.join(testdir, 'subprojects', 'foo-patch.tar.xz')
         wrap_filename = os.path.join(testdir, 'subprojects', 'foo.wrap')
@@ -6721,7 +6721,7 @@ class LinuxCrossArmTests(BaseLinuxCrossTests):
     def test_cross_libdir_subproject(self):
         # Guard against a regression where calling "subproject"
         # would reset the value of libdir to its default value.
-        testdir = os.path.join(self.unit_test_dir, '75 subdir libdir')
+        testdir = os.path.join(self.unit_test_dir, '76 subdir libdir')
         self.init(testdir, extra_args=['--libdir=fuf'])
         for i in self.introspect('--buildoptions'):
             if i['name'] == 'libdir':
@@ -7591,7 +7591,7 @@ class CrossFileTests(BasePlatformTests):
                 f.write(self._cross_file_generator(needs_exe_wrapper=True))
             self.init(testdir, extra_args=['--cross-file=' + str(p)])
             out = self.run_target('test')
-            self.assertRegex(out, r'Skipped:\s*1\n')
+            self.assertRegex(out, r'Skipped:\s*1\s*\n')
 
     def test_needs_exe_wrapper_false(self):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
@@ -7609,6 +7609,7 @@ class CrossFileTests(BasePlatformTests):
             s = Path(d) / 'wrapper.py'
             with s.open('wt') as f:
                 f.write(self._stub_exe_wrapper())
+            s.chmod(0o774)
             p = Path(d) / 'crossfile'
             with p.open('wt') as f:
                 f.write(self._cross_file_generator(
@@ -7617,7 +7618,19 @@ class CrossFileTests(BasePlatformTests):
 
             self.init(testdir, extra_args=['--cross-file=' + str(p)])
             out = self.run_target('test')
-            self.assertNotRegex(out, r'Skipped:\s*1\n')
+            self.assertNotRegex(out, r'Skipped:\s*1\s*\n')
+
+    def test_cross_exe_passed_no_wrapper(self):
+        testdir = os.path.join(self.unit_test_dir, '72 cross test passed')
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / 'crossfile'
+            with p.open('wt') as f:
+                f.write(self._cross_file_generator(needs_exe_wrapper=True))
+
+            self.init(testdir, extra_args=['--cross-file=' + str(p)])
+            self.build()
+            out = self.run_target('test')
+            self.assertRegex(out, r'Skipped:\s*2\s*\n')
 
     # The test uses mocking and thus requires that the current process is the
     # one to run the Meson steps. If we are using an external test executable
