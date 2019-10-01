@@ -3420,67 +3420,6 @@ int main(int argc, char **argv) {
                         f.write('public class Foo { public static void main() {} }')
                     self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
 
-    # The test uses mocking and thus requires that
-    # the current process is the one to run the Meson steps.
-    # If we are using an external test executable (most commonly
-    # in Debian autopkgtests) then the mocking won't work.
-    @unittest.skipIf('MESON_EXE' in os.environ, 'MESON_EXE is defined, can not use mocking.')
-    def test_cross_file_system_paths(self):
-        if is_windows():
-            raise unittest.SkipTest('system crossfile paths not defined for Windows (yet)')
-        if is_sunos():
-            cc = 'gcc'
-        else:
-            cc = 'cc'
-
-        testdir = os.path.join(self.common_test_dir, '1 trivial')
-        cross_content = textwrap.dedent("""\
-            [binaries]
-            c = '/usr/bin/{}'
-            ar = '/usr/bin/ar'
-            strip = '/usr/bin/ar'
-
-            [properties]
-
-            [host_machine]
-            system = 'linux'
-            cpu_family = 'x86'
-            cpu = 'i686'
-            endian = 'little'
-            """.format(cc))
-
-        with tempfile.TemporaryDirectory() as d:
-            dir_ = os.path.join(d, 'meson', 'cross')
-            os.makedirs(dir_)
-            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False) as f:
-                f.write(cross_content)
-            name = os.path.basename(f.name)
-
-            with mock.patch.dict(os.environ, {'XDG_DATA_HOME': d}):
-                self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
-                self.wipe()
-
-            with mock.patch.dict(os.environ, {'XDG_DATA_DIRS': d}):
-                os.environ.pop('XDG_DATA_HOME', None)
-                self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
-                self.wipe()
-
-        with tempfile.TemporaryDirectory() as d:
-            dir_ = os.path.join(d, '.local', 'share', 'meson', 'cross')
-            os.makedirs(dir_)
-            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False) as f:
-                f.write(cross_content)
-            name = os.path.basename(f.name)
-
-            # If XDG_DATA_HOME is set in the environment running the
-            # tests this test will fail, os mock the environment, pop
-            # it, then test
-            with mock.patch.dict(os.environ):
-                os.environ.pop('XDG_DATA_HOME', None)
-                with mock.patch('mesonbuild.coredata.os.path.expanduser', lambda x: x.replace('~', d)):
-                    self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
-                    self.wipe()
-
     def test_compiler_run_command(self):
         '''
         The test checks that the compiler object can be passed to
@@ -7605,6 +7544,69 @@ class CrossFileTests(BasePlatformTests):
 
     This is mainly aimed to testing overrides from cross files.
     """
+
+    def _cross_file_generator(self) -> str:
+        if is_sunos():
+            cc = 'gcc'
+        else:
+            cc = 'cc'
+
+        return textwrap.dedent("""\
+            [binaries]
+            c = '/usr/bin/{}'
+            ar = '/usr/bin/ar'
+            strip = '/usr/bin/ar'
+
+            [properties]
+
+            [host_machine]
+            system = 'linux'
+            cpu_family = 'x86'
+            cpu = 'i686'
+            endian = 'little'
+            """.format(cc))
+
+    # The test uses mocking and thus requires that the current process is the
+    # one to run the Meson steps. If we are using an external test executable
+    # (most commonly in Debian autopkgtests) then the mocking won't work.
+    @unittest.skipIf('MESON_EXE' in os.environ, 'MESON_EXE is defined, can not use mocking.')
+    def test_cross_file_system_paths(self):
+        if is_windows():
+            raise unittest.SkipTest('system crossfile paths not defined for Windows (yet)')
+
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        cross_content = self._cross_file_generator()
+        with tempfile.TemporaryDirectory() as d:
+            dir_ = os.path.join(d, 'meson', 'cross')
+            os.makedirs(dir_)
+            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False) as f:
+                f.write(cross_content)
+            name = os.path.basename(f.name)
+
+            with mock.patch.dict(os.environ, {'XDG_DATA_HOME': d}):
+                self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
+                self.wipe()
+
+            with mock.patch.dict(os.environ, {'XDG_DATA_DIRS': d}):
+                os.environ.pop('XDG_DATA_HOME', None)
+                self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
+                self.wipe()
+
+        with tempfile.TemporaryDirectory() as d:
+            dir_ = os.path.join(d, '.local', 'share', 'meson', 'cross')
+            os.makedirs(dir_)
+            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False) as f:
+                f.write(cross_content)
+            name = os.path.basename(f.name)
+
+            # If XDG_DATA_HOME is set in the environment running the
+            # tests this test will fail, os mock the environment, pop
+            # it, then test
+            with mock.patch.dict(os.environ):
+                os.environ.pop('XDG_DATA_HOME', None)
+                with mock.patch('mesonbuild.coredata.os.path.expanduser', lambda x: x.replace('~', d)):
+                    self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
+                    self.wipe()
 
     def test_cross_file_dirs(self):
         testcase = os.path.join(self.unit_test_dir, '60 native file override')
