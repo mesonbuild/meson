@@ -52,12 +52,12 @@ class CMakeTarget:
             propSTR += "      '{}': {}\n".format(i, self.properties[i])
         return s.format(self.name, self.type, self.imported, propSTR, self.tline)
 
-class CMakeGeneratorTarget:
-    def __init__(self):
+class CMakeGeneratorTarget(CMakeTarget):
+    def __init__(self, name):
+        super().__init__(name, 'CUSTOM', {})
         self.outputs = []        # type: List[str]
         self.command = []        # type: List[List[str]]
         self.working_dir = None  # type: Optional[str]
-        self.depends = []        # type: List[str]
 
 class CMakeTraceParser:
     def __init__(self, permissive: bool = False):
@@ -237,7 +237,7 @@ class CMakeTraceParser:
         else:
             self.targets[args[0]] = CMakeTarget(args[0], 'NORMAL', {}, tline=tline)
 
-    def _cmake_add_custom_command(self, tline: CMakeTraceLine):
+    def _cmake_add_custom_command(self, tline: CMakeTraceLine, name=None):
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_command.html
         args = list(tline.args) # Make a working copy
 
@@ -252,7 +252,7 @@ class CMakeTraceParser:
                       'IMPLICIT_DEPENDS', 'WORKING_DIRECTORY', 'COMMENT', 'DEPFILE',
                       'JOB_POOL', 'VERBATIM', 'APPEND', 'USES_TERMINAL', 'COMMAND_EXPAND_LISTS']
 
-        target = CMakeGeneratorTarget()
+        target = CMakeGeneratorTarget(name)
 
         def handle_output(key: str, target: CMakeGeneratorTarget) -> None:
             target.outputs += [key]
@@ -297,6 +297,8 @@ class CMakeTraceParser:
         target.command = [self._guess_files(x) for x in target.command]
 
         self.custom_targets += [target]
+        if name:
+            self.targets[name] = target
 
     def _cmake_add_custom_target(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_target.html
@@ -304,7 +306,8 @@ class CMakeTraceParser:
         if len(tline.args) < 1:
             return self._gen_exception('add_custom_target', 'requires at least one argument', tline)
 
-        self.targets[tline.args[0]] = CMakeTarget(tline.args[0], 'CUSTOM', {}, tline=tline)
+        # It's pretty much the same as a custom command
+        self._cmake_add_custom_command(tline, tline.args[0])
 
     def _cmake_set_property(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/set_property.html
