@@ -377,7 +377,12 @@ class ConverterCustomTarget:
     tgt_counter = 0  # type: int
 
     def __init__(self, target: CMakeGeneratorTarget):
-        self.name = 'custom_tgt_{}'.format(ConverterCustomTarget.tgt_counter)
+        self.name_raw = target.name
+        name = self.name_raw
+        if not name:
+            name = ConverterCustomTarget.tgt_counter
+            ConverterCustomTarget.tgt_counter += 1
+        self.name = 'custom_tgt_{}'.format(name)
         self.original_outputs = list(target.outputs)
         self.outputs = [os.path.basename(x) for x in self.original_outputs]
         self.command = target.command
@@ -385,8 +390,6 @@ class ConverterCustomTarget:
         self.depends_raw = target.depends
         self.inputs = []
         self.depends = []
-
-        ConverterCustomTarget.tgt_counter += 1
 
     def __repr__(self) -> str:
         return '<{}: {}>'.format(self.__class__.__name__, self.outputs)
@@ -615,6 +618,8 @@ class CMakeInterpreter:
             for j in i.artifacts:
                 output_target_map[os.path.basename(j)] = i
         for i in self.custom_targets:
+            if i.name_raw:
+                output_target_map[_target_key(i.name_raw)] = i
             for j in i.original_outputs:
                 output_target_map[_generated_file_key(j)] = i
         object_libs = []
@@ -846,6 +851,11 @@ class CMakeInterpreter:
 
             tgt_var = tgt.name  # type: str
 
+            # If the custom target does not declare any output, create a dummy
+            # one that can be used as dependency.
+            if not tgt.outputs:
+                tgt.outputs = [tgt.name + '.h']
+
             def resolve_source(x: Any) -> Any:
                 if isinstance(x, ConverterTarget):
                     if x.name not in processed:
@@ -866,7 +876,8 @@ class CMakeInterpreter:
             command = []
             command += [id_node(run_script_var)]
             command += ['-o', '@OUTPUT@']
-            command += ['-O'] + tgt.original_outputs
+            if tgt.original_outputs:
+                command += ['-O'] + tgt.original_outputs
             command += ['-d', tgt.working_dir]
 
             # Generate the commands. Subcommands are seperated by ';;;'
