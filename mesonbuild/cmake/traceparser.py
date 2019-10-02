@@ -41,6 +41,7 @@ class CMakeTarget:
         self.name = name
         self.type = target_type
         self.properties = properties
+        self.depends = []
 
     def __repr__(self):
         s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- properties: {{\n{}     }}'
@@ -87,6 +88,7 @@ class CMakeTraceParser:
             'target_compile_options': self._cmake_target_compile_options,
             'target_include_directories': self._cmake_target_include_directories,
             'target_link_options': self._cmake_target_link_options,
+            'add_dependencies': self._cmake_add_dependencies,
         }
 
         # Primary pass -- parse everything
@@ -395,6 +397,19 @@ class CMakeTraceParser:
                     return self._gen_exception('set_target_properties', 'TARGET {} not found'.format(i), tline)
 
                 self.targets[i].properties[name] = value
+
+    def _cmake_add_dependencies(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/add_dependencies.html
+        args = list(tline.args)
+
+        if len(args) < 2:
+            return self._gen_exception('add_dependencies', 'takes at least 2 arguments', tline)
+
+        target = self.targets.get(args[0])
+        if not target:
+            return self._gen_exception('add_dependencies', 'target not found', tline)
+
+        target.depends += args[1:]
 
     def _cmake_target_compile_definitions(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/target_compile_definitions.html

@@ -77,8 +77,6 @@ target_type_map = {
     'INTERFACE_LIBRARY': 'header_only'
 }
 
-target_type_requires_trace = ['INTERFACE_LIBRARY']
-
 skip_targets = ['UTILITY']
 
 blacklist_compiler_flags = [
@@ -131,6 +129,8 @@ class ConverterTarget:
         self.install_dir = ''
         self.link_libraries = target.link_libraries
         self.link_flags = target.link_flags + target.link_lang_flags
+        self.depends_raw = []
+        self.depends = []
 
         if target.install_paths:
             self.install_dir = target.install_paths[0]
@@ -200,16 +200,18 @@ class ConverterTarget:
             self.pie = True
 
         # Use the CMake trace, if required
-        if self.type.upper() in target_type_requires_trace:
-            if self.name in trace.targets:
-                props = trace.targets[self.name].properties
+        tgt = trace.targets.get(self.name)
+        if tgt:
+            self.depends_raw = trace.targets[self.name].depends
+            if self.type.upper() == 'INTERFACE_LIBRARY':
+                props = tgt.properties
 
                 self.includes += props.get('INTERFACE_INCLUDE_DIRECTORIES', [])
                 self.public_compile_opts += props.get('INTERFACE_COMPILE_DEFINITIONS', [])
                 self.public_compile_opts += props.get('INTERFACE_COMPILE_OPTIONS', [])
                 self.link_flags += props.get('INTERFACE_LINK_OPTIONS', [])
-            else:
-                mlog.warning('CMake: Target', mlog.bold(self.name), 'not found in CMake trace. This can lead to build errors')
+        elif self.type.upper() not in ['EXECUTABLE', 'OBJECT_LIBRARY']:
+            mlog.warning('CMake: Target', mlog.bold(self.name), 'not found in CMake trace. This can lead to build errors')
 
         # Fix link libraries
         def try_resolve_link_with(path: str) -> Optional[str]:
@@ -307,6 +309,11 @@ class ConverterTarget:
 
         self.link_libraries = [x for x in self.link_libraries if x.lower() not in blacklist_link_libs]
         self.link_flags = [x for x in self.link_flags if check_flag(x)]
+
+        for i in self.depends_raw:
+            tgt = output_target_map.get(_target_key(i))
+            if tgt:
+                self.depends.append(tgt)
 
     def process_object_libs(self, obj_target_list: List['ConverterTarget']):
         # Try to detect the object library(s) from the generated input sources
@@ -719,6 +726,7 @@ class CMakeInterpreter:
             generated = []
             generated_filenames = []
             custom_targets = []
+            dependencies = []
             for i in tgt.link_with:
                 assert(isinstance(i, ConverterTarget))
                 if i.name not in processed:
@@ -729,6 +737,12 @@ class CMakeInterpreter:
                 if i.name not in processed:
                     process_target(i)
                 objec_libs += [processed[i.name]['tgt']]
+            for i in tgt.depends:
+                if not isinstance(i, ConverterCustomTarget):
+                    continue
+                if i.name not in processed:
+                    process_custom_target(i)
+                dependencies += [id_node(processed[i.name]['tgt'])]
 
             # Generate the source list and handle generated sources
             for i in tgt.sources + tgt.generated:
@@ -798,6 +812,9 @@ class CMakeInterpreter:
                 'include_directories': id_node(inc_var),
             }
 
+            if dependencies:
+                generated += dependencies
+
             # Generate the function nodes
             inc_node = assign(inc_var, function('include_directories', tgt.includes))
             node_list = [inc_node]
@@ -833,6 +850,10 @@ class CMakeInterpreter:
                 if isinstance(x, ConverterTarget):
                     if x.name not in processed:
                         process_target(x)
+                    return id_node(x.name)
+                if isinstance(x, ConverterCustomTarget):
+                    if x.name not in processed:
+                        process_custom_target(x)
                     return id_node(x.name)
                 elif isinstance(x, CustomTargetReference):
                     if x.ctgt.name not in processed:
