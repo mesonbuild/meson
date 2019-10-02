@@ -85,6 +85,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Do not rebuild before running tests.')
     parser.add_argument('--gdb', default=False, dest='gdb', action='store_true',
                         help='Run test under gdb.')
+    parser.add_argument('--gdb-path', default='gdb', dest='gdb_path',
+                        help='Path to the gdb binary (default: gdb).')
     parser.add_argument('--list', default=False, dest='list', action='store_true',
                         help='List available tests.')
     parser.add_argument('--wrapper', default=None, dest='wrapper', type=split_args,
@@ -892,7 +894,7 @@ Timeout:            %4d
     def get_wrapper(options: argparse.Namespace) -> typing.List[str]:
         wrap = []  # type: typing.List[str]
         if options.gdb:
-            wrap = ['gdb', '--quiet', '--nh']
+            wrap = [options.gdb_path, '--quiet', '--nh']
             if options.repeat > 1:
                 wrap += ['-ex', 'run', '-ex', 'quit']
             # Signal the end of arguments to gdb

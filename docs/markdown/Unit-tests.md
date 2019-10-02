@@ -157,6 +157,12 @@ $ meson test --gdb --repeat=10000 testname
 
 This runs the test up to 10 000 times under GDB automatically. If the program crashes, GDB will halt and the user can debug the application. Note that testing timeouts are disabled in this case so `meson test` will not kill `gdb` while the developer is still debugging it. The downside is that if the test binary freezes, the test runner will wait forever.
 
+Sometimes, the GDB binary is not in the PATH variable or the user wants to use a GDB replacement. Therefore, the invoked GDB program can be specified *(added 0.52.0)*:
+
+```console
+$ meson test --gdb --gdb-path /path/to/gdb testname
+```
+
 ```console
 $ meson test --print-errorlogs
 ```
