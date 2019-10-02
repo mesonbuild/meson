@@ -155,6 +155,9 @@ run. The behavior of this function is identical to `test` with the
 exception that there is no `is_parallel` keyword, because benchmarks
 are never run in parallel.
 
+*Note:* Prior to 0.52.0 benchmark would warn that `depends` and `proiority`
+were unsupported, this is incorrect
+
 ### both_libraries()
 
 ``` meson
