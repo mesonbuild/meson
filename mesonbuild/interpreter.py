@@ -1954,7 +1954,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'add_project_link_arguments': {'language', 'native'},
                     'add_project_arguments': {'language', 'native'},
                     'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env', 'is_default'},
-                    'benchmark': {'args', 'env', 'should_fail', 'timeout', 'workdir', 'suite'},
+                    'benchmark': {'args', 'depends', 'env', 'should_fail', 'timeout', 'workdir', 'suite', 'priority', 'protocol'},
                     'build_target': known_build_target_kwargs,
                     'configure_file': {'input',
                                        'output',
@@ -3364,8 +3364,13 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         self.generators.append(gen)
         return gen
 
+    @FeatureNewKwargs('benchmark', '0.46.0', ['depends'])
+    @FeatureNewKwargs('benchmark', '0.52.0', ['priority'])
     @permittedKwargs(permitted_kwargs['benchmark'])
     def func_benchmark(self, node, args, kwargs):
+        # is_parallel isn't valid here, so make sure it isn't passed
+        if 'is_parallel' in kwargs:
+            del kwargs['is_parallel']
         self.add_test(node, args, kwargs, False)
 
     @FeatureNewKwargs('test', '0.46.0', ['depends'])
