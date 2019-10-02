@@ -494,13 +494,20 @@ class CMakeInterpreter:
         # Generated meson data
         self.generated_targets = {}
 
+    def quote_join(self, flags):
+        return ' '.join([shlex.quote(x) for x in flags])
+
     def configure(self, extra_cmake_options: List[str]) -> None:
         cmake_exe = CMakeExecutor(self.env, '>=3.7')
         generator = backend_generator_map[self.backend_name]
         cmake_args = cmake_exe.get_command()
 
+        linker_flags = []
+        compilers = self.env.coredata.compilers[MachineChoice.HOST]
+        global_args = self.build.global_args[MachineChoice.HOST]
+        global_link_args = self.build.global_link_args[MachineChoice.HOST]
         # Map meson compiler to CMake variables
-        for lang, comp in self.env.coredata.compilers[MachineChoice.HOST].items():
+        for lang, comp in compilers.items():
             if lang not in language_map:
                 continue
             cmake_lang = language_map[lang]
@@ -512,6 +519,28 @@ class CMakeInterpreter:
                                '-DCMAKE_{}_COMPILER={}'.format(cmake_lang, exelist[1])]
             if hasattr(comp, 'get_linker_exelist') and comp.get_id() == 'clang-cl':
                 cmake_args += ['-DCMAKE_LINKER={}'.format(comp.get_linker_exelist()[0])]
+
+            compiler_flags = self.env.coredata.get_external_args(MachineChoice.HOST, lang)
+            compiler_flags.extend(global_args.get(lang, []))
+            cmake_args += ['-DCMAKE_{}_FLAGS={}'.format(cmake_lang, self.quote_join(compiler_flags))]
+
+            linker_flags.extend(self.env.coredata.get_external_link_args(MachineChoice.HOST, lang))
+            linker_flags.extend(global_link_args.get(lang, []))
+
+        cmake_args += ['-DCMAKE_EXE_LINKER_FLAGS={}'.format(self.quote_join(linker_flags))]
+        cmake_args += ['-DCMAKE_SHARED_LINKER_FLAGS={}'.format(self.quote_join(linker_flags))]
+
+        if self.env.is_cross_build():
+            cmake_args += ['-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER',
+                           '-DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY',
+                           '-DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY',
+                           '-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY',
+                           ]
+
+        from ..dependencies import PkgConfigDependency
+        pkgbin = PkgConfigDependency.get_pkgbin(self.env, MachineChoice.HOST, silent=True)
+        cmake_args += ['-DPKG_CONFIG_EXECUTABLE={}'.format(pkgbin.get_command() if pkgbin else '')]
+
         cmake_args += ['-G', generator]
         cmake_args += ['-DCMAKE_INSTALL_PREFIX={}'.format(self.install_prefix)]
         cmake_args += ['--trace', '--trace-expand']

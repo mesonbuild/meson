@@ -2561,15 +2561,12 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self.subprojects[dirname]
 
     def _do_subproject_cmake(self, dirname, subdir, subdir_abs, default_options, kwargs):
-        # FIXME: Cross compilation is not supported yet
-        if self.environment.is_cross_build():
-            raise InterpreterException('Cross compilation of CMake subproject is not supported')
         with mlog.nested():
             new_build = self.build.copy()
             prefix = self.coredata.builtins['prefix'].value
             cmake_options = mesonlib.stringlistify(kwargs.get('cmake_options', []))
             cmake_options += ['-D{}={}'.format(k, v) for k, v in default_options.items()]
-            cm_int = CMakeInterpreter(new_build, subdir, subdir_abs, prefix, new_build.environment, self.backend)
+            cm_int = CMakeInterpreter(self.build, subdir, subdir_abs, prefix, self.environment, self.backend)
             cm_int.initialise(cmake_options)
             cm_int.analyse()
 
