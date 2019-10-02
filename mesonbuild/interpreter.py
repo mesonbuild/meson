@@ -1948,13 +1948,15 @@ known_build_target_kwargs = (
     {'target_type'}
 )
 
+_base_test_args = {'args', 'depends', 'env', 'should_fail', 'timeout', 'workdir', 'suite', 'priority', 'protocol'}
+
 permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'add_global_link_arguments': {'language', 'native'},
                     'add_languages': {'required'},
                     'add_project_link_arguments': {'language', 'native'},
                     'add_project_arguments': {'language', 'native'},
                     'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env', 'is_default'},
-                    'benchmark': {'args', 'depends', 'env', 'should_fail', 'timeout', 'workdir', 'suite', 'priority', 'protocol'},
+                    'benchmark': _base_test_args,
                     'build_target': known_build_target_kwargs,
                     'configure_file': {'input',
                                        'output',
@@ -2032,8 +2034,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'library': known_library_kwargs,
                     'subdir': {'if_found'},
                     'subproject': {'version', 'default_options', 'required'},
-                    'test': {'args', 'depends', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir',
-                             'suite', 'protocol', 'priority'},
+                    'test': set.union(_base_test_args, {'is_parallel'}),
                     'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
                     }
 
