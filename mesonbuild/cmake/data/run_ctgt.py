@@ -39,7 +39,10 @@ for i in commands:
     if not i:
         continue
 
-    subprocess.run(i, cwd=args.directory)
+    try:
+        subprocess.run(i, cwd=args.directory, check=True)
+    except subprocess.CalledProcessError:
+        exit(1)
 
 if dummy_target:
     with open(dummy_target, 'a'):
