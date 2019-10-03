@@ -22,7 +22,7 @@ from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
 from .. import mlog
 from ..environment import Environment
 from ..mesonlib import MachineChoice
-from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, is_header
+from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from subprocess import Popen, PIPE
 from typing import Any, List, Dict, Optional, TYPE_CHECKING
 from threading import Thread
@@ -117,6 +117,7 @@ def _generated_file_key(fname: str) -> str:
 
 class ConverterTarget:
     lang_cmake_to_meson = {val.lower(): key for key, val in language_map.items()}
+    rm_so_version = re.compile(r'(\.[0-9]+)+$')
 
     def __init__(self, target: CMakeTarget, env: Environment):
         self.env = env
@@ -211,15 +212,30 @@ class ConverterTarget:
                 mlog.warning('CMake: Target', mlog.bold(self.name), 'not found in CMake trace. This can lead to build errors')
 
         # Fix link libraries
+        def try_resolve_link_with(path: str) -> Optional[str]:
+            basename = os.path.basename(path)
+            candidates = [basename, ConverterTarget.rm_so_version.sub('', basename)]
+            for i in lib_suffixes:
+                if not basename.endswith('.' + i):
+                    continue
+                new_basename = basename[:-len(i) - 1]
+                new_basename = ConverterTarget.rm_so_version.sub('', new_basename)
+                new_basename = '{}.{}'.format(new_basename, i)
+                candidates += [new_basename]
+            for i in candidates:
+                if i in output_target_map:
+                    return output_target_map[i]
+            return None
+
         temp = []
         for i in self.link_libraries:
             # Let meson handle this arcane magic
             if ',-rpath,' in i:
                 continue
             if not os.path.isabs(i):
-                basename = os.path.basename(i)
-                if basename in output_target_map:
-                    self.link_with += [output_target_map[basename]]
+                link_with = try_resolve_link_with(i)
+                if link_with:
+                    self.link_with += [link_with]
                     continue
 
             temp += [i]
