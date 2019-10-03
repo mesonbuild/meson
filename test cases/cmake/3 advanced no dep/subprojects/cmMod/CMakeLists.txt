@@ -12,6 +12,8 @@ add_library(cmModLib SHARED lib/cmMod.cpp)
 include(GenerateExportHeader)
 generate_export_header(cmModLib)
 
+set_target_properties(cmModLib PROPERTIES VERSION 1.0.1)
+
 add_executable(testEXE main.cpp)
 
 target_link_libraries(testEXE cmModLib)
