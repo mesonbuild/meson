@@ -54,6 +54,8 @@ $ MESON_TESTTHREADS=5 ninja test
 Priorities
 --
 
+*(added in version 0.52.0)*
+
 Tests can be assigned a priority that determines when a test is *started*. Tests with higher priority are started first, tests with lower priority started later. The default priority is 0, meson makes no guarantee on the ordering of tests with identical priority.
 
 ```meson
