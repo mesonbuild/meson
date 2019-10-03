@@ -602,14 +602,9 @@ class CMakeInterpreter:
 
         # generate the output_target_map
         output_target_map = {}
+        output_target_map.update({x.full_name: x for x in self.targets})
+        output_target_map.update({_target_key(x.name): x for x in self.targets})
         for i in self.targets:
-            output_target_map[i.full_name] = i
-            output_target_map[_target_key(i.name)] = i
-            ttarget = self.trace.targets.get(i.name)
-            soversion = ttarget.properties.get('SOVERSION') if ttarget else None
-            if soversion:
-                k = '{}.{}'.format(i.full_name, soversion[0])
-                output_target_map[k] = i
             for j in i.artifacts:
                 output_target_map[os.path.basename(j)] = i
         for i in self.custom_targets:
