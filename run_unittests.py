@@ -3687,6 +3687,16 @@ recommended as it is not supported on some platforms''')
         out = self.run_target('clang-tidy')
         self.assertIn('cttest.cpp:4:20', out)
 
+    def test_identity_cross(self):
+        testdir = os.path.join(self.unit_test_dir, '71 cross')
+        # Do a build to generate a cross file where the host is this target
+        self.init(testdir, extra_args=['-Dgenerate=true'])
+        self.meson_cross_file = os.path.join(self.builddir, "crossfile")
+        self.assertTrue(os.path.exists(self.meson_cross_file))
+        # Now verify that this is detected as cross
+        self.new_builddir()
+        self.init(testdir)
+
     def test_introspect_buildoptions_without_configured_build(self):
         testdir = os.path.join(self.unit_test_dir, '59 introspect buildoptions')
         testfile = os.path.join(testdir, 'meson.build')
