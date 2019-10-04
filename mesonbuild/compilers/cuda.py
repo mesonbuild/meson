@@ -18,7 +18,7 @@ from functools import partial
 
 from .. import coredata
 from .. import mlog
-from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe, OptionOverrideProxy, is_windows
+from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe, OptionOverrideProxy, is_windows, LibType
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
                         cuda_debug_args)
 
@@ -293,6 +293,9 @@ class CudaCompiler(Compiler):
 
     def get_std_exe_link_args(self) -> typing.List[str]:
         return self._cook_link_args(self.host_compiler.get_std_exe_link_args())
+
+    def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):
+        return ['-l' + libname] # FIXME
 
     def get_crt_compile_args(self, crt_val, buildtype):
         return self._to_host_flags(self.host_compiler.get_crt_compile_args(crt_val, buildtype))

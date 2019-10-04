@@ -2134,6 +2134,7 @@ def get_dep_identifier(name, kwargs) -> Tuple:
 
 display_name_map = {
     'boost': 'Boost',
+    'cuda': 'CUDA',
     'dub': 'DUB',
     'gmock': 'GMock',
     'gtest': 'GTest',
