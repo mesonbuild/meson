@@ -285,6 +285,22 @@ environment variables.
 You can set the argument `threading` to `single` to use boost
 libraries that have been compiled for single-threaded use instead.
 
+## CUDA
+
+*(added 0.53.0)*
+
+Enables compiling and linking against the CUDA Toolkit. The `version` 
+and `modules` keywords may be passed to request the use of a specific 
+CUDA Toolkit version and/or additional CUDA libraries, correspondingly:
+
+```meson
+dep = dependency('cuda', version : '>=10', modules : ['cublas'])
+```
+
+Note that explicitly adding this dependency is only necessary if you are 
+using CUDA Toolkit from a C/C++ file or project, or if you are utilizing 
+additional toolkit libraries that need to be explicitly linked to.
+
 ## CUPS
 
 `method` may be `auto`, `config-tool`, `pkg-config`, `cmake` or `extraframework`.

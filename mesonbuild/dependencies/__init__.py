@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .boost import BoostDependency
+from .cuda import CudaDependency
 from .base import (  # noqa: F401
     Dependency, DependencyException, DependencyMethods, ExternalProgram, EmptyExternalProgram, NonExistingExternalProgram,
     ExternalDependency, NotFoundDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
@@ -30,9 +31,11 @@ packages.update({
     'llvm': LLVMDependency,
     'valgrind': ValgrindDependency,
 
+    'boost': BoostDependency,
+    'cuda': CudaDependency,
+
     # From misc:
     'blocks': BlocksDependency,
-    'boost': BoostDependency,
     'coarray': CoarrayDependency,
     'mpi': MPIDependency,
     'hdf5': HDF5Dependency,

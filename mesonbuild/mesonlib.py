@@ -21,6 +21,7 @@ import platform, subprocess, operator, os, shlex, shutil, re
 import collections
 from enum import Enum
 from functools import lru_cache, update_wrapper
+from itertools import tee, filterfalse
 import typing
 import uuid
 
@@ -1050,6 +1051,12 @@ def expand_arguments(args):
             print(e)
             return None
     return expended_args
+
+def partition(pred, iterable):
+    'Use a predicate to partition entries into false entries and true entries'
+    # partition(is_odd, range(10)) --> 0 2 4 6 8   and  1 3 5 7 9
+    t1, t2 = tee(iterable)
+    return filterfalse(pred, t1), filter(pred, t2)
 
 def Popen_safe(args: typing.List[str], write: typing.Optional[str] = None,
                stdout: typing.Union[typing.BinaryIO, int] = subprocess.PIPE,
