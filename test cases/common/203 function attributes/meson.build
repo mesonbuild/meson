@@ -54,6 +54,9 @@ attributes = [
   'used',
   'warn_unused_result',
   'weak',
+  'visibility:default',
+  'visibility:hidden',
+  'visibility:internal',
 ]
 
 if c.get_id() != 'intel'
@@ -65,6 +68,7 @@ endif
 if host_machine.system() != 'darwin'
   attributes += 'alias'
   attributes += 'visibility'
+  attributes += 'visibility:protected'
 endif
 
 if ['gcc', 'intel'].contains(c.get_id())
