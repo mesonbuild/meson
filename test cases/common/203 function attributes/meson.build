@@ -57,6 +57,10 @@ attributes = [
   'visibility:default',
   'visibility:hidden',
   'visibility:internal',
+  'tls_model:global-dynamic',
+  'tls_model:local-dynamic',
+  'tls_model:initial-exec',
+  'tls_model:local-exec',
 ]
 
 if c.get_id() != 'intel'

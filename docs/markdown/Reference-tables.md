@@ -155,54 +155,60 @@ which are supported by GCC, Clang, and other compilers.
 
 
 | Name                 |
-|----------------------|
-| alias                |
-| aligned              |
-| alloc_size           |
-| always_inline        |
-| artificial           |
-| cold                 |
-| const                |
-| constructor          |
-| constructor_priority |
-| deprecated           |
-| destructor           |
-| error                |
-| externally_visible   |
-| fallthrough          |
-| flatten              |
-| format               |
-| format_arg           |
-| gnu_inline           |
-| hot                  |
-| ifunc                |
-| malloc               |
-| noclone              |
-| noinline             |
-| nonnull              |
-| noreturn             |
-| nothrow              |
-| optimize             |
-| packed               |
-| pure                 |
-| returns_nonnull      |
-| unused               |
-| used                 |
-| visibility*          |
-| visibility:default†  |
-| visibility:hidden†   |
-| visibility:internal† |
-| visibility:protected†|
-| warning              |
-| warn_unused_result   |
-| weak                 |
-| weakreaf             |
+|------------------------------|
+| alias                        |
+| aligned                      |
+| alloc_size                   |
+| always_inline                |
+| artificial                   |
+| cold                         |
+| const                        |
+| constructor                  |
+| constructor_priority         |
+| deprecated                   |
+| destructor                   |
+| error                        |
+| externally_visible           |
+| fallthrough                  |
+| flatten                      |
+| format                       |
+| format_arg                   |
+| gnu_inline                   |
+| hot                          |
+| ifunc                        |
+| malloc                       |
+| noclone                      |
+| noinline                     |
+| nonnull                      |
+| noreturn                     |
+| nothrow                      |
+| optimize                     |
+| packed                       |
+| pure                         |
+| returns_nonnull              |
+| unused                       |
+| used                         |
+| visibility*                  |
+| visibility:default†          |
+| visibility:hidden†           |
+| visibility:internal†         |
+| visibility:protected†        |
+| warning                      |
+| warn_unused_result           |
+| weak                         |
+| weakreaf                     |
+| tls_model:global-dynamic‡    |
+| tls_model:local-dynamic‡     |
+| tls_model:initial-exec‡      |
+| tls_model:local-exec‡        |
 
 \* *Changed in 0.52.0* the "visibility" target no longer includes
 "protected", which is not present in Apple's clang.
 
 † *New in 0.52.0* These split visibility attributes are preferred to the plain
 "visibility" as they provide narrower checks.
+
+‡ *New in 0.53.0*
 
 ### MSVC __declspec
 
