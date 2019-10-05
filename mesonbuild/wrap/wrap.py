@@ -226,27 +226,56 @@ class Resolver:
             self.apply_patch()
 
     def get_git(self):
-        # git doesn't support directly cloning shallowly for commits,
-        # so we follow https://stackoverflow.com/a/43136160
-        subprocess.check_call(['git', 'init', self.directory], cwd=self.subdir_root)
-        subprocess.check_call(['git', 'remote', 'add', 'origin', self.wrap.get('url')],
-                              cwd=self.dirname)
-        git_options = []
         revno = self.wrap.get('revision')
-        if self.wrap.values.get('depth', '') != '':
-            git_options.extend(['--depth', self.wrap.values.get('depth')])
-        subprocess.check_call(['git', 'fetch'] + git_options + ['origin', revno],
-                              cwd=self.dirname)
-        subprocess.check_call(['git', 'checkout', revno], cwd=self.dirname)
-        if self.wrap.values.get('clone-recursive', '').lower() == 'true':
-            subprocess.check_call(['git', 'submodule', 'update',
-                                   '--init', '--checkout', '--recursive'] + git_options,
+        is_shallow = self.wrap.values.get('depth', '') != ''
+        # for some reason git only allows commit ids to be shallowly fetched by fetch not with clone
+        if is_shallow and self.is_git_full_commit_id(revno):
+            # git doesn't support directly cloning shallowly for commits,
+            # so we follow https://stackoverflow.com/a/43136160
+            subprocess.check_call(['git', 'init', self.directory], cwd=self.subdir_root)
+            subprocess.check_call(['git', 'remote', 'add', 'origin', self.wrap.get('url')],
                                   cwd=self.dirname)
-        push_url = self.wrap.values.get('push-url')
-        if push_url:
-            subprocess.check_call(['git', 'remote', 'set-url',
-                                   '--push', 'origin', push_url],
+            revno = self.wrap.get('revision')
+            subprocess.check_call(['git', 'fetch', '--depth', self.wrap.values.get('depth'), 'origin', revno],
                                   cwd=self.dirname)
+            subprocess.check_call(['git', 'checkout', revno], cwd=self.dirname)
+            if self.wrap.values.get('clone-recursive', '').lower() == 'true':
+                subprocess.check_call(['git', 'submodule', 'update',
+                                       '--init', '--checkout', '--recursive', '--depth', self.wrap.values.get('depth')],
+                                      cwd=self.dirname)
+            push_url = self.wrap.values.get('push-url')
+            if push_url:
+                subprocess.check_call(['git', 'remote', 'set-url',
+                                       '--push', 'origin', push_url],
+                                      cwd=self.dirname)
+        else:
+            if not is_shallow:
+                subprocess.check_call(['git', 'clone', self.wrap.get('url'),
+                                       self.directory], cwd=self.subdir_root)
+                if revno.lower() != 'head':
+                    if subprocess.call(['git', 'checkout', revno], cwd=self.dirname) != 0:
+                        subprocess.check_call(['git', 'fetch', self.wrap.get('url'), revno], cwd=self.dirname)
+                        subprocess.check_call(['git', 'checkout', revno], cwd=self.dirname)
+            else:
+                subprocess.check_call(['git', 'clone', '--depth', self.wrap.values.get('depth'),
+                                       '--branch', revno,
+                                       self.wrap.get('url'),
+                                       self.directory], cwd=self.subdir_root)
+            if self.wrap.values.get('clone-recursive', '').lower() == 'true':
+                subprocess.check_call(['git', 'submodule', 'update',
+                                       '--init', '--checkout', '--recursive', '--depth', self.wrap.values.get('depth')],
+                                      cwd=self.dirname)
+            push_url = self.wrap.values.get('push-url')
+            if push_url:
+                subprocess.check_call(['git', 'remote', 'set-url',
+                                       '--push', 'origin', push_url],
+                                      cwd=self.dirname)
+
+    def is_git_full_commit_id(self, revno):
+        result = False
+        if len(revno) in (40, 64): # 40 for sha1, 64 for upcoming sha256
+            result = all((ch in '0123456789AaBbCcDdEeFf' for ch in revno))
+        return result
 
     def get_hg(self):
         revno = self.wrap.get('revision')
