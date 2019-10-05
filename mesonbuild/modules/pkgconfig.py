@@ -231,7 +231,7 @@ class PkgConfigModule(ExtensionModule):
             return l.name[3:]
         # If the library is imported via an import library which is always
         # named after the target name, '-lfoo' is correct.
-        if l.import_filename:
+        if isinstance(l, build.SharedLibrary) and l.import_filename:
             return l.name
         # In other cases, we can't guarantee that the compiler will be able to
         # find the library via '-lfoo', so tell the user that.
