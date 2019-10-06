@@ -25,3 +25,4 @@ assert(sp_dep.include_type() == 'preserve', 'default is preserve')
 
 sp_dep_sys = sp_dep.as_system('system')
 assert(sp_dep_sys.include_type() == 'system', 'changing include_type works')
+assert(sp_dep.include_type() == 'preserve', 'as_system must not mutate the original object')
