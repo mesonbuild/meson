@@ -84,14 +84,13 @@ gnu_color_args = {
 }  # type: typing.Dict[str, typing.List[str]]
 
 
-# TODO: The result from calling compiler should be cached. So that calling this
-# function multiple times don't add latency.
-def gnulike_default_include_dirs(compiler: typing.List[str], lang: str) -> typing.List[str]:
+@functools.lru_cache(maxsize=None)
+def gnulike_default_include_dirs(compiler: typing.Tuple[str], lang: str) -> typing.List[str]:
     if lang == 'cpp':
         lang = 'c++'
     env = os.environ.copy()
     env["LC_ALL"] = 'C'
-    cmd = compiler + ['-x{}'.format(lang), '-E', '-v', '-']
+    cmd = list(compiler) + ['-x{}'.format(lang), '-E', '-v', '-']
     p = subprocess.Popen(
         cmd,
         stdin=subprocess.DEVNULL,
@@ -171,7 +170,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         return gnulike_instruction_set_args.get(instruction_set, None)
 
     def get_default_include_dirs(self) -> typing.List[str]:
-        return gnulike_default_include_dirs(self.exelist, self.language)
+        return gnulike_default_include_dirs(tuple(self.exelist), self.language)
 
     @abc.abstractmethod
     def openmp_flags(self) -> typing.List[str]:

@@ -228,6 +228,18 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
                     continue
                 else:
                     i = name + '.lib'
+            elif i.startswith('-isystem'):
+                # just use /I for -isystem system include path s
+                if i.startswith('-isystem='):
+                    i = '/I' + i[9:]
+                else:
+                    i = '/I' + i[8:]
+            elif i.startswith('-idirafter'):
+                # same as -isystem, but appends the path instead
+                if i.startswith('-idirafter='):
+                    i = '/I' + i[11:]
+                else:
+                    i = '/I' + i[10:]
             # -pthread in link flags is only used on Linux
             elif i == '-pthread':
                 continue

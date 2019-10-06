@@ -34,13 +34,12 @@ from .interpreterbase import ObjectHolder
 from .modules import ModuleReturnValue
 from .cmake import CMakeInterpreter
 
-from pathlib import Path
+from pathlib import Path, PurePath
 import os, shutil, uuid
 import re, shlex
 import subprocess
 from collections import namedtuple
 from itertools import chain
-from pathlib import PurePath
 import functools
 from typing import Sequence, List, Union, Optional, Dict, Any
 
@@ -413,6 +412,8 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
                              'get_configtool_variable': self.configtool_method,
                              'get_variable': self.variable_method,
                              'partial_dependency': self.partial_dependency_method,
+                             'include_type': self.include_type_method,
+                             'as_system': self.as_system_method,
                              })
 
     def found(self):
@@ -473,6 +474,24 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
     @permittedKwargs({'cmake', 'pkgconfig', 'configtool', 'default_value', 'pkgconfig_define'})
     def variable_method(self, args, kwargs):
         return self.held_object.get_variable(**kwargs)
+
+    @FeatureNew('dep.include_type', '0.52.0')
+    @noPosargs
+    @permittedKwargs({})
+    def include_type_method(self, args, kwargs):
+        return self.held_object.get_include_type()
+
+    @FeatureNew('dep.as_system', '0.52.0')
+    @permittedKwargs({})
+    def as_system_method(self, args, kwargs):
+        args = listify(args)
+        new_is_system = 'system'
+        if len(args) > 1:
+            raise InterpreterException('as_system takes only one optional value')
+        if len(args) == 1:
+            new_is_system = args[0]
+        new_dep = self.held_object.generate_system_dependency(new_is_system)
+        return DependencyHolder(new_dep, self.subproject)
 
 class ExternalProgramHolder(InterpreterObject, ObjectHolder):
     def __init__(self, ep):
@@ -2000,6 +2019,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                    'version',
                                    'private_headers',
                                    'cmake_args',
+                                   'include_type',
                                    },
                     'declare_dependency': {'include_directories',
                                            'link_with',
@@ -3050,6 +3070,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         elif name == 'openmp':
             FeatureNew('OpenMP Dependency', '0.46.0').use(self.subproject)
 
+    @FeatureNewKwargs('dependency', '0.52.0', ['include_type'])
     @FeatureNewKwargs('dependency', '0.50.0', ['not_found_message', 'cmake_module_path', 'cmake_args'])
     @FeatureNewKwargs('dependency', '0.49.0', ['disabler'])
     @FeatureNewKwargs('dependency', '0.40.0', ['method'])
