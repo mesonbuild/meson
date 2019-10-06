@@ -38,7 +38,7 @@ if typing.TYPE_CHECKING:
 
     OptionDictType = typing.Dict[str, 'UserOption[Any]']
 
-version = '0.51.999'
+version = '0.52.0'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
 
 default_yielding = False
