@@ -39,7 +39,7 @@ Also add corresponding autodetection code in environment.py."""
 
 header_suffixes = ('h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di')
 obj_suffixes = ('o', 'obj', 'res')
-lib_suffixes = ('a', 'lib', 'dll', 'dylib', 'so')
+lib_suffixes = ('a', 'lib', 'dll', 'dll.a', 'dylib', 'so')
 # Mapping of language to suffixes of files that should always be in that language
 # This means we can't include .h headers here since they could be C, C++, ObjC, etc.
 lang_suffixes = {
