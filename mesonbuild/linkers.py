@@ -930,7 +930,7 @@ class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
     def get_allow_undefined_args(self) -> typing.List[str]:
         return []
 
-class CudaLinker(DynamicLinker):
+class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
     """Cuda linker (nvlink)"""
     @staticmethod
     def parse_version():
@@ -964,12 +964,6 @@ class CudaLinker(DynamicLinker):
         from .compilers import CudaCompiler
         return CudaCompiler.LINKER_PREFIX
 
-    def get_output_args(self, outname: str) -> typing.List[str]:
-        return ['-o', outname]
-
-    def get_search_args(self, dirname: str) -> typing.List[str]:
-        return ['-L', dirname]
-
     def fatal_warnings(self) -> typing.List[str]:
         return ['--warning-as-error']
 
@@ -980,6 +974,3 @@ class CudaLinker(DynamicLinker):
                         suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
                         is_shared_module: bool) -> typing.List[str]:
         return []
-
-    def get_std_shared_lib_args(self) -> typing.List[str]:
-        return ['-shared']
