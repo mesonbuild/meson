@@ -412,7 +412,7 @@ class PosixDynamicLinkerMixin:
         return ['-shared']
 
     def get_search_args(self, dirname: str) -> typing.List[str]:
-        return ['-L', dirname]
+        return ['-L' + dirname]
 
 
 class GnuLikeDynamicLinkerMixin:
