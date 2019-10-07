@@ -10,3 +10,10 @@ py = import('python').find_installation()
 
 test('root', e)
 test('main', py, args : [meson.current_source_dir() / 'script.py', e])
+
+wrapper_args = []
+if get_option('expect')
+  wrapper_args += '--expected'
+endif
+
+test('exe_wrapper in env', py, args : [meson.current_source_dir() / 'exewrapper.py', e, wrapper_args])

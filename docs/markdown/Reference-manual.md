@@ -1613,6 +1613,13 @@ object](#build-target-object) returned by
 object](#external-program-object) returned by
 [`find_program()`](#find_program).
 
+*Since 0.55.0* When cross compiling, if an exe_wrapper is needed and defined
+the environment variable `MESON_EXE_WRAPPER` will be set to the string value
+of that wrapper (implementation detail: using `mesonlib.join_args`). Test
+scripts may use this to run cross built binaries. If your test needs
+`MESON_EXE_WRAPPER` in cross build situations it is your responsibility to
+return code 77 to tell the harness to report "skip"
+
 By default, environment variable
 [`MALLOC_PERTURB_`](http://man7.org/linux/man-pages/man3/mallopt.3.html)
 is automatically set by `meson test` to a random value between 1..255.

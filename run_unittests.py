@@ -7584,7 +7584,7 @@ class CrossFileTests(BasePlatformTests):
             ''')
 
     def test_needs_exe_wrapper_true(self):
-        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        testdir = os.path.join(self.unit_test_dir, '72 cross test passed')
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / 'crossfile'
             with p.open('wt') as f:
@@ -7594,7 +7594,7 @@ class CrossFileTests(BasePlatformTests):
             self.assertRegex(out, r'Skipped:\s*1\s*\n')
 
     def test_needs_exe_wrapper_false(self):
-        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        testdir = os.path.join(self.unit_test_dir, '72 cross test passed')
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / 'crossfile'
             with p.open('wt') as f:
@@ -7604,7 +7604,7 @@ class CrossFileTests(BasePlatformTests):
             self.assertNotRegex(out, r'Skipped:\s*1\n')
 
     def test_needs_exe_wrapper_true_wrapper(self):
-        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        testdir = os.path.join(self.unit_test_dir, '72 cross test passed')
         with tempfile.TemporaryDirectory() as d:
             s = Path(d) / 'wrapper.py'
             with s.open('wt') as f:
@@ -7616,9 +7616,9 @@ class CrossFileTests(BasePlatformTests):
                     needs_exe_wrapper=True,
                     exe_wrapper=[str(s)]))
 
-            self.init(testdir, extra_args=['--cross-file=' + str(p)])
+            self.init(testdir, extra_args=['--cross-file=' + str(p), '-Dexpect=true'])
             out = self.run_target('test')
-            self.assertNotRegex(out, r'Skipped:\s*1\s*\n')
+            self.assertRegex(out, r'Ok:\s*3\s*\n')
 
     def test_cross_exe_passed_no_wrapper(self):
         testdir = os.path.join(self.unit_test_dir, '72 cross test passed')
@@ -7630,7 +7630,7 @@ class CrossFileTests(BasePlatformTests):
             self.init(testdir, extra_args=['--cross-file=' + str(p)])
             self.build()
             out = self.run_target('test')
-            self.assertRegex(out, r'Skipped:\s*2\s*\n')
+            self.assertRegex(out, r'Skipped:\s*1\s*\n')
 
     # The test uses mocking and thus requires that the current process is the
     # one to run the Meson steps. If we are using an external test executable
