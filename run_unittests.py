@@ -5643,6 +5643,7 @@ class LinuxlikeTests(BasePlatformTests):
                 # Assert that
                 self.assertEqual(len(line.split(lib)), 2, msg=(lib, line))
 
+    @skipIfNoPkgconfig
     def test_noncross_options(self):
         # C_std defined in project options must be in effect also when native compiling.
         testdir = os.path.join(self.unit_test_dir, '51 noncross options')
@@ -5665,6 +5666,7 @@ c = ['{0}']
         # TODO should someday be explicit about build platform only here
         self.init(testdir, override_envvars=env)
 
+    @skipIfNoPkgconfig
     def test_static_link(self):
         if is_cygwin():
             raise unittest.SkipTest("Cygwin doesn't support LD_LIBRARY_PATH.")
