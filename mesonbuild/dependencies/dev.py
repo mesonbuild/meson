@@ -19,6 +19,7 @@ import functools
 import glob
 import os
 import re
+import sys
 
 from .. import mesonlib, mlog
 from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
@@ -48,7 +49,8 @@ class GTestDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('gtest', environment, 'cpp', kwargs)
         self.main = kwargs.get('main', False)
-        self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/googletest/src']
+        sub_src_dirs = ['src/gtest/src', 'src/googletest/googletest/src']
+        self.src_dirs = [os.path.join(sys.base_prefix, d) for d in sub_src_dirs]
         self.detect()
         self._add_sub_dependency(ThreadDependency, environment, kwargs)
 
@@ -150,7 +152,8 @@ class GMockDependency(ExternalDependency):
             self.prebuilt = True
             return
 
-        for d in ['/usr/src/googletest/googlemock/src', '/usr/src/gmock/src', '/usr/src/gmock']:
+        sub_src_dirs = ['src/googletest/googlemock/src', 'src/gmock/src', 'src/gmock']
+        for d in [os.path.join(sys.base_prefix, d) for d in sub_src_dirs]:
             if os.path.exists(d):
                 self.is_found = True
                 # Yes, we need both because there are multiple
