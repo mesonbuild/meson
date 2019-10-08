@@ -44,3 +44,13 @@ add_custom_command(
 add_library(cmModLib SHARED cmMod.cpp genTest.cpp cpyBase.cpp cpyBase.hpp)
 include(GenerateExportHeader)
 generate_export_header(cmModLib)
+
+set(ARGS_TEST arg1)
+set(ARGS_TEST ${ARGS_TEST} arg2)
+
+add_executable(args_test args_test.cpp)
+add_custom_target(args_test_cmd
+  COMMAND args_test ARGS ${ARGS_TEST}
+)
+
+add_dependencies(cmModLib args_test_cmd)
