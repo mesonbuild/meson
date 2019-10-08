@@ -76,3 +76,25 @@ else
     has_not_changed = true
 endif
 assert(has_not_changed, 'App has changed.')
+
+if_is_disabled = true
+if disabler()
+  if_is_disabled = false
+else
+  if_is_disabled = false
+endif
+assert(if_is_disabled, 'Disabler in "if condition" must skip both blocks')
+
+if not disabler()
+  if_is_disabled = false
+else
+  if_is_disabled = false
+endif
+assert(if_is_disabled, 'Disabler in "if not condition" must skip both blocks')
+
+if disabler() == 1
+  if_is_disabled = false
+else
+  if_is_disabled = false
+endif
+assert(if_is_disabled, 'Disabler in "if a==b" must skip both blocks')
