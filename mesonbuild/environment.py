@@ -330,6 +330,8 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         trial = 'ppc'
     elif trial in ('amd64', 'x64', 'i86pc'):
         trial = 'x86_64'
+    elif trial in {'sun4u', 'sun4v'}:
+        trial = 'sparc64'
 
     # On Linux (and maybe others) there can be any mixture of 32/64 bit code in
     # the kernel, Python, system, 32-bit chroot on 64-bit host, etc. The only
