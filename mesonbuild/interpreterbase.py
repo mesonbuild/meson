@@ -500,6 +500,8 @@ class InterpreterBase:
 
     def evaluate_notstatement(self, cur):
         v = self.evaluate_statement(cur.value)
+        if is_disabler(v):
+            return v
         if not isinstance(v, bool):
             raise InterpreterException('Argument to "not" is not a boolean.')
         return not v
