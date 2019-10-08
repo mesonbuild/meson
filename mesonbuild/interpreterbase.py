@@ -682,8 +682,6 @@ The result of this is undefined and will become a hard error in a future Meson r
             if len(node.varnames) != 1:
                 raise InvalidArguments('Foreach on array does not unpack')
             varname = node.varnames[0].value
-            if is_disabler(items):
-                return items
             for item in items:
                 self.set_variable(varname, item)
                 try:
@@ -695,8 +693,6 @@ The result of this is undefined and will become a hard error in a future Meson r
         elif isinstance(items, dict):
             if len(node.varnames) != 2:
                 raise InvalidArguments('Foreach on dict unpacks key and value')
-            if is_disabler(items):
-                return items
             for key, value in items.items():
                 self.set_variable(node.varnames[0].value, key)
                 self.set_variable(node.varnames[1].value, value)

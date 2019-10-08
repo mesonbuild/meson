@@ -98,3 +98,25 @@ else
   if_is_disabled = false
 endif
 assert(if_is_disabled, 'Disabler in "if a==b" must skip both blocks')
+
+loops = 0
+disablers = 0
+foreach i : [true, disabler(), true]
+  loops += 1
+  if is_disabler(i)
+    disablers += 1
+  endif
+endforeach
+assert(loops == 3, 'Disabler in foreach array')
+assert(disablers == 1, 'Disabler in foreach array')
+
+loops = 0
+disablers = 0
+foreach k, i : {'a': true, 'b': disabler(), 'c': true}
+  loops += 1
+  if is_disabler(i)
+    disablers += 1
+  endif
+endforeach
+assert(loops == 3, 'Disabler in foreach dict')
+assert(disablers == 1, 'Disabler in foreach dict')
