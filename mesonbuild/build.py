@@ -1488,6 +1488,8 @@ class Executable(BuildTarget):
         self.vs_import_filename = None
         # The import library that GCC would generate (and prefer)
         self.gcc_import_filename = None
+        # The debugging information file this target will generate
+        self.debug_filename = None
 
         # Check for export_dynamic
         self.export_dynamic = False
@@ -1500,12 +1502,13 @@ class Executable(BuildTarget):
         if self.export_dynamic and kwargs.get('implib') is False:
             raise InvalidArguments('"implib" keyword argument must not be false for if "export_dynamic" is true')
 
+        m = environment.machines[for_machine]
+
         # If using export_dynamic, set the import library name
         if self.export_dynamic:
             implib_basename = self.name + '.exe'
             if not isinstance(kwargs.get('implib', False), bool):
                 implib_basename = kwargs['implib']
-            m = environment.machines[for_machine]
             if m.is_windows() or m.is_cygwin():
                 self.vs_import_filename = '{0}.lib'.format(implib_basename)
                 self.gcc_import_filename = 'lib{0}.a'.format(implib_basename)
@@ -1513,6 +1516,11 @@ class Executable(BuildTarget):
                     self.import_filename = self.vs_import_filename
                 else:
                     self.import_filename = self.gcc_import_filename
+
+        if m.is_windows() and ('cs' in self.compilers or
+                               self.get_using_rustc() or
+                               self.get_using_msvc()):
+            self.debug_filename = self.name + '.pdb'
 
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
@@ -1539,6 +1547,14 @@ class Executable(BuildTarget):
         if self.import_filename:
             return [self.vs_import_filename, self.gcc_import_filename]
         return []
+
+    def get_debug_filename(self):
+        """
+        The name of debuginfo file that will be created by the compiler
+
+        Returns None if the build won't create any debuginfo file
+        """
+        return self.debug_filename
 
     def is_linkable_target(self):
         return self.is_linkwithable
@@ -1619,6 +1635,8 @@ class SharedLibrary(BuildTarget):
         self.vs_import_filename = None
         # The import library that GCC would generate (and prefer)
         self.gcc_import_filename = None
+        # The debugging information file this target will generate
+        self.debug_filename = None
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         if 'rust' in self.compilers:
             # If no crate type is specified, or it's the generic lib type, use dylib
@@ -1673,6 +1691,7 @@ class SharedLibrary(BuildTarget):
         """
         prefix = ''
         suffix = ''
+        create_debug_file = False
         self.filename_tpl = self.basic_filename_tpl
         # NOTE: manual prefix/suffix override is currently only tested for C/C++
         # C# and Mono
@@ -1680,6 +1699,7 @@ class SharedLibrary(BuildTarget):
             prefix = ''
             suffix = 'dll'
             self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+            create_debug_file = True
         # C, C++, Swift, Vala
         # Only Windows uses a separate import library for linking
         # For all other targets/platforms import_filename stays None
@@ -1692,11 +1712,13 @@ class SharedLibrary(BuildTarget):
                 prefix = ''
                 # Import library is called foo.dll.lib
                 self.import_filename = '{0}.dll.lib'.format(self.name)
+                create_debug_file = True
             elif self.get_using_msvc():
                 # Shared library is of the form foo.dll
                 prefix = ''
                 # Import library is called foo.lib
                 self.import_filename = self.vs_import_filename
+                create_debug_file = True
             # Assume GCC-compatible naming
             else:
                 # Shared library is of the form libfoo.dll
@@ -1753,6 +1775,8 @@ class SharedLibrary(BuildTarget):
             self.suffix = suffix
         self.filename = self.filename_tpl.format(self)
         self.outputs = [self.filename]
+        if create_debug_file:
+            self.debug_filename = os.path.splitext(self.filename)[0] + '.pdb'
 
     @staticmethod
     def _validate_darwin_versions(darwin_versions):
@@ -1865,6 +1889,14 @@ class SharedLibrary(BuildTarget):
         Returns None if there is no import library required for this platform
         """
         return self.import_filename
+
+    def get_debug_filename(self):
+        """
+        The name of debuginfo file that will be created by the compiler
+
+        Returns None if the build won't create any debuginfo file
+        """
+        return self.debug_filename
 
     def get_import_filenameslist(self):
         if self.import_filename:

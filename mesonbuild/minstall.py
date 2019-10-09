@@ -460,11 +460,6 @@ class Installer:
                         print('Stdout:\n%s\n' % stdo)
                         print('Stderr:\n%s\n' % stde)
                         sys.exit(1)
-                pdb_filename = os.path.splitext(fname)[0] + '.pdb'
-                if not should_strip and os.path.exists(pdb_filename):
-                    pdb_outname = os.path.splitext(outname)[0] + '.pdb'
-                    self.do_copyfile(pdb_filename, pdb_outname)
-                    set_mode(pdb_outname, install_mode, d.install_umask)
                 if fname.endswith('.js'):
                     # Emscripten outputs js files and optionally a wasm file.
                     # If one was generated, install it as well.

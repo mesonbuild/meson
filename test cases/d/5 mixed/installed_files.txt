@@ -5,4 +5,3 @@ usr/lib/libstuff.a
 ?msvc:usr/bin/stuff.dll
 ?msvc:usr/bin/stuff.pdb
 ?msvc:usr/lib/stuff.lib
-?msvc:usr/lib/stuff.pdb
