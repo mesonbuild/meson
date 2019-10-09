@@ -20,6 +20,7 @@ import platform
 from contextlib import contextmanager
 import typing
 from typing import Any, Generator, List, Optional, Sequence, TextIO, Union
+from pathlib import Path
 
 """This is (mostly) a standalone module used to write logging
 information about Meson runs. Some output goes to screen,
@@ -224,6 +225,21 @@ def warning(*args: Union[str, AnsiDecorator], **kwargs: Any) -> None:
 def deprecation(*args: Union[str, AnsiDecorator], **kwargs: Any) -> None:
     return _log_error('deprecation', *args, **kwargs, is_error=True)
 
+def get_relative_path(target: Path, current: Path) -> Path:
+    """Get the path to target from current"""
+    # Go up "current" until we find a common ancestor to target
+    acc = ['.']
+    for part in [current, *current.parents]:
+        try:
+            path = target.relative_to(part)
+            return Path(*acc, path)
+        except ValueError:
+            pass
+        acc += ['..']
+
+    # we failed, should not get here
+    return target
+
 def exception(e: Exception, prefix: Optional[AnsiDecorator] = None) -> None:
     if prefix is None:
         prefix = red('ERROR:')
@@ -232,7 +248,8 @@ def exception(e: Exception, prefix: Optional[AnsiDecorator] = None) -> None:
     if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
         # Mypy can't figure this out, and it's pretty easy to vidual inspect
         # that this is correct, so we'll just ignore it.
-        args.append('%s:%d:%d:' % (e.file, e.lineno, e.colno))  # type: ignore
+        path = get_relative_path(Path(e.file), Path(os.getcwd()))
+        args.append('%s:%d:%d:' % (path, e.lineno, e.colno))  # type: ignore
     if prefix:
         args.append(prefix)
     args.append(str(e))
