@@ -32,8 +32,10 @@ from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
     Compiler,
-    CompilerType,
 )
+
+if typing.TYPE_CHECKING:
+    from ..envconfig import MachineInfo
 
 
 class CCompiler(CLikeCompiler, Compiler):
@@ -46,10 +48,10 @@ class CCompiler(CLikeCompiler, Compiler):
             raise MesonException('Unknown function attribute "{}"'.format(name))
 
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool,
-                 exe_wrapper: typing.Optional[str] = None, **kwargs):
+                 info: 'MachineInfo', exe_wrapper: typing.Optional[str] = None, **kwargs):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
         self.language = 'c'
-        Compiler.__init__(self, exelist, version, for_machine, **kwargs)
+        Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
         CLikeCompiler.__init__(self, is_cross, exe_wrapper)
 
     def get_no_stdinc_args(self):
@@ -75,9 +77,14 @@ class CCompiler(CLikeCompiler, Compiler):
 
 
 class ClangCCompiler(ClangCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self, compiler_type)
+
+    _C17_VERSION = '>=10.0.0'
+    _C18_VERSION = '>=11.0.0'
+
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper, **kwargs)
+        ClangCompiler.__init__(self)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -90,12 +97,10 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         g_stds = ['gnu89', 'gnu99', 'gnu11']
         # https://releases.llvm.org/6.0.0/tools/clang/docs/ReleaseNotes.html
         # https://en.wikipedia.org/wiki/Xcode#Latest_versions
-        v = '>=10.0.0' if self.compiler_type is CompilerType.CLANG_OSX else '>=6.0.0'
-        if version_compare(self.version, v):
+        if version_compare(self.version, self._C17_VERSION):
             c_stds += ['c17']
             g_stds += ['gnu17']
-        v = '>=11.0.0' if self.compiler_type is CompilerType.CLANG_OSX else '>=8.0.0'
-        if version_compare(self.version, v):
+        if version_compare(self.version, self._C18_VERSION):
             c_stds += ['c18']
             g_stds += ['gnu18']
         opts.update({'c_std': coredata.UserComboOption('C language standard to use',
@@ -114,11 +119,25 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         return []
 
 
+class AppleClangCCompiler(ClangCCompiler):
+
+    """Handle the differences between Apple Clang and Vanilla Clang.
+
+    Right now this just handles the differences between the versions that new
+    C standards were added.
+    """
+
+    _C17_VERSION = '>=6.0.0'
+    _C18_VERSION = '>=8.0.0'
+
+
 class EmscriptenCCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, ClangCCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo', is_cross, exe_wrapper=None, **kwargs):
         if not is_cross:
             raise MesonException('Emscripten compiler can only be used for cross compilation.')
-        ClangCCompiler.__init__(self, exelist, version, compiler_type, for_machine, is_cross, exe_wrapper, **kwargs)
+        ClangCCompiler.__init__(self, exelist, version, for_machine,
+                                is_cross, info, exe_wrapper, **kwargs)
         self.id = 'emscripten'
 
     def get_option_link_args(self, options):
@@ -128,9 +147,11 @@ class EmscriptenCCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, ClangC
         raise MesonException('Emscripten does not support shared libraries.')
 
 class ArmclangCCompiler(ArmclangCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
-        ArmclangCompiler.__init__(self, compiler_type)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo', is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, **kwargs)
+        ArmclangCompiler.__init__(self)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -157,9 +178,12 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
 
 
 class GnuCCompiler(GnuCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
-        GnuCompiler.__init__(self, compiler_type, defines)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None,
+                 defines=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, **kwargs)
+        GnuCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -177,7 +201,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         opts.update({'c_std': coredata.UserComboOption('C language standard to use',
                                                        ['none'] + c_stds + g_stds,
                                                        'none')})
-        if self.compiler_type.is_windows_compiler:
+        if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
                 'c_winlibs': coredata.UserArrayOption('Standard Win libraries to link against',
                                                       gnu_winlibs), })
@@ -191,7 +215,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         return args
 
     def get_option_link_args(self, options):
-        if self.compiler_type.is_windows_compiler:
+        if self.info.is_windows() or self.info.is_cygwin():
             return options['c_winlibs'].value[:]
         return []
 
@@ -200,15 +224,19 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
 
 class PGICCompiler(PGICompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
-        PGICompiler.__init__(self, compiler_type)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, **kwargs)
+        PGICompiler.__init__(self)
 
 
 class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        GnuCCompiler.__init__(self, exelist, version, compiler_type, for_machine, is_cross, exe_wrapper, defines, **kwargs)
-        ElbrusCompiler.__init__(self, compiler_type, defines)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None, defines=None, **kwargs):
+        GnuCCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                              info, exe_wrapper, defines, **kwargs)
+        ElbrusCompiler.__init__(self, defines)
 
     # It does support some various ISO standards and c/gnu 90, 9x, 1x in addition to those which GNU CC supports.
     def get_options(self):
@@ -232,9 +260,11 @@ class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
 
 
 class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
-        IntelGnuLikeCompiler.__init__(self, compiler_type)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, **kwargs)
+        IntelGnuLikeCompiler.__init__(self)
         self.lang_header = 'c-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark']
         self.warn_args = {'0': [],
@@ -274,16 +304,23 @@ class VisualStudioLikeCCompilerMixin:
     def get_option_link_args(self, options):
         return options['c_winlibs'].value[:]
 
+
 class VisualStudioCCompiler(VisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target: str, **kwargs):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrap, target: str,
+                 **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrap, **kwargs)
         VisualStudioLikeCompiler.__init__(self, target)
         self.id = 'msvc'
 
+
 class ClangClCCompiler(VisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target, **kwargs):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrap, target, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrap, **kwargs)
         VisualStudioLikeCompiler.__init__(self, target)
         self.id = 'clang-cl'
 
@@ -294,8 +331,10 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
 
     __have_warned = False
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrap, target, **kwargs):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrap, **kwargs)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrap, target, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrap, **kwargs)
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
     def get_options(self):
@@ -319,9 +358,11 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
 
 
 class ArmCCompiler(ArmCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
-        ArmCompiler.__init__(self, compiler_type)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, **kwargs)
+        ArmCompiler.__init__(self)
 
     def get_options(self):
         opts = CCompiler.get_options(self)
@@ -337,10 +378,13 @@ class ArmCCompiler(ArmCompiler, CCompiler):
             args.append('--' + std.value)
         return args
 
+
 class CcrxCCompiler(CcrxCompiler, CCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
-        CCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
-        CcrxCompiler.__init__(self, compiler_type)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, **kwargs)
+        CcrxCompiler.__init__(self)
 
     # Override CCompiler.get_always_args
     def get_always_args(self):

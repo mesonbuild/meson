@@ -19,6 +19,7 @@ from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
 if typing.TYPE_CHECKING:
+    from ..envconfig import MachineInfo
     from ..environment import Environment  # noqa: F401
 
 rust_optimization_args = {'0': [],
@@ -30,9 +31,13 @@ rust_optimization_args = {'0': [],
                           }
 
 class RustCompiler(Compiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
+
+    LINKER_PREFIX = '-Wl,'
+
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
         self.language = 'rust'
-        super().__init__(exelist, version, for_machine, **kwargs)
+        super().__init__(exelist, version, for_machine, info, **kwargs)
         self.exe_wrapper = exe_wrapper
         self.id = 'rustc'
         self.is_cross = is_cross

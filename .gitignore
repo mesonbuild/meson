@@ -1,4 +1,5 @@
 .mypy_cache/
+.pytest_cache/
 /.project
 /.pydevproject
 /.settings

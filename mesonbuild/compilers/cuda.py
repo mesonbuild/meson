@@ -24,6 +24,7 @@ from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
 
 if typing.TYPE_CHECKING:
     from ..environment import Environment  # noqa: F401
+    from ..envconfig import MachineInfo
 
 
 class CudaCompiler(Compiler):
@@ -32,10 +33,11 @@ class CudaCompiler(Compiler):
 
     _universal_flags = {'compiler': ['-I', '-D', '-U', '-E'], 'linker': ['-l', '-L']}
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross, exe_wrapper, host_compiler, **kwargs):
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, exe_wrapper, host_compiler, info: 'MachineInfo', **kwargs):
         if not hasattr(self, 'language'):
             self.language = 'cuda'
-        super().__init__(exelist, version, for_machine, **kwargs)
+        super().__init__(exelist, version, for_machine, info, **kwargs)
         self.is_cross = is_cross
         self.exe_wrapper = exe_wrapper
         self.host_compiler = host_compiler

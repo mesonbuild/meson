@@ -22,10 +22,15 @@ from .compilers import Compiler
 from .mixins.gnu import GnuCompiler
 from .mixins.clang import ClangCompiler
 
+if typing.TYPE_CHECKING:
+    from ..envconfig import MachineInfo
+
 class ObjCPPCompiler(CLikeCompiler, Compiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool, exe_wrap: typing.Optional[str], **kwargs):
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 exe_wrap: typing.Optional[str], **kwargs):
         self.language = 'objcpp'
-        Compiler.__init__(self, exelist, version, for_machine, **kwargs)
+        Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
         CLikeCompiler.__init__(self, is_cross, exe_wrap)
 
     def get_display_language(self):
@@ -58,9 +63,11 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
 
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, defines=None, **kwargs):
-        ObjCPPCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
-        GnuCompiler.__init__(self, compiler_type, defines)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None,
+                 defines=None, **kwargs):
+        ObjCPPCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper, **kwargs)
+        GnuCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -69,9 +76,11 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
 
 
 class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
-    def __init__(self, exelist, version, compiler_type, for_machine: MachineChoice, is_cross, exe_wrapper=None, **kwargs):
-        ObjCPPCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self, compiler_type)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None,
+                 **kwargs):
+        ObjCPPCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper, **kwargs)
+        ClangCompiler.__init__(self)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'0': [],
                           '1': default_warn_args,

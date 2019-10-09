@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib, enum, os.path, re, tempfile
+import contextlib, os.path, re, tempfile
 import typing
 from typing import Optional, Tuple, List
 
@@ -30,6 +30,7 @@ from ..envconfig import (
 
 if typing.TYPE_CHECKING:
     from ..coredata import OptionDictType
+    from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker  # noqa: F401
 
@@ -668,7 +669,7 @@ class Compiler:
 
     LINKER_PREFIX = None  # type: typing.Union[None, str, typing.List[str]]
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
+    def __init__(self, exelist, version, for_machine: MachineChoice, info: 'MachineInfo',
                  linker: typing.Optional['DynamicLinker'] = None, **kwargs):
         if isinstance(exelist, str):
             self.exelist = [exelist]
@@ -690,6 +691,7 @@ class Compiler:
         self.for_machine = for_machine
         self.base_options = []
         self.linker = linker
+        self.info = info
 
     def __repr__(self):
         repr_str = "<{0}: v{1} `{2}`>"
@@ -1175,52 +1177,11 @@ class Compiler:
         return dep.get_link_args()
 
 
-@enum.unique
-class CompilerType(enum.Enum):
-    GCC_STANDARD = 0
-    GCC_OSX = 1
-    GCC_MINGW = 2
-    GCC_CYGWIN = 3
-
-    CLANG_STANDARD = 10
-    CLANG_OSX = 11
-    CLANG_MINGW = 12
-    CLANG_EMSCRIPTEN = 13
-    # Possibly clang-cl?
-
-    ICC_STANDARD = 20
-    ICC_OSX = 21
-    ICC_WIN = 22
-
-    ARM_WIN = 30
-
-    CCRX_WIN = 40
-
-    PGI_STANDARD = 50
-    PGI_OSX = 51
-    PGI_WIN = 52
-
-    @property
-    def is_standard_compiler(self):
-        return self.name in ('GCC_STANDARD', 'CLANG_STANDARD', 'ICC_STANDARD', 'PGI_STANDARD')
-
-    @property
-    def is_osx_compiler(self):
-        return self.name in ('GCC_OSX', 'CLANG_OSX', 'ICC_OSX', 'PGI_OSX')
-
-    @property
-    def is_windows_compiler(self):
-        return self.name in ('GCC_MINGW', 'GCC_CYGWIN', 'CLANG_MINGW', 'ICC_WIN', 'ARM_WIN', 'CCRX_WIN', 'PGI_WIN')
-
-def get_compiler_is_linuxlike(compiler):
-    compiler_type = getattr(compiler, 'compiler_type', None)
-    return compiler_type and compiler_type.is_standard_compiler
-
 def get_largefile_args(compiler):
     '''
     Enable transparent large-file-support for 32-bit UNIX systems
     '''
-    if get_compiler_is_linuxlike(compiler):
+    if not (compiler.info.is_windows() or compiler.info.is_darwin()):
         # Enable large-file support unconditionally on all platforms other
         # than macOS and Windows. macOS is now 64-bit-only so it doesn't
         # need anything special, and Windows doesn't have automatic LFS.

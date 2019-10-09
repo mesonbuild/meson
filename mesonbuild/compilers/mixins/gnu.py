@@ -26,7 +26,6 @@ from ... import mesonlib
 from ... import mlog
 
 if typing.TYPE_CHECKING:
-    from ..compilers import CompilerType
     from ...coredata import UserOption  # noqa: F401
     from ...environment import Environment
 
@@ -130,19 +129,18 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
 
     LINKER_PREFIX = '-Wl,'
 
-    def __init__(self, compiler_type: 'CompilerType'):
-        self.compiler_type = compiler_type
+    def __init__(self):
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_ndebug', 'b_staticpic', 'b_pie']
-        if not (self.compiler_type.is_windows_compiler or mesonlib.is_openbsd()):
+        if not (self.info.is_windows() or self.info.is_cygwin() or self.info.is_openbsd()):
             self.base_options.append('b_lundef')
-        if not self.compiler_type.is_windows_compiler:
+        if not self.info.is_windows() or self.info.is_cygwin():
             self.base_options.append('b_asneeded')
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
 
     def get_pic_args(self) -> typing.List[str]:
-        if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:
+        if self.info.is_windows() or self.info.is_cygwin() or self.info.is_darwin():
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
@@ -184,7 +182,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
             raise RuntimeError('Module definitions file should be str')
         # On Windows targets, .def files may be specified on the linker command
         # line like an object file.
-        if self.compiler_type.is_windows_compiler:
+        if self.info.is_windows() or self.info.is_cygwin():
             return [defsfile]
         # For other targets, discard the .def file.
         return []
@@ -199,7 +197,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         return ['-fprofile-use', '-fprofile-correction']
 
     def get_gui_app_args(self, value: bool) -> typing.List[str]:
-        if self.compiler_type.is_windows_compiler:
+        if self.info.is_windows() or self.info.is_cygwin():
             return ['-mwindows' if value else '-mconsole']
         return []
 
@@ -301,8 +299,8 @@ class GnuCompiler(GnuLikeCompiler):
     Compilers imitating GCC (Clang/Intel) should use the GnuLikeCompiler ABC.
     """
 
-    def __init__(self, compiler_type: 'CompilerType', defines: typing.Dict[str, str]):
-        super().__init__(compiler_type)
+    def __init__(self, defines: typing.Dict[str, str]):
+        super().__init__()
         self.id = 'gcc'
         self.defines = defines or {}
         self.base_options.append('b_colorout')

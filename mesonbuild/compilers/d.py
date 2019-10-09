@@ -16,11 +16,10 @@ import os.path, subprocess
 import typing
 
 from ..mesonlib import (
-    EnvironmentException, MachineChoice, version_compare, is_windows, is_osx
+    EnvironmentException, MachineChoice, version_compare,
 )
 
 from .compilers import (
-    CompilerType,
     d_dmd_buildtype_args,
     d_gdc_buildtype_args,
     d_ldc_buildtype_args,
@@ -30,6 +29,9 @@ from .compilers import (
 )
 from .mixins.gnu import GnuCompiler
 from .mixins.islinker import LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin
+
+if typing.TYPE_CHECKING:
+    from ..envconfig import MachineInfo
 
 d_feature_args = {'gcc':  {'unittest': '-funittest',
                            'debug': '-fdebug',
@@ -117,7 +119,7 @@ class DmdLikeCompilerMixin:
         return 'deps'
 
     def get_pic_args(self):
-        if is_windows():
+        if self.info.is_windows():
             return []
         return ['-fPIC']
 
@@ -215,7 +217,7 @@ class DmdLikeCompilerMixin:
         return ['-Wl,--out-implib=' + implibname]
 
     def build_rpath_args(self, env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
-        if is_windows():
+        if self.info.is_windows():
             return []
 
         # This method is to be used by LDC and DMD.
@@ -233,8 +235,7 @@ class DmdLikeCompilerMixin:
                 paths = paths + ':' + padding
         return ['-Wl,-rpath,{}'.format(paths)]
 
-    @classmethod
-    def translate_args_to_nongnu(cls, args):
+    def translate_args_to_nongnu(self, args):
         dcargs = []
         # Translate common arguments to flags the LDC/DMD compilers
         # can understand.
@@ -243,10 +244,10 @@ class DmdLikeCompilerMixin:
         for arg in args:
             # Translate OS specific arguments first.
             osargs = []
-            if is_windows():
-                osargs = cls.translate_arg_to_windows(arg)
-            elif is_osx():
-                osargs = cls.translate_arg_to_osx(arg)
+            if self.info.is_windows():
+                osargs = self.translate_arg_to_windows(arg)
+            elif self.info.is_darwin():
+                osargs = self.translate_arg_to_osx(arg)
             if osargs:
                 dcargs.extend(osargs)
                 continue
@@ -365,7 +366,7 @@ class DmdLikeCompilerMixin:
         return clike_debug_args[is_debug] + ddebug_args
 
     def get_crt_args(self, crt_val, buildtype):
-        if not is_windows():
+        if not self.info.is_windows():
             return []
 
         if crt_val in self.mscrt_args:
@@ -402,9 +403,10 @@ class DCompiler(Compiler):
         'mtd': ['-mscrtlib=libcmtd'],
     }
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo', arch, **kwargs):
         self.language = 'd'
-        super().__init__(exelist, version, for_machine, **kwargs)
+        super().__init__(exelist, version, for_machine, info, **kwargs)
         self.id = 'unknown'
         self.arch = arch
 
@@ -430,7 +432,7 @@ class DCompiler(Compiler):
         return 'deps'
 
     def get_pic_args(self):
-        if is_windows():
+        if self.info.is_windows():
             return []
         return ['-fPIC']
 
@@ -566,7 +568,7 @@ class DCompiler(Compiler):
     def get_target_arch_args(self):
         # LDC2 on Windows targets to current OS architecture, but
         # it should follow the target specified by the MSVC toolchain.
-        if is_windows():
+        if self.info.is_windows():
             if self.arch == 'x86_64':
                 return ['-m64']
             return ['-m32']
@@ -590,8 +592,9 @@ class GnuDCompiler(DCompiler, GnuCompiler):
     # we mostly want DCompiler, but that gives us the Compiler.LINKER_PREFIX instead
     LINKER_PREFIX = GnuCompiler.LINKER_PREFIX
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo', arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, info, arch, **kwargs)
         self.id = 'gcc'
         default_warn_args = ['-Wall', '-Wdeprecated']
         self.warn_args = {'0': [],
@@ -633,8 +636,10 @@ class GnuDCompiler(DCompiler, GnuCompiler):
 
 
 class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, DCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
+
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo', arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, info, arch, **kwargs)
         self.id = 'llvm'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
 
@@ -662,17 +667,18 @@ class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompi
     def get_crt_link_args(self, crt_val, buildtype):
         return self.get_crt_args(crt_val, buildtype)
 
-    @classmethod
-    def unix_args_to_native(cls, args):
-        return cls.translate_args_to_nongnu(args)
+    def unix_args_to_native(self, args):
+        return self.translate_args_to_nongnu(args)
 
     def get_optimization_args(self, optimization_level):
         return ldc_optimization_args[optimization_level]
 
 
 class DmdDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, DCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, for_machine, arch, **kwargs)
+
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 info: 'MachineInfo', arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, info, arch, **kwargs)
         self.id = 'dmd'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
 
@@ -687,7 +693,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompil
         return d_dmd_buildtype_args[buildtype]
 
     def get_std_exe_link_args(self):
-        if is_windows():
+        if self.info.is_windows():
             # DMD links against D runtime only when main symbol is found,
             # so these needs to be inserted when linking static D libraries.
             if self.arch == 'x86_64':
@@ -699,7 +705,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompil
 
     def get_std_shared_lib_link_args(self):
         libname = 'libphobos2.so'
-        if is_windows():
+        if self.info.is_windows():
             if self.arch == 'x86_64':
                 libname = 'phobos64.lib'
             elif self.arch == 'x86_mscoff':
@@ -712,7 +718,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompil
         # DMD32 and DMD64 on 64-bit Windows defaults to 32-bit (OMF).
         # Force the target to 64-bit in order to stay consistent
         # across the different platforms.
-        if is_windows():
+        if self.info.is_windows():
             if self.arch == 'x86_64':
                 return ['-m64']
             elif self.arch == 'x86_mscoff':
@@ -723,9 +729,8 @@ class DmdDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompil
     def get_crt_compile_args(self, crt_val, buildtype):
         return self.get_crt_args(crt_val, buildtype)
 
-    @classmethod
-    def unix_args_to_native(cls, args):
-        return cls.translate_args_to_nongnu(args)
+    def unix_args_to_native(self, args):
+        return self.translate_args_to_nongnu(args)
 
     def get_optimization_args(self, optimization_level):
         return dmd_optimization_args[optimization_level]

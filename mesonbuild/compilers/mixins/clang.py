@@ -17,12 +17,12 @@
 import os
 import typing
 
-from .gnu import GnuLikeCompiler
-from ..compilers import clike_optimization_args
 from ... import mesonlib
+from ...linkers import AppleDynamicLinker
+from ..compilers import clike_optimization_args
+from .gnu import GnuLikeCompiler
 
 if typing.TYPE_CHECKING:
-    from ..compilers import CompilerType
     from ...environment import Environment
     from ...dependencies import Dependency  # noqa: F401
 
@@ -34,11 +34,13 @@ clang_color_args = {
 
 
 class ClangCompiler(GnuLikeCompiler):
-    def __init__(self, compiler_type: 'CompilerType'):
-        super().__init__(compiler_type)
+    def __init__(self):
+        super().__init__()
         self.id = 'clang'
         self.base_options.append('b_colorout')
-        if self.compiler_type.is_osx_compiler:
+        # TODO: this really should be part of the linker base_options, but
+        # linkers don't have base_options.
+        if isinstance(self.linker, AppleDynamicLinker):
             self.base_options.append('b_bitcode')
         # All Clang backends can also do LLVM IR
         self.can_compile_suffixes.add('ll')
@@ -75,7 +77,8 @@ class ClangCompiler(GnuLikeCompiler):
         # visibility to obey OS X/iOS/tvOS minimum version targets with
         # -mmacosx-version-min, -miphoneos-version-min, -mtvos-version-min etc.
         # https://github.com/Homebrew/homebrew-core/issues/3727
-        if self.compiler_type.is_osx_compiler and mesonlib.version_compare(self.version, '>=8.0'):
+        # TODO: this really should be communicated by the linker
+        if isinstance(self.linker, AppleDynamicLinker) and mesonlib.version_compare(self.version, '>=8.0'):
             extra_args.append('-Wl,-no_weak_imports')
         return super().has_function(funcname, prefix, env, extra_args=extra_args,
                                     dependencies=dependencies)

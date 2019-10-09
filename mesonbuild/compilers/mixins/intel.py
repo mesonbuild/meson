@@ -22,7 +22,6 @@ import os
 import typing
 
 from ... import mesonlib
-from ..compilers import CompilerType
 from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
 
@@ -44,8 +43,8 @@ clike_optimization_args = {
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1, 19.0.0
 class IntelGnuLikeCompiler(GnuLikeCompiler):
 
-    def __init__(self, compiler_type: 'CompilerType'):
-        super().__init__(compiler_type)
+    def __init__(self):
+        super().__init__()
         # As of 19.0.0 ICC doesn't have sanitizer, color, or lto support.
         #
         # It does have IPO, which serves much the same purpose as LOT, but
@@ -104,7 +103,6 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     def __init__(self, target: str):
         super().__init__(target)
-        self.compiler_type = CompilerType.ICC_WIN
         self.id = 'intel-cl'
 
     def compile(self, code, *, extra_args: typing.Optional[typing.List[str]] = None, **kwargs) -> typing.Iterator['subprocess.Popen']:

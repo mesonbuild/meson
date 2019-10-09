@@ -359,7 +359,7 @@ class InternalTests(unittest.TestCase):
 
     def test_compiler_args_class(self):
         cargsfunc = mesonbuild.compilers.CompilerArgs
-        cc = mesonbuild.compilers.CCompiler([], 'fake', False, MachineChoice.HOST)
+        cc = mesonbuild.compilers.CCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock())
         # Test that bad initialization fails
         self.assertRaises(TypeError, cargsfunc, [])
         self.assertRaises(TypeError, cargsfunc, [], [])
@@ -446,7 +446,7 @@ class InternalTests(unittest.TestCase):
         cargsfunc = mesonbuild.compilers.CompilerArgs
         ## Test --start/end-group
         linker = mesonbuild.linkers.GnuDynamicLinker([], MachineChoice.HOST, 'fake', '-Wl,')
-        gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', mesonbuild.compilers.CompilerType.GCC_STANDARD, False, MachineChoice.HOST, linker=linker)
+        gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock(), linker=linker)
         ## Ensure that the fake compiler is never called by overriding the relevant function
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
         ## Test that 'direct' append and extend works
@@ -475,7 +475,7 @@ class InternalTests(unittest.TestCase):
         cargsfunc = mesonbuild.compilers.CompilerArgs
         ## Test --start/end-group
         linker = mesonbuild.linkers.GnuDynamicLinker([], MachineChoice.HOST, 'fake', '-Wl,')
-        gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', mesonbuild.compilers.CompilerType.GCC_STANDARD, False, MachineChoice.HOST, linker=linker)
+        gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock(), linker=linker)
         ## Ensure that the fake compiler is never called by overriding the relevant function
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
         ## Test that 'direct' append and extend works
@@ -2274,35 +2274,35 @@ class AllPlatformTests(BasePlatformTests):
             if isinstance(cc, gnu):
                 self.assertIsInstance(linker, ar)
                 if is_osx():
-                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_OSX)
-                elif is_windows():
-                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_MINGW)
-                elif is_cygwin():
-                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_CYGWIN)
+                    self.assertIsInstance(cc.linker, mesonbuild.linkers.AppleDynamicLinker)
                 else:
-                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.GCC_STANDARD)
+                    self.assertIsInstance(cc.linker, mesonbuild.linkers.GnuLikeDynamicLinkerMixin)
+            if isinstance(cc, clangcl):
+                self.assertIsInstance(linker, lib)
+                self.assertIsInstance(cc.linker, mesonbuild.linkers.ClangClDynamicLinker)
             if isinstance(cc, clang):
                 self.assertIsInstance(linker, ar)
                 if is_osx():
-                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.CLANG_OSX)
+                    self.assertIsInstance(cc.linker, mesonbuild.linkers.AppleDynamicLinker)
                 elif is_windows():
-                    # Not implemented yet
-                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.CLANG_MINGW)
+                    # This is clang, not clang-cl
+                    self.assertIsInstance(cc.linker, mesonbuild.linkers.MSVCDynamicLinker)
                 else:
-                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.CLANG_STANDARD)
+                    self.assertIsInstance(cc.linker, mesonbuild.linkers.GnuLikeDynamicLinkerMixin)
             if isinstance(cc, intel):
                 self.assertIsInstance(linker, ar)
                 if is_osx():
-                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.ICC_OSX)
+                    self.assertIsInstance(cc.linker, mesonbuild.linkers.XildAppleDynamicLinker)
                 elif is_windows():
-                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.ICC_WIN)
+                    self.assertIsInstance(cc.linker, mesonbuild.linkers.XilinkDynamicLinker)
                 else:
-                    self.assertEqual(cc.compiler_type, mesonbuild.compilers.CompilerType.ICC_STANDARD)
+                    self.assertIsInstance(cc.linker, mesonbuild.linkers.XildLinuxDynamicLinker)
             if isinstance(cc, msvc):
                 self.assertTrue(is_windows())
                 self.assertIsInstance(linker, lib)
                 self.assertEqual(cc.id, 'msvc')
                 self.assertTrue(hasattr(cc, 'is_64'))
+                self.assertIsInstance(cc.linker, mesonbuild.linkers.MSVCDynamicLinker)
                 # If we're on Windows CI, we know what the compiler will be
                 if 'arch' in os.environ:
                     if os.environ['arch'] == 'x64':
@@ -2717,8 +2717,7 @@ int main(int argc, char **argv) {
                 '/NOLOGO', '/DLL', '/DEBUG', '/IMPLIB:' + impfile,
                 '/OUT:' + outfile, objectfile]
         else:
-            if not (compiler.compiler_type.is_windows_compiler or
-                    compiler.compiler_type.is_osx_compiler):
+            if not (compiler.info.is_windows() or compiler.info.is_cygwin() or compiler.info.is_darwin()):
                 extra_args += ['-fPIC']
             link_cmd = compiler.get_exelist() + ['-shared', '-o', outfile, objectfile]
             if not mesonbuild.mesonlib.is_osx():
@@ -6914,7 +6913,8 @@ def _clang_at_least(compiler, minver: str, apple_minver: str) -> bool:
     at_least: bool
         Clang is at least the specified version
     """
-    if compiler.compiler_type == mesonbuild.compilers.CompilerType.CLANG_OSX:
+    if isinstance(compiler, (mesonbuild.compilers.AppleClangCCompiler,
+                             mesonbuild.compilers.AppleClangCPPCompiler)):
         return version_compare(compiler.version, apple_minver)
     return version_compare(compiler.version, minver)
 
