@@ -76,3 +76,47 @@ else
     has_not_changed = true
 endif
 assert(has_not_changed, 'App has changed.')
+
+if_is_disabled = true
+if disabler()
+  if_is_disabled = false
+else
+  if_is_disabled = false
+endif
+assert(if_is_disabled, 'Disabler in "if condition" must skip both blocks')
+
+if not disabler()
+  if_is_disabled = false
+else
+  if_is_disabled = false
+endif
+assert(if_is_disabled, 'Disabler in "if not condition" must skip both blocks')
+
+if disabler() == 1
+  if_is_disabled = false
+else
+  if_is_disabled = false
+endif
+assert(if_is_disabled, 'Disabler in "if a==b" must skip both blocks')
+
+loops = 0
+disablers = 0
+foreach i : [true, disabler(), true]
+  loops += 1
+  if is_disabler(i)
+    disablers += 1
+  endif
+endforeach
+assert(loops == 3, 'Disabler in foreach array')
+assert(disablers == 1, 'Disabler in foreach array')
+
+loops = 0
+disablers = 0
+foreach k, i : {'a': true, 'b': disabler(), 'c': true}
+  loops += 1
+  if is_disabler(i)
+    disablers += 1
+  endif
+endforeach
+assert(loops == 3, 'Disabler in foreach dict')
+assert(disablers == 1, 'Disabler in foreach dict')
