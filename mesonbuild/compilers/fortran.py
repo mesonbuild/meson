@@ -32,7 +32,7 @@ from .mixins.pgi import PGICompiler
 from .. import mlog
 
 from mesonbuild.mesonlib import (
-    EnvironmentException, MachineChoice, is_osx, LibType
+    EnvironmentException, MachineChoice, LibType
 )
 
 if typing.TYPE_CHECKING:
@@ -296,7 +296,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, target: str, info: 'MachineInfo', exe_wrapper=None,
                  **kwargs):
-        FortranCompiler.__init__(self, exelist, for_machine, version,
+        FortranCompiler.__init__(self, exelist, version, for_machine,
                                  is_cross, info, exe_wrapper, **kwargs)
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
