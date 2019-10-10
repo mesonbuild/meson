@@ -2264,6 +2264,29 @@ class Interpreter(InterpreterBase):
     def get_build_def_files(self):
         return self.build_def_files
 
+    def add_build_def_file(self, f):
+        # Use relative path for files within source directory, and absolute path
+        # for system files. Skip files within build directory. Also skip not regular
+        # files (e.g. /dev/stdout) Normalize the path to avoid duplicates, this
+        # is especially important to convert '/' to '\' on Windows.
+        if isinstance(f, mesonlib.File):
+            if f.is_built:
+                return
+            f = os.path.normpath(f.relative_name())
+        elif os.path.isfile(f):
+            srcdir = self.environment.get_source_dir()
+            builddir = self.environment.get_build_dir()
+            f = os.path.normpath(f)
+            rel_path = mesonlib.relpath(f, start=srcdir)
+            if not rel_path.startswith('..'):
+                f = rel_path
+            elif not mesonlib.relpath(f, start=builddir).startswith('..'):
+                return
+        else:
+            return
+        if f not in self.build_def_files:
+            self.build_def_files.append(f)
+
     def get_variables(self):
         return self.variables
 
@@ -2414,13 +2437,6 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Program or command {!r} not found '
                                            'or not executable'.format(cmd))
             cmd = prog
-        cmd_path = mesonlib.relpath(cmd.get_path(), start=srcdir)
-        if not cmd_path.startswith('..'):
-            # On Windows, program on a different drive than srcdir won't have
-            # an expressible relative path; cmd_path will be absolute instead.
-            if not os.path.isabs(cmd_path):
-                if cmd_path not in self.build_def_files:
-                    self.build_def_files.append(cmd_path)
         for a in listify(cargs):
             if isinstance(a, str):
                 expanded_args.append(a)
@@ -2432,13 +2448,11 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Arguments ' + m.format(a))
         # If any file that was used as an argument to the command
         # changes, we must re-run the configuration step.
+        self.add_build_def_file(cmd.get_path())
         for a in expanded_args:
             if not os.path.isabs(a):
                 a = os.path.join(builddir if in_builddir else srcdir, self.subdir, a)
-            if os.path.isfile(a):
-                a = mesonlib.relpath(a, start=srcdir)
-                if a not in self.build_def_files:
-                    self.build_def_files.append(a)
+            self.add_build_def_file(a)
         return RunProcess(cmd, expanded_args, env, srcdir, builddir, self.subdir,
                           self.environment.get_build_command() + ['introspect'],
                           in_builddir=in_builddir, check=check, capture=capture)
@@ -3711,6 +3725,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             if isinstance(f, mesonlib.File):
                 inputs_abs.append(f.absolute_path(self.environment.source_dir,
                                                   self.environment.build_dir))
+                self.add_build_def_file(f)
             else:
                 raise InterpreterException('Inputs can only be strings or file objects')
         # Validate output
@@ -3798,8 +3813,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                     df = DepFile(f.readlines())
                     deps = df.get_all_dependencies(ofile_fname)
                     for dep in deps:
-                        if dep not in self.build_def_files:
-                            self.build_def_files.append(dep)
+                        self.add_build_def_file(dep)
 
         elif 'copy' in kwargs:
             if len(inputs_abs) != 1:
@@ -3810,16 +3824,6 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         else:
             # Not reachable
             raise AssertionError
-        # If the input is a source file, add it to the list of files that we
-        # need to reconfigure on when they change.
-        for f in chain(inputs, kwargs.get('command', [])):
-            if isinstance(f, mesonlib.File) and not f.is_built:
-                # Normalize the path of the conffile (relative to the
-                # source root) to avoid duplicates. This is especially
-                # important to convert '/' to '\' on Windows
-                conffile = os.path.normpath(f.relative_name())
-                if conffile not in self.build_def_files:
-                    self.build_def_files.append(conffile)
         # Install file if requested, we check for the empty string
         # for backwards compatibility. That was the behaviour before
         # 0.45.0 so preserve it.
