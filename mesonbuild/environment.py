@@ -1036,6 +1036,7 @@ class Environment:
         popen_exceptions = {}
         is_cross = not self.machines.matches_build_machine(for_machine)
         compilers, ccache, exe_wrap = self._get_compilers('cuda', for_machine)
+        info = self.machines[for_machine]
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -1065,7 +1066,7 @@ class Environment:
             version = out.strip().split('V')[-1]
             cpp_compiler = self.detect_cpp_compiler(for_machine)
             linker = CudaLinker(compiler, for_machine, 'nvlink', CudaCompiler.LINKER_PREFIX, version=CudaLinker.parse_version())
-            return CudaCompiler(ccache + compiler, version, for_machine, is_cross, exe_wrap, host_compiler=cpp_compiler, linker=linker)
+            return CudaCompiler(ccache + compiler, version, for_machine, is_cross, exe_wrap, host_compiler=cpp_compiler, info=info, linker=linker)
         raise EnvironmentException('Could not find suitable CUDA compiler: "' + ' '.join(compilers) + '"')
 
     def detect_fortran_compiler(self, for_machine: MachineChoice):
