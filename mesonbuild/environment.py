@@ -972,8 +972,8 @@ class Environment:
                 cls = IntelClCCompiler if lang == 'c' else IntelClCPPCompiler
                 linker = XilinkDynamicLinker(for_machine, version=version)
                 return cls(
-                    compiler, version, for_machine, is_cross, exe_wrap,
-                    target, info, linker=linker)
+                    compiler, version, for_machine, is_cross, info=info,
+                    exe_wrap=exe_wrap, target=target, linker=linker)
             if 'Microsoft' in out or 'Microsoft' in err:
                 # Latest versions of Visual Studio print version
                 # number to stderr but earlier ones print version
