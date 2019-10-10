@@ -84,7 +84,8 @@ skip_targets = ['UTILITY']
 blacklist_compiler_flags = [
     '/W1', '/W2', '/W3', '/W4', '/Wall',
     '/O1', '/O2', '/Ob', '/Od', '/Og', '/Oi', '/Os', '/Ot', '/Ox', '/Oy', '/Ob0',
-    '/RTC1', '/RTCc', '/RTCs', '/RTCu'
+    '/RTC1', '/RTCc', '/RTCs', '/RTCu',
+    '/Z7', '/Zi', '/ZI',
 ]
 
 blacklist_link_flags = [
