@@ -1557,6 +1557,10 @@ class CompilerHolder(InterpreterObject):
         search_dirs = mesonlib.stringlistify(kwargs.get('dirs', []))
         search_dirs = [Path(d).expanduser() for d in search_dirs]
         for d in search_dirs:
+            if mesonlib.is_windows() and d.root.startswith('\\'):
+                # a Unix-path starting with `/` that is not absolute on Windows.
+                # discard without failing for end-user ease of cross-platform directory arrays
+                continue
             if not d.is_absolute():
                 raise InvalidCode('Search directory {} is not an absolute path.'.format(d))
         search_dirs = list(map(str, search_dirs))
