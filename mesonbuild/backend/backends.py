@@ -281,7 +281,8 @@ class Backend:
                                os.path.join('dummyprefixdir', fromdir))
 
     def flatten_object_list(self, target, proj_dir_to_build_root=''):
-        return self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
+        obj_list = self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
+        return list(dict.fromkeys(obj_list))
 
     def _flatten_object_list(self, target, objects, proj_dir_to_build_root):
         obj_list = []
