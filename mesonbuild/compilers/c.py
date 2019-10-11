@@ -78,8 +78,8 @@ class CCompiler(CLikeCompiler, Compiler):
 
 class ClangCCompiler(ClangCompiler, CCompiler):
 
-    _C17_VERSION = '>=10.0.0'
-    _C18_VERSION = '>=11.0.0'
+    _C17_VERSION = '>=6.0.0'
+    _C18_VERSION = '>=8.0.0'
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
@@ -127,8 +127,8 @@ class AppleClangCCompiler(ClangCCompiler):
     C standards were added.
     """
 
-    _C17_VERSION = '>=6.0.0'
-    _C18_VERSION = '>=8.0.0'
+    _C17_VERSION = '>=10.0.0'
+    _C18_VERSION = '>=11.0.0'
 
 
 class EmscriptenCCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, ClangCCompiler):
