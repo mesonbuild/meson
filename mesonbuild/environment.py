@@ -999,13 +999,13 @@ class Environment:
                 linker = PGIDynamicLinker(compiler, for_machine, 'pgi', cls.LINKER_PREFIX, version=version)
                 return cls(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, linker=linker)
             if '(ICC)' in out:
+                cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 if self.machines[for_machine].is_darwin():
                     compiler_type = CompilerType.ICC_OSX
                     l = XildAppleDynamicLinker(compiler, for_machine, 'xild', '-Wl,', version=version)
                 else:
                     compiler_type = CompilerType.ICC_STANDARD
                     l = XildLinuxDynamicLinker(compiler, for_machine, 'xild', '-Wl,', version=version)
-                cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, for_machine, is_cross, exe_wrap, full_version=full_version, linker=l)
             if 'ARM' in out:
                 compiler_type = CompilerType.ARM_WIN
