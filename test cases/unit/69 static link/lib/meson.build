@@ -66,3 +66,15 @@ libfunc15 = static_library('func15', 'func15.c',
 libfunc16 = static_library('func16', 'func16.c',
   link_with : libfunc15,
   install : true)
+
+# Verify func17.c.o gets included only once into libfunc19, otherwise
+# func19-shared would failed with duplicated symbol.
+libfunc17 = static_library('func17', 'func17.c',
+  install : false)
+libfunc18 = static_library('func18', 'func18.c',
+  link_with : libfunc17,
+  install : false)
+libfunc19 = static_library('func19', 'func19.c',
+  link_whole : [libfunc17, libfunc18],
+  install : false)
+shared_library('func19-shared', link_whole : [libfunc19])
