@@ -1003,11 +1003,11 @@ class Environment:
                     ccache + compiler, version, for_machine, is_cross,
                     info, exe_wrap, linker=linker)
             if '(ICC)' in out:
+                cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 if self.machines[for_machine].is_darwin():
                     l = XildAppleDynamicLinker(compiler, for_machine, 'xild', cls.LINKER_PREFIX, version=version)
                 else:
                     l = XildLinuxDynamicLinker(compiler, for_machine, 'xild', cls.LINKER_PREFIX, version=version)
-                cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=l)
