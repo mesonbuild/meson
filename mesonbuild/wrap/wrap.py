@@ -67,9 +67,12 @@ def open_wrapdburl(urlstring):
         ssl_warning_printed = True
     # Trying to open SSL connection to wrapdb fails because the
     # certificate is not known.
-    if urlstring.startswith('https'):
-        urlstring = 'http' + urlstring[5:]
-    return urllib.request.urlopen(urlstring, timeout=req_timeout)
+    # Use SSL context without checking certificate
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    return urllib.request.urlopen(urlstring, timeout=req_timeout, context=ctx)
 
 class WrapException(MesonException):
     pass
