@@ -811,12 +811,8 @@ class PkgConfigDependency(ExternalDependency):
         # Track not-found libraries to know whether to add library paths
         libs_notfound = []
         libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
-        # Generate link arguments for this library, by
-        # first appending secondary link arguments for ld
+        # Generate link arguments for this library
         link_args = []
-        if self.clib_compiler and self.clib_compiler.linker and isinstance(self.clib_compiler.linker, GnuLikeDynamicLinkerMixin):
-            link_args = ['-Wl,-rpath-link,' + p for p in secondary_libpaths]
-
         for lib in full_args:
             if lib.startswith(('-L-l', '-L-L')):
                 # These are D language arguments, add them as-is
@@ -879,6 +875,14 @@ class PkgConfigDependency(ExternalDependency):
             # Order of -L flags doesn't matter with ld, but it might with other
             # linkers such as MSVC, so prepend them.
             link_args = ['-L' + lp for lp in prefix_libpaths] + link_args
+
+        # Finally, append -Wl,-rpath-link for secondary dependencies
+        if self.clib_compiler and self.clib_compiler.linker and isinstance(self.clib_compiler.linker, GnuLikeDynamicLinkerMixin):
+            # Finding libraries in secondary_libpaths should
+            # have the lowest priority.
+            # https://github.com/mesonbuild/meson/issues/6027
+            link_args += ['-Wl,-rpath-link,' + p for p in secondary_libpaths]
+
         return link_args, raw_link_args
 
     def _set_libs(self):
