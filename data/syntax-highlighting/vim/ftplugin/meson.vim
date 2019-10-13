@@ -8,6 +8,9 @@ let b:did_ftplugin = 1
 let s:keepcpo= &cpo
 set cpo&vim
 
+setlocal commentstring=#\ %s
+setlocal comments=:#
+
 setlocal shiftwidth=2
 setlocal softtabstop=2
 
