@@ -53,6 +53,15 @@ class BasicLinkerIsCompilerMixin:
     def sanitizer_link_args(self, value: str) -> typing.List[str]:
         return []
 
+    def get_asneeded_args(self) -> typing.List[str]:
+        return []
+
+    def get_linker_debug_crt_args(self) -> typing.List[str]:
+        return []
+
+    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
+        return []
+
     def get_lto_link_args(self) -> typing.List[str]:
         return []
 
@@ -86,6 +95,9 @@ class BasicLinkerIsCompilerMixin:
     def get_std_shared_module_args(self, options: 'OptionDictType') -> typing.List[str]:
         return self.get_std_shared_lib_link_args()
 
+    def get_std_shared_module_link_args(self, options: 'OptionDictType') -> typing.List[str]:
+        return self.get_std_shared_module_args(options)
+
     def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
         raise mesonlib.EnvironmentException(
             'Linker {} does not support link_whole'.format(self.id))
@@ -93,6 +105,9 @@ class BasicLinkerIsCompilerMixin:
     def get_allow_undefined_args(self) -> typing.List[str]:
         raise mesonlib.EnvironmentException(
             'Linker {} does not support allow undefined'.format(self.id))
+
+    def get_allow_undefined_link_args(self) -> typing.List[str]:
+        return self.get_allow_undefined_args()
 
     def get_pie_link_args(self) -> typing.List[str]:
         m = 'Linker {} does not support position-independent executable'
