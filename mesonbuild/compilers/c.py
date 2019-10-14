@@ -28,6 +28,7 @@ from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin, LinkerEnvVarsMixin
+from .mixins.emscripten import EmscriptenMixin
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -131,7 +132,7 @@ class AppleClangCCompiler(ClangCCompiler):
     _C18_VERSION = '>=11.0.0'
 
 
-class EmscriptenCCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, ClangCCompiler):
+class EmscriptenCCompiler(LinkerEnvVarsMixin, EmscriptenMixin, BasicLinkerIsCompilerMixin, ClangCCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', exe_wrapper=None, **kwargs):
         if not is_cross:
@@ -140,18 +141,6 @@ class EmscriptenCCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, ClangC
                                 for_machine=for_machine, is_cross=is_cross,
                                 info=info, exe_wrapper=exe_wrapper, **kwargs)
         self.id = 'emscripten'
-
-    def get_option_link_args(self, options):
-        return []
-
-    def get_soname_args(self, *args, **kwargs):
-        raise MesonException('Emscripten does not support shared libraries.')
-
-    def get_allow_undefined_link_args(self) -> typing.List[str]:
-        return ['-s', 'ERROR_ON_UNDEFINED_SYMBOLS=0']
-
-    def get_linker_output_args(self, output: str) -> typing.List[str]:
-        return ['-o', output]
 
 
 class ArmclangCCompiler(ArmclangCompiler, CCompiler):

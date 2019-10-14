@@ -37,6 +37,7 @@ from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin, LinkerEnvVarsMixin
+from .mixins.emscripten import EmscriptenMixin
 
 if typing.TYPE_CHECKING:
     from ..envconfig import MachineInfo
@@ -194,7 +195,7 @@ class AppleClangCPPCompiler(ClangCPPCompiler):
     pass
 
 
-class EmscriptenCPPCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, ClangCPPCompiler):
+class EmscriptenCPPCompiler(LinkerEnvVarsMixin, EmscriptenMixin, BasicLinkerIsCompilerMixin, ClangCPPCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', exe_wrapper=None, **kwargs):
         if not is_cross:
@@ -210,18 +211,6 @@ class EmscriptenCPPCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, Clan
         if std.value != 'none':
             args.append(self._find_best_cpp_std(std.value))
         return args
-
-    def get_option_link_args(self, options):
-        return []
-
-    def get_soname_args(self, *args, **kwargs):
-        raise MesonException('Emscripten does not support shared libraries.')
-
-    def get_allow_undefined_link_args(self) -> typing.List[str]:
-        return ['-s', 'ERROR_ON_UNDEFINED_SYMBOLS=0']
-
-    def get_linker_output_args(self, output: str) -> typing.List[str]:
-        return ['-o', output]
 
 
 class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
