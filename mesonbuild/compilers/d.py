@@ -385,6 +385,9 @@ class DmdLikeCompilerMixin:
         # their own arguments
         return Compiler.get_soname_args(self, *args, **kwargs)
 
+    def get_allow_undefined_link_args(self) -> typing.List[str]:
+        return self.linker.get_allow_undefined_args()
+
 
 class DCompiler(Compiler):
     mscrt_args = {
