@@ -31,3 +31,16 @@ class EmscriptenMixin:
 
     def get_linker_output_args(self, output: str) -> typing.List[str]:
         return ['-o', output]
+
+    def _get_compile_output(self, dirname, mode):
+        # In pre-processor mode, the output is sent to stdout and discarded
+        if mode == 'preprocess':
+            return None
+        # Unlike sane toolchains, emcc infers the kind of output from its name.
+        # This is the only reason why this method is overriden; compiler tests
+        # do not work well with the default exe/obj suffices.
+        if mode == 'link':
+            suffix = 'js'
+        else:
+            suffix = 'wasm'
+        return os.path.join(dirname, 'output.' + suffix)
