@@ -133,11 +133,12 @@ class AppleClangCCompiler(ClangCCompiler):
 
 class EmscriptenCCompiler(LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, ClangCCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 info: 'MachineInfo', is_cross, exe_wrapper=None, **kwargs):
+                 is_cross: bool, info: 'MachineInfo', exe_wrapper=None, **kwargs):
         if not is_cross:
             raise MesonException('Emscripten compiler can only be used for cross compilation.')
-        ClangCCompiler.__init__(self, exelist, version, for_machine,
-                                is_cross, info, exe_wrapper, **kwargs)
+        ClangCCompiler.__init__(self, exelist=exelist, version=version,
+                                for_machine=for_machine, is_cross=is_cross,
+                                info=info, exe_wrapper=exe_wrapper, **kwargs)
         self.id = 'emscripten'
 
     def get_option_link_args(self, options):
