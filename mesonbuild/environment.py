@@ -352,7 +352,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
 
     if trial not in known_cpu_families:
         mlog.warning('Unknown CPU family {!r}, please report this at '
-                     'https://github.com/mesonbuild/meson/issues/new with the'
+                     'https://github.com/mesonbuild/meson/issues/new with the '
                      'output of `uname -a` and `cat /proc/cpuinfo`'.format(trial))
 
     return trial
