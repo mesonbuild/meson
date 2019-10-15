@@ -37,6 +37,7 @@ _T = typing.TypeVar('_T')
 
 known_cpu_families = (
     'aarch64',
+    'alpha',
     'arc',
     'arm',
     'e2k',
@@ -64,6 +65,7 @@ known_cpu_families = (
 # python identifiers cannot start with numbers
 CPU_FAMILES_64_BIT = [
     'aarch64',
+    'alpha',
     'ia64',
     'mips64',
     'ppc64',

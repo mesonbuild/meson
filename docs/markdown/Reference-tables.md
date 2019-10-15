@@ -51,6 +51,7 @@ set in the cross file.
 | Value               | Comment                         |
 | -----               | -------                         |
 | aarch64             | 64 bit ARM processor  |
+| alpha               | DEC Alpha processor   |
 | arc                 | 32 bit ARC processor  |
 | arm                 | 32 bit ARM processor  |
 | e2k                 | MCST Elbrus processor |
