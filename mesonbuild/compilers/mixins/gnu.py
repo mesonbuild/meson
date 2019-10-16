@@ -86,8 +86,15 @@ gnu_color_args = {
 
 @functools.lru_cache(maxsize=None)
 def gnulike_default_include_dirs(compiler: typing.Tuple[str], lang: str) -> typing.List[str]:
-    if lang == 'cpp':
-        lang = 'c++'
+    lang_map = {
+        'c': 'c',
+        'cpp': 'c++',
+        'objc': 'objective-c',
+        'objcpp': 'objective-c++'
+    }
+    if lang not in lang_map:
+        return []
+    lang = lang_map[lang]
     env = os.environ.copy()
     env["LC_ALL"] = 'C'
     cmd = list(compiler) + ['-x{}'.format(lang), '-E', '-v', '-']
