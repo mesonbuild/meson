@@ -16,6 +16,8 @@
 
 import os
 import typing
+import subprocess
+import re
 
 from .gnu import GnuCompiler
 from ...mesonlib import Popen_safe
@@ -57,3 +59,14 @@ class ElbrusCompiler(GnuCompiler):
                 libstr = line.split(' ', 1)[1]
                 return [os.path.realpath(p) for p in libstr.split(':')]
         return []
+
+    def get_default_include_dirs(self) -> typing.List[str]:
+        os_env = os.environ.copy()
+        os_env['LC_ALL'] = 'C'
+        p = subprocess.Popen(self.exelist + ['-xc', '-E', '-v', '-'], env=os_env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stderr = p.stderr.read().decode('utf-8', errors='replace')
+        includes = []
+        for line in stderr.split('\n'):
+            if line.lstrip().startswith('--sys_include'):
+                includes.append(re.sub('\s*\\\\$', '', re.sub('^\s*--sys_include\s*', '', line)))
+        return includes
