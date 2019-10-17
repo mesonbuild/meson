@@ -398,9 +398,9 @@ def run(options):
 
     infofile = get_meson_info_file(infodir)
     if not os.path.isdir(datadir) or not os.path.isdir(infodir) or not os.path.isfile(infofile):
-        print('Current directory is not a meson build directory.'
-              'Please specify a valid build dir or change the working directory to it.'
-              'It is also possible that the build directory was generated with an old'
+        print('Current directory is not a meson build directory.\n'
+              'Please specify a valid build dir or change the working directory to it.\n'
+              'It is also possible that the build directory was generated with an old\n'
               'meson version. Please regenerate it in this case.')
         return 1
 
