@@ -2682,11 +2682,29 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return
         self.generate_clangtool('tidy')
 
+    def generate_tags(self, tool, target_name):
+        import shutil
+        if not shutil.which(tool):
+            return
+        if target_name in self.all_outputs:
+            return
+        cmd = self.environment.get_build_command() + \
+            ['--internal', 'tags', tool, self.environment.source_dir]
+        elem = NinjaBuildElement(self.all_outputs, 'meson-' + target_name, 'CUSTOM_COMMAND', 'PHONY')
+        elem.add_item('COMMAND', cmd)
+        elem.add_item('pool', 'console')
+        self.add_build(elem)
+        # Alias that runs the target defined above
+        self.create_target_alias('meson-' + target_name)
+
     # For things like scan-build and other helper tools we might have.
     def generate_utils(self):
         self.generate_scanbuild()
         self.generate_clangformat()
         self.generate_clangtidy()
+        self.generate_tags('etags', 'TAGS')
+        self.generate_tags('ctags', 'ctags')
+        self.generate_tags('cscope', 'cscope')
         cmd = self.environment.get_build_command() + ['--internal', 'uninstall']
         elem = NinjaBuildElement(self.all_outputs, 'meson-uninstall', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
