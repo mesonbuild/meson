@@ -634,7 +634,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('isa = XCBuildConfiguration;')
             self.write_line('buildSettings = {')
             self.indent_level += 1
-            self.write_line('ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";')
+            self.write_line('ARCHS = "$(ARCHS_STANDARD_64_BIT)";')
             self.write_line('ONLY_ACTIVE_ARCH = YES;')
             self.write_line('SDKROOT = "macosx";')
             self.write_line('SYMROOT = "%s/build";' % self.environment.get_build_dir())
