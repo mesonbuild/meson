@@ -1,5 +1,6 @@
 " Vim indent file
 " Language:		Meson
+" License:		VIM License
 " Maintainer:		Nirbheek Chauhan <nirbheek.chauhan@gmail.com>
 " Original Authors:	David Bustos <bustos@caltech.edu>
 "			Bram Moolenaar <Bram@vim.org>
