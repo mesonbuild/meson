@@ -2146,6 +2146,9 @@ A build target is either an [executable](#executable),
   target, usually only needed if an another target needs to access
   some generated internal headers of this target
 
+- `get_id()` returns a string pointting to the private directory of the
+  target. Generally this is not needed, see the note for `full_path()`.
+
 
 ### `configuration` data object
 
