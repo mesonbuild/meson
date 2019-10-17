@@ -42,9 +42,9 @@ class ElbrusCompiler(GnuCompiler):
         stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
         for line in stdo.split('\n'):
             if line.startswith('libraries:'):
-                # lcc does not include '=' in --print-search-dirs output.
+                # lcc does not include '=' in --print-search-dirs output. Also it could show nonexistent dirs.
                 libstr = line.split(' ', 1)[1]
-                return [os.path.realpath(p) for p in libstr.split(':')]
+                return [os.path.realpath(p) for p in libstr.split(':') if os.path.exists(p)]
         return []
 
     def get_program_dirs(self, env: 'Environment') -> typing.List[str]:
