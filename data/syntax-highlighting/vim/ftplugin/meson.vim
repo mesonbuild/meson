@@ -1,5 +1,6 @@
 " Vim filetype plugin file
 " Language:	meson
+" License:	VIM License
 " Original Author:	Laurent Pinchart <laurent.pinchart@ideasonboard.com>
 " Last Change:		2018 Nov 27
 
