@@ -68,5 +68,5 @@ class ElbrusCompiler(GnuCompiler):
         includes = []
         for line in stderr.split('\n'):
             if line.lstrip().startswith('--sys_include'):
-                includes.append(re.sub('\s*\\\\$', '', re.sub('^\s*--sys_include\s*', '', line)))
+                includes.append(re.sub(r'\s*\\$', '', re.sub(r'^\s*--sys_include\s*', '', line)))
         return includes
