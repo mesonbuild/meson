@@ -14,21 +14,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+import typing
 from pathlib import Path
 import sys
 import re
+import argparse
 
 
 class Token:
-    def __init__(self, tid, value):
+    def __init__(self, tid: str, value: str):
         self.tid = tid
         self.value = value
         self.lineno = 0
         self.colno = 0
 
 class Statement:
-    def __init__(self, name, args):
+    def __init__(self, name: str, args: list):
         self.name = name.lower()
         self.args = args
 
@@ -46,7 +47,7 @@ class Lexer:
             ('rparen', re.compile(r'\)')),
         ]
 
-    def lex(self, code):
+    def lex(self, code: str) -> typing.Iterator[Token]:
         lineno = 1
         line_start = 0
         loc = 0
@@ -80,10 +81,10 @@ class Lexer:
                     elif tid == 'varexp':
                         yield(Token('varexp', match_text[2:-1]))
                     else:
-                        raise RuntimeError('Wharrgarbl')
+                        raise ValueError('lex: unknown element {}'.format(tid))
                     break
             if not matched:
-                raise RuntimeError('Lexer got confused line %d column %d' % (lineno, col))
+                raise ValueError('Lexer got confused line %d column %d' % (lineno, col))
 
 class Parser:
     def __init__(self, code: str):
@@ -96,18 +97,18 @@ class Parser:
         except StopIteration:
             self.current = Token('eof', '')
 
-    def accept(self, s):
+    def accept(self, s: str) -> bool:
         if self.current.tid == s:
             self.getsym()
             return True
         return False
 
-    def expect(self, s):
+    def expect(self, s: str) -> bool:
         if self.accept(s):
             return True
-        raise RuntimeError('Expecting %s got %s.' % (s, self.current.tid), self.current.lineno, self.current.colno)
+        raise ValueError('Expecting %s got %s.' % (s, self.current.tid), self.current.lineno, self.current.colno)
 
-    def statement(self):
+    def statement(self) -> Statement:
         cur = self.current
         if self.accept('comment'):
             return Statement('_', [cur.value])
@@ -117,7 +118,7 @@ class Parser:
         self.expect('rparen')
         return Statement(cur.value, args)
 
-    def arguments(self):
+    def arguments(self) -> list:
         args = []
         if self.accept('lparen'):
             args.append(self.arguments())
@@ -134,7 +135,7 @@ class Parser:
             args += rest
         return args
 
-    def parse(self):
+    def parse(self) -> typing.Iterator[Statement]:
         while not self.accept('eof'):
             yield(self.statement())
 
@@ -147,9 +148,9 @@ class Converter:
         self.cmake_root = Path(cmake_root).expanduser()
         self.indent_unit = '  '
         self.indent_level = 0
-        self.options = []  # type: List[tuple]
+        self.options = []  # type: typing.List[tuple]
 
-    def convert_args(self, args: List[Token], as_array: bool = True):
+    def convert_args(self, args: typing.List[Token], as_array: bool = True) -> str:
         res = []
         if as_array:
             start = '['
@@ -165,15 +166,14 @@ class Converter:
             elif i.tid == 'string':
                 res.append("'%s'" % i.value)
             else:
-                print(i)
-                raise RuntimeError('Unknown arg type.')
+                raise ValueError('Unknown arg type {}'.format(i.tid))
         if len(res) > 1:
             return start + ', '.join(res) + end
         if len(res) == 1:
             return res[0]
         return ''
 
-    def write_entry(self, outfile, t):
+    def write_entry(self, outfile: typing.TextIO, t: Statement):
         if t.name in Converter.ignored_funcs:
             return
         preincrement = 0
@@ -313,8 +313,8 @@ class Converter:
                 optfile.write(line)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print(sys.argv[0], '<CMake project root>')
-        sys.exit(1)
-    c = Converter(sys.argv[1])
-    c.convert()
+    p = argparse.ArgumentParser(description='Convert CMakeLists.txt to meson.build and meson_options.txt')
+    p.add_argument('cmake_root', help='CMake project root (where top-level CMakeLists.txt is)')
+    P = p.parse_args()
+
+    Converter(P.cmake_root).convert()
