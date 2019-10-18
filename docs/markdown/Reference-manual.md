@@ -709,14 +709,16 @@ set). Hence, you *must not* manually add the interpreter while using
 this script as part of a list of commands.
 
 If you need to check for a program in a non-standard location, you can
-just pass an absolute path to `find_program`, e.g.  ``` setcap =
-find_program('setcap', '/usr/sbin/setcap', '/sbin/setcap', required :
-false) ```
+just pass an absolute path to `find_program`, e.g.
+
+```meson
+setcap = find_program('setcap', '/usr/sbin/setcap', '/sbin/setcap', required : false)
+```
 
 It is also possible to pass an array to `find_program` in case you
 need to construct the set of paths to search on the fly:
 
-```
+```meson
 setcap = find_program(['setcap', '/usr/sbin/setcap', '/sbin/setcap'], required : false)
 ```
 
