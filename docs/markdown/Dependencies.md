@@ -315,7 +315,8 @@ as getting it to work standalone is tricky.
 
 You can set the `main` keyword argument to `true` to use the `main()`
 function provided by GTest:
-```
+
+```meson
 gtest_dep = dependency('gtest', main : true, required : false)
 e = executable('testprog', 'test.cc', dependencies : gtest_dep)
 test('gtest test', e)

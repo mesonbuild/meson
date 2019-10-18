@@ -292,7 +292,7 @@ default value will be provided for all required fields of the pc file:
 
 Generating a .pc file is now as simple as:
 
-```
+```meson
 pkgconfig.generate(mylib)
 ```
 
