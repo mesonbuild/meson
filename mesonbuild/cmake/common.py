@@ -102,9 +102,9 @@ class CMakeTarget:
         self.link_libraries = _flags_to_list(data.get('linkLibraries', ''))
         self.link_flags = _flags_to_list(data.get('linkFlags', ''))
         self.link_lang_flags = _flags_to_list(data.get('linkLanguageFlags', ''))
-        self.link_path = data.get('linkPath', '')
+        # self.link_path = data.get('linkPath', '')
         self.type = data.get('type', 'EXECUTABLE')
-        self.is_generator_provided = data.get('isGeneratorProvided', False)
+        # self.is_generator_provided = data.get('isGeneratorProvided', False)
         self.files = []
 
         for i in data.get('fileGroups', []):
@@ -122,9 +122,9 @@ class CMakeTarget:
         mlog.log('link_libraries        =', mlog.bold(', '.join(self.link_libraries)))
         mlog.log('link_flags            =', mlog.bold(', '.join(self.link_flags)))
         mlog.log('link_lang_flags       =', mlog.bold(', '.join(self.link_lang_flags)))
-        mlog.log('link_path             =', mlog.bold(self.link_path))
+        # mlog.log('link_path             =', mlog.bold(self.link_path))
         mlog.log('type                  =', mlog.bold(self.type))
-        mlog.log('is_generator_provided =', mlog.bold('true' if self.is_generator_provided else 'false'))
+        # mlog.log('is_generator_provided =', mlog.bold('true' if self.is_generator_provided else 'false'))
         for idx, i in enumerate(self.files):
             mlog.log('Files {}:'.format(idx))
             with mlog.nested():
