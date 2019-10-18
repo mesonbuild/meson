@@ -19,6 +19,7 @@ __all__ = [
     'CMakeClient',
     'CMakeExecutor',
     'CMakeException',
+    'CMakeFileAPI',
     'CMakeInterpreter',
     'CMakeTarget',
     'CMakeTraceLine',
@@ -29,6 +30,7 @@ __all__ = [
 from .common import CMakeException
 from .client import CMakeClient
 from .executor import CMakeExecutor
+from .fileapi import CMakeFileAPI
 from .generator import parse_generator_expressions
 from .interpreter import CMakeInterpreter
 from .traceparser import CMakeTarget, CMakeTraceLine, CMakeTraceParser
