@@ -2497,6 +2497,8 @@ class AllPlatformTests(BasePlatformTests):
     def test_dist_git(self):
         if not shutil.which('git'):
             raise unittest.SkipTest('Git not found')
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Dist is only supported with Ninja')
 
         try:
             self.dist_impl(_git_init)
@@ -2531,6 +2533,8 @@ class AllPlatformTests(BasePlatformTests):
     def test_dist_git_script(self):
         if not shutil.which('git'):
             raise unittest.SkipTest('Git not found')
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Dist is only supported with Ninja')
 
         try:
             with tempfile.TemporaryDirectory() as tmpdir:
