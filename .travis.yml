@@ -44,13 +44,13 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt llvm ninja; fi
     # # Run one macOS build without pkg-config available, and the other (unity=on) with pkg-config
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$MESON_ARGS" =~ .*unity=on.* ]]; then brew install pkg-config; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:cosmic; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:eoan; fi
 
 # We need to copy the current checkout inside the Docker container,
 # because it has the MR id to be tested checked out.
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM jpakkane/mesonci:cosmic > Dockerfile; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM jpakkane/mesonci:eoan > Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit .; fi
   - |
