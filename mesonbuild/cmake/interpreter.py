@@ -631,7 +631,7 @@ class CMakeInterpreter:
         # the CMake file API output.
         api_target_name_list = [x.name for x in self.targets]
         for i in self.trace.targets.values():
-            if i.type != 'INTERFACE' or i.name in api_target_name_list:
+            if i.type != 'INTERFACE' or i.name in api_target_name_list or i.imported:
                 continue
             dummy = CMakeTarget({
                 'name': i.name,
