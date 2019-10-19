@@ -50,7 +50,7 @@ Note:
 
 When building with clang on macOS, you can now build your static and shared
 binaries with embedded bitcode by enabling the `b_bitcode` [base
-option](Builtin-options.md#Base_options) by passing `-Db_bitcode=true` to
+option](Builtin-options.md#base-options) by passing `-Db_bitcode=true` to
 Meson.
 
 This is better than passing the options manually in the environment since Meson
@@ -78,7 +78,7 @@ used whenever possible.
 ## New action `copy:` for `configure_file()`
 
 In addition to the existing actions `configuration:` and `command:`,
-[`configure_file()`](#Reference-manual.md#configure_file) now accepts a keyword
+[`configure_file()`](Reference-manual.md#configure_file) now accepts a keyword
 argument `copy:` which specifies a new action to copy the file specified with
 the `input:` keyword argument to a file in the build directory with the name
 specified with the `output:` keyword argument.
@@ -88,7 +88,7 @@ do one action at a time.
 
 ## New keyword argument `encoding:` for `configure_file()`
 
-Add a new keyword to [`configure_file()`](#Reference-manual.md#configure_file)
+Add a new keyword to [`configure_file()`](Reference-manual.md#configure_file)
 that allows the developer to specify the input and output file encoding. The
 default value is the same as before: UTF-8.
 

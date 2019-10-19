@@ -29,7 +29,7 @@ manually changed with the new base option `b_vscrt`.
 
 ## Meson warns if two calls to `configure_file()` write to the same file
 
-If two calls to [`configure_file()`](#Reference-manual.md#configure_file)
+If two calls to [`configure_file()`](Reference-manual.md#configure_file)
 write to the same file Meson will print a `WARNING:` message during
 configuration. For example:
 ```meson

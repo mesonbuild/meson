@@ -25,7 +25,7 @@ arguments are the same as for
 
 `extension_module` does not add any dependencies to the library so user may
 need to add `dependencies : dependency('python3')`, see
-[Python3 dependency](Dependencies.md#Python3).
+[Python3 dependency](Dependencies.md#python3).
 
 *Added 0.38.0*
 

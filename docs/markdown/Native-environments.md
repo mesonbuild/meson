@@ -23,7 +23,7 @@ persistent environment:
 ## Changing native file settings
 
 All of the rules about cross files and changed settings apply to native files
-as well, see [here](Cross-compilation.md#Changing-cross-file-settings)
+as well, see [here](Cross-compilation.md#changing-cross-file-settings)
 
 
 ## Defining the environment

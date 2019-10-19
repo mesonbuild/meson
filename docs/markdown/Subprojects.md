@@ -20,7 +20,7 @@ It should be noted that this is only guaranteed to work for subprojects
 that are built with Meson. The reason is the simple fact that there is
 no possible way to do this reliably with mixed build systems. Because of
 this, only meson subprojects are described here.
-[CMake based subprojects](CMake-module.md#CMake-subprojects) are also
+[CMake based subprojects](CMake-module.md#cmake-subprojects) are also
 supported but not guaranteed to work.
 
 ## A subproject example
