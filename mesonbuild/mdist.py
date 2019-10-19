@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-import lzma
 import gzip
 import os
 import sys
@@ -133,6 +132,7 @@ def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scrip
     if dist_scripts:
         mlog.warning('dist scripts are not supported in Mercurial projects')
     if 'xztar' in archives:
+        import lzma
         with lzma.open(xzname, 'wb') as xf, open(tarname, 'rb') as tf:
             shutil.copyfileobj(tf, xf)
         output_names.append(xzname)
