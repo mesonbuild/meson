@@ -225,8 +225,9 @@ useful when running the application locally for example during tests.
 * `build_by_default`: causes, when set to true, to have this target be
   built by default, that is, when invoking plain `ninja`, the default
   value is true for all built target types
-* `depend_files`: files ([`string`](#string-object),
-  [`files()`](#files), or [`configure_file()`](#configure_file)) of
+* `depend_files`: files ([`string`](Reference-manual.md#string-object),
+  [`files()`](Reference-manual.md#files), or
+  [`configure_file()`](Reference-manual.md#configure_file)) of
   schema source XML files that should trigger a re-compile if changed.
 
 ### gnome.gdbus_codegen()

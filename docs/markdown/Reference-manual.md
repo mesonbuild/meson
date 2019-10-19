@@ -419,7 +419,7 @@ keyword arguments.
 
 Finds an external dependency (usually a library installed on your
 system) with the given name with `pkg-config` and [with
-CMake](Dependencies.md#CMake) if `pkg-config` fails. Additionally,
+CMake](Dependencies.md#cmake) if `pkg-config` fails. Additionally,
 frameworks (OSX only) and [library-specific fallback detection
 logic](Dependencies.md#dependencies-with-custom-lookup-functionality)
 are also supported. This function supports the following keyword

@@ -36,7 +36,7 @@ Every new feature requires some extra steps, namely:
  - Must include a project test under `test cases/`, or if that's not
    possible or if the test requires a special environment, it must go
    into `run_unittests.py`.
- - Must be registered with the [FeatureChecks framework](Release-notes-for-0.47.0.md#Feature_detection_based_on_meson_version_in_project)
+ - Must be registered with the [FeatureChecks framework](Release-notes-for-0.47.0.md#feature-detection-based-on-meson_version-in-project)
    that will warn the user if they try to use a new feature while
    targetting an older meson version.
  - Needs a release note snippet inside `docs/markdown/snippets/` with
