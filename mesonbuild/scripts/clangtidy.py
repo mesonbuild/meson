@@ -14,23 +14,37 @@
 
 import pathlib
 import subprocess
+import shutil
 from concurrent.futures import ThreadPoolExecutor
 
 from ..compilers import lang_suffixes
 
-def clangformat(srcdir_name, builddir_name):
+def manual_clangformat(srcdir_name, builddir_name):
     srcdir = pathlib.Path(srcdir_name)
     suffixes = set(lang_suffixes['c']).union(set(lang_suffixes['cpp']))
     suffixes.add('h')
     futures = []
+    returncode = 0
     with ThreadPoolExecutor() as e:
         for f in (x for suff in suffixes for x in srcdir.glob('**/*.' + suff)):
             strf = str(f)
             if strf.startswith(builddir_name):
                 continue
-            futures.append(e.submit(subprocess.check_call, ['clang-tidy', '-p', builddir_name, strf]))
-        [x.result() for x in futures]
-    return 0
+            futures.append(e.submit(subprocess.run, ['clang-tidy', '-p', builddir_name, strf]))
+        [max(returncode, x.result().returncode) for x in futures]
+    return returncode
+
+def clangformat(srcdir_name, builddir_name):
+    run_clang_tidy = None
+    for rct in ('run-clang-tidy', 'run-clang-tidy.py'):
+        if shutil.which(rct):
+            run_clang_tidy = rct
+            break
+    if run_clang_tidy:
+        return subprocess.run([run_clang_tidy, '-p', builddir_name]).returncode
+    else:
+        print('Could not find run-clang-tidy, running checks manually.')
+        manual_clangformat(srcdir_name, builddir_name)
 
 def run(args):
     srcdir_name = args[0]
