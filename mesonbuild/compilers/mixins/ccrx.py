@@ -17,7 +17,7 @@
 import os
 import typing
 
-from ...mesonlib import Popen_safe, EnvironmentException
+from ...mesonlib import EnvironmentException
 
 if typing.TYPE_CHECKING:
     from ...environment import Environment

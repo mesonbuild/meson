@@ -260,11 +260,9 @@ class MachineInfo:
         """Machine is illumos or Solaris?"""
         return self.system == 'sunos'
 
-
     # Various prefixes and suffixes for import libraries, shared libraries,
     # static libraries, and executables.
     # Versioning is added to these names in the backends as-needed.
-
     def get_exe_suffix(self) -> str:
         if self.is_windows() or self.is_cygwin():
             return 'exe'

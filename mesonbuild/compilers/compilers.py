@@ -21,7 +21,7 @@ from .. import coredata
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
-    EnvironmentException, MachineChoice, MesonException, OrderedSet,
+    EnvironmentException, MachineChoice, MesonException,
     Popen_safe, split_args
 )
 from ..envconfig import (

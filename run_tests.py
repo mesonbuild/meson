@@ -116,7 +116,6 @@ def get_fake_env(sdir='', bdir=None, prefix='', opts=None):
 Backend = Enum('Backend', 'ninja vs xcode')
 
 if 'MESON_EXE' in os.environ:
-    import shlex
     meson_exe = mesonlib.split_args(os.environ['MESON_EXE'])
 else:
     meson_exe = None
