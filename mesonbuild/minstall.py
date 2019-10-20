@@ -324,7 +324,6 @@ class Installer:
                 # FIXME: what about symlinks?
                 self.do_copyfile(abs_src, abs_dst)
                 set_mode(abs_dst, install_mode, data.install_umask)
-                append_to_log(self.lf, abs_dst)
 
     def do_install(self, datafilename):
         with open(datafilename, 'rb') as ifile:

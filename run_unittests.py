@@ -1975,6 +1975,33 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathListEqual(intro[2]['install_filename'], ['/usr/include/first.h', None])
         self.assertPathListEqual(intro[3]['install_filename'], [None, '/usr/bin/second.sh'])
 
+    def test_install_log_content(self):
+        '''
+        Tests that the install-log.txt is consistent with the installed files and directories.
+        Specifically checks that the log file only contains one entry per file/directory.
+        https://github.com/mesonbuild/meson/issues/4499
+        '''
+        testdir = os.path.join(self.common_test_dir, '62 install subdir')
+        self.init(testdir)
+        self.install()
+        installpath = Path(self.installdir)
+        # Find installed files and directories
+        expected = {installpath: 0}
+        for name in installpath.rglob('*'):
+            expected[name] = 0
+        # Find logged files and directories
+        with Path(self.builddir, 'meson-logs', 'install-log.txt').open() as f:
+            logged = list(map(lambda l: Path(l.strip()),
+                              filter(lambda l: not l.startswith('#'),
+                                     f.readlines())))
+        for name in logged:
+            self.assertTrue(name in expected, 'Log contains extra entry {}'.format(name))
+            expected[name] += 1
+
+        for name, count in expected.items():
+            self.assertGreater(count, 0, 'Log is missing entry for {}'.format(name))
+            self.assertLess(count, 2, 'Log has multiple entries for {}'.format(name))
+
     def test_uninstall(self):
         exename = os.path.join(self.installdir, 'usr/bin/prog' + exe_suffix)
         testdir = os.path.join(self.common_test_dir, '8 install')
