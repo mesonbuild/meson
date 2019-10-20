@@ -15,17 +15,19 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from .common import CMakeException
-from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel, CMakeTarget
+from .common import CMakeException, CMakeTarget
+from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel
+from .fileapi import CMakeFileAPI
 from .executor import CMakeExecutor
 from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
 from .. import mlog
 from ..environment import Environment
-from ..mesonlib import MachineChoice
+from ..mesonlib import MachineChoice, version_compare
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from subprocess import Popen, PIPE
 from typing import Any, List, Dict, Optional, TYPE_CHECKING
 from threading import Thread
+from enum import Enum
 import os, re
 
 from ..mparser import (
@@ -458,6 +460,10 @@ class ConverterCustomTarget:
         mlog.log('  -- inputs:      ', mlog.bold(str(self.inputs)))
         mlog.log('  -- depends:     ', mlog.bold(str(self.depends)))
 
+class CMakeAPI(Enum):
+    SERVER = 1
+    FILE = 2
+
 class CMakeInterpreter:
     def __init__(self, build: 'Build', subdir: str, src_dir: str, install_prefix: str, env: Environment, backend: 'Backend'):
         assert(hasattr(backend, 'name'))
@@ -469,11 +475,13 @@ class CMakeInterpreter:
         self.install_prefix = install_prefix
         self.env = env
         self.backend_name = backend.name
+        self.cmake_api = CMakeAPI.SERVER
         self.client = CMakeClient(self.env)
+        self.fileapi = CMakeFileAPI(self.build_dir)
 
         # Raw CMake results
         self.bs_files = []
-        self.codemodel = None
+        self.codemodel_configs = None
         self.raw_trace = None
 
         # Analysed data
@@ -495,6 +503,10 @@ class CMakeInterpreter:
 
         generator = backend_generator_map[self.backend_name]
         cmake_args = cmake_exe.get_command()
+
+        if version_compare(cmake_exe.version(), '>=3.14'):
+            self.cmake_api = CMakeAPI.FILE
+            self.fileapi.setup_request()
 
         # Map meson compiler to CMake variables
         for lang, comp in self.env.coredata.compilers[for_machine].items():
@@ -552,7 +564,23 @@ class CMakeInterpreter:
     def initialise(self, extra_cmake_options: List[str]) -> None:
         # Run configure the old way becuse doing it
         # with the server doesn't work for some reason
+        # Aditionally, the File API requires a configure anyway
         self.configure(extra_cmake_options)
+
+        # Continue with the file API If supported
+        if self.cmake_api is CMakeAPI.FILE:
+            # Parse the result
+            self.fileapi.load_reply()
+
+            # Load the buildsystem file list
+            cmake_files = self.fileapi.get_cmake_sources()
+            self.bs_files = [x.file for x in cmake_files if not x.is_cmake and not x.is_temp]
+            self.bs_files = [os.path.relpath(x, self.env.get_source_dir()) for x in self.bs_files]
+            self.bs_files = list(set(self.bs_files))
+
+            # Load the codemodel configurations
+            self.codemodel_configs = self.fileapi.get_cmake_configurations()
+            return
 
         with self.client.connect():
             generator = backend_generator_map[self.backend_name]
@@ -574,10 +602,10 @@ class CMakeInterpreter:
         self.bs_files = [x.file for x in bs_reply.build_files if not x.is_cmake and not x.is_temp]
         self.bs_files = [os.path.relpath(os.path.join(src_dir, x), self.env.get_source_dir()) for x in self.bs_files]
         self.bs_files = list(set(self.bs_files))
-        self.codemodel = cm_reply
+        self.codemodel_configs = cm_reply.configs
 
     def analyse(self) -> None:
-        if self.codemodel is None:
+        if self.codemodel_configs is None:
             raise CMakeException('CMakeInterpreter was not initialized')
 
         # Clear analyser data
@@ -591,13 +619,28 @@ class CMakeInterpreter:
         self.trace.parse(self.raw_trace)
 
         # Find all targets
-        for i in self.codemodel.configs:
+        for i in self.codemodel_configs:
             for j in i.projects:
                 if not self.project_name:
                     self.project_name = j.name
                 for k in j.targets:
                     if k.type not in skip_targets:
                         self.targets += [ConverterTarget(k, self.env)]
+
+        # Add interface targets from trace, if not already present.
+        # This step is required because interface targets were removed from
+        # the CMake file API output.
+        api_target_name_list = [x.name for x in self.targets]
+        for i in self.trace.targets.values():
+            if i.type != 'INTERFACE' or i.name in api_target_name_list or i.imported:
+                continue
+            dummy = CMakeTarget({
+                'name': i.name,
+                'type': 'INTERFACE_LIBRARY',
+                'sourceDirectory': self.src_dir,
+                'buildDirectory': self.build_dir,
+            })
+            self.targets += [ConverterTarget(dummy, self.env)]
 
         for i in self.trace.custom_targets:
             self.custom_targets += [ConverterCustomTarget(i)]

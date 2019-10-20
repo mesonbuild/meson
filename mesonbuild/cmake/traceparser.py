@@ -35,19 +35,21 @@ class CMakeTraceLine:
         return s.format(self.file, self.line, self.func, self.args)
 
 class CMakeTarget:
-    def __init__(self, name, target_type, properties=None):
+    def __init__(self, name, target_type, properties=None, imported: bool = False, tline: Optional[CMakeTraceLine] = None):
         if properties is None:
             properties = {}
         self.name = name
         self.type = target_type
         self.properties = properties
+        self.imported = imported
+        self.tline = tline
 
     def __repr__(self):
-        s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- properties: {{\n{}     }}'
+        s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- imported:  {}\n  -- properties: {{\n{}     }}\n  -- tline: {}'
         propSTR = ''
         for i in self.properties:
             propSTR += "      '{}': {}\n".format(i, self.properties[i])
-        return s.format(self.name, self.type, propSTR)
+        return s.format(self.name, self.type, self.imported, propSTR, self.tline)
 
 class CMakeGeneratorTarget:
     def __init__(self):
@@ -210,7 +212,7 @@ class CMakeTraceParser:
             if len(args) < 1:
                 return self._gen_exception('add_library', 'interface library name not specified', tline)
 
-            self.targets[args[0]] = CMakeTarget(args[0], 'INTERFACE', {})
+            self.targets[args[0]] = CMakeTarget(args[0], 'INTERFACE', {}, tline=tline, imported='IMPORTED' in args)
         elif 'IMPORTED' in args:
             args.remove('IMPORTED')
 
@@ -218,7 +220,7 @@ class CMakeTraceParser:
             if len(args) < 2:
                 return self._gen_exception('add_library', 'requires at least 2 arguments', tline)
 
-            self.targets[args[0]] = CMakeTarget(args[0], args[1], {})
+            self.targets[args[0]] = CMakeTarget(args[0], args[1], {}, tline=tline, imported=True)
         elif 'ALIAS' in args:
             args.remove('ALIAS')
 
@@ -227,11 +229,11 @@ class CMakeTraceParser:
                 return self._gen_exception('add_library', 'requires at least 2 arguments', tline)
 
             # Simulate the ALIAS with INTERFACE_LINK_LIBRARIES
-            self.targets[args[0]] = CMakeTarget(args[0], 'ALIAS', {'INTERFACE_LINK_LIBRARIES': [args[1]]})
+            self.targets[args[0]] = CMakeTarget(args[0], 'ALIAS', {'INTERFACE_LINK_LIBRARIES': [args[1]]}, tline=tline)
         elif 'OBJECT' in args:
             return self._gen_exception('add_library', 'OBJECT libraries are not supported', tline)
         else:
-            self.targets[args[0]] = CMakeTarget(args[0], 'NORMAL', {})
+            self.targets[args[0]] = CMakeTarget(args[0], 'NORMAL', {}, tline=tline)
 
     def _cmake_add_custom_command(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_command.html
@@ -300,7 +302,7 @@ class CMakeTraceParser:
         if len(tline.args) < 1:
             return self._gen_exception('add_custom_target', 'requires at least one argument', tline)
 
-        self.targets[tline.args[0]] = CMakeTarget(tline.args[0], 'CUSTOM', {})
+        self.targets[tline.args[0]] = CMakeTarget(tline.args[0], 'CUSTOM', {}, tline=tline)
 
     def _cmake_set_property(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/set_property.html
