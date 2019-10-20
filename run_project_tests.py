@@ -867,6 +867,38 @@ def detect_system_compiler():
                     raise RuntimeError("Could not find C compiler.")
         print()
 
+def print_tool_versions():
+    tools = [
+        {
+            'tool': 'cmake',
+            'args': ['--version'],
+            'regex': re.compile(r'^cmake version ([0-9]+(\.[0-9]+)*)$'),
+            'match_group': 1,
+        },
+    ]
+
+    def get_version(t: dict) -> str:
+        exe = shutil.which(t['tool'])
+        if not exe:
+            return 'not found'
+
+        args = [t['tool']] + t['args']
+        pc, o, e = Popen_safe(args)
+        if pc.returncode != 0:
+            return '{} (invalid {} executable)'.format(exe, t['tool'])
+        for i in o.split('\n'):
+            i = i.strip('\n\r\t ')
+            m = t['regex'].match(i)
+            if m is not None:
+                return '{} ({})'.format(exe, m.group(t['match_group']))
+
+        return '{} (unknown)'.format(exe)
+
+    max_width = max([len(x['tool']) for x in tools] + [7])
+    for tool in tools:
+        print('{0:<{2}}: {1}'.format(tool['tool'], get_version(tool), max_width))
+    print()
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('extra_args', nargs='*',
@@ -882,6 +914,7 @@ if __name__ == '__main__':
     setup_commands(options.backend)
 
     detect_system_compiler()
+    print_tool_versions()
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
         os.chdir(script_dir)
