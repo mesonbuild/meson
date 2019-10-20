@@ -76,7 +76,6 @@ class ArmCompiler:
         # Assembly
         self.can_compile_suffixes.add('s')
 
-
     def get_pic_args(self) -> typing.List[str]:
         # FIXME: Add /ropi, /rwpi, /fpic etc. qualifiers to --apcs
         return []

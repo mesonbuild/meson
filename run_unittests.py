@@ -3183,7 +3183,6 @@ recommended as it is not supported on some platforms''')
             self.installdir = initial_builddir
             self.builddir = initial_installdir
 
-
     def test_conflicting_d_dash_option(self):
         testdir = os.path.join(self.unit_test_dir, '37 mixed command line args')
         with self.assertRaises(subprocess.CalledProcessError) as e:

@@ -17,7 +17,6 @@ import subprocess
 import shutil
 import tempfile
 from ..environment import detect_ninja, detect_scanbuild
-from ..mesonlib import Popen_safe, split_args
 
 
 def scanbuild(exelist, srcdir, blddir, privdir, logdir, args):
