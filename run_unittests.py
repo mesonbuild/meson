@@ -4031,6 +4031,11 @@ recommended as it is not supported on some platforms''')
         self.assertPathExists(os.path.join(self.builddir, 'prog' + exe_suffix))
         self.assertPathExists(os.path.join(self.builddir, 'hello.txt'))
 
+    def test_configure(self):
+        testdir = os.path.join(self.common_test_dir, '2 cpp')
+        self.init(testdir)
+        self._run(self.mconf_command + [self.builddir])
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically
