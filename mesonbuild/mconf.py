@@ -224,12 +224,12 @@ class Conf:
             self.print_options('', {insert_build_prefix(k): o for k, o in self.coredata.builtins_per_machine.build.items()})
         self.print_options('Backend options', self.coredata.backend_options)
         self.print_options('Base options', self.coredata.base_options)
-        self.print_options('Compiler options', host_compiler_options[''])
+        self.print_options('Compiler options', host_compiler_options.get('', {}))
         if show_build_options:
-            self.print_options('', build_compiler_options[''])
+            self.print_options('', build_compiler_options.get('', {}))
         self.print_options('Directories', dir_options)
         self.print_options('Testing options', test_options)
-        self.print_options('Project options', project_options[''])
+        self.print_options('Project options', project_options.get('', {}))
         for subproject in sorted(self.all_subprojects):
             if subproject == '':
                 continue
