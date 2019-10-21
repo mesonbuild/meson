@@ -1369,12 +1369,15 @@ class Environment:
             # LDC seems to require a file
             m = self.machines[for_machine]
             if m.is_windows() or m.is_cygwin():
-                # Getting LDC on windows to give useful linker output when not
-                # doing real work is painfully hard. It ships with a verison of
-                # lld-link, so just assume that we're going to use lld-link
-                # with it.
-                _, o, _ = Popen_safe(['lld-link.exe', '--version'])
-                linker = ClangClDynamicLinker(for_machine, version=search_version(o))
+                if is_msvc:
+                    linker = MSVCDynamicLinker(for_machine, version=version)
+                else:
+                    # Getting LDC on windows to give useful linker output when not
+                    # doing real work is painfully hard. It ships with a verison of
+                    # lld-link, so just assume that we're going to use lld-link
+                    # with it.
+                    _, o, _ = Popen_safe(['lld-link.exe', '--version'])
+                    linker = ClangClDynamicLinker(for_machine, version=search_version(o))
             else:
                 with tempfile.NamedTemporaryFile(suffix='.d') as f:
                     linker = self._guess_nix_linker(
@@ -1393,7 +1396,14 @@ class Environment:
             # DMD seems to require a file
             m = self.machines[for_machine]
             if m.is_windows() or m.is_cygwin():
-                linker = OptlinkDynamicLinker(for_machine, version=full_version)
+                if is_msvc:
+                    linker = MSVCDynamicLinker(for_machine, version=version)
+                elif arch == 'x86':
+                    linker = OptlinkDynamicLinker(for_machine, version=full_version)
+                else:
+                    # DMD ships with lld-link
+                    _, o, _ = Popen_safe(['lld-link.exe', '--version'])
+                    linker = ClangClDynamicLinker(for_machine, version=search_version(o))
             else:
                 with tempfile.NamedTemporaryFile(suffix='.d') as f:
                     linker = self._guess_nix_linker(
