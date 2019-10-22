@@ -53,6 +53,7 @@ class PythonDependency(ExternalDependency):
         self.variables = python_holder.variables
         self.paths = python_holder.paths
         self.link_libpython = python_holder.link_libpython
+        self.is_debug = environment.coredata.get_builtin_option('buildtype') == 'debug'
         if mesonlib.version_compare(self.version, '>= 3.0'):
             self.major_version = 3
         else:
@@ -181,7 +182,11 @@ class PythonDependency(ExternalDependency):
                 if comp.id == "gcc":
                     libpath = 'python{}.dll'.format(vernum)
                 else:
-                    libpath = Path('libs') / 'python{}.lib'.format(vernum)
+                    if self.major_version == 3 and self.is_debug:
+                        libname = 'python{}_d.lib'.format(vernum)
+                    else:
+                        libname = 'python{}.lib'.format(vernum)
+                    libpath = Path('libs') / libname
             lib = Path(self.variables.get('base')) / libpath
         elif self.platform == 'mingw':
             if self.static:
@@ -286,12 +291,17 @@ class PythonInstallation(ExternalProgramHolder):
         self.interpreter = interpreter
         self.subproject = self.interpreter.subproject
         prefix = self.interpreter.environment.coredata.get_builtin_option('prefix')
+        self.is_debug = self.interpreter.environment.coredata.get_builtin_option('buildtype') == 'debug'
         self.variables = info['variables']
         self.paths = info['paths']
         install_paths = info['install_paths']
         self.platlib_install_path = os.path.join(prefix, install_paths['platlib'][1:])
         self.purelib_install_path = os.path.join(prefix, install_paths['purelib'][1:])
         self.version = info['version']
+        if mesonlib.version_compare(self.version, '>= 3.0'):
+            self.major_version = 3
+        else:
+            self.major_version = 2
         self.platform = info['platform']
         self.is_pypy = info['is_pypy']
         self.link_libpython = info['link_libpython']
@@ -339,6 +349,10 @@ class PythonInstallation(ExternalProgramHolder):
         split = suffix.rsplit('.', 1)
         suffix = split.pop(-1)
         args[0] += ''.join(s for s in split)
+
+        if mesonlib.is_windows():
+            if self.major_version == 3 and self.is_debug:
+                args[0] += '_d'
 
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
@@ -460,7 +474,7 @@ class PythonModule(ExtensionModule):
         self.snippets.add('find_installation')
 
     # https://www.python.org/dev/peps/pep-0397/
-    def _get_win_pythonpath(self, name_or_path):
+    def _get_win_pythonpath(self, name_or_path, is_debug):
         if name_or_path not in ['python2', 'python3']:
             return None
         if not shutil.which('py'):
@@ -471,6 +485,8 @@ class PythonModule(ExtensionModule):
         _, stdout, _ = mesonlib.Popen_safe(cmd)
         directory = stdout.strip()
         if os.path.exists(directory):
+            if name_or_path == 'python3' and is_debug:
+                return os.path.join(directory, 'python_d')
             return os.path.join(directory, 'python')
         else:
             return None
@@ -512,7 +528,8 @@ class PythonModule(ExtensionModule):
             python = ExternalProgram.from_entry('python3', name_or_path)
 
             if not python.found() and mesonlib.is_windows():
-                pythonpath = self._get_win_pythonpath(name_or_path)
+                is_debug = interpreter.environment.coredata.get_builtin_option('buildtype') == 'debug'
+                pythonpath = self._get_win_pythonpath(name_or_path, is_debug)
                 if pythonpath is not None:
                     name_or_path = pythonpath
                     python = ExternalProgram(name_or_path, silent=True)
