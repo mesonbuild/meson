@@ -22,7 +22,7 @@ from ..environment import detect_ninja, detect_scanbuild
 def scanbuild(exelist, srcdir, blddir, privdir, logdir, args):
     with tempfile.TemporaryDirectory(dir=privdir) as scandir:
         meson_cmd = exelist + args
-        build_cmd = exelist + ['-o', logdir, detect_ninja(), '-C', scandir]
+        build_cmd = exelist + ['--status-bugs', '-o', logdir, detect_ninja(), '-C', scandir]
         rc = subprocess.call(meson_cmd + [srcdir, scandir])
         if rc != 0:
             return rc
