@@ -394,7 +394,10 @@ class DmdLikeCompilerMixin:
         return Compiler.get_soname_args(self, *args, **kwargs)
 
     def get_allow_undefined_link_args(self) -> typing.List[str]:
-        return self.linker.get_allow_undefined_args()
+        args = []
+        for arg in self.linker.get_allow_undefined_args():
+            args.append('-L=' + arg)
+        return args
 
 
 class DCompiler(Compiler):
@@ -637,6 +640,9 @@ class GnuDCompiler(DCompiler, GnuCompiler):
 
         return parameter_list
 
+    def get_allow_undefined_link_args(self) -> typing.List[str]:
+        return self.linker.get_allow_undefined_args()
+
 
 class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, DCompiler):
 
@@ -666,6 +672,9 @@ class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompi
 
     def get_pic_args(self):
         return ['-relocation-model=pic']
+
+    def get_std_shared_lib_link_args(self):
+        return ['-shared']
 
     def get_crt_link_args(self, crt_val, buildtype):
         return self.get_crt_args(crt_val, buildtype)
