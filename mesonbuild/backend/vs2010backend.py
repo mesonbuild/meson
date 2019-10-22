@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import copy
+import itertools
 import os
 import pickle
 import xml.dom.minidom
@@ -1198,12 +1199,7 @@ class Vs2010Backend(backends.Backend):
         extra_files = target.extra_files
         if len(headers) + len(gen_hdrs) + len(extra_files) + len(pch_sources) > 0:
             inc_hdrs = ET.SubElement(root, 'ItemGroup')
-            for h in headers:
-                relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
-                ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
-            for h in gen_hdrs:
-                ET.SubElement(inc_hdrs, 'CLInclude', Include=h)
-            for h in target.extra_files:
+            for h in itertools.chain(headers, gen_hdrs, target.extra_files):
                 relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for lang in pch_sources:
