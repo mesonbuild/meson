@@ -19,7 +19,7 @@ import typing as T
 
 from pathlib import Path
 from .. import mesonlib
-from ..mesonlib import MesonException
+from ..mesonlib import MesonException, listify
 from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue
 from ..interpreterbase import (
@@ -310,6 +310,8 @@ class PythonInstallation(ExternalProgramHolder):
             'has_variable': self.has_variable_method,
             'get_variable': self.get_variable_method,
             'path': self.path_method,
+            'custom_target': self.custom_target_method,
+            'generator': self.generator_method,
         })
 
     @permittedKwargs(mod_kwargs)
@@ -456,6 +458,66 @@ class PythonInstallation(ExternalProgramHolder):
     @FeatureNew('Python module path method', '0.50.0')
     def path_method(self, args, kwargs):
         return super().path_method(args, kwargs)
+
+    @FeatureNew('Python module generator method', '0.53.0')
+    def generator_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InvalidArguments('Missing Python script argument')
+        if 'arguments' not in kwargs:
+            kwargs['arguments'] = []
+
+        script = args[0]
+        env = self.interpreter.environment
+        if isinstance(script, str):
+            script = os.path.join(env.source_dir,
+                                  self.interpreter.subdir, script)
+        if isinstance(script, mesonlib.File):
+            build_to_src = os.path.relpath(env.get_source_dir(), env.get_build_dir())
+            script = script.rel_to_builddir(build_to_src)
+
+        kwargs['arguments'].insert(0, script)
+        args[0] = self
+
+        if 'depfile' not in kwargs:
+            builtin = self.interpreter.environment.get_build_command()
+            if 'python' in os.path.basename(builtin[0]):
+                builtin = builtin[1:]
+            depfile = '@OUTPUT0@.d'
+            kwargs['depfile'] = depfile
+            builtin += ['--internal', 'pydep', '--depfile', depfile]
+            kwargs['arguments'] = builtin + kwargs['arguments']
+
+        return self.interpreter.func_generator(None, args, kwargs)
+
+    @FeatureNew('Python module custom_target method', '0.53.0')
+    def custom_target_method(self, args, kwargs):
+        if 'command' not in kwargs:
+            raise InvalidArguments('custom_target must have a command')
+        if 'output' not in kwargs:
+            raise InvalidArguments('custom_target must have an output')
+
+        command = listify(kwargs['command'])
+        script = command[0]
+        if isinstance(script, str):
+            script = os.path.join(self.interpreter.environment.source_dir,
+                                  self.interpreter.subdir, script)
+            command[0] = script
+
+        if 'depfile' not in kwargs:
+            builtin = self.interpreter.environment.get_build_command()
+            if 'python' in os.path.basename(builtin[0]):
+                builtin[0] = self
+
+            depfile = '@OUTPUT0@.d'
+            kwargs['depfile'] = depfile
+            builtin += ['--internal', 'pydep', '--depfile', depfile]
+            command = builtin + command
+
+        if command[0] != self:
+            command.insert(0, self)
+
+        kwargs['command'] = command
+        return self.interpreter.func_custom_target(None, args, kwargs)
 
 
 class PythonModule(ExtensionModule):
