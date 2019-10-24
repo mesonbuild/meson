@@ -2,6 +2,9 @@ project('dolphin option', 'c')
 
 d = disabler()
 
+full_path = d.full_path()
+assert(is_disabler(full_path), 'Method call is not a disabler')
+
 d2 = dependency(d)
 d3 = (d == d2)
 d4 = d + 0

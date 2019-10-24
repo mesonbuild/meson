@@ -803,8 +803,11 @@ The result of this is undefined and will become a hard error in a future Meson r
         (args, kwargs) = self.reduce_arguments(args)
         # Special case. This is the only thing you can do with a disabler
         # object. Every other use immediately returns the disabler object.
-        if isinstance(obj, Disabler) and method_name == 'found':
-            return False
+        if isinstance(obj, Disabler):
+            if method_name == 'found':
+                return False
+            else:
+                return Disabler()
         if is_disabled(args, kwargs):
             return Disabler()
         if method_name == 'extract_objects':
