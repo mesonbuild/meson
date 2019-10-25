@@ -3162,7 +3162,7 @@ recommended as it is not supported on some platforms''')
         env = get_fake_env(testdirlib, self.builddir, self.prefix)
         if env.detect_c_compiler(MachineChoice.HOST).get_id() in {'msvc', 'clang-cl', 'intel-cl'}:
             # msvc-like compiler, also test it with msvc-specific flags
-            libdir_flags += ['/LIBPATH:']
+            libdir_flags += ['/LIBPATH:', '-LIBPATH:']
         else:
             # static libraries are not linkable with -l with msvc because meson installs them
             # as .a files which unix_args_to_native will not know as it expects libraries to use
@@ -3176,6 +3176,7 @@ recommended as it is not supported on some platforms''')
 
         for libdir_flag in libdir_flags:
             # build library
+            self.new_builddir()
             self.init(testdirlib, extra_args=extra_args)
             self.build()
             self.install()

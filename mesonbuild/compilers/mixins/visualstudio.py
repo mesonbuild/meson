@@ -217,7 +217,9 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             # -pthread is only valid for GCC
             if i in ('-mms-bitfields', '-pthread'):
                 continue
-            if i.startswith('-L'):
+            if i.startswith('-LIBPATH:'):
+                i = '/LIBPATH:' + i[9:]
+            elif i.startswith('-L'):
                 i = '/LIBPATH:' + i[2:]
             # Translate GNU-style -lfoo library name to the import library
             elif i.startswith('-l'):
@@ -250,7 +252,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     def native_args_to_unix(cls, args: typing.List[str]) -> typing.List[str]:
         result = []
         for arg in args:
-            if arg.startswith('/LIBPATH:'):
+            if arg.startswith(('/LIBPATH:', '-LIBPATH:')):
                 result.append('-L' + arg[9:])
             elif arg.endswith(('.a', '.lib')) and not os.path.isabs(arg):
                 result.append('-l' + arg)
