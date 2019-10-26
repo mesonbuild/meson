@@ -1384,12 +1384,14 @@ class Generator:
         bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
         return bases
 
-    def get_dep_outname(self, inname):
+    def get_dep_outname(self, inname, outname):
         if self.depfile is None:
             raise InvalidArguments('Tried to get dep name for rule that does not have dependency file defined.')
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
-        return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
+        dep = self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
+        dep = dep.replace('@OUTPUT0@', outname)
+        return dep
 
     def get_arglist(self, inname):
         plainname = os.path.basename(inname)
@@ -2210,17 +2212,20 @@ class CustomTarget(Target):
     def get_generated_sources(self):
         return self.get_generated_lists()
 
-    def get_dep_outname(self, infilenames):
+    def get_dep_outname(self, infilenames, outname):
         if self.depfile is None:
             raise InvalidArguments('Tried to get depfile name for custom_target that does not have depfile defined.')
         if len(infilenames):
             plainname = os.path.basename(infilenames[0])
             basename = os.path.splitext(plainname)[0]
-            return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
+            dep = self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
         else:
             if '@BASENAME@' in self.depfile or '@PLAINNAME@' in self.depfile:
                 raise InvalidArguments('Substitution in depfile for custom_target that does not have an input file.')
-            return self.depfile
+            dep = self.depfile
+
+        dep = dep.replace('@OUTPUT0@', outname)
+        return dep
 
     def is_linkable_target(self):
         if len(self.outputs) != 1:

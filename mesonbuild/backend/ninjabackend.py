@@ -688,7 +688,7 @@ int dummy;
         else:
             cmd_type = 'custom'
         if target.depfile is not None:
-            depfile = target.get_dep_outname(elem.infilenames)
+            depfile = target.get_dep_outname(elem.infilenames, elem.outfilenames[0])
             rel_dfile = os.path.join(self.get_target_dir(target), depfile)
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)
@@ -1783,7 +1783,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 args = base_args
             else:
                 rulename = 'CUSTOM_COMMAND_DEP'
-                depfilename = generator.get_dep_outname(infilename)
+                depfilename = generator.get_dep_outname(infilename, outfilelist[0])
                 depfile = os.path.join(self.get_target_private_dir(target), depfilename)
                 args = [x.replace('@DEPFILE@', depfile) for x in base_args]
             args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)

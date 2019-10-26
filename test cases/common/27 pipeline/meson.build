@@ -6,7 +6,7 @@ e1 = executable('srcgen', 'srcgen.c', native : true)
 
 # Generate a source file that needs to be included in the build.
 gen = generator(e1, \
-  depfile : '@BASENAME@.d',
+  depfile : '@OUTPUT0@.d',
   output  : '@BASENAME@.c', # Line continuation inside arguments should work without needing a "\".
   arguments : ['@INPUT@', '@OUTPUT@', '@DEPFILE@'])
 
