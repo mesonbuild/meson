@@ -1150,7 +1150,10 @@ You should use this instead of [`shared_library`](#shared_library),
 [`static_library`](#static_library) or
 [`both_libraries`](#both_libraries) most of the time. This allows you
 to toggle your entire project (including subprojects) from shared to
-static with only one option.
+static with only one option. This option applies to libraries being
+built internal to the entire project. For external dependencies, the
+default library type prefered is shared. This can be adapted on a per
+library basis using the [dependency()](#dependency)) `static` keyword.
 
 The keyword arguments for this are the same as for
 [`executable`](#executable) with the following additions:
