@@ -30,7 +30,7 @@ int main(string[] args) {{
 '''
 
 hello_d_meson_template = '''project('{project_name}', 'd',
-    version : '{version}', 
+    version : '{version}',
     default_options: ['warning_level=3'])
 
 exe = executable('{exe_name}', '{source_name}',
@@ -102,9 +102,10 @@ def create_exe_d_sample(project_name, project_version):
     source_name = lowercase_token + '.d'
     open(source_name, 'w').write(hello_d_template.format(project_name=project_name))
     open('meson.build', 'w').write(hello_d_meson_template.format(project_name=project_name,
-                                                                 exe_name=lowercase_token,
-                                                                 source_name=source_name,
-                                                                 version=project_version))
+        exe_name=lowercase_token, 
+        source_name=source_name, 
+        version=project_version))
+
 
 def create_lib_d_sample(project_name, version):
     lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())

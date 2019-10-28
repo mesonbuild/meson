@@ -126,9 +126,7 @@ def create_exe_objc_sample(project_name, project_version):
     source_name = lowercase_token + '.m'
     open(source_name, 'w').write(hello_objc_template.format(project_name=project_name))
     open('meson.build', 'w').write(hello_objc_meson_template.format(project_name=project_name,
-                                                                 exe_name=lowercase_token,
-                                                                 source_name=source_name,
-                                                                 version=project_version))
+        exe_name=lowercase_token, source_name=source_name, version=project_version))
 
 def create_lib_objc_sample(project_name, version):
     lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
