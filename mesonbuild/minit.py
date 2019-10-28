@@ -92,8 +92,9 @@ def autodetect_options(options, sample=False):
     if not options.srcfiles:
         srcfiles = []
         for f in os.listdir():
-            if f.endswith('.cc') or f.endswith('.cpp') or f.endswith('.c') \
-              or f.startswith('.d') or f.startswith('.rs'):
+            if f.endswith('.cc') or f.endswith('.cpp') or f.endswith('.c'):
+                srcfiles.append(f)
+            elif f.startswith('.d') or f.startswith('.rs'):
                 srcfiles.append(f)
         if not srcfiles:
             print("No recognizable source files found.\n"
