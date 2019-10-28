@@ -74,9 +74,7 @@ def create_exe_rust_sample(project_name, project_version):
     source_name = lowercase_token + '.rs'
     open(source_name, 'w').write(hello_rust_template.format(project_name=project_name))
     open('meson.build', 'w').write(hello_rust_meson_template.format(project_name=project_name,
-                                                                 exe_name=lowercase_token,
-                                                                 source_name=source_name,
-                                                                 version=project_version))
+        exe_name=lowercase_token, source_name=source_name, version=project_version))
 
 
 def create_lib_rust_sample(project_name, version):
