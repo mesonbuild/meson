@@ -35,6 +35,7 @@ packages = ['mesonbuild',
             'mesonbuild.dependencies',
             'mesonbuild.modules',
             'mesonbuild.scripts',
+            'mesonbuild.templates',
             'mesonbuild.wrap']
 package_data = {
     'mesonbuild.dependencies': ['data/CMakeLists.txt', 'data/CMakeListsLLVM.txt', 'data/CMakePathInfo.txt'],
