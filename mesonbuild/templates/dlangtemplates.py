@@ -102,9 +102,9 @@ def create_exe_d_sample(project_name, project_version):
     source_name = lowercase_token + '.d'
     open(source_name, 'w').write(hello_d_template.format(project_name=project_name))
     open('meson.build', 'w').write(hello_d_meson_template.format(project_name=project_name,
-        exe_name=lowercase_token, 
-        source_name=source_name, 
-        version=project_version))
+                                                                 exe_name=lowercase_token,
+                                                                 source_name=source_name,
+                                                                 version=project_version))
 
 
 def create_lib_d_sample(project_name, version):
