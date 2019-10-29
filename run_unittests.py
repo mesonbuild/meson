@@ -3009,7 +3009,7 @@ int main(int argc, char **argv) {
         ninja = detect_ninja()
         if ninja is None:
             raise unittest.SkipTest('This test currently requires ninja. Fix this once "meson build" works.')
-        for lang in ('c', 'cpp'):
+        for lang in ('c', 'cpp', 'd', 'rust', 'objc'):
             for target_type in ('executable', 'library'):
                 with tempfile.TemporaryDirectory() as tmpdir:
                     self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
