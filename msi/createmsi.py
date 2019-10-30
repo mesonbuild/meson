@@ -50,10 +50,10 @@ class PackageGenerator:
             redist_glob = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\*\\MergeModules\\Microsoft_VC142_CRT_x64.msm'
         else:
             self.progfile_dir = 'ProgramFilesFolder'
-            redist_glob = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\*\\MergeModules\\Microsoft_VC142_CRT_x86.msm'
+            redist_glob = 'C:\\Program Files*\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\*\\MergeModules\\Microsoft_VC142_CRT_x86.msm'
         trials = glob(redist_glob)
         if len(trials) != 1:
-            sys.exit('Could not find unique MSM setup.')
+            sys.exit('Could not find unique MSM setup:' + '\n'.join(trials))
         self.redist_path = trials[0]
         self.component_num = 0
         self.feature_properties = {
