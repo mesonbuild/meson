@@ -23,6 +23,7 @@ from mesonbuild.templates.ctemplates import (create_exe_c_sample, create_lib_c_s
 from mesonbuild.templates.cpptemplates import (create_exe_cpp_sample, create_lib_cpp_sample)
 from mesonbuild.templates.objctemplates import (create_exe_objc_sample, create_lib_objc_sample)
 from mesonbuild.templates.dlangtemplates import (create_exe_d_sample, create_lib_d_sample)
+from mesonbuild.templates.fortrantemplates import (create_exe_fortran_sample, create_lib_fortran_sample)
 from mesonbuild.templates.rusttemplates import (create_exe_rust_sample, create_lib_rust_sample)
 
 
@@ -53,6 +54,13 @@ def create_sample(options):
             create_exe_d_sample(options.name, options.version)
         elif options.type == 'library':
             create_lib_d_sample(options.name, options.version)
+        else:
+            raise RuntimeError('Unreachable code')
+    elif options.language == 'fortran':
+        if options.type == 'executable':
+            create_exe_fortran_sample(options.name, options.version)
+        elif options.type == 'library':
+            create_lib_fortran_sample(options.name, options.version)
         else:
             raise RuntimeError('Unreachable code')
     elif options.language == 'rust':
@@ -95,6 +103,8 @@ def autodetect_options(options, sample=False):
             if f.endswith('.cc') or f.endswith('.cpp') or f.endswith('.c'):
                 srcfiles.append(f)
             elif f.startswith('.d') or f.startswith('.rs'):
+                srcfiles.append(f)
+            elif f in ('.f', '.for', '.F', '.f90', '.F90'):  # Fortran
                 srcfiles.append(f)
         if not srcfiles:
             print("No recognizable source files found.\n"
@@ -170,7 +180,7 @@ def add_arguments(parser):
     parser.add_argument("-n", "--name", help="project name. default: name of current directory")
     parser.add_argument("-e", "--executable", help="executable name. default: project name")
     parser.add_argument("-d", "--deps", help="dependencies, comma-separated")
-    parser.add_argument("-l", "--language", choices=['c', 'cpp', 'd', 'rust', 'objc'],
+    parser.add_argument("-l", "--language", choices=['c', 'cpp', 'd', 'fortran', 'rust', 'objc'],
                         help="project language. default: autodetected based on source files")
     parser.add_argument("-b", "--build", help="build after generation", action='store_true')
     parser.add_argument("--builddir", help="directory for build", default='build')
