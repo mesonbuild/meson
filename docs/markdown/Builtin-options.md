@@ -144,6 +144,7 @@ compiler being used:
 | cpp_std      | none          | none, c++98, c++03, c++11, c++14, c++17, <br/>c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, <br/> vc++14, vc++17, vc++latest | C++ language standard to use |
 | cpp_debugstl | false         | true, false                              | C++ STL debug mode |
 | cpp_eh       | default       | none, default, a, s, sc                  | C++ exception handling type |
+| cpp_rtti     | true          | true, false                              | Whether to enable RTTI (runtime type identification) |
 | cpp_winlibs  | see below     | free-form comma-separated list           | Standard Windows libs to link against |
 
 The default values of `c_winlibs` and `cpp_winlibs` are in compiler-specific

@@ -489,3 +489,14 @@ libbar = library('bar', sources: libbar_sources, dependencies: libfoo_dep)
 
 A good example of a generator that outputs both sources and headers is
 [`gnome.mkenums()`](https://mesonbuild.com/Gnome-module.html#gnomemkenums).
+
+## How do I disable exceptions and RTTI in my C++ project?
+
+With the `cpp_eh` and `cpp_rtti` options. A typical invocation would
+look like this:
+
+```
+meson -Dcpp_eh=none -Dcpp_rtti=false <other options>
+```
+
+The RTTI option is only available since Meson version 0.53.0.

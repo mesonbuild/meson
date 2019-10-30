@@ -167,6 +167,7 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
                                                         ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
+                     'cpp_rtti': coredata.UserBooleanOption('Enable RTTI', True),
                      'cpp_std': coredata.UserComboOption('C++ language standard to use',
                                                          ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z', 'c++2a',
                                                           'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z', 'gnu++2a'],
@@ -180,6 +181,9 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
             args.append(self._find_best_cpp_std(std.value))
 
         non_msvc_eh_options(options['cpp_eh'].value, args)
+
+        if not options['cpp_rtti'].value:
+            args.append('-fno-rtti')
 
         return args
 
@@ -265,6 +269,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
                                                         ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
+                     'cpp_rtti': coredata.UserBooleanOption('Enable RTTI', True),
                      'cpp_std': coredata.UserComboOption('C++ language standard to use',
                                                          ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z', 'c++2a',
                                                           'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z', 'gnu++2a'],
@@ -284,6 +289,9 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
             args.append(self._find_best_cpp_std(std.value))
 
         non_msvc_eh_options(options['cpp_eh'].value, args)
+
+        if not options['cpp_rtti'].value:
+            args.append('-fno-rtti')
 
         if options['cpp_debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
@@ -373,6 +381,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
         opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
                                                         ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
+                     'cpp_rtti': coredata.UserBooleanOption('Enable RTTI', True),
                      'cpp_std': coredata.UserComboOption('C++ language standard to use',
                                                          ['none'] + c_stds + g_stds,
                                                          'none'),
@@ -391,6 +400,8 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
             args.append('-std=' + remap_cpp03.get(std.value, std.value))
         if options['cpp_eh'].value == 'none':
             args.append('-fno-exceptions')
+        if not options['cpp_rtti'].value:
+            args.append('-fno-rtti')
         if options['cpp_debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
@@ -422,6 +433,7 @@ class VisualStudioLikeCPPCompilerMixin:
         opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
                                                         ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),
+                     'cpp_rtti': coredata.UserBooleanOption('Enable RTTI', True),
                      'cpp_std': coredata.UserComboOption('C++ language standard to use',
                                                          cpp_stds,
                                                          'none'),
@@ -439,6 +451,9 @@ class VisualStudioLikeCPPCompilerMixin:
             args.append('/EHs-c-')
         else:
             args.append('/EH' + eh.value)
+
+        if not options['cpp_rtti'].value:
+            args.append('/GR-')
 
         permissive, ver = self.VC_VERSION_MAP[options['cpp_std'].value]
 
