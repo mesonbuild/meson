@@ -435,7 +435,9 @@ class VisualStudioLikeCPPCompilerMixin:
         eh = options['cpp_eh']
         if eh.value == 'default':
             args.append('/EHsc')
-        elif eh.value != 'none':
+        elif eh.value == 'none':
+            args.append('/EHs-c-')
+        else:
             args.append('/EH' + eh.value)
 
         permissive, ver = self.VC_VERSION_MAP[options['cpp_std'].value]
