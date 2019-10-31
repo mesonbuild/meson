@@ -22,8 +22,11 @@ build system.
 
 You can run Meson directly from a revision control checkout or an
 extracted tarball. If you wish you can install it locally with the
-standard Python distutils command `python3 setup.py install <your
-options here>`.
+standard Python command
+
+```sh
+python3 -m pip install meson <your options here>
+```
 
 Meson is also available from
 [PyPi](https://pypi.python.org/pypi/meson), so it can be installed
