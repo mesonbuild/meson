@@ -62,9 +62,10 @@ command line will override any options in the native file. For example, passing
 
 ## Loading multiple native files
 
-Unlike cross file, native files allow layering. More than one native file can be
-loaded, with values from a previous file being overridden by the next. The
-intention of this is not overriding, but to allow composing native files.
+Native files allow layering (cross files can be layered since meson 0.52.0).
+More than one native file can be loaded, with values from a previous file being
+overridden by the next. The intention of this is not overriding, but to allow
+composing native files.
 
 For example, if there is a project using C and C++, python 3.4-3.7, and LLVM
 5-7, and it needs to build with clang 5, 6, and 7, and gcc 5.x, 6.x, and 7.x;

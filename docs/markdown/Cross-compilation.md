@@ -206,6 +206,10 @@ bindir = 'bin'
 
 This will be overwritten by any options passed on the command line.
 
+Since meson 0.52.0 it is possible to layer cross files together. This works
+like native file layering: the purpose is to compose cross files together, and
+values from the second cross file will replace those form the first.
+
 
 ## Starting a cross build
 
