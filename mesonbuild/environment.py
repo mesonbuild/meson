@@ -1151,8 +1151,7 @@ class Environment:
                         compiler, for_machine, 'pgi',
                         PGIFortranCompiler.LINKER_PREFIX, version=version)
                     return PGIFortranCompiler(
-                        compiler, version, for_machine, is_cross,
-                        self.machines[for_machine], exe_wrap,
+                        compiler, version, for_machine, is_cross, info, exe_wrap,
                         full_version=full_version, linker=linker)
 
                 if 'flang' in out or 'clang' in out:
