@@ -14,7 +14,8 @@
 
 """Code that creates simple startup projects."""
 
-import os, sys, re, shutil, subprocess
+from pathlib import Path
+import re, shutil, subprocess
 from glob import glob
 from mesonbuild import mesonlib
 from mesonbuild.environment import detect_ninja
@@ -26,6 +27,7 @@ from mesonbuild.templates.dlangtemplates import (create_exe_d_sample, create_lib
 from mesonbuild.templates.fortrantemplates import (create_exe_fortran_sample, create_lib_fortran_sample)
 from mesonbuild.templates.rusttemplates import (create_exe_rust_sample, create_lib_rust_sample)
 
+FORTRAN_SUFFIXES = ['.f', '.for', '.F', '.f90', '.F90']
 
 info_message = '''Sample project created. To build it run the
 following commands:
@@ -83,11 +85,10 @@ def create_sample(options):
 
 def autodetect_options(options, sample=False):
     if not options.name:
-        options.name = os.path.basename(os.getcwd())
+        options.name = Path().resolve().stem
         if not re.match('[a-zA-Z_][a-zA-Z0-9]*', options.name) and sample:
-            print('Name of current directory "{}" is not usable as a sample project name.\n'
-                  'Specify a project name with --name.'.format(options.name))
-            sys.exit(1)
+            raise SystemExit('Name of current directory "{}" is not usable as a sample project name.\n'
+                             'Specify a project name with --name.'.format(options.name))
         print('Using "{}" (name of current directory) as project name.'
               .format(options.name))
     if not options.executable:
@@ -99,39 +100,37 @@ def autodetect_options(options, sample=False):
         return
     if not options.srcfiles:
         srcfiles = []
-        for f in os.listdir():
-            if f.endswith('.cc') or f.endswith('.cpp') or f.endswith('.c'):
-                srcfiles.append(f)
-            elif f.startswith('.d') or f.startswith('.rs'):
-                srcfiles.append(f)
-            elif f in ('.f', '.for', '.F', '.f90', '.F90'):  # Fortran
+        for f in (f for f in Path().iterdir() if f.is_file()):
+            if f.suffix in (['.cc', '.cpp', '.c', '.d', '.m', '.rs'] + FORTRAN_SUFFIXES):
                 srcfiles.append(f)
         if not srcfiles:
-            print("No recognizable source files found.\n"
-                  "Run me in an empty directory to create a sample project.")
-            sys.exit(1)
+            raise SystemExit('No recognizable source files found.\n'
+                             'Run meson init in an empty directory to create a sample project.')
         options.srcfiles = srcfiles
-        print("Detected source files: " + ' '.join(srcfiles))
+        print("Detected source files: " + ' '.join(map(str, srcfiles)))
+    options.srcfiles = [Path(f) for f in options.srcfiles]
     if not options.language:
         for f in options.srcfiles:
-            if f.endswith('.cc') or f.endswith('.cpp'):
+            if f.suffix in ('.cc', '.cpp'):
                 options.language = 'cpp'
                 break
-            if f.endswith('.c'):
+            if f.suffix == '.c':
                 options.language = 'c'
                 break
-            if f.endswith('.d'):
+            if f.suffix == '.d':
                 options.language = 'd'
                 break
-            if f.endswith('.rs'):
+            if f.suffix in FORTRAN_SUFFIXES:
+                options.language = 'fortran'
+                break
+            if f.suffix == '.rs':
                 options.language = 'rust'
                 break
-            if f.endswith('.m'):
+            if f.suffix == '.m':
                 options.language = 'objc'
                 break
         if not options.language:
-            print("Can't autodetect language, please specify it with -l.")
-            sys.exit(1)
+            raise SystemExit("Can't autodetect language, please specify it with -l.")
         print("Detected language: " + options.language)
 
 
@@ -146,10 +145,9 @@ executable('{executable}',
 
 def create_meson_build(options):
     if options.type != 'executable':
-        print('\nGenerating a meson.build file from existing sources is\n'
-              'supported only for project type "executable".\n'
-              'Run me in an empty directory to create a sample project.')
-        sys.exit(1)
+        raise SystemExit('\nGenerating a meson.build file from existing sources is\n'
+                         'supported only for project type "executable".\n'
+                         'Run meson init in an empty directory to create a sample project.')
     default_options = ['warning_level=3']
     if options.language == 'cpp':
         # This shows how to set this very common option.
@@ -190,7 +188,7 @@ def add_arguments(parser):
                         choices=['executable', 'library'])
     parser.add_argument('--version', default='0.1')
 
-def run(options):
+def run(options) -> int:
     if not glob('*'):
         autodetect_options(options, sample=True)
         if not options.language:
@@ -199,21 +197,20 @@ def run(options):
         create_sample(options)
     else:
         autodetect_options(options)
-        if os.path.isfile('meson.build') and not options.force:
-            print('meson.build already exists. Use --force to overwrite.')
-            sys.exit(1)
+        if Path('meson.build').is_file() and not options.force:
+            raise SystemExit('meson.build already exists. Use --force to overwrite.')
         create_meson_build(options)
     if options.build:
-        if os.path.isdir(options.builddir) and options.force:
+        if Path(options.builddir).is_dir() and options.force:
             print('Build directory already exists, deleting it.')
             shutil.rmtree(options.builddir)
         print('Building...')
         cmd = mesonlib.meson_command + [options.builddir]
-        err = subprocess.call(cmd)
-        if err:
-            sys.exit(1)
+        ret = subprocess.run(cmd)
+        if ret.returncode:
+            raise SystemExit
         cmd = [detect_ninja(), '-C', options.builddir]
-        err = subprocess.call(cmd)
-        if err:
-            sys.exit(1)
+        ret = subprocess.run(cmd)
+        if ret.returncode:
+            raise SystemExit
     return 0
