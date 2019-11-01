@@ -1504,7 +1504,7 @@ class Environment:
                 # Intel has it's own linker that acts like microsoft's lib
                 linkers = ['xilib']
             elif isinstance(compiler, (PGICCompiler, PGIFortranCompiler)) and mesonlib.is_windows():
-                linkers = [self.default_static_linker]  # this is just a wrapper calling link/lib on Windows, keeping things simple.
+                linkers = [['ar']]  # For PGI on Windows, "ar" is just a wrapper calling link/lib.
             else:
                 linkers = defaults
         popen_exceptions = {}
