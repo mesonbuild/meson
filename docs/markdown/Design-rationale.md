@@ -2,9 +2,6 @@
 title: Design rationale
 ...
 
-This is the original design rationale for Meson. The syntax it describes does not match the released version
-==
-
 A software developer's most important tool is the editor. If you talk
 to coders about the editors they use, you are usually met with massive
 enthusiasm and praise. You will hear how Emacs is the greatest thing
@@ -33,7 +30,7 @@ may not work. In some cases the executable file is a binary whereas at
 other times it is a wrapper shell script that invokes the real binary
 which resides in a hidden subdirectory. GDB invocation fails if the
 binary is a script but succeeds if it is not. The user has to remember
-the type of each one of his executables (which is an implementation
+the type of each one of the built executables (which is an implementation
 detail of the build system) just to be able to debug them. Several
 other such pain points can be found in [this blog
 post](http://voices.canonical.com/jussi.pakkanen/2011/09/13/autotools/).
@@ -119,10 +116,10 @@ Running the configuration step on a moderate sized project must not
 take more than five seconds. Running the compile command on a fully up
 to date tree of 1000 source files must not take more than 0.1 seconds.
 
-### 7. Must provide easy to use support for modern sw development features
+### 7. Must provide easy to use support for modern SW development features
 
-An example is precompiled headers. Currently no free software build
-system provides native support for them. Other examples could include
+An example is precompiled headers. Meson was the first free software build
+system providing native PCH support. Other examples could include
 easy integration of Valgrind and unit tests, test coverage reporting
 and so on.
 
@@ -149,7 +146,7 @@ passing around compiler flags and linker flags. In the proposed system
 the user just declares that a given build target uses a given external
 dependency. The build system then takes care of passing all flags and
 settings to their proper locations. This means that the user can focus
-on his own code rather than marshalling command line arguments from
+on their own code rather than marshalling command line arguments from
 one place to another.
 
 A DSL is more work than the approach taken by SCons, which is to
@@ -201,9 +198,12 @@ External dependencies are simple to use.
 
 ```meson
 project('external lib', 'c')
-libdep = find_dep('extlibrary', required : true)
+
+cc = meson.get_compiler('c')
+libdep = cc.find_library('extlibrary', required : true)
+
 sourcelist = ['main.c', 'file1.c', 'file2.c', 'file3.c']
-executable('program', sources : sourcelist, dep : libdep)
+executable('program', sources : sourcelist, dependencies : libdep)
 ```
 
 In other build systems you have to manually add the compile and link
@@ -216,9 +216,9 @@ understandable.
 
 ```meson
 project('build library', 'c')
-foolib = shared_library('foobar', sources : 'foobar.c',\
+foolib = shared_library('foobar', sources : 'foobar.c',
 install : true)
-exe = executable('testfoobar', 'tester.c', link : foolib)
+exe = executable('testfoobar', 'tester.c', link_with : foolib)
 add_test('test library', exe)
 ```
 
@@ -226,15 +226,15 @@ First we build a shared library named foobar. It is marked
 installable, so running `ninja install` installs it to the library
 directory (the system knows which one so the user does not have to
 care). Then we build a test executable which is linked against the
-library. It will no tbe installed, but instead it is added to the list
+library. It will not be installed, but instead it is added to the list
 of unit tests, which can be run with the command `ninja test`.
 
 Above we mentioned precompiled headers as a feature not supported by
 other build systems. Here's how you would use them.
 
 ```meson
-project('pch demo', 'cxx')
-executable('myapp', 'myapp.cpp', pch : 'pch/myapp.hh')
+project('pch demo', 'cpp')
+executable('myapp', 'myapp.cpp', cpp_pch : 'pch/myapp.hh')
 ```
 
 The main reason other build systems can not provide pch support this
