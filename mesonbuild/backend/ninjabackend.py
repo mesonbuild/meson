@@ -285,9 +285,10 @@ int dummy;
 
     def generate(self, interp):
         self.interpreter = interp
-        self.ninja_command = environment.detect_ninja(log=True)
-        if self.ninja_command is None:
+        ninja = environment.detect_ninja_command_and_version(log=True)
+        if ninja is None:
             raise MesonException('Could not detect Ninja v1.5 or newer')
+        (self.ninja_command, self.ninja_version) = ninja
         outfilename = os.path.join(self.environment.get_build_dir(), self.ninja_filename)
         tempfilename = outfilename + '~'
         with open(tempfilename, 'w', encoding='utf-8') as outfile:
@@ -342,7 +343,8 @@ int dummy;
             for lang in self.environment.coredata.compilers[for_machine]:
                 rules += [self.get_compiler_rule_name(lang, for_machine)]
                 rules += [self.get_pch_rule_name(lang, for_machine)]
-        ninja_compdb = [self.ninja_command, '-t', 'compdb'] + rules
+        compdb_options = ['-x'] if mesonlib.version_compare(self.ninja_version, '>=1.9') else []
+        ninja_compdb = [self.ninja_command, '-t', 'compdb'] + compdb_options + rules
         builddir = self.environment.get_build_dir()
         try:
             jsondb = subprocess.check_output(ninja_compdb, cwd=builddir)
