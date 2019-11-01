@@ -3031,11 +3031,7 @@ int main(int argc, char **argv) {
             langs.append('objc')
         except EnvironmentException:
             pass
-        try:
-            env.detect_rust_compiler(MachineChoice.HOST)
-            langs.append('rust')
-        except EnvironmentException:
-            pass
+        # FIXME: omitting rust as Windows AppVeyor CI finds Rust but doesn't link correctly
 
         for lang in langs:
             for target_type in ('executable', 'library'):
