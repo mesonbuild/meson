@@ -320,8 +320,8 @@ class TestRun:
 
     @classmethod
     def make_exitcode(cls, test: 'TestSerialisation', test_env: typing.Dict[str, str],
-                      returncode: int, duration: float, stdo: typing.Optional[str],
-                      stde: typing.Optional[str],
+                      returncode: int, starttime: float, duration: float,
+                      stdo: typing.Optional[str], stde: typing.Optional[str],
                       cmd: typing.Optional[typing.List[str]]) -> 'TestRun':
         if returncode == GNU_SKIP_RETURNCODE:
             res = TestResult.SKIP
@@ -331,11 +331,12 @@ class TestRun:
             res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        return cls(test, test_env, res, returncode, duration, stdo, stde, cmd)
+        return cls(test, test_env, res, returncode, starttime, duration, stdo, stde, cmd)
 
     @classmethod
     def make_tap(cls, test: 'TestSerialisation', test_env: typing.Dict[str, str],
-                 returncode: int, duration: float, stdo: str, stde: str,
+                 returncode: int, starttime: float, duration: float,
+                 stdo: str, stde: str,
                  cmd: typing.Optional[typing.List[str]]) -> 'TestRun':
         res = None
         num_tests = 0
@@ -369,15 +370,16 @@ class TestRun:
             else:
                 res = TestResult.FAIL if failed else TestResult.OK
 
-        return cls(test, test_env, res, returncode, duration, stdo, stde, cmd)
+        return cls(test, test_env, res, returncode, starttime, duration, stdo, stde, cmd)
 
     def __init__(self, test: 'TestSerialisation', test_env: typing.Dict[str, str],
-                 res: TestResult, returncode: int, duration: float,
+                 res: TestResult, returncode: int, starttime: float, duration: float,
                  stdo: typing.Optional[str], stde: typing.Optional[str],
                  cmd: typing.Optional[typing.List[str]]):
         assert isinstance(res, TestResult)
         self.res = res
         self.returncode = returncode
+        self.starttime = starttime
         self.duration = duration
         self.stdo = stdo
         self.stde = stde
@@ -391,7 +393,10 @@ class TestRun:
             res += 'NONE\n'
         else:
             test_only_env = set(self.env.items()) - set(os.environ.items())
-            res += '{}{}\n'.format(env_tuple_to_str(test_only_env), ' '.join(self.cmd))
+            starttime_str = time.strftime("%H:%M:%S", time.gmtime(self.starttime))
+            res += '{} {}{}\n'.format(
+                starttime_str, env_tuple_to_str(test_only_env), ' '.join(self.cmd)
+            )
         if self.stdo:
             res += '--- stdout ---\n'
             res += self.stdo
@@ -417,6 +422,7 @@ def write_json_log(jsonlogfile: typing.TextIO, test_name: str, result: TestRun) 
     jresult = {'name': test_name,
                'stdout': result.stdo,
                'result': result.res.value,
+               'starttime': result.starttime,
                'duration': result.duration,
                'returncode': result.returncode,
                'env': result.env,
@@ -480,7 +486,7 @@ class SingleTestRunner:
         cmd = self._get_cmd()
         if cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
-            return TestRun(self.test, self.test_env, TestResult.SKIP, GNU_SKIP_RETURNCODE, 0.0, skip_stdout, None, None)
+            return TestRun(self.test, self.test_env, TestResult.SKIP, GNU_SKIP_RETURNCODE, time.time(), 0.0, skip_stdout, None, None)
         else:
             wrap = TestHarness.get_wrapper(self.options)
             if self.options.gdb:
@@ -610,14 +616,14 @@ class SingleTestRunner:
             stdo = ""
             stde = additional_error
         if timed_out:
-            return TestRun(self.test, self.test_env, TestResult.TIMEOUT, p.returncode, duration, stdo, stde, cmd)
+            return TestRun(self.test, self.test_env, TestResult.TIMEOUT, p.returncode, starttime, duration, stdo, stde, cmd)
         else:
             if self.test.protocol == 'exitcode':
-                return TestRun.make_exitcode(self.test, self.test_env, p.returncode, duration, stdo, stde, cmd)
+                return TestRun.make_exitcode(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
             else:
                 if self.options.verbose:
                     print(stdo, end='')
-                return TestRun.make_tap(self.test, self.test_env, p.returncode, duration, stdo, stde, cmd)
+                return TestRun.make_tap(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
 
 
 class TestHarness:
