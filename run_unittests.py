@@ -3009,8 +3009,33 @@ int main(int argc, char **argv) {
         ninja = detect_ninja()
         if ninja is None:
             raise unittest.SkipTest('This test currently requires ninja. Fix this once "meson build" works.')
-        for lang in ('c', 'cpp'):
+        langs = ['c']
+        env = get_fake_env()
+        try:
+            env.detect_cpp_compiler(MachineChoice.HOST)
+            langs.append('cpp')
+        except EnvironmentException:
+            pass
+        try:
+            env.detect_d_compiler(MachineChoice.HOST)
+            langs.append('d')
+        except EnvironmentException:
+            pass
+        try:
+            env.detect_fortran_compiler(MachineChoice.HOST)
+            langs.append('fortran')
+        except EnvironmentException:
+            pass
+        try:
+            env.detect_objc_compiler(MachineChoice.HOST)
+            langs.append('objc')
+        except EnvironmentException:
+            pass
+        # FIXME: omitting rust as Windows AppVeyor CI finds Rust but doesn't link correctly
+
+        for lang in langs:
             for target_type in ('executable', 'library'):
+                # test empty directory
                 with tempfile.TemporaryDirectory() as tmpdir:
                     self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
                               workdir=tmpdir)
@@ -3018,10 +3043,12 @@ int main(int argc, char **argv) {
                               workdir=tmpdir)
                     self._run(ninja,
                               workdir=os.path.join(tmpdir, 'builddir'))
-            with tempfile.TemporaryDirectory() as tmpdir:
-                with open(os.path.join(tmpdir, 'foo.' + lang), 'w') as f:
-                    f.write('int main() {}')
-                self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
+            # test directory with existing code file
+            if lang in ('c', 'cpp'):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    with open(os.path.join(tmpdir, 'foo.' + lang), 'w') as f:
+                        f.write('int main() {}')
+                    self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
 
     # The test uses mocking and thus requires that
     # the current process is the one to run the Meson steps.
