@@ -1114,8 +1114,8 @@ class CMakeDependency(ExternalDependency):
 
         pref_path = self.env.coredata.builtins_per_machine[self.for_machine]['cmake_prefix_path'].value
         if 'CMAKE_PREFIX_PATH' in os.environ:
-            env_pref_path = os.environ['CMAKE_PREFIX_PATH'].split(':')
-            env_pref_path = [x for x in env_pref_path if x]  # Filter out enpty strings
+            env_pref_path = os.environ['CMAKE_PREFIX_PATH'].split(os.pathsep)
+            env_pref_path = [x for x in env_pref_path if x]  # Filter out empty strings
             if not pref_path:
                 pref_path = []
             pref_path += env_pref_path
