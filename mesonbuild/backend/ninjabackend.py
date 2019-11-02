@@ -2648,6 +2648,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_scanbuild(self):
         if not environment.detect_scanbuild():
             return
+        if ('', 'scan-build') in self.build.run_target_names:
+            return
         cmd = self.environment.get_build_command() + \
             ['--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir] + \
             self.environment.get_build_command() + self.get_user_option_args()
@@ -2664,6 +2666,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 not os.path.exists(os.path.join(self.environment.source_dir, '_clang-' + name)):
             return
         if target_name in self.all_outputs:
+            return
+        if ('', target_name) in self.build.run_target_names:
             return
         cmd = self.environment.get_build_command() + \
             ['--internal', 'clang' + name, self.environment.source_dir, self.environment.build_dir]
@@ -2687,6 +2691,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_tags(self, tool, target_name):
         import shutil
         if not shutil.which(tool):
+            return
+        if ('', target_name) in self.build.run_target_names:
             return
         if target_name in self.all_outputs:
             return

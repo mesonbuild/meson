@@ -117,6 +117,7 @@ class Build:
         self.environment = environment
         self.projects = {}
         self.targets = OrderedDict()
+        self.run_target_names = set() # type: typing.Set[typing.Tuple[str, str]]
         self.global_args = PerMachine({}, {})         # type: PerMachine[typing.Dict[str, typing.List[str]]]
         self.projects_args = PerMachine({}, {})       # type: PerMachine[typing.Dict[str, typing.List[str]]]
         self.global_link_args = PerMachine({}, {})    # type: PerMachine[typing.Dict[str, typing.List[str]]]
