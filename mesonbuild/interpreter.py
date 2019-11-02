@@ -3369,6 +3369,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         command, *cmd_args = cleaned_args
         tg = RunTargetHolder(build.RunTarget(name, command, cmd_args, cleaned_deps, self.subdir, self.subproject), self)
         self.add_target(name, tg.held_object)
+        full_name = (self.subproject, name)
+        assert(full_name not in self.build.run_target_names)
+        self.build.run_target_names.add(full_name)
         return tg
 
     @FeatureNew('alias_target', '0.52.0')

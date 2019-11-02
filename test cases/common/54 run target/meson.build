@@ -65,3 +65,10 @@ conf = configure_file(
 run_target('configure_script',
   command : conf
 )
+
+# Target names that clash with potential builtin functionality.
+run_target('ctags',
+  command : converter)
+
+run_target('clang-format',
+  command : converter)
