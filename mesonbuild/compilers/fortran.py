@@ -317,7 +317,7 @@ class PathScaleFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None,
                  **kwargs):
-        FortranCompiler.__init__(self, exelist, for_machine, version,
+        FortranCompiler.__init__(self, exelist, version, for_machine,
                                  is_cross, info, exe_wrapper, **kwargs)
         self.id = 'pathscale'
         default_warn_args = ['-fullwarn']
@@ -334,7 +334,7 @@ class PGIFortranCompiler(PGICompiler, FortranCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None,
                  **kwargs):
-        FortranCompiler.__init__(self, exelist, for_machine, version,
+        FortranCompiler.__init__(self, exelist, version, for_machine,
                                  is_cross, info, exe_wrapper, **kwargs)
         PGICompiler.__init__(self)
 
@@ -346,7 +346,7 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None,
                  **kwargs):
-        FortranCompiler.__init__(self, exelist, for_machine, version,
+        FortranCompiler.__init__(self, exelist, version, for_machine,
                                  is_cross, info, exe_wrapper, **kwargs)
         ClangCompiler.__init__(self)
         self.id = 'flang'
@@ -363,7 +363,7 @@ class Open64FortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None,
                  **kwargs):
-        FortranCompiler.__init__(self, exelist, for_machine, version,
+        FortranCompiler.__init__(self, exelist, version, for_machine,
                                  is_cross, info, exe_wrapper, **kwargs)
         self.id = 'open64'
         default_warn_args = ['-fullwarn']
@@ -380,7 +380,7 @@ class NAGFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None,
                  **kwargs):
-        FortranCompiler.__init__(self, exelist, for_machine, version,
+        FortranCompiler.__init__(self, exelist, version, for_machine,
                                  is_cross, info, exe_wrapper, **kwargs)
         self.id = 'nagfor'
 

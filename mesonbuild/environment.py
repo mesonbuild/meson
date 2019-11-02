@@ -1155,8 +1155,7 @@ class Environment:
                         compiler, for_machine, 'pgi',
                         PGIFortranCompiler.LINKER_PREFIX, version=version)
                     return PGIFortranCompiler(
-                        compiler, version, for_machine, is_cross,
-                        self.machines[for_machine], exe_wrap,
+                        compiler, version, for_machine, is_cross, info, exe_wrap,
                         full_version=full_version, linker=linker)
 
                 if 'flang' in out or 'clang' in out:
@@ -1509,7 +1508,7 @@ class Environment:
                 # Intel has it's own linker that acts like microsoft's lib
                 linkers = ['xilib']
             elif isinstance(compiler, (PGICCompiler, PGIFortranCompiler)) and mesonlib.is_windows():
-                linkers = [self.default_static_linker]  # this is just a wrapper calling link/lib on Windows, keeping things simple.
+                linkers = [['ar']]  # For PGI on Windows, "ar" is just a wrapper calling link/lib.
             else:
                 linkers = defaults
         popen_exceptions = {}
