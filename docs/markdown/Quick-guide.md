@@ -7,9 +7,9 @@ short-description: Getting Started using Mesonbuild
 
 Meson has been designed to be as simple to use as possible. This page
 outlines the initial steps needed for installation, troubleshooting,
-and standard use. 
+and standard use.
 
-For more advanced configuration please refer to the command line help `meson --help` 
+For more advanced configuration please refer to the command line help `meson --help`
 or the Meson documentation located at the [Mesonbuild](https://mesonbuild.com) website.
 
 Table of Contents:
@@ -40,23 +40,25 @@ Ubuntu:
 $ sudo apt-get install python3 python3-pip python3-setuptools \
                        python3-wheel ninja-build
 ```
-*Due to our frequent release cycle and development speed, distro packaged software may quickly become outdated.*  
+*Due to our frequent release cycle and development speed, distro packaged software may quickly become outdated.*
 
 Installation using Python
 --
-Requirements: **pip3** 
+Requirements: **pip3**
 
-The best way to receive the most up-to-date version of Mesonbuild. 
+The best way to receive the most up-to-date version of Mesonbuild.
 
 Install as a local user (recommended):
 ```console
 $ pip3 install --user meson
 ```
-Install as root: 
+Install as root:
 ```console
 $ pip3 install meson
 ```
-*If you are unsure whether to install as root or a local user, install as a local user.* 
+
+*If you are unsure whether to install as root or a local user, install as a local user.*
+
 
 Installation from source
 --
@@ -76,7 +78,7 @@ $ bash: /usr/bin/meson: No such file or directory
 ```
 Description: The default installation prefix for the python pip module installation is not included in your shell environment PATH. The default prefix for python pip installation modules is located under ``/usr/local``.
 
-**Resolution: 
+**Resolution:
 This issue can be resolved by altering the default shell environment PATH to include ``/usr/local/bin``. **
 
 *Note: There are other ways of fixing this issue such as using symlinks or copying the binaries to a default path and these methods are not recommended or supported as they may break package management interoperability.*
