@@ -390,7 +390,10 @@ class DmdLikeCompilerMixin:
     def get_soname_args(self, *args, **kwargs) -> typing.List[str]:
         # LDC and DMD actually do use a linker, but they proxy all of that with
         # their own arguments
-        return Compiler.get_soname_args(self, *args, **kwargs)
+        soargs = []
+        for arg in Compiler.get_soname_args(self, *args, **kwargs):
+            soargs.append('-L=' + arg)
+        return soargs
 
     def get_allow_undefined_link_args(self) -> typing.List[str]:
         args = []
