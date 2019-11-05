@@ -32,6 +32,7 @@ index.md
 		Modules.md
 			CMake-module.md
 			Dlang-module.md
+			Fs-module.md
 			Gnome-module.md
 			Hotdoc-module.md
 			i18n-module.md
