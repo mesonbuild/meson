@@ -1689,7 +1689,7 @@ class CompilerHolder(InterpreterObject):
 
 
 ModuleState = namedtuple('ModuleState', [
-    'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
+    'source_root', 'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
     'project_name', 'project_version', 'backend', 'targets',
     'data', 'headers', 'man', 'global_args', 'project_args', 'build_machine',
     'host_machine', 'target_machine', 'current_node'])
@@ -1714,6 +1714,7 @@ class ModuleHolder(InterpreterObject, ObjectHolder):
         # because the Build object contains dicts and lists.
         num_targets = len(self.interpreter.build.targets)
         state = ModuleState(
+            source_root = self.interpreter.environment.get_source_dir(),
             build_to_src=mesonlib.relpath(self.interpreter.environment.get_source_dir(),
                                           self.interpreter.environment.get_build_dir()),
             subproject=self.interpreter.subproject,
