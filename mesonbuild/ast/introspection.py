@@ -35,7 +35,7 @@ class IntrospectionHelper:
 
 class IntrospectionInterpreter(AstInterpreter):
     # Interpreter to detect the options without a build directory
-    # Most of the code is stolen from interperter.Interpreter
+    # Most of the code is stolen from interpreter.Interpreter
     def __init__(self, source_root, subdir, backend, visitors=None, cross_file=None, subproject='', subproject_dir='subprojects', env=None):
         visitors = visitors if visitors is not None else []
         super().__init__(source_root, subdir, visitors=visitors)
@@ -161,7 +161,7 @@ class IntrospectionInterpreter(AstInterpreter):
         name = args[0]
         srcqueue = [node]
 
-        # Process the soruces BEFORE flattening the kwargs, to preserve the original nodes
+        # Process the sources BEFORE flattening the kwargs, to preserve the original nodes
         if 'sources' in kwargs:
             srcqueue += mesonlib.listify(kwargs['sources'])
 

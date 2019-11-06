@@ -33,7 +33,7 @@ from typing import List, Tuple
 
 
 def get_shared_library_suffix(environment, for_machine: MachineChoice):
-    """This is only gauranteed to work for languages that compile to machine
+    """This is only guaranteed to work for languages that compile to machine
     code, not for languages like C# that use a bytecode and always end in .dll
     """
     m = environment.machines[for_machine]
@@ -292,7 +292,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         if not self.static and mode == 'static':
             # If llvm is configured with LLVM_BUILD_LLVM_DYLIB but not with
             # LLVM_LINK_LLVM_DYLIB and not LLVM_BUILD_SHARED_LIBS (which
-            # upstreams doesn't recomend using), then llvm-config will lie to
+            # upstream doesn't recommend using), then llvm-config will lie to
             # you about how to do shared-linking. It wants to link to a a bunch
             # of individual shared libs (which don't exist because llvm wasn't
             # built with LLVM_BUILD_SHARED_LIBS.
@@ -305,7 +305,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             except DependencyException:
                 lib_ext = get_shared_library_suffix(environment, self.for_machine)
                 libdir = self.get_config_value(['--libdir'], 'link_args')[0]
-                # Sort for reproducability
+                # Sort for reproducibility
                 matches = sorted(glob.iglob(os.path.join(libdir, 'libLLVM*{}'.format(lib_ext))))
                 if not matches:
                     if self.required:

@@ -79,7 +79,7 @@ def run(options):
             if all_backends or backend.startswith('vs'):
                 print('Meson command used in build file regeneration: ' + ' '.join(v))
         elif k == 'pkgconf_envvar':
-            print('Last seen PKGCONFIG enviroment variable value: ' + v)
+            print('Last seen PKGCONFIG environment variable value: ' + v)
         elif k == 'version':
             print('Meson version: ' + v)
         elif k == 'cross_files':

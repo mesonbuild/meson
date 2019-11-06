@@ -82,7 +82,7 @@ development files. The VAPI is installed in Vala's standard search path and so
 works just as seamlessly using the `dependency()` function.
 
 
-### Targetting a version of GLib
+### Targeting a version of GLib
 Meson's [`dependency()`](Reference-manual.md#dependency) function allows a
 version check of a library. This is often used to check a minimum version is
 installed. When setting a minimum version of GLib, Meson will also pass this to

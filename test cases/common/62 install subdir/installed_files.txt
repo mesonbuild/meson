@@ -1,6 +1,6 @@
 usr/share/dircheck/fifth.dat
 usr/share/dircheck/seventh.dat
-usr/share/dircheck/nineth.dat
+usr/share/dircheck/ninth.dat
 usr/share/eighth.dat
 usr/share/fourth.dat
 usr/share/sixth.dat

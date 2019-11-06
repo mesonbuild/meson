@@ -552,7 +552,7 @@ class IntelClCPPCompiler(VisualStudioLikeCPPCompilerMixin, IntelVisualStudioLike
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
     def get_options(self):
-        # This has only been tested with verison 19.0,
+        # This has only been tested with version 19.0,
         cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest']
         return self._get_options_impl(super().get_options(), cpp_stds)
 

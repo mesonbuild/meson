@@ -62,7 +62,7 @@ class Conf:
             self.source_dir = os.path.abspath(os.path.realpath(self.build_dir))
             intr = mintro.IntrospectionInterpreter(self.source_dir, '', 'ninja', visitors = [AstIDGenerator()])
             intr.analyze()
-            # Reenable logging just in case
+            # Re-enable logging just in case
             mlog.enable()
             self.coredata = intr.coredata
             self.default_values_only = True

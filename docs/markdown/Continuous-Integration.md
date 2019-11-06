@@ -74,7 +74,7 @@ install:
   - cmd: if %arch%==x86 (set PYTHON_ROOT=C:\python37) else (set PYTHON_ROOT=C:\python37-x64)
   # Print out dependency paths
   - cmd: echo Using Python at %PYTHON_ROOT%
-  # Add neccessary paths to PATH variable
+  # Add necessary paths to PATH variable
   - cmd: set PATH=%cd%;C:\ninja-build;%PYTHON_ROOT%;%PYTHON_ROOT%\Scripts;%PATH%
   # Install meson
   - cmd: pip install meson

@@ -388,7 +388,7 @@ def run(options):
         backend = backends.get_backend_from_name(options.backend, None)
         intr = IntrospectionInterpreter(sourcedir, '', backend.name, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
         intr.analyze()
-        # Reenable logging just in case
+        # Re-enable logging just in case
         mlog.enable()
         for key, val in intro_types.items():
             if (not options.all and not getattr(options, key, False)) or 'no_bd' not in val:

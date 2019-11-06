@@ -55,7 +55,7 @@ particularly the paths section may be necessary.
 
 ### Core options
 
-Options that are labled "per machine" in the table are set per machine.
+Options that are labeled "per machine" in the table are set per machine.
 Prefixing the option with `build.` just affects the build machine configuration,
 while unprefixed just affects the host machine configuration, respectively.
 Using the option as-is with no prefix affects all machines. For example:

@@ -94,7 +94,7 @@ if d.found()
 endif
 ```
 
-If the value of a `feature` option is set to `auto`, that value is overriden by
+If the value of a `feature` option is set to `auto`, that value is overridden by
 the global `auto_features` option (which defaults to `auto`). This is intended
 to be used by packagers who want to have full control on which dependencies are
 required and which are disabled, and not rely on build-deps being installed

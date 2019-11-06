@@ -33,11 +33,11 @@ from .wrap import wraptool
 class CommandLineParser:
     def __init__(self):
         self.term_width = shutil.get_terminal_size().columns
-        self.formater = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width / 2), width=self.term_width)
+        self.formatter = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width / 2), width=self.term_width)
 
         self.commands = {}
         self.hidden_commands = []
-        self.parser = argparse.ArgumentParser(prog='meson', formatter_class=self.formater)
+        self.parser = argparse.ArgumentParser(prog='meson', formatter_class=self.formatter)
         self.subparsers = self.parser.add_subparsers(title='Commands',
                                                      description='If no command is specified it defaults to setup command.')
         self.add_command('setup', msetup.add_arguments, msetup.run,
@@ -60,7 +60,7 @@ class CommandLineParser:
                          help_msg='Manage subprojects')
         self.add_command('help', self.add_help_arguments, self.run_help_command,
                          help_msg='Print help of a subcommand')
-        self.add_command('rewrite', lambda parser: rewriter.add_arguments(parser, self.formater), rewriter.run,
+        self.add_command('rewrite', lambda parser: rewriter.add_arguments(parser, self.formatter), rewriter.run,
                          help_msg='Modify the project definition')
 
         # Hidden commands
@@ -74,10 +74,10 @@ class CommandLineParser:
         # FIXME: Cannot have hidden subparser:
         # https://bugs.python.org/issue22848
         if help_msg == argparse.SUPPRESS:
-            p = argparse.ArgumentParser(prog='meson ' + name, formatter_class=self.formater)
+            p = argparse.ArgumentParser(prog='meson ' + name, formatter_class=self.formatter)
             self.hidden_commands.append(name)
         else:
-            p = self.subparsers.add_parser(name, help=help_msg, aliases=aliases, formatter_class=self.formater)
+            p = self.subparsers.add_parser(name, help=help_msg, aliases=aliases, formatter_class=self.formatter)
         add_arguments_func(p)
         p.set_defaults(run_func=run_func)
         for i in [name] + aliases:

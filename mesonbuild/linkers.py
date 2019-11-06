@@ -161,7 +161,7 @@ class ArmarLinker(ArLinker):
         self.std_args = ['-csr']
 
     def can_linker_accept_rsp(self) -> bool:
-        # armar cann't accept arguments using the @rsp syntax
+        # armar can't accept arguments using the @rsp syntax
         return False
 
 

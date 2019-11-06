@@ -324,7 +324,7 @@ that Windows developers should be able to contribute using nothing but
 Visual Studio.
 
 At the time of writing (April 2018) there are only three languages
-that could fullfill these requirements:
+that could fulfill these requirements:
 
  - C
  - C++

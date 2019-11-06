@@ -10,7 +10,7 @@ e = executable('six', 'main.c', src)
 
 test('six', e)
 
-# The same again, but this time with a program that was genererated
+# The same again, but this time with a program that was generated
 # with configure_file.
 
 gen = find_program('gencodegen')

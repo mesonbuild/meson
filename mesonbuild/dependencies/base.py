@@ -197,7 +197,7 @@ class Dependency:
         """Create a new dependency that contains part of the parent dependency.
 
         The following options can be inherited:
-            links -- all link_with arguemnts
+            links -- all link_with arguments
             includes -- all include_directory and -I/-isystem calls
             sources -- any source, header, or generated sources
             compile_args -- any compile args
@@ -450,7 +450,7 @@ class ConfigToolDependency(ExternalDependency):
         return cls.__new__(cls)
 
     def find_config(self, versions=None):
-        """Helper method that searchs for config tool binaries in PATH and
+        """Helper method that searches for config tool binaries in PATH and
         returns the one that best matches the given version requirements.
         """
         if not isinstance(versions, list) and versions is not None:

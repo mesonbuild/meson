@@ -83,7 +83,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
 
     A number of compilers attempt to mimic MSVC, with varying levels of
     success, such as Clang-CL and ICL (the Intel C/C++ Compiler for Windows).
-    This classs implements as much common logic as possible.
+    This class implements as much common logic as possible.
     """
 
     std_warn_args = ['/W3']

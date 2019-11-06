@@ -2111,7 +2111,7 @@ class Interpreter(InterpreterBase):
 
         # Re-initialize machine descriptions. We can do a better job now because we
         # have the compilers needed to gain more knowledge, so wipe out old
-        # inferrence and start over.
+        # inference and start over.
         machines = self.build.environment.machines.miss_defaulting()
         machines.build = environment.detect_machine_info(self.coredata.compilers.build)
         self.build.environment.machines = machines.default_missing()

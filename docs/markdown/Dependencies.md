@@ -137,7 +137,7 @@ of all the work behind the scenes to make this work.
 
 You can use the keyword `method` to let meson know what method to use
 when searching for the dependency. The default value is `auto`.
-Aditional dependencies methods are `pkg-config`, `config-tool`, `cmake`,
+Additional dependencies methods are `pkg-config`, `config-tool`, `cmake`,
 `system`, `sysconfig`, `qmake`, `extraframework` and `dub`.
 
 ```meson
@@ -159,11 +159,11 @@ to use both the old-style `<NAME>_LIBRARIES` variables as well as
 imported targets.
 
 It is possible to manually specify a list of CMake targets that should
-be used with the `modules` property. Howerver, this step is optional
+be used with the `modules` property. However, this step is optional
 since meson tries to automatically guess the correct target based on the
 name of the dependency.
 
-Depending on the dependency it may be neccessary to explicitly specify
+Depending on the dependency it may be necessary to explicitly specify
 a CMake target with the `modules` property if meson is unable to guess
 it automatically.
 

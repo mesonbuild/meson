@@ -38,7 +38,7 @@ Every new feature requires some extra steps, namely:
    into `run_unittests.py`.
  - Must be registered with the [FeatureChecks framework](Release-notes-for-0.47.0.md#feature-detection-based-on-meson_version-in-project)
    that will warn the user if they try to use a new feature while
-   targetting an older meson version.
+   targeting an older meson version.
  - Needs a release note snippet inside `docs/markdown/snippets/` with
    a heading and a brief paragraph explaining what the feature does
    with an example.
@@ -84,7 +84,7 @@ In a simplified list form the split would look like the following:
 
 ## Strategy for merging pull requests to trunk
 
-Meson's merge strategy should fullfill the following guidelines:
+Meson's merge strategy should fulfill the following guidelines:
 
 - preserve as much history as possible
 

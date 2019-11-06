@@ -164,7 +164,7 @@ def force_print(*args: str, **kwargs: Any) -> None:
         cleaned = raw.encode('ascii', 'replace').decode('ascii')
         print(cleaned, end='')
 
-# We really want a heterogenous dict for this, but that's in typing_extensions
+# We really want a heterogeneous dict for this, but that's in typing_extensions
 def debug(*args: Union[str, AnsiDecorator], **kwargs: Any) -> None:
     arr = process_markup(args, False)
     if log_file is not None:

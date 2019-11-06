@@ -350,7 +350,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
 
         First tries looking in explicit map, then tries environment variable.
         """
-        # Try explict map, don't fall back on env var
+        # Try explicit map, don't fall back on env var
         command = self.binaries.get(name)
         if command is not None:
             command = mesonlib.stringlistify(command)

@@ -226,7 +226,7 @@ First we build a shared library named foobar. It is marked
 installable, so running `ninja install` installs it to the library
 directory (the system knows which one so the user does not have to
 care). Then we build a test executable which is linked against the
-library. It will no tbe installed, but instead it is added to the list
+library. It will not be installed, but instead it is added to the list
 of unit tests, which can be run with the command `ninja test`.
 
 Above we mentioned precompiled headers as a feature not supported by

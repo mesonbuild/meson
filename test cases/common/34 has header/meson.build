@@ -2,11 +2,11 @@ project('has header', 'c', 'cpp')
 
 host_system = host_machine.system()
 
-non_existant_header = 'ouagadougou.h'
+non_existent_header = 'ouagadougou.h'
 
 # Copy it into the builddir to ensure that it isn't found even if it's there
-configure_file(input : non_existant_header,
-  output : non_existant_header,
+configure_file(input : non_existent_header,
+  output : non_existent_header,
   configuration : configuration_data())
 
 # Test that the fallback to __has_include also works on all compilers
@@ -48,7 +48,7 @@ foreach fallback : fallbacks
 
     # This header exists in the source and the builddir, but we still must not
     # find it since we are looking in the system directories.
-    assert(not comp.has_header(non_existant_header, prefix : fallback),
-           'Found non-existant header.')
+    assert(not comp.has_header(non_existent_header, prefix : fallback),
+           'Found non-existent header.')
   endforeach
 endforeach

@@ -107,7 +107,7 @@ meson rewrite default-options {set/delete} <opt1> <value1> <opt2> <value2> ...
 
 ## Limitations
 
-Rewriting a meson file is not guranteed to keep the indentation of the modified
+Rewriting a meson file is not guaranteed to keep the indentation of the modified
 functions. Additionally, comments inside a modified statement will be removed.
 Furthermore, all source files will be sorted alphabetically.
 

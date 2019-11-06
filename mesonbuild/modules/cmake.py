@@ -138,7 +138,7 @@ class CmakeModule(ExtensionModule):
         cmakebin = dependencies.ExternalProgram('cmake', silent=False)
         p, stdout, stderr = mesonlib.Popen_safe(cmakebin.get_command() + ['--system-information', '-G', 'Ninja'])[0:3]
         if p.returncode != 0:
-            mlog.log('error retrieving cmake informations: returnCode={0} stdout={1} stderr={2}'.format(p.returncode, stdout, stderr))
+            mlog.log('error retrieving cmake information: returnCode={0} stdout={1} stderr={2}'.format(p.returncode, stdout, stderr))
             return False
 
         match = re.search('\nCMAKE_ROOT \\"([^"]+)"\n', stdout.strip())

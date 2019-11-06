@@ -37,7 +37,7 @@ class EmscriptenMixin:
         if mode == 'preprocess':
             return None
         # Unlike sane toolchains, emcc infers the kind of output from its name.
-        # This is the only reason why this method is overriden; compiler tests
+        # This is the only reason why this method is overridden; compiler tests
         # do not work well with the default exe/obj suffices.
         if mode == 'link':
             suffix = 'js'

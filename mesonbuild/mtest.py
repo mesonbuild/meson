@@ -818,7 +818,7 @@ Timeout:            %4d
                 #     project_name:suite_name
                 # so we need to select only the test belonging to project_name
 
-                # this if hanlde the first case (i.e., SUITE == suite_name)
+                # this if handle the first case (i.e., SUITE == suite_name)
 
                 # in this way we can run tests belonging to different
                 # (sub)projects which share the same suite_name

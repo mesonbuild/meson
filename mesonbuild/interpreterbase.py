@@ -243,7 +243,7 @@ class FeatureNew(FeatureCheckBase):
         return 'Project specifies a minimum meson_version \'{}\' but uses features which were added in newer versions:'.format(tv)
 
     def log_usage_warning(self, tv):
-        mlog.warning('Project targetting \'{}\' but tried to use feature introduced '
+        mlog.warning('Project targeting \'{}\' but tried to use feature introduced '
                      'in \'{}\': {}'.format(tv, self.feature_version, self.feature_name))
 
 class FeatureDeprecated(FeatureCheckBase):
@@ -258,7 +258,7 @@ class FeatureDeprecated(FeatureCheckBase):
         return 'Deprecated features used:'
 
     def log_usage_warning(self, tv):
-        mlog.deprecation('Project targetting \'{}\' but tried to use feature '
+        mlog.deprecation('Project targeting \'{}\' but tried to use feature '
                          'deprecated since \'{}\': {}'
                          ''.format(tv, self.feature_version, self.feature_name))
 

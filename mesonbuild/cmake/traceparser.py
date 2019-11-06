@@ -499,11 +499,11 @@ class CMakeTraceParser:
             if curr_str is None:
                 curr_str = i
             elif os.path.isfile(curr_str):
-                # Abort concatination if curr_str is an existing file
+                # Abort concatenation if curr_str is an existing file
                 fixed_list += [curr_str]
                 curr_str = i
             elif not reg_start.match(curr_str):
-                # Abort concatination if curr_str no longer matches the regex
+                # Abort concatenation if curr_str no longer matches the regex
                 fixed_list += [curr_str]
                 curr_str = i
             elif reg_end.match(i) or os.path.exists('{} {}'.format(curr_str, i)):
