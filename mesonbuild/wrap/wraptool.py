@@ -124,11 +124,11 @@ def update(options):
         raise SystemExit('Subprojects dir not found. Run this command in your source root directory.')
     wrapfile = os.path.join('subprojects', name + '.wrap')
     if not os.path.exists(wrapfile):
-        raise SystemExit('Project', name, 'is not in use.')
+        raise SystemExit('Project ' + name + ' is not in use.')
     (branch, revision, subdir, src_file, patch_file) = get_current_version(wrapfile)
     (new_branch, new_revision) = get_latest_version(name)
     if new_branch == branch and new_revision == revision:
-        print('Project', name, 'is already up to date.')
+        print('Project ' + name + ' is already up to date.')
         raise SystemExit
     update_wrap_file(wrapfile, name, new_branch, new_revision)
     shutil.rmtree(os.path.join('subprojects', subdir), ignore_errors=True)

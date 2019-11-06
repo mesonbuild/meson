@@ -68,17 +68,20 @@ def open_wrapdburl(urlstring: str) -> 'http.client.HTTPResponse':
             return urllib.request.urlopen(urlstring, timeout=req_timeout)# , context=build_ssl_context())
         except urllib.error.URLError:
             if not ssl_warning_printed:
-                print('SSL connection failed. Falling back to unencrypted connections.')
+                print('SSL connection failed. Falling back to unencrypted connections.', file=sys.stderr)
                 ssl_warning_printed = True
     if not ssl_warning_printed:
-        print('Warning: SSL not available, traffic not authenticated.',
-              file=sys.stderr)
+        print('Warning: SSL not available, traffic not authenticated.', file=sys.stderr)
         ssl_warning_printed = True
     # Trying to open SSL connection to wrapdb fails because the
     # certificate is not known.
     if urlstring.startswith('https'):
         urlstring = 'http' + urlstring[5:]
-    return urllib.request.urlopen(urlstring, timeout=req_timeout)
+    try:
+        return urllib.request.urlopen(urlstring, timeout=req_timeout)
+    except urllib.error.URLError:
+        raise WrapException('failed to get {} is the internet available?'.format(urlstring))
+
 
 class WrapException(MesonException):
     pass
@@ -306,7 +309,10 @@ class Resolver:
         if url.startswith('https://wrapdb.mesonbuild.com'):
             resp = open_wrapdburl(url)
         else:
-            resp = urllib.request.urlopen(url, timeout=req_timeout)
+            try:
+                resp = urllib.request.urlopen(url, timeout=req_timeout)
+            except urllib.error.URLError:
+                raise WrapException('could not get {} is the internet available?'.format(url))
         with contextlib.closing(resp) as resp:
             try:
                 dlsize = int(resp.info()['Content-Length'])
