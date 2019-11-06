@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import typing
 import time
 import sys, stat
 import datetime
@@ -96,11 +97,11 @@ class MesonApp:
 
         self.options = options
 
-    def has_build_file(self, dirname):
+    def has_build_file(self, dirname: str) -> bool:
         fname = os.path.join(dirname, environment.build_filename)
         return os.path.exists(fname)
 
-    def validate_core_dirs(self, dir1, dir2):
+    def validate_core_dirs(self, dir1: str, dir2: str) -> typing.Tuple[str, str]:
         if dir1 is None:
             if dir2 is None:
                 if not os.path.exists('meson.build') and os.path.exists('../meson.build'):
@@ -130,7 +131,7 @@ class MesonApp:
             return ndir2, ndir1
         raise MesonException('Neither directory contains a build file %s.' % environment.build_filename)
 
-    def validate_dirs(self, dir1, dir2, reconfigure, wipe):
+    def validate_dirs(self, dir1: str, dir2: str, reconfigure: bool, wipe: bool) -> typing.Tuple[str, str]:
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
         priv_dir = os.path.join(build_dir, 'meson-private/coredata.dat')
         if os.path.exists(priv_dir):
@@ -142,12 +143,11 @@ class MesonApp:
                       '\nIf build failures persist, run "meson setup --wipe" to rebuild from scratch\n'
                       'using the same options as passed when configuring the build.'
                       '\nTo change option values, run "meson configure" instead.')
-                sys.exit(0)
+                raise SystemExit
         else:
             has_cmd_line_file = os.path.exists(coredata.get_cmd_line_file(build_dir))
             if (wipe and not has_cmd_line_file) or (not wipe and reconfigure):
-                print('Directory does not contain a valid build tree:\n{}'.format(build_dir))
-                sys.exit(1)
+                raise SystemExit('Directory does not contain a valid build tree:\n{}'.format(build_dir))
         return src_dir, build_dir
 
     def generate(self):
@@ -239,7 +239,7 @@ class MesonApp:
                     os.unlink(cdf)
             raise
 
-def run(options):
+def run(options) -> int:
     coredata.parse_cmd_line_options(options)
     app = MesonApp(options)
     app.generate()

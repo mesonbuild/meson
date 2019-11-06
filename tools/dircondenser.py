@@ -32,25 +32,28 @@ to this:
 This directory must be run from source root as it touches run_unittests.py.
 '''
 
-import os, sys, subprocess
+import typing
+import os
+import sys
+import subprocess
 
 from glob import glob
 
-def get_entries():
+def get_entries() -> typing.List[typing.Tuple[int, str]]:
     entries = []
     for e in glob('*'):
         if not os.path.isdir(e):
-            sys.exit('Current directory must not contain any files.')
+            raise SystemExit('Current directory must not contain any files.')
         (number, rest) = e.split(' ', 1)
         try:
-            number = int(number)
+            numstr = int(number)
         except ValueError:
-            sys.exit('Dir name %d does not start with a number.' % e)
-        entries.append((number, rest))
+            raise SystemExit('Dir name {} does not start with a number.'.format(e))
+        entries.append((numstr, rest))
     entries.sort()
     return entries
 
-def replace_source(sourcefile, replacements):
+def replace_source(sourcefile: str, replacements: typing.List[typing.Tuple[str, str]]):
     with open(sourcefile, 'r') as f:
         contents = f.read()
     for old_name, new_name in replacements:
@@ -58,7 +61,7 @@ def replace_source(sourcefile, replacements):
     with open(sourcefile, 'w') as f:
         f.write(contents)
 
-def condense(dirname):
+def condense(dirname: str):
     curdir = os.getcwd()
     os.chdir(dirname)
     entries = get_entries()
@@ -77,6 +80,6 @@ def condense(dirname):
 
 if __name__ == '__main__':
     if len(sys.argv) != 1:
-        sys.exit('This script takes no arguments.')
+        raise SystemExit('This script takes no arguments.')
     for d in glob('test cases/*'):
         condense(d)
