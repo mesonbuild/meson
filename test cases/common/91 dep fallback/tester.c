@@ -3,7 +3,7 @@
 #include<string.h>
 #include<stdio.h>
 
-int main(int argc, char **argv) {
+int main(void) {
     if(strcmp("bob", get_bob()) == 0) {
         printf("Bob is indeed bob.\n");
     } else {
