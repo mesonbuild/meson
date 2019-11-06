@@ -58,9 +58,8 @@ def get_result(urlstring):
     data = u.read().decode('utf-8')
     jd = json.loads(data)
     if jd['output'] != 'ok':
-        print('Got bad output from server.')
-        print(data)
-        sys.exit(1)
+        print('Got bad output from server.', file=sys.stderr)
+        raise SystemExit(data)
     return jd
 
 def get_projectlist():
@@ -79,7 +78,7 @@ def search(options):
     for p in jd['projects']:
         print(p)
 
-def get_latest_version(name):
+def get_latest_version(name: str) -> tuple:
     jd = get_result(API_ROOT + 'query/get_latest/' + name)
     branch = jd['branch']
     revision = jd['revision']
@@ -88,15 +87,12 @@ def get_latest_version(name):
 def install(options):
     name = options.name
     if not os.path.isdir('subprojects'):
-        print('Subprojects dir not found. Run this script in your source root directory.')
-        sys.exit(1)
+        raise SystemExit('Subprojects dir not found. Run this script in your source root directory.')
     if os.path.isdir(os.path.join('subprojects', name)):
-        print('Subproject directory for this project already exists.')
-        sys.exit(1)
+        raise SystemExit('Subproject directory for this project already exists.')
     wrapfile = os.path.join('subprojects', name + '.wrap')
     if os.path.exists(wrapfile):
-        print('Wrap file already exists.')
-        sys.exit(1)
+        raise SystemExit('Wrap file already exists.')
     (branch, revision) = get_latest_version(name)
     u = open_wrapdburl(API_ROOT + 'projects/%s/%s/%s/get_wrap' % (name, branch, revision))
     data = u.read()
@@ -125,17 +121,15 @@ def update_wrap_file(wrapfile, name, new_branch, new_revision):
 def update(options):
     name = options.name
     if not os.path.isdir('subprojects'):
-        print('Subprojects dir not found. Run this command in your source root directory.')
-        sys.exit(1)
+        raise SystemExit('Subprojects dir not found. Run this command in your source root directory.')
     wrapfile = os.path.join('subprojects', name + '.wrap')
     if not os.path.exists(wrapfile):
-        print('Project', name, 'is not in use.')
-        sys.exit(1)
+        raise SystemExit('Project', name, 'is not in use.')
     (branch, revision, subdir, src_file, patch_file) = get_current_version(wrapfile)
     (new_branch, new_revision) = get_latest_version(name)
     if new_branch == branch and new_revision == revision:
         print('Project', name, 'is already up to date.')
-        sys.exit(0)
+        raise SystemExit
     update_wrap_file(wrapfile, name, new_branch, new_revision)
     shutil.rmtree(os.path.join('subprojects', subdir), ignore_errors=True)
     try:
@@ -153,8 +147,7 @@ def info(options):
     jd = get_result(API_ROOT + 'projects/' + name)
     versions = jd['versions']
     if not versions:
-        print('No available versions of', name)
-        sys.exit(0)
+        raise SystemExit('No available versions of' + name)
     print('Available versions of %s:' % name)
     for v in versions:
         print(' ', v['branch'], v['revision'])
@@ -167,7 +160,7 @@ def do_promotion(from_path, spdir_name):
         sproj_name = os.path.basename(from_path)
         outputdir = os.path.join(spdir_name, sproj_name)
         if os.path.exists(outputdir):
-            sys.exit('Output dir %s already exists. Will not overwrite.' % outputdir)
+            raise SystemExit('Output dir %s already exists. Will not overwrite.' % outputdir)
         shutil.copytree(from_path, outputdir, ignore=shutil.ignore_patterns('subprojects'))
 
 def promote(options):
@@ -184,13 +177,13 @@ def promote(options):
 
     # otherwise the argument is just a subproject basename which must be unambiguous
     if argument not in sprojs:
-        sys.exit('Subproject %s not found in directory tree.' % argument)
+        raise SystemExit('Subproject %s not found in directory tree.' % argument)
     matches = sprojs[argument]
     if len(matches) > 1:
-        print('There is more than one version of %s in tree. Please specify which one to promote:\n' % argument)
+        print('There is more than one version of %s in tree. Please specify which one to promote:\n' % argument, file=sys.stderr)
         for s in matches:
-            print(s)
-        sys.exit(1)
+            print(s, file=sys.stderr)
+        raise SystemExit(1)
     do_promotion(matches[0], spdir_name)
 
 def status(options):
@@ -200,12 +193,12 @@ def status(options):
         try:
             (latest_branch, latest_revision) = get_latest_version(name)
         except Exception:
-            print('', name, 'not available in wrapdb.')
+            print('', name, 'not available in wrapdb.', file=sys.stderr)
             continue
         try:
             (current_branch, current_revision, _, _, _) = get_current_version(w)
         except Exception:
-            print('Wrap file not from wrapdb.')
+            print('Wrap file not from wrapdb.', file=sys.stderr)
             continue
         if current_branch == latest_branch and current_revision == latest_revision:
             print('', name, 'up to date. Branch %s, revision %d.' % (current_branch, current_revision))
