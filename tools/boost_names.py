@@ -31,7 +31,7 @@ import json
 import re
 
 Module = collections.namedtuple('Module', ['dirname', 'name', 'libnames'])
-Module.__repr__ = lambda self: str((self.dirname, self.name, self.libnames))
+Module.__repr__ = lambda self: str((self.dirname, self.name, self.libnames))  # type: ignore
 
 LIBS = 'libs'
 

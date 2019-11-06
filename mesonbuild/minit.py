@@ -83,7 +83,7 @@ def create_sample(options):
         raise RuntimeError('Unreachable code')
     print(info_message)
 
-def autodetect_options(options, sample=False):
+def autodetect_options(options, sample: bool = False):
     if not options.name:
         options.name = Path().resolve().stem
         if not re.match('[a-zA-Z_][a-zA-Z0-9]*', options.name) and sample:

@@ -11,7 +11,7 @@ variables:
   CI: 1
 
 jobs:
-- job: Pylint
+- job: PylintMyPy
   pool:
     vmImage: ubuntu-latest
 
@@ -20,10 +20,11 @@ jobs:
     inputs:
       versionSpec: '3.7'
       addToPath: true
-  - script: python -m pip install pylint
-    displayName: Install Pylint
+  - script: python -m pip install pylint mypy
+    displayName: 'Install Pylint, MyPy'
   - script: pylint mesonbuild
     displayName: Lint Checks
+  - script: mypy --follow-imports=skip  mesonbuild/mtest.py mesonbuild/minit.py mesonbuild/msetup.py mesonbuild/wrap tools/
 
 
 - job: vs2015

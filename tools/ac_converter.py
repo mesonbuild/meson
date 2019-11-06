@@ -389,9 +389,9 @@ with open(sys.argv[1]) as f:
             token = arr[1]
             if token in function_data:
                 fdata = function_data[token]
-                functions.append((token, fdata[0], fdata[1]))
+                functions.append([token, fdata[0], fdata[1]])
             elif token.startswith('HAVE_') and not token.endswith('_H'):
-                functions.append((token, ))
+                functions.append([token])
         except Exception:
             pass
 
@@ -427,12 +427,12 @@ endforeach
 # Convert function checks.
 
 print('check_functions = [')
-for token in functions:
-    if len(token) == 3:
-        token, fdata0, fdata1 = token
-        print("  ['%s', '%s', '#include<%s>']," % (token, fdata0, fdata1))
+for tok in functions:
+    if len(tok) == 3:
+        tokstr, fdata0, fdata1 = tok
+        print("  ['%s', '%s', '#include<%s>']," % (tokstr, fdata0, fdata1))
     else:
-        print('# check token', token)
+        print('# check token', tok)
 print(']\n')
 
 print('''foreach f : check_functions

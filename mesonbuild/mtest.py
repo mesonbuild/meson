@@ -533,7 +533,7 @@ class SingleTestRunner:
                 # We don't want setsid() in gdb because gdb needs the
                 # terminal in order to handle ^C and not show tcsetpgrp()
                 # errors avoid not being able to use the terminal.
-                os.setsid()
+                os.setsid()  # type: ignore
 
         p = subprocess.Popen(cmd,
                              stdout=stdout,
@@ -570,11 +570,11 @@ class SingleTestRunner:
             # killing a process and all its children so we need
             # to roll our own.
             if is_windows():
-                subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
+                subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)])
             else:
                 try:
                     # Kill the process group that setsid() created.
-                    os.killpg(p.pid, signal.SIGKILL)
+                    os.killpg(p.pid, signal.SIGKILL)  # type: ignore
                 except ProcessLookupError:
                     # Sometimes (e.g. with Wine) this happens.
                     # There's nothing we can do (maybe the process
