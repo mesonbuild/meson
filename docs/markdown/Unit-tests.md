@@ -169,7 +169,7 @@ $ meson test --gdb --gdb-path /path/to/gdb testname
 $ meson test --print-errorlogs
 ```
 
-Meson will report the output produced by the failing tests along with other useful informations as the environmental variables. This is useful, for example, when you run the tests on Travis-CI, Jenkins and the like.
+Meson will report the output produced by the failing tests along with other useful information as the environmental variables. This is useful, for example, when you run the tests on Travis-CI, Jenkins and the like.
 
 For further information see the command line help of Meson by running `meson test -h`.
 

@@ -157,7 +157,7 @@ class CudaCompiler(Compiler):
             raise EnvironmentException('Executables created by {0} compiler {1} are not runnable.'.format(self.language, self.name_string()))
 
         # Interpret the result of the sanity test.
-        # As mentionned above, it is not only a sanity test but also a GPU
+        # As mentioned above, it is not only a sanity test but also a GPU
         # architecture detection test.
         if stde == '':
             self.detected_cc = stdo
@@ -191,7 +191,7 @@ class CudaCompiler(Compiler):
     def get_option_compile_args(self, options):
         args = []
         # On Windows, the version of the C++ standard used by nvcc is dictated by
-        # the combination of CUDA version and MSVC verion; the --std= is thus ignored
+        # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
         if not is_windows():
             std = options['cuda_std']

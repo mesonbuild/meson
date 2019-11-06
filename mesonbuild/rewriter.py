@@ -34,14 +34,14 @@ import json, os, re, sys
 class RewriterException(MesonException):
     pass
 
-def add_arguments(parser, formater=None):
+def add_arguments(parser, formatter=None):
     parser.add_argument('-s', '--sourcedir', type=str, default='.', metavar='SRCDIR', help='Path to source directory.')
     parser.add_argument('-V', '--verbose', action='store_true', default=False, help='Enable verbose output')
     parser.add_argument('-S', '--skip-errors', dest='skip', action='store_true', default=False, help='Skip errors instead of aborting')
     subparsers = parser.add_subparsers(dest='type', title='Rewriter commands', description='Rewrite command to execute')
 
     # Target
-    tgt_parser = subparsers.add_parser('target', help='Modify a target', formatter_class=formater)
+    tgt_parser = subparsers.add_parser('target', help='Modify a target', formatter_class=formatter)
     tgt_parser.add_argument('-s', '--subdir', default='', dest='subdir', help='Subdirectory of the new target (only for the "add_target" action)')
     tgt_parser.add_argument('--type', dest='tgt_type', choices=rewriter_keys['target']['target_type'][2], default='executable',
                             help='Type of the target to add (only for the "add_target" action)')
@@ -51,7 +51,7 @@ def add_arguments(parser, formater=None):
     tgt_parser.add_argument('sources', nargs='*', help='Sources to add/remove')
 
     # KWARGS
-    kw_parser = subparsers.add_parser('kwargs', help='Modify keyword arguments', formatter_class=formater)
+    kw_parser = subparsers.add_parser('kwargs', help='Modify keyword arguments', formatter_class=formatter)
     kw_parser.add_argument('operation', choices=rewriter_keys['kwargs']['operation'][2],
                            help='Action to execute')
     kw_parser.add_argument('function', choices=list(rewriter_func_kwargs.keys()),
@@ -60,13 +60,13 @@ def add_arguments(parser, formater=None):
     kw_parser.add_argument('kwargs', nargs='*', help='Pairs of keyword and value')
 
     # Default options
-    def_parser = subparsers.add_parser('default-options', help='Modify the project default options', formatter_class=formater)
+    def_parser = subparsers.add_parser('default-options', help='Modify the project default options', formatter_class=formatter)
     def_parser.add_argument('operation', choices=rewriter_keys['default_options']['operation'][2],
                             help='Action to execute')
     def_parser.add_argument('options', nargs='*', help='Key, value pairs of configuration option')
 
     # JSON file/command
-    cmd_parser = subparsers.add_parser('command', help='Execute a JSON array of commands', formatter_class=formater)
+    cmd_parser = subparsers.add_parser('command', help='Execute a JSON array of commands', formatter_class=formatter)
     cmd_parser.add_argument('json', help='JSON string or file to execute')
 
 class RequiredKeys:
@@ -882,7 +882,7 @@ def list_to_dict(in_list: List[str]) -> Dict[str, str]:
     try:
         for i in it:
             # calling next(it) is not a mistake, we're taking the next element from
-            # the iterator, avoiding te need to preprocess it into a sequence of
+            # the iterator, avoiding the need to preprocess it into a sequence of
             # key value pairs.
             result[i] = next(it)
     except StopIteration:

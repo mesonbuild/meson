@@ -398,7 +398,7 @@ class PerMachineDefaultable(PerMachine[typing.Optional[_T]]):
         super().__init__(None, None)
 
     def default_missing(self) -> "PerMachine[typing.Optional[_T]]":
-        """Default host to buid
+        """Default host to build
 
         This allows just specifying nothing in the native case, and just host in the
         cross non-compiler case.
@@ -416,7 +416,7 @@ class PerThreeMachineDefaultable(PerMachineDefaultable, PerThreeMachine[typing.O
         PerThreeMachine.__init__(self, None, None, None)
 
     def default_missing(self) -> "PerThreeMachine[typing.Optional[_T]]":
-        """Default host to buid and target to host.
+        """Default host to build and target to host.
 
         This allows just specifying nothing in the native case, just host in the
         cross non-compiler case, and just target in the native-built
@@ -688,9 +688,9 @@ def default_prefix():
 
 def get_library_dirs() -> typing.List[str]:
     if is_windows():
-        return ['C:/mingw/lib'] # TODO: get programatically
+        return ['C:/mingw/lib'] # TODO: get programmatically
     if is_osx():
-        return ['/usr/lib'] # TODO: get programatically
+        return ['/usr/lib'] # TODO: get programmatically
     # The following is probably Debian/Ubuntu specific.
     # /usr/local/lib is first because it contains stuff
     # installed by the sysadmin and is probably more up-to-date

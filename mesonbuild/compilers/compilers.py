@@ -554,7 +554,7 @@ class CompilerArgs(list):
             default_dirs = self.compiler.get_default_include_dirs()
             bad_idx_list = []
             for i, each in enumerate(new):
-                # Remove the -isystem and the path if the path is a dafault path
+                # Remove the -isystem and the path if the path is a default path
                 if (each == '-isystem' and
                         i < (len(new) - 1) and
                         new[i + 1] in default_dirs):

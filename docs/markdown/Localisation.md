@@ -7,7 +7,7 @@ short-description: Localization with GNU Gettext
 Localising your application with GNU gettext takes a little effort but is quite straightforward. We'll create a `po` subdirectory at your project root directory for all the localisation info.
 
 ## Generating .pot and .po files
-In your main meson.build file include the `po` subdirectory in the build proces.
+In your main meson.build file include the `po` subdirectory in the build process.
 
     subdir('po')
 

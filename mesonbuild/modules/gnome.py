@@ -47,7 +47,7 @@ native_glib_version = None
 def gir_has_option(intr_obj, option):
     try:
         g_ir_scanner = intr_obj.find_program_impl('g-ir-scanner')
-        # Handle overriden g-ir-scanner
+        # Handle overridden g-ir-scanner
         if isinstance(getattr(g_ir_scanner, "held_object", g_ir_scanner), interpreter.OverrideProgram):
             assert option in ['--extra-library', '--sources-top-dirs']
             return True

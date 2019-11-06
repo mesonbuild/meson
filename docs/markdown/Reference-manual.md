@@ -697,7 +697,7 @@ Keyword arguments are the following:
   [`dependency()`](#dependency) for argument format. The version of the program
   is determined by running `program_name --version` command. If stdout is empty
   it fallbacks to stderr. If the output contains more text than simply a version
-  number, only the first occurence of numbers separated by dots is kept.
+  number, only the first occurrence of numbers separated by dots is kept.
   If the output is more complicated than that, the version checking will have to
   be done manually using [`run_command()`](#run_command).
 
@@ -1152,7 +1152,7 @@ You should use this instead of [`shared_library`](#shared_library),
 to toggle your entire project (including subprojects) from shared to
 static with only one option. This option applies to libraries being
 built internal to the entire project. For external dependencies, the
-default library type prefered is shared. This can be adapted on a per
+default library type preferred is shared. This can be adapted on a per
 library basis using the [dependency()](#dependency)) `static` keyword.
 
 The keyword arguments for this are the same as for

@@ -1961,7 +1961,7 @@ class AllPlatformTests(BasePlatformTests):
         https://github.com/mesonbuild/meson/pull/4555
 
         Reverted to the first file only because of https://github.com/mesonbuild/meson/pull/4547#discussion_r244173438
-        TODO Change the format to a list officialy in a followup PR
+        TODO Change the format to a list officially in a followup PR
         '''
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
@@ -3213,7 +3213,7 @@ recommended as it is not supported on some platforms''')
 
             # build user of library
             self.new_builddir()
-            # replace is needed because meson mangles platform pathes passed via LDFLAGS
+            # replace is needed because meson mangles platform paths passed via LDFLAGS
             self.init(os.path.join(testdirbase, 'exe'),
                       override_envvars={"LDFLAGS": '{}{}'.format(libdir_flag, libdir.replace('\\', '/'))})
             self.build()
@@ -3440,12 +3440,12 @@ recommended as it is not supported on some platforms''')
         testdir = os.path.join(self.unit_test_dir, '41 featurenew subprojects')
         out = self.init(testdir)
         # Parent project warns correctly
-        self.assertRegex(out, "WARNING: Project targetting '>=0.45'.*'0.47.0': dict")
+        self.assertRegex(out, "WARNING: Project targeting '>=0.45'.*'0.47.0': dict")
         # Subprojects warn correctly
-        self.assertRegex(out, r"\|WARNING: Project targetting '>=0.40'.*'0.44.0': disabler")
-        self.assertRegex(out, r"\|WARNING: Project targetting '!=0.40'.*'0.44.0': disabler")
+        self.assertRegex(out, r"\|WARNING: Project targeting '>=0.40'.*'0.44.0': disabler")
+        self.assertRegex(out, r"\|WARNING: Project targeting '!=0.40'.*'0.44.0': disabler")
         # Subproject has a new-enough meson_version, no warning
-        self.assertNotRegex(out, "WARNING: Project targetting.*Python")
+        self.assertNotRegex(out, "WARNING: Project targeting.*Python")
         # Ensure a summary is printed in the subproject and the outer project
         self.assertRegex(out, r"\|WARNING: Project specifies a minimum meson_version '>=0.40'")
         self.assertRegex(out, r"\| \* 0.44.0: {'disabler'}")
@@ -4338,18 +4338,18 @@ class FailureTests(BasePlatformTests):
     def test_using_too_recent_feature(self):
         # Here we use a dict, which was introduced in 0.47.0
         self.assertMesonOutputs("dict = {}",
-                                ".*WARNING.*Project targetting.*but.*",
+                                ".*WARNING.*Project targeting.*but.*",
                                 meson_version='>= 0.46.0')
 
     def test_using_recent_feature(self):
         # Same as above, except the meson version is now appropriate
         self.assertMesonDoesNotOutput("dict = {}",
-                                      ".*WARNING.*Project targetting.*but.*",
+                                      ".*WARNING.*Project targeting.*but.*",
                                       meson_version='>= 0.47')
 
     def test_using_too_recent_feature_dependency(self):
         self.assertMesonOutputs("dependency('pcap', required: false)",
-                                ".*WARNING.*Project targetting.*but.*",
+                                ".*WARNING.*Project targeting.*but.*",
                                 meson_version='>= 0.41.0')
 
     def test_vcs_tag_featurenew_build_always_stale(self):

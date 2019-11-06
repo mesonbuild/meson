@@ -124,7 +124,7 @@ class UserIntegerOption(UserOption[int]):
         try:
             return int(valuestring)
         except ValueError:
-            raise MesonException('Value string "%s" is not convertable to an integer.' % valuestring)
+            raise MesonException('Value string "%s" is not convertible to an integer.' % valuestring)
 
 class UserUmaskOption(UserIntegerOption, UserOption[Union[str, int]]):
     def __init__(self, description, value, yielding=None):
@@ -412,7 +412,7 @@ class CoreData:
                     real.append(copy)
 
                     # Also replace the command line argument, as the pipe
-                    # probably wont exist on reconfigure
+                    # probably won't exist on reconfigure
                     filenames[i] = copy
                     continue
             if sys.platform != 'win32':

@@ -14,7 +14,7 @@ configurations in meson projects.
 **Note**: this does not provide kconfig frontend tooling to generate a
 configuration. You still need something such as kconfig frontends (see
 link below) to parse your Kconfig files, and then (after you've
-choosen the configuration options), output a ".config" file.
+chosen the configuration options), output a ".config" file.
 
   [kconfig-frontends]: http://ymorin.is-a-geek.org/projects/kconfig-frontends
 

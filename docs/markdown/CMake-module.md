@@ -86,14 +86,14 @@ and supports the following methods:
 
  - `dependency(target)` returns a dependency object for any CMake target.
  - `include_directories(target)` returns a meson `include_directories()`
-   object for the specified target. Using this function is not neccessary
+   object for the specified target. Using this function is not necessary
    if the dependency object is used.
  - `target(target)` returns the raw build target.
  - `target_type(target)` returns the type of the target as a string
  - `target_list()` returns a list of all target *names*.
  - `get_variable(name)` fetches the specified variable from inside
    the subproject. Usually `dependency()` or `target()` should be
-   prefered to extract build targets.
+   preferred to extract build targets.
 
 ## CMake configuration files
 

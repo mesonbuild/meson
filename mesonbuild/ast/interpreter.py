@@ -289,7 +289,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             l = quick_resolve(node.left)
             r = quick_resolve(node.right)
             if isinstance(l, str) and isinstance(r, str):
-                result = l + r # String concatination detected
+                result = l + r # String concatenation detected
             else:
                 result = self.flatten_args(l, include_unknown_args, id_loop_detect) + self.flatten_args(r, include_unknown_args, id_loop_detect)
 

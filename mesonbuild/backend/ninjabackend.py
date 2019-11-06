@@ -165,7 +165,7 @@ class NinjaBuildElement:
         # This is the only way I could find to make this work on all
         # platforms including Windows command shell. Slash is a dir separator
         # on Windows, too, so all characters are unambiguous and, more importantly,
-        # do not require quoting, unless explicitely specified, which is necessary for
+        # do not require quoting, unless explicitly specified, which is necessary for
         # the csc compiler.
         line = line.replace('\\', '/')
         outfile.write(line)

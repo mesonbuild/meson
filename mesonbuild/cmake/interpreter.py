@@ -404,7 +404,7 @@ class ConverterCustomTarget:
 
         # Modify the original outputs if they are relative. Again,
         # relative paths are relative to ${CMAKE_CURRENT_BINARY_DIR}
-        # and the first disclaimer is stil in effect
+        # and the first disclaimer is still in effect
         def ensure_absolute(x: str):
             if os.path.isabs(x):
                 return x
@@ -562,9 +562,9 @@ class CMakeInterpreter:
             raise CMakeException('Failed to configure the CMake subproject')
 
     def initialise(self, extra_cmake_options: List[str]) -> None:
-        # Run configure the old way becuse doing it
+        # Run configure the old way because doing it
         # with the server doesn't work for some reason
-        # Aditionally, the File API requires a configure anyway
+        # Additionally, the File API requires a configure anyway
         self.configure(extra_cmake_options)
 
         # Continue with the file API If supported
@@ -869,7 +869,7 @@ class CMakeInterpreter:
         def process_custom_target(tgt: ConverterCustomTarget) -> None:
             # CMake allows to specify multiple commands in a custom target.
             # To map this to meson, a helper script is used to execute all
-            # commands in order. This addtionally allows setting the working
+            # commands in order. This additionally allows setting the working
             # directory.
 
             tgt_var = tgt.name  # type: str
@@ -893,7 +893,7 @@ class CMakeInterpreter:
             command += ['-O'] + tgt.original_outputs
             command += ['-d', tgt.working_dir]
 
-            # Generate the commands. Subcommands are seperated by ';;;'
+            # Generate the commands. Subcommands are separated by ';;;'
             for cmd in tgt.command:
                 command += [resolve_source(x) for x in cmd] + [';;;']
 

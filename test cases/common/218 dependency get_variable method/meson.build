@@ -8,7 +8,7 @@ default = 'asufoiqwjtl;adjfbpiuqwoehtl;ajdfl;ghal;sdjg'
 
 dep = dependency('zlib', method: 'pkg-config', required : false)
 if not dep.found()
-  warning('Skipping pkg-config tests as zlib is not avialable or is not pkg-config')
+  warning('Skipping pkg-config tests as zlib is not available or is not pkg-config')
 else
   # Test for regular pkg-config
   # We don't know what the value will be, but we know it should be the same
@@ -16,9 +16,9 @@ else
   assert(dep.get_pkgconfig_variable('prefix') == dep.get_variable(pkgconfig : 'prefix'),
         'Got different values from get_pkgconfig_variable and get_variable(pkgconfig: )')
   assert(dep.get_variable(pkgconfig : default, default_value : default) == default,
-        'pkg-config didnt get default when we should have.')
+        'pkg-config didn\'t get default when we should have.')
   assert(dep.get_variable(pkgconfig : 'prefix', default_value : default) != default,
-        'pkg-config got default when we shouldnt have.')
+        'pkg-config got default when we shouldn\'t have.')
 endif
 
 dep_ct = dependency('llvm', method : 'config-tool', required : false)
@@ -28,9 +28,9 @@ else
   assert(dep_ct.get_configtool_variable('has-rtti') == dep_ct.get_variable(configtool : 'has-rtti'),
         'Got different values from get_configtool_variable and get_variable(configtool: )')
   assert(dep_ct.get_variable(configtool : default, default_value : default) == default,
-        'config-tool didnt get default when we should have.')
+        'config-tool didn\'t get default when we should have.')
   assert(dep_ct.get_variable(configtool : 'has-rtti', default_value : default) != default,
-        'config-tool got default when we shouldnt have.')
+        'config-tool got default when we shouldn\'t have.')
 endif
 
 dep_cm = dependency('llvm', method : 'cmake', required : false)
@@ -42,9 +42,9 @@ else
           'RTTI information for cmake and config tools disagree')
   endif
   assert(dep_cm.get_variable(cmake : default, default_value : default) == default,
-        'cmake didnt get default when we should have.')
+        'cmake didn\'t get default when we should have.')
   assert(dep_cm.get_variable(cmake : 'LLVM_ENABLE_RTTI', default_value : default) != default,
-        'cmake config-tool got default when we shouldnt have.')
+        'cmake config-tool got default when we shouldn\'t have.')
 endif
 
 idep = declare_dependency()

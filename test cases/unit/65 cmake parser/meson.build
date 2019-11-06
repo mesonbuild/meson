@@ -15,5 +15,5 @@ assert(dep.get_variable(cmake : 'CACHED_STRING_WS') == 'foo bar', 'set(CACHED ST
 assert(dep.get_variable(cmake : 'CACHED_STRING_ARRAY_NS') == ['foo', 'bar'], 'set(CACHED STRING) without spaces is incorrect')
 assert(dep.get_variable(cmake : 'CACHED_STRING_ARRAY_WS') == ['foo', 'foo bar', 'bar'], 'set(CACHED STRING[]) with spaces is incorrect')
 
-# We don't suppor this, so it should be unset.
+# We don't support this, so it should be unset.
 assert(dep.get_variable(cmake : 'ENV{var}', default_value : 'sentinal') == 'sentinal', 'set(ENV) should be ignored')

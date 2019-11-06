@@ -155,7 +155,7 @@ class CMakeFileAPI:
                     link_flags += [i['fragment']]
 
             # TODO The `dependencies` entry is new in the file API.
-            #      maybe we can make use of that in addtion to the
+            #      maybe we can make use of that in addition to the
             #      implicit dependency detection
             tgt_data = {
                 'artifacts': [x.get('path', '') for x in tgt.get('artifacts', [])],
@@ -175,7 +175,7 @@ class CMakeFileAPI:
             processed_src_idx = []
             for cg in tgt.get('compileGroups', []):
                 # Again, why an array, when there is usually only one element
-                # and arguments are seperated with spaces...
+                # and arguments are separated with spaces...
                 flags = []
                 for i in cg.get('compileCommandFragments', []):
                     flags += [i['fragment']]

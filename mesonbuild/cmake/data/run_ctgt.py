@@ -7,14 +7,14 @@ import os
 import sys
 
 commands = [[]]
-SEPERATOR = ';;;'
+SEPARATOR = ';;;'
 
 # Generate CMD parameters
 parser = argparse.ArgumentParser(description='Wrapper for add_custom_command')
 parser.add_argument('-d', '--directory', type=str, metavar='D', required=True, help='Working directory to cwd to')
 parser.add_argument('-o', '--outputs', nargs='+', metavar='O', required=True, help='Expected output files')
 parser.add_argument('-O', '--original-outputs', nargs='+', metavar='O', required=True, help='Output files expected by CMake')
-parser.add_argument('commands', nargs=argparse.REMAINDER, help='A "{}" seperated list of commands'.format(SEPERATOR))
+parser.add_argument('commands', nargs=argparse.REMAINDER, help='A "{}" separated list of commands'.format(SEPARATOR))
 
 # Parse
 args = parser.parse_args()
@@ -24,7 +24,7 @@ if len(args.outputs) != len(args.original_outputs):
     sys.exit(1)
 
 for i in args.commands:
-    if i == SEPERATOR:
+    if i == SEPARATOR:
         commands += [[]]
         continue
 

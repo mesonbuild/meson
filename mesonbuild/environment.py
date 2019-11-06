@@ -771,7 +771,7 @@ class Environment:
             will be appended. This means that if a space is required (such as
             with swift which wants `-Xlinker --version` and *not*
             `-Xlinker=--version`) you must pass as a list.
-        :extra_args: Any addtional arguments rquired (such as a source file)
+        :extra_args: Any additional arguments required (such as a source file)
         """
         extra_args = typing.cast(typing.List[str], extra_args or [])
         if isinstance(prefix, str):
@@ -1316,7 +1316,7 @@ class Environment:
                 # figure out what linker rustc is using for a non-nightly compiler
                 # (On nightly you can pass -Z print-link-args). So we're going to
                 # hard code the linker based on the platform.
-                # Currenty gnu ld is used for everything except apple by
+                # Currently gnu ld is used for everything except apple by
                 # default, and apple ld is used on mac.
                 # TODO: find some better way to figure this out.
                 if self.machines[for_machine].is_darwin():
@@ -1376,7 +1376,7 @@ class Environment:
                     linker = MSVCDynamicLinker(for_machine, version=version)
                 else:
                     # Getting LDC on windows to give useful linker output when not
-                    # doing real work is painfully hard. It ships with a verison of
+                    # doing real work is painfully hard. It ships with a version of
                     # lld-link, so just assume that we're going to use lld-link
                     # with it.
                     _, o, _ = Popen_safe(['lld-link.exe', '--version'])
