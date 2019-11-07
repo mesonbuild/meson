@@ -3958,17 +3958,23 @@ different subdirectory.
         optargs = ('-O0', '-O2', '-O3', '-Os', '/O1', '/O2', '/Os')
         for arg in args:
             if arg in warnargs:
-                mlog.warning("Consider using the built-in warning_level option instead of adding warning flags by hand.")
+                mlog.warning('Consider using the built-in warning_level option instead of using "{}".'.format(arg),
+                             location=self.current_node)
             elif arg in optargs:
-                mlog.warning('Consider using the built-in optimization level rather than adding flags by hand.')
+                mlog.warning('Consider using the built-in optimization level instead of using "{}".'.format(arg),
+                             location=self.current_node)
             elif arg == '-g':
-                mlog.warning('Consider using the built-in debug option rather than adding flags by hand.')
+                mlog.warning('Consider using the built-in debug option instead of using "{}".'.format(arg),
+                             location=self.current_node)
             elif arg == '-pipe':
-                mlog.warning("You don't need to add -pipe, Meson will use it automatically when it is available.")
+                mlog.warning("You don't need to add -pipe, Meson will use it automatically when it is available.",
+                             location=self.current_node)
             elif arg.startswith('-fsanitize'):
-                mlog.warning('Consider using the built-in option for sanitizers rather than adding flags by hand.')
+                mlog.warning('Consider using the built-in option for sanitizers instead of using "{}".'.format(arg),
+                             location=self.current_node)
             elif arg.startswith('-std=') or arg.startswith('/std:'):
-                mlog.warning('Consider using the built-in option for language standard version rather than adding flags by hand.')
+                mlog.warning('Consider using the built-in option for language standard version instead of using "{}".'.format(arg),
+                             location=self.current_node)
 
     def add_global_arguments(self, node, argsdict, args, kwargs):
         if self.is_subproject():
