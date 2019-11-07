@@ -1690,7 +1690,7 @@ class CompilerHolder(InterpreterObject):
 
 ModuleState = namedtuple('ModuleState', [
     'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
-    'project_name', 'project_version', 'backend', 'targets',
+    'project_name', 'project_version', 'project_license', 'backend', 'targets',
     'data', 'headers', 'man', 'global_args', 'project_args', 'build_machine',
     'host_machine', 'target_machine', 'current_node'])
 
@@ -1722,6 +1722,7 @@ class ModuleHolder(InterpreterObject, ObjectHolder):
             environment=self.interpreter.environment,
             project_name=self.interpreter.build.project_name,
             project_version=self.interpreter.build.dep_manifest[self.interpreter.active_projectname],
+            project_license=self.interpreter.build.dep_manifest[self.interpreter.active_projectname]['license'],
             # The backend object is under-used right now, but we will need it:
             # https://github.com/mesonbuild/meson/issues/1419
             backend=self.interpreter.backend,
@@ -2048,7 +2049,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'install_man': {'install_dir', 'install_mode'},
                     'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'},
                     'jar': build.known_jar_kwargs,
-                    'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
+                    'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir', 'metadata'},
                     'run_command': {'check', 'capture', 'env'},
                     'run_target': {'command', 'depends'},
                     'shared_library': build.known_shlib_kwargs,
@@ -2693,6 +2694,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @stringArgs
     @permittedKwargs(permitted_kwargs['project'])
+    @FeatureNewKwargs('project', '0.52.0', ['metadata'])
     def func_project(self, node, args, kwargs):
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
@@ -2730,9 +2732,13 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.project_version = kwargs.get('version', 'undefined')
         if self.build.project_version is None:
             self.build.project_version = self.project_version
-        proj_license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
-        self.build.dep_manifest[proj_name] = {'version': self.project_version,
-                                              'license': proj_license}
+
+        metadata = {
+            'version': self.project_version,
+            'license': mesonlib.stringlistify(kwargs.get('license', 'unknown'))
+        }
+        metadata['metadata'] = kwargs.get('metadata', {})
+        self.build.dep_manifest[proj_name] = metadata
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
         if not self.is_subproject() and 'subproject_dir' in kwargs:

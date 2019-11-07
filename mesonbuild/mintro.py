@@ -332,9 +332,13 @@ def list_benchmarks(benchdata):
     return get_test_list(benchdata)
 
 def list_projinfo(builddata: build.Build):
-    result = {'version': builddata.project_version,
-              'descriptive_name': builddata.project_name,
-              'subproject_dir': builddata.subproject_dir}
+    result = {
+        'version': builddata.project_version,
+        'descriptive_name': builddata.project_name,
+        'subproject_dir': builddata.subproject_dir,
+    }
+
+    result.update(builddata.dep_manifest[builddata.project_name])
     subprojects = []
     for k, v in builddata.subprojects.items():
         c = {'name': k,
