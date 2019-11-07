@@ -580,6 +580,11 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             result.append(a)
         return result
 
+    def sanitizer_args(self, value: str) -> typing.List[str]:
+        if value == 'none':
+            return []
+        return ['-fsanitize=' + value]
+
     def no_undefined_args(self) -> typing.List[str]:
         return self._apply_prefix('-undefined,error')
 
