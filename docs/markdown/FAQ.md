@@ -187,7 +187,7 @@ file instead of being buried inside your build definitions. An example
 can be found
 [here](https://github.com/jpakkane/meson/tree/master/test%20cases/linuxlike/3%20linker%20script).
 
-## My project works fine on Linux and MinGW but fails with MSVC due to a missing .lib file
+## My project works fine on Linux and MinGW but fails to link with MSVC due to a missing .lib file (fatal error LNK1181). Why?
 
 With GCC, all symbols on shared libraries are exported automatically
 unless you specify otherwise. With MSVC no symbols are exported by
