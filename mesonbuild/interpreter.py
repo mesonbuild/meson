@@ -3957,17 +3957,17 @@ different subdirectory.
         optargs = ('-O0', '-O2', '-O3', '-Os', '/O1', '/O2', '/Os')
         for arg in args:
             if arg in warnargs:
-                mlog.warning("Consider using the builtin warning_level option instead of adding warning flags by hand.")
+                mlog.warning("Consider using the built-in warning_level option instead of adding warning flags by hand.")
             elif arg in optargs:
-                mlog.warning('Consider using the builtin optimization level rather than adding flags by hand.')
+                mlog.warning('Consider using the built-in optimization level rather than adding flags by hand.')
             elif arg == '-g':
-                mlog.warning('Consider using the builtin debug option rather than adding flags by hand.')
+                mlog.warning('Consider using the built-in debug option rather than adding flags by hand.')
             elif arg == '-pipe':
                 mlog.warning("You don't need to add -pipe, Meson will use it automatically when it is available.")
             elif arg.startswith('-fsanitize'):
-                mlog.warning('Consider using the builtin option for sanitizers rather than adding flags by hand.')
+                mlog.warning('Consider using the built-in option for sanitizers rather than adding flags by hand.')
             elif arg.startswith('-std=') or arg.startswith('/std:'):
-                mlog.warning('Consider using the builtin option for language standard version rather than adding flags by hand.')
+                mlog.warning('Consider using the built-in option for language standard version rather than adding flags by hand.')
 
     def add_global_arguments(self, node, argsdict, args, kwargs):
         if self.is_subproject():
