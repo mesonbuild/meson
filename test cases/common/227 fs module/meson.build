@@ -18,4 +18,7 @@ assert(fs.is_dir('subprojects'), 'Dir not detected correctly.')
 assert(not fs.is_dir('meson.build'), 'File detected as a dir.')
 assert(not fs.is_dir('nonexisting'), 'Bad path detected as a dir.')
 
+assert(fs.is_dir('~'), 'expanduser not working')
+assert(not fs.is_file('~'), 'expanduser not working')
+
 subdir('subdir')
