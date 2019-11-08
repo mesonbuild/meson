@@ -5466,45 +5466,6 @@ class LinuxlikeTests(BasePlatformTests):
             self.build()
 
     @skipIfNoPkgconfig
-    def test_pkgconfig_secondary_dependencies(self):
-        '''
-        Check that Meson gets -Wl,-rpath-link right for secondary dependencies
-
-        This test requires at least two libraries, as -Wl,-rpath-link is only
-        required for dependencies of dependencies (i.e. secondary dependencies).
-        '''
-        with tempfile.TemporaryDirectory() as tempdirname:
-            testdirbase = os.path.join(self.unit_test_dir, '67 rpath-link secondary')
-
-            # build libA
-            testdirlibA = os.path.join(testdirbase, 'libA')
-            testlibAprefix = os.path.join(tempdirname, 'libAprefix')
-            self.init(testdirlibA, extra_args=['--prefix=' + testlibAprefix,
-                                               '--libdir=lib',
-                                               '--default-library=shared'], default_args=False)
-            self.build()
-            self.install(use_destdir=False)
-
-            # build libB (uses libA)
-            pkg_dir = [os.path.join(testlibAprefix, 'lib/pkgconfig')]
-            self.new_builddir()
-            testdirlibB = os.path.join(testdirbase, 'libB')
-            testlibBprefix = os.path.join(tempdirname, 'libBprefix')
-            self.init(testdirlibB, extra_args=['--prefix=' + testlibBprefix,
-                                               '--libdir=lib',
-                                               '--default-library=shared'], default_args=False,
-                      override_envvars={'PKG_CONFIG_PATH': ':'.join(pkg_dir)})
-            self.build()
-            self.install(use_destdir=False)
-
-            # build executable (uses libB, secondary dependency on libA)
-            pkg_dir.append(os.path.join(testlibBprefix, 'lib/pkgconfig'))
-            self.new_builddir()
-            self.init(os.path.join(testdirbase, 'app'),
-                      override_envvars={'PKG_CONFIG_PATH': ':'.join(pkg_dir)})
-            self.build()
-
-    @skipIfNoPkgconfig
     def test_static_archive_stripping(self):
         '''
         Check that Meson produces valid static archives with --strip enabled
