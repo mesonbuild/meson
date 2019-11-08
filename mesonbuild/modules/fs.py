@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import typing
-from pathlib import Path
+from pathlib import Path, PurePath
 
 from . import ExtensionModule
 from . import ModuleReturnValue
@@ -54,6 +54,16 @@ class FSModule(ExtensionModule):
     @noKwargs
     def is_dir(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         return self._check('is_dir', state, args)
+
+    @stringArgs
+    @noKwargs
+    def with_suffix(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        if len(args) != 2:
+            MesonException('method takes exactly two arguments.')
+        original = PurePath(state.source_root) / state.subdir / args[0]
+        new = original.with_suffix(args[1])
+        return ModuleReturnValue(str(new), [])
+
 
 def initialize(*args, **kwargs) -> FSModule:
     return FSModule(*args, **kwargs)

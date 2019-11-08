@@ -8,6 +8,8 @@ available starting with version 0.53.0.
 Non-absolute paths are looked up relative to the directory where the
 current `meson.build` file is.
 
+If specified, `~` is expanded to the user home directory.
+
 ### exists
 
 Takes a single string argument and returns true if an entity with that
@@ -29,3 +31,16 @@ name exists on the file system. This method follows symbolic links.
 
 Takes a single string argument and returns true if the path pointed to
 by the string is a symbolic link.
+
+## Filename modification
+
+### with_suffix
+
+The `with_suffix` method allows changing the filename suffix
+
+```meson
+original = '/opt/foo.ini'
+new = fs.with_suffix('.txt')
+```
+
+The files need not actually exist yet for this method.

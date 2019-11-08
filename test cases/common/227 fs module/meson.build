@@ -21,4 +21,17 @@ assert(not fs.is_dir('nonexisting'), 'Bad path detected as a dir.')
 assert(fs.is_dir('~'), 'expanduser not working')
 assert(not fs.is_file('~'), 'expanduser not working')
 
+original = 'foo.txt'
+new = fs.with_suffix(original, '.ini')
+assert(new.endswith('foo.ini') and not new.contains('.txt'), 'with_suffix failed')
+
+if build_machine.system() != 'windows'
+  # this feature works on Windows, but `/` on windows is interpreted like `.drive` which in general may not be `c:/`
+  # so we omit this from self-test on Windows
+
+  original = '/opt/foo.txt'
+  new = fs.with_suffix(original, '.ini')
+  assert(new == '/opt/foo.ini', 'absolute path with_suffix failed')
+endif
+
 subdir('subdir')
