@@ -33,7 +33,6 @@ from .. import mesonlib
 from ..compilers import clib_langs
 from ..environment import BinaryTable, Environment, MachineInfo
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException
-from ..linkers import GnuLikeDynamicLinkerMixin
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list, split_args
 from ..mesonlib import Version, LibType
@@ -748,18 +747,16 @@ class PkgConfigDependency(ExternalDependency):
                                       (self.name, err))
         self.compile_args = self._convert_mingw_paths(self._split_args(out))
 
-    def _search_libs(self, out, out_raw, out_all):
+    def _search_libs(self, out, out_raw):
         '''
         @out: PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 pkg-config --libs
         @out_raw: pkg-config --libs
-        @out_all: pkg-config --libs --static
 
         We always look for the file ourselves instead of depending on the
         compiler to find it with -lfoo or foo.lib (if possible) because:
         1. We want to be able to select static or shared
         2. We need the full path of the library to calculate RPATH values
         3. De-dup of libraries is easier when we have absolute paths
-        4. We need to find the directories in which secondary dependencies reside
 
         Libraries that are provided by the toolchain or are not found by
         find_library() will be added with -L -l pairs.
@@ -793,18 +790,6 @@ class PkgConfigDependency(ExternalDependency):
                 continue
             if arg.startswith('-L') and arg[2:] not in prefix_libpaths:
                 system_libpaths.add(arg[2:])
-        # collect all secondary library paths
-        secondary_libpaths = OrderedSet()
-        all_args = self._convert_mingw_paths(shlex.split(out_all))
-        for arg in all_args:
-            if arg.startswith('-L') and not arg.startswith(('-L-l', '-L-L')):
-                path = arg[2:]
-                if not os.path.isabs(path):
-                    # Resolve the path as a compiler in the build directory would
-                    path = os.path.join(self.env.get_build_dir(), path)
-                if path not in prefix_libpaths and path not in system_libpaths:
-                    secondary_libpaths.add(path)
-
         # Use this re-ordered path list for library resolution
         libpaths = list(prefix_libpaths) + list(system_libpaths)
         # Track -lfoo libraries to avoid duplicate work
@@ -812,12 +797,8 @@ class PkgConfigDependency(ExternalDependency):
         # Track not-found libraries to know whether to add library paths
         libs_notfound = []
         libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
-        # Generate link arguments for this library, by
-        # first appending secondary link arguments for ld
+        # Generate link arguments for this library
         link_args = []
-        if self.clib_compiler and self.clib_compiler.linker and isinstance(self.clib_compiler.linker, GnuLikeDynamicLinkerMixin):
-            link_args = ['-Wl,-rpath-link,' + p for p in secondary_libpaths]
-
         for lib in full_args:
             if lib.startswith(('-L-l', '-L-L')):
                 # These are D language arguments, add them as-is
@@ -887,26 +868,6 @@ class PkgConfigDependency(ExternalDependency):
         libcmd = [self.name, '--libs']
         if self.static:
             libcmd.append('--static')
-        # We need to find *all* secondary dependencies of a library
-        #
-        # Say we have libA.so, located in /non/standard/dir1/, and
-        # libB.so, located in /non/standard/dir2/, which links to
-        # libA.so. Now when linking exeC to libB.so, the linker will
-        # walk the complete symbol tree to determine that all undefined
-        # symbols can be resolved. Because libA.so lives in a directory
-        # not known to the linker by default, you will get errors like
-        #
-        #   ld: warning: libA.so, needed by /non/standard/dir2/libB.so,
-        #       not found (try using -rpath or -rpath-link)
-        #   ld: /non/standard/dir2/libB.so: undefined reference to `foo()'
-        #
-        # To solve this, we load the -L paths of *all* dependencies, by
-        # relying on --static to provide us with a complete picture. All
-        # -L paths that are found via a --static lookup but that are not
-        # contained in the normal lookup have to originate from secondary
-        # dependencies. See also:
-        #   http://www.kaizou.org/2015/01/linux-libraries/
-        libcmd_all = [self.name, '--libs', '--static']
         # Force pkg-config to output -L fields even if they are system
         # paths so we can do manual searching with cc.find_library() later.
         env = os.environ.copy()
@@ -920,13 +881,9 @@ class PkgConfigDependency(ExternalDependency):
         # gnome.generate_gir + gnome.gtkdoc which need -L -l arguments.
         ret, out_raw, err_raw = self._call_pkgbin(libcmd)
         if ret != 0:
-            raise DependencyException('Could not generate libs for %s:\n%s\n' %
-                                      (self.name, err_raw))
-        ret, out_all, err_all = self._call_pkgbin(libcmd_all)
-        if ret != 0:
-            mlog.warning('Could not determine complete list of dependencies for %s:\n%s\n' %
-                         (self.name, err_all))
-        self.link_args, self.raw_link_args = self._search_libs(out, out_raw, out_all)
+            raise DependencyException('Could not generate libs for %s:\n\n%s' %
+                                      (self.name, out_raw))
+        self.link_args, self.raw_link_args = self._search_libs(out, out_raw)
 
     def get_pkgconfig_variable(self, variable_name, kwargs):
         options = ['--variable=' + variable_name, self.name]
