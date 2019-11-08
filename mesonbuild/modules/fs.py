@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+import typing
+from pathlib import Path
 
 from . import ExtensionModule
 from . import ModuleReturnValue
 from ..mesonlib import MesonException
 
 from ..interpreterbase import stringArgs, noKwargs
+if typing.TYPE_CHECKING:
+    from ..interpreter import ModuleState
 
 class FSModule(ExtensionModule):
 
@@ -28,32 +31,32 @@ class FSModule(ExtensionModule):
 
     @stringArgs
     @noKwargs
-    def exists(self, state, args, kwargs):
+    def exists(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 1:
             MesonException('method takes exactly one argument.')
-        test_file = os.path.join(state.source_root, state.subdir, args[0])
-        return ModuleReturnValue(os.path.exists(test_file), [])
+        test_file = Path(state.source_root) / state.subdir / args[0]
+        return ModuleReturnValue(test_file.exists(), [])
 
-    def _check(self, check_fun, state, args):
+    def _check(self, check: str, state: 'ModuleState', args: typing.Sequence[str]) -> ModuleReturnValue:
         if len(args) != 1:
             MesonException('method takes exactly one argument.')
-        test_file = os.path.join(state.source_root, state.subdir, args[0])
-        return ModuleReturnValue(check_fun(test_file), [])
+        test_file = Path(state.source_root) / state.subdir / args[0]
+        return ModuleReturnValue(getattr(test_file, check)(), [])
 
     @stringArgs
     @noKwargs
-    def is_symlink(self, state, args, kwargs):
-        return self._check(os.path.islink, state, args)
+    def is_symlink(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        return self._check('is_symlink', state, args)
 
     @stringArgs
     @noKwargs
-    def is_file(self, state, args, kwargs):
-        return self._check(os.path.isfile, state, args)
+    def is_file(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        return self._check('is_file', state, args)
 
     @stringArgs
     @noKwargs
-    def is_dir(self, state, args, kwargs):
-        return self._check(os.path.isdir, state, args)
+    def is_dir(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        return self._check('is_dir', state, args)
 
-def initialize(*args, **kwargs):
+def initialize(*args, **kwargs) -> FSModule:
     return FSModule(*args, **kwargs)

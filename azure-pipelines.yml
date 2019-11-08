@@ -24,7 +24,7 @@ jobs:
     displayName: 'Install Pylint, MyPy'
   - script: pylint mesonbuild
     displayName: Lint Checks
-  - script: mypy --follow-imports=skip  mesonbuild/mtest.py mesonbuild/minit.py mesonbuild/msetup.py mesonbuild/wrap tools/
+  - script: mypy --follow-imports=skip  mesonbuild/mtest.py mesonbuild/minit.py mesonbuild/msetup.py mesonbuild/wrap tools/ mesonbuild/modules/fs.py
 
 
 - job: vs2015
