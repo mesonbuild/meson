@@ -29,19 +29,16 @@ class FSModule(ExtensionModule):
         super().__init__(interpreter)
         self.snippets.add('generate_dub_file')
 
-    @stringArgs
-    @noKwargs
-    def exists(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
-        if len(args) != 1:
-            MesonException('method takes exactly one argument.')
-        test_file = Path(state.source_root) / state.subdir / args[0]
-        return ModuleReturnValue(test_file.exists(), [])
-
     def _check(self, check: str, state: 'ModuleState', args: typing.Sequence[str]) -> ModuleReturnValue:
         if len(args) != 1:
             MesonException('method takes exactly one argument.')
         test_file = Path(state.source_root) / state.subdir / args[0]
         return ModuleReturnValue(getattr(test_file, check)(), [])
+
+    @stringArgs
+    @noKwargs
+    def exists(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        return self._check('exists', state, args)
 
     @stringArgs
     @noKwargs
