@@ -2,12 +2,13 @@
 
 One of the major problems of multiplatform development is wrangling
 all your dependencies. This is easy on Linux where you can use system
-packages but awkward on other platforms. Most of those do not have a
-package manager at all. This has been worked around by having third
-party package managers. They are not really a solution for end user
-deployment, because you can't tell them to install a package manager
-just to use your app. On these platforms you must produce
-self-contained applications.
+packages (and happen to know that your target distribution provides a
+recent enough version of the dependency) but awkward on other
+platforms. Most of those do not have a package manager at all. This
+has been worked around by having third party package managers. They
+are not really a solution for end user deployment, because you can't
+tell them to install a package manager just to use your app. On these
+platforms you must produce self-contained applications.
 
 The traditional approach to this has been to bundle dependencies
 inside your own project. Either as prebuilt libraries and headers or
@@ -36,15 +37,18 @@ subproject embedding extremely easy.
 
 All wrap files must have a name of `<project_name>.wrap` form and be in `subprojects` dir.
 
-Currently Meson has three kinds of wraps: 
+Currently Meson has four kinds of wraps: 
 - wrap-file
-- wrap-file with Meson build patch
 - wrap-git
+- wrap-hg
+- wrap-svn
 
-## wrap-file
+## wrap format
 
-An example wrap file for `libfoobar` would have a name `libfoobar.wrap` 
-and would look like this:
+Wrap files are written in ini format, with a single header containing the type
+of wrap, followed by properties describing how to obtain the sources, validate
+them, and modify them if needed. An example wrap-file for the wrap named
+`libfoobar` would have a filename `libfoobar.wrap` and would look like this:
 
 ```ini
 [wrap-file]
@@ -55,38 +59,60 @@ source_filename = foobar-1.0.tar.gz
 source_hash = 5ebeea0dfb75d090ea0e7ff84799b2a7a1550db3fe61eb5f6f61c2e971e57663
 ```
 
-`source_hash` is *sha256sum* of `source_filename`.
+An example wrap-git will look like this:
 
-Since *0.49.0* if `source_filename` is found in project's
-`subprojects/packagecache` directory, it will be used instead of downloading the
-source, even if `--wrap-mode` option is set to `nodownload`. The file's hash will
-be checked.
+```ini
+[wrap-git]
+url = https://github.com/libfoobar/libfoobar.git
+revision = head
+```
+
+## Accepted configuration properties for wraps
+- `directory` - name of the subproject root directory, defaults to the name of the wrap.
+
+### Specific to wrap-file
+- `source_url` - download url to retrieve the wrap-file source archive
+- `source_filename` - filename of the downloaded source archive
+- `source_hash` - sha256 checksum of the downloaded source archive
+- `patch_url` - download url to retrieve an optional overlay archive
+- `patch_filename` - filename of the downloaded overlay archive
+- `patch_hash` - sha256 checksum of the downloaded overlay archive
+- `lead_directory_missing` - for `wrap-file` create the leading
+  directory name. Needed when the source file does not have a leading
+  directory.
+
+Since *0.49.0* if `source_filename` or `patch_filename` is found in the
+project's `subprojects/packagecache` directory, it will be used instead
+of downloading the file, even if `--wrap-mode` option is set to
+`nodownload`. The file's hash will be checked.
+
+### Specific to VCS-based wraps
+- `url` - name of the wrap-git repository to clone. Required.
+- `revision` - name of the revision to checkout. Must be either: a
+  valid value (such as a git tag) for the VCS's `checkout` command, or
+  (for git) `head` to track upstream's default branch. Required.
+
+## Specific to wrap-git
+- `depth` - shallowly clone the repository to X number of commits. Note
+  that git always allow shallowly cloning branches, but in order to
+  clone commit ids shallowly, the server must support
+  `uploadpack.allowReachableSHA1InWant=true`.  *(since 0.52.0)*
+- `push-url` - alternative url to configure as a git push-url. Useful if
+  the subproject will be developed and changes pushed upstream.
+  *(since 0.37.0)*
+- `clone-recursive` - also clone submodules of the repository
+  *(since 0.48.0)*
 
 ## wrap-file with Meson build patch
 
 Unfortunately most software projects in the world do not build with
-Meson. Because of this Meson allows you to specify a patch URL. This
-works in much the same way as Debian's distro patches. That is, they
-are downloaded and automatically applied to the subproject. These
-files contain a Meson build definition for the given subproject. 
+Meson. Because of this Meson allows you to specify a patch URL.
 
-A wrap file with an additional patch URL would look like this:
-
-```ini
-[wrap-file]
-directory = libfoobar-1.0
-
-source_url = https://upstream.example.com/foobar-1.0.tar.gz
-source_filename = foobar-1.0.tar.gz
-source_hash = 5ebeea0dfb75d090ea0e7ff84799b2a7a1550db3fe61eb5f6f61c2e971e57663
-
-patch_url = https://myserver.example.com/libfoobar-meson.tar.gz
-patch_filename = libfoobar-meson.tar.gz
-patch_hash = 8c9d00702d5fe4a6bf25a36b821a332f6b2dfd117c66fe818b88b23d604635e9
-```
-
-In this example the Wrap manager would download the patch and unzip it
-in libfoobar's directory.
+For historic reasons this is called a "patch", however, it serves as an
+overlay to add or replace files rather than modifying them. The file
+must be an archive; it is downloaded and automatically extracted into
+the subproject. The extracted files will include a meson build
+definition for the given subproject.
 
 This approach makes it extremely simple to embed dependencies that
 require build system changes. You can write the Meson build definition
@@ -96,60 +122,8 @@ thousands of lines of code. Once you have a working build definition,
 just zip up the Meson build files (and others you have changed) and
 put them somewhere where you can download them.
 
-Since *0.49.0* if `patch_filename` is found in project's
-`subprojects/packagecache` directory, it will be used instead of downloading the
-patch, even if `--wrap-mode` option is set to `nodownload`. The file's hash will
-be checked.
-
-## wrap-git
-
-This type of wrap allows branching subprojects directly from git.
-
-The above mentioned scheme assumes that your subproject is working off
-packaged files. Sometimes you want to check code out directly from
-Git. Meson supports this natively. All you need to do is to write a
-slightly different wrap file.
-
-```ini
-[wrap-git]
-directory = samplesubproject
-url = https://github.com/jpakkane/samplesubproject.git
-revision = head
-```
-
-The format is straightforward. The only thing to note is the revision
-element that can have one of two values. The first is `head` which
-will cause Meson to track the master head (doing a repull whenever the
-build definition is altered). The second type is a commit hash or a
-tag. In this case Meson will use the commit specified (with `git
-checkout [hash/tag id]`).
-
-Note that in this case you cannot specify an extra patch file to
-use. The git repo must contain all necessary Meson build definitions.
-
-Usually you would use subprojects as read only. However in some cases
-you want to do commits to subprojects and push them upstream. For
-these cases you can specify the upload URL by adding the following at
-the end of your wrap file:
-
-```ini
-push-url = git@git.example.com:projects/someproject.git # Supported since version 0.37.0
-```
-
-If the git repo contains submodules, you can tell Meson to clone them
-automatically by adding the following *(since 0.48.0)*:
-
-```ini
-clone-recursive = true
-```
-
-Setting the clone depth is supported using the `depth` directive *(since 0.52.0)*.
-Note that git always allow shallowly cloning branches, but in order to clone commit ids
-shallowly, the server must support `uploadpack.allowReachableSHA1InWant=true`.
-
-```ini
-depth = 1
-```
+Meson build patches are only supported for wrap-file mode. When using
+wrap-git, the repository must contain all Meson build definitions.
 
 ## Using wrapped projects
 
