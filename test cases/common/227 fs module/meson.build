@@ -1,11 +1,13 @@
 project('fs module test')
 
+is_windows = build_machine.system() == 'windows'
+
 fs = import('fs')
 
 assert(fs.exists('meson.build'), 'Existing file reported as missing.')
 assert(not fs.exists('nonexisting'), 'Nonexisting file was found.')
 
-if build_machine.system() != 'windows' and build_machine.system() != 'cygwin'
+if not is_windows and build_machine.system() != 'cygwin'
   assert(fs.is_symlink('a_symlink'), 'Symlink not detected.')
   assert(not fs.is_symlink('meson.build'), 'Regular file detected as symlink.')
 endif
@@ -25,13 +27,12 @@ original = 'foo.txt'
 new = fs.with_suffix(original, '.ini')
 assert(new.endswith('foo.ini') and not new.contains('.txt'), 'with_suffix failed')
 
-if build_machine.system() != 'windows'
-  # this feature works on Windows, but `/` on windows is interpreted like `.drive` which in general may not be `c:/`
-  # so we omit this from self-test on Windows
+# `/` on windows is interpreted like `.drive` which in general may not be `c:/`
+# the files need not exist for fs.with_suffix()
+original = is_windows ? 'j:/foo/bar.txt' : '/foo/bar.txt'
+new_check = is_windows ? 'j:\\foo\\bar.ini' : '/foo/bar.ini'
 
-  original = '/opt/foo.txt'
-  new = fs.with_suffix(original, '.ini')
-  assert(new == '/opt/foo.ini', 'absolute path with_suffix failed')
-endif
+new = fs.with_suffix(original, '.ini')
+assert(new == new_check, 'absolute path with_suffix failed')
 
 subdir('subdir')
