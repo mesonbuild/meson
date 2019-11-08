@@ -31,7 +31,7 @@ class FSModule(ExtensionModule):
 
     def _check(self, check: str, state: 'ModuleState', args: typing.Sequence[str]) -> ModuleReturnValue:
         if len(args) != 1:
-            MesonException('method takes exactly one argument.')
+            MesonException('fs.{} takes exactly one argument.'.format(check))
         test_file = Path(state.source_root) / state.subdir / Path(args[0]).expanduser()
         return ModuleReturnValue(getattr(test_file, check)(), [])
 
