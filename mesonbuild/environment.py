@@ -990,11 +990,13 @@ class Environment:
                 else:
                     m = 'Failed to detect MSVC compiler version: stderr was\n{!r}'
                     raise EnvironmentException(m.format(err))
-                match = re.search(' for .*(x86|x64|ARM|ARM64)$', lookat.split('\n')[0])
+                cl_signature = lookat.split('\n')[0]
+                match = re.search(' for .*(x86|x64|ARM|ARM64)$', cl_signature)
                 if match:
                     target = match.group(1)
                 else:
-                    target = 'x86'
+                    m = 'Failed to detect MSVC compiler target architecture: \'cl /?\' output is\n{}'
+                    raise EnvironmentException(m.format(cl_signature))
                 linker = MSVCDynamicLinker(for_machine, version=version)
                 cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
                 return cls(
