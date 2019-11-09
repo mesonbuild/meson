@@ -2857,7 +2857,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                        mlog.bold(' '.join(comp.get_exelist())), comp.get_version_string())
             if comp.linker is not None:
                 logger_fun(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
-                           mlog.bold(comp.linker.id), comp.linker.version)
+                           mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
             self.build.ensure_static_linker(comp)
 
         langs = self.coredata.compilers[for_machine].keys()
