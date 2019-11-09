@@ -413,11 +413,13 @@ class DCompiler(Compiler):
     }
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 info: 'MachineInfo', arch, **kwargs):
+                 info: 'MachineInfo', arch, is_cross, exe_wrapper, **kwargs):
         self.language = 'd'
         super().__init__(exelist, version, for_machine, info, **kwargs)
         self.id = 'unknown'
         self.arch = arch
+        self.exe_wrapper = exe_wrapper
+        self.is_cross = is_cross
 
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanity.d')
@@ -428,7 +430,14 @@ class DCompiler(Compiler):
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('D compiler %s can not compile programs.' % self.name_string())
-        if subprocess.call(output_name) != 0:
+        if self.is_cross:
+            if self.exe_wrapper is None:
+                # Can't check if the binaries run so we have to assume they do
+                return
+            cmdlist = self.exe_wrapper.get_command() + [output_name]
+        else:
+            cmdlist = [output_name]
+        if subprocess.call(cmdlist) != 0:
             raise EnvironmentException('Executables created by D compiler %s are not runnable.' % self.name_string())
 
     def needs_static_linker(self):
@@ -602,8 +611,8 @@ class GnuDCompiler(DCompiler, GnuCompiler):
     LINKER_PREFIX = GnuCompiler.LINKER_PREFIX
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 info: 'MachineInfo', arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, for_machine, info, arch, **kwargs)
+                 info: 'MachineInfo', is_cross, exe_wrapper, arch, **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, info, is_cross, exe_wrapper, arch, **kwargs)
         self.id = 'gcc'
         default_warn_args = ['-Wall', '-Wdeprecated']
         self.warn_args = {'0': [],
@@ -651,7 +660,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompi
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, for_machine, info, arch, **kwargs)
+        DCompiler.__init__(self, exelist, version, for_machine, info, arch, False, None, **kwargs)
         self.id = 'llvm'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
 
@@ -693,7 +702,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompil
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, for_machine, info, arch, **kwargs)
+        DCompiler.__init__(self, exelist, version, for_machine, info, arch, False, None, **kwargs)
         self.id = 'dmd'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
 
