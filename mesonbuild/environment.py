@@ -1333,30 +1333,6 @@ class Environment:
 
     def detect_d_compiler(self, for_machine: MachineChoice):
         info = self.machines[for_machine]
-        exelist = self.binaries[for_machine].lookup_entry('d')
-        # Search for a D compiler.
-        # We prefer LDC over GDC unless overridden with the DC
-        # environment variable because LDC has a much more
-        # up to date language version at time (2016).
-        if exelist is not None:
-            if os.path.basename(exelist[-1]).startswith(('ldmd', 'gdmd')):
-                raise EnvironmentException(
-                    'Meson does not support {} as it is only a DMD frontend for another compiler.'
-                    'Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.'.format(exelist[-1]))
-        else:
-            for d in self.default_d:
-                if shutil.which(d):
-                    exelist = [d]
-                    break
-            else:
-                raise EnvironmentException('Could not find any supported D compiler.')
-
-        try:
-            p, out = Popen_safe(exelist + ['--version'])[0:2]
-        except OSError:
-            raise EnvironmentException('Could not execute D compiler "%s"' % ' '.join(exelist))
-        version = search_version(out)
-        full_version = out.split('\n', 1)[0]
 
         # Detect the target architecture, required for proper architecture handling on Windows.
         c_compiler = {}
@@ -1368,55 +1344,79 @@ class Environment:
         if is_msvc and arch == 'x86':
             arch = 'x86_mscoff'
 
-        if 'LLVM D compiler' in out:
-            # LDC seems to require a file
-            m = self.machines[for_machine]
-            if m.is_windows() or m.is_cygwin():
-                if is_msvc:
-                    linker = MSVCDynamicLinker(for_machine, version=version)
+        popen_exceptions = {}
+        is_cross = not self.machines.matches_build_machine(for_machine)
+        results, ccache, exe_wrap = self._get_compilers('d', for_machine)
+        for exelist in results:
+            # Search for a D compiler.
+            # We prefer LDC over GDC unless overridden with the DC
+            # environment variable because LDC has a much more
+            # up to date language version at time (2016).
+            if not isinstance(exelist, list):
+                exelist = [exelist]
+            if os.path.basename(exelist[-1]).startswith(('ldmd', 'gdmd')):
+                raise EnvironmentException(
+                    'Meson does not support {} as it is only a DMD frontend for another compiler.'
+                    'Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.'.format(exelist[-1]))
+            try:
+                p, out = Popen_safe(exelist + ['--version'])[0:2]
+            except OSError as e:
+                popen_exceptions[' '.join(exelist + ['--version'])] = e
+                continue
+            version = search_version(out)
+            full_version = out.split('\n', 1)[0]
+
+            if 'LLVM D compiler' in out:
+                # LDC seems to require a file
+                m = self.machines[for_machine]
+                if m.is_windows() or m.is_cygwin():
+                    if is_msvc:
+                        linker = MSVCDynamicLinker(for_machine, version=version)
+                    else:
+                        # Getting LDC on windows to give useful linker output when not
+                        # doing real work is painfully hard. It ships with a version of
+                        # lld-link, so just assume that we're going to use lld-link
+                        # with it.
+                        _, o, _ = Popen_safe(['lld-link.exe', '--version'])
+                        linker = ClangClDynamicLinker(for_machine, version=search_version(o))
                 else:
-                    # Getting LDC on windows to give useful linker output when not
-                    # doing real work is painfully hard. It ships with a version of
-                    # lld-link, so just assume that we're going to use lld-link
-                    # with it.
-                    _, o, _ = Popen_safe(['lld-link.exe', '--version'])
-                    linker = ClangClDynamicLinker(for_machine, version=search_version(o))
-            else:
-                with tempfile.NamedTemporaryFile(suffix='.d') as f:
-                    linker = self._guess_nix_linker(
-                        exelist, for_machine,
-                        compilers.LLVMDCompiler.LINKER_PREFIX,
-                        extra_args=[f.name])
-            return compilers.LLVMDCompiler(
-                exelist, version, for_machine, info, arch,
-                full_version=full_version, linker=linker)
-        elif 'gdc' in out:
-            linker = self._guess_nix_linker(exelist, for_machine, compilers.GnuDCompiler.LINKER_PREFIX)
-            return compilers.GnuDCompiler(
-                exelist, version, for_machine, info, arch,
-                full_version=full_version, linker=linker)
-        elif 'The D Language Foundation' in out or 'Digital Mars' in out:
-            # DMD seems to require a file
-            m = self.machines[for_machine]
-            if m.is_windows() or m.is_cygwin():
-                if is_msvc:
-                    linker = MSVCDynamicLinker(for_machine, version=version)
-                elif arch == 'x86':
-                    linker = OptlinkDynamicLinker(for_machine, version=full_version)
+                    with tempfile.NamedTemporaryFile(suffix='.d') as f:
+                        linker = self._guess_nix_linker(
+                            exelist, for_machine,
+                            compilers.LLVMDCompiler.LINKER_PREFIX,
+                            extra_args=[f.name])
+                return compilers.LLVMDCompiler(
+                    exelist, version, for_machine, info, arch,
+                    full_version=full_version, linker=linker)
+            elif 'gdc' in out:
+                linker = self._guess_nix_linker(exelist, for_machine, compilers.GnuDCompiler.LINKER_PREFIX)
+                return compilers.GnuDCompiler(
+                    exelist, version, for_machine, info, arch, is_cross, exe_wrap,
+                    full_version=full_version, linker=linker)
+            elif 'The D Language Foundation' in out or 'Digital Mars' in out:
+                # DMD seems to require a file
+                m = self.machines[for_machine]
+                if m.is_windows() or m.is_cygwin():
+                    if is_msvc:
+                        linker = MSVCDynamicLinker(for_machine, version=version)
+                    elif arch == 'x86':
+                        linker = OptlinkDynamicLinker(for_machine, version=full_version)
+                    else:
+                        # DMD ships with lld-link
+                        _, o, _ = Popen_safe(['lld-link.exe', '--version'])
+                        linker = ClangClDynamicLinker(for_machine, version=search_version(o))
                 else:
-                    # DMD ships with lld-link
-                    _, o, _ = Popen_safe(['lld-link.exe', '--version'])
-                    linker = ClangClDynamicLinker(for_machine, version=search_version(o))
-            else:
-                with tempfile.NamedTemporaryFile(suffix='.d') as f:
-                    linker = self._guess_nix_linker(
-                        exelist, for_machine,
-                        compilers.LLVMDCompiler.LINKER_PREFIX,
-                        extra_args=[f.name])
-            return compilers.DmdDCompiler(
-                exelist, version, for_machine, info, arch,
-                full_version=full_version, linker=linker)
-        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+                    with tempfile.NamedTemporaryFile(suffix='.d') as f:
+                        linker = self._guess_nix_linker(
+                            exelist, for_machine,
+                            compilers.LLVMDCompiler.LINKER_PREFIX,
+                            extra_args=[f.name])
+                return compilers.DmdDCompiler(
+                    exelist, version, for_machine, info, arch,
+                    full_version=full_version, linker=linker)
+            raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+
+        self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_swift_compiler(self, for_machine):
         exelist = self.binaries.host.lookup_entry('swift')
