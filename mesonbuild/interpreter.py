@@ -1845,6 +1845,7 @@ class MesonMain(InterpreterObject):
                              'version': self.version_method,
                              'project_name': self.project_name_method,
                              'get_cross_property': self.get_cross_property_method,
+                             'get_native_property': self.get_native_property_method,
                              'backend': self.backend_method,
                              })
 
@@ -2030,6 +2031,22 @@ class MesonMain(InterpreterObject):
             if len(args) == 2:
                 return args[1]
             raise InterpreterException('Unknown cross property: %s.' % propname)
+
+    @noArgsFlattening
+    @permittedKwargs({})
+    def get_native_property_method(self, args, kwargs):
+        if len(args) < 1 or len(args) > 2:
+            raise InterpreterException('Must have one or two arguments.')
+        propname = args[0]
+        if not isinstance(propname, str):
+            raise InterpreterException('Property name must be string.')
+        try:
+            props = self.interpreter.environment.properties.build
+            return props[propname]
+        except Exception:
+            if len(args) == 2:
+                return args[1]
+            raise InterpreterException('Unknown native property: %s.' % propname)
 
 
 known_library_kwargs = (

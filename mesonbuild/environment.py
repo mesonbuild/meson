@@ -538,6 +538,7 @@ class Environment:
                 coredata.load_configs(self.coredata.config_files))
             binaries.build = BinaryTable(config.get('binaries', {}))
             paths.build = Directories(**config.get('paths', {}))
+            properties.build = Properties(config.get('properties', {}))
 
         ## Read in cross file(s) to override host machine configuration
 
