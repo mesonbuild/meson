@@ -1786,6 +1786,10 @@ the following methods.
   returns the "cross" compiler if we're currently cross-compiling and
   the "native" compiler if we're not.
 
+- `get_native_property(propname, fallback_value)` returns the given
+  property from a native file, the optional second argument is returned
+  if the given property is not found.
+
 - `has_exe_wrapper()` returns true when doing a cross build if there
   is a wrapper command that can be used to execute cross built
   binaries (for example when cross compiling from Linux to Windows,
