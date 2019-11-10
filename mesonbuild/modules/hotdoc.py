@@ -81,12 +81,28 @@ class HotdocTargetBuilder:
         elif isinstance(value, list):
             # Do not do anything on empty lists
             if value:
+                # https://bugs.python.org/issue9334 (from 2010 :( )
+                # The syntax with nargs=+ is inherently ambiguous
+                # A workaround for this case is to simply prefix with a space
+                # every value starting with a dash
+                escaped_value = []
+                for e in value:
+                    if isinstance(e, str) and e.startswith('-'):
+                        escaped_value += [' %s' % e]
+                    else:
+                        escaped_value += [e]
                 if option:
-                    self.cmd.extend([option] + value)
+                    self.cmd.extend([option] + escaped_value)
                 else:
-                    self.cmd.extend(value)
+                    self.cmd.extend(escaped_value)
         else:
-            self.cmd.extend([option, value])
+            # argparse gets confused if value(s) start with a dash.
+            # When an option expects a single value, the unambiguous way
+            # to specify it is with =
+            if isinstance(value, str):
+                self.cmd.extend(['%s=%s' % (option, value)])
+            else:
+                self.cmd.extend([option, value])
 
     def check_extra_arg_type(self, arg, value):
         value = getattr(value, 'held_object', value)
