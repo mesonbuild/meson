@@ -118,6 +118,9 @@ $ ninja coverage-html (or coverage-xml)
 
 The coverage report can be found in the meson-logs subdirectory.
 
+Note: Currently, Meson does not support generating coverage reports 
+with Clang.
+
 ## Add some optimization to debug builds
 
 By default the debug build does not use any optimizations. This is the
