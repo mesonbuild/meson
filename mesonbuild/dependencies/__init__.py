@@ -14,6 +14,7 @@
 
 from .boost import BoostDependency
 from .cuda import CudaDependency
+from .hdf5 import HDF5Dependency
 from .base import (  # noqa: F401
     Dependency, DependencyException, DependencyMethods, ExternalProgram, EmptyExternalProgram, NonExistingExternalProgram,
     ExternalDependency, NotFoundDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
@@ -21,7 +22,7 @@ from .base import (  # noqa: F401
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
 from .coarrays import CoarrayDependency
 from .mpi import MPIDependency
-from .misc import (BlocksDependency, HDF5Dependency, NetCDFDependency, OpenMPDependency, Python3Dependency, ThreadDependency, PcapDependency, CupsDependency, LibWmfDependency, LibGCryptDependency, GpgmeDependency, ShadercDependency)
+from .misc import (BlocksDependency, NetCDFDependency, OpenMPDependency, Python3Dependency, ThreadDependency, PcapDependency, CupsDependency, LibWmfDependency, LibGCryptDependency, GpgmeDependency, ShadercDependency)
 from .platform import AppleFrameworks
 from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, VulkanDependency
 
