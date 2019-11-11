@@ -97,6 +97,7 @@ These are provided by the `.system()` method call.
 | haiku               | |
 | linux               | |
 | netbsd              | |
+| openbsd             | |
 | windows             | Any version of Windows |
 | sunos               | illumos and Solaris |
 
