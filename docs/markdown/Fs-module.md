@@ -36,11 +36,35 @@ by the string is a symbolic link.
 
 ### with_suffix
 
-The `with_suffix` method allows changing the filename suffix
+The `with_suffix` method is a *string manipulation* convenient for filename modifications.
+It allows changing the filename suffix like:
+
+## swap suffix
 
 ```meson
 original = '/opt/foo.ini'
-new = fs.with_suffix('.txt')
+new = fs.with_suffix('.txt')  # /opt/foo.txt
 ```
 
-The files need not actually exist yet for this method.
+#### add suffix
+
+```meson
+original = '/opt/foo'
+new = fs.with_suffix('.txt')  # /opt/foo.txt
+```
+
+#### compound suffix swap
+
+```meson
+original = '/opt/foo.dll.a'
+new = fs.with_suffix('.so')  # /opt/foo.dll.so
+```
+
+#### delete suffix
+
+```meson
+original = '/opt/foo.dll.a'
+new = fs.with_suffix('')  # /opt/foo.dll
+```
+
+The files need not actually exist yet for this method, as it's just string manipulation.
