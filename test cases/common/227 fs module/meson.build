@@ -47,4 +47,12 @@ new_check = is_windows ? 'j:\\foo\\bar.ini' : '/foo/bar.ini'
 new = fs.with_suffix(original, '.ini')
 assert(new == new_check, 'absolute path with_suffix failed')
 
+# -- hash
+
+md5 = fs.hash('subdir/subdirfile.txt', 'md5')
+sha256 = fs.hash('subdir/subdirfile.txt', 'sha256')
+assert(md5 == 'd0795db41614d25affdd548314b30b3b', 'md5sum did not match')
+assert(sha256 == 'be2170b0dae535b73f6775694fffa3fd726a43b5fabea11b7342f0605917a42a', 'sha256sum did not match')
+
+
 subdir('subdir')

@@ -32,6 +32,14 @@ name exists on the file system. This method follows symbolic links.
 Takes a single string argument and returns true if the path pointed to
 by the string is a symbolic link.
 
+## File Parameters
+
+### hash
+
+The `hash` method computes the requested hash sum of a file.
+The available hash methods include: md5, sha1, sha224, sha256, sha384, sha512.
+
+
 ## Filename modification
 
 ### with_suffix

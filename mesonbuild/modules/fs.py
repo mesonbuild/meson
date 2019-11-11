@@ -13,8 +13,10 @@
 # limitations under the License.
 
 import typing
+import hashlib
 from pathlib import Path, PurePath
 
+from .. import mlog
 from . import ExtensionModule
 from . import ModuleReturnValue
 from ..mesonlib import MesonException
@@ -54,6 +56,22 @@ class FSModule(ExtensionModule):
     @noKwargs
     def is_dir(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         return self._check('is_dir', state, args)
+
+    @stringArgs
+    @noKwargs
+    def hash(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        if len(args) != 2:
+            MesonException('method takes exactly two arguments.')
+        file = Path(state.source_root) / state.subdir / Path(args[0]).expanduser()
+        if not file.is_file():
+            raise MesonException('{} is not a file and therefore cannot be hashed'.format(file))
+        try:
+            h = hashlib.new(args[1])
+        except ValueError:
+            raise MesonException('hash algorithm {} is not available'.format(args[1]))
+        mlog.debug('computing {} sum of {} size {} bytes'.format(args[1], file, file.stat().st_size))
+        h.update(file.read_bytes())
+        return ModuleReturnValue(h.hexdigest(), [])
 
     @stringArgs
     @noKwargs
