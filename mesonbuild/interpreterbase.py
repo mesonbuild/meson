@@ -731,7 +731,16 @@ The result of this is undefined and will become a hard error in a future Meson r
         elif isinstance(old_variable, dict):
             if not isinstance(addition, dict):
                 raise InvalidArguments('The += operator requires a dict on the right hand side if the variable on the left is a dict')
-            new_value = {**old_variable, **addition}
+            new_addition = {}
+            for (key, value) in addition.items():
+                if isinstance(key, str):
+                    new_addition[key] = value
+                elif isinstance(key, mparser.IdNode):
+                    FeatureNew('Adding dictionary entry using string variable as key', '0.53.0').use(self.subproject)
+                    new_addition[self.get_variable(key.value)] = value
+                else:
+                    raise InvalidArguments('Dictionary key must be a string or string variable')
+            new_value = {**old_variable, **new_addition}
         # Add other data types here.
         else:
             raise InvalidArguments('The += operator currently only works with arrays, dicts, strings or ints ')
@@ -1021,8 +1030,6 @@ The result of this is undefined and will become a hard error in a future Meson r
         reduced_pos = [self.evaluate_statement(arg) for arg in args.arguments]
         reduced_kw = {}
         for key in args.kwargs.keys():
-            if not isinstance(key, str):
-                raise InvalidArguments('Keyword argument name is not a string.')
             a = args.kwargs[key]
             reduced_kw[key] = self.evaluate_statement(a)
         self.argument_depth -= 1
