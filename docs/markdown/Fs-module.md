@@ -36,8 +36,26 @@ by the string is a symbolic link.
 
 ### hash
 
-The `hash` method computes the requested hash sum of a file.
+The `fs.hash(filename)` method computes the requested hash sum of a file.
 The available hash methods include: md5, sha1, sha224, sha256, sha384, sha512.
+
+### samefile
+
+The `fs.samefile(filename1, filename2)` method allows determining if two filenames refer to the same file.
+Perhaps a meson.build file in one place refer to a symlink and in another place a
+relative path and/or absolute path. The `samefile` method allows determining if these
+are the same file.
+
+Examples:
+
+```meson
+x = 'foo.txt'
+y = 'sub/../foo.txt'
+z = 'bar.txt'  # a symlink pointing to foo.txt
+
+fs.samefile(x, y)  # true
+fs.samefile(x, z)  # true
+```
 
 
 ## Filename modification

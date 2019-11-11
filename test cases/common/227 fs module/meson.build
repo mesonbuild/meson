@@ -54,5 +54,19 @@ sha256 = fs.hash('subdir/subdirfile.txt', 'sha256')
 assert(md5 == 'd0795db41614d25affdd548314b30b3b', 'md5sum did not match')
 assert(sha256 == 'be2170b0dae535b73f6775694fffa3fd726a43b5fabea11b7342f0605917a42a', 'sha256sum did not match')
 
+# -- size
+
+size = fs.size('subdir/subdirfile.txt')
+assert(size == 19, 'file size not found correctly')
+
+# -- are filenames referring to the same file?
+f1 = 'meson.build'
+f2 = 'subdir/../meson.build'
+assert(fs.samefile(f1, f2), 'samefile not realized')
+assert(not fs.samefile(f1, 'subdir/subdirfile.txt'), 'samefile known bad comparison')
+
+if not is_windows and build_machine.system() != 'cygwin'
+  assert(fs.samefile('a_symlink', 'meson.build'), 'symlink samefile fail')
+endif
 
 subdir('subdir')
