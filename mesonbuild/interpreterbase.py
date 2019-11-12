@@ -735,7 +735,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             for (key, value) in addition.items():
                 if isinstance(key, str):
                     new_addition[key] = value
-                elif isinstance(key, mparser.IdNode):
+                elif isinstance(key, mparser.IdNode) and isinstance(self.get_variable(key.value), str):
                     FeatureNew('Adding dictionary entry using string variable as key', '0.53.0').use(self.subproject)
                     new_addition[self.get_variable(key.value)] = value
                 else:
