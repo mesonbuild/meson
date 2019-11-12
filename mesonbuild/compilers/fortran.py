@@ -17,6 +17,7 @@ from typing import List
 import subprocess, os
 import typing
 
+from .. import coredata
 from .compilers import (
     clike_debug_args,
     Compiler,
@@ -32,7 +33,7 @@ from .mixins.pgi import PGICompiler
 from .. import mlog
 
 from mesonbuild.mesonlib import (
-    EnvironmentException, MesonException, MachineChoice, LibType
+    version_compare, EnvironmentException, MesonException, MachineChoice, LibType
 )
 
 if typing.TYPE_CHECKING:
@@ -179,6 +180,25 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic', '-fimplicit-none']}
 
+    def get_options(self):
+        opts = FortranCompiler.get_options(self)
+        fortran_stds = ['legacy', 'f95', 'f2003']
+        if version_compare(self.version, '>=4.4.0'):
+            fortran_stds += ['f2008']
+        if version_compare(self.version, '>=8.0.0'):
+            fortran_stds += ['f2018']
+        opts.update({'fortran_std': coredata.UserComboOption('Fortran language standard to use',
+                                                             ['none'] + fortran_stds,
+                                                             'none')})
+        return opts
+
+    def get_option_compile_args(self, options) -> typing.List[str]:
+        args = []
+        std = options['fortran_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
     def get_dependency_gen_args(self, outtarget, outfile):
         # Disabled until this is fixed:
         # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=62162
@@ -269,6 +289,22 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
                           '2': default_warn_args + ['-warn', 'unused'],
                           '3': ['-warn', 'all']}
 
+    def get_options(self):
+        opts = FortranCompiler.get_options(self)
+        fortran_stds = ['legacy', 'f95', 'f2003', 'f2008', 'f2018']
+        opts.update({'fortran_std': coredata.UserComboOption('Fortran language standard to use',
+                                                             ['none'] + fortran_stds,
+                                                             'none')})
+        return opts
+
+    def get_option_compile_args(self, options) -> typing.List[str]:
+        args = []
+        std = options['fortran_std']
+        stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
+        if std.value != 'none':
+            args.append('-stand=' + stds[std.value])
+        return args
+
     def get_preprocess_only_args(self):
         return ['-cpp', '-EP']
 
@@ -311,6 +347,22 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
                           '1': default_warn_args,
                           '2': default_warn_args + ['/warn:unused'],
                           '3': ['/warn:all']}
+
+    def get_options(self):
+        opts = FortranCompiler.get_options(self)
+        fortran_stds = ['legacy', 'f95', 'f2003', 'f2008', 'f2018']
+        opts.update({'fortran_std': coredata.UserComboOption('Fortran language standard to use',
+                                                             ['none'] + fortran_stds,
+                                                             'none')})
+        return opts
+
+    def get_option_compile_args(self, options) -> typing.List[str]:
+        args = []
+        std = options['fortran_std']
+        stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
+        if std.value != 'none':
+            args.append('/stand:' + stds[std.value])
+        return args
 
     def get_module_outdir_args(self, path) -> List[str]:
         return ['/module:' + path]

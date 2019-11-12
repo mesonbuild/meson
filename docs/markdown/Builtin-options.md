@@ -146,6 +146,7 @@ compiler being used:
 | cpp_eh       | default       | none, default, a, s, sc                  | C++ exception handling type |
 | cpp_rtti     | true          | true, false                              | Whether to enable RTTI (runtime type identification) |
 | cpp_winlibs  | see below     | free-form comma-separated list           | Standard Windows libs to link against |
+| fortran_std  | none          | [none, legacy, f95, f2003, f2008, f2018] | Fortran language standard to use |
 
 The default values of `c_winlibs` and `cpp_winlibs` are in compiler-specific
 argument forms, but the libraries are: kernel32, user32, gdi32, winspool,
