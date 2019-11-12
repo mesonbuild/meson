@@ -35,6 +35,12 @@ pip will download the package automatically). The exact command to
 type to install with Pip can vary between systems, be sure to use the
 Python 3 version of Pip.
 
+For builds using Ninja, Ninja can be [downloaded directly](https://github.com/ninja-build/ninja/releases) or via
+
+```sh
+python3 -m pip install ninja
+```
+
 #### Running
 
 Meson requires that you have a source directory and a build directory
