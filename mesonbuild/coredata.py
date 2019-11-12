@@ -776,7 +776,7 @@ class CmdLineFileParser(configparser.ConfigParser):
     def __init__(self):
         # We don't want ':' as key delimiter, otherwise it would break when
         # storing subproject options like "subproject:option=value"
-        super().__init__(delimiters=['='])
+        super().__init__(delimiters=['='], interpolation=None)
 
 def get_cmd_line_file(build_dir):
     return os.path.join(build_dir, 'meson-private', 'cmd_line.txt')
