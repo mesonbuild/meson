@@ -3382,6 +3382,11 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(obj.compiler_options.host['c_args'].value, ['foo bar', 'one', 'two'])
         self.wipe()
 
+        self.init(testdir, extra_args=['-Dset_percent_opt=myoption%'])
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.user_options['set_percent_opt'].value, 'myoption%')
+        self.wipe()
+
         # Setting a 2nd time the same option should override the first value
         try:
             self.init(testdir, extra_args=['--bindir=foo', '--bindir=bar',
