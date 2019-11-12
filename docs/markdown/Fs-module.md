@@ -69,28 +69,28 @@ It allows changing the filename suffix like:
 
 ```meson
 original = '/opt/foo.ini'
-new = fs.with_suffix('.txt')  # /opt/foo.txt
+new = fs.with_suffix(original, '.txt')  # /opt/foo.txt
 ```
 
 #### add suffix
 
 ```meson
 original = '/opt/foo'
-new = fs.with_suffix('.txt')  # /opt/foo.txt
+new = fs.with_suffix(original, '.txt')  # /opt/foo.txt
 ```
 
 #### compound suffix swap
 
 ```meson
 original = '/opt/foo.dll.a'
-new = fs.with_suffix('.so')  # /opt/foo.dll.so
+new = fs.with_suffix(original, '.so')  # /opt/foo.dll.so
 ```
 
 #### delete suffix
 
 ```meson
 original = '/opt/foo.dll.a'
-new = fs.with_suffix('')  # /opt/foo.dll
+new = fs.with_suffix(original, '')  # /opt/foo.dll
 ```
 
 The files need not actually exist yet for this method, as it's just string manipulation.
