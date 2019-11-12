@@ -324,11 +324,17 @@ Dictionaries
 --
 
 Dictionaries are delimited by curly braces. A dictionary can contain an
-arbitrary number of key value pairs. Keys are required to be literal
-strings, values can be objects of any type.
+arbitrary number of key value pairs.
+Dictionary values can be objects of any type.
+Dictionary keys can be literal strings, or since Meson 0.53.0 keys can also be string variables.
 
 ```meson
 my_dict = {'foo': 42, 'bar': 'baz'}
+
+# since Meson 0.53.0
+key = 'bsd'
+di = {'darwin': ['applesauce', 54], 'bsd': ['stuff', 42]}
+val = di[key]
 ```
 
 Keys must be unique:
