@@ -39,6 +39,11 @@ by the string is a symbolic link.
 The `fs.hash(filename)` method computes the requested hash sum of a file.
 The available hash methods include: md5, sha1, sha224, sha256, sha384, sha512.
 
+### size
+
+The `fs.size(filename)` method returns the size of the file in bytes.
+Symlinks will be resolved if possible.
+
 ### samefile
 
 The `fs.samefile(filename1, filename2)` method allows determining if two filenames refer to the same file.
