@@ -35,8 +35,11 @@ from .modules import ModuleReturnValue
 from .cmake import CMakeInterpreter
 
 from pathlib import Path, PurePath
-import os, shutil, uuid
-import re, shlex
+import os
+import shutil
+import uuid
+import re
+import shlex
 import subprocess
 import collections
 from itertools import chain
@@ -1845,7 +1848,7 @@ class MesonMain(InterpreterObject):
                              'version': self.version_method,
                              'project_name': self.project_name_method,
                              'get_cross_property': self.get_cross_property_method,
-                             'get_native_property': self.get_native_property_method,
+                             'get_external_property': self.get_external_property_method,
                              'backend': self.backend_method,
                              })
 
@@ -2018,7 +2021,7 @@ class MesonMain(InterpreterObject):
 
     @noArgsFlattening
     @permittedKwargs({})
-    def get_cross_property_method(self, args, kwargs):
+    def get_cross_property_method(self, args, kwargs) -> str:
         if len(args) < 1 or len(args) > 2:
             raise InterpreterException('Must have one or two arguments.')
         propname = args[0]
@@ -2033,21 +2036,33 @@ class MesonMain(InterpreterObject):
             raise InterpreterException('Unknown cross property: %s.' % propname)
 
     @noArgsFlattening
-    @permittedKwargs({})
-    def get_native_property_method(self, args, kwargs):
+    @permittedKwargs({'native'})
+    @FeatureNew('meson.get_external_property', '0.53.0')
+    def get_external_property_method(self, args: Sequence[str], kwargs: dict) -> str:
         if len(args) < 1 or len(args) > 2:
-            raise InterpreterException('Must have one or two arguments.')
+            raise InterpreterException('Must have one or two positional arguments.')
         propname = args[0]
         if not isinstance(propname, str):
             raise InterpreterException('Property name must be string.')
-        try:
-            props = self.interpreter.environment.properties.build
-            return props[propname]
-        except Exception:
-            if len(args) == 2:
-                return args[1]
-            raise InterpreterException('Unknown native property: %s.' % propname)
 
+        def _get_native() -> str:
+            try:
+                props = self.interpreter.environment.properties.build
+                return props[propname]
+            except Exception:
+                if len(args) == 2:
+                    return args[1]
+                raise InterpreterException('Unknown native property: %s.' % propname)
+        if 'native' in kwargs:
+            if kwargs['native']:
+                return _get_native()
+            else:
+                return self.get_cross_property_method(args, {})
+        else:  # native: not specified
+            if self.build.environment.is_cross_build():
+                return self.get_cross_property_method(args, kwargs)
+            else:
+                return _get_native()
 
 known_library_kwargs = (
     build.known_shlib_kwargs |

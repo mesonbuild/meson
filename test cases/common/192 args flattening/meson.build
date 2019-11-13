@@ -16,8 +16,14 @@ assert(arr == ['bar', 'baz'], 'configuration_data.get with array fallback is bro
 arr = meson.get_cross_property('does-not-exist', ['bar', 'baz'])
 assert(arr == ['bar', 'baz'], 'meson.get_cross_property with array fallback is broken')
 
-arr = meson.get_native_property('does-not-exist', ['bar', 'baz'])
-assert(arr == ['bar', 'baz'], 'meson.get_native_property with array fallback is broken')
+arr = meson.get_external_property('does-not-exist', ['bar', 'baz'])
+assert(arr == ['bar', 'baz'], 'meson.get_external_property with array fallback is broken')
+
+arr = meson.get_external_property('does-not-exist', ['bar', 'baz'], native: true)
+assert(arr == ['bar', 'baz'], 'meson.get_external_property native:true with array fallback is broken')
+
+arr = meson.get_external_property('does-not-exist', ['bar', 'baz'], native: false)
+assert(arr == ['bar', 'baz'], 'meson.get_external_property native:false with array fallback is broken')
 
 # Test deprecated behaviour
 
