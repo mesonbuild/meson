@@ -2382,6 +2382,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         m = 'must be a string, or the output of find_program(), files() '\
             'or configure_file(), or a compiler object; not {!r}'
+        expanded_args = []
         if isinstance(cmd, ExternalProgramHolder):
             cmd = cmd.held_object
             if isinstance(cmd, build.Executable):
@@ -2392,12 +2393,14 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not cmd.found():
                 raise InterpreterException('command {!r} not found or not executable'.format(cmd))
         elif isinstance(cmd, CompilerHolder):
-            cmd = cmd.compiler.get_exelist()[0]
+            exelist = cmd.compiler.get_exelist()
+            cmd = exelist[0]
             prog = ExternalProgram(cmd, silent=True)
             if not prog.found():
                 raise InterpreterException('Program {!r} not found '
                                            'or not executable'.format(cmd))
             cmd = prog
+            expanded_args = exelist[1:]
         else:
             if isinstance(cmd, mesonlib.File):
                 cmd = cmd.absolute_path(srcdir, builddir)
@@ -2417,7 +2420,6 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not os.path.isabs(cmd_path):
                 if cmd_path not in self.build_def_files:
                     self.build_def_files.append(cmd_path)
-        expanded_args = []
         for a in listify(cargs):
             if isinstance(a, str):
                 expanded_args.append(a)
