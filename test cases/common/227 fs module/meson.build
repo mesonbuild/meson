@@ -24,28 +24,28 @@ assert(fs.is_dir('~'), 'expanduser not working')
 assert(not fs.is_file('~'), 'expanduser not working')
 
 original = 'foo.txt'
-new = fs.with_suffix(original, '.ini')
-assert(new.endswith('foo.ini') and not new.contains('.txt'), 'with_suffix failed')
+new = fs.replace_suffix(original, '.ini')
+assert(new.endswith('foo.ini') and not new.contains('.txt'), 'replace_suffix failed')
 
 original = 'foo'
-new = fs.with_suffix(original, '.ini')
-assert(new.endswith('foo.ini'), 'with_suffix did not add suffix to suffixless file')
+new = fs.replace_suffix(original, '.ini')
+assert(new.endswith('foo.ini'), 'replace_suffix did not add suffix to suffixless file')
 
 original = 'foo.dll.a'
-new = fs.with_suffix(original, '.so')
-assert(new.endswith('foo.dll.so'), 'with_suffix did not only modify last suffix')
+new = fs.replace_suffix(original, '.so')
+assert(new.endswith('foo.dll.so'), 'replace_suffix did not only modify last suffix')
 
 original = 'foo.dll'
-new = fs.with_suffix(original, '')
-assert(new.endswith('foo'), 'with_suffix did not only delete last suffix')
+new = fs.replace_suffix(original, '')
+assert(new.endswith('foo'), 'replace_suffix did not only delete last suffix')
 
 # `/` on windows is interpreted like `.drive` which in general may not be `c:/`
-# the files need not exist for fs.with_suffix()
+# the files need not exist for fs.replace_suffix()
 original = is_windows ? 'j:/foo/bar.txt' : '/foo/bar.txt'
 new_check = is_windows ? 'j:\\foo\\bar.ini' : '/foo/bar.ini'
 
-new = fs.with_suffix(original, '.ini')
-assert(new == new_check, 'absolute path with_suffix failed')
+new = fs.replace_suffix(original, '.ini')
+assert(new == new_check, 'absolute path replace_suffix failed')
 
 # -- hash
 

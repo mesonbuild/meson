@@ -8,7 +8,7 @@ available starting with version 0.53.0.
 Non-absolute paths are looked up relative to the directory where the
 current `meson.build` file is.
 
-If specified, `~` is expanded to the user home directory.
+If specified, a leading `~` is expanded to the user home directory.
 
 ### exists
 
@@ -36,20 +36,23 @@ by the string is a symbolic link.
 
 ### hash
 
-The `fs.hash(filename)` method computes the requested hash sum of a file.
-The available hash methods include: md5, sha1, sha224, sha256, sha384, sha512.
+The `fs.hash(filename, hash_algorithm)` method returns a string containing
+the hexidecimal `hash_algorithm` digest of a file.
+`hash_algorithm` is a string; the available hash algorithms include:
+md5, sha1, sha224, sha256, sha384, sha512.
 
 ### size
 
-The `fs.size(filename)` method returns the size of the file in bytes.
+The `fs.size(filename)` method returns the size of the file in integer bytes.
 Symlinks will be resolved if possible.
 
 ### samefile
 
-The `fs.samefile(filename1, filename2)` method allows determining if two filenames refer to the same file.
-Perhaps a meson.build file in one place refer to a symlink and in another place a
-relative path and/or absolute path. The `samefile` method allows determining if these
-are the same file.
+The `fs.samefile(filename1, filename2)` returns boolean `true` if the input filenames refer to the same file.
+For example, suppose filename1 is a symlink and filename2 is a relative path.
+If filename1 can be resolved to a file that is the same file as filename2, then `true` is returned.
+If filename1 is not resolved to be the same as filename2, `false` is returned.
+If either filename does not exist, an error message is raised.
 
 Examples:
 
@@ -65,37 +68,37 @@ fs.samefile(x, z)  # true
 
 ## Filename modification
 
-### with_suffix
+### replace_suffix
 
-The `with_suffix` method is a *string manipulation* convenient for filename modifications.
+The `replace_suffix` method is a *string manipulation* convenient for filename modifications.
 It allows changing the filename suffix like:
 
 ## swap suffix
 
 ```meson
 original = '/opt/foo.ini'
-new = fs.with_suffix(original, '.txt')  # /opt/foo.txt
+new = fs.replace_suffix(original, '.txt')  # /opt/foo.txt
 ```
 
 #### add suffix
 
 ```meson
 original = '/opt/foo'
-new = fs.with_suffix(original, '.txt')  # /opt/foo.txt
+new = fs.replace_suffix(original, '.txt')  # /opt/foo.txt
 ```
 
 #### compound suffix swap
 
 ```meson
 original = '/opt/foo.dll.a'
-new = fs.with_suffix(original, '.so')  # /opt/foo.dll.so
+new = fs.replace_suffix(original, '.so')  # /opt/foo.dll.so
 ```
 
 #### delete suffix
 
 ```meson
 original = '/opt/foo.dll.a'
-new = fs.with_suffix(original, '')  # /opt/foo.dll
+new = fs.replace_suffix(original, '')  # /opt/foo.dll
 ```
 
 The files need not actually exist yet for this method, as it's just string manipulation.
