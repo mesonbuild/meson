@@ -342,6 +342,7 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
         if not isinstance(val, str):
             raise InterpreterException("Second argument to set_quoted must be a string.")
         escaped_val = '\\"'.join(val.split('"'))
+        escaped_val = '\\n'.join(escaped_val.split('\n'))
         self.held_object.values[name] = ('"' + escaped_val + '"', desc)
 
     def set10_method(self, args, kwargs):
