@@ -3820,6 +3820,7 @@ recommended as it is not supported on some platforms''')
 
         dependencies_typelist = [
             ('name', str),
+            ('version', str),
             ('compile_args', list),
             ('link_args', list),
         ]
