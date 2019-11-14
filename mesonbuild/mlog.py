@@ -127,6 +127,21 @@ def blue(text: str) -> AnsiDecorator:
 def cyan(text: str) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[1;36m")
 
+def normal_red(text: str) -> AnsiDecorator:
+    return AnsiDecorator(text, "\033[31m")
+
+def normal_green(text: str) -> AnsiDecorator:
+    return AnsiDecorator(text, "\033[32m")
+
+def normal_yellow(text: str) -> AnsiDecorator:
+    return AnsiDecorator(text, "\033[33m")
+
+def normal_blue(text: str) -> AnsiDecorator:
+    return AnsiDecorator(text, "\033[34m")
+
+def normal_cyan(text: str) -> AnsiDecorator:
+    return AnsiDecorator(text, "\033[36m")
+
 # This really should be AnsiDecorator or anything that implements
 # __str__(), but that requires protocols from typing_extensions
 def process_markup(args: Sequence[Union[AnsiDecorator, str]], keep: bool) -> List[str]:
