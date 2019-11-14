@@ -1191,7 +1191,7 @@ class CompilerHolder(InterpreterObject):
                                                 self.environment,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
-        cached = '(cached)' if cached else ''
+        cached = mlog.blue('(cached)') if cached else ''
         if had:
             hadtxt = mlog.green('YES')
         else:
@@ -1221,7 +1221,7 @@ class CompilerHolder(InterpreterObject):
                                                 self.environment,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
-        cached = '(cached)' if cached else ''
+        cached = mlog.blue('(cached)') if cached else ''
         if had:
             hadtxt = mlog.green('YES')
         else:
@@ -1251,7 +1251,7 @@ class CompilerHolder(InterpreterObject):
         had, cached = self.compiler.has_function(funcname, prefix, self.environment,
                                                  extra_args=extra_args,
                                                  dependencies=deps)
-        cached = '(cached)' if cached else ''
+        cached = mlog.blue('(cached)') if cached else ''
         if had:
             hadtxt = mlog.green('YES')
         else:
@@ -1278,7 +1278,7 @@ class CompilerHolder(InterpreterObject):
         deps, msg = self.determine_dependencies(kwargs)
         had, cached = self.compiler.has_type(typename, prefix, self.environment,
                                              extra_args=extra_args, dependencies=deps)
-        cached = '(cached)' if cached else ''
+        cached = mlog.blue('(cached)') if cached else ''
         if had:
             hadtxt = mlog.green('YES')
         else:
@@ -1365,7 +1365,7 @@ class CompilerHolder(InterpreterObject):
         value, cached = self.compiler.get_define(element, prefix, self.environment,
                                                  extra_args=extra_args,
                                                  dependencies=deps)
-        cached = '(cached)' if cached else ''
+        cached = mlog.blue('(cached)') if cached else ''
         mlog.log('Fetching value of define', mlog.bold(element, True), msg, value, cached)
         return value
 
@@ -1398,7 +1398,7 @@ class CompilerHolder(InterpreterObject):
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
-            cached = '(cached)' if cached else ''
+            cached = mlog.blue('(cached)') if cached else ''
             mlog.log('Checking if', mlog.bold(testname, True), msg, 'compiles:', h, cached)
         return result
 
@@ -1426,7 +1426,7 @@ class CompilerHolder(InterpreterObject):
         result, cached = self.compiler.links(code, self.environment,
                                              extra_args=extra_args,
                                              dependencies=deps)
-        cached = '(cached)' if cached else ''
+        cached = mlog.blue('(cached)') if cached else ''
         if len(testname) > 0:
             if result:
                 h = mlog.green('YES')
@@ -1455,7 +1455,7 @@ class CompilerHolder(InterpreterObject):
         haz, cached = self.compiler.check_header(hname, prefix, self.environment,
                                                  extra_args=extra_args,
                                                  dependencies=deps)
-        cached = '(cached)' if cached else ''
+        cached = mlog.blue('(cached)') if cached else ''
         if required and not haz:
             raise InterpreterException('{} header {!r} not usable'.format(self.compiler.get_display_language(), hname))
         elif haz:
@@ -1483,7 +1483,7 @@ class CompilerHolder(InterpreterObject):
         deps, msg = self.determine_dependencies(kwargs)
         haz, cached = self.compiler.has_header(hname, prefix, self.environment,
                                                extra_args=extra_args, dependencies=deps)
-        cached = '(cached)' if cached else ''
+        cached = mlog.blue('(cached)') if cached else ''
         if required and not haz:
             raise InterpreterException('{} header {!r} not found'.format(self.compiler.get_display_language(), hname))
         elif haz:
@@ -1518,7 +1518,7 @@ class CompilerHolder(InterpreterObject):
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        cached = '(cached)' if cached else ''
+        cached = mlog.blue('(cached)') if cached else ''
         mlog.log('Header <{0}> has symbol'.format(hname), mlog.bold(symbol, True), msg, h, cached)
         return haz
 
@@ -1593,7 +1593,7 @@ class CompilerHolder(InterpreterObject):
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        cached = '(cached)' if cached else ''
+        cached = mlog.blue('(cached)') if cached else ''
         mlog.log(
             'Compiler for {} supports arguments {}:'.format(
                 self.compiler.get_display_language(), ' '.join(args)),
@@ -1632,7 +1632,7 @@ class CompilerHolder(InterpreterObject):
     def has_multi_link_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         result, cached = self.compiler.has_multi_link_arguments(args, self.environment)
-        cached = '(cached)' if cached else ''
+        cached = mlog.blue('(cached)') if cached else ''
         if result:
             h = mlog.green('YES')
         else:
@@ -1670,7 +1670,7 @@ class CompilerHolder(InterpreterObject):
         if len(args) != 1:
             raise InterpreterException('has_func_attribute takes exactly one argument.')
         result, cached = self.compiler.has_func_attribute(args[0], self.environment)
-        cached = '(cached)' if cached else ''
+        cached = mlog.blue('(cached)') if cached else ''
         h = mlog.green('YES') if result else mlog.red('NO')
         mlog.log('Compiler for {} supports function attribute {}:'.format(self.compiler.get_display_language(), args[0]), h, cached)
         return result
@@ -2998,7 +2998,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if cached_dep:
             if not cached_dep.found():
                 mlog.log('Dependency', mlog.bold(name),
-                         'found:', mlog.red('NO'), '(cached)')
+                         'found:', mlog.red('NO'), mlog.blue('(cached)'))
                 return identifier, cached_dep
 
             # Verify the cached dep version match
@@ -3059,12 +3059,13 @@ external dependencies (including libraries) must go to "dependencies".''')
                                           'dep {}'.format(found, dirname, wanted, display_name))
 
             mlog.log('Subproject', mlog.bold(subproj_path), 'dependency',
-                     mlog.bold(display_name), 'version is', mlog.bold(found),
+                     mlog.bold(display_name), 'version is', mlog.normal_cyan(found),
                      'but', mlog.bold(wanted), 'is required.')
             return self.notfound_dependency()
 
+        found = mlog.normal_cyan(found) if found else None
         mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
-                 mlog.bold(subproj_path), 'found:', mlog.green('YES'))
+                 mlog.bold(subproj_path), 'found:', mlog.green('YES'), found)
         return dep
 
     def _handle_featurenew_dependencies(self, name):

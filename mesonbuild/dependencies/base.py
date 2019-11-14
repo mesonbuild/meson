@@ -2197,15 +2197,13 @@ def find_external_dependency(name, env, kwargs):
 
                 info = []
                 if d.version:
-                    info.append(d.version)
+                    info.append(mlog.normal_cyan(d.version))
 
                 log_info = d.log_info()
                 if log_info:
                     info.append('(' + log_info + ')')
 
-                info = ' '.join(info)
-
-                mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.green('YES'), info)
+                mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.green('YES'), *info)
 
                 return d
 
