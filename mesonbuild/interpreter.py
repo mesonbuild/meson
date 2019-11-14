@@ -3002,11 +3002,14 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return identifier, cached_dep
 
             # Verify the cached dep version match
-            wanted = kwargs.get('version', [])
-            found = cached_dep.get_version()
-            if not wanted or mesonlib.version_compare_many(found, wanted)[0]:
+            wanted_vers = kwargs.get('version', [])
+            found_vers = cached_dep.get_version()
+            if not wanted_vers or mesonlib.version_compare_many(found_vers, wanted_vers)[0]:
+                info = [mlog.blue('(cached)')]
+                if found_vers:
+                    info = [mlog.normal_cyan(found_vers), *info]
                 mlog.log('Dependency', mlog.bold(name),
-                         'found:', mlog.green('YES'), '(cached)')
+                         'found:', mlog.green('YES'), *info)
                 return identifier, cached_dep
 
         return identifier, None
