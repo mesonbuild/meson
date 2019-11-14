@@ -835,6 +835,8 @@ class Environment:
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
+            compiler_name = os.path.basename(compiler[0])
+
             if not set(['cl', 'cl.exe', 'clang-cl', 'clang-cl.exe']).isdisjoint(compiler):
                 # Watcom C provides it's own cl.exe clone that mimics an older
                 # version of Microsoft's compiler. Since Watcom's cl.exe is
@@ -855,11 +857,11 @@ class Environment:
                     if found_cl in watcom_cls:
                         continue
                 arg = '/?'
-            elif 'armcc' in compiler[0]:
+            elif 'armcc' in compiler_name:
                 arg = '--vsn'
-            elif 'ccrx' in compiler[0]:
+            elif 'ccrx' in compiler_name:
                 arg = '-v'
-            elif 'icl' in compiler[0]:
+            elif 'icl' in compiler_name:
                 # if you pass anything to icl you get stuck in a pager
                 arg = ''
             else:
@@ -871,7 +873,7 @@ class Environment:
                 popen_exceptions[' '.join(compiler + [arg])] = e
                 continue
 
-            if 'ccrx' in compiler[0]:
+            if 'ccrx' in compiler_name:
                 out = err
 
             full_version = out.split('\n', 1)[0]
