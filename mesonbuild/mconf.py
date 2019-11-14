@@ -70,8 +70,7 @@ class Conf:
             raise ConfException('Directory {} is neither a Meson build directory nor a project source directory.'.format(build_dir))
 
     def clear_cache(self):
-        self.coredata.deps.host.clear()
-        self.coredata.deps.build.clear()
+        self.coredata.clear_cache()
 
     def set_options(self, options):
         self.coredata.set_options(options)

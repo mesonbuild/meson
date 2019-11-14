@@ -51,6 +51,9 @@ def add_arguments(parser):
                         help='Set options and reconfigure the project. Useful when new ' +
                              'options have been added to the project and the default value ' +
                              'is not working.')
+    parser.add_argument('--clearcache', action='store_true',
+                        help='Does the same as --reconfigure and additionally clears' +
+                             'the internal meson cache (dependencies, etc.).')
     parser.add_argument('--wipe', action='store_true',
                         help='Wipe build directory and reconfigure using previous command line options. ' +
                              'Userful when build directory got corrupted, or when rebuilding with a ' +
@@ -63,6 +66,7 @@ class MesonApp:
         (self.source_dir, self.build_dir) = self.validate_dirs(options.builddir,
                                                                options.sourcedir,
                                                                options.reconfigure,
+                                                               options.clearcache,
                                                                options.wipe)
         if options.wipe:
             # Make a copy of the cmd line file to make sure we can always
@@ -94,6 +98,11 @@ class MesonApp:
                     for b, f in restore:
                         os.makedirs(os.path.dirname(f), exist_ok=True)
                         shutil.move(b, f)
+
+        if options.clearcache:
+            cdata = coredata.load(self.build_dir)
+            cdata.clear_cache()
+            coredata.save(cdata, self.build_dir)
 
         self.options = options
 
@@ -131,15 +140,17 @@ class MesonApp:
             return ndir2, ndir1
         raise MesonException('Neither directory contains a build file %s.' % environment.build_filename)
 
-    def validate_dirs(self, dir1: str, dir2: str, reconfigure: bool, wipe: bool) -> typing.Tuple[str, str]:
+    def validate_dirs(self, dir1: str, dir2: str, reconfigure: bool, clearcache: bool, wipe: bool) -> typing.Tuple[str, str]:
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
         priv_dir = os.path.join(build_dir, 'meson-private/coredata.dat')
         if os.path.exists(priv_dir):
-            if not reconfigure and not wipe:
+            if not reconfigure and not clearcache and not wipe:
                 print('Directory already configured.\n'
                       '\nJust run your build command (e.g. ninja) and Meson will regenerate as necessary.\n'
                       'If ninja fails, run "ninja reconfigure" or "meson --reconfigure"\n'
                       'to force Meson to regenerate.\n'
+                      '\nTo clear the dependency cache, run "meson --clearcache". This will clear all cached\n'
+                      'state and also regenerate the build directory (similar to --reconfigure)\n'
                       '\nIf build failures persist, run "meson setup --wipe" to rebuild from scratch\n'
                       'using the same options as passed when configuring the build.'
                       '\nTo change option values, run "meson configure" instead.')
