@@ -71,7 +71,12 @@ def run(args):
         command = args[4]
         arguments = args[5:]
     pc = run_command(src_dir, build_dir, subdir, meson_command, command, arguments)
-    pc.wait()
+    while True:
+        try:
+            pc.wait()
+            break
+        except KeyboardInterrupt:
+            pass
     return pc.returncode
 
 if __name__ == '__main__':
