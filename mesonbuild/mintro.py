@@ -299,6 +299,7 @@ def list_deps(coredata: cdata.CoreData):
     for d in coredata.deps.host.values():
         if d.found():
             result += [{'name': d.name,
+                        'version': d.get_version(),
                         'compile_args': d.get_compile_args(),
                         'link_args': d.get_link_args()}]
     return result

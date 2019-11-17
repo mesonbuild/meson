@@ -192,8 +192,8 @@ in a real meson run. Because of this options for the subprojects can differ.
 ## The dependencies section
 
 The list of all _found_ dependencies can be acquired from
-`intro-dependencies.json`. Here, the name, compiler and linker arguments for
-a dependency are listed.
+`intro-dependencies.json`. Here, the name, version, compiler and linker
+arguments for a dependency are listed.
 
 ### Scanning for dependecie with `--scan-dependencies`
 
