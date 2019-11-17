@@ -25,19 +25,19 @@ assert(not fs.is_file('~'), 'expanduser not working')
 
 original = 'foo.txt'
 new = fs.replace_suffix(original, '.ini')
-assert(new.endswith('foo.ini') and not new.contains('.txt'), 'replace_suffix failed')
+assert(new == 'foo.ini', 'replace_suffix failed')
 
 original = 'foo'
 new = fs.replace_suffix(original, '.ini')
-assert(new.endswith('foo.ini'), 'replace_suffix did not add suffix to suffixless file')
+assert(new == 'foo.ini', 'replace_suffix did not add suffix to suffixless file')
 
 original = 'foo.dll.a'
 new = fs.replace_suffix(original, '.so')
-assert(new.endswith('foo.dll.so'), 'replace_suffix did not only modify last suffix')
+assert(new == 'foo.dll.so', 'replace_suffix did not only modify last suffix')
 
 original = 'foo.dll'
 new = fs.replace_suffix(original, '')
-assert(new.endswith('foo'), 'replace_suffix did not only delete last suffix')
+assert(new == 'foo',  'replace_suffix did not only delete last suffix')
 
 # `/` on windows is interpreted like `.drive` which in general may not be `c:/`
 # the files need not exist for fs.replace_suffix()

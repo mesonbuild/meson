@@ -114,7 +114,7 @@ class FSModule(ExtensionModule):
     def replace_suffix(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 2:
             MesonException('method takes exactly two arguments.')
-        original = PurePath(state.source_root) / state.subdir / args[0]
+        original = PurePath(args[0])
         new = original.with_suffix(args[1])
         return ModuleReturnValue(str(new), [])
 

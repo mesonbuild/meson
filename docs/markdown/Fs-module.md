@@ -73,7 +73,7 @@ fs.samefile(x, z)  # true
 The `replace_suffix` method is a *string manipulation* convenient for filename modifications.
 It allows changing the filename suffix like:
 
-## swap suffix
+#### swap suffix
 
 ```meson
 original = '/opt/foo.ini'
