@@ -298,6 +298,23 @@ def detect_windows_arch(compilers: CompilersDict) -> str:
             return 'x86'
     return os_arch
 
+
+def detect_osx_arch() -> str:
+    """
+    per #6187, handle early Mac 64-bit Intel CPU with 64-bit OSX using a **32-bit kernel**
+    testing this requires old MacOS and hardware, not easily available for cloud CI,
+    so users needing this functionality may kindly need to help with debugging info.
+    """
+    try:
+        ret = subprocess.run(['sysctl', '-n', 'hw.cpu64bit_capable'],
+                             universal_newlines=True, stderr=subprocess.DEVNULL).stdout
+        trial = 'x86_64' if ret.strip() == '1' else 'x86'
+    except Exception:
+        # very old MacOS version with implicit 32-bit CPU due to calling if-elif stack
+        trial = 'x86'
+    return trial
+
+
 def any_compiler_has_define(compilers: CompilersDict, define):
     for c in compilers.values():
         try:
@@ -322,7 +339,11 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     else:
         trial = platform.machine().lower()
     if trial.startswith('i') and trial.endswith('86'):
-        trial = 'x86'
+        if mesonlib.is_osx():
+            # handle corner case with early Mac 64-bit CPU and older OSX
+            trial = detect_osx_arch()
+        else:
+            trial = 'x86'
     elif trial == 'bepc':
         trial = 'x86'
     elif trial.startswith('arm') or trial.startswith('earm'):
