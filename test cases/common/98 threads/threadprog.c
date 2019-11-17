@@ -8,7 +8,7 @@ DWORD WINAPI thread_func() {
     return 0;
 }
 
-int main() {
+int main(void) {
     DWORD id;
     HANDLE th;
     printf("Starting thread.\n");
@@ -27,7 +27,7 @@ void* main_func() {
     return NULL;
 }
 
-int main() {
+int main(void) {
     pthread_t thread;
     int rc;
     printf("Starting thread.\n");

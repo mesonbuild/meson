@@ -1,6 +1,6 @@
 #include<stdio.h>
 
-int main() {
+int main(void) {
     printf("I am test sub2.\n");
     return 0;
 }

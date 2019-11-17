@@ -1,3 +1,3 @@
 extern int func();
 
-int main() { return func(); }
+int main(void) { return func(); }

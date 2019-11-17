@@ -4,7 +4,7 @@ const char* does_it_work();
 
 int a_fun();
 
-int main() {
+int main(void) {
     if(strcmp(does_it_work(), "yes it does") != 0) {
         return -a_fun();
     }

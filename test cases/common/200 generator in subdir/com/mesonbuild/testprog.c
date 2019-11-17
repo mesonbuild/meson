@@ -1,5 +1,5 @@
 #include"subbie.h"
 
-int main() {
+int main(void) {
     return subbie();
 }

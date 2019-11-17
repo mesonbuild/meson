@@ -1,6 +1,6 @@
 #include<stdio.h>
 
-int main() {
+int main(void) {
     printf("I am test exe2.\n");
     return 0;
 }

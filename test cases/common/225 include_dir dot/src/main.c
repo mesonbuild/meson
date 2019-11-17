@@ -1,5 +1,5 @@
 #include "rone.h"
 
-int main() {
+int main(void) {
     return rOne();
 }

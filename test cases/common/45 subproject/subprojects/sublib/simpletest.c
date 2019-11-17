@@ -1,5 +1,5 @@
 #include<subdefs.h>
 
-int main() {
+int main(void) {
     return subfunc() == 42 ? 0 : 1;
 }

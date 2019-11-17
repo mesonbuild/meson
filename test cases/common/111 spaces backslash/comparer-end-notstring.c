@@ -10,7 +10,7 @@
 
 #define COMPARE_WITH "foo\\bar\\" /* This is the literal `foo\bar\` */
 
-int main() {
+int main(void) {
     if(strcmp(QUOTE(DEF_WITH_BACKSLASH), COMPARE_WITH)) {
         printf("Arg string is quoted incorrectly: %s instead of %s\n",
                QUOTE(DEF_WITH_BACKSLASH), COMPARE_WITH);

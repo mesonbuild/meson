@@ -1,5 +1,5 @@
 int bob_mcbob();
 
-int main() {
+int main(void) {
     return bob_mcbob();
 }

@@ -2,7 +2,7 @@
 #include<string.h>
 #include<stdlib.h>
 
-int main() {
+int main(void) {
     if(strcmp(getenv("first"), "something-else") != 0) {
         fprintf(stderr, "First envvar is wrong. %s\n", getenv("first"));
         return 1;

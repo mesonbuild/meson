@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include<proj1.h>
 
-int main() {
+int main(void) {
     printf("Now calling into library.\n");
     proj1_func1();
     proj1_func2();

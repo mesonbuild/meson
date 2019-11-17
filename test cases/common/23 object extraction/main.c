@@ -1,5 +1,5 @@
 int func();
 
-int main() {
+int main(void) {
     return func() == 42 ? 0 : 1;
 }

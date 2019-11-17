@@ -4,7 +4,7 @@
 
 int get_stodep_value (void);
 
-int main() {
+int main(void) {
   int val;
 
   val = get_stodep_value ();

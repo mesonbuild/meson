@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include"config.h"
 
-int main() {
+int main(void) {
     if(ONE != 1) {
         fprintf(stderr, "ONE is not 1.\n");
         return 1;

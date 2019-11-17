@@ -8,7 +8,7 @@
 #error "FAIL!"
 #endif
 
-int main() {
+int main(void) {
 #ifndef BE_TRUE
     return 1;
 #else

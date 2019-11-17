@@ -2,7 +2,7 @@
 
 int get_retval(void);
 
-int main() {
+int main(void) {
   printf("C seems to be working.\n");
   return get_retval();
 }

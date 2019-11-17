@@ -1,6 +1,6 @@
 #include<stdio.h>
 
-int main() {
+int main(void) {
     printf("I'm a subproject bar.\n");
     return 0;
 }

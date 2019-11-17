@@ -1,6 +1,6 @@
 #include <string.h>
 #include <config5.h>
 
-int main() {
+int main(void) {
     return strcmp(MESSAGE, "@var2@");
 }

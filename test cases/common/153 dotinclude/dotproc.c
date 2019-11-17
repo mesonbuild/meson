@@ -4,7 +4,7 @@
 #error The wrapper stdio.h was not included.
 #endif
 
-int main() {
+int main(void) {
     printf("Eventually I got printed.\n");
     return 0;
 }

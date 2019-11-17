@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-int main() {
+int main(void) {
   const char *fn = DEPFILE;
   FILE *f = fopen(fn, "r");
   if (!f) {
