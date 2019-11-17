@@ -320,6 +320,9 @@ int dummy;
             self.generate_dist()
             if 'b_coverage' in self.environment.coredata.base_options and \
                     self.environment.coredata.base_options['b_coverage'].value:
+                if 'clang' in repr(self.environment.coredata.compilers[MachineChoice['BUILD']]['c']):
+                    raise mesonlib.EnvironmentException(
+                            'Meson does not support coverage builds with Clang')
                 self.add_build_comment(NinjaComment('Coverage rules'))
                 self.generate_coverage_rules()
             self.add_build_comment(NinjaComment('Suffix'))
