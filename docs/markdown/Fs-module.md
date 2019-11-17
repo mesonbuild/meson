@@ -10,6 +10,8 @@ current `meson.build` file is.
 
 If specified, a leading `~` is expanded to the user home directory.
 
+Where possible, symlinks and parent directory notation are resolved to an absolute path.
+
 ### exists
 
 Takes a single string argument and returns true if an entity with that
@@ -19,13 +21,12 @@ special entry such as a device node.
 ### is_dir
 
 Takes a single string argument and returns true if a directory with
-that name exists on the file system. This method follows symbolic
-links.
+that name exists on the file system.
 
 ### is_file
 
 Takes a single string argument and returns true if an file with that
-name exists on the file system. This method follows symbolic links.
+name exists on the file system.
 
 ### is_symlink
 
@@ -33,6 +34,23 @@ Takes a single string argument and returns true if the path pointed to
 by the string is a symbolic link.
 
 ## File Parameters
+
+### is_absolute
+
+Return a boolean indicating if the path string specified is absolute for this computer, WITHOUT expanding `~`.
+
+Examples:
+
+```meson
+fs.is_absolute('~')   # false unless you literally have a path with string name `~`
+
+home = fs.expanduser('~')
+fs.is_absolute(home)  # true
+
+fs.is_absolute(home / 'foo')  # true, even if ~/foo doesn't exist
+
+fs.is_absolute('foo/bar')  # false, even if ./foo/bar exists
+```
 
 ### hash
 
@@ -44,7 +62,6 @@ md5, sha1, sha224, sha256, sha384, sha512.
 ### size
 
 The `fs.size(filename)` method returns the size of the file in integer bytes.
-Symlinks will be resolved if possible.
 
 ### is_samepath
 
@@ -79,7 +96,21 @@ fs.is_samepath(p, s)  # false
 
 ## Filename modification
 
-The files need not actually exist yet for this method, as it's just string manipulation.
+The files need not actually exist yet for these methods, as they are just string manipulation.
+
+### as_posix
+
+`fs.as_posix(path)` assumes a Windows path, even if on a Unix-like system.
+Thus, all `'\'` or `'\\'` are turned to '/', even if you meant to escape a character.
+
+Examples
+
+```meson
+fs.as_posix('\\') == '/'  # true
+fs.as_posix('\\\\') == '/'  # true
+
+fs.as_posix('foo\\bar/baz') == 'foo/bar/baz'  # true
+```
 
 ### replace_suffix
 

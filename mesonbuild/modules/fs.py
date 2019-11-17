@@ -31,18 +31,52 @@ class FSModule(ExtensionModule):
         super().__init__(interpreter)
         self.snippets.add('generate_dub_file')
 
-    def _resolve_dir(self, state: 'ModuleState', arg: str) -> Path:
+    def _absolute_dir(self, state: 'ModuleState', arg: str) -> Path:
         """
-        resolves (makes absolute) a directory relative to calling meson.build,
-        if not already absolute
+        make an absolute path from a relative path, WITHOUT resolving symlinks
         """
         return Path(state.source_root) / state.subdir / Path(arg).expanduser()
+
+    def _resolve_dir(self, state: 'ModuleState', arg: str) -> Path:
+        """
+        resolves symlinks and makes absolute a directory relative to calling meson.build,
+        if not already absolute
+        """
+        path = self._absolute_dir(state, arg)
+        try:
+            # accomodate unresolvable paths e.g. symlink loops
+            path = path.resolve()
+        except Exception:
+            # return the best we could do
+            pass
+        return path
 
     def _check(self, check: str, state: 'ModuleState', args: T.Sequence[str]) -> ModuleReturnValue:
         if len(args) != 1:
             raise MesonException('fs.{} takes exactly one argument.'.format(check))
         test_file = self._resolve_dir(state, args[0])
-        return ModuleReturnValue(getattr(test_file, check)(), [])
+        val = getattr(test_file, check)()
+        if isinstance(val, Path):
+            val = str(val)
+        return ModuleReturnValue(val, [])
+
+    @stringArgs
+    @noKwargs
+    def is_absolute(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        if len(args) != 1:
+            raise MesonException('fs.is_absolute takes exactly one argument.')
+        return ModuleReturnValue(PurePath(args[0]).is_absolute(), [])
+
+    @stringArgs
+    @noKwargs
+    def as_posix(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        """
+        this function assumes you are passing a Windows path, even if on a Unix-like system
+        and so ALL '\' are turned to '/', even if you meant to escape a character
+        """
+        if len(args) != 1:
+            raise MesonException('fs.as_posix takes exactly one argument.')
+        return ModuleReturnValue(PureWindowsPath(args[0]).as_posix(), [])
 
     @stringArgs
     @noKwargs
@@ -52,7 +86,9 @@ class FSModule(ExtensionModule):
     @stringArgs
     @noKwargs
     def is_symlink(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
-        return self._check('is_symlink', state, args)
+        if len(args) != 1:
+            raise MesonException('fs.is_symlink takes exactly one argument.')
+        return ModuleReturnValue(self._absolute_dir(state, args[0]).is_symlink(), [])
 
     @stringArgs
     @noKwargs
@@ -68,7 +104,7 @@ class FSModule(ExtensionModule):
     @noKwargs
     def hash(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 2:
-            raise MesonException('method takes exactly two arguments.')
+            raise MesonException('fs.hash takes exactly two arguments.')
         file = self._resolve_dir(state, args[0])
         if not file.is_file():
             raise MesonException('{} is not a file and therefore cannot be hashed'.format(file))
@@ -84,7 +120,7 @@ class FSModule(ExtensionModule):
     @noKwargs
     def size(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 1:
-            raise MesonException('method takes exactly one argument.')
+            raise MesonException('fs.size takes exactly one argument.')
         file = self._resolve_dir(state, args[0])
         if not file.is_file():
             raise MesonException('{} is not a file and therefore cannot be sized'.format(file))
@@ -113,7 +149,7 @@ class FSModule(ExtensionModule):
     @noKwargs
     def replace_suffix(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 2:
-            raise MesonException('method takes exactly two arguments.')
+            raise MesonException('fs.replace_suffix takes exactly two arguments.')
         original = PurePath(args[0])
         new = original.with_suffix(args[1])
         return ModuleReturnValue(str(new), [])
