@@ -15,7 +15,7 @@
 
 #include "foo.h"
 
-int main() {
+int main(void) {
     int a = foo();
     if (a == 1) {
         return 0;

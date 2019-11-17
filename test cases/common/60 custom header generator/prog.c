@@ -1,5 +1,5 @@
 #include"myheader.lh"
 
-int main() {
+int main(void) {
     return RET_VAL;
 }

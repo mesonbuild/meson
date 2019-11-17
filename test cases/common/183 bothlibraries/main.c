@@ -3,6 +3,6 @@
 DO_IMPORT int func();
 DO_IMPORT int retval;
 
-int main() {
+int main(void) {
     return func() == retval ? 0 : 1;
 }

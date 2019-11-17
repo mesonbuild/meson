@@ -1,5 +1,5 @@
 #include "func.h"
 
-int main() {
+int main(void) {
     return func();
 }

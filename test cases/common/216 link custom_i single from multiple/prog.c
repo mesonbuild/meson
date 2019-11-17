@@ -1,5 +1,5 @@
 int flob();
 
-int main() {
+int main(void) {
     return (flob() == 1 ? 0 : 1);
 }

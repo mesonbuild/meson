@@ -1,5 +1,5 @@
 #include"generated.h"
 
-int main() {
+int main(void) {
     return THE_NUMBER != 9;
 }

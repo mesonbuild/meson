@@ -4,7 +4,7 @@
 
 int get_stshdep_value (void);
 
-int main() {
+int main(void) {
   int val;
 
   val = get_stshdep_value ();

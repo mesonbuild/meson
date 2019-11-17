@@ -2,7 +2,7 @@
 
 #include<stdio.h>
 
-int main() {
+int main(void) {
     FILE *f = fopen("opener.c", "r");
     if(f) {
         fclose(f);

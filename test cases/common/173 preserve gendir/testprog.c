@@ -1,6 +1,6 @@
 #include"base.h"
 #include"com/mesonbuild/subbie.h"
 
-int main() {
+int main(void) {
     return base() + subbie();
 }

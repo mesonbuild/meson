@@ -1,5 +1,5 @@
 #include"mylib.h"
 
-int main() {
+int main(void) {
     return func();
 }

@@ -1,5 +1,6 @@
 #include<stdio.h>
-int main() {
+
+int main(void) {
   printf("%s\n", "stdout");
   fprintf(stderr, "%s\n", "stderr");
   return 0;

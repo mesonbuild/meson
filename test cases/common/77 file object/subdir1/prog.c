@@ -2,7 +2,7 @@
 
 int func();
 
-int main() {
+int main(void) {
     if(func() == 1) {
         printf("Iz success.\n");
     } else {

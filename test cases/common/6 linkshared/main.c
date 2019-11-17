@@ -6,6 +6,6 @@
 
 int DLL_IMPORT func();
 
-int main() {
+int main(void) {
     return func();
 }

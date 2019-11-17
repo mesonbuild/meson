@@ -9,7 +9,7 @@ SYMBOL_IMPORT int get_shnodep_value (void);
 SYMBOL_IMPORT int get_shshdep_value (void);
 SYMBOL_IMPORT int get_shstdep_value (void);
 
-int main() {
+int main(void) {
   int val;
 
   val = get_shnodep_value ();

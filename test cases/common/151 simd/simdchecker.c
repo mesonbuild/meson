@@ -23,7 +23,7 @@ int check_simd_implementation(float *four,
     return rv;
 }
 
-int main() {
+int main(void) {
     static const float four_initial[4] = {2.0, 3.0, 4.0, 5.0};
     ALIGN_16 float four[4];
     const float expected[4] = {3.0, 4.0, 5.0, 6.0};

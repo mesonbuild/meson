@@ -5,7 +5,7 @@
 #error "Entity use flag not used for compilation."
 #endif
 
-int main() {
+int main(void) {
     if(entity_func1() != 5) {
         printf("Error in func1.\n");
         return 1;
