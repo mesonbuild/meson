@@ -1,0 +1,33 @@
+name: LintMypy
+
+on:
+  push:
+    paths:
+    - "**.py"
+    - ".github/workflows/lint_mypy.yml"
+  pull_request:
+    paths:
+    - "**.py"
+    - ".github/workflows/lint_mypy.yml"
+
+jobs:
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - run: python -m pip install pylint
+    - run: pylint mesonbuild
+
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - run: python -m pip install mypy
+    - run: mypy --follow-imports=skip  mesonbuild/mtest.py mesonbuild/minit.py mesonbuild/msetup.py mesonbuild/wrap tools/ mesonbuild/modules/fs.py

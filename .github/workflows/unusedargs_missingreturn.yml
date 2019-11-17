@@ -5,14 +5,14 @@ name: UnusedMissingReturn
 on:
   push:
     paths:
-    - "**.yml"
+    - ".github/workflows/unusedargs_missingreturn.yml"
     - "test cases/cmake/**"
     - "test cases/common/**"
     - "test cases/fortran/**"
     - "test cases/platform-linux/**"
   pull_request:
     paths:
-    - "**.yml"
+    - ".github/workflows/unusedargs_missingreturn.yml"
     - "test cases/cmake/**"
     - "test cases/common/**"
     - "test cases/fortran/**"
