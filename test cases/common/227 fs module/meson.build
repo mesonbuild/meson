@@ -33,6 +33,28 @@ assert(not fs.is_dir('nonexisting'), 'Bad path detected as a dir.')
 assert(fs.is_dir('~'), 'expanduser not working')
 assert(not fs.is_file('~'), 'expanduser not working')
 
+# -- as_posix
+assert(fs.as_posix('/') == '/', 'as_posix idempotent')
+assert(fs.as_posix('\\') == '/', 'as_posix simple')
+assert(fs.as_posix('\\\\') == '/', 'as_posix simple')
+assert(fs.as_posix('foo\\bar/baz') == 'foo/bar/baz', 'as_posix mixed slash')
+
+# -- is_absolute
+winabs = 'q:/foo'
+unixabs = '/foo'
+if is_windows
+  assert(fs.is_absolute(winabs), 'is_absolute windows not detected')
+  assert(not fs.is_absolute(unixabs), 'is_absolute unix false positive')
+else
+  assert(fs.is_absolute(unixabs), 'is_absolute unix not detected')
+  assert(not fs.is_absolute(winabs), 'is_absolute windows false positive')
+endif
+
+# -- replace_suffix
+
+original = 'foo'
+assert(fs.replace_suffix(original, '') == original, 'replace_suffix idempotent')
+
 original = 'foo.txt'
 new = fs.replace_suffix(original, '.ini')
 assert(new == 'foo.ini', 'replace_suffix failed')
