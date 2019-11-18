@@ -32,7 +32,7 @@ from .mixins.pgi import PGICompiler
 from .. import mlog
 
 from mesonbuild.mesonlib import (
-    EnvironmentException, MachineChoice, LibType
+    EnvironmentException, MesonException, MachineChoice, LibType
 )
 
 if typing.TYPE_CHECKING:
@@ -50,6 +50,12 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
     def get_display_language(self):
         return 'Fortran'
+
+    def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
+        raise MesonException('Fortran does not have "has_function" capability.\n'
+                             'It is better to test if a Fortran capability is working like:\n\n'
+                             "meson.get_compiler('fortran').links('block; end block; end program')\n\n"
+                             'that example is to see if the compiler has Fortran 2008 Block element.')
 
     def sanity_check(self, work_dir: Path, environment):
         """
