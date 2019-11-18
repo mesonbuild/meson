@@ -2,6 +2,6 @@
 
 #include<mylib.h>
 
-int func1() {
+int func1(void) {
     return 42;
 }

@@ -1,3 +1,3 @@
-int func() {
+int func(void) {
     return 0;
 }

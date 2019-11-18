@@ -1,6 +1,6 @@
-int func();
+int func(void);
 
-static int duplicate_func() {
+static int duplicate_func(void) {
     return -4;
 }
 

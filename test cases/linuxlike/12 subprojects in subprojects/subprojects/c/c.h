@@ -1,3 +1,3 @@
-static int c_fun(){
+static int c_fun(void){
     return 3;
 }

@@ -26,7 +26,7 @@ endif
 
 cc = meson.get_compiler('c')
 prog = '''
-int main() {
+int main(void) {
   int num = 1;
   printf("%d\n", num);
   return 0;

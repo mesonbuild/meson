@@ -1,2 +1,2 @@
 #include<stdio.h>
-void func() { printf("Something.\n"); }
+void func(void) { printf("Something.\n"); }

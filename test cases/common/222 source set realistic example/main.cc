@@ -15,7 +15,7 @@ Device::~Device() {}
 Dependency::Dependency() { this->next = deps; deps = this; }
 Dependency::~Dependency() {}
 
-int main()
+int main(void)
 {
     some_random_function();
     for (auto d = deps; d; d = d->next)

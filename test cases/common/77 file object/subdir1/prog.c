@@ -1,6 +1,6 @@
 #include<stdio.h>
 
-int func();
+int func(void);
 
 int main(void) {
     if(func() == 1) {

@@ -1,3 +1,3 @@
-int statlibfunc2() {
+int statlibfunc2(void) {
     return 18;
 }

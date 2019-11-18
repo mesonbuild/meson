@@ -10,6 +10,6 @@
 #error "Global argument not set"
 #endif
 
-int main() {
+int main(void) {
     return 0;
 }

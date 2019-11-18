@@ -6,4 +6,4 @@
 #error "Local CPP argument set in wrong target"
 #endif
 
-int func() { return 0; }
+int func(void) { return 0; }

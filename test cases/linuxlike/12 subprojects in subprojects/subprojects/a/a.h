@@ -1,1 +1,1 @@
-int a_fun();
+int a_fun(void);

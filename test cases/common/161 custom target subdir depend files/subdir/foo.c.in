@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-int main() {
+int main(void) {
     printf("foo is working.\n");
     return 0;
 }

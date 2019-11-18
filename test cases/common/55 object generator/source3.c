@@ -1,3 +1,3 @@
-int func3_in_obj() {
+int func3_in_obj(void) {
     return 0;
 }

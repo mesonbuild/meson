@@ -1,7 +1,7 @@
-[[nodiscard]] int foo() {
+[[nodiscard]] int foo(void) {
     return 0;
 }
 
-int main() {
+int main(void) {
     return foo();
 }

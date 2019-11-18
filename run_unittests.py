@@ -3047,7 +3047,7 @@ int main(int argc, char **argv) {
             if lang in ('c', 'cpp'):
                 with tempfile.TemporaryDirectory() as tmpdir:
                     with open(os.path.join(tmpdir, 'foo.' + lang), 'w') as f:
-                        f.write('int main() {}')
+                        f.write('int main(void) {}')
                     self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
 
     # The test uses mocking and thus requires that
@@ -7006,4 +7006,4 @@ def main():
     return unittest.main(defaultTest=cases, buffer=True)
 
 if __name__ == '__main__':
-    sys.exit(main())
+    raise SystemExit(main())

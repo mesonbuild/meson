@@ -48,7 +48,7 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
         with open(source_name, 'w') as ofile:
             ofile.write('#import<stdio.h>\n'
                         'class MyClass;'
-                        'int main() { return 0; }\n')
+                        'int main(void) { return 0; }\n')
         pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()
         if pc.returncode != 0:

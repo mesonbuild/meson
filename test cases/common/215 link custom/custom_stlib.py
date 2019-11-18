@@ -10,7 +10,7 @@ parser.add_argument('cmparr', nargs='+')
 
 contents = '''#include<stdio.h>
 
-void flob() {
+void flob(void) {
     printf("Now flobbing.\\n");
 }
 '''

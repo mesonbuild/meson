@@ -1,1 +1,1 @@
-int func2() { return 42; }
+int func2(void) { return 42; }

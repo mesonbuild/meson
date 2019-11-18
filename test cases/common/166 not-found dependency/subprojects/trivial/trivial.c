@@ -1,3 +1,3 @@
-int subfunc() {
+int subfunc(void) {
     return 42;
 }

@@ -61,7 +61,7 @@ cc = meson.get_compiler('c')
 zlibdep = cc.find_library('z')
 code = '''#include<myinc.h>
 
-int main() {
+int main(void) {
     void * something = deflate;
     if(something != 0)
         return 0;

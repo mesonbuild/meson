@@ -1,5 +1,5 @@
 #include "sub.h"
 
-int sub() {
+int sub(void) {
     return 0;
 }

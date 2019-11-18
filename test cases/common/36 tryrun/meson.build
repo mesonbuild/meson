@@ -12,19 +12,19 @@ else
 endif
 
 ok_code = '''#include<stdio.h>
-int main() {
+int main(void) {
   printf("%s\n", "stdout");
   fprintf(stderr, "%s\n", "stderr");
   return 0;
 }
 '''
 
-error_code = '''int main() {
+error_code = '''int main(void) {
   return 1;
 }
 '''
 
-no_compile_code = '''int main() {
+no_compile_code = '''int main(void) {
 '''
 
 INPUTS = [

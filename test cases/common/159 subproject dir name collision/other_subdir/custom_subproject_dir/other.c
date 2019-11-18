@@ -11,7 +11,7 @@
   #endif
 #endif
 
-char DLL_PUBLIC func_b() {
+char DLL_PUBLIC func_b(void) {
     if('c' != 'c') {
         exit(3);
     }

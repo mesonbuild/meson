@@ -9,6 +9,6 @@
   #endif
 #endif
 
-int DLL_PUBLIC func() {
+int DLL_PUBLIC func(void) {
     return 0;
 }

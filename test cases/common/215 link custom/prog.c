@@ -1,4 +1,4 @@
-void flob();
+void flob(void);
 
 int main(void) {
     flob();

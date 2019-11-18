@@ -1,6 +1,6 @@
 void liba_func();
 
-int main() {
+int main(void) {
     liba_func();
     return 0;
 }

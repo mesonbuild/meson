@@ -10,7 +10,7 @@
 
 #ifdef _MSC_VER
 #include<intrin.h>
-int avx_available() {
+int avx_available(void) {
   return 1;
 }
 #else
@@ -23,10 +23,10 @@ int avx_available() {
  * some machines in the CI farm seem to be too
  * old to have AVX so just always return 0 here.
  */
-int avx_available() { return 0; }
+int avx_available(void) { return 0; }
 #else
 
-int avx_available() {
+int avx_available(void) {
     return __builtin_cpu_supports("avx");
 }
 #endif

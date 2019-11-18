@@ -5,14 +5,14 @@ zlib = cc.find_library('z')
 
 # Verify that link testing works.
 linkcode = '''#include<zlib.h>
-int main() {
+int main(void) {
   void *ptr = (void*)(deflate);
   return ptr == 0;
 }
 '''
 
 nolinkcode='''int nonexisting();
-int main() {
+int main(void) {
   return nonexisting();
 }
 '''

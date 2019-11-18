@@ -9,7 +9,7 @@
 #error "REQUIRED_MESON_FLAG2 not set"
 #endif
 
-int main() {
+int main(void) {
   printf("Hello World\n");
   void * something = deflate;
   if(something != 0)

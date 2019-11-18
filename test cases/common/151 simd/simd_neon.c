@@ -4,7 +4,7 @@
 #include<arm_neon.h>
 #include<stdint.h>
 
-int neon_available() {
+int neon_available(void) {
     return 1; /* Incorrect, but I don't know how to check this properly. */
 }
 

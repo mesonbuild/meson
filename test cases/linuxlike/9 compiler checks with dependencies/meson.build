@@ -21,7 +21,7 @@ endif
 zlib = cc.find_library ('z')
 if zlib.found()
   linkcode = '''#include<zlib.h>
-int main() {
+int main(void) {
   void *ptr = (void*)(deflate);
   return ptr == 0;
 }

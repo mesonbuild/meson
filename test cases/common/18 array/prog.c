@@ -1,3 +1,3 @@
-extern int func();
+extern int func(void);
 
 int main(void) { return func(); }

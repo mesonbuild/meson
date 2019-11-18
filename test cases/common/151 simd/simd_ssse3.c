@@ -7,7 +7,7 @@
 #ifdef _MSC_VER
 #include<intrin.h>
 
-int ssse3_available() {
+int ssse3_available(void) {
   return 1;
 }
 
@@ -16,7 +16,7 @@ int ssse3_available() {
 #include<cpuid.h>
 #include<stdint.h>
 
-int ssse3_available() {
+int ssse3_available(void) {
 #ifdef __APPLE__
     return 1;
 #elif defined(__clang__)

@@ -18,7 +18,7 @@
 #include "foo.hpp"
 
 
-int main() {
+int main(void) {
     auto foo = Foo();
     vec v = foo.vector();
     std::cout << boost::fusion::at_c<0>(v) << std::endl;

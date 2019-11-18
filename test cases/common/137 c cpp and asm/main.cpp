@@ -5,7 +5,7 @@ extern "C" {
   int get_cval(void);
 }
 
-int main() {
+int main(void) {
   std::cout << "C++ seems to be working." << std::endl;
   return get_retval();
 }

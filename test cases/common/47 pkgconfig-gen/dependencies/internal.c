@@ -1,3 +1,3 @@
-int internal_function() {
+int internal_function(void) {
     return 42;
 }

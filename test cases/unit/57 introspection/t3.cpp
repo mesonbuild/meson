@@ -1,7 +1,7 @@
 #include "sharedlib/shared.hpp"
 #include "staticlib/static.h"
 
-int main() {
+int main(void) {
   for(int i = 0; i < 1000; add_numbers(i, 1)) {
     SharedClass cl1;
     if(cl1.getNumber() != 42) {

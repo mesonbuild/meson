@@ -7,7 +7,7 @@ int cuda_devices() {
     return result;
 }
 
-int main() {
+int main(void) {
     int n = cuda_devices();
     if (n == 0) {
         printf("No CUDA hardware found. Exiting.\n");

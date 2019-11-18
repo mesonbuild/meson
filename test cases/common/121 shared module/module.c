@@ -71,7 +71,7 @@ fptr find_any_f (const char *name) {
 }
 #endif
 
-int DLL_PUBLIC func() {
+int DLL_PUBLIC func(void) {
     fptr f;
 
     f = find_any_f ("func_from_language_runtime");

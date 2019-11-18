@@ -2,7 +2,7 @@
 
 const char* does_it_work();
 
-int a_fun();
+int a_fun(void);
 
 int main(void) {
     if(strcmp(does_it_work(), "yes it does") != 0) {
