@@ -80,6 +80,10 @@ class ClangCompiler(GnuLikeCompiler):
         # TODO: this really should be communicated by the linker
         if isinstance(self.linker, AppleDynamicLinker) and mesonlib.version_compare(self.version, '>=8.0'):
             extra_args.append('-Wl,-no_weak_imports')
+            # Error out when trying to compile using a function introduced in
+            # a more recent version of appleOS than what is targeted, this is
+            # needed so that function checks fails as expected.
+            extra_args.append('-Werror-partial-availability')
         return super().has_function(funcname, prefix, env, extra_args=extra_args,
                                     dependencies=dependencies)
 

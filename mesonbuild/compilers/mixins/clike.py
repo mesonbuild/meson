@@ -653,14 +653,9 @@ class CLikeCompiler:
         # This may include, for instance _GNU_SOURCE which must be defined
         # before limits.h, which includes features.h
         head = '{prefix}\n#include <limits.h>\n'
-        # We don't know what the function takes or returns, so return it as an int.
-        # Just taking the address or comparing it to void is not enough because
-        # compilers are smart enough to optimize it away. The resulting binary
-        # is not run so we don't care what the return value is.
+        # We don't know what the function takes or returns
         main = '''\nint main() {{
-            void *a = (void*) &{func};
-            long b = (long) a;
-            return (int) b;
+            {func};
         }}'''
         return head, main
 
