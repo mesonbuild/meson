@@ -37,7 +37,7 @@ by the string is a symbolic link.
 
 ### is_absolute
 
-Return a boolean indicating if the path string specified is absolute for this computer, WITHOUT expanding `~`.
+Return a boolean indicating if the path string specified is absolute, WITHOUT expanding `~`.
 
 Examples:
 
@@ -96,7 +96,19 @@ fs.is_samepath(p, s)  # false
 
 ## Filename modification
 
-The files need not actually exist yet for these methods, as they are just string manipulation.
+The files need not actually exist yet for these path string manipulation methods.
+
+### expanduser
+
+A path string with a leading `~` is expanded to the user home directory
+
+Examples:
+
+```meson
+fs.expanduser('~')  # home directory
+
+fs.expanduser('~/foo')  # <homedir>/foo
+```
 
 ### as_posix
 

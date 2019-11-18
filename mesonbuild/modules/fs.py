@@ -14,7 +14,7 @@
 
 import typing as T
 import hashlib
-from pathlib import Path, PurePath
+from pathlib import Path, PurePath, PureWindowsPath
 
 from .. import mlog
 from . import ExtensionModule
@@ -59,6 +59,13 @@ class FSModule(ExtensionModule):
         if isinstance(val, Path):
             val = str(val)
         return ModuleReturnValue(val, [])
+
+    @stringArgs
+    @noKwargs
+    def expanduser(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        if len(args) != 1:
+            raise MesonException('fs.expanduser takes exactly one argument.')
+        return ModuleReturnValue(str(Path(args[0]).expanduser()), [])
 
     @stringArgs
     @noKwargs
