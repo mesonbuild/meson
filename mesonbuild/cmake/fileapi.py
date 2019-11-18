@@ -186,9 +186,7 @@ class CMakeFileAPI:
                     'language': cg.get('language', 'C'),
                     'isGenerated': None,  # Set later, flag is stored per source file
                     'sources': [],
-
-                    # TODO handle isSystem
-                    'includePath': [x.get('path', '') for x in cg.get('includes', [])],
+                    'includePath': cg.get('includes', []),
                 }
 
                 normal_src, generated_src, src_idx = parse_sources(cg, tgt)

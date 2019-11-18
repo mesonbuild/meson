@@ -2,7 +2,7 @@ project(
   'meson_cmake_system_include_bug', ['c', 'cpp'],
   default_options: [
     'warning_level=3',
-    #'werror=true', # TODO implement system includes
+    'werror=true',
   ],
 )
 

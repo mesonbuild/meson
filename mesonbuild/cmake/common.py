@@ -73,9 +73,10 @@ class CMakeFileGroup:
         tmp = []
         for i in self.includes:
             if isinstance(i, dict) and 'path' in i:
-                tmp += [i['path']]
-            elif isinstance(i, str):
+                i['isSystem'] = i.get('isSystem', False)
                 tmp += [i]
+            elif isinstance(i, str):
+                tmp += [{'path': i, 'isSystem': False}]
         self.includes = tmp
 
     def log(self) -> None:

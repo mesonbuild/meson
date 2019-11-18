@@ -157,6 +157,7 @@ class ConverterTarget:
         self.sources = []
         self.generated = []
         self.includes = []
+        self.sys_includes = []
         self.link_with = []
         self.object_libs = []
         self.compile_opts = {}
@@ -180,7 +181,8 @@ class ConverterTarget:
             self.compile_opts[lang] += [x for x in args if x not in self.compile_opts[lang]]
 
             # Handle include directories
-            self.includes += [x for x in i.includes if x not in self.includes]
+            self.includes += [x['path'] for x in i.includes if x not in self.includes and not x['isSystem']]
+            self.sys_includes += [x['path'] for x in i.includes if x not in self.sys_includes and x['isSystem']]
 
             # Add sources to the right array
             if i.is_generated:
@@ -295,6 +297,7 @@ class ConverterTarget:
 
         build_dir_rel = os.path.relpath(self.build_dir, os.path.join(self.env.get_build_dir(), subdir))
         self.includes = list(set([rel_path(x, True, False) for x in set(self.includes)] + [build_dir_rel]))
+        self.sys_includes = list(set([rel_path(x, True, False) for x in set(self.sys_includes)]))
         self.sources = [rel_path(x, False, False) for x in self.sources]
         self.generated = [rel_path(x, False, True) for x in self.generated]
 
@@ -303,6 +306,7 @@ class ConverterTarget:
 
         # Remove delete entries
         self.includes = [x for x in self.includes if x is not None]
+        self.sys_includes = [x for x in self.sys_includes if x is not None]
         self.sources = [x for x in self.sources if x is not None]
         self.generated = [x for x in self.generated if x is not None]
 
@@ -359,6 +363,7 @@ class ConverterTarget:
         mlog.log('  -- link_flags:     ', mlog.bold(str(self.link_flags)))
         mlog.log('  -- languages:      ', mlog.bold(str(self.languages)))
         mlog.log('  -- includes:       ', mlog.bold(str(self.includes)))
+        mlog.log('  -- sys_includes:   ', mlog.bold(str(self.sys_includes)))
         mlog.log('  -- sources:        ', mlog.bold(str(self.sources)))
         mlog.log('  -- generated:      ', mlog.bold(str(self.generated)))
         mlog.log('  -- pie:            ', mlog.bold('true' if self.pie else 'false'))
@@ -845,6 +850,8 @@ class CMakeInterpreter:
             base_name = str(tgt.name)
             base_name = base_name.replace('-', '_')
             inc_var = '{}_inc'.format(base_name)
+            dir_var = '{}_dir'.format(base_name)
+            sys_var = '{}_sys'.format(base_name)
             src_var = '{}_src'.format(base_name)
             dep_var = '{}_dep'.format(base_name)
             tgt_var = base_name
@@ -879,8 +886,10 @@ class CMakeInterpreter:
             }
 
             # Generate the function nodes
-            inc_node = assign(inc_var, function('include_directories', tgt.includes))
-            node_list = [inc_node]
+            dir_node = assign(dir_var, function('include_directories', tgt.includes))
+            sys_node = assign(sys_var, function('include_directories', tgt.sys_includes, {'is_system': True}))
+            inc_node = assign(inc_var, array([id_node(dir_var), id_node(sys_var)]))
+            node_list = [dir_node, sys_node, inc_node]
             if tgt_func == 'header_only':
                 del dep_kwargs['link_with']
                 dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
