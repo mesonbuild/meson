@@ -174,7 +174,7 @@ class CudaCompiler(Compiler):
         t = '''{prefix}
         #include <{header}>
         using {symbol};
-        int main () {{ return 0; }}'''
+        int main(void) {{ return 0; }}'''
         return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
     def get_options(self):

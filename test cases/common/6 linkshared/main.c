@@ -4,7 +4,7 @@
   #define DLL_IMPORT
 #endif
 
-int DLL_IMPORT func();
+int DLL_IMPORT func(void);
 
 int main(void) {
     return func();

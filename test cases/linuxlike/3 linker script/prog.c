@@ -1,5 +1,5 @@
 #include"bob.h"
 
-int main() {
+int main(void) {
     return bobMcBob() != 42;
 }

@@ -1,6 +1,6 @@
 #include<assert.h>
-char func_b();
-char func_c();
+char func_b(void);
+char func_c(void);
 
 int main(void) {
     if(func_b() != 'b') {

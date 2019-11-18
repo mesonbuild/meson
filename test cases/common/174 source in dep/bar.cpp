@@ -1,5 +1,5 @@
-extern "C" int foo();
+extern "C" int foo(void);
 
-int main(int, char**) {
+int main(void) {
     return foo() != 42;
 }

@@ -1,3 +1,3 @@
-int dummy_func() {
+int dummy_func(void) {
     return 42;
 }

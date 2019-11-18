@@ -8,7 +8,7 @@
 
 #ifdef _MSC_VER
 #include<intrin.h>
-int avx2_available() {
+int avx2_available(void) {
     return 0;
 }
 #else
@@ -16,9 +16,9 @@ int avx2_available() {
 #include<cpuid.h>
 
 #if defined(__APPLE__)
-int avx2_available() { return 0; }
+int avx2_available(void) { return 0; }
 #else
-int avx2_available() {
+int avx2_available(void) {
     return __builtin_cpu_supports("avx2");
 }
 #endif

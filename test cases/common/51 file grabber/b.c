@@ -1,1 +1,1 @@
-int funcb() { return 0; }
+int funcb(void) { return 0; }

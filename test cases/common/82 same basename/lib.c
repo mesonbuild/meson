@@ -10,11 +10,11 @@
 #endif
 
 #if defined SHAR
-int DLL_PUBLIC func() {
+int DLL_PUBLIC func(void) {
     return 1;
 }
 #elif defined STAT
-int func() {
+int func(void) {
     return 0;
 }
 #else

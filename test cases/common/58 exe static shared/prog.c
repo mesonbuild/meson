@@ -1,5 +1,5 @@
-int shlibfunc2();
-int statlibfunc();
+int shlibfunc2(void);
+int statlibfunc(void);
 
 int main(void) {
     if (statlibfunc() != 42)

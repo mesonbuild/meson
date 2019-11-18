@@ -2,6 +2,6 @@ extern "C" int func();
 
 class BreakPlainCCompiler;
 
-int main() {
+int main(void) {
     return func();
 }

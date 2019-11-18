@@ -1,6 +1,6 @@
 #include<zlib.h>
 
-int statlibfunc() {
+int statlibfunc(void) {
     void * something = deflate;
     if(something != 0)
         return 0;

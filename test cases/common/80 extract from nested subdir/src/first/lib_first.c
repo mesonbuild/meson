@@ -1,3 +1,3 @@
-int first() {
+int first(void) {
     return 1001;
 }

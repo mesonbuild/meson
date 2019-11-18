@@ -1,7 +1,7 @@
 #include <vulkan/vulkan.h>
 #include <stdio.h>
 
-int main()
+int main(void)
 {
     VkInstanceCreateInfo instance_create_info = {
             VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -21,6 +21,6 @@ int main()
     VkInstance instance;
     if(vkCreateInstance(&instance_create_info, NULL, &instance) == VK_SUCCESS)
         vkDestroyInstance(instance, NULL);
-        
-    return 0;    
+
+    return 0;
 }

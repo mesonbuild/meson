@@ -1,5 +1,5 @@
-int statlibfunc();
+int statlibfunc(void);
 
-int main() {
+int main(void) {
     return statlibfunc();
 }

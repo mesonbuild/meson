@@ -1,3 +1,3 @@
-int a_fun() {
+int a_fun(void) {
     return 1;
 }

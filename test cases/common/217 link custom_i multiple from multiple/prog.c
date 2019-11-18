@@ -1,5 +1,5 @@
-void flob_1();
-void flob_2();
+void flob_1(void);
+void flob_2(void);
 
 int main(void) {
     flob_1();

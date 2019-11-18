@@ -1,11 +1,11 @@
 project('try compile', 'c', 'cpp')
 
 code = '''#include<stdio.h>
-void func() { printf("Something.\n"); }
+void func(void) { printf("Something.\n"); }
 '''
 
 breakcode = '''#include<nonexisting.h>
-void func() { printf("This won't work.\n"); }
+void func(void) { printf("This won't work.\n"); }
 '''
 
 foreach compiler : [meson.get_compiler('c'), meson.get_compiler('cpp')]

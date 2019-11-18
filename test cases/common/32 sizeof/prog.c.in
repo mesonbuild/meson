@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <wchar.h>
 
-int main() {
+int main(void) {
     if(INTSIZE != sizeof(int)) {
         fprintf(stderr, "Mismatch: detected int size %d, actual size %d.\n", INTSIZE, (int)sizeof(int));
         return 1;

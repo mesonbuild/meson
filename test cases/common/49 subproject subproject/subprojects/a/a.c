@@ -1,4 +1,4 @@
-int func2();
+int func2(void);
 
 #if defined _WIN32 || defined __CYGWIN__
   #define DLL_PUBLIC __declspec(dllexport)
@@ -11,5 +11,5 @@ int func2();
   #endif
 #endif
 
-int DLL_PUBLIC func() { return func2(); }
+int DLL_PUBLIC func(void) { return func2(); }
 

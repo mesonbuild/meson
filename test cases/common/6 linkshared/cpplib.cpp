@@ -4,6 +4,6 @@
     #define DLL_PUBLIC __attribute__ ((visibility ("default")))
 #endif
 
-int DLL_PUBLIC cppfunc() {
+int DLL_PUBLIC cppfunc(void) {
     return 42;
 }

@@ -4,13 +4,13 @@
 
 void do_cuda_stuff();
 
-int cuda_devices() {
+int cuda_devices(void) {
     int result = 0;
     cudaGetDeviceCount(&result);
     return result;
 }
 
-int main() {
+int main(void) {
     int n = cuda_devices();
     if (n == 0) {
         std::cout << "No CUDA hardware found. Exiting.\n";
@@ -28,7 +28,7 @@ int main() {
     }
 
     std::cout << "Initialized cuBLAS\n";
-    if (cublasDestroy(handle) != CUBLAS_STATUS_SUCCESS) {        
+    if (cublasDestroy(handle) != CUBLAS_STATUS_SUCCESS) {
         std::cout << "cuBLAS de-initialization failed. Exiting.\n";
         return -1;
     }

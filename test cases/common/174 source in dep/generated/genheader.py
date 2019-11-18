@@ -7,7 +7,7 @@ ofile = sys.argv[2]
 
 templ = '''#pragma once
 
-int %s() {
+int %s(void) {
   return 42;
 }
 '''

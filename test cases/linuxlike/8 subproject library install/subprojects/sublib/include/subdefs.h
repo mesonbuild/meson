@@ -16,6 +16,6 @@
   #endif
 #endif
 
-int DLL_PUBLIC subfunc();
+int DLL_PUBLIC subfunc(void);
 
 #endif

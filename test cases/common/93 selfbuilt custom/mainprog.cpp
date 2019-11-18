@@ -1,5 +1,5 @@
 #include"data.h"
 
-int main() {
+int main(void) {
     return generated_function() != 52;
 }

@@ -1,5 +1,5 @@
-int lib2fun();
-int lib3fun();
+int lib2fun(void);
+int lib3fun(void);
 
 #if defined _WIN32 || defined __CYGWIN__
   #define DLL_PUBLIC __declspec(dllexport)
@@ -12,6 +12,6 @@ int lib3fun();
   #endif
 #endif
 
-int DLL_PUBLIC libfun() {
+int DLL_PUBLIC libfun(void) {
   return lib2fun() + lib3fun();
 }

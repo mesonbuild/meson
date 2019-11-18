@@ -3,7 +3,7 @@
 
 #ifdef _MSC_VER
 #include<intrin.h>
-int sse_available() {
+int sse_available(void) {
   return 1;
 }
 #else
@@ -13,9 +13,9 @@ int sse_available() {
 #include<stdint.h>
 
 #if defined(__APPLE__)
-int sse_available() { return 1; }
+int sse_available(void) { return 1; }
 #else
-int sse_available() {
+int sse_available(void) {
     return __builtin_cpu_supports("sse");
 }
 #endif

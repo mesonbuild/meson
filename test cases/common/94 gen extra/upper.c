@@ -1,4 +1,4 @@
-int BOB_MCBOB();
+int BOB_MCBOB(void);
 
 int main(void) {
     return BOB_MCBOB();

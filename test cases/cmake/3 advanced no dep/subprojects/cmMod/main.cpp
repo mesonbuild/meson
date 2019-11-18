@@ -3,7 +3,7 @@
 
 using namespace std;
 
-int main() {
+int main(void) {
   cmModClass obj("Hello (LIB TEST)");
   cout << obj.getStr() << endl;
   return 0;

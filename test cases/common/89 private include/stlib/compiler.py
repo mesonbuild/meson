@@ -5,12 +5,12 @@ import sys, os
 assert(len(sys.argv) == 3)
 
 h_templ = '''#pragma once
-unsigned int %s();
+unsigned int %s(void);
 '''
 
 c_templ = '''#include"%s.h"
 
-unsigned int %s() {
+unsigned int %s(void) {
   return 0;
 }
 '''

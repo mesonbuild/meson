@@ -4,7 +4,7 @@
 
 using namespace std;
 
-int main() {
+int main(void) {
   cmModClass obj("Hello (LIB TEST)");
   cout << obj.getStr() << " ZLIB: " << zlibVersion() << endl;
   return 0;

@@ -6,4 +6,4 @@
 #error "Wrong local argument set"
 #endif
 
-int func() { return 0; }
+int func(void) { return 0; }

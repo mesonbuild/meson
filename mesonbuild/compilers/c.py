@@ -59,14 +59,14 @@ class CCompiler(CLikeCompiler, Compiler):
         return ['-nostdinc']
 
     def sanity_check(self, work_dir, environment):
-        code = 'int main() { int class=0; return class; }\n'
+        code = 'int main(void) { int class=0; return class; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
     def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
         t = '''{prefix}
         #include <{header}>
-        int main () {{
+        int main(void) {{
             /* If it's not defined as a macro, try to use as a symbol */
             #ifndef {symbol}
                 {symbol};

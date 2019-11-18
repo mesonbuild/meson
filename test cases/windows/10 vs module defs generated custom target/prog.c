@@ -1,5 +1,5 @@
 int somedllfunc();
 
-int main() {
+int main(void) {
     return somedllfunc() == 42 ? 0 : 1;
 }

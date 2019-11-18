@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int main() {
+int main(void) {
     void * something = deflate;
     if(strcmp(ZLIB_VERSION, FOUND_ZLIB) != 0) {
         printf("Meson found '%s' but zlib is '%s'\n", FOUND_ZLIB, ZLIB_VERSION);

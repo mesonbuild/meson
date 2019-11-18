@@ -8,6 +8,6 @@
 
 extern "C" int func();
 
-int main() {
+int main(void) {
     return func();
 }

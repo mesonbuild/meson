@@ -1,5 +1,5 @@
 #include<stdlib.h>
-char func_c();
+char func_c(void);
 
 #if defined _WIN32 || defined __CYGWIN__
 #define DLL_PUBLIC __declspec(dllexport)
@@ -12,7 +12,7 @@ char func_c();
   #endif
 #endif
 
-char DLL_PUBLIC func_b() {
+char DLL_PUBLIC func_b(void) {
     if(func_c() != 'c') {
         exit(3);
     }

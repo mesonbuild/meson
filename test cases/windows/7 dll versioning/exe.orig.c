@@ -1,6 +1,6 @@
 int myFunc (void);
 
-int main()
+int main(void)
 {
   if (myFunc() == 55)
     return 0;

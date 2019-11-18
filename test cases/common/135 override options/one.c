@@ -1,3 +1,3 @@
-static int hidden_func() {
+static int hidden_func(void) {
     return 0;
 }

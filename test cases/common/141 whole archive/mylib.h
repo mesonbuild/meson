@@ -17,5 +17,5 @@
   #endif
 #endif
 
-int DLL_PUBLIC func1();
-int DLL_PUBLIC func2();
+int DLL_PUBLIC func1(void);
+int DLL_PUBLIC func2(void);

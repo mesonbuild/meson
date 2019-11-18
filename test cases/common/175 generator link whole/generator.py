@@ -15,12 +15,12 @@ def main():
         hfile.write('''
 #pragma once
 #include "export.h"
-int DLL_PUBLIC {name}();
+int DLL_PUBLIC {name}(void);
 '''.format(name=name))
     with open(cname, 'w') as cfile:
         cfile.write('''
 #include "{name}.h"
-int {name}() {{
+int {name}(void) {{
     return {size};
 }}
 '''.format(name=name, size=len(name)))

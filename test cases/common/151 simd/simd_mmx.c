@@ -5,7 +5,7 @@
 
 #ifdef _MSC_VER
 #include<intrin.h>
-int mmx_available() {
+int mmx_available(void) {
   return 1;
 }
 /* Contrary to MSDN documentation, MMX intrinsics
@@ -18,7 +18,7 @@ void increment_mmx(float arr[4]) {
   arr[3]++;
 }
 #elif defined(__MINGW32__)
-int mmx_available() {
+int mmx_available(void) {
   return 1;
 }
 /* MinGW does not seem to ship with MMX or it is broken.
@@ -34,9 +34,9 @@ void increment_mmx(float arr[4]) {
 #include<cpuid.h>
 
 #if defined(__APPLE__)
-int mmx_available() { return 1; }
+int mmx_available(void) { return 1; }
 #else
-int mmx_available() {
+int mmx_available(void) {
     return __builtin_cpu_supports("mmx");
 }
 #endif

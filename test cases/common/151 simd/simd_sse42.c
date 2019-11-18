@@ -5,7 +5,7 @@
 #ifdef _MSC_VER
 #include<intrin.h>
 
-int sse42_available() {
+int sse42_available(void) {
   return 1;
 }
 
@@ -15,11 +15,11 @@ int sse42_available() {
 #include<cpuid.h>
 
 #ifdef __APPLE__
-int sse42_available() {
+int sse42_available(void) {
     return 1;
 }
 #else
-int sse42_available() {
+int sse42_available(void) {
     return __builtin_cpu_supports("sse4.2");
 }
 #endif

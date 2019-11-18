@@ -11,7 +11,7 @@ parser.add_argument('--output', dest='output',
 parser.add_argument('--upper', dest='upper', action='store_true', default=False,
                     help='Convert to upper case.')
 
-c_templ = '''int %s() {
+c_templ = '''int %s(void) {
     return 0;
 }
 '''
