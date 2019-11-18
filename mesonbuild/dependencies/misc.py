@@ -1,4 +1,4 @@
-# Copyright 2013-2017 The Meson development team
+# Copyright 2013-2019 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,49 +30,6 @@ from .base import (
     ExternalProgram, ExtraFrameworkDependency, PkgConfigDependency,
     CMakeDependency, ConfigToolDependency,
 )
-
-
-class CoarrayDependency(ExternalDependency):
-    """
-    Coarrays are a Fortran 2008 feature.
-
-    Coarrays are sometimes implemented via external library (GCC+OpenCoarrays),
-    while other compilers just build in support (Cray, IBM, Intel, NAG).
-    Coarrays may be thought of as a high-level language abstraction of
-    low-level MPI calls.
-    """
-    def __init__(self, environment, kwargs):
-        super().__init__('coarray', environment, 'fortran', kwargs)
-        kwargs['required'] = False
-        kwargs['silent'] = True
-        self.is_found = False
-
-        cid = self.get_compiler().get_id()
-        if cid == 'gcc':
-            """ OpenCoarrays is the most commonly used method for Fortran Coarray with GCC """
-            self.is_found = True
-            kwargs['modules'] = 'OpenCoarrays::caf_mpi'
-            cmakedep = CMakeDependency('OpenCoarrays', environment, kwargs)
-            if not cmakedep.found():
-                self.compile_args = ['-fcoarray=single']
-                self.version = 'single image'
-                return
-
-            self.compile_args = cmakedep.get_compile_args()
-            self.link_args = cmakedep.get_link_args()
-            self.version = cmakedep.get_version()
-        elif cid == 'intel':
-            """ Coarrays are built into Intel compilers, no external library needed """
-            self.is_found = True
-            self.link_args = ['-coarray=shared']
-            self.compile_args = self.link_args
-        elif cid == 'intel-cl':
-            """ Coarrays are built into Intel compilers, no external library needed """
-            self.is_found = True
-            self.compile_args = ['/Qcoarray:shared']
-        elif cid == 'nagfor':
-            """ NAG doesn't require any special arguments for Coarray """
-            self.is_found = True
 
 
 class HDF5Dependency(ExternalDependency):
