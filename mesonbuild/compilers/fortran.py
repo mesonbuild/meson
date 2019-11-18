@@ -131,7 +131,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
     def module_name_to_filename(self, module_name: str) -> str:
         if '_' in module_name:  # submodule
             s = module_name.lower()
-            if self.id in ('gcc', 'intel'):
+            if self.id in ('gcc', 'intel', 'intel-cl'):
                 filename = s.replace('_', '@') + '.smod'
             elif self.id in ('pgi', 'flang'):
                 filename = s.replace('_', '-') + '.mod'
@@ -177,7 +177,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
-                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic', '-fimplicit-none']}
 
     def get_dependency_gen_args(self, outtarget, outfile):
         # Disabled until this is fixed:
@@ -343,6 +343,12 @@ class PGIFortranCompiler(PGICompiler, FortranCompiler):
         FortranCompiler.__init__(self, exelist, version, for_machine,
                                  is_cross, info, exe_wrapper, **kwargs)
         PGICompiler.__init__(self)
+
+        default_warn_args = ['-Minform=inform']
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
+                          '2': default_warn_args,
+                          '3': default_warn_args + ['-Mdclchk']}
 
     def language_stdlib_only_link_flags(self) -> List[str]:
         return ['-lpgf90rtl', '-lpgf90', '-lpgf90_rpm1', '-lpgf902',
