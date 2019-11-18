@@ -51,7 +51,7 @@ fptr find_any_f (const char *name) {
 
     snapshot = CreateToolhelp32Snapshot (TH32CS_SNAPMODULE, 0);
     if (snapshot == (HANDLE) -1) {
-        wchar_t *msg = win32_get_last_error ();
+        wchar_t *msg = win32_get_last_error();
         printf("Could not get snapshot: %S\n", msg);
         return 0;
     }
@@ -88,7 +88,7 @@ int DLL_PUBLIC func(void) {
  * dlopens it. We need to make sure that this works, i.e. that we do
  * not pass -Wl,--no-undefined when linking modules.
  */
-int func_from_language_runtime();
+int func_from_language_runtime(void);
 
 int DLL_PUBLIC func(void) {
     return func_from_language_runtime();

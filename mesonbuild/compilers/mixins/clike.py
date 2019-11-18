@@ -785,7 +785,7 @@ class CLikeCompiler:
         code = '''#ifdef __cplusplus
         extern "C" {
         #endif
-        void ''' + symbol_name.decode() + ''' () {}
+        void ''' + symbol_name.decode() + ''' (void) {}
         #ifdef __cplusplus
         }
         #endif

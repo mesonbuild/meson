@@ -4,12 +4,12 @@ import os, sys, argparse
 
 h_templ = '''#pragma once
 
-int %s();
+int %s(void);
 '''
 
 c_templ = '''#include"%s.h"
 
-int %s() {
+int %s(void) {
     return 0;
 }
 '''

@@ -1,6 +1,6 @@
 #include <string.h>
 
-const char* does_it_work();
+const char* does_it_work(void);
 
 int a_fun(void);
 

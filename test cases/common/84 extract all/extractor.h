@@ -1,6 +1,6 @@
 #pragma once
 
-int func1();
-int func2();
-int func3();
-int func4();
+int func1(void);
+int func2(void);
+int func3(void);
+int func4(void);

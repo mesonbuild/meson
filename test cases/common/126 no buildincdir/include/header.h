@@ -1,3 +1,3 @@
 #pragma once
 
-int foobar();
+int foobar(void);
