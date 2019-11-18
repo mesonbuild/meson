@@ -30,8 +30,12 @@ assert(fs.is_dir('subprojects'), 'Dir not detected correctly.')
 assert(not fs.is_dir('meson.build'), 'File detected as a dir.')
 assert(not fs.is_dir('nonexisting'), 'Bad path detected as a dir.')
 
-assert(fs.is_dir('~'), 'expanduser not working')
-assert(not fs.is_file('~'), 'expanduser not working')
+assert(fs.is_dir('~'), 'home directory not detected')
+assert(not fs.is_file('~'), 'home directory detected as file')
+
+# -- expanduser
+assert(fs.expanduser('~') != '~','expanduser failed')
+assert(fs.expanduser('~/foo').endswith('foo'), 'expanduser with tail failed')
 
 # -- as_posix
 assert(fs.as_posix('/') == '/', 'as_posix idempotent')
