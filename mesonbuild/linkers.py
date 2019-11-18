@@ -580,6 +580,9 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             result.append(a)
         return result
 
+    def get_coverage_args(self) -> typing.List[str]:
+        return ['--coverage']
+
     def sanitizer_args(self, value: str) -> typing.List[str]:
         if value == 'none':
             return []
@@ -631,6 +634,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             args.extend(self._apply_prefix('-rpath,' + rp))
 
         return args
+
 
 
 class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
