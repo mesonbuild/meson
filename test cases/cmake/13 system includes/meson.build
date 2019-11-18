@@ -6,6 +6,10 @@ project(
   ],
 )
 
+if meson.get_compiler('cpp').get_argument_syntax() == 'msvc'
+  error('MESON_SKIP_TEST: Skipp with msvc due to missing -system support')
+endif
+
 cm = import('cmake')
 sub_pro = cm.subproject('cmMod')
 sub_dep = sub_pro.dependency('cmModLib')
