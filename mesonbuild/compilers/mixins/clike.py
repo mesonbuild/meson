@@ -634,7 +634,7 @@ class CLikeCompiler:
         #ifdef __cplusplus
         extern "C"
         #endif
-        char {func} ();
+        char {func} (void);
         '''
         # The actual function call
         main = '''
