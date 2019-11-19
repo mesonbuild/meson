@@ -19,12 +19,16 @@ from .. import mlog, mesonlib
 from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice
 from ..environment import Environment
 
+from pathlib import Path
 from typing import List, Tuple, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..dependencies.base import ExternalProgram
 
-import re, os, shutil, ctypes
+import re
+import os
+import shutil
+import ctypes
 
 class CMakeExecutor:
     # The class's copy of the CMake path. Avoids having to search for it
@@ -167,7 +171,7 @@ class CMakeExecutor:
         fallback = os.path.realpath(__file__)  # A file used as a fallback wehen everything else fails
         compilers = self.environment.coredata.compilers[MachineChoice.BUILD]
 
-        def make_abs(exe: str, lang: str):
+        def make_abs(exe: str, lang: str) -> str:
             if os.path.isabs(exe):
                 return exe
 
@@ -177,7 +181,7 @@ class CMakeExecutor:
                 p = fallback
             return p
 
-        def choose_compiler(lang: str):
+        def choose_compiler(lang: str) -> Tuple[str, str]:
             exe_list = []
             if lang in compilers:
                 exe_list = compilers[lang].get_exelist()
@@ -196,27 +200,32 @@ class CMakeExecutor:
 
         c_comp, c_launcher = choose_compiler('c')
         cxx_comp, cxx_launcher = choose_compiler('cpp')
+        try:
+            fortran_comp, fortran_launcher = choose_compiler('fortran')
+        except Exception:
+            fortran_comp = fortran_launcher = ''
 
         # on Windows, choose_compiler returns path with \ as separator - replace by / before writing to CMAKE file
         c_comp = c_comp.replace('\\', '/')
         c_launcher = c_launcher.replace('\\', '/')
         cxx_comp = cxx_comp.replace('\\', '/')
         cxx_launcher = cxx_launcher.replace('\\', '/')
+        fortran_comp = fortran_comp.replace('\\', '/')
+        fortran_launcher = fortran_launcher.replace('\\', '/')
 
         # Reset the CMake cache
-        with open('{}/CMakeCache.txt'.format(build_dir), 'w') as fp:
-            fp.write('CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1\n')
+        (Path(build_dir) / 'CMakeCache.txt').write_text('CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1\n')
 
         # Fake the compiler files
-        comp_dir = '{}/CMakeFiles/{}'.format(build_dir, self.cmakevers)
-        os.makedirs(comp_dir, exist_ok=True)
+        comp_dir = Path(build_dir) / 'CMakeFiles' / self.cmakevers
+        comp_dir.mkdir(parents=True, exist_ok=True)
 
-        c_comp_file = '{}/CMakeCCompiler.cmake'.format(comp_dir)
-        cxx_comp_file = '{}/CMakeCXXCompiler.cmake'.format(comp_dir)
+        c_comp_file = comp_dir / 'CMakeCCompiler.cmake'
+        cxx_comp_file = comp_dir / 'CMakeCXXCompiler.cmake'
+        fortran_comp_file = comp_dir / 'CMakeFortranCompiler.cmake'
 
-        if not os.path.exists(c_comp_file):
-            with open(c_comp_file, 'w') as fp:
-                fp.write('''# Fake CMake file to skip the boring and slow stuff
+        if not c_comp_file.is_file():
+            c_comp_file.write_text('''# Fake CMake file to skip the boring and slow stuff
 set(CMAKE_C_COMPILER "{}") # Should be a valid compiler for try_compile, etc.
 set(CMAKE_C_COMPILER_LAUNCHER "{}") # The compiler launcher (if presentt)
 set(CMAKE_C_COMPILER_ID "GNU") # Pretend we have found GCC
@@ -229,9 +238,8 @@ set(CMAKE_C_IGNORE_EXTENSIONS h;H;o;O;obj;OBJ;def;DEF;rc;RC)
 set(CMAKE_SIZEOF_VOID_P "{}")
 '''.format(c_comp, c_launcher, ctypes.sizeof(ctypes.c_voidp)))
 
-        if not os.path.exists(cxx_comp_file):
-            with open(cxx_comp_file, 'w') as fp:
-                fp.write('''# Fake CMake file to skip the boring and slow stuff
+        if not cxx_comp_file.is_file():
+            cxx_comp_file.write_text('''# Fake CMake file to skip the boring and slow stuff
 set(CMAKE_CXX_COMPILER "{}") # Should be a valid compiler for try_compile, etc.
 set(CMAKE_CXX_COMPILER_LAUNCHER "{}") # The compiler launcher (if presentt)
 set(CMAKE_CXX_COMPILER_ID "GNU") # Pretend we have found GCC
@@ -243,6 +251,20 @@ set(CMAKE_CXX_IGNORE_EXTENSIONS inl;h;hpp;HPP;H;o;O;obj;OBJ;def;DEF;rc;RC)
 set(CMAKE_CXX_SOURCE_FILE_EXTENSIONS C;M;c++;cc;cpp;cxx;mm;CPP)
 set(CMAKE_SIZEOF_VOID_P "{}")
 '''.format(cxx_comp, cxx_launcher, ctypes.sizeof(ctypes.c_voidp)))
+
+        if fortran_comp and not fortran_comp_file.is_file():
+            fortran_comp_file.write_text('''# Fake CMake file to skip the boring and slow stuff
+set(CMAKE_Fortran_COMPILER "{}") # Should be a valid compiler for try_compile, etc.
+set(CMAKE_Fortran_COMPILER_LAUNCHER "{}") # The compiler launcher (if presentt)
+set(CMAKE_Fortran_COMPILER_ID "GNU") # Pretend we have found GCC
+set(CMAKE_COMPILER_IS_GNUG77 1)
+set(CMAKE_Fortran_COMPILER_LOADED 1)
+set(CMAKE_Fortran_COMPILER_WORKS TRUE)
+set(CMAKE_Fortran_ABI_COMPILED TRUE)
+set(CMAKE_Fortran_IGNORE_EXTENSIONS h;H;o;O;obj;OBJ;def;DEF;rc;RC)
+set(CMAKE_Fortran_SOURCE_FILE_EXTENSIONS f;F;fpp;FPP;f77;F77;f90;F90;for;For;FOR;f95;F95)
+set(CMAKE_SIZEOF_VOID_P "{}")
+'''.format(fortran_comp, fortran_launcher, ctypes.sizeof(ctypes.c_voidp)))
 
         return self.call(args, build_dir, env)
 
