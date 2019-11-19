@@ -88,6 +88,10 @@ dump.set('SHOULD_BE_ONE', 1)
 dump.set('SHOULD_BE_ZERO', 0, description : 'Absolutely zero')
 dump.set('SHOULD_BE_QUOTED_ONE', '"1"')
 
+dump.set('MULTILINE', '1\n+2')
+dump.set_quoted('MULTILINE_STRING', '''line1
+line2''')
+
 dump.set_quoted('INTEGER_AS_STRING', '12')
 if dump.get_unquoted('INTEGER_AS_STRING').to_int() == 12
   dump.set('SHOULD_BE_UNQUOTED_STRING', dump.get_unquoted('SHOULD_BE_STRING'))

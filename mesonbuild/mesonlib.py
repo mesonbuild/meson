@@ -956,6 +956,8 @@ def dump_conf_header(ofilename, cdata, output_format):
                 else:
                     ofile.write('%sundef %s\n\n' % (prefix, k))
             elif isinstance(v, (int, str)):
+                if isinstance(v, str):
+                    v = '\\\n'.join(v.rstrip().split('\n'))
                 ofile.write('%sdefine %s %s\n\n' % (prefix, k, v))
             else:
                 raise MesonException('Unknown data type in configuration file entry: ' + k)
