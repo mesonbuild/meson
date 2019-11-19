@@ -32,7 +32,7 @@ rust_optimization_args = {'0': [],
 
 class RustCompiler(Compiler):
 
-    LINKER_PREFIX = '-Wl,'
+    # rustc doesn't invoke the compiler itself, it doesn't need a LINKER_PREFIX
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
@@ -109,3 +109,7 @@ class RustCompiler(Compiler):
 
     def get_std_exe_link_args(self):
         return []
+
+    # Rust does not have a use_linker_args because it dispatches to a gcc-like
+    # C compiler for dynamic linking, as such we invoke the C compiler's
+    # use_linker_args method instead.

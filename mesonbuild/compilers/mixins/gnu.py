@@ -299,6 +299,10 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
             return ['-isystem' + path]
         return ['-I' + path]
 
+    @classmethod
+    def use_linker_args(cls, linker: str) -> typing.List[str]:
+        return ['-fuse-ld={}'.format(linker)]
+
 
 class GnuCompiler(GnuLikeCompiler):
     """

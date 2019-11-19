@@ -309,7 +309,9 @@ class BinaryTable(HasEnvVarFallback):
         'strip': 'STRIP',
         'ar': 'AR',
         'windres': 'WINDRES',
+        'ld': 'LD',
 
+        # Other tools
         'cmake': 'CMAKE',
         'qmake': 'QMAKE',
         'pkgconfig': 'PKG_CONFIG',
