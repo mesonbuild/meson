@@ -2596,6 +2596,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                     f.write(printer.result)
 
                 mlog.log('Build file:', meson_filename)
+                mlog.cmd_ci_include(meson_filename)
                 mlog.log()
 
             result = self._do_subproject_meson(dirname, subdir, default_options, kwargs, ast, cm_int.bs_files)

@@ -21,6 +21,7 @@ import subprocess
 import shutil
 import sys
 import signal
+import shlex
 from io import StringIO
 from ast import literal_eval
 from enum import Enum
@@ -57,12 +58,13 @@ class BuildStep(Enum):
 
 
 class TestResult:
-    def __init__(self, msg, step, stdo, stde, mlog, conftime=0, buildtime=0, testtime=0):
+    def __init__(self, msg, step, stdo, stde, mlog, cicmds, conftime=0, buildtime=0, testtime=0):
         self.msg = msg
         self.step = step
         self.stdo = stdo
         self.stde = stde
         self.mlog = mlog
+        self.cicmds = cicmds
         self.conftime = conftime
         self.buildtime = buildtime
         self.testtime = testtime
@@ -271,6 +273,33 @@ def yellow(text):
     return mlog.yellow(text).get_text(mlog.colorize_console)
 
 
+def _run_ci_include(args: typing.List[str]) -> str:
+    if not args:
+        return 'At least one parameter required'
+    try:
+        file_path = Path(args[0])
+        data = file_path.open(errors='ignore', encoding='utf-8').read()
+        return 'Included file {}:\n{}\n'.format(args[0], data)
+    except Exception:
+        return 'Failed to open {} ({})'.format(args[0])
+    return 'Appended {} to the log'.format(args[0])
+
+ci_commands = {
+    'ci_include': _run_ci_include
+}
+
+def run_ci_commands(raw_log: str) -> typing.List[str]:
+    res = []
+    for l in raw_log.splitlines():
+        if not l.startswith('!meson_ci!/'):
+            continue
+        cmd = shlex.split(l[11:])
+        if not cmd or cmd[0] not in ci_commands:
+            continue
+        res += ['CI COMMAND {}:\n{}\n'.format(cmd[0], ci_commands[cmd[0]](cmd[1:]))]
+    return res
+
+
 def run_test_inprocess(testdir):
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
@@ -372,16 +401,17 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
         mesonlog = logfile.open(errors='ignore', encoding='utf-8').read()
     except Exception:
         mesonlog = no_meson_log_msg
+    cicmds = run_ci_commands(mesonlog)
     gen_time = time.time() - gen_start
     if should_fail == 'meson':
         if returncode == 1:
-            return TestResult('', BuildStep.configure, stdo, stde, mesonlog, gen_time)
+            return TestResult('', BuildStep.configure, stdo, stde, mesonlog, cicmds, gen_time)
         elif returncode != 0:
-            return TestResult('Test exited with unexpected status {}'.format(returncode), BuildStep.configure, stdo, stde, mesonlog, gen_time)
+            return TestResult('Test exited with unexpected status {}'.format(returncode), BuildStep.configure, stdo, stde, mesonlog, cicmds, gen_time)
         else:
-            return TestResult('Test that should have failed succeeded', BuildStep.configure, stdo, stde, mesonlog, gen_time)
+            return TestResult('Test that should have failed succeeded', BuildStep.configure, stdo, stde, mesonlog, cicmds, gen_time)
     if returncode != 0:
-        return TestResult('Generating the build system failed.', BuildStep.configure, stdo, stde, mesonlog, gen_time)
+        return TestResult('Generating the build system failed.', BuildStep.configure, stdo, stde, mesonlog, cicmds, gen_time)
     builddata = build.load(test_build_dir)
     # Touch the meson.build file to force a regenerate so we can test that
     # regeneration works before a build is run.
@@ -396,10 +426,10 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     stde += e
     if should_fail == 'build':
         if pc.returncode != 0:
-            return TestResult('', BuildStep.build, stdo, stde, mesonlog, gen_time)
-        return TestResult('Test that should have failed to build succeeded', BuildStep.build, stdo, stde, mesonlog, gen_time)
+            return TestResult('', BuildStep.build, stdo, stde, mesonlog, cicmds, gen_time)
+        return TestResult('Test that should have failed to build succeeded', BuildStep.build, stdo, stde, mesonlog, cicmds, gen_time)
     if pc.returncode != 0:
-        return TestResult('Compiling source code failed.', BuildStep.build, stdo, stde, mesonlog, gen_time, build_time)
+        return TestResult('Compiling source code failed.', BuildStep.build, stdo, stde, mesonlog, cicmds, gen_time, build_time)
     # Touch the meson.build file to force a regenerate so we can test that
     # regeneration works after a build is complete.
     ensure_backend_detects_changes(backend)
@@ -413,10 +443,10 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     mesonlog += test_log
     if should_fail == 'test':
         if returncode != 0:
-            return TestResult('', BuildStep.test, stdo, stde, mesonlog, gen_time)
-        return TestResult('Test that should have failed to run unit tests succeeded', BuildStep.test, stdo, stde, mesonlog, gen_time)
+            return TestResult('', BuildStep.test, stdo, stde, mesonlog, cicmds, gen_time)
+        return TestResult('Test that should have failed to run unit tests succeeded', BuildStep.test, stdo, stde, mesonlog, cicmds, gen_time)
     if returncode != 0:
-        return TestResult('Running unit tests failed.', BuildStep.test, stdo, stde, mesonlog, gen_time, build_time, test_time)
+        return TestResult('Running unit tests failed.', BuildStep.test, stdo, stde, mesonlog, cicmds, gen_time, build_time, test_time)
     # Do installation, if the backend supports it
     if install_commands:
         env = os.environ.copy()
@@ -426,18 +456,18 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
         stdo += o
         stde += e
         if pi.returncode != 0:
-            return TestResult('Running install failed.', BuildStep.install, stdo, stde, mesonlog, gen_time, build_time, test_time)
+            return TestResult('Running install failed.', BuildStep.install, stdo, stde, mesonlog, cicmds, gen_time, build_time, test_time)
     # Clean with subprocess
     env = os.environ.copy()
     pi, o, e = Popen_safe(clean_commands + dir_args, cwd=test_build_dir, env=env)
     stdo += o
     stde += e
     if pi.returncode != 0:
-        return TestResult('Running clean failed.', BuildStep.clean, stdo, stde, mesonlog, gen_time, build_time, test_time)
+        return TestResult('Running clean failed.', BuildStep.clean, stdo, stde, mesonlog, cicmds, gen_time, build_time, test_time)
     if not install_commands:
-        return TestResult('', BuildStep.install, '', '', mesonlog, gen_time, build_time, test_time)
+        return TestResult('', BuildStep.install, '', '', mesonlog, cicmds, gen_time, build_time, test_time)
     return TestResult(validate_install(testdir, install_dir, compiler, builddata.environment),
-                      BuildStep.validate, stdo, stde, mesonlog, gen_time, build_time, test_time)
+                      BuildStep.validate, stdo, stde, mesonlog, cicmds, gen_time, build_time, test_time)
 
 def gather_tests(testdir: Path) -> typing.List[Path]:
     test_names = [t.name for t in testdir.glob('*') if t.is_dir()]
@@ -746,6 +776,8 @@ def _run_tests(all_tests: typing.List[typing.Tuple[str, typing.List[Path], bool]
                         failing_logs.append(result.stdo)
                     else:
                         failing_logs.append(result.stdo)
+                    for cmd_res in result.cicmds:
+                        failing_logs.append(cmd_res)
                     failing_logs.append(result.stde)
                     if failfast:
                         print("Cancelling the rest of the tests")
