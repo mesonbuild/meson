@@ -39,6 +39,9 @@ which is unwanted in string variables. The first argument can be
 either a string or an executable you have detected earlier with
 `find_program`.
 
+Meson will autodetect scripts with a shebang line and run them with
+the executable/interpreter specified in it both on Windows and on Unixes.
+
 Note that you can not pass your command line as a single string. That
 is, calling `run_command('do_something foo bar')` will not work. You
 must either split up the string into separate arguments or pass the
