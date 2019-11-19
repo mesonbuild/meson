@@ -734,9 +734,8 @@ class Environment:
         raise EnvironmentException(errmsg)
 
     def _guess_win_linker(self, compiler: typing.List[str], comp_class: Compiler,
-                          for_machine: MachineChoice,
-                          prefix: typing.Union[str, typing.List[str]],
-                          *, use_linker_prefix: bool = True) -> 'DynamicLinker':
+                          for_machine: MachineChoice, *,
+                          use_linker_prefix: bool = True) -> 'DynamicLinker':
         # Explicitly pass logo here so that we can get the version of link.exe
         if not use_linker_prefix or comp_class.LINKER_PREFIX is None:
             check_args = ['/logo', '--version']
@@ -785,8 +784,7 @@ class Environment:
         raise EnvironmentException('Unable to determine dynamic linker')
 
     def _guess_nix_linker(self, compiler: typing.List[str], comp_class: typing.Type[Compiler],
-                          for_machine: MachineChoice,
-                          prefix: typing.Union[str, typing.List[str]], *,
+                          for_machine: MachineChoice, *,
                           extra_args: typing.Optional[typing.List[str]] = None) -> 'DynamicLinker':
         """Helper for guessing what linker to use on Unix-Like OSes.
 
@@ -797,10 +795,10 @@ class Environment:
         """
         extra_args = typing.cast(typing.List[str], extra_args or [])
 
-        if isinstance(prefix, str):
-            check_args = [prefix + '--version'] + extra_args
+        if isinstance(comp_class.LINKER_PREFIX, str):
+            check_args = [comp_class.LINKER_PREFIX + '--version'] + extra_args
         else:
-            check_args = prefix + ['--version'] + extra_args
+            check_args = comp_class.LINKER_PREFIX + ['--version'] + extra_args
 
         override = []  # type: typing.List[str]
         value = self.binaries[for_machine].lookup_entry('ld')
@@ -811,7 +809,7 @@ class Environment:
         _, o, e = Popen_safe(compiler + check_args)
         v = search_version(o)
         if o.startswith('LLD'):
-            linker = LLVMDynamicLinker(compiler, for_machine, 'lld', prefix, override, version=v)  # type: DynamicLinker
+            linker = LLVMDynamicLinker(compiler, for_machine, 'lld', comp_class.LINKER_PREFIX, override, version=v)  # type: DynamicLinker
         elif e.startswith('lld-link: '):
             # Toolchain wrapper got in the way; this happens with e.g. https://github.com/mstorsjo/llvm-mingw
             # Let's try to extract the linker invocation command to grab the version.
@@ -827,13 +825,13 @@ class Environment:
                 _, o, e = Popen_safe([linker_cmd, '--version'])
                 v = search_version(o)
 
-            linker = LLVMDynamicLinker(compiler, for_machine, 'lld', prefix, override, version=v)
+            linker = LLVMDynamicLinker(compiler, for_machine, 'lld', comp_class.LINKER_PREFIX, override, version=v)
         # first is for apple clang, second is for real gcc
         elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e:
-            if isinstance(prefix, str):
-                _, _, e = Popen_safe(compiler + [prefix + '-v'] + extra_args)
+            if isinstance(comp_class.LINKER_PREFIX, str):
+                _, _, e = Popen_safe(compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args)
             else:
-                _, _, e = Popen_safe(compiler + prefix + ['-v'] + extra_args)
+                _, _, e = Popen_safe(compiler + comp_class.LINKER_PREFIX + ['-v'] + extra_args)
             i = 'APPLE ld'
             for line in e.split('\n'):
                 if 'PROJECT:ld' in line:
@@ -841,16 +839,16 @@ class Environment:
                     break
             else:
                 v = 'unknown version'
-            linker = AppleDynamicLinker(compiler, for_machine, i, prefix, override, version=v)
+            linker = AppleDynamicLinker(compiler, for_machine, i, comp_class.LINKER_PREFIX, override, version=v)
         elif 'GNU' in o:
             if 'gold' in o:
                 i = 'GNU ld.gold'
             else:
                 i = 'GNU ld.bfd'
-            linker = GnuDynamicLinker(compiler, for_machine, i, prefix, override, version=v)
+            linker = GnuDynamicLinker(compiler, for_machine, i, comp_class.LINKER_PREFIX, override, version=v)
         elif 'Solaris' in e or 'Solaris' in o:
             linker = SolarisDynamicLinker(
-                compiler, for_machine, 'solaris', prefix, override,
+                compiler, for_machine, 'solaris', comp_class.LINKER_PREFIX, override,
                 version=search_version(e))
         else:
             raise EnvironmentException('Unable to determine dynamic linker')
@@ -928,7 +926,7 @@ class Environment:
                     version = self.get_gnu_version_from_defines(defines)
                     cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
 
-                linker = self._guess_nix_linker(compiler, cls, for_machine, cls.LINKER_PREFIX)
+                linker = self._guess_nix_linker(compiler, cls, for_machine)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross,
                     info, exe_wrap, defines, full_version=full_version,
@@ -993,11 +991,11 @@ class Environment:
                     # style ld, but for clang on "real" windows we'll use
                     # either link.exe or lld-link.exe
                     try:
-                        linker = self._guess_win_linker(compiler, cls, for_machine, cls.LINKER_PREFIX)
+                        linker = self._guess_win_linker(compiler, cls, for_machine)
                     except MesonException:
                         pass
                 if linker is None:
-                    linker = self._guess_nix_linker(compiler, cls, for_machine, cls.LINKER_PREFIX)
+                    linker = self._guess_nix_linker(compiler, cls, for_machine)
 
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
@@ -1143,7 +1141,7 @@ class Environment:
                         version = self.get_gnu_version_from_defines(defines)
                         cls = GnuFortranCompiler
                     linker = self._guess_nix_linker(
-                        compiler, cls, for_machine, cls.LINKER_PREFIX)
+                        compiler, cls, for_machine)
                     return cls(
                         compiler, version, for_machine, is_cross, info,
                         exe_wrap, defines, full_version=full_version,
@@ -1151,7 +1149,7 @@ class Environment:
 
                 if 'G95' in out:
                     linker = self._guess_nix_linker(
-                        compiler, cls, for_machine, cls.LINKER_PREFIX)
+                        compiler, cls, for_machine)
                     return G95FortranCompiler(
                         compiler, version, for_machine, is_cross, info,
                         exe_wrap, full_version=full_version, linker=linker)
@@ -1159,7 +1157,7 @@ class Environment:
                 if 'Sun Fortran' in err:
                     version = search_version(err)
                     linker = self._guess_nix_linker(
-                        compiler, cls, for_machine, cls.LINKER_PREFIX)
+                        compiler, cls, for_machine)
                     return SunFortranCompiler(
                         compiler, version, for_machine, is_cross, info,
                         exe_wrap, full_version=full_version, linker=linker)
@@ -1194,21 +1192,21 @@ class Environment:
 
                 if 'flang' in out or 'clang' in out:
                     linker = self._guess_nix_linker(
-                        compiler, FlangFortranCompiler, for_machine, FlangFortranCompiler.LINKER_PREFIX)
+                        compiler, FlangFortranCompiler, for_machine)
                     return FlangFortranCompiler(
                         compiler, version, for_machine, is_cross, info,
                         exe_wrap, full_version=full_version, linker=linker)
 
                 if 'Open64 Compiler Suite' in err:
                     linker = self._guess_nix_linker(
-                        compiler, Open64FortranCompiler, for_machine, Open64FortranCompiler.LINKER_PREFIX)
+                        compiler, Open64FortranCompiler, for_machine)
                     return Open64FortranCompiler(
                         compiler, version, for_machine, is_cross, info,
                         exe_wrap, full_version=full_version, linker=linker)
 
                 if 'NAG Fortran' in err:
                     linker = self._guess_nix_linker(
-                        compiler, NAGFortranCompiler, for_machine, NAGFortranCompiler.LINKER_PREFIX)
+                        compiler, NAGFortranCompiler, for_machine)
                     return NAGFortranCompiler(
                         compiler, version, for_machine, is_cross, info,
                         exe_wrap, full_version=full_version, linker=linker)
@@ -1247,7 +1245,7 @@ class Environment:
                     continue
                 version = self.get_gnu_version_from_defines(defines)
                 comp = GnuObjCCompiler if objc else GnuObjCPPCompiler
-                linker = self._guess_nix_linker(compiler, comp, for_machine, comp.LINKER_PREFIX)
+                linker = self._guess_nix_linker(compiler, comp, for_machine)
                 return comp(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, defines, linker=linker)
@@ -1257,13 +1255,13 @@ class Environment:
                 if 'windows' in out or self.machines[for_machine].is_windows():
                     # If we're in a MINGW context this actually will use a gnu style ld
                     try:
-                        linker = self._guess_win_linker(compiler, comp, for_machine, comp.LINKER_PREFIX)
+                        linker = self._guess_win_linker(compiler, comp, for_machine)
                     except MesonException:
                         pass
 
                 if not linker:
                     linker = self._guess_nix_linker(
-                        compiler, comp, for_machine, comp.LINKER_PREFIX)
+                        compiler, comp, for_machine)
                 return comp(
                     ccache + compiler, version, for_machine,
                     is_cross, info, exe_wrap, linker=linker)
@@ -1434,13 +1432,12 @@ class Environment:
                     with tempfile.NamedTemporaryFile(suffix='.d') as f:
                         linker = self._guess_nix_linker(
                             exelist, compilers.LLVMDCompiler, for_machine,
-                            compilers.LLVMDCompiler.LINKER_PREFIX,
                             extra_args=[f.name])
                 return compilers.LLVMDCompiler(
                     exelist, version, for_machine, info, arch,
                     full_version=full_version, linker=linker)
             elif 'gdc' in out:
-                linker = self._guess_nix_linker(exelist, compilers.GnuDCompiler, for_machine, compilers.GnuDCompiler.LINKER_PREFIX)
+                linker = self._guess_nix_linker(exelist, compilers.GnuDCompiler, for_machine)
                 return compilers.GnuDCompiler(
                     exelist, version, for_machine, info, arch, is_cross, exe_wrap,
                     full_version=full_version, linker=linker)
@@ -1460,7 +1457,6 @@ class Environment:
                     with tempfile.NamedTemporaryFile(suffix='.d') as f:
                         linker = self._guess_nix_linker(
                             exelist, compilers.DmdDCompiler, for_machine,
-                            compilers.LLVMDCompiler.LINKER_PREFIX,
                             extra_args=[f.name])
                 return compilers.DmdDCompiler(
                     exelist, version, for_machine, info, arch,
@@ -1487,7 +1483,6 @@ class Environment:
             with tempfile.NamedTemporaryFile(suffix='.swift') as f:
                 linker = self._guess_nix_linker(
                     exelist, compilers.SwiftCompiler, for_machine,
-                    compilers.SwiftCompiler.LINKER_PREFIX,
                     extra_args=[f.name])
             return compilers.SwiftCompiler(
                 exelist, version, for_machine, info, is_cross, linker=linker)
