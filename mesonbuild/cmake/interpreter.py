@@ -398,11 +398,13 @@ class CustomTargetReference:
 
 class ConverterCustomTarget:
     tgt_counter = 0  # type: int
+    out_counter = 0  # type: int
 
     def __init__(self, target: CMakeGeneratorTarget):
         self.name = 'custom_tgt_{}'.format(ConverterCustomTarget.tgt_counter)
         self.original_outputs = list(target.outputs)
         self.outputs = [os.path.basename(x) for x in self.original_outputs]
+        self.conflict_map = {}
         self.command = target.command
         self.working_dir = target.working_dir
         self.depends_raw = target.depends
@@ -414,7 +416,7 @@ class ConverterCustomTarget:
     def __repr__(self) -> str:
         return '<{}: {}>'.format(self.__class__.__name__, self.outputs)
 
-    def postprocess(self, output_target_map: dict, root_src_dir: str, subdir: str, build_dir: str) -> None:
+    def postprocess(self, output_target_map: dict, root_src_dir: str, subdir: str, build_dir: str, all_outputs: List[str]) -> None:
         # Default the working directory to the CMake build dir. This
         # is not 100% correct, since it should be the value of
         # ${CMAKE_CURRENT_BINARY_DIR} when add_custom_command is
@@ -437,6 +439,20 @@ class ConverterCustomTarget:
             else:
                 return os.path.normpath(os.path.join(build_dir, x))
         self.original_outputs = [ensure_absolute(x) for x in self.original_outputs]
+
+        # Ensure that there is no duplicate output in the project so
+        # that meson can handle cases where the same filename is
+        # generated in multiple directories
+        temp_outputs = []  # type: List[str]
+        for i in self.outputs:
+            if i in all_outputs:
+                old = str(i)
+                i = 'c{}_{}'.format(ConverterCustomTarget.out_counter, i)
+                ConverterCustomTarget.out_counter += 1
+                self.conflict_map[old] = i
+            all_outputs += [i]
+            temp_outputs += [i]
+        self.outputs = temp_outputs
 
         # Check if the command is a build target
         commands = []
@@ -472,6 +488,8 @@ class ConverterCustomTarget:
 
     def get_ref(self, fname: str) -> Optional[CustomTargetReference]:
         try:
+            if fname in self.conflict_map:
+                fname = self.conflict_map[fname]
             idx = self.outputs.index(os.path.basename(fname))
             return CustomTargetReference(self, idx)
         except ValueError:
@@ -479,12 +497,13 @@ class ConverterCustomTarget:
 
     def log(self) -> None:
         mlog.log('Custom Target', mlog.bold(self.name))
-        mlog.log('  -- command:     ', mlog.bold(str(self.command)))
-        mlog.log('  -- outputs:     ', mlog.bold(str(self.outputs)))
-        mlog.log('  -- working_dir: ', mlog.bold(str(self.working_dir)))
-        mlog.log('  -- depends_raw: ', mlog.bold(str(self.depends_raw)))
-        mlog.log('  -- inputs:      ', mlog.bold(str(self.inputs)))
-        mlog.log('  -- depends:     ', mlog.bold(str(self.depends)))
+        mlog.log('  -- command:      ', mlog.bold(str(self.command)))
+        mlog.log('  -- outputs:      ', mlog.bold(str(self.outputs)))
+        mlog.log('  -- conflict_map: ', mlog.bold(str(self.conflict_map)))
+        mlog.log('  -- working_dir:  ', mlog.bold(str(self.working_dir)))
+        mlog.log('  -- depends_raw:  ', mlog.bold(str(self.depends_raw)))
+        mlog.log('  -- inputs:       ', mlog.bold(str(self.inputs)))
+        mlog.log('  -- depends:      ', mlog.bold(str(self.depends)))
 
 class CMakeAPI(Enum):
     SERVER = 1
@@ -706,8 +725,9 @@ class CMakeInterpreter:
         object_libs = []
 
         # First pass: Basic target cleanup
+        custom_target_outputs = []  # type: List[str]
         for i in self.custom_targets:
-            i.postprocess(output_target_map, self.src_dir, self.subdir, self.build_dir)
+            i.postprocess(output_target_map, self.src_dir, self.subdir, self.build_dir, custom_target_outputs)
         for i in self.targets:
             i.postprocess(output_target_map, self.src_dir, self.subdir, self.install_prefix, self.trace)
             if i.type == 'OBJECT_LIBRARY':
