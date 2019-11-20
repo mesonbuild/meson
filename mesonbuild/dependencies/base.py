@@ -365,8 +365,8 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                 if not self.is_found:
                     found_msg = ['Dependency', mlog.bold(self.name), 'found:']
                     found_msg += [mlog.red('NO'),
-                                  'found {!r} but need:'.format(self.version),
-                                  ', '.join(["'{}'".format(e) for e in not_found])]
+                                  'found', mlog.normal_cyan(self.version), 'but need:',
+                                  mlog.bold(', '.join(["'{}'".format(e) for e in not_found]))]
                     if found:
                         found_msg += ['; matched:',
                                       ', '.join(["'{}'".format(e) for e in found])]

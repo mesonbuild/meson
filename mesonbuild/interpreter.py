@@ -3020,7 +3020,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return identifier, cached_dep
 
             # Verify the cached dep version match
-            wanted_vers = kwargs.get('version', [])
+            wanted_vers = mesonlib.stringlistify(kwargs.get('version', []))
             found_vers = cached_dep.get_version()
             if not wanted_vers or mesonlib.version_compare_many(found_vers, wanted_vers)[0]:
                 info = [mlog.blue('(cached)')]
@@ -3034,7 +3034,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @staticmethod
     def check_subproject_version(wanted, found):
-        if wanted == 'undefined':
+        if not wanted:
             return True
         if found == 'undefined' or not mesonlib.version_compare_many(found, wanted)[0]:
             return False
@@ -3057,7 +3057,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                               'not a dependency object.'.format(varname, dirname))
 
         required = kwargs.get('required', True)
-        wanted = kwargs.get('version', 'undefined')
+        wanted = mesonlib.stringlistify(kwargs.get('version', []))
         subproj_path = os.path.join(self.subproject_dir, dirname)
 
         if not dep.found():
@@ -3076,9 +3076,10 @@ external dependencies (including libraries) must go to "dependencies".''')
                                           'cached, requested incompatible version {} for '
                                           'dep {}'.format(found, dirname, wanted, display_name))
 
-            mlog.log('Subproject', mlog.bold(subproj_path), 'dependency',
-                     mlog.bold(display_name), 'version is', mlog.normal_cyan(found),
-                     'but', mlog.bold(wanted), 'is required.')
+            mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
+                     mlog.bold(subproj_path), 'found:', mlog.red('NO'),
+                     'found', mlog.normal_cyan(found), 'but need:',
+                     mlog.bold(', '.join(["'{}'".format(e) for e in wanted])))
             return self.notfound_dependency()
 
         found = mlog.normal_cyan(found) if found else None
