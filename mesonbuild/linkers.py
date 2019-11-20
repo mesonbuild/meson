@@ -636,7 +636,6 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return args
 
 
-
 class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 
     """Representation of GNU ld.bfd and ld.gold."""
