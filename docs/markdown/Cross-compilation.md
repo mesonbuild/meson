@@ -87,6 +87,7 @@ this:
 [binaries]
 c = '/usr/bin/i586-mingw32msvc-gcc'
 cpp = '/usr/bin/i586-mingw32msvc-g++'
+ld = 'gold'
 ar = '/usr/i586-mingw32msvc/bin/ar'
 strip = '/usr/i586-mingw32msvc/bin/strip'
 pkgconfig = '/usr/bin/i586-mingw32msvc-pkg-config'
@@ -101,6 +102,12 @@ application with qemu or a hardware simulator. If you have this kind
 of a wrapper, these lines are all you need to write. Meson will
 automatically use the given wrapper when it needs to run host
 binaries. This happens e.g. when running the project's test suite.
+
+ld is special because it is compiler specific. For compilers like gcc and
+clang which are used to invoke the linker this is a value to pass to their
+"choose the linker" argument (-fuse-ld= in this case). For compilers like
+MSVC and Clang-Cl, this is the path to a linker for meson to invoke, such as
+`link.exe` or `lld-link.exe`. Support for ls is *new in 0.53.0*
 
 The next section lists properties of the cross compiler and its target
 system, and thus properties of host system of what we're building. It
