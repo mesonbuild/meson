@@ -25,7 +25,7 @@ from ..environment import Environment
 from ..mesonlib import MachineChoice, version_compare
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from subprocess import Popen, PIPE
-from typing import Any, List, Dict, Optional, TYPE_CHECKING
+from typing import Any, List, Dict, Optional, Union, TYPE_CHECKING
 from threading import Thread
 from enum import Enum
 import os, re
@@ -126,6 +126,8 @@ blacklist_link_libs = [
     'advapi32.lib'
 ]
 
+generated_target_name_prefix = 'cm_'
+
 # Utility functions to generate local keys
 def _target_key(tgt_name: str) -> str:
     return '__tgt_{}__'.format(tgt_name)
@@ -143,6 +145,7 @@ class ConverterTarget:
         self.src_dir = target.src_dir
         self.build_dir = target.build_dir
         self.name = target.name
+        self.cmake_name = target.name
         self.full_name = target.full_name
         self.type = target.type
         self.install = target.install
@@ -196,6 +199,10 @@ class ConverterTarget:
     std_regex = re.compile(r'([-]{1,2}std=|/std:v?|[-]{1,2}std:)(.*)')
 
     def postprocess(self, output_target_map: dict, root_src_dir: str, subdir: str, install_prefix: str, trace: CMakeTraceParser) -> None:
+        # Convert the target name to a valid meson target name
+        self.name = self.name.replace('-', '_')
+        self.name = generated_target_name_prefix + self.name
+
         # Detect setting the C and C++ standard
         for i in ['c', 'cpp']:
             if i not in self.compile_opts:
@@ -221,15 +228,15 @@ class ConverterTarget:
 
         # Use the CMake trace, if required
         if self.type.upper() in target_type_requires_trace:
-            if self.name in trace.targets:
-                props = trace.targets[self.name].properties
+            if self.cmake_name in trace.targets:
+                props = trace.targets[self.cmake_name].properties
 
                 self.includes += props.get('INTERFACE_INCLUDE_DIRECTORIES', [])
                 self.public_compile_opts += props.get('INTERFACE_COMPILE_DEFINITIONS', [])
                 self.public_compile_opts += props.get('INTERFACE_COMPILE_OPTIONS', [])
                 self.link_flags += props.get('INTERFACE_LINK_OPTIONS', [])
             else:
-                mlog.warning('CMake: Target', mlog.bold(self.name), 'not found in CMake trace. This can lead to build errors')
+                mlog.warning('CMake: Target', mlog.bold(self.cmake_name), 'not found in CMake trace. This can lead to build errors')
 
         # Fix link libraries
         def try_resolve_link_with(path: str) -> Optional[str]:
@@ -351,7 +358,7 @@ class ConverterTarget:
         return target_type_map.get(self.type.upper())
 
     def log(self) -> None:
-        mlog.log('Target', mlog.bold(self.name))
+        mlog.log('Target', mlog.bold(self.name), '({})'.format(self.cmake_name))
         mlog.log('  -- artifacts:      ', mlog.bold(str(self.artifacts)))
         mlog.log('  -- full_name:      ', mlog.bold(self.full_name))
         mlog.log('  -- type:           ', mlog.bold(self.type))
@@ -512,6 +519,7 @@ class CMakeInterpreter:
 
         # Generated meson data
         self.generated_targets = {}
+        self.internal_name_map = {}
 
     def configure(self, extra_cmake_options: List[str]) -> None:
         for_machine = MachineChoice.HOST # TODO make parameter
@@ -746,32 +754,28 @@ class CMakeInterpreter:
             args = ArgumentNode(token())
             if not isinstance(elements, list):
                 elements = [args]
-            args.arguments += [nodeify(x) for x in elements]
+            args.arguments += [nodeify(x) for x in elements if x is not None]
             return ArrayNode(args, 0, 0, 0, 0)
 
         def function(name: str, args=None, kwargs=None) -> FunctionNode:
-            if args is None:
-                args = []
-            if kwargs is None:
-                kwargs = {}
+            args = [] if args is None else args
+            kwargs = {} if kwargs is None else kwargs
             args_n = ArgumentNode(token())
             if not isinstance(args, list):
                 args = [args]
-            args_n.arguments = [nodeify(x) for x in args]
-            args_n.kwargs = {k: nodeify(v) for k, v in kwargs.items()}
+            args_n.arguments = [nodeify(x) for x in args if x is not None]
+            args_n.kwargs = {k: nodeify(v) for k, v in kwargs.items() if v is not None}
             func_n = FunctionNode(self.subdir, 0, 0, 0, 0, name, args_n)
             return func_n
 
         def method(obj: BaseNode, name: str, args=None, kwargs=None) -> MethodNode:
-            if args is None:
-                args = []
-            if kwargs is None:
-                kwargs = {}
+            args = [] if args is None else args
+            kwargs = {} if kwargs is None else kwargs
             args_n = ArgumentNode(token())
             if not isinstance(args, list):
                 args = [args]
-            args_n.arguments = [nodeify(x) for x in args]
-            args_n.kwargs = {k: nodeify(v) for k, v in kwargs.items()}
+            args_n.arguments = [nodeify(x) for x in args if x is not None]
+            args_n.kwargs = {k: nodeify(v) for k, v in kwargs.items() if v is not None}
             return MethodNode(self.subdir, 0, 0, obj, name, args_n)
 
         def assign(var_name: str, value: BaseNode) -> AssignmentNode:
@@ -788,18 +792,29 @@ class CMakeInterpreter:
 
         # Add the targets
         processed = {}
+        name_map = {}
+
+        def extract_tgt(tgt: Union[ConverterTarget, ConverterCustomTarget, CustomTargetReference]) -> IdNode:
+            tgt_name = None
+            if isinstance(tgt, (ConverterTarget, ConverterCustomTarget)):
+                tgt_name = tgt.name
+            elif isinstance(tgt, CustomTargetReference):
+                tgt_name = tgt.ctgt.name
+            assert(tgt_name is not None and tgt_name in processed)
+            res_var = processed[tgt_name]['tgt']
+            return id_node(res_var) if res_var else None
 
         def resolve_ctgt_ref(ref: CustomTargetReference) -> BaseNode:
-            tgt_var = processed[ref.ctgt.name]['tgt']
+            tgt_var = extract_tgt(ref)
             if len(ref.ctgt.outputs) == 1:
-                return id_node(tgt_var)
+                return tgt_var
             else:
-                return indexed(id_node(tgt_var), ref.index)
+                return indexed(tgt_var, ref.index)
 
         def process_target(tgt: ConverterTarget):
             # First handle inter target dependencies
             link_with = []
-            objec_libs = []
+            objec_libs = []  # type: List[IdNode]
             sources = []
             generated = []
             generated_filenames = []
@@ -808,12 +823,12 @@ class CMakeInterpreter:
                 assert(isinstance(i, ConverterTarget))
                 if i.name not in processed:
                     process_target(i)
-                link_with += [id_node(processed[i.name]['tgt'])]
+                link_with += [extract_tgt(i)]
             for i in tgt.object_libs:
                 assert(isinstance(i, ConverterTarget))
                 if i.name not in processed:
                     process_target(i)
-                objec_libs += [processed[i.name]['tgt']]
+                objec_libs += [extract_tgt(i)]
 
             # Generate the source list and handle generated sources
             for i in tgt.sources + tgt.generated:
@@ -847,14 +862,12 @@ class CMakeInterpreter:
                 raise CMakeException('Unknown target type "{}"'.format(tgt.type))
 
             # Determine the variable names
-            base_name = str(tgt.name)
-            base_name = base_name.replace('-', '_')
-            inc_var = '{}_inc'.format(base_name)
-            dir_var = '{}_dir'.format(base_name)
-            sys_var = '{}_sys'.format(base_name)
-            src_var = '{}_src'.format(base_name)
-            dep_var = '{}_dep'.format(base_name)
-            tgt_var = base_name
+            inc_var = '{}_inc'.format(tgt.name)
+            dir_var = '{}_dir'.format(tgt.name)
+            sys_var = '{}_sys'.format(tgt.name)
+            src_var = '{}_src'.format(tgt.name)
+            dep_var = '{}_dep'.format(tgt.name)
+            tgt_var = tgt.name
 
             # Generate target kwargs
             tgt_kwargs = {
@@ -864,7 +877,7 @@ class CMakeInterpreter:
                 'install': tgt.install,
                 'install_dir': tgt.install_dir,
                 'override_options': tgt.override_options,
-                'objects': [method(id_node(x), 'extract_all_objects') for x in objec_libs],
+                'objects': [method(x, 'extract_all_objects') for x in objec_libs],
             }
 
             # Handle compiler args
@@ -894,21 +907,22 @@ class CMakeInterpreter:
                 del dep_kwargs['link_with']
                 dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
                 node_list += [dep_node]
-                src_var = ''
-                tgt_var = ''
+                src_var = None
+                tgt_var = None
             else:
                 src_node = assign(src_var, function('files', sources))
-                tgt_node = assign(tgt_var, function(tgt_func, [base_name, [id_node(src_var)] + generated], tgt_kwargs))
+                tgt_node = assign(tgt_var, function(tgt_func, [tgt_var, [id_node(src_var)] + generated], tgt_kwargs))
                 node_list += [src_node, tgt_node]
                 if tgt_func in ['static_library', 'shared_library']:
                     dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
                     node_list += [dep_node]
                 else:
-                    dep_var = ''
+                    dep_var = None
 
             # Add the nodes to the ast
             root_cb.lines += node_list
             processed[tgt.name] = {'inc': inc_var, 'src': src_var, 'dep': dep_var, 'tgt': tgt_var, 'func': tgt_func}
+            name_map[tgt.cmake_name] = tgt.name
 
         def process_custom_target(tgt: ConverterCustomTarget) -> None:
             # CMake allows to specify multiple commands in a custom target.
@@ -922,7 +936,7 @@ class CMakeInterpreter:
                 if isinstance(x, ConverterTarget):
                     if x.name not in processed:
                         process_target(x)
-                    return id_node(x.name)
+                    return extract_tgt(x)
                 elif isinstance(x, CustomTargetReference):
                     if x.ctgt.name not in processed:
                         process_custom_target(x.ctgt)
@@ -960,12 +974,25 @@ class CMakeInterpreter:
                 process_target(i)
 
         self.generated_targets = processed
+        self.internal_name_map = name_map
         return root_cb
 
     def target_info(self, target: str) -> Optional[Dict[str, str]]:
-        if target in self.generated_targets:
+        # Try resolving the target name
+        # start by checking if there is a 100% match (excluding the name prefix)
+        prx_tgt = generated_target_name_prefix + target
+        if prx_tgt in self.generated_targets:
+            return self.generated_targets[prx_tgt]
+        # check if there exists a name mapping
+        if target in self.internal_name_map:
+            target = self.internal_name_map[target]
+            assert(target in self.generated_targets)
             return self.generated_targets[target]
         return None
 
     def target_list(self) -> List[str]:
-        return list(self.generated_targets.keys())
+        prx_str = generated_target_name_prefix
+        prx_len = len(prx_str)
+        res = [x for x in self.generated_targets.keys()]
+        res = [x[prx_len:] if x.startswith(prx_str) else x for x in res]
+        return res
