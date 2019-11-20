@@ -9,8 +9,9 @@ int main(int argc, const char *argv[]) {
     return 1;
   }
 
+  ifstream in1("macro_name.txt");
   ofstream out1("cmModLib.hpp");
-  out1 << "#define FOO = \"plop\"";
+  out1 << "#define " << in1.rdbuf() << " = \"plop\"";
 
 
   return 0;

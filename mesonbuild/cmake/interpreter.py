@@ -170,6 +170,10 @@ class ConverterTarget:
         # Project default override options (c_std, cpp_std, etc.)
         self.override_options = []
 
+        # Convert the target name to a valid meson target name
+        self.name = self.name.replace('-', '_')
+        self.name = generated_target_name_prefix + self.name
+
         for i in target.files:
             # Determine the meson language
             lang = ConverterTarget.lang_cmake_to_meson.get(i.language.lower(), 'c')
@@ -199,10 +203,6 @@ class ConverterTarget:
     std_regex = re.compile(r'([-]{1,2}std=|/std:v?|[-]{1,2}std:)(.*)')
 
     def postprocess(self, output_target_map: dict, root_src_dir: str, subdir: str, install_prefix: str, trace: CMakeTraceParser) -> None:
-        # Convert the target name to a valid meson target name
-        self.name = self.name.replace('-', '_')
-        self.name = generated_target_name_prefix + self.name
-
         # Detect setting the C and C++ standard
         for i in ['c', 'cpp']:
             if i not in self.compile_opts:
@@ -339,6 +339,7 @@ class ConverterTarget:
         self.link_libraries = [x for x in self.link_libraries if x.lower() not in blacklist_link_libs]
         self.link_flags = [x for x in self.link_flags if check_flag(x)]
 
+        # Handle explicit CMake add_dependency() calls
         for i in self.depends_raw:
             tgt = output_target_map.get(_target_key(i))
             if tgt:
@@ -382,6 +383,7 @@ class ConverterTarget:
         mlog.log('  -- generated:      ', mlog.bold(str(self.generated)))
         mlog.log('  -- pie:            ', mlog.bold('true' if self.pie else 'false'))
         mlog.log('  -- override_opts:  ', mlog.bold(str(self.override_options)))
+        mlog.log('  -- depends:        ', mlog.bold(str(self.depends)))
         mlog.log('  -- options:')
         for key, val in self.compile_opts.items():
             mlog.log('    -', key, '=', mlog.bold(str(val)))
@@ -412,6 +414,7 @@ class ConverterCustomTarget:
         if not self.name:
             self.name = 'custom_tgt_{}'.format(ConverterCustomTarget.tgt_counter)
             ConverterCustomTarget.tgt_counter += 1
+        self.cmake_name = str(self.name)
         self.original_outputs = list(target.outputs)
         self.outputs = [os.path.basename(x) for x in self.original_outputs]
         self.conflict_map = {}
@@ -421,8 +424,12 @@ class ConverterCustomTarget:
         self.inputs = []
         self.depends = []
 
+        # Convert the target name to a valid meson target name
+        self.name = self.name.replace('-', '_')
+        self.name = generated_target_name_prefix + self.name
+
     def __repr__(self) -> str:
-        return '<{}: {}>'.format(self.__class__.__name__, self.outputs)
+        return '<{}: {} {}>'.format(self.__class__.__name__, self.name, self.outputs)
 
     def postprocess(self, output_target_map: dict, root_src_dir: str, subdir: str, build_dir: str, all_outputs: List[str]) -> None:
         # Default the working directory to the CMake build dir. This
@@ -480,8 +487,15 @@ class ConverterCustomTarget:
             commands += [cmd]
         self.command = commands
 
+        # If the custom target does not declare any output, create a dummy
+        # one that can be used as dependency.
+        if not self.outputs:
+            self.outputs = [self.name + '.h']
+
         # Check dependencies and input files
         for i in self.depends_raw:
+            if not i:
+                continue
             tgt_key = _target_key(i)
             gen_key = _generated_file_key(i)
 
@@ -725,15 +739,20 @@ class CMakeInterpreter:
         # generate the output_target_map
         output_target_map = {}
         output_target_map.update({x.full_name: x for x in self.targets})
-        output_target_map.update({_target_key(x.name): x for x in self.targets})
+        output_target_map.update({_target_key(x.cmake_name): x for x in self.targets})
         for i in self.targets:
             for j in i.artifacts:
                 output_target_map[os.path.basename(j)] = i
         for i in self.custom_targets:
-            output_target_map[_target_key(i.name)] = i
+            output_target_map[_target_key(i.cmake_name)] = i
             for j in i.original_outputs:
                 output_target_map[_generated_file_key(j)] = i
         object_libs = []
+
+        # Sometimes an empty string can be inserted (no full name, etc.)
+        # Delete the entry in this case
+        if '' in output_target_map:
+            del output_target_map['']
 
         # First pass: Basic target cleanup
         custom_target_outputs = []  # type: List[str]
@@ -972,11 +991,6 @@ class CMakeInterpreter:
             # directory.
 
             tgt_var = tgt.name  # type: str
-
-            # If the custom target does not declare any output, create a dummy
-            # one that can be used as dependency.
-            if not tgt.outputs:
-                tgt.outputs = [tgt.name + '.h']
 
             def resolve_source(x: Any) -> Any:
                 if isinstance(x, ConverterTarget):
