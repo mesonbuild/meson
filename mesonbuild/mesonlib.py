@@ -770,7 +770,7 @@ if is_windows():
         result += (num_backslashes * 2) * '\\' + '"'
         return result
 
-    def split_args(cmd):
+    def split_args(cmd: typing.Sequence[str]) -> typing.List[str]:
         result = []
         arg = ''
         num_backslashes = 0
