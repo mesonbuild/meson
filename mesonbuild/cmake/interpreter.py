@@ -461,6 +461,8 @@ class ConverterCustomTarget:
             cmd = []
 
             for j in i:
+                if not j:
+                    continue
                 target_key = _target_key(j)
                 if target_key in output_target_map:
                     cmd += [output_target_map[target_key]]

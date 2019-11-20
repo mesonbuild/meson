@@ -28,6 +28,7 @@ for i in args.commands:
         commands += [[]]
         continue
 
+    i = i.replace('"', '')  # Remove lefover quotes
     commands[-1] += [i]
 
 # Execute
