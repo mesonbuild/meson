@@ -261,3 +261,4 @@ This API can also work without a build directory for the `--projectinfo` command
 - [KDevelop](https://www.kdevelop.org)
 - [Eclipse CDT](https://www.eclipse.org/cdt/) (experimental)
 - [Meson Cmake Wrapper](https://github.com/prozum/meson-cmake-wrapper) (for cmake IDEs)
+- [Meson Syntax Highlighter](https://plugins.jetbrains.com/plugin/13269-meson-syntax-highlighter) plugin for JetBrains IDEs.
