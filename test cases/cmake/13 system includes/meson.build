@@ -2,9 +2,13 @@ project(
   'meson_cmake_system_include_bug', ['c', 'cpp'],
   default_options: [
     'warning_level=3',
-    #'werror=true', # TODO implement system includes
+    'werror=true',
   ],
 )
+
+if meson.get_compiler('cpp').get_argument_syntax() == 'msvc'
+  error('MESON_SKIP_TEST: Skipp with msvc due to missing -system support')
+endif
 
 cm = import('cmake')
 sub_pro = cm.subproject('cmMod')

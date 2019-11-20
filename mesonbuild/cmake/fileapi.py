@@ -14,6 +14,7 @@
 
 from .common import CMakeException, CMakeBuildFile, CMakeConfiguration
 from typing import Any, List, Tuple
+from .. import mlog
 import os
 import json
 import re
@@ -76,6 +77,7 @@ class CMakeFileAPI:
         debug_json = os.path.normpath(os.path.join(self.build_dir, '..', 'fileAPI.json'))
         with open(debug_json, 'w') as fp:
             json.dump(index, fp, indent=2)
+        mlog.cmd_ci_include(debug_json)
 
         # parse the JSON
         for i in index['objects']:
@@ -186,9 +188,7 @@ class CMakeFileAPI:
                     'language': cg.get('language', 'C'),
                     'isGenerated': None,  # Set later, flag is stored per source file
                     'sources': [],
-
-                    # TODO handle isSystem
-                    'includePath': [x.get('path', '') for x in cg.get('includes', [])],
+                    'includePath': cg.get('includes', []),
                 }
 
                 normal_src, generated_src, src_idx = parse_sources(cg, tgt)

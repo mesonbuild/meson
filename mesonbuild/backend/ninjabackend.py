@@ -334,6 +334,7 @@ int dummy;
         # Only overwrite the old build file after the new one has been
         # fully created.
         os.replace(tempfilename, outfilename)
+        mlog.cmd_ci_include(outfilename)  # For CI debugging
         self.generate_compdb()
 
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html

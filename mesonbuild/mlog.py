@@ -56,6 +56,7 @@ log_timestamp_start = None   # type: Optional[float]
 log_fatal_warnings = False   # type: bool
 log_disable_stdout = False   # type: bool
 log_errors_only = False      # type: bool
+_in_ci = 'CI' in os.environ  # type: bool
 
 def disable() -> None:
     global log_disable_stdout
@@ -185,6 +186,15 @@ def debug(*args: Union[str, AnsiDecorator], **kwargs: Any) -> None:
     if log_file is not None:
         print(*arr, file=log_file, **kwargs)
         log_file.flush()
+
+def _debug_log_cmd(cmd: str, args: List[str]) -> None:
+    if not _in_ci:
+        return
+    args = ['"{}"'.format(x) for x in args]  # Quote all args, just in case
+    debug('!meson_ci!/{} {}'.format(cmd, ' '.join(args)))
+
+def cmd_ci_include(file: str) -> None:
+    _debug_log_cmd('ci_include', [file])
 
 def log(*args: Union[str, AnsiDecorator], is_error: bool = False,
         **kwargs: Any) -> None:
