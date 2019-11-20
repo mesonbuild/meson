@@ -10,6 +10,9 @@ foobar = cc.compute_int('FOOBAR_IN_FOOBAR_H', prefix : '#include "foobar.h"', in
 maxint = cc.compute_int('INT_MAX', prefix: '#include <limits.h>')
 minint = cc.compute_int('INT_MIN', prefix: '#include <limits.h>')
 
+# Regression test for the special case -1 that used to fail when cross compiling
+assert(cc.compute_int('-1') == -1, 'compute_int(-1) failed')
+
 cd = configuration_data()
 cd.set('INTSIZE', intsize)
 cd.set('FOOBAR', foobar)

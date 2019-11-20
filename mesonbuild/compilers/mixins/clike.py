@@ -423,7 +423,7 @@ class CLikeCompiler:
                         cur = maxint
                 high = cur
             else:
-                low = cur = -1
+                high = cur = -1
                 while self._compile_int('%s < %d' % (expression, cur), prefix, env, extra_args, dependencies):
                     high = cur - 1
                     if high < minint:
