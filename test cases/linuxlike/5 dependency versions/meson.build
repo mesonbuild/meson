@@ -50,6 +50,12 @@ assert(somelib_reqfalse.found(), 'somelib should have been found')
 somelibver = dependency('somelib',
   version : '>= 0.3',
   fallback : ['somelibver', 'some_dep'])
+# Find an internal dependency again with impossible multi-version
+somelibver = dependency('somelib',
+  version : ['>= 0.3', '<0.3'],
+  required : false,
+  fallback : ['somelibver', 'some_dep'])
+assert(not somelibver.found(), 'Dependency should not be found')
 # Find somelib again, but with a fallback that will fail because subproject does not exist
 somelibfail = dependency('somelib',
   version : '>= 0.2',
