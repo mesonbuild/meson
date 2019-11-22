@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import shutil, sys, subprocess, argparse, pathlib
+import platform
 
 parser = argparse.ArgumentParser()
 
@@ -15,6 +16,12 @@ void flob(void) {
 }
 '''
 
+def get_pic_args():
+    platname = platform.system().lower()
+    if platname in ['windows', 'mingw', 'darwin'] or platname.startswith('cygwin'):
+        return []
+    return ['-fPIC']
+
 def generate_lib_gnulike(outfile, c_file, private_dir, compiler_array):
     if shutil.which('ar'):
         static_linker = 'ar'
@@ -26,6 +33,7 @@ def generate_lib_gnulike(outfile, c_file, private_dir, compiler_array):
         sys.exit('Could not detect a static linker.')
     o_file = c_file.with_suffix('.o')
     compile_cmd = compiler_array + ['-c', '-g', '-O2', '-o', str(o_file), str(c_file)]
+    compile_cmd += get_pic_args()
     subprocess.check_call(compile_cmd)
     out_file = pathlib.Path(outfile)
     if out_file.exists():
