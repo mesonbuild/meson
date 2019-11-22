@@ -46,6 +46,8 @@ d_i = declare_dependency(link_with: clib[0])
 exe2_i = executable('prog2_i', 'prog.c', dependencies: d_i)
 test('linkcustom2_i', exe2_i)
 
+shared_library('lib1', 'lib.c', link_whole: clib)
+
 # Link whole tests
 
 exe3_i = executable('prog3_i', 'prog.c', link_whole: clib[0])

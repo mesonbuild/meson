@@ -1096,9 +1096,12 @@ You probably should put it in link_with instead.''')
                     raise InvalidArguments('Custom target {!r} is not linkable.'.format(t))
                 if not t.get_filename().endswith('.a'):
                     raise InvalidArguments('Can only link_whole custom targets that are .a archives.')
+                if isinstance(self, StaticLibrary):
+                    # FIXME: We could extract the .a archive to get object files
+                    raise InvalidArguments('Cannot link_whole a custom target into a static library')
             elif not isinstance(t, StaticLibrary):
                 raise InvalidArguments('{!r} is not a static library.'.format(t))
-            if isinstance(self, SharedLibrary) and not t.pic:
+            elif isinstance(self, SharedLibrary) and not t.pic:
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
