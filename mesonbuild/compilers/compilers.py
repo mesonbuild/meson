@@ -91,7 +91,7 @@ cflags_mapping = {'c': 'CFLAGS',
 unixy_compiler_internal_libs = ('m', 'c', 'pthread', 'dl', 'rt')
 # execinfo is a compiler lib on FreeBSD and NetBSD
 if mesonlib.is_freebsd() or mesonlib.is_netbsd():
-  unixy_compiler_internal_libs += ('execinfo',)
+    unixy_compiler_internal_libs += ('execinfo',)
 
 # All these are only for C-linkable languages; see `clink_langs` above.
 
