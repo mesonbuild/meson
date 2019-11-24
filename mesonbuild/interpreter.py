@@ -1784,6 +1784,7 @@ class MesonMain(InterpreterObject):
                              'project_name': self.project_name_method,
                              'get_cross_property': self.get_cross_property_method,
                              'backend': self.backend_method,
+                             'add_uninstalled_environment': self.add_uninstalled_environment_method,
                              })
 
     def _find_source_script(self, name, args):
@@ -1968,6 +1969,18 @@ class MesonMain(InterpreterObject):
             if len(args) == 2:
                 return args[1]
             raise InterpreterException('Unknown cross property: %s.' % propname)
+
+    @FeatureNew('add_uninstalled_environment', '0.53.0')
+    @permittedKwargs({'method', 'separator'})
+    @noArgsFlattening
+    def add_uninstalled_environment_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('add_uninstalled_environment takes exactly one argument')
+        if isinstance(args[0], EnvironmentVariablesHolder):
+            env = args[0]
+        else:
+            env = EnvironmentVariablesHolder(args[0], kwargs)
+        self.build.uninstalled_envs.append(env.held_object)
 
 
 known_library_kwargs = (

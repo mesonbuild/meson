@@ -1731,6 +1731,16 @@ the following methods.
 
 - `version()` return a string with the version of Meson.
 
+- `add_uninstalled_environment()`  [*(Added
+  0.53.0)*](Release-notes-for-0.53.0.md#uninstalled-environment) add an
+  [`environment()`](#environment) object to the list of environments that will
+  be applied when using `meson uninstalled` command line. This is useful for
+  developpers who wish to use the project without installing it, it is often
+  needed to set for example the path to plugins directory, etc. Alternatively,
+  a list or dictionary can be passed as first argument, as well as optional
+  `method` and `separator` keyword arguments. `MESON_UNINSTALLED=1` will always
+  be set in the uninstalled environment.
+
 ### `build_machine` object
 
 Provides information about the build machine — the machine that is

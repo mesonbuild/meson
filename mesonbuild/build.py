@@ -141,6 +141,9 @@ class Build:
         self.test_setup_default_name = None
         self.find_overrides = {}
         self.searched_programs = set() # The list of all programs that have been searched for.
+        env = EnvironmentVariables()
+        env.add_var(env.set, 'MESON_UNINSTALLED', ['1'], {})
+        self.uninstalled_envs = [env]
 
     def copy(self):
         other = Build(self.environment)

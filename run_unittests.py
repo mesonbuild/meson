@@ -1362,6 +1362,7 @@ class BasePlatformTests(unittest.TestCase):
         self.mintro_command = self.meson_command + ['introspect']
         self.wrap_command = self.meson_command + ['wrap']
         self.rewrite_command = self.meson_command + ['rewrite']
+        self.uninstalled_command = self.meson_command + ['uninstalled']
         # Backend-specific build commands
         self.build_command, self.clean_command, self.test_command, self.install_command, \
             self.uninstall_command = get_backend_commands(self.backend)
@@ -4096,6 +4097,13 @@ recommended as it is not supported on some platforms''')
         testdir = os.path.join(self.common_test_dir, '2 cpp')
         self.init(testdir)
         self._run(self.mconf_command + [self.builddir])
+
+    def test_uninstalled(self):
+        testdir = os.path.join(self.unit_test_dir, '72 uninstalled env')
+        self.init(testdir)
+
+        uninstalled_script = os.path.join(testdir, 'test-uninstalled.py')
+        self._run(self.uninstalled_command + ['-C', self.builddir] + python_command + [uninstalled_script])
 
 class FailureTests(BasePlatformTests):
     '''

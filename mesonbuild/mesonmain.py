@@ -22,7 +22,7 @@ import shutil
 
 from . import mesonlib
 from . import mlog
-from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata
+from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, muninstalled, munstable_coredata
 from .mesonlib import MesonException
 from .environment import detect_msys2_arch
 from .wrap import wraptool
@@ -58,6 +58,8 @@ class CommandLineParser:
                          help_msg='Wrap tools')
         self.add_command('subprojects', msubprojects.add_arguments, msubprojects.run,
                          help_msg='Manage subprojects')
+        self.add_command('uninstalled', muninstalled.add_arguments, muninstalled.run,
+                         help_msg='Run commands in uninstalled environment')
         self.add_command('help', self.add_help_arguments, self.run_help_command,
                          help_msg='Print help of a subcommand')
         self.add_command('rewrite', lambda parser: rewriter.add_arguments(parser, self.formatter), rewriter.run,
