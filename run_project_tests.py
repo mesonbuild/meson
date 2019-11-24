@@ -557,6 +557,10 @@ def skippable(suite, test):
     if test.endswith('29 blocks'):
         return True
 
+    # tested on GitHub Actions instead of Docker
+    if test.endswith('30 scalapack'):
+        return True
+
     # No frameworks test should be skipped on linux CI, as we expect all
     # prerequisites to be installed
     if mesonlib.is_linux():

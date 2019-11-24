@@ -1,0 +1,67 @@
+name: ci_frameworks
+
+on:
+  push:
+    paths:
+      - "mesonbuild/dependencies/**"
+      - "test cases/frameworks/**"
+      - ".github/workflows/frameworks.yml"
+  pull_request:
+    paths:
+      - "mesonbuild/dependencies/**"
+      - "test cases/frameworks/**"
+      - ".github/workflows/frameworks.yml"
+
+jobs:
+
+  scalapack_linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - run: python -m pip install .
+    - name: install prereq
+      run: |
+        sudo apt update -yq
+        sudo apt install -yq --no-install-recommends pkg-config ninja-build gfortran liblapack-dev libscalapack-mpi-dev libopenmpi-dev openmpi-bin
+    - run: meson setup "test cases/frameworks/30 scalapack" build
+      env:
+        FC: gfortran
+        CC: gcc
+    - run: ninja -C build
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: Scalpack_Linux_Build
+        path: build/meson-logs/meson-log.txt
+    - run: meson test -C build -v
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: Scalapack_Linux_Test
+        path: build/meson-logs/testlog.txt
+
+  scalapack_mac:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - run: python -m pip install -e .
+    - run: brew install pkg-config ninja gcc openmpi lapack scalapack
+    - run: meson setup "test cases/frameworks/30 scalapack" build
+    - run: ninja -C build
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: Scalapack_Mac_build
+        path: build/meson-logs/meson-log.txt
+    - run: meson test -C build -v
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: Scalapack_Mac_test
+        path: build/meson-logs/testlog.txt
