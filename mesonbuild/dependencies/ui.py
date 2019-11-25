@@ -25,7 +25,7 @@ from .. import mesonlib
 from ..mesonlib import (
     MesonException, Popen_safe, extract_as_list, version_compare_many
 )
-from ..environment import detect_cpu
+from ..environment import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency, ExternalProgram, NonExistingExternalProgram
@@ -609,7 +609,7 @@ class VulkanDependency(ExternalDependency):
                 lib_name = 'vulkan-1'
                 lib_dir = 'Lib32'
                 inc_dir = 'Include'
-                if detect_cpu({}) == 'x86_64':
+                if detect_cpu_family(self.env.coredata.compilers.host) == 'x86_64':
                     lib_dir = 'Lib'
             else:
                 lib_name = 'vulkan'
