@@ -319,7 +319,7 @@ class CLikeCompiler:
         cargs += self.get_compiler_args_for_mode(mode)
         return cargs, largs
 
-    def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
+    def _get_compiler_check_args(self, env, extra_args: list, dependencies, mode: str = 'compile') -> T.List[str]:
         if extra_args is None:
             extra_args = []
         else:
@@ -354,11 +354,13 @@ class CLikeCompiler:
         args = cargs + extra_args + largs
         return args
 
-    def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile', disable_cache=False):
+    def compiles(self, code: str, env, *,
+                 extra_args: T.Sequence[T.Union[T.Sequence[str], str]] = None,
+                 dependencies=None, mode: str = 'compile', disable_cache=False) -> T.Tuple[bool, bool]:
         with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
             return p.returncode == 0, p.cached
 
-    def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False, disable_cache=False, temp_dir=None):
+    def _build_wrapper(self, code: str, env, extra_args, dependencies=None, mode: str = 'compile', want_output: bool = False, disable_cache: bool = False, temp_dir=None) -> T.Tuple[bool, bool]:
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
         if disable_cache or want_output:
             return self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir)
@@ -1074,7 +1076,7 @@ class CLikeCompiler:
     def linker_to_compiler_args(self, args):
         return args
 
-    def has_arguments(self, args, env, code, mode):
+    def has_arguments(self, args: T.Sequence[str], env, code: str, mode: str) -> T.Tuple[bool, bool]:
         return self.compiles(code, env, extra_args=args, mode=mode)
 
     def has_multi_arguments(self, args, env):

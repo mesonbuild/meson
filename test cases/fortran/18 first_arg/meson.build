@@ -24,3 +24,23 @@ l2 = fc.first_supported_argument(isnt_arg, isnt_arg, isnt_arg)
 assert(l1.length() == 1, 'First supported returned wrong result.')
 assert(l1.get(0) == is_arg, 'First supported returned wrong argument.')
 assert(l2.length() == 0, 'First supported did not return empty array.')
+
+# --- test with an actual program, here for implicit none
+
+in0 = fc.first_supported_argument('-fimplicit-none', '-Mdclchk', '/warn:declarations', '-warn').get(0, '')
+impnone = {
+'intel-cl': '/warn:declarations',
+'intel': '-warn',
+'gcc': '-fimplicit-none',
+'pgi': '-Mdclchk',
+}
+
+arg = impnone.get(fc.get_id(), '')
+if arg != ''
+  assert(in0 == arg, 'implicit none argument ' + arg + ' not matching ' + in0)
+endif
+
+in1 = fc.get_supported_arguments('-fimplicit-none', '/warn:declarations', '/warn:errors', '-Mdclchk')
+if in1.length() > 0
+  assert(not fc.compiles(files('main.f90'), args: in1, name:'will fail implicit none'), 'implicit none should have failed')
+endif
