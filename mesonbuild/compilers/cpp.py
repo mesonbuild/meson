@@ -67,7 +67,8 @@ class CPPCompiler(CLikeCompiler, Compiler):
         Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
         CLikeCompiler.__init__(self, is_cross, exe_wrap)
 
-    def get_display_language(self):
+    @staticmethod
+    def get_display_language():
         return 'C++'
 
     def get_no_stdinc_args(self):

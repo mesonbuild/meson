@@ -61,9 +61,6 @@ class CudaCompiler(Compiler):
     def get_always_args(self):
         return []
 
-    def get_display_language(self):
-        return 'Cuda'
-
     def get_no_stdinc_args(self):
         return []
 

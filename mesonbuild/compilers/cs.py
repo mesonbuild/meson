@@ -43,7 +43,8 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
         self.is_cross = False
         self.runner = runner
 
-    def get_display_language(self):
+    @classmethod
+    def get_display_language(cls):
         return 'C sharp'
 
     def get_always_args(self):

@@ -49,9 +49,6 @@ class FortranCompiler(CLikeCompiler, Compiler):
         CLikeCompiler.__init__(self, is_cross, exe_wrapper)
         self.id = 'unknown'
 
-    def get_display_language(self):
-        return 'Fortran'
-
     def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
         raise MesonException('Fortran does not have "has_function" capability.\n'
                              'It is better to test if a Fortran capability is working like:\n\n'
