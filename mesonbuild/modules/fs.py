@@ -118,6 +118,23 @@ class FSModule(ExtensionModule):
         new = original.with_suffix(args[1])
         return ModuleReturnValue(str(new), [])
 
+    @stringArgs
+    @noKwargs
+    def parent(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        if len(args) != 1:
+            MesonException('method takes exactly one argument.')
+        original = PurePath(args[0])
+        new = original.parent
+        return ModuleReturnValue(str(new), [])
+
+    @stringArgs
+    @noKwargs
+    def name(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        if len(args) != 1:
+            MesonException('method takes exactly one argument.')
+        original = PurePath(args[0])
+        new = original.name
+        return ModuleReturnValue(str(new), [])
 
 def initialize(*args, **kwargs) -> FSModule:
     return FSModule(*args, **kwargs)
