@@ -21,3 +21,7 @@ assert(d.found(), 'Should fallback even if a previous call returned not-found')
 # Verify we can get a fallback dependency without specifying the variable name,
 # because the subproject overridden 'sub-novar'.
 dependency('sub-novar', fallback : 'sub_novar')
+
+# Verify a subproject can force a dependency to be not-found
+d = dependency('sub-notfound', fallback : 'sub_novar', required : false)
+assert(not d.found(), 'Dependency should be not-found')

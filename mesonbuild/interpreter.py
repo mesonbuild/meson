@@ -3036,6 +3036,13 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         cached_dep = self.build.dependency_overrides[for_machine].get(identifier)
         if cached_dep:
+            # We don't implicitly override not-found dependencies, but user could
+            # have explicitly called meson.override_dependency() with a not-found
+            # dep.
+            if not cached_dep.found():
+                mlog.log('Dependency', mlog.bold(name),
+                         'found:', mlog.red('NO'), mlog.blue('(cached)'))
+                return identifier, cached_dep
             found_vers = cached_dep.get_version()
             if not self.check_version(wanted_vers, found_vers):
                 mlog.log('Dependency', mlog.bold(name),
