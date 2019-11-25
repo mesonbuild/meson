@@ -41,9 +41,10 @@ if TYPE_CHECKING:
 
 class FortranCompiler(CLikeCompiler, Compiler):
 
+    language = 'fortran'
+
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
-        self.language = 'fortran'
         Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
         CLikeCompiler.__init__(self, is_cross, exe_wrapper)
         self.id = 'unknown'

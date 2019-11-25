@@ -30,13 +30,12 @@ if typing.TYPE_CHECKING:
 class CudaCompiler(Compiler):
 
     LINKER_PREFIX = '-Xlinker='
+    language = 'cuda'
 
     _universal_flags = {'compiler': ['-I', '-D', '-U', '-E'], 'linker': ['-l', '-L']}
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, exe_wrapper, host_compiler, info: 'MachineInfo', **kwargs):
-        if not hasattr(self, 'language'):
-            self.language = 'cuda'
         super().__init__(exelist, version, for_machine, info, **kwargs)
         self.is_cross = is_cross
         self.exe_wrapper = exe_wrapper

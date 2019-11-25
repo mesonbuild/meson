@@ -33,9 +33,11 @@ cs_optimization_args = {'0': [],
 
 
 class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
+
+    language = 'cs'
+
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', comp_id, runner=None):
-        self.language = 'cs'
         super().__init__(exelist, version, for_machine, info)
         self.id = comp_id
         self.is_cross = False

@@ -59,10 +59,11 @@ class CPPCompiler(CLikeCompiler, Compiler):
         except KeyError:
             raise MesonException('Unknown function attribute "{}"'.format(name))
 
+    language = 'cpp'
+
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrap: typing.Optional[str] = None, **kwargs):
         # If a child ObjCPP class has already set it, don't set it ourselves
-        self.language = 'cpp'
         Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
         CLikeCompiler.__init__(self, is_cross, exe_wrap)
 

@@ -412,9 +412,10 @@ class DCompiler(Compiler):
         'mtd': ['-mscrtlib=libcmtd'],
     }
 
+    language = 'd'
+
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', arch, is_cross, exe_wrapper, **kwargs):
-        self.language = 'd'
         super().__init__(exelist, version, for_machine, info, **kwargs)
         self.id = 'unknown'
         self.arch = arch

@@ -33,10 +33,10 @@ swift_optimization_args = {'0': [],
 class SwiftCompiler(Compiler):
 
     LINKER_PREFIX = ['-Xlinker']
+    language = 'swift'
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', **kwargs):
-        self.language = 'swift'
         super().__init__(exelist, version, for_machine, info, **kwargs)
         self.version = version
         self.id = 'llvm'
